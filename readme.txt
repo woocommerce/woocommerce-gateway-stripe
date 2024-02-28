@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Wrong status when purchasing a pre-order product with a new payment method.
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
 * Tweak - Hide Stripe secret keys in the UI.
+* Fix - Resolved failing payments when statement descriptor prefix starts with a number.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
