@@ -126,7 +126,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_gateways' ] );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'reorder_available_payment_gateways' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -649,58 +649,36 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Include the available legacy payment methods in the list of payment methods.
-	 * As we are not registering the other Stripe payment methods to show in the settings page,
-	 * we need to include them here so that they are available in the checkout, pay for order, add payment method etc. pages.
+	 * Reorders the list of available payment gateways to include the Stripe methods in the order merchants have chosen in the settings.
 	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
-	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
+	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
 	 */
-	public function get_available_payment_gateways( $gateways ) {
-		// Unset the stripe methods from the array first, then place it in the correct position below
-		// as set in `stripe_ordered_payment_method_ids`.
-		foreach ( $gateways as $key => $gateway ) {
-			if ( 0 === strpos( $key, 'stripe_' ) ) {
-				unset( $gateways[ $key ] );
+	public function reorder_available_payment_gateways( $gateways ) {
+		$ordered_available_stripe_methods = [];
+
+		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.
+		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
+
+		// Generate a list of all available Stripe payment methods in the order they should be displayed.
+		foreach ( WC_Stripe_Helper::get_legacy_available_payment_method_ids() as $payment_method ) {
+			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
+
+			if ( isset( $gateways[ $gateway_id ] ) ) {
+				$ordered_available_stripe_methods[ $gateway_id ] = $gateways[ $gateway_id ];
+				unset( $gateways[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
 			}
 		}
 
-		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
-		$stripe_ordered_payment_method_ids = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-
-		// Map the IDs of the Stripe payment methods to match the ones expected in the $gateways array.
-		$stripe_ordered_payment_method_ids = array_map(
-			function( $id ) {
-				return 'card' === $id ? 'stripe' : 'stripe_' . $id;
-			},
-			$stripe_ordered_payment_method_ids
-		);
-
-		// If Stripe is not found in the $gateways array, but other legacy methods are enabled,
-		// they will be placed on the top in their saved order, followed by other gateways.
-		$stripe_index           = array_search( 'stripe', array_keys( $gateways ), true );
-		$gateways_before_stripe = array_slice( $gateways, 0, $stripe_index );
-		$gateways_after_stripe  = array_slice( $gateways, $stripe_index + 1 );
-		$stripe_gateways        = [];
-
-		foreach ( $stripe_ordered_payment_method_ids as $id ) {
-			$gateway = null;
-			if ( 'stripe' === $id ) {
-				$gateway = $this;
-			} elseif ( isset( $legacy_enabled_gateways[ $id ] ) ) {
-				$gateway = $legacy_enabled_gateways[ $id ];
-			}
-
-			if ( $gateway && $gateway->is_available() ) {
-				if ( ! is_add_payment_method_page() ) {
-					$stripe_gateways[ $id ] = $gateway;
-				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
-					$stripe_gateways[ $id ] = $gateway;
-				}
-			}
+		// Add the ordered list of available Stripe payment methods back into the list of available gateways.
+		if ( $stripe_index ) {
+			$gateways = array_slice( $gateways, 0, $stripe_index, true ) + $ordered_available_stripe_methods + array_slice( $gateways, $stripe_index, null, true );
+		} else {
+			// In cases where Stripe is not found in the list of available gateways but there were other legacy methods available, add the Stripe methods to the front of the list.
+			$gateways = array_merge( $ordered_available_stripe_methods, $gateways );
 		}
 
-		return array_merge( $gateways_before_stripe, $stripe_gateways, $gateways_after_stripe );
+		return $gateways;
 	}
 
 	/**
