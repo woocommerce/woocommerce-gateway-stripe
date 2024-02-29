@@ -52,6 +52,17 @@ describe( 'AccountActivationNotice', () => {
 		).toBeInTheDocument();
 	} );
 
+	it( 'should render notice if capability object is empty', () => {
+		useGetCapabilities.mockReturnValue( {} );
+		render( <AccountActivationNotice /> );
+
+		expect(
+			screen.queryByText(
+				'Payment methods require activation in your Stripe dashboard.'
+			)
+		).toBeInTheDocument();
+	} );
+
 	it( 'should not render notice if no method has "inactive" or "pending status', () => {
 		useGetCapabilities.mockReturnValue( {
 			giropay_payments: 'active',
