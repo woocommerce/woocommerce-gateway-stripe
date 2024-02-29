@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.0.0 - xxxx-xx-xx =
+= 8.0.0 - 2024-02-29 =
 * Add - Implement deferred payment intents for the Payment Element (or UPE), used on the updated checkout experience.
 * Add - Implement split Payment Elements (or split UPE), splitting the payment method types under the updated checkout experience into different gateways.
 * Add - Update the interface for customizing Stripe payment methods.
