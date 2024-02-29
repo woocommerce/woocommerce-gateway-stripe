@@ -822,9 +822,9 @@ class WC_Stripe_Helper {
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
 			$suffix = '#' . $order->get_order_number();
 
-			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add the first character of the prefix before the order number.
+			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add an extra `O` before the order number.
 			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
-				$suffix = ! empty( $prefix ) ? substr( $prefix, 0, 1 ) . ' ' . $suffix : 'O ' . $suffix;
+				$suffix = 'O ' . $suffix;
 			}
 		}
 
