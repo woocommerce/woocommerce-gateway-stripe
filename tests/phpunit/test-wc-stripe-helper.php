@@ -1,4 +1,5 @@
 <?php
+
 /**
  * These tests make assertions against class WC_Stripe_Helper.
  *
@@ -144,5 +145,99 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$intent_with_neither_source_nor_payment_method = new stdClass();
 		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
+	}
+
+	public function test_get_legacy_payment_methods() {
+		$result = WC_Stripe_Helper::get_legacy_payment_methods();
+		$this->assertEquals( [ 'stripe_alipay', 'stripe_bancontact', 'stripe_boleto', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_oxxo', 'stripe_p24', 'stripe_sepa' ], array_keys( $result ) );
+	}
+
+	public function test_get_legacy_available_payment_method_ids() {
+		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$this->assertEquals( [ 'card', 'alipay', 'bancontact', 'boleto', 'eps', 'giropay', 'ideal', 'multibanco', 'oxxo', 'p24', 'sepa' ], $result );
+	}
+
+	public function test_get_legacy_enabled_payment_methods() {
+		// Enable EPS, Giropay and P24 LPM gateways.
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->enable();
+		$gateways['stripe_giropay']->enable();
+		$gateways['stripe_p24']->enable();
+
+		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
+	}
+
+	public function test_get_legacy_enabled_payment_method_ids() {
+		// Enable EPS, Giropay and P24 LPM gateways.
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->enable();
+		$gateways['stripe_giropay']->enable();
+		$gateways['stripe_p24']->enable();
+
+		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
+		$this->assertEquals( [ 'eps', 'giropay', 'p24' ], $result );
+	}
+
+	public function test_get_legacy_individual_payment_method_settings() {
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
+		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
+
+		$result = WC_Stripe_Helper::get_legacy_individual_payment_method_settings();
+		$this->arrayHasKey( 'eps', $result );
+		$this->assertEquals(
+			[
+				'name'        => 'EPS',
+				'description' => 'Pay with EPS',
+			],
+			$result['eps'],
+		);
+	}
+
+	/**
+	 * Test for `get_order_by_intent_id`
+	 *
+	 * @param string $status              The order status to return.
+	 * @param bool   $success             Whether the order should be found.
+	 * @return void
+	 * @dataProvider provide_test_get_order_by_intent_id
+	 */
+	public function test_get_order_by_intent_id( $status, $success ) {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$order = wc_get_order( $order_id );
+		$order->set_status( $status );
+
+		$intent_id = 'pi_mock';
+		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		if ( $success ) {
+			$this->assertInstanceOf( WC_Order::class, $order );
+		} else {
+			$this->assertFalse( $order );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_intent_id`
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_intent_id(): array {
+		return [
+			'regular table' => [
+				'custom orders table' => false,
+				'status'              => 'completed',
+				'success'             => true,
+			],
+			'trashed order' => [
+				'custom orders table' => false,
+				'status'              => 'trash',
+				'success'             => false,
+			],
+		];
 	}
 }

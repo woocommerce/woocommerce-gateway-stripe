@@ -459,14 +459,18 @@ class WC_Stripe_Payment_Request {
 	 * Filters the gateway title to reflect Payment Request type
 	 */
 	public function filter_gateway_title( $title, $id ) {
-		global $post;
+		global $theorder;
 
-		if ( ! is_object( $post ) ) {
+		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
+		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
+			$theorder = wc_get_order( $GLOBALS['post']->ID );
+		}
+
+		if ( ! is_object( $theorder ) ) {
 			return $title;
 		}
 
-		$order        = wc_get_order( $post->ID );
-		$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
+		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
 			if ( 'Apple Pay (Stripe)' === $method_title
@@ -483,8 +487,6 @@ class WC_Stripe_Payment_Request {
 			if ( 'Chrome Payment Request (Stripe)' === $method_title ) {
 				return 'Payment Request (Stripe)';
 			}
-
-			return $method_title;
 		}
 
 		return $title;
@@ -974,6 +976,11 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		// Don't show on cart if there are required checkout fields.
+		if ( is_cart() && $this->has_required_checkout_fields() ) {
+			return false;
+		}
+
 		// Don't show on checkout if disabled.
 		if ( is_checkout() && ! $this->should_show_prb_on_checkout_page() ) {
 			return false;
@@ -981,6 +988,11 @@ class WC_Stripe_Payment_Request {
 
 		// Don't show if product page PRB is disabled.
 		if ( $this->is_product() && ! $this->should_show_prb_on_product_pages() ) {
+			return false;
+		}
+
+		// Don't show on product if there are required checkout fields.
+		if ( $this->is_product() && $this->has_required_checkout_fields() ) {
 			return false;
 		}
 
@@ -1056,6 +1068,54 @@ class WC_Stripe_Payment_Request {
 			! $should_show_on_product_page,
 			$post
 		);
+	}
+
+	/**
+	 * Returns true if the checkout has any required fields other than the default ones, false otherwise.
+	 * to not be empty.
+	 *
+	 * @since 8.0.0
+	 *
+	 * @return boolean
+	 */
+	public function has_required_checkout_fields() {
+		// Default WooCommerce Core required fields for billing and shipping.
+		$default_required_fields = [
+			'billing_first_name',
+			'billing_last_name',
+			'billing_country',
+			'billing_address_1',
+			'billing_city',
+			'billing_state',
+			'billing_postcode',
+			'billing_phone',
+			'billing_email',
+			'shipping_first_name',
+			'shipping_last_name',
+			'shipping_country',
+			'shipping_address_1',
+			'shipping_city',
+			'shipping_state',
+			'shipping_postcode',
+		];
+
+		$fields = WC()->checkout()->get_checkout_fields();
+		$fields = array_merge(
+			$fields['billing'] ?? [],
+			$fields['shipping'] ?? [],
+			$fields['order'] ?? [],
+			$fields['account'] ?? []
+		);
+
+		foreach ( $fields as $field_key => $field_data ) {
+			if ( false === array_search( $field_key, $default_required_fields, true ) ) {
+				if ( isset( $field_data['required'] ) && true === $field_data['required'] ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**

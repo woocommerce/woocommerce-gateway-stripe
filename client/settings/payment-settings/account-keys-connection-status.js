@@ -3,10 +3,7 @@ import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
-import apiFetch from '@wordpress/api-fetch';
-import { loadStripe } from '@stripe/stripe-js';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
-import { NAMESPACE } from 'wcstripe/data/constants';
 
 const SpanConnectionText = styled.span`
 	margin-right: 0.3rem;
@@ -37,41 +34,28 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 	const {
 		isTesting,
 		isValid,
-		updateIsTestingAccountKeys,
 		updateIsValidAccountKeys,
+		testAccountKeys,
 	} = useAccountKeys();
 
 	const handleTestConnection = async ( ref ) => {
-		updateIsTestingAccountKeys( true );
-		updateIsValidAccountKeys( null );
-
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.
 		const elements = Array.from( ref.current.elements );
 		// Convert HTML elements array to an object acceptable for saving keys.
-		const keysToSave = elements.reduce( ( dict, ele ) => {
+		const keys = elements.reduce( ( dict, ele ) => {
 			return Object.assign( dict, { [ ele.name ]: ele.value } );
 		}, {} );
 
-		let publishableKey;
-		let secretKey;
-
-		const isTestingLiveConnection =
-			keysToSave.publishable_key && keysToSave.secret_key;
-		const isTestingTestConnection =
-			keysToSave.test_publishable_key && keysToSave.test_secret_key;
-		if ( isTestingLiveConnection ) {
-			publishableKey = keysToSave.publishable_key;
-			secretKey = keysToSave.secret_key;
+		// The form don't allow both LIVE and TEST keys to be updated at the same time.
+		let data = {};
+		if ( keys.publishable_key && keys.secret_key ) {
 			if (
-				! publishableKey.startsWith( 'pk_live_' ) ||
+				! keys.publishable_key.startsWith( 'pk_live_' ) ||
 				! (
-					secretKey.startsWith( 'sk_live_' ) ||
-					secretKey.startsWith( 'rk_live_' )
+					keys.secret_key.startsWith( 'sk_live_' ) ||
+					keys.secret_key.startsWith( 'rk_live_' )
 				)
 			) {
-				updateIsTestingAccountKeys( false );
-				updateIsValidAccountKeys( false );
-
 				dispatch( 'core/notices' ).createErrorNotice(
 					__(
 						'Only live account keys should be entered.',
@@ -80,19 +64,19 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 				);
 				return;
 			}
-		} else if ( isTestingTestConnection ) {
-			publishableKey = keysToSave.test_publishable_key;
-			secretKey = keysToSave.test_secret_key;
+			data = {
+				live: true,
+				publishable: keys.publishable_key,
+				secret: keys.secret_key,
+			};
+		} else if ( keys.test_publishable_key && keys.test_secret_key ) {
 			if (
-				! publishableKey.startsWith( 'pk_test_' ) ||
+				! keys.test_publishable_key.startsWith( 'pk_test_' ) ||
 				! (
-					secretKey.startsWith( 'sk_test_' ) ||
-					secretKey.startsWith( 'rk_test_' )
+					keys.test_secret_key.startsWith( 'sk_test_' ) ||
+					keys.test_secret_key.startsWith( 'rk_test_' )
 				)
 			) {
-				updateIsTestingAccountKeys( false );
-				updateIsValidAccountKeys( false );
-
 				dispatch( 'core/notices' ).createErrorNotice(
 					__(
 						'Only test account keys should be entered.',
@@ -101,51 +85,18 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 				);
 				return;
 			}
-		} else {
-			updateIsTestingAccountKeys( false );
-			updateIsValidAccountKeys( false );
-			return;
+			data = {
+				live: false,
+				publishable: keys.test_publishable_key,
+				secret: keys.test_secret_key,
+			};
 		}
 
-		try {
-			const stripe = await loadStripe( publishableKey );
-			const createTokenResult = await stripe.createToken( 'pii', {
-				personal_id_number: 'connection_test',
-			} );
-
-			const tokenId = createTokenResult?.token?.id;
-
-			if ( ! tokenId ) {
-				updateIsValidAccountKeys( false );
-				return;
-			}
-
-			const tokenResult = await apiFetch( {
-				path: `${ NAMESPACE }/tokens/${ tokenId }`,
-				method: 'GET',
-				headers: {
-					'X-WCStripe-Secret-Key': secretKey,
-				},
-			} );
-
-			if ( tokenResult?.id === tokenId ) {
-				updateIsValidAccountKeys( true );
-			} else {
-				updateIsValidAccountKeys( false );
-			}
-		} catch ( err ) {
+		const testSuccess = await testAccountKeys( data );
+		if ( testSuccess ) {
+			updateIsValidAccountKeys( true );
+		} else {
 			updateIsValidAccountKeys( false );
-
-			if ( err.name === 'IntegrationError' ) {
-				dispatch( 'core/notices' ).createErrorNotice(
-					__(
-						'Live account keys must use a HTTPS connection.',
-						'woocommerce-gateway-stripe'
-					)
-				);
-			}
-		} finally {
-			updateIsTestingAccountKeys( false );
 		}
 	};
 

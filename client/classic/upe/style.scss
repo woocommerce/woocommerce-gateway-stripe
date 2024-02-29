@@ -1,3 +1,26 @@
-#wc-stripe-upe-element {
+.wc-stripe-upe-element {
 	margin-bottom: 4px;
+}
+
+#payment .payment_methods li {
+	img.stripe-icon {
+		height: 24px;
+		width: 37px;
+		object-fit: contain;
+	}
+	img.stripe-boleto-icon,
+	img.stripe-sepa-icon {
+		padding: 4px;
+	}
+	img.stripe-sepa-icon {
+		background: #10298e;
+	}
+}
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon {
+	max-height: 30px;
+}
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-alipay-icon {
+	max-width: 50px;
 }

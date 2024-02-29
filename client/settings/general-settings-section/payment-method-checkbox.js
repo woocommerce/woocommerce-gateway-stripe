@@ -1,11 +1,16 @@
 import { __, sprintf } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import interpolateComponents from 'interpolate-components';
+import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
-import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
+import {
+	useEnabledPaymentMethodIds,
+	useManualCapture,
+	useIsStripeEnabled,
+} from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
 
 const StyledCheckbox = styled( CheckboxControl )`
@@ -15,7 +20,7 @@ const StyledCheckbox = styled( CheckboxControl )`
 `;
 
 const AlertIcon = styled( Icon )`
-	fill: #ffc83f;
+	fill: #f0b849;
 `;
 
 const IconWrapper = styled.span`
@@ -23,8 +28,21 @@ const IconWrapper = styled.span`
 	flex-shrink: 0;
 `;
 
-const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
+const StyledLink = styled.a`
+	&,
+	&:hover,
+	&:visited {
+		color: white;
+	}
+`;
+
+const PaymentMethodCheckbox = ( {
+	id,
+	label,
+	isAllowingManualCapture,
+	isCurrencySupported,
+	paymentMethodCurrencies,
+} ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
@@ -33,11 +51,19 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
 	] = useEnabledPaymentMethodIds();
+	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
+	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
 		if ( ! hasBeenChecked ) {
 			setIsConfirmationModalOpen( true );
 			return;
+		}
+
+		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
+		// So if the card payment method is enabled, Stripe should be enabled.
+		if ( id === 'card' && ! isUpeEnabled ) {
+			setIsStripeEnabled( true );
 		}
 
 		setEnabledPaymentMethods( [ ...enabledPaymentMethods, id ] );
@@ -48,10 +74,47 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 		setEnabledPaymentMethods(
 			enabledPaymentMethods.filter( ( m ) => m !== id )
 		);
+
+		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
+		// So if the card payment method is disabled, Stripe should be disabled.
+		if ( id === 'card' && ! isUpeEnabled ) {
+			setIsStripeEnabled( false );
+		}
 	};
 
-	if ( ! isUpeEnabled ) {
-		return null;
+	if ( ! isCurrencySupported ) {
+		return (
+			<Tooltip
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: $1: a payment method name. %2: Currency(ies). */
+						__(
+							'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+							'woocommerce-gateway-stripe'
+						),
+						label,
+						paymentMethodCurrencies.join( ', ' )
+					),
+					components: {
+						currencySettingsLink: (
+							<StyledLink
+								href="/wp-admin/admin.php?page=wc-settings&tab=general"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
+			>
+				<IconWrapper>
+					<AlertIcon icon={ info } />
+				</IconWrapper>
+			</Tooltip>
+		);
 	}
 
 	return (

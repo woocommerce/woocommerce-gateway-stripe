@@ -53,7 +53,7 @@ describe( 'ConnectStripeAccount', () => {
 
 		expect(
 			screen.queryByText( 'Enter account keys (advanced)' )
-		).toBeInTheDocument();
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should redirect to the Stripe OAuth link when clicking on the "Create or connect an account" button', () => {
@@ -107,7 +107,9 @@ describe( 'ConnectStripeAccount', () => {
 		expect(
 			screen.queryByText( 'Create or connect an account' )
 		).not.toBeInTheDocument();
-		expect( screen.getByText( 'Enter account keys' ) ).toBeInTheDocument();
+		expect(
+			screen.getByText( 'Enter account keys (advanced)' )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {

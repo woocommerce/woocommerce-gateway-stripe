@@ -110,7 +110,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 						</TermsOfServiceText>
 					) }
 					<ButtonWrapper>
-						{ oauthUrl && (
+						{ oauthUrl ? (
 							<Button
 								isPrimary
 								onClick={ handleCreateOrConnectAccount }
@@ -120,23 +120,18 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 									'woocommerce-gateway-stripe'
 								) }
 							</Button>
+						) : (
+							<Button
+								isPrimary={ ! oauthUrl }
+								isSecondary={ !! oauthUrl }
+								onClick={ handleEnterAccountKeys }
+							>
+								{ __(
+									'Enter account keys (advanced)',
+									'woocommerce-gateway-stripe'
+								) }
+							</Button>
 						) }
-						<Button
-							isPrimary={ ! oauthUrl }
-							isSecondary={ !! oauthUrl }
-							// eslint-disable-next-line no-alert, no-undef
-							onClick={ handleEnterAccountKeys }
-						>
-							{ oauthUrl
-								? __(
-										'Enter account keys (advanced)',
-										'woocommerce-gateway-stripe'
-								  )
-								: __(
-										'Enter account keys',
-										'woocommerce-gateway-stripe'
-								  ) }
-						</Button>
 					</ButtonWrapper>
 				</CardBody>
 			</CardWrapper>
