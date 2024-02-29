@@ -79,6 +79,11 @@ export const createOrder = ( sourceEvent, paymentRequestType ) => {
 
 const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( '.wc-block-checkout' );
+	// Return if cart page.
+	if ( ! checkoutForm ) {
+		return data;
+	}
+
 	const requiredFields = checkoutForm.querySelectorAll( '[required]' );
 
 	if ( requiredFields.length ) {
