@@ -465,46 +465,48 @@ export const setupStripe = ( page, baseUrl ) =>
 					}
 				);
 
-				const nRetries = 5;
-				for ( let i = 0; i < nRetries; i++ ) {
-					try {
-						console.log( '- Trying to setup the Stripe keys...' );
-						await page.goto(
-							`/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe`
-						);
+				const settings = {
+					enabled: 'yes',
+					title: 'Credit Card (Stripe)',
+					description: 'Pay with your credit card via Stripe.',
+					api_credentials: '',
+					testmode: 'yes',
+					test_publishable_key: STRIPE_PUB_KEY,
+					test_secret_key: STRIPE_SECRET_KEY,
+					publishable_key: '',
+					secret_key: '',
+					webhook: '',
+					test_webhook_secret: webhookEndpoint.secret,
+					webhook_secret: '',
+					inline_cc_form: 'no',
+					statement_descriptor: '',
+					short_statement_descriptor: '',
+					capture: 'yes',
+					payment_request: 'yes',
+					payment_request_button_type: 'buy',
+					payment_request_button_theme: 'dark',
+					payment_request_button_locations: [
+						'product',
+						'cart',
+						'checkout',
+					],
+					payment_request_button_size: 'default',
+					saved_cards: 'yes',
+					logging: 'no',
+					upe_checkout_experience_enabled: 'no',
+				};
 
-						await page
-							.getByText( /Enter account keys.*/ )
-							.click( { timeout: 5000 } );
-						await page.locator( 'text="Test"' ).click();
+				await sshExecCommands( [
+					`wp option set woocommerce_stripe_settings --format=json '${ JSON.stringify(
+						settings
+					) }'`,
+				] );
 
-						await page
-							.locator( '[name="test_publishable_key"]' )
-							.fill( STRIPE_PUB_KEY );
-						await page
-							.locator( '[name="test_secret_key"]' )
-							.fill( STRIPE_SECRET_KEY );
-						await page
-							.locator( '[name="test_webhook_secret"]' )
-							.fill( webhookEndpoint.secret );
-
-						await page.locator( 'text="Save test keys"' ).click();
-						await page.waitForNavigation( { timeout: 10000 } );
-
-						await expect( page ).toHaveURL(
-							/.*section=stripe&panel=settings.*/
-						);
-
-						console.log( '\u2714 Added Stripe keys successfully.' );
-						resolve();
-						return;
-					} catch ( e ) {
-						console.log(
-							`Failed to add Stripe keys. Retrying... ${ i }/${ nRetries }`
-						);
-						console.log( e );
-					}
-				}
+				console.log(
+					'\u2714 Updated Stripe plugin settings successfully.'
+				);
+				resolve();
+				return;
 			} catch ( e ) {
 				reject( e );
 			}
