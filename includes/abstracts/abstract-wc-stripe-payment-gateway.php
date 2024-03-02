@@ -819,6 +819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $_POST['stripe_source'] ) ) {
 			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
+			$customer->maybe_create_customer();
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
 			$wc_token_id = isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ? wc_clean( wp_unslash( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ) : '';
