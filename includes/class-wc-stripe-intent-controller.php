@@ -346,6 +346,8 @@ class WC_Stripe_Intent_Controller {
 			'payment_intents'
 		);
 
+		WC_Stripe_Logger::log( 'Creating payment intent: ' . print_r( $payment_intent, true ) );
+
 		if ( ! empty( $payment_intent->error ) ) {
 			throw new Exception( $payment_intent->error->message );
 		}
