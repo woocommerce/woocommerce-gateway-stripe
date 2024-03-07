@@ -719,17 +719,20 @@ class WC_Stripe_Intent_Controller {
 		$request = array_merge(
 			$request,
 			[
-				'amount'                      => $payment_information['amount'],
-				'confirm'                     => 'true',
-				'currency'                    => $payment_information['currency'],
-				'customer'                    => $payment_information['customer'],
+				'amount'               => $payment_information['amount'],
+				'confirm'              => 'true',
+				'currency'             => $payment_information['currency'],
+				'customer'             => $payment_information['customer'],
 				/* translators: 1) blog name 2) order number */
-				'description'                 => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
-				'metadata'                    => $payment_information['metadata'],
-				'payment_method_types'        => $payment_method_types,
-				'statement_descriptor_suffix' => $payment_information['statement_descriptor_suffix'],
+				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'metadata'             => $payment_information['metadata'],
+				'payment_method_types' => $payment_method_types,
 			]
 		);
+
+		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
+			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
