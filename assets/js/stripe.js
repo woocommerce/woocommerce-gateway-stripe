@@ -6,6 +6,7 @@ jQuery( function( $ ) {
 	try {
 		var stripe = Stripe( wc_stripe_params.key, {
 			locale: wc_stripe_params.stripe_locale || 'auto',
+			apiVersion: '2019-09-09',
 		} );
 	} catch( error ) {
 		console.log( error );
