@@ -337,11 +337,10 @@ class WC_Stripe_Intent_Controller {
 		$capture        = empty( $gateway->get_option( 'capture' ) ) || $gateway->get_option( 'capture' ) === 'yes';
 		$payment_intent = WC_Stripe_API::request(
 			[
-				'amount'                    => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
-				'currency'                  => strtolower( $currency ),
-				'payment_method_types'      => $enabled_payment_methods,
-				'capture_method'            => $capture ? 'automatic' : 'manual',
-				'automatic_payment_methods' => [ 'enabled' => false ],
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency'             => strtolower( $currency ),
+				'payment_method_types' => $enabled_payment_methods,
+				'capture_method'       => $capture ? 'automatic' : 'manual',
 			],
 			'payment_intents'
 		);
@@ -721,15 +720,15 @@ class WC_Stripe_Intent_Controller {
 		$request = array_merge(
 			$request,
 			[
-				'amount'               => $payment_information['amount'],
-				'confirm'              => 'true',
-				'currency'             => $payment_information['currency'],
-				'customer'             => $payment_information['customer'],
+				'amount'                    => $payment_information['amount'],
+				'confirm'                   => 'true',
+				'currency'                  => $payment_information['currency'],
+				'customer'                  => $payment_information['customer'],
 				/* translators: 1) blog name 2) order number */
-				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
-				'metadata'             => $payment_information['metadata'],
-				'payment_method_types' => $payment_method_types,
-				'statement_descriptor' => $payment_information['statement_descriptor'],
+				'description'               => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'metadata'                  => $payment_information['metadata'],
+				'statement_descriptor'      => $payment_information['statement_descriptor'],
+				'automatic_payment_methods' => [ 'enabled' => 'false' ],
 			]
 		);
 
