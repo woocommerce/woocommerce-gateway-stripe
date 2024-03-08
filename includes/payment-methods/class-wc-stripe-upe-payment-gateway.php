@@ -1947,7 +1947,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
-		return [
+		$payment_information = [
 			'amount'                        => $amount,
 			'currency'                      => $currency,
 			'customer'                      => $this->get_customer_id_for_order( $order ),
@@ -1963,10 +1963,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'         => $selected_payment_type,
 			'payment_method_types'          => $payment_method_types,
 			'shipping'                      => $shipping_details,
-			'statement_descriptor'          => $this->get_statement_descriptor( $order, $selected_payment_type ),
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
+
+		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
+		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
+		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
+			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+		}
+
+		return $payment_information;
 	}
 
 	/**
@@ -2127,35 +2134,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 
 		return $customer->update_or_create_customer();
-	}
-
-	/**
-	 * Returns the statement descriptor given the selected payment type.
-	 *
-	 * @param WC_Order $order The WC order for which we're getting the statement descriptor.
-	 * @param string $selected_payment_type The selected payment type.
-	 *
-	 * @return string|null
-	 */
-	private function get_statement_descriptor( WC_Order $order, string $selected_payment_type ) {
-		$statement_descriptor                  = ! empty( $this->get_option( 'statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) : '';
-		$short_statement_descriptor            = ! empty( $this->get_option( 'short_statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'short_statement_descriptor' ) ) : '';
-		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
-
-		// Use the shortened statement descriptor for card transactions only.
-		if (
-			'card' === $selected_payment_type &&
-			$is_short_statement_descriptor_enabled &&
-			! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) )
-		) {
-			return WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
-		}
-
-		if ( ! empty( $statement_descriptor ) ) {
-			return WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
-		}
-
-		return null;
 	}
 
 	/**
