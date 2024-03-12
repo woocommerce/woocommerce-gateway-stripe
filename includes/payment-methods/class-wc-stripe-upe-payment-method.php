@@ -75,6 +75,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
+	 * Is test mode active?
+	 *
+	 * @var bool
+	 */
+	public $testmode;
+
+	/**
 	 * List of supported countries
 	 *
 	 * @var array
