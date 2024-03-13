@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.0.1 - xxxx-xx-xx =
+= 8.0.1 - 2024-03-13 =
 * Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
