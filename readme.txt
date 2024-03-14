@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 8.0.0
+Stable tag: 8.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,18 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.0.0 - 2024-02-29 =
-* Add - Implement deferred payment intents for the Payment Element (or UPE), used on the updated checkout experience.
-* Add - Implement split Payment Elements (or split UPE), splitting the payment method types under the updated checkout experience into different gateways.
-* Add - Update the interface for customizing Stripe payment methods.
-* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
-* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
-* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
-* Fix - Add missing fee and payout information to the order details page in admin.
-* Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
-* Fix - Wrong status when purchasing a pre-order product with a new payment method.
-* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
-* Tweak - Hide Stripe secret keys in the UI.
-* Fix - Resolved failing payments when statement descriptor prefix starts with a number.
+= 8.0.1 - 2024-03-13 =
+* Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

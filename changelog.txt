@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 8.0.1 - 2024-03-13 =
+* Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
+
 = 8.0.0 - 2024-02-29 =
 * Add - Implement deferred payment intents for the Payment Element (or UPE), used on the updated checkout experience.
 * Add - Implement split Payment Elements (or split UPE), splitting the payment method types under the updated checkout experience into different gateways.
