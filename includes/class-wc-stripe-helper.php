@@ -181,8 +181,12 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		if ( in_array( strtolower( $currency ), self::no_decimal_currencies() ) ) {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
 			return absint( $total );
+		} elseif ( in_array( $currency, self::tree_decimal_currencies(), true ) ) {
+			return absint( wc_format_decimal( ( (float) $total * 1000 ), wc_get_price_decimals() ) ); // For tree decimal currencies.
 		} else {
 			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
 		}
@@ -252,6 +256,22 @@ class WC_Stripe_Helper {
 			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
 			'xpf', // Cfp Franc
+		];
+	}
+
+	/**
+	 * List of currencies supported by Stripe that has three decimals
+	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
+	 *
+	 * @return array $currencies
+	 */
+	private static function tree_decimal_currencies() {
+		return [
+			'bhd', // Bahraini Dinar
+			'jod', // Jordanian Dinar
+			'kwd', // Kuwaiti Dinar
+			'omr', // Omani Rial
+			'tnd', // Tunisian Dinar
 		];
 	}
 
