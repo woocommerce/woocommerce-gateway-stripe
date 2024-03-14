@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 8.1.0 - xxxx-xx-xx =
+= 8.0.1 - 2024-03-13 =
 * Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 
