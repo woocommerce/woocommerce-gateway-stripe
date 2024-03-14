@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+$locale_info = include WC()->plugin_path() . '/i18n/locale-info.php';
+
 /**
  * WC_Stripe_Intent_Controller class.
  *
@@ -716,12 +718,14 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
+		$currency = strtolower( $payment_information['currency'] );
+
 		$request = array_merge(
 			$request,
 			[
-				'amount'               => $payment_information['amount'],
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $payment_information['amount'], $currency ),
 				'confirm'              => 'true',
-				'currency'             => $payment_information['currency'],
+				'currency'             => $currency,
 				'customer'             => $payment_information['customer'],
 				/* translators: 1) blog name 2) order number */
 				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
