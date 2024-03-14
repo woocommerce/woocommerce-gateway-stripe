@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.1.0 - xxxx-xx-xx =
 * Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
+* Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
