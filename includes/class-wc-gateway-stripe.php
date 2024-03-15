@@ -135,6 +135,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
 		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', [ $this, 'update_onboarding_settings' ] );
 
+		add_action( 'woocommerce_stripe_updated', [ $this, 'maybe_migrate_the_card_setting' ] );
+
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
 	}
@@ -142,9 +144,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks if gateway should be available to use.
 	 *
+	 * Note: This method checks if the "card" method is available because the main gateway is responsible for cards specifically.
+	 *
 	 * @since 4.0.2
 	 */
 	public function is_available() {
+
+		if ( 'no' === $this->get_option( 'cards_enabled' ) ) {
+			return false;
+		}
+
 		if ( is_add_payment_method_page() && ! $this->saved_cards ) {
 			return false;
 		}
@@ -1304,5 +1313,31 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $this->validate_text_field( $field_key, $field_value );
+	}
+
+	/**
+	 * Migrate the card setting on Stripe gateway activation/upgrade if it's not set.
+	 *
+	 * In WooCommerce Stripe 8.0 the plugin settings were redesigned and whether this gateway is
+	 * enabled no longer solely represents whether the card method is enabled. After upgrading to 8.0,
+	 * migrate the settings so cards are enabled depending on whether this gateway was enabled.
+	 *
+	 * @since 8.0.0
+	 */
+	public function maybe_migrate_the_card_setting() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Cards are enabled by default.
+		if ( ! $previous_version ) {
+			$this->update_option( 'cards_enabled', 'yes' );
+		}
+		// Exit if it's a new install or the previous version is already 7.8.0 or greater.
+		if ( version_compare( $previous_version, '8.0.0', '>=' ) ) {
+			return;
+		}
+
+		if ( ! $this->get_option( 'cards_enabled' ) ) {
+			$this->update_option( 'cards_enabled', $this->enabled );
+		}
 	}
 }
