@@ -3,6 +3,7 @@
 = 8.1.0 - xxxx-xx-xx =
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 * Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
+* Add - Include Stripe API version in logs.
 
 = 8.0.1 - 2024-03-13 =
 * Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
