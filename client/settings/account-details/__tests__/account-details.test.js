@@ -66,4 +66,28 @@ describe( 'AccountDetails', () => {
 
 		expect( screen.queryByTestId( 'help' ) ).toBeInTheDocument();
 	} );
+
+	it( 'renders Stripe account details', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					id: 'acct_123',
+					email: 'test@example.com',
+					settings: {
+						payouts: {},
+					},
+					payouts_enabled: false,
+					charges_enabled: false,
+				},
+			},
+		} );
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByTestId( 'stripe-account-email' )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByTestId( 'stripe-account-id' )
+		).toBeInTheDocument();
+	} );
 } );

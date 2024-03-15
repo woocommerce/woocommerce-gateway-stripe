@@ -140,7 +140,9 @@ const StripeAccountEmail = ( { email } ) => {
 			<Label>
 				{ __( 'Stripe Account Email', 'woocommerce-gateway-stripe' ) }
 			</Label>
-			<SectionStripeAccountInfo>{ email }</SectionStripeAccountInfo>
+			<SectionStripeAccountInfo data-testid="stripe-account-email">
+				{ email }
+			</SectionStripeAccountInfo>
 		</AccountSection>
 	);
 };
@@ -151,7 +153,9 @@ const StripeAccountID = ( { id } ) => {
 			<Label>
 				{ __( 'Stripe Account ID', 'woocommerce-gateway-stripe' ) }
 			</Label>
-			<SectionStripeAccountInfo>{ id }</SectionStripeAccountInfo>
+			<SectionStripeAccountInfo data-testid="stripe-account-id">
+				{ id }
+			</SectionStripeAccountInfo>
 		</AccountSection>
 	);
 };
