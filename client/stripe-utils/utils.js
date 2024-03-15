@@ -125,22 +125,49 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
+function shouldIncludeTerms( paymentMethodType ) {
+	if ( getStripeServerData()?.cartContainsSubscription ) {
+		return true;
+	}
+
+	const config = getStripeServerData()?.paymentMethodsConfig;
+	if (
+		! config[ paymentMethodType ] ||
+		! config[ paymentMethodType ].isReusable
+	) {
+		return false;
+	}
+
+	const paymentMethodId =
+		paymentMethodType === 'card' ? '' : `_${ paymentMethodType }`;
+	const checkboxId = `wc-stripe${ paymentMethodId }-new-payment-method`;
+
+	const savePaymentMethodCheckbox = document.getElementById( checkboxId );
+
+	if (
+		savePaymentMethodCheckbox !== null &&
+		savePaymentMethodCheckbox.checked
+	) {
+		return true;
+	}
+
+	return false;
+}
+
 /**
  * Generates terms parameter for UPE, with value set for reusable payment methods
  *
- * @param {string} value The terms value for each available payment method.
+ * @param {string} paymentMethodType The payment method type for which we're passing the Terms parameter.
+ * @param {string} value             The terms value for the passed payment method.
  * @return {Object} Terms parameter fit for UPE.
  */
-export const getUPETerms = ( value = 'always' ) => {
-	const config = getStripeServerData()?.paymentMethodsConfig;
-	const reusablePaymentMethods = Object.keys( config ).filter(
-		( method ) => config[ method ].isReusable
-	);
+export const getTerms = ( paymentMethodType, value = 'always' ) => {
+	// The key for SEPA debit is different from the slug we use in paymentMethodType.
+	// Ref: https://stripe.com/docs/js/elements_object/create_payment_element#payment_element_create-options-terms
+	const termKey =
+		paymentMethodType !== 'sepa_debit' ? paymentMethodType : 'sepaDebit';
 
-	return reusablePaymentMethods.reduce( ( obj, method ) => {
-		obj[ method ] = value;
-		return obj;
-	}, {} );
+	return { [ termKey ]: value };
 };
 
 /**
@@ -248,24 +275,6 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	return paymentMethodTypes;
 };
 
-function shouldIncludeTerms() {
-	if ( getStripeServerData()?.cartContainsSubscription ) {
-		return true;
-	}
-
-	const savePaymentMethodCheckbox = document.getElementById(
-		'wc-stripe-new-payment-method'
-	);
-	if (
-		savePaymentMethodCheckbox !== null &&
-		savePaymentMethodCheckbox.checked
-	) {
-		return true;
-	}
-
-	return false;
-}
-
 /**
  * Returns a string of event names to be used for registering checkout submission handlers.
  * For example: "checkout_place_order_stripe checkout_place_order_stripe_ideal ...checkout_place_order_{paymentMethod}"
@@ -276,6 +285,17 @@ export const generateCheckoutEventNames = () => {
 	return Object.values( getPaymentMethodsConstants() )
 		.map( ( method ) => `checkout_place_order_${ method }` )
 		.join( ' ' );
+};
+
+/**
+ * Returns an array with the ID of the inputs to save a new Payment Method.
+ *
+ * @return {Array} Array of input IDs.
+ */
+export const generateCheckoutSavePaymentMethodInputId = () => {
+	return Object.values( getPaymentMethodsConstants() ).map(
+		( method ) => `wc-${ method }-new-payment-method`
+	);
 };
 
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
@@ -380,11 +400,11 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 	};
 };
 
-export const getUpeSettings = () => {
+export const getUpeSettings = ( paymentMethodType ) => {
 	const upeSettings = {};
-	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
+	const value = shouldIncludeTerms( paymentMethodType ) ? 'always' : 'never';
 
-	upeSettings.terms = getUPETerms( showTerms );
+	upeSettings.terms = getTerms( paymentMethodType, value );
 
 	if (
 		getStripeServerData()?.isCheckout &&
