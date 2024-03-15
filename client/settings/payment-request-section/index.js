@@ -157,14 +157,14 @@ const PaymentRequestSection = () => {
 													<a
 														target="_blank"
 														rel="noreferrer"
-														href="https://link.co/terms"
+														href="https://link.com/terms"
 													/>
 												),
 												privacyPolicy: (
 													<a
 														target="_blank"
 														rel="noreferrer"
-														href="https://link.co/privacy"
+														href="https://link.com/privacy"
 													/>
 												),
 											},
