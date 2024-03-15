@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.1.0 - xxxx-xx-xx =
+* Fix - The payment amount over Stripe when purchasing using currencies with 3 decimal places.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 
 = 8.0.1 - 2024-03-13 =
