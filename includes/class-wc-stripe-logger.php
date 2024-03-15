@@ -44,11 +44,13 @@ class WC_Stripe_Logger {
 				$elapsed_time         = round( abs( $end_time - $start_time ) / 60, 2 );
 
 				$log_entry  = "\n" . '====Stripe Version: ' . WC_STRIPE_VERSION . '====' . "\n";
+				$log_entry .= '====Stripe Plugin API Version: ' . WC_Stripe_API::STRIPE_API_VERSION . '====' . "\n";
 				$log_entry .= '====Start Log ' . $formatted_start_time . '====' . "\n" . $message . "\n";
 				$log_entry .= '====End Log ' . $formatted_end_time . ' (' . $elapsed_time . ')====' . "\n\n";
 
 			} else {
 				$log_entry  = "\n" . '====Stripe Version: ' . WC_STRIPE_VERSION . '====' . "\n";
+				$log_entry .= '====Stripe Plugin API Version: ' . WC_Stripe_API::STRIPE_API_VERSION . '====' . "\n";
 				$log_entry .= '====Start Log====' . "\n" . $message . "\n" . '====End Log====' . "\n\n";
 
 			}
