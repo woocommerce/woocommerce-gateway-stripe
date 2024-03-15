@@ -82,6 +82,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supported_countries;
 
 	/**
+	 * Wether this UPE method is in testmode.
+	 *
+	 * @var bool
+	 */
+	public $testmode;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
