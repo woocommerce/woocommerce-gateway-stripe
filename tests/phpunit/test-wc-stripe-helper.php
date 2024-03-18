@@ -196,13 +196,13 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `get_order_by_intent_id`
-	 *
-	 * @param string $status              The order status to return.
-	 * @param bool   $success             Whether the order should be found.
-	 * @return void
-	 * @dataProvider provide_test_get_order_by_intent_id
-	 */
+	* Test for `get_order_by_intent_id`
+	*
+	* @param string $status              The order status to return.
+	* @param bool   $success             Whether the order should be found.
+	* @return void
+	* @dataProvider provide_test_get_order_by_intent_id
+	*/
 	public function test_get_order_by_intent_id( $status, $success ) {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
@@ -222,10 +222,10 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Data provider for `test_get_order_by_intent_id`
-	 *
-	 * @return array
-	 */
+	* Data provider for `test_get_order_by_intent_id`
+	*
+	* @return array
+	*/
 	public function provide_test_get_order_by_intent_id(): array {
 		return [
 			'regular table' => [
@@ -283,18 +283,18 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 			'BHD'              => [
 				'total'    => 100,
 				'currency' => 'BHD',
-				'expected' => 10000,
+				'expected' => 100000,
 			],
 			'BHD (3 decimals)' => [
 				'total'                  => 100,
 				'currency'               => 'BHD',
-				'expected'               => 10000,
+				'expected'               => 100000,
 				'price_decimals_setting' => 3,
 			],
 			'JOD'              => [
 				'total'    => 100,
 				'currency' => 'JOD',
-				'expected' => 10000,
+				'expected' => 100000,
 			],
 			'BIF'              => [
 				'total'    => 100,

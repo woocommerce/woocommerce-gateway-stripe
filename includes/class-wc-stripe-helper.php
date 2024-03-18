@@ -186,8 +186,8 @@ class WC_Stripe_Helper {
 		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
 			return absint( $total );
 		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
-			$cent_precision = pow( 10, wc_get_price_decimals() );
-			$amount         = absint( wc_format_decimal( ( (float) $total * $cent_precision ), wc_get_price_decimals() ) ); // For tree decimal currencies.
+			$price_decimals = wc_get_price_decimals();
+			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
 			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
