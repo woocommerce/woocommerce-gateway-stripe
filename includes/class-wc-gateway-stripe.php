@@ -189,7 +189,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
-		unset( $this->form_fields['title_upe'] );
 	}
 
 	/**
