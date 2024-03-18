@@ -250,7 +250,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_stripe_amount
 	 */
 	public function test_get_stripe_amount( int $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
-		if ( 2 !== price_decimals_setting ) {
+		if ( 2 !== $price_decimals_setting ) {
 			update_option( 'woocommerce_price_num_decimals', $price_decimals_setting );
 		}
 
