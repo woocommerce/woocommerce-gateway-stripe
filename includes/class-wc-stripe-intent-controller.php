@@ -726,7 +726,8 @@ class WC_Stripe_Intent_Controller {
 				/* translators: 1) blog name 2) order number */
 				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				'metadata'             => $payment_information['metadata'],
-				'payment_method_types' => $payment_method_types,
+				'statement_descriptor'      => $payment_information['statement_descriptor'],
+				'automatic_payment_methods' => [ 'enabled' => 'false' ],
 			]
 		);
 
