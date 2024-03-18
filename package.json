@@ -91,7 +91,7 @@
   },
   "dependencies": {
     "@stripe/react-stripe-js": "1.4.1",
-    "@stripe/stripe-js": "1.15.1",
+    "@stripe/stripe-js": "^1.36.0",
     "@testing-library/react-hooks": "^7.0.2",
     "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",

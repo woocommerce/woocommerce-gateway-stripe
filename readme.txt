@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.1.0 - xxxx-xx-xx =
 * Fix - The payment amount over Stripe when purchasing using currencies with 3 decimal places.
+* Tweak - Update the Stripe JS library to 1.36.0.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 * Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
 * Add - Include Stripe API version in logs.
