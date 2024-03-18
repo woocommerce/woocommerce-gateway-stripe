@@ -130,5 +130,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.1.0 - xxxx-xx-xx =
 * Fix - Forcing `automatic_payment_methods.enabled` to `false` as a temporary fix for "return_url" errors.
+* Tweak - Update the Stripe JS library to 1.36.0.
+* Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
+* Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
+* Add - Include Stripe API version in logs.
+* Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
