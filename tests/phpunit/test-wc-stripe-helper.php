@@ -249,7 +249,11 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @param int    $expected The expected amount.
 	 * @dataProvider provide_test_get_stripe_amount
 	 */
-	public function test_get_stripe_amount( int $total, string $currency, int $expected ): void {
+	public function test_get_stripe_amount( int $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
+		if ( 2 !== price_decimals_setting ) {
+			update_option( 'woocommerce_price_num_decimals', $price_decimals_setting );
+		}
+
 		$amount = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$this->assertEquals( $expected, $amount );
 	}
@@ -261,32 +265,38 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_stripe_amount(): array {
 		return [
-			'USD' => [
+			'USD'              => [
 				'total'    => 100,
 				'currency' => 'USD',
 				'expected' => 10000,
 			],
-			'JPY' => [
+			'JPY'              => [
 				'total'    => 100,
 				'currency' => 'JPY',
 				'expected' => 100,
 			],
-			'EUR' => [
+			'EUR'              => [
 				'total'    => 100,
 				'currency' => 'EUR',
 				'expected' => 10000,
 			],
-			'BHD' => [
+			'BHD'              => [
 				'total'    => 100,
 				'currency' => 'BHD',
 				'expected' => 10000,
 			],
-			'JOD' => [
+			'BHD (3 decimals)' => [
+				'total'                  => 100,
+				'currency'               => 'BHD',
+				'expected'               => 10000,
+				'price_decimals_setting' => 3,
+			],
+			'JOD'              => [
 				'total'    => 100,
 				'currency' => 'JOD',
 				'expected' => 10000,
 			],
-			'BIF' => [
+			'BIF'              => [
 				'total'    => 100,
 				'currency' => 'BIF',
 				'expected' => 100,
