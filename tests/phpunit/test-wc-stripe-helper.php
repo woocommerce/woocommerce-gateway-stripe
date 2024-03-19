@@ -196,13 +196,13 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	* Test for `get_order_by_intent_id`
-	*
-	* @param string $status              The order status to return.
-	* @param bool   $success             Whether the order should be found.
-	* @return void
-	* @dataProvider provide_test_get_order_by_intent_id
-	*/
+	 * Test for `get_order_by_intent_id`
+	 *
+	 * @param string $status              The order status to return.
+	 * @param bool   $success             Whether the order should be found.
+	 * @return void
+	 * @dataProvider provide_test_get_order_by_intent_id
+	 */
 	public function test_get_order_by_intent_id( $status, $success ) {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
