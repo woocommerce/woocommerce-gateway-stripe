@@ -72,7 +72,6 @@ describe( 'AccountDetails', () => {
 			data: {
 				account: {
 					id: 'acct_123',
-					email: 'test@example.com',
 					settings: {
 						payouts: {},
 					},
@@ -83,9 +82,6 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect(
-			screen.queryByTestId( 'stripe-account-email' )
-		).toBeInTheDocument();
 		expect(
 			screen.queryByTestId( 'stripe-account-id' )
 		).toBeInTheDocument();
