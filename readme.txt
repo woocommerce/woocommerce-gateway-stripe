@@ -134,5 +134,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
 * Add - Include Stripe API version in logs.
 * Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
+* Tweak - Remove unused UPE title field.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
