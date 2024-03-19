@@ -222,10 +222,10 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	* Data provider for `test_get_order_by_intent_id`
-	*
-	* @return array
-	*/
+	 * Data provider for `test_get_order_by_intent_id`
+	 *
+	 * @return array
+	 */
 	public function provide_test_get_order_by_intent_id(): array {
 		return [
 			'regular table' => [
