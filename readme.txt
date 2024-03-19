@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
 * Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
 * Tweak - Remove unused UPE title field.
+* Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
