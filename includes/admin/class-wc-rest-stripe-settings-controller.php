@@ -66,11 +66,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'title_upe'                        => [
-						'description'       => __( 'New checkout experience title.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -226,7 +221,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
-				'title_upe'                             => $this->gateway->get_validated_option( 'title_upe' ),
 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
@@ -264,7 +258,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_title_upe( $request );
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout */
@@ -334,21 +327,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		} else {
 			$this->gateway->disable();
 		}
-	}
-
-	/**
-	 * Updates UPE title.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_title_upe( WP_REST_Request $request ) {
-		$title_upe = $request->get_param( 'title_upe' );
-
-		if ( null === $title_upe ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'title_upe', $title_upe );
 	}
 
 	/**

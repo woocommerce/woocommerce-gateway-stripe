@@ -325,33 +325,6 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should display a modal to allow to disable UPE', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByText( /Without the new payments experience/ )
-		).not.toBeInTheDocument();
-
-		userEvent.click(
-			screen.getByRole( 'button', {
-				name: 'Payment methods menu',
-			} )
-		);
-		userEvent.click(
-			screen.getByRole( 'menuitem', {
-				name: 'Disable',
-			} )
-		);
-
-		expect(
-			screen.queryByText( /Without the new payments experience/ )
-		).toBeInTheDocument();
-	} );
-
 	it( 'does not display the payment method checkbox when currency is not supprted', () => {
 		global.wcSettings = { currency: { code: 'USD' } };
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
