@@ -134,19 +134,6 @@ const PayoutsSection = () => {
 	);
 };
 
-const StripeAccountEmail = ( { email } ) => {
-	return (
-		<AccountSection>
-			<Label>
-				{ __( 'Stripe Account Email', 'woocommerce-gateway-stripe' ) }
-			</Label>
-			<SectionStripeAccountInfo data-testid="stripe-account-email">
-				{ email }
-			</SectionStripeAccountInfo>
-		</AccountSection>
-	);
-};
-
 const StripeAccountID = ( { id } ) => {
 	return (
 		<AccountSection>
@@ -166,7 +153,6 @@ const WebhooksSection = () => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 	const stripeAccountId = data.account?.id;
-	const stripeAccountEmail = data.account?.email;
 
 	const isWebhookSecretEntered = Boolean(
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
@@ -199,9 +185,6 @@ const WebhooksSection = () => {
 				</p>
 			</WebhookDescription>
 			<StripeAccountDetails>
-				{ stripeAccountEmail && (
-					<StripeAccountEmail email={ stripeAccountEmail } />
-				) }
 				<StripeAccountID id={ stripeAccountId } />
 			</StripeAccountDetails>
 		</>
