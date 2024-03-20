@@ -93,6 +93,8 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		if ( count( $payment_method->card->networks->available ) > 1 ) {
 			$token->set_available_networks( $payment_method->card->networks->available );
 			$token->set_preferred_network( $payment_method->card->networks->preferred );
+		} else {
+			$token->set_available_networks( [ $payment_method->card->brand ] );
 		}
 		$token->save();
 		return $token;
