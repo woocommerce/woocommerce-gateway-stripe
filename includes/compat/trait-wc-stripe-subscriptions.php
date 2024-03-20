@@ -612,7 +612,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
-		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order, $request['currency'] );
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
 		}
@@ -654,11 +654,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 * @param WC_Order $subscriptions Subscriptions for the renewal order.
-	 * @param string   $currency The currency of the order.
 	 * @return array the mandate_options for the subscription order.
 	 */
-	private function create_mandate_options_for_order( $order, $subscriptions, $currency ) {
+	private function create_mandate_options_for_order( $order, $subscriptions ) {
 		$mandate_options = [];
+		$currency        = strtolower( $order->get_currency() );
 
 		// India recurring payment mandates can only be requested for the following currencies.
 		if ( ! in_array( $currency, [ 'inr', 'usd', 'eur', 'gbp', 'sgd', 'cad', 'chf', 'sek', 'aed', 'jpy', 'nok', 'myr', 'hkd' ], true ) ) {
