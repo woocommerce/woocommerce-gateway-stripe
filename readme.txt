@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.1.0 - xxxx-xx-xx =
+* Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
 * Tweak - Update the Stripe JS library to 1.36.0.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 * Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
@@ -137,5 +138,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
 * Tweak - Remove unused UPE title field.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
+* Add - Enable the updated checkout experience (UPE) by default for new accounts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
