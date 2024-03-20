@@ -7,13 +7,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.Files.FileName
 
 /**
- * WooCommerce Stripe Co-Branded Credit Card Payment Token.
+ * WooCommerce Stripe Credit Card Payment Token (with co-branded cards support).
  *
  * Representation of a payment token for co-branded credit cards.
  *
- * @class    WC_Payment_Token_CC_Co_Branded
+ * @class    WC_Payment_Token_CC_Stripe
  */
-class WC_Payment_Token_CC_Co_Branded extends WC_Payment_Token_CC {
+class WC_Payment_Token_CC_Stripe extends WC_Payment_Token_CC {
+	/**
+	 * Returns true if the card is co-branded.
+	 *
+	 * @return bool
+	 */
+	public function is_co_branded() {
+		return count( $this->get_available_networks() ) > 1;
+	}
+
+	/**
+	 * Returns the list of available networks (brands) for the card.
+	 *
+	 * @param string $context What the value is for. Valid values are view and edit.
+	 * @return array|null List of available networks (brands) for the card.
+	 */
+	public function get_available_networks( $context = 'view' ) {
+		return $this->get_prop( 'available_networks', $context );
+	}
+
 	/**
 	 * Sets the list of available networks (brands) for the card.
 	 *
