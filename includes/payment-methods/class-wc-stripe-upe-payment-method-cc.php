@@ -81,13 +81,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token_CC
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		if ( count( $payment_method->card->networks->available ) > 1 ) {
-			$token = new WC_Payment_Token_CC_Co_Branded();
-			$token->set_available_networks( $payment_method->card->networks->available );
-			$token->set_preferred_network( $payment_method->card->networks->preferred );
-		} else {
-			$token = new WC_Payment_Token_CC();
-		}
+		$token = new WC_Payment_Token_CC_Stripe();
 		$token->set_expiry_month( $payment_method->card->exp_month );
 		$token->set_expiry_year( $payment_method->card->exp_year );
 		$token->set_card_type( strtolower( $payment_method->card->brand ) );
@@ -95,6 +89,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
+		// This is a co-branded card. We need to store some additional information.
+		if ( count( $payment_method->card->networks->available ) > 1 ) {
+			$token->set_available_networks( $payment_method->card->networks->available );
+			$token->set_preferred_network( $payment_method->card->networks->preferred );
+		}
 		$token->save();
 		return $token;
 	}
