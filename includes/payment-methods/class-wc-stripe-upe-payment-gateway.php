@@ -201,6 +201,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
+
+		// Display co-branded card information correctly.
+		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'display_co_branded_credit_card_info' ], 11, 2 );
+		add_action( 'woocommerce_account_payment_methods_column_method', [ $this, 'display_co_branded_credit_card_label' ] );
 	}
 
 	/**
@@ -866,7 +870,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 
 			return [
-				'result' => 'failure',
+				'result'   => 'failure',
 				'redirect' => '',
 			];
 		}
@@ -1758,6 +1762,60 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		} catch ( WC_Stripe_Exception $e ) {
 			// If updating the payment method fails, log the error message.
 			WC_Stripe_Logger::log( 'Error when updating saved payment method: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Controls the output for credit cards on the my account page (with co-branded cards support).
+	 *
+	 * @param  array                      $item         Individual list item from woocommerce_saved_payment_methods_list.
+	 * @param  WC_Payment_Token_CC_Stripe $payment_token The payment token associated with this method entry.
+	 * @return array                           Filtered item.
+	 */
+	public function display_co_branded_credit_card_info( $item, $payment_token ) {
+		if ( 'cc_stripe' !== strtolower( $payment_token->get_type() ) ) {
+			return $item;
+		}
+
+		$card_type                           = $payment_token->get_card_type();
+		$item['method']['last4']             = $payment_token->get_last4();
+		$item['method']['brand']             = ( ! empty( $card_type ) ? ucfirst( $card_type ) : esc_html__( 'Credit card', 'woocommerce-gateway-stripe' ) );
+		$item['method']['is_co_branded']     = $payment_token->is_co_branded();
+		$item['method']['networks']          = $payment_token->get_available_networks();
+		$item['method']['preferred_network'] = $payment_token->get_preferred_network();
+		$item['expires']                     = $payment_token->get_expiry_month() . '/' . substr( $payment_token->get_expiry_year(), -2 );
+
+		return $item;
+	}
+
+	/**
+	 * Correctly display co-branded credit cards.
+	 *
+	 * @param array $method Payment method data.
+	 * @return void
+	 */
+	public function display_co_branded_credit_card_label( $method ) {
+		if ( $method['method']['is_co_branded'] ) {
+			if ( count( $method['method']['networks'] ) > 1 ) {
+				$brands_label = implode(
+					' / ',
+					array_map(
+						function ( $network ) {
+							return esc_html( wc_get_credit_card_type_label( $network ) );
+						},
+						$method['method']['networks']
+					)
+				);
+			} else {
+				$brands_label = esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) );
+			}
+			/* translators: 1: credit card type 2: last 4 digits */
+			echo sprintf( esc_html__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ), $brands_label, esc_html( $method['method']['last4'] ) );
+		} elseif ( ! empty( $method['method']['last4'] ) ) {
+			/* translators: 1: credit card type 2: last 4 digits */
+			echo sprintf( esc_html__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ), esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) ), esc_html( $method['method']['last4'] ) );
+		} else {
+			echo esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) );
 		}
 	}
 
