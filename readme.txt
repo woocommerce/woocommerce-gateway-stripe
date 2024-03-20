@@ -137,5 +137,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
 * Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
 * Tweak - Remove unused UPE title field.
+* Add - Enable the updated checkout experience (UPE) by default for new accounts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
