@@ -115,8 +115,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
-					'display_co_branded_credit_card_info',
-					'display_co_branded_credit_card_label',
 				]
 			)
 			->getMock();
@@ -1846,7 +1844,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		do_action( 'woocommerce_admin_order_totals_after_total', $order->get_id() );
 	}
-
 	/**
 	 * Test for `process_payment` when the order has an existing payment intent attached.
 	 *
@@ -2017,6 +2014,115 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		apply_filters( 'woocommerce_payment_methods_list_item', $item, $payment_token );
 		do_action( 'woocommerce_account_payment_methods_column_method', $method );
+	}
+
+	/**
+	 * Test for `display_co_branded_credit_card_info`
+	 *
+	 * @param string $type    The type of payment method.
+	 * @param string $expected The expected result.
+	 * @return void
+	 * @dataProvider provide_display_co_branded_card_info
+	 */
+	public function test_display_co_branded_credit_card_info( $type, $expected ) {
+		$item = [];
+
+		/** @var WC_Payment_Token_CC_Stripe $payment_token */
+		if ( 'cc_stripe' === $type ) {
+			$payment_token = WC_Helper_Token::create_cc_stripe_token( 'pm_mock' );
+		} else {
+			$payment_token = WC_Helper_Token::create_token( 'pm_mock' );
+		}
+
+		$result = $this->mock_gateway->display_co_branded_credit_card_info( $item, $payment_token );
+
+		$this->assertSame( $expected, $result );
+	}
+
+	/**
+	 * Data provider for `test_display_co_branded_credit_card_info`
+	 *
+	 * @return array
+	 */
+	public function provide_display_co_branded_card_info() {
+		return [
+			'not CC Stripe' => [
+				'type'     => 'sepa',
+				'expected' => [],
+			],
+			'CC Stripe'     => [
+				'type'     => 'cc_stripe',
+				'expected' => [
+					'method'  => [
+						'last4'             => '4242',
+						'brand'             => 'Visa',
+						'is_co_branded'     => true,
+						'networks'          => [
+							'visa',
+							'cartes_bancaires',
+						],
+						'preferred_network' => 'visa',
+					],
+					'expires' => '07/25',
+				],
+			],
+		];
+	}
+
+	/**
+	 * Test for `display_co_branded_credit_card_label`
+	 *
+	 * @param bool  $is_co_branded   Whether the card is co-branded.
+	 * @param string|null $last4 The last 4 digits of the card.
+	 * @param string|null $expected The expected result.
+	 * @return void
+	 * @dataProvider provide_test_display_co_branded_credit_card_label
+	 */
+	public function test_display_co_branded_credit_card_label( $is_co_branded, $last4 = null, $expected = null ) {
+		$method = [
+			'method' => [
+				'brand'             => 'visa',
+				'is_co_branded'     => $is_co_branded,
+				'last4'             => $last4,
+				'networks'          => $is_co_branded ? [ 'visa', 'cartes_bancaires' ] : [ 'visa' ],
+				'preferred_network' => $is_co_branded ? 'visa' : null,
+			],
+		];
+
+		ob_start();
+		$this->mock_gateway->display_co_branded_credit_card_label( $method );
+		$output = ob_get_clean();
+		$this->assertStringMatchesFormat( $expected, $output );
+	}
+
+	/**
+	 * Data provider for `test_display_co_branded_credit_card_label`
+	 *
+	 * @return array
+	 */
+	public function provide_test_display_co_branded_credit_card_label() {
+		return [
+			'co-branded card with last 4'        => [
+				'is co branded' => true,
+				'last 4'        => '4242',
+				'expected'      => 'Visa / Cartes bancaires (Visa preferred) ending in 4242',
+			],
+			'co-branded card without last 4'     => [
+				'is co branded' => true,
+				'last 4'        => null,
+				'expected'      => 'Visa / Cartes bancaires (Visa preferred)',
+			],
+			'non co-branded card with last 4'    => [
+				'is co branded' => false,
+				'last 4'        => '4242',
+				'expected'      => 'Visa ending in 4242',
+			],
+			'non co-branded card without last 4' => [
+				'is co branded' => false,
+				'last 4'        => null,
+				'expected'      => 'Visa',
+			],
+		];
 	}
 
 	/**
