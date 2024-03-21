@@ -201,7 +201,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function maybe_create_customer( $should_recreate_customer = false ) {
+	public function maybe_create_customer() {
 		if ( ! $this->get_id() ) {
 			return $this->set_id( $this->create_customer() );
 		}
@@ -209,7 +209,7 @@ class WC_Stripe_Customer {
 		$response = WC_Stripe_API::retrieve( 'customers/' . $this->get_id() );
 
 		if ( ! empty( $response->error ) ) {
-			if ( $this->is_no_such_customer_error( $response->error ) && $should_recreate_customer ) {
+			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				// This can happen when switching the main Stripe account or importing users from another site.
 				// Recreate the customer in this case.
 				return $this->recreate_customer();
@@ -645,7 +645,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	public function recreate_customer() {
+	private function recreate_customer() {
 		$this->delete_id_from_meta();
 		return $this->create_customer();
 	}
