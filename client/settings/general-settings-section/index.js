@@ -5,6 +5,7 @@ import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
 import AccountActivationNotice from '../account-activation-notice';
+import LegacyExperienceTransitionNotice from '../notices/legacy-experience-transition';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
@@ -51,6 +52,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 
 	return (
 		<>
+			<LegacyExperienceTransitionNotice />
 			<AccountActivationNotice />
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>

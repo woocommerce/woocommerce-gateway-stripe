@@ -1,0 +1,81 @@
+import { __ } from '@wordpress/i18n';
+import styled from '@emotion/styled';
+import React, { useContext } from 'react';
+import { Button } from '@wordpress/components';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+
+const NoticeWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	padding: 12px 16px;
+	align-items: flex-start;
+	gap: 12px;
+	margin: 0 0 24px 0;
+	background: #fcf9e8;
+`;
+
+const Message = styled.div`
+	color: #1e1e1e;
+	font-size: 13px;
+`;
+
+const DisableLegacyButton = styled( Button )`
+	box-shadow: inset 0 0 0 1px #bd8600 !important;
+	color: #bd8600 !important;
+`;
+
+const LearnMoreAnchor = styled.a`
+	color: #bd8600 !important;
+`;
+
+const LegacyExperienceTransitionNotice = () => {
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+
+	// The merchant already disabled the legacy experience. Nothing to do here.
+	if ( isUpeEnabled ) {
+		return null;
+	}
+
+	const handleDisableButtonClick = () => {
+		const callback = async () => {
+			try {
+				await setIsUpeEnabled( true );
+			} catch ( err ) {}
+		};
+
+		// creating a separate callback so that the UI isn't blocked by the async call.
+		callback();
+	};
+
+	return (
+		<NoticeWrapper>
+			<Message>
+				{ __(
+					'Your checkout will soon be deprecated. To ensure continuing high performance of your store, transition to the updated checkout experience.',
+					'woocommerce-gateway-stripe'
+				) }{ ' ' }
+			</Message>
+			<div>
+				<DisableLegacyButton
+					variant="secondary"
+					onClick={ handleDisableButtonClick }
+				>
+					{ __(
+						'Enable the new checkout',
+						'woocommerce-gateway-stripe'
+					) }
+				</DisableLegacyButton>
+				<LearnMoreAnchor
+					href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/"
+					className="components-button is-tertiary"
+					target="_blank"
+					rel="noreferrer"
+				>
+					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
+				</LearnMoreAnchor>
+			</div>
+		</NoticeWrapper>
+	);
+};
+
+export default LegacyExperienceTransitionNotice;
