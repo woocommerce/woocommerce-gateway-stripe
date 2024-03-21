@@ -42,7 +42,7 @@ class WC_Payment_Token_CC_Stripe extends WC_Payment_Token_CC {
 	 * @return bool
 	 */
 	public function is_co_branded() {
-		return null !== $this->get_available_networks() && count( $this->get_available_networks() ) > 1;
+		return ! empty( $this->get_available_networks() ) && count( $this->get_available_networks() ) > 1;
 	}
 
 	/**
