@@ -115,6 +115,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'display_co_branded_credit_card_info',
+					'display_co_branded_credit_card_label',
 				]
 			)
 			->getMock();
@@ -289,11 +291,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'               => $amount,
-			'currency'             => $currency,
-			'description'          => $description,
-			'customer'             => $customer_id,
-			'metadata'             => $metadata,
+			'amount'      => $amount,
+			'currency'    => $currency,
+			'description' => $description,
+			'customer'    => $customer_id,
+			'metadata'    => $metadata,
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -396,7 +398,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
-				'charges' => (object) [
+				'charges'        => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -1439,12 +1441,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'               => $amount,
-			'currency'             => $currency,
-			'description'          => $description,
-			'customer'             => $customer_id,
-			'metadata'             => $metadata,
-			'setup_future_usage'   => 'off_session',
+			'amount'             => $amount,
+			'currency'           => $currency,
+			'description'        => $description,
+			'customer'           => $customer_id,
+			'metadata'           => $metadata,
+			'setup_future_usage' => 'off_session',
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -1844,6 +1846,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		do_action( 'woocommerce_admin_order_totals_after_total', $order->get_id() );
 	}
+
 	/**
 	 * Test for `process_payment` when the order has an existing payment intent attached.
 	 *
@@ -1981,6 +1984,39 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertEquals( 'visa', $final_order->get_meta( '_stripe_card_brand', true ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
+	 * Test if `display_co_branded_credit_card_info` and `display_co_branded_credit_card_label` are called when displaying a credit card
+	 *
+	 * @return void
+	 */
+	public function test_co_branded_card_action_and_filter_called() {
+		$item          = [
+			'method'  => [
+				'last4' => '4242',
+				'brand' => 'Visa',
+			],
+			'expires' => '07/25',
+		];
+		$payment_token = WC_Helper_Token::create_token( 'pm_mock' );
+
+		$method = [
+			'method' => [
+				'brand' => 'visa',
+			],
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_co_branded_credit_card_info' )
+			->with( $item, $payment_token );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_co_branded_credit_card_label' )
+			->with( $method );
+
+		apply_filters( 'woocommerce_payment_methods_list_item', $item, $payment_token );
+		do_action( 'woocommerce_account_payment_methods_column_method', $method );
 	}
 
 	/**
