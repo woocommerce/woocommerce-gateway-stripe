@@ -38,8 +38,31 @@ define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) 
  * @since 4.1.2
  */
 function woocommerce_stripe_missing_wc_notice() {
-	/* translators: 1. URL link. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
+	$install_url = wp_nonce_url(
+		add_query_arg(
+			[
+				'action' => 'install-plugin',
+				'plugin' => 'woocommerce',
+			],
+			admin_url( 'update.php' )
+		),
+		'install-plugin_woocommerce'
+	);
+
+	$admin_notice_content = sprintf(
+		// translators: 1$-2$: opening and closing <strong> tags, 3$-4$: link tags, takes to woocommerce plugin on wp.org, 5$-6$: opening and closing link tags, leads to plugins.php in admin
+		esc_html__( '%1$sWooCommerce Stripe Gateway is inactive.%2$s The %3$sWooCommerce plugin%4$s must be active for the Stripe Gateway to work. Please %5$sinstall & activate Woo &raquo;%6$s', 'woocommerce-gateway-stripe' ),
+		'<strong>',
+		'</strong>',
+		'<a href="http://wordpress.org/extend/plugins/woocommerce/">',
+		'</a>',
+		'<a href="' . esc_url( $install_url ) . '">',
+		'</a>'
+	);
+
+	echo '<div class="error">';
+	echo '<p>' . wp_kses_post( $admin_notice_content ) . '</p>';
+	echo '</div>';
 }
 
 /**
