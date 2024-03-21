@@ -149,7 +149,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$this->gateway->save_intent_to_order( $order, $intent );
 
 			// Capture payment intent.
-			$charge = end( $intent->charges->data );
+			$charge = $this->gateway->get_latest_charge_from_intent( $intent );
 			$this->gateway->process_response( $charge, $order );
 			$result = WC_Stripe_Order_Handler::get_instance()->capture_payment( $order );
 
