@@ -1834,7 +1834,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function display_co_branded_credit_card_label( $method ) {
 		if ( $method['method']['is_co_branded'] && count( $method['method']['networks'] ) > 1 ) {
-			$brands_label  = implode(
+			$brands_label = implode(
 				' / ',
 				array_map(
 					function ( $network ) {
@@ -1843,7 +1843,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$method['method']['networks']
 				)
 			);
-			$brands_label .= ' (' . esc_html( wc_get_credit_card_type_label( $method['method']['preferred_network'] ) ) . ' preferred)';
+			/* translators: %s: a credit card brand. */
+			$brands_label .= ' (' . sprintf( esc_html__( '%s preferred', 'woocommerce-gateway-stripe' ), esc_html( wc_get_credit_card_type_label( $method['method']['preferred_network'] ) ) ) . ')';
 		} else {
 			$brands_label = esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) );
 		}
