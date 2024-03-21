@@ -6,6 +6,7 @@
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
  * Version: 8.1.0
+ * Requires Plugins: woocommerce
  * Requires at least: 6.1
  * Tested up to: 6.4.3
  * WC requires at least: 8.2
