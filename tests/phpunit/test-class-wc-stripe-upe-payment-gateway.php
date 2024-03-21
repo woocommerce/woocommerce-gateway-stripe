@@ -2000,9 +2000,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$method = [
 			'method' => [
-				'brand' => 'visa',
+				'brand'         => 'visa',
+				'is_co_branded' => false,
 			],
 		];
+
+		$this->mock_gateway = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+			->setMethods( [ 'display_co_branded_credit_card_info', 'display_co_branded_credit_card_label' ] )
+			->getMock();
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'display_co_branded_credit_card_info' )
@@ -2013,7 +2018,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( $method );
 
 		apply_filters( 'woocommerce_payment_methods_list_item', $item, $payment_token );
+
+		ob_start();
 		do_action( 'woocommerce_account_payment_methods_column_method', $method );
+		ob_get_clean();
 	}
 
 	/**
