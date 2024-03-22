@@ -130,6 +130,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.1.0 - xxxx-xx-xx =
 * Add - Include Stripe account details to the settings page.
+* Fix - Hiding the refund button and replacing it with a disabled "Refunding unavailable" button when the order is not captured.
+* Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
 * Tweak - Update the Stripe JS library to 1.36.0.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
 * Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
@@ -137,5 +139,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
 * Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
 * Tweak - Remove unused UPE title field.
+* Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
+* Add - Enable the updated checkout experience (UPE) by default for new accounts.
+* Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
