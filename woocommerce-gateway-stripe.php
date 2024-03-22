@@ -681,11 +681,11 @@ function woocommerce_gateway_stripe() {
 			 * @return array WooCommerce checkout fields.
 			 */
 			public function checkout_update_email_field_priority( $fields ) {
-				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
+				if ( isset( $fields['billing_email'] ) ) {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 
-					// Add extra `wcpay-checkout-email-field` class.
+					// Add extra `stripe-gateway-checkout-email-field` class.
 					$fields['billing_email']['class'][] = 'stripe-gateway-checkout-email-field';
 
 					// Append StripeLink modal trigger button for logged in users.
