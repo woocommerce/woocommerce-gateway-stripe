@@ -52,7 +52,7 @@ function woocommerce_stripe_missing_wc_notice() {
 
 	$admin_notice_content = sprintf(
 		// translators: 1$-2$: opening and closing <strong> tags, 3$-4$: link tags, takes to woocommerce plugin on wp.org, 5$-6$: opening and closing link tags, leads to plugins.php in admin
-		esc_html__( '%1$sWooCommerce Stripe Gateway is inactive.%2$s The %3$sWooCommerce plugin%4$s must be active for the Stripe Gateway to work. Please %5$sinstall & activate Woo &raquo;%6$s', 'woocommerce-gateway-stripe' ),
+		esc_html__( '%1$sWooCommerce Stripe Gateway is inactive.%2$s The %3$sWooCommerce plugin%4$s must be active for the Stripe Gateway to work. Please %5$sinstall & activate WooCommerce &raquo;%6$s', 'woocommerce-gateway-stripe' ),
 		'<strong>',
 		'</strong>',
 		'<a href="http://wordpress.org/extend/plugins/woocommerce/">',
