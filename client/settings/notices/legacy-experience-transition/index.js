@@ -3,6 +3,7 @@ import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React, { useContext } from 'react';
 import { Button } from '@wordpress/components';
+import { recordEvent } from 'wcstripe/tracking';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const NoticeWrapper = styled.div`
@@ -45,6 +46,10 @@ const LegacyExperienceTransitionNotice = () => {
 		const callback = async () => {
 			try {
 				await setIsUpeEnabled( true );
+
+				recordEvent( 'wcstripe_legacy_experience_disabled', {
+					source: 'payament-methods-tab-notice',
+				} );
 
 				createSuccessNotice(
 					__(
