@@ -69,10 +69,16 @@ const LegacyExperienceTransitionNotice = () => {
 	return (
 		<NoticeWrapper>
 			<Message>
+				<h3>
+					{ __(
+						'Ensure payments continue to work on your store',
+						'woocommerce-gateway-stripe'
+					) }
+				</h3>
 				{ __(
-					'Your checkout will soon be deprecated. To ensure continuing high performance of your store, transition to the updated checkout experience.',
+					"You're using the legacy experience of the Stripe Payment Gateway extension. Soon, this experience will be deprecated by Stripe and replaced with the new checkout.",
 					'woocommerce-gateway-stripe'
-				) }{ ' ' }
+				) }
 			</Message>
 			<div>
 				<DisableLegacyButton
