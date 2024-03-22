@@ -10,8 +10,16 @@ button.stripe-gateway-stripelink-modal-trigger {
 	cursor: pointer;
 	border: none;
 }
-
 button.stripe-gateway-stripelink-modal-trigger:hover {
 	background-color: transparent;
 	border-color: transparent;
+}
+.wc-block-checkout__payment-method .wc-block-components-radio-control__label > span {
+	width:95%;
+}
+.wc-block-checkout__payment-method .wc-block-components-radio-control__label > span > span {
+	float:right;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }

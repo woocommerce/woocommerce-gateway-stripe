@@ -137,60 +137,6 @@ export const createApiTokens = ( page ) =>
 	} );
 
 /**
- * Helper function to check the version of WC Blocks
- * and save it to the WC_BLOCKS_VERSION env variable.
- * This function is used when the admin user is already logged in.
- * @param {Page} page Playwright page object.
- * @return {Promise} Promise object represents the state of the operation.
- */
-export const checkWooGutenbergProductsBlockVersion = ( page ) =>
-	new Promise( ( resolve, reject ) => {
-		( async () => {
-			const nRetries = 5;
-			for ( let i = 0; i < nRetries; i++ ) {
-				try {
-					console.log( '- Trying to check WC Blocks version...' );
-					await page.goto( `/wp-admin/admin.php?page=wc-status` );
-
-					await page.waitForSelector(
-						'td[data-export-label="WC Blocks Version"]'
-					);
-
-					// Use $eval to find the table cell with data-export-label="WC Blocks Version" and extract the text.
-					const versionElement = await page.$eval(
-						'td[data-export-label="WC Blocks Version"] + td + td',
-						( el ) => el.innerText
-					);
-
-					// Split and get the version number. Assuming the version text is formatted like: "9.8.2 /some/path/to/version"
-					const versionNumber = versionElement
-						.trim()
-						.split( ' ' )[ 0 ];
-
-					if ( isNaN( parseFloat( versionNumber ) ) ) {
-						throw new Error(
-							`Failed to parse WC Blocks version number. Got: ${ versionElement }`
-						);
-					}
-
-					process.env.WC_BLOCKS_VERSION = versionNumber;
-					console.log(
-						`\u2714 Checked WC Blocks version successfully. The version is ${ versionNumber }.`
-					);
-					resolve();
-					return;
-				} catch ( e ) {
-					console.log(
-						`Failed to check WC Blocks version. Retrying... ${ i }/${ nRetries }`
-					);
-					console.log( e );
-				}
-			}
-			reject();
-		} )();
-	} );
-
-/**
  * Helper function to download the Stripe plugin from the repository and install it on the site.
  * This is useful when we want to test a specific version of the plugin.
  * If the plugin is already installed, it will be updated to the specified version.
@@ -381,15 +327,18 @@ const getServerCredentialsFromEnv = () => {
  * @returns The promise for the SSH connection.
  */
 export const setupWoo = async () => {
-	const cartBlockPostContent = fs
+	const shortcodeCartPostContent = fs
 		.readFileSync(
-			path.resolve( E2E_ROOT, './test-data/cart-block-content.html' ),
+			path.resolve( E2E_ROOT, './test-data/cart-shortcode-content.html' ),
 			'utf8'
 		)
 		.replace( '\n', '' );
-	const checkoutBlockPostContent = fs
+	const shortcodeCheckoutPostContent = fs
 		.readFileSync(
-			path.resolve( E2E_ROOT, './test-data/checkout-block-content.html' ),
+			path.resolve(
+				E2E_ROOT,
+				'./test-data/checkout-shortcode-content.html'
+			),
 			'utf8'
 		)
 		.replace( '\n', '' );
@@ -415,8 +364,8 @@ export const setupWoo = async () => {
 		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ ADMIN_USER }`,
 		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ ADMIN_USER }`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
-		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
-		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,
+		`wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ shortcodeCartPostContent }'`,
+		`wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ shortcodeCheckoutPostContent }'`,
 	];
 
 	return sshExecCommands( setupCommands );
@@ -462,46 +411,48 @@ export const setupStripe = ( page, baseUrl ) =>
 					}
 				);
 
-				const nRetries = 5;
-				for ( let i = 0; i < nRetries; i++ ) {
-					try {
-						console.log( '- Trying to setup the Stripe keys...' );
-						await page.goto(
-							`/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe`
-						);
+				const settings = {
+					enabled: 'yes',
+					title: 'Credit Card (Stripe)',
+					description: 'Pay with your credit card via Stripe.',
+					api_credentials: '',
+					testmode: 'yes',
+					test_publishable_key: STRIPE_PUB_KEY,
+					test_secret_key: STRIPE_SECRET_KEY,
+					publishable_key: '',
+					secret_key: '',
+					webhook: '',
+					test_webhook_secret: webhookEndpoint.secret,
+					webhook_secret: '',
+					inline_cc_form: 'no',
+					statement_descriptor: '',
+					short_statement_descriptor: '',
+					capture: 'yes',
+					payment_request: 'yes',
+					payment_request_button_type: 'buy',
+					payment_request_button_theme: 'dark',
+					payment_request_button_locations: [
+						'product',
+						'cart',
+						'checkout',
+					],
+					payment_request_button_size: 'default',
+					saved_cards: 'yes',
+					logging: 'no',
+					upe_checkout_experience_enabled: 'no',
+				};
 
-						await page
-							.getByText( /Enter account keys.*/ )
-							.click( { timeout: 5000 } );
-						await page.locator( 'text="Test"' ).click();
+				await sshExecCommands( [
+					`wp option set woocommerce_stripe_settings --format=json '${ JSON.stringify(
+						settings
+					) }'`,
+				] );
 
-						await page
-							.locator( '[name="test_publishable_key"]' )
-							.fill( STRIPE_PUB_KEY );
-						await page
-							.locator( '[name="test_secret_key"]' )
-							.fill( STRIPE_SECRET_KEY );
-						await page
-							.locator( '[name="test_webhook_secret"]' )
-							.fill( webhookEndpoint.secret );
-
-						await page.locator( 'text="Save test keys"' ).click();
-						await page.waitForNavigation( { timeout: 10000 } );
-
-						await expect( page ).toHaveURL(
-							/.*section=stripe&panel=settings.*/
-						);
-
-						console.log( '\u2714 Added Stripe keys successfully.' );
-						resolve();
-						return;
-					} catch ( e ) {
-						console.log(
-							`Failed to add Stripe keys. Retrying... ${ i }/${ nRetries }`
-						);
-						console.log( e );
-					}
-				}
+				console.log(
+					'\u2714 Updated Stripe plugin settings successfully.'
+				);
+				resolve();
+				return;
 			} catch ( e ) {
 				reject( e );
 			}

@@ -135,6 +135,12 @@ class WC_Stripe_API {
 			]
 		);
 
+		$response_headers = wp_remote_retrieve_headers( $response );
+		// Log the stripe version in the response headers, if present.
+		if ( isset( $response_headers['stripe-version'] ) ) {
+			WC_Stripe_Logger::log( "{$api} response with stripe-version: " . $response_headers['stripe-version'] );
+		}
+
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log(
 				'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r(
@@ -152,7 +158,7 @@ class WC_Stripe_API {
 
 		if ( $with_headers ) {
 			return [
-				'headers' => wp_remote_retrieve_headers( $response ),
+				'headers' => $response_headers,
 				'body'    => json_decode( $response['body'] ),
 			];
 		}
@@ -289,6 +295,23 @@ class WC_Stripe_API {
 
 		// If it's not a source it's a PaymentMethod.
 		return self::retrieve( 'payment_methods/' . $payment_method_id );
+	}
+
+	/**
+	 * Update payment method data.
+	 *
+	 * @param string $payment_method_id   Payment method ID.
+	 * @param array  $payment_method_data Payment method updated data.
+	 *
+	 * @return array Payment method details.
+	 *
+	 * @throws WC_Stripe_Exception If payment method update fails.
+	 */
+	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
+		return self::request(
+			$payment_method_data,
+			'payment_methods/' . $payment_method_id
+		);
 	}
 
 	/**

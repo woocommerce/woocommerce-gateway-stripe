@@ -9,6 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait WC_Stripe_Pre_Orders_Trait {
 
 	/**
+	 * Stores a flag to indicate if the Pre-order integration hooks have been attached.
+	 *
+	 * The callbacks attached as part of maybe_init_pre_orders() only need to be attached once to avoid duplication.
+	 *
+	 * @var bool False by default, true once the callbacks have been attached.
+	 */
+	private static $has_attached_pre_order_integration_hooks = false;
+
+	/**
 	 * Initialize pre-orders hook.
 	 *
 	 * @since 5.8.0
@@ -21,6 +30,18 @@ trait WC_Stripe_Pre_Orders_Trait {
 		$this->supports[] = 'pre-orders';
 
 		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] );
+
+		/**
+		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
+		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
+		 */
+		if ( self::$has_attached_pre_order_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
+			return;
+		}
+
+		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'hide_save_payment_for_pre_orders_charged_upon_release' ] );
+
+		self::$has_attached_pre_order_integration_hooks = true;
 	}
 
 	/**
@@ -263,5 +284,46 @@ trait WC_Stripe_Pre_Orders_Trait {
 				$order->add_order_note( $order_note );
 			}
 		}
+	}
+
+	/**
+	 * Determines if there is a pre-order in the cart and if it is charged upon release.
+	 *
+	 * @return bool
+	 */
+	public function is_pre_order_charged_upon_release_in_cart() {
+		$pre_order_product = $this->get_pre_order_product_from_cart();
+		return $pre_order_product && $this->is_pre_order_product_charged_upon_release( $pre_order_product );
+	}
+
+	/**
+	 * Determines if an order contains a pre-order and if it is charged upon release.
+	 *
+	 * @return bool
+	 */
+	public function has_pre_order_charged_upon_release( $order ) {
+		$pre_order_product = $this->get_pre_order_product_from_order( $order );
+		return $pre_order_product && $this->is_pre_order_product_charged_upon_release( $pre_order_product );
+	}
+
+	/**
+	 * Hides the save payment method checkbox when the cart contains a pre-order that is charged upon release.
+	 *
+	 * @param bool $display_save_option The default value of whether the save payment method checkbox should be displayed.
+	 * @return bool Whether the save payment method checkbox should be displayed.
+	 */
+	public function hide_save_payment_for_pre_orders_charged_upon_release( $display_save_option ) {
+
+		// This function only sets the display param to false, so if it's already hidden or the cart doesn't contain a pre-order, we don't need to do anything.
+		if ( ! $display_save_option || ! $this->is_pre_order_item_in_cart() ) {
+			return $display_save_option;
+		}
+
+		// If the cart contains a pre-order that is charged upon release, we hide the save payment method checkbox because the payment method is force saved.
+		if ( $this->is_pre_order_charged_upon_release_in_cart() ) {
+			return false;
+		}
+
+		return $display_save_option;
 	}
 }

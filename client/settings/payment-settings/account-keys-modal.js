@@ -178,16 +178,10 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 	}
 `;
 
-export const AccountKeysModal = ( {
-	type,
-	onClose,
-	setKeepModalContent,
-	redirectOnSave,
-} ) => {
+export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
 	const {
 		isSaving,
-		accountKeys,
 		saveAccountKeys,
 		updateIsValidAccountKeys,
 	} = useAccountKeys();
@@ -212,36 +206,15 @@ export const AccountKeysModal = ( {
 			return { ...acc, [ name ]: value };
 		}, {} );
 
-		// If we are deleting keys for this mode and there are no other keys set, we need to reload to render the connect page.
-		const savingEmptyKeys =
-			! keysToSave.publishable_key &&
-			! keysToSave.secret_key &&
-			! keysToSave.test_publishable_key &&
-			! keysToSave.test_secret_key;
-		const noLiveKeysSaved =
-			! accountKeys.publishable_key && ! accountKeys.secret_key;
-		const noTestKeysSaved =
-			! accountKeys.test_publishable_key && ! accountKeys.test_secret_key;
-		if (
-			savingEmptyKeys &&
-			( ( testMode && noLiveKeysSaved ) ||
-				( ! testMode && noTestKeysSaved ) )
-		) {
-			redirectOnSave = window.location.href;
-		}
-
 		const saveSuccess = await saveAccountKeys( keysToSave );
 		if ( ! saveSuccess ) {
 			setDisabled( false );
-		} else if ( redirectOnSave ) {
-			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
+		} else {
+			// After a successful save, we keep the modal open and disabled while the page reloads.
 			if ( setKeepModalContent ) {
 				setKeepModalContent( true );
 			}
-			window.location.href = redirectOnSave;
-		} else {
-			setDisabled( false );
-			onCloseHelper();
+			window.location.reload();
 		}
 	};
 

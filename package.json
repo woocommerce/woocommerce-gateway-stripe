@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "7.9.2",
+  "version": "8.1.0",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -91,7 +91,7 @@
   },
   "dependencies": {
     "@stripe/react-stripe-js": "1.4.1",
-    "@stripe/stripe-js": "1.15.1",
+    "@stripe/stripe-js": "^1.36.0",
     "@testing-library/react-hooks": "^7.0.2",
     "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",
@@ -146,10 +146,12 @@
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
-    "test:e2e": "./tests/e2e/env/e2e.sh",
-    "test:e2e-smoke": "./tests/e2e/env/e2e.sh --grep @smoke",
-    "test:e2e-setup": "./tests/e2e/env/e2e.sh --with_woo_setup --with_stripe_setup",
-    "test:e2e-debug": "./tests/e2e/env/e2e.sh --debug"
+    "test:e2e-setup": "./tests/e2e/bin/setup.sh",
+    "test:e2e-up": "./tests/e2e/bin/up.sh",
+    "test:e2e-down": "./tests/e2e/bin/down.sh",
+    "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
+    "test:e2e": "./tests/e2e/bin/run-tests.sh",
+    "test:e2e-debug": "npm run test:e2e -- --debug"
   },
   "engines": {
     "node": ">=16.17.0",

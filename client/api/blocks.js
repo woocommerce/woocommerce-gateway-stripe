@@ -66,7 +66,8 @@ export const updateShippingDetails = ( shippingOption ) => {
 };
 
 export const createOrder = ( sourceEvent, paymentRequestType ) => {
-	const data = normalizeOrderData( sourceEvent, paymentRequestType );
+	let data = normalizeOrderData( sourceEvent, paymentRequestType );
+	data = getRequiredFieldDataFromCheckoutForm( data );
 
 	return $.ajax( {
 		type: 'POST',
@@ -74,4 +75,37 @@ export const createOrder = ( sourceEvent, paymentRequestType ) => {
 		dataType: 'json',
 		url: getAjaxUrl( 'create_order' ),
 	} );
+};
+
+const getRequiredFieldDataFromCheckoutForm = ( data ) => {
+	const checkoutForm = document.querySelector( '.wc-block-checkout' );
+	// Return if cart page.
+	if ( ! checkoutForm ) {
+		return data;
+	}
+
+	const requiredFields = checkoutForm.querySelectorAll( '[required]' );
+
+	if ( requiredFields.length ) {
+		requiredFields.forEach( ( field ) => {
+			const value = field.value;
+			const id = field.id?.replace( '-', '_' );
+			if ( value && ! data[ id ] ) {
+				data[ id ] = value;
+			}
+
+			// if billing same as shipping is selected, copy the shipping field to billing field.
+			const useSameBillingAddress = checkoutForm
+				.querySelector( '.wc-block-checkout__use-address-for-billing' )
+				?.querySelector( 'input' )?.checked;
+			if ( useSameBillingAddress ) {
+				const billingFieldName = id.replace( 'shipping_', 'billing_' );
+				if ( ! data[ billingFieldName ] && data[ id ] ) {
+					data[ billingFieldName ] = data[ id ];
+				}
+			}
+		} );
+	}
+
+	return data;
 };

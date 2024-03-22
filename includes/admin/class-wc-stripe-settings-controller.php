@@ -35,6 +35,10 @@ class WC_Stripe_Settings_Controller {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
+
+		// Priority 5 so we can manipulate the registered gateways before they are shown.
+		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
+
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
 	}
 
@@ -156,6 +160,40 @@ class WC_Stripe_Settings_Controller {
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
 		wp_enqueue_style( 'woocommerce_stripe_admin' );
+	}
+
+	/**
+	 * Removes all Stripe alternative payment methods (eg Bancontact, giropay) on the WooCommerce Settings page.
+	 *
+	 * Note: This function is hooked onto `woocommerce_admin_field_payment_gateways` which is the hook used
+	 * to display the payment gateways on the WooCommerce Settings page.
+	 */
+	public static function hide_gateways_on_settings_page() {
+		$gateways_to_hide = [
+			// Hide all UPE payment methods.
+			WC_Stripe_UPE_Payment_Method::class,
+			// Hide all legacy payment methods.
+			WC_Gateway_Stripe_Alipay::class,
+			WC_Gateway_Stripe_Sepa::class,
+			WC_Gateway_Stripe_Giropay::class,
+			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Eps::class,
+			WC_Gateway_Stripe_P24::class,
+			WC_Gateway_Stripe_Boleto::class,
+			WC_Gateway_Stripe_Oxxo::class,
+			WC_Gateway_Stripe_Sofort::class,
+			WC_Gateway_Stripe_Multibanco::class,
+		];
+
+		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {
+			foreach ( $gateways_to_hide as $gateway_to_hide ) {
+				if ( $payment_gateway instanceof $gateway_to_hide ) {
+					unset( WC()->payment_gateways->payment_gateways[ $index ] );
+					break; // Break the inner loop as we've already found a match and removed the gateway
+				}
+			}
+		}
 	}
 
 	/**

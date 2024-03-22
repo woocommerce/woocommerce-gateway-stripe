@@ -8,6 +8,7 @@ export const useAccountKeys = () => {
 		updateAccountKeys,
 		updateIsTestingAccountKeys,
 		updateIsValidAccountKeys,
+		testAccountKeys,
 	} = useDispatch( STORE_NAME );
 
 	const accountKeys = useSelect( ( select ) => {
@@ -53,6 +54,7 @@ export const useAccountKeys = () => {
 		updateIsTestingAccountKeys,
 		updateIsValidAccountKeys,
 		saveAccountKeys,
+		testAccountKeys,
 	};
 };
 
