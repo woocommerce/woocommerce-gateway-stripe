@@ -6,7 +6,7 @@ import config from 'config';
  * @param {Page} page Playwright page fixture.
  */
 export async function emptyCart( page ) {
-	await page.goto( '/cart' );
+	await page.goto( '/cart-shortcode' );
 
 	// Remove products if they exist
 	if ( null !== ( await page.$$( '.remove' ) ) ) {
@@ -24,10 +24,9 @@ export async function emptyCart( page ) {
 		await page.click( '.woocommerce-remove-coupon' );
 	}
 
-	await page.waitForSelector( '.cart-empty.woocommerce-info' );
-	await expect( page.locator( '.cart-empty.woocommerce-info' ) ).toHaveText(
-		'Your cart is currently empty.'
-	);
+	await expect(
+		page.locator( '.wc-empty-cart-message .cart-empty' )
+	).toHaveText( 'Your cart is currently empty.' );
 }
 
 /**
@@ -197,7 +196,7 @@ export async function setupProductCheckout(
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
  */
 export async function setupCheckout( page, billingDetails = null ) {
-	await page.goto( '/checkout/' );
+	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
 		await page.selectOption(
@@ -234,7 +233,7 @@ export async function setupCheckout( page, billingDetails = null ) {
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
  */
 export async function setupBlocksCheckout( page, billingDetails = null ) {
-	await page.goto( '/checkout-block/' );
+	await page.goto( '/checkout/' );
 
 	const fieldNameLabelMap = {
 		first_name: 'First name',

@@ -13,6 +13,7 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -40,6 +41,9 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
+jest.mock( 'utils/use-alipay-currencies', () => ( {
+	useAliPayCurrencies: jest.fn(),
+} ) );
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
@@ -56,13 +60,17 @@ describe( 'GeneralSettingsSection', () => {
 			[ 'card', 'link' ],
 			jest.fn(),
 		] );
-		useAccount.mockReturnValue( { isRefreshing: false } );
+		useAccount.mockReturnValue( {
+			isRefreshing: false,
+			data: { testmode: false },
+		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [ 'card', 'eps' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
+		useAliPayCurrencies.mockReturnValue( [ 'EUR', 'CNY' ] );
 	} );
 
 	afterEach( () => {
@@ -74,6 +82,7 @@ describe( 'GeneralSettingsSection', () => {
 		useAccount.mockReturnValue( {
 			isRefreshing: true,
 			refreshAccount: refreshAccountMock,
+			data: { testmode: false },
 		} );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
@@ -314,33 +323,6 @@ describe( 'GeneralSettingsSection', () => {
 		userEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
-	} );
-
-	it( 'should display a modal to allow to disable UPE', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByText( /Without the new payments experience/ )
-		).not.toBeInTheDocument();
-
-		userEvent.click(
-			screen.getByRole( 'button', {
-				name: 'Payment methods menu',
-			} )
-		);
-		userEvent.click(
-			screen.getByRole( 'menuitem', {
-				name: 'Disable',
-			} )
-		);
-
-		expect(
-			screen.queryByText( /Without the new payments experience/ )
-		).toBeInTheDocument();
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supprted', () => {

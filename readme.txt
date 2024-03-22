@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.9.2
+Stable tag: 8.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,13 +128,16 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.0.0 - 2024-xx-xx =
-* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
-* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
-* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
-* Fix - Add missing fee and payout information to the order details page in admin.
-* Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
-* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
-* Add   - Update the interface for customizing Stripe payment methods.
+= 8.1.0 - xxxx-xx-xx =
+* Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
+* Tweak - Update the Stripe JS library to 1.36.0.
+* Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
+* Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
+* Add - Include Stripe API version in logs.
+* Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
+* Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
+* Tweak - Remove unused UPE title field.
+* Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
+* Add - Enable the updated checkout experience (UPE) by default for new accounts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

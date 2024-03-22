@@ -92,6 +92,37 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/test',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'test_account_keys' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'publishable_key'      => [
+						'description'       => __( 'Your Stripe API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_publishable_key' ],
+					],
+					'secret_key'           => [
+						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_secret_key' ],
+					],
+					'test_publishable_key' => [
+						'description'       => __( 'Your Stripe testing API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_test_publishable_key' ],
+					],
+					'test_secret_key'      => [
+						'description'       => __( 'Your Stripe testing API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_test_secret_key' ],
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -105,7 +136,18 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
+		// Mask the keys
+		foreach ( $account_keys as $key => $value ) {
+			if ( ! empty( $value ) ) {
+				$account_keys[ $key ] = $this->mask_key_value( $value );
+			}
+		}
+
 		return new WP_REST_Response( $account_keys );
+	}
+
+	private function mask_key_value( $value ): string {
+		return substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
 	}
 
 	/**
@@ -183,44 +225,28 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$publishable_key      = $request->get_param( 'publishable_key' );
-		$secret_key           = $request->get_param( 'secret_key' );
-		$webhook_secret       = $request->get_param( 'webhook_secret' );
-		$test_publishable_key = $request->get_param( 'test_publishable_key' );
-		$test_secret_key      = $request->get_param( 'test_secret_key' );
-		$test_webhook_secret  = $request->get_param( 'test_webhook_secret' );
+		$settings       = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
-		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-
-		// If all keys were empty, then is a new account; we need to set the test/live mode.
-		$new_account = ! trim( $settings['publishable_key'] )
-					&& ! trim( $settings['secret_key'] )
-					&& ! trim( $settings['test_publishable_key'] )
-					&& ! trim( $settings['test_secret_key'] );
-		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
-		$is_deleting_account = ! trim( $publishable_key )
-							&& ! trim( $secret_key )
-							&& ! trim( $test_publishable_key )
-							&& ! trim( $test_secret_key );
-
-		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
-		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
-		$settings['webhook_secret']       = is_null( $webhook_secret ) ? $settings['webhook_secret'] : $webhook_secret;
-		$settings['test_publishable_key'] = is_null( $test_publishable_key ) ? $settings['test_publishable_key'] : $test_publishable_key;
-		$settings['test_secret_key']      = is_null( $test_secret_key ) ? $settings['test_secret_key'] : $test_secret_key;
-		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
-
-		if ( $new_account ) {
-			$settings['enabled'] = 'yes';
-			if ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) ) {
-				$settings['testmode'] = 'no';
-			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
-				$settings['testmode'] = 'yes';
+		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
+		foreach ( $current_account_keys as $key => $value ) {
+			$new_value = wc_clean( wp_unslash( $request->get_param( $key ) ) );
+			if ( ! is_null( $new_value ) && $new_value !== $this->mask_key_value( $value ) ) {
+				$settings[ $key ] = $new_value;
 			}
+		}
 
-			$this->record_manual_account_connect_track_event( 'yes' === $settings['testmode'] );
-		} elseif ( $is_deleting_account ) {
+		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
+		$is_deleting_account = ! $settings['publishable_key']
+							&& ! $settings['secret_key']
+							&& ! $settings['test_publishable_key']
+							&& ! $settings['test_secret_key'];
+
+		if ( $is_deleting_account ) {
 			$settings['enabled'] = 'no';
+			$this->record_manual_account_disconnect_track_event( 'yes' === $settings['testmode'] );
+		} else {
+			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
 		}
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
@@ -233,15 +259,82 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Records a track event when the keys of an account are manually added and no keys were previously stored.
+	 * Tests the Stripe API Keys, using the received keys, or the unmasked version if they were not changed.
+	 *
+	 * This code was ported from the frontend as we no longer have the unmasked keys available in the client.
+	 * It uses the Stripe token API to check the keys, and it DOES NOT use the current saved keys, it uses the received
+	 * data (except for masked keys, for those the original value from settings is used)
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 */
+	public function test_account_keys( WP_REST_Request $request ) {
+		$live_mode   = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$publishable = wc_clean( wp_unslash( $request->get_param( 'publishable' ) ) );
+		$secret      = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
+
+		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+
+		if ( $publishable === $this->mask_key_value( $publishable ) ) {
+			$publishable = $settings[ $live_mode ? 'publishable_key' : 'test_publishable_key' ];
+		}
+		if ( $secret === $this->mask_key_value( $secret ) ) {
+			$secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
+		}
+
+		$response = wp_safe_remote_post(
+			'https://api.stripe.com/v1/tokens',
+			[
+				'method'  => 'POST',
+				'headers' => [ 'Content-Type' => 'application/x-www-form-urlencoded' ],
+				'body'    => 'pii[personal_id_number]=connection_test&key=' . $publishable,
+				'timeout' => 60,
+			]
+		);
+		if ( is_wp_error( $response ) || 200 !== $response['response']['code'] ) {
+			return new WP_REST_Response( [], 422 );
+		}
+
+		$response_data = json_decode( $response['body'] );
+		$token_id      = $response_data->id;
+
+		$response = wp_safe_remote_get(
+			'https://api.stripe.com/v1/tokens/' . $token_id,
+			[
+				'method'  => 'GET',
+				'headers' => [ 'Authorization' => 'Basic ' . base64_encode( $secret . ':' ) ],
+				'timeout' => 60,
+			]
+		);
+		if ( is_wp_error( $response ) || 200 !== $response['response']['code'] ) {
+			return new WP_REST_Response( [], 422 );
+		}
+
+		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Records a track event when the keys of an account are manually removed (account disconnected).
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
 	 */
-	private function record_manual_account_connect_track_event( bool $is_test_mode ) {
+	private function record_manual_account_disconnect_track_event( bool $is_test_mode ) {
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_stripe_connected', [ 'is_test_mode' => $is_test_mode ] );
+		wc_admin_record_tracks_event( 'wcstripe_stripe_disconnected', [ 'is_test_mode' => $is_test_mode ] );
+	}
+
+	/**
+	 * Records a track event when the keys of an account are manually updated.
+	 *
+	 * @param bool $is_test_mode Whether the keys are test ones.
+	 */
+	private function record_manual_account_key_update_track_event( bool $is_test_mode ) {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event( 'wcstripe_stripe_keys_updated', [ 'is_test_mode' => $is_test_mode ] );
 	}
 }

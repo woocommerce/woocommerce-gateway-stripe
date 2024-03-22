@@ -181,8 +181,14 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		if ( in_array( strtolower( $currency ), self::no_decimal_currencies() ) ) {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
 			return absint( $total );
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$price_decimals = wc_get_price_decimals();
+			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
+			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
 		}
@@ -252,6 +258,22 @@ class WC_Stripe_Helper {
 			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
 			'xpf', // Cfp Franc
+		];
+	}
+
+	/**
+	 * List of currencies supported by Stripe that has three decimals
+	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
+	 *
+	 * @return array $currencies
+	 */
+	private static function three_decimal_currencies() {
+		return [
+			'bhd', // Bahraini Dinar
+			'jod', // Jordanian Dinar
+			'kwd', // Kuwaiti Dinar
+			'omr', // Omani Rial
+			'tnd', // Tunisian Dinar
 		];
 	}
 
@@ -546,6 +568,41 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the list of payment methods for the settings page when UPE is enabled. The list includes
+	 * all the UPE methods and Multibanco.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return string[]
+	 */
+	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
+		$available_gateways = $gateway->get_upe_available_payment_methods();
+		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
+		$available_gateways[] = 'multibanco';
+
+		return $available_gateways;
+	}
+
+	/**
+	 * Returns the list of enabled payment methods for the settings page when UPE is enabled. The list includes
+	 * the UPE methods and Multibanco if it's enabled.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return string[]
+	 */
+	public static function get_upe_settings_enabled_payment_method_ids( $gateway ) {
+		$enabled_gateways = $gateway->get_upe_enabled_payment_method_ids();
+
+		// Multibanco is a non UPE method that uses Stripe sources. Adding to the list if it's enabled
+		// to show it in the Stripe settings page.
+		$multibanco = self::get_legacy_payment_method( 'stripe_multibanco' );
+		if ( $multibanco->is_enabled() ) {
+			$enabled_gateways[] = 'multibanco';
+		}
+
+		return $enabled_gateways;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
@@ -652,7 +709,7 @@ class WC_Stripe_Helper {
 		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
-					'limit'          => 1,
+					'limit'      => 1,
 					'meta_query' => [
 						[
 							'key'   => '_stripe_refund_id',
@@ -787,9 +844,9 @@ class WC_Stripe_Helper {
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
 			$suffix = '#' . $order->get_order_number();
 
-			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add the first character of the prefix before the order number.
+			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add an extra `O` before the order number.
 			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
-				$suffix = substr( $prefix, 0, 1 ) . ' ' . $suffix;
+				$suffix = 'O ' . $suffix;
 			}
 		}
 
@@ -922,7 +979,7 @@ class WC_Stripe_Helper {
 	 * @return boolean
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
-		return is_cart() || is_checkout();
+		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
 	}
 
 	/**
@@ -1112,5 +1169,40 @@ class WC_Stripe_Helper {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the payment intent or setup intent ID from a given order object.
+	 *
+	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 *
+	 * @return string|bool  The intent ID if found, false otherwise.
+	 */
+	public static function get_intent_id_from_order( $order ) {
+		$intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		return $intent_id ?? false;
+	}
+
+	/**
+	 * Fetches a list of all Stripe gateway IDs.
+	 *
+	 * @return array An array of all Stripe gateway IDs.
+	 */
+	public static function get_stripe_gateway_ids() {
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
+
+		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateways = $main_gateway->payment_methods;
+		} else {
+			$gateways = self::get_legacy_payment_methods();
+		}
+
+		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
 	}
 }

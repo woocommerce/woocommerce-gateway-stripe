@@ -158,58 +158,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = $this->rest_get_settings();
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'foobar', $response->get_data()[ $option_name ] );
-
-		// Test update works for values passing validation.
-		$this->get_gateway()->update_option( $option_name, 'foobar' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		if ( 'short_statement_descriptor' === $option_name ) {
-			$request->set_param( 'is_short_statement_descriptor_enabled', true );
-		}
-		$request->set_param( $option_name, 'quuxcorge' );
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'quuxcorge', $this->get_gateway()->get_option( $option_name ) );
-
-		// Do not update if rest key not present in update request.
-		$this->get_gateway()->update_option( $option_name, 'foobar' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( $option_name ) );
-
-		// Test update fails and returns HTTP code 400 for non-string values.
-		$this->assert_statement_descriptor_update_request_fails_for_value(
-			$option_name,
-			[]
-		);
-
-		// Test update fails and returns HTTP code 400 for values that are too short.
-		$this->assert_statement_descriptor_update_request_fails_for_value(
-			$option_name,
-			'1234'
-		);
-
-		// Test update fails and returns HTTP code 400 for values that are too long.
-		$this->assert_statement_descriptor_update_request_fails_for_value(
-			$option_name,
-			str_pad( '', $max_allowed_length + 1, 'a' )
-		);
-
-		// Test update fails and returns HTTP code 400 for values that contain no letters.
-		$this->assert_statement_descriptor_update_request_fails_for_value(
-			$option_name,
-			'123456'
-		);
-
-		// Test update fails and returns HTTP code 400 for values that contain special characters.
-		$this->assert_statement_descriptor_update_request_fails_for_value(
-			$option_name,
-			'foobar\''
-		);
 	}
 
 	public function test_individual_payment_method_settings() {
@@ -254,24 +202,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with Giropay', $gateway_settings['description'] );
 	}
 
-	public function test_short_statement_descriptor_is_not_updated() {
-		// It returns option value under expected key with HTTP code 200.
-		$this->get_gateway()->update_option( 'short_statement_descriptor', 'foobar' );
-		$response = $this->rest_get_settings();
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'foobar', $response->get_data()['short_statement_descriptor'] );
-
-		// test update does not fail since is_short_statement_descriptor_enabled is disabled
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_short_statement_descriptor_enabled', false );
-		$request->set_param( 'short_statement_descriptor', '123' );
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( 'short_statement_descriptor' ) );
-	}
-
 	public function test_get_settings_returns_available_payment_method_ids() {
 		//link is available only in US
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -290,13 +220,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
-		$expected_method_ids = array_map(
-			function ( $method_class ) {
-				return $method_class::STRIPE_ID;
-			},
-			$expected_method_ids
-		);
+		$expected_method_ids = array_keys( $this->get_gateway()->payment_methods );
+		$expected_method_ids[] = 'multibanco';
 
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
@@ -323,19 +248,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
-		$expected_method_ids = array_map(
-			function ( $method_class ) {
-				return $method_class::STRIPE_ID;
-			},
-			$expected_method_ids
-		);
-		$expected_method_ids = array_filter(
-			$expected_method_ids,
-			function ( $method_id ) {
-				return 'link' !== $method_id;
-			}
-		);
+		$expected_methods = $this->get_gateway()->payment_methods;
+
+		unset( $expected_methods['link'] );
+
+		$expected_method_ids = array_keys( $expected_methods );
+		$expected_method_ids[] = 'multibanco';
 
 		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
 
@@ -446,21 +364,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'statement_descriptor'       => [ 'statement_descriptor', 22 ],
 			'short_statement_descriptor' => [ 'short_statement_descriptor', 10 ],
 		];
-	}
-
-	private function assert_statement_descriptor_update_request_fails_for_value( $option_name, $new_invalid_value ) {
-		$this->get_gateway()->update_option( $option_name, 'foobar' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		if ( 'short_statement_descriptor' === $option_name ) {
-			$request->set_param( 'is_short_statement_descriptor_enabled', true );
-		}
-		$request->set_param( $option_name, $new_invalid_value );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 400, $response->get_status() );
-		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( $option_name ) );
 	}
 
 	/**

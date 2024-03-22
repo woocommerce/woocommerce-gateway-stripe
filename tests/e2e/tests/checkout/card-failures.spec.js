@@ -26,6 +26,21 @@ const testCard = async ( page, cardKey ) => {
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
+const testCardBlocks = async ( page, cardKey ) => {
+	const card = config.get( cardKey );
+
+	await fillCardDetails( page, card );
+	await page.locator( 'text=Place order' ).click();
+
+	expect
+		.soft(
+			await page.innerText(
+				'.wc-block-components-notice-banner.is-error'
+			)
+		)
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+};
+
 test.describe.configure( { mode: 'parallel' } );
 test.describe( 'customer cannot checkout with invalid cards', () => {
 	test( `a declined card shows the correct error message @smoke`, async ( {

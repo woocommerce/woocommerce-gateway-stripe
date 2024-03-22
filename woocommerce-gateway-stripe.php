@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 7.9.2
+ * Version: 8.1.0
  * Requires at least: 6.1
- * Tested up to: 6.4.2
+ * Tested up to: 6.4.3
  * WC requires at least: 8.2
- * WC tested up to: 8.5.1
+ * WC tested up to: 8.6.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '7.9.2' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.1.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -173,6 +173,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
@@ -198,6 +199,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -212,6 +214,9 @@ function woocommerce_gateway_stripe() {
 				$this->connect                       = new WC_Stripe_Connect( $this->api );
 				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+				$intent_controller = new WC_Stripe_Intent_Controller();
+				$intent_controller->init_hooks();
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -371,19 +376,45 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Add the main Stripe gateway to WooCommerce.
+			 * Add the gateways to WooCommerce.
 			 *
 			 * @since 1.0.0
 			 * @version 5.6.0
 			 */
 			public function add_gateways( $methods ) {
-				$methods[] = $this->get_main_stripe_gateway();
+				$main_gateway = $this->get_main_stripe_gateway();
+				$methods[]    = $main_gateway;
 
 				// These payment gateways will be visible in the main settings page, if UPE enabled.
-				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+					// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+					$upe_payment_methods = $main_gateway->payment_methods;
+					unset( $upe_payment_methods['card'] );
+
+					$methods = array_merge( $methods, $upe_payment_methods );
+				} else {
+					// These payment gateways will not be included in the gateway list when UPE is enabled:
 					$methods[] = WC_Gateway_Stripe_Alipay::class;
-					$methods[] = WC_Gateway_Stripe_Multibanco::class;
+					$methods[] = WC_Gateway_Stripe_Sepa::class;
+					$methods[] = WC_Gateway_Stripe_Giropay::class;
+					$methods[] = WC_Gateway_Stripe_Ideal::class;
+					$methods[] = WC_Gateway_Stripe_Bancontact::class;
+					$methods[] = WC_Gateway_Stripe_Eps::class;
+					$methods[] = WC_Gateway_Stripe_P24::class;
+					$methods[] = WC_Gateway_Stripe_Boleto::class;
+					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+
+					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+					 */
+					$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
+					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
+						$methods[] = WC_Gateway_Stripe_Sofort::class;
+					}
 				}
+
+				// Multibanco will always be added to the gateway list, regardless if UPE is enabled or disabled:
+				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -609,7 +640,6 @@ function woocommerce_gateway_stripe() {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-payment-gateway-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
@@ -619,9 +649,6 @@ function woocommerce_gateway_stripe() {
 
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
-
-					$settings_controller = new WC_REST_Stripe_Payment_Gateway_Controller();
-					$settings_controller->register_routes();
 				}
 			}
 
