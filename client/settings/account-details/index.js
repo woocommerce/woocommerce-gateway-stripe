@@ -47,26 +47,6 @@ const WebhookDescription = styled.div`
 	color: rgb( 117, 117, 117 );
 `;
 
-const StripeAccountDetails = styled.div`
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	padding: 8px 0;
-	flex: 1 0 0;
-`;
-
-const SectionStripeAccountInfo = styled.span`
-	display: flex;
-	height: 24px;
-	padding: 0px 4px;
-	margin-left: 6px;
-	justify-content: center;
-	align-items: center;
-	border-radius: 2px;
-	color: rgb( 117, 117, 117 );
-	background-color: rgb( 246, 247, 247 );
-`;
-
 const AccountDetailsError = styled.p`
 	@import '../../styles/abstracts/colors';
 	color: $alert-red;
@@ -134,25 +114,11 @@ const PayoutsSection = () => {
 	);
 };
 
-const StripeAccountID = ( { id } ) => {
-	return (
-		<AccountSection>
-			<Label>
-				{ __( 'Stripe Account ID', 'woocommerce-gateway-stripe' ) }
-			</Label>
-			<SectionStripeAccountInfo data-testid="stripe-account-id">
-				{ id }
-			</SectionStripeAccountInfo>
-		</AccountSection>
-	);
-};
-
 const WebhooksSection = () => {
 	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
 	const [ webhookSecret ] = useAccountKeysWebhookSecret();
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
-	const stripeAccountId = data.account?.id;
 
 	const isWebhookSecretEntered = Boolean(
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
@@ -184,9 +150,6 @@ const WebhooksSection = () => {
 					</Button>
 				</p>
 			</WebhookDescription>
-			<StripeAccountDetails>
-				<StripeAccountID id={ stripeAccountId } />
-			</StripeAccountDetails>
 		</>
 	);
 };
