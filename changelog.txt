@@ -11,6 +11,7 @@
 * Tweak - Remove unused UPE title field.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
+* Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 = 8.0.1 - 2024-03-13 =
 * Fix - Resolved failing card payments when `statement_descriptor` parameter is used.
