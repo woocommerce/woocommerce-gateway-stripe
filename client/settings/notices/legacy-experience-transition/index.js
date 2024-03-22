@@ -1,3 +1,4 @@
+import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React, { useContext } from 'react';
@@ -31,6 +32,10 @@ const LearnMoreAnchor = styled.a`
 const LegacyExperienceTransitionNotice = () => {
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 
+	const { createErrorNotice, createSuccessNotice } = useDispatch(
+		'core/notices'
+	);
+
 	// The merchant already disabled the legacy experience. Nothing to do here.
 	if ( isUpeEnabled ) {
 		return null;
@@ -40,7 +45,21 @@ const LegacyExperienceTransitionNotice = () => {
 		const callback = async () => {
 			try {
 				await setIsUpeEnabled( true );
-			} catch ( err ) {}
+
+				createSuccessNotice(
+					__(
+						'New checkout experience enabled',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			} catch ( err ) {
+				createErrorNotice(
+					__(
+						'There was an error. Please reload the page and try again.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
 		};
 
 		// creating a separate callback so that the UI isn't blocked by the async call.
