@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove unused UPE title field.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
+* Add - Banner encouraging the transition to the updated checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
