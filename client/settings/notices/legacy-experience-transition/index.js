@@ -1,10 +1,9 @@
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
-import React, { useContext } from 'react';
+import React from 'react';
 import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const NoticeWrapper = styled.div`
 	display: flex;
@@ -30,9 +29,10 @@ const LearnMoreAnchor = styled.a`
 	color: #bd8600 !important;
 `;
 
-const LegacyExperienceTransitionNotice = () => {
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
-
+const LegacyExperienceTransitionNotice = ( {
+	isUpeEnabled,
+	setIsUpeEnabled,
+} ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
 	);

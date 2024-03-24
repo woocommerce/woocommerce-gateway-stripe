@@ -39,7 +39,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
 		false
 	);
-	const { isUpeEnabled } = useContext( UpeToggleContext );
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
 	const onChangeDisplayOrder = ( isChanging, data = null ) => {
@@ -52,7 +52,10 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 
 	return (
 		<>
-			<LegacyExperienceTransitionNotice />
+			<LegacyExperienceTransitionNotice
+				isUpeEnabled={ isUpeEnabled }
+				setIsUpeEnabled={ setIsUpeEnabled }
+			/>
 			<AccountActivationNotice />
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>
