@@ -1110,6 +1110,7 @@ class WC_Stripe_Payment_Request {
 		foreach ( $fields as $field_key => $field_data ) {
 			if ( false === array_search( $field_key, $default_required_fields, true ) ) {
 				if ( isset( $field_data['required'] ) && true === $field_data['required'] ) {
+					WC_Stripe_Logger::log( 'Has required checkout field: ' . $field_key );
 					return true;
 				}
 			}
