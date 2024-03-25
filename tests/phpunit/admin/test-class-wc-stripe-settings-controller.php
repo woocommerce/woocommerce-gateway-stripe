@@ -15,6 +15,11 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	private $controller;
 
 	/**
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * @var WC_Gateway_Stripe
 	 */
 	private $gateway;
@@ -22,14 +27,13 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
+		$this->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 									->disableOriginalConstructor()
 									->getMock();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
-		$this->controller = new WC_Stripe_Settings_Controller( $mock_account );
 		$this->gateway    = new WC_Gateway_Stripe();
-
+		$this->controller = new WC_Stripe_Settings_Controller( $this->account, $this->gateway );
 	}
 
 	public function tear_down() {
@@ -70,5 +74,39 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->controller->admin_options( $this->gateway );
 		$output = ob_get_clean();
 		$this->assertStringMatchesFormat( '%aid="wc-stripe-new-account-container"%a', $output );
+	}
+
+	/**
+	 * Test if `display_order_fee` and `display_order_payout` are called when viewing an order on the admin panel.
+	 *
+	 * @return void
+	 */
+	public function test_add_buttons_action_is_called_on_order_admin_page() {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$intent_id = 'pi_mock';
+		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+
+		$intent = (object) [
+			'id'     => 'pi_123',
+			'status' => 'requires_capture',
+		];
+
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->setMethods( [ 'get_intent_from_order' ] )
+			->getMock();
+
+		$gateway->expects( $this->once() )
+			->method( 'get_intent_from_order' )
+			->with( $order )
+			->willReturn( $intent );
+
+		$controller = new WC_Stripe_Settings_Controller( $this->account, $gateway );
+
+		ob_start();
+		$controller->hide_refund_button_for_uncaptured_orders( $order );
+		$output = ob_get_clean();
+		$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
 	}
 }
