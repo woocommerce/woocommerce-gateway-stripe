@@ -140,6 +140,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove unused UPE title field.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
+* Tweak - Add WooCommerce as a plugin dependency.
+* Tweak - Update the interface for the setting to toggle the New checkout experience to make it relative to the Legacy one instead.
 * Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
