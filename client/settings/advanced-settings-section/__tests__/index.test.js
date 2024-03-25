@@ -31,7 +31,7 @@ describe( 'AdvancedSettings', () => {
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
-			screen.queryByText( 'New checkout experience' )
+			screen.queryByText( 'Legacy checkout experience' )
 		).toBeInTheDocument();
 	} );
 
