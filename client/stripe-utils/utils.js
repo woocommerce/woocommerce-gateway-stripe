@@ -209,8 +209,10 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  * @return {boolean} True, if enabled; false otherwise.
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
-	// Link is enabled by default if CC is enabled.
-	return paymentMethodsConfig.card !== undefined;
+	return (
+		paymentMethodsConfig.link !== undefined &&
+		paymentMethodsConfig.card !== undefined
+	);
 };
 
 /**
