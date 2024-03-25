@@ -48,7 +48,7 @@ const LegacyExperienceTransitionNotice = ( {
 				await setIsUpeEnabled( true );
 
 				recordEvent( 'wcstripe_legacy_experience_disabled', {
-					source: 'payament-methods-tab-notice',
+					source: 'payment-methods-tab-notice',
 				} );
 
 				createSuccessNotice(
