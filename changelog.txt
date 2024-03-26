@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.1.0 - xxxx-xx-xx =
+* Add - Include Stripe account details to the settings page.
 * Fix - Hiding the refund button and replacing it with a disabled "Refunding unavailable" button when the order is not captured.
 * Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
 * Tweak - Update the Stripe JS library to 1.36.0.
