@@ -85,7 +85,12 @@ describe( 'UpeToggleContextProvider', () => {
 		);
 
 		expect( apiFetch ).not.toHaveBeenCalled();
-		expect( recordEvent ).toHaveBeenCalledWith( 'wcstripe_upe_disabled' );
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_legacy_experience_enabled',
+			{
+				source: 'settings-tab-checkbox',
+			}
+		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),
@@ -140,7 +145,12 @@ describe( 'UpeToggleContextProvider', () => {
 
 		await waitFor( () => expect( apiFetch ).toHaveReturned() );
 
-		expect( recordEvent ).toHaveBeenCalledWith( 'wcstripe_upe_disabled' );
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_legacy_experience_enabled',
+			{
+				source: 'settings-tab-checkbox',
+			}
+		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),

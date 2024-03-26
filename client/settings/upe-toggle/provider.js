@@ -7,10 +7,12 @@ import { recordEvent } from 'wcstripe/tracking';
 
 function trackUpeToggle( isEnabled ) {
 	const eventName = isEnabled
-		? 'wcstripe_upe_enabled'
-		: 'wcstripe_upe_disabled';
+		? 'wcstripe_legacy_experience_disabled'
+		: 'wcstripe_legacy_experience_enabled';
 
-	recordEvent( eventName );
+	recordEvent( eventName, {
+		source: 'settings-tab-checkbox',
+	} );
 }
 
 const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
