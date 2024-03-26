@@ -3,6 +3,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
 import confirmCardPayment from './confirm-card-payment.js';
 import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
 /**
  * Handles the Block Checkout onCheckoutSuccess event.
@@ -89,10 +90,7 @@ export const usePaymentFailHandler = (
 export const useStripeLink = ( api, elements, paymentMethodsConfig ) => {
 	const customerData = useCustomerData();
 	useEffect( () => {
-		if (
-			paymentMethodsConfig.link !== undefined &&
-			paymentMethodsConfig.card !== undefined
-		) {
+		if ( isLinkEnabled( paymentMethodsConfig ) ) {
 			const shippingAddressFields = {
 				line1: 'shipping-address_1',
 				line2: 'shipping-address_2',
