@@ -15,12 +15,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct() {
 		parent::__construct();
-		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Link', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'USD' ];
-		$this->label                = __( 'Stripe Link', 'woocommerce-gateway-stripe' );
-		$this->description          = __(
+		$this->stripe_id   = self::STRIPE_ID;
+		$this->title       = __( 'Link', 'woocommerce-gateway-stripe' );
+		$this->is_reusable = true;
+		$this->label       = __( 'Stripe Link', 'woocommerce-gateway-stripe' );
+		$this->description = __(
 			'Link is a payment method that allows customers to save payment information  and use the payment details
 			for further payments.',
 			'woocommerce-gateway-stripe'
@@ -81,7 +80,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 
-		return 'US' === $account_country;
+		// List of available countries for each PM:
+		// https://docs.stripe.com/payments/payment-methods/integration-options#country-currency-support
+		$country_availablity = [ 'AE', 'AT', 'AU', 'BE', 'BG', 'CA', 'CH', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'GI', 'GR', 'HK', 'HR', 'HU', 'IE', 'IT', 'JP', 'LI', 'LT', 'LU', 'LV', 'MT', 'MX', 'MY', 'NL', 'NO', 'NZ', 'PL', 'PT', 'RO', 'SE', 'SG', 'SI', 'SK', 'US' ];
+
+		return in_array( $account_country, $country_availablity, true );
 	}
 
 	/**

@@ -564,10 +564,11 @@ function woocommerce_gateway_stripe() {
 
 					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
 						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
+						$settings['upe_checkout_experience_accepted_payments'][] = 'link';
 					}
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-					$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+					$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
 				} else {
 					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 					$settings['enabled'] = 'yes';
@@ -709,7 +710,7 @@ function woocommerce_gateway_stripe() {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 
-					// Add extra `wcpay-checkout-email-field` class.
+					// Add extra `stripe-gateway-checkout-email-field` class.
 					$fields['billing_email']['class'][] = 'stripe-gateway-checkout-email-field';
 
 					// Append StripeLink modal trigger button for logged in users.

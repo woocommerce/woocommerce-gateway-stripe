@@ -1,5 +1,6 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -64,11 +65,8 @@ export default class WCStripeAPI {
 			isUPEEnabled,
 			paymentMethodsConfig,
 		} = this.options;
-		const isStripeLinkEnabled =
-			undefined !== paymentMethodsConfig.card &&
-			undefined !== paymentMethodsConfig.link;
 		if ( ! this.stripe ) {
-			if ( isUPEEnabled && isStripeLinkEnabled ) {
+			if ( isUPEEnabled && isLinkEnabled( paymentMethodsConfig ) ) {
 				this.stripe = this.createStripe( key, locale, [
 					'link_autofill_modal_beta_1',
 				] );
