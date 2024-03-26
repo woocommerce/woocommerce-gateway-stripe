@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.1.0 - xxxx-xx-xx =
+* Fix - Hiding the refund button and replacing it with a disabled "Refunding unavailable" button when the order is not captured.
 * Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
 * Tweak - Update the Stripe JS library to 1.36.0.
 * Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
@@ -140,5 +141,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
 * Add - Banner encouraging the transition to the updated checkout experience.
+* Tweak - Add WooCommerce as a plugin dependency.
+* Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
