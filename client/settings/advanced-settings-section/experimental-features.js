@@ -113,7 +113,7 @@ const ExperimentalFeatures = () => {
 				) }
 				help={ createInterpolateElement(
 					__(
-						'If you enable this, your store may stop processing payments in the near future as Stripe will no longer support this integration. <learnMoreLink>Learn more</learnMoreLink>.<newLineElement />Going back to the legacy experience? Reach out to us througbh our <feedbackLink>feedback form</feedbackLink> or <supportLink>support channel</supportLink>.',
+						'If you enable this, your store may stop processing payments in the near future as Stripe will no longer support this integration. <learnMoreLink>Learn more</learnMoreLink>.<newLineElement />Going back to the legacy experience? Reach out to us through our <feedbackLink>feedback form</feedbackLink> or <supportLink>support channel</supportLink>.',
 						'woocommerce-gateway-stripe'
 					),
 					{
