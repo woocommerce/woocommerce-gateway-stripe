@@ -14,6 +14,7 @@
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
 * Tweak - Add WooCommerce as a plugin dependency.
 * Tweak - Update the interface for the setting to toggle the New checkout experience to make it relative to the Legacy one instead.
+* Add - Banner encouraging the transition to the updated checkout experience.
 * Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 = 8.0.1 - 2024-03-13 =

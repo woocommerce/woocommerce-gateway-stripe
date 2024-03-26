@@ -142,6 +142,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
 * Tweak - Add WooCommerce as a plugin dependency.
 * Tweak - Update the interface for the setting to toggle the New checkout experience to make it relative to the Legacy one instead.
+* Add - Banner encouraging the transition to the updated checkout experience.
 * Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
