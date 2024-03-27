@@ -125,15 +125,14 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
-		$response = wp_safe_remote_post(
-			self::ENDPOINT . $api,
-			[
-				'method'  => $method,
-				'headers' => $headers,
-				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
-				'timeout' => 70,
-			]
-		);
+		$params = apply_filters('woocommerce_stripe_request_params', [
+			'method'  => $method,
+			'headers' => $headers,
+			'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
+			'timeout' => 70,
+		], $api);
+		$endpoint = apply_filters('woocommerce_stripe_request_endpoint', self::ENDPOINT . $api, $params, $api);
+		$response = wp_safe_remote_post($endpoint, $params);
 
 		$response_headers = wp_remote_retrieve_headers( $response );
 		// Log the stripe version in the response headers, if present.
