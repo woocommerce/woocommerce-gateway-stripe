@@ -5,6 +5,11 @@ jest.mock( '@wordpress/dom-ready', () => ( cb ) => cb() );
 describe( 'tracking', () => {
 	beforeEach( () => {
 		global.wcTracks = undefined;
+
+		global.wc_stripe_settings_params = {
+			is_test_mode: 'yes',
+			plugin_version: '1.2.3',
+		};
 	} );
 
 	it( 'does not fail if the global library is not present in the DOM', () => {
@@ -27,9 +32,10 @@ describe( 'tracking', () => {
 
 		recordEvent( 'event_name', { value: '1' } );
 
-		expect( recordEventMock ).toHaveBeenCalledWith(
-			'event_name',
-			expect.objectContaining( { value: '1' } )
-		);
+		expect( recordEventMock ).toHaveBeenCalledWith( 'event_name', {
+			value: '1',
+			is_test_mode: 'yes',
+			stripe_version: '1.2.3',
+		} );
 	} );
 } );
