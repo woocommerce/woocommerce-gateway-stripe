@@ -65,10 +65,16 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 		// check that there are saved payment methods.
 		await expect(
-			page.locator( 'input[id^="wc-stripe-payment-token-"]' )
+			page.locator(
+				'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+			)
 		).toHaveCount( 1 );
 
-		await page.locator( 'input[id^="wc-stripe-payment-token-"]' ).click();
+		await page
+			.locator(
+				'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+			)
+			.click();
 
 		await page.locator( 'text=Place order' ).click();
 
