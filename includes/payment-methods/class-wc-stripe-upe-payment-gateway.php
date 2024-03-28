@@ -1969,8 +1969,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
-		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
-			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+		if ( 'card' === $selected_payment_type ) {
+			if ( $is_short_statement_descriptor_enabled ) {
+				$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+			}
+			// Add the preferred card brand to the payment information.
+			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $token->is_co_branded() && $token->get_preferred_network() ) {
+				$payment_information['preferred_card_brand'] = $token->get_preferred_network();
+			}
 		}
 
 		return $payment_information;

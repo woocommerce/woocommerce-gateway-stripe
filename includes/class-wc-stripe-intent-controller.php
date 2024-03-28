@@ -745,6 +745,15 @@ class WC_Stripe_Intent_Controller {
 			$request['confirm'] = 'false';
 		}
 
+		// Add the preferred credit card brand when defined
+		if ( isset( $payment_information['preferred_card_brand'] ) ) {
+			$request['payment_method_options'] = [
+				'card' => [
+					'brand' => $payment_information['preferred_card_brand'],
+				],
+			];
+		}
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
