@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.1.0 - xxxx-xx-xx =
+* Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 * Add - Include Stripe account details to the settings page.
 * Add - Include Stripe API version in logs.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.

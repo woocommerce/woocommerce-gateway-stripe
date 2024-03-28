@@ -22,6 +22,12 @@ class WC_Helper_Token {
 		$token->set_last4( '4242' );
 		$token->set_expiry_month( 7 );
 		$token->set_expiry_year( intval( gmdate( 'Y' ) ) + 1 );
+		// Co-branded credit card support
+		if ( version_compare( WC_VERSION, '8.7.0', '>' ) ) {
+			$token->set_available_networks( [ 'visa', 'cartes_bancaires' ] );
+			$token->set_preferred_network( 'visa' );
+			$token->save();
+		}
 		$token->save();
 
 		return WC_Payment_Tokens::get( $token->get_id() );
