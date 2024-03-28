@@ -211,7 +211,19 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	}
 
 	public function test_is_at_least_one_payment_request_button_enabled_none_enabled() {
+		// Disable Apple Pay/Google Pay
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
+
+		// Disable Link by Stripe
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge(
+				get_option( 'woocommerce_stripe_settings', [] ),
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'card' ],
+				]
+			)
+		);
 
 		$this->assertFalse( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}
