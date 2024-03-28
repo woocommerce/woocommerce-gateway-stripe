@@ -54,7 +54,7 @@ class WC_Helper_Token {
 	 * @param string $gateway        Token's Gateway ID, default to WC_Gateway_Stripe::ID
 	 */
 	public static function create_cc_stripe_token( $payment_method, $user_id = null, $gateway = WC_Gateway_Stripe::ID ) {
-		$token = new WC_Payment_Token_CC_Stripe();
+		$token = new WC_Payment_Token_CC();
 		$token->set_token( $payment_method );
 		$token->set_gateway_id( $gateway );
 		$token->set_user_id( is_null( $user_id ) ? get_current_user_id() : $user_id );
