@@ -52,6 +52,8 @@ export function recordEvent( eventName, eventProperties ) {
 
 		// Add default properties to every event.
 		Object.assign( eventProperties, {
+			// The value for test mode is localized from the server on page load,
+			// thus it will only be updated after reloading the page.
 			is_test_mode: wc_stripe_settings_params.is_test_mode ? 'yes' : 'no',
 			stripe_version: wc_stripe_settings_params.plugin_version,
 		} );
