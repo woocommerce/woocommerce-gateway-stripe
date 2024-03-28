@@ -89,12 +89,14 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
-		// This is a co-branded card. We need to store some additional information.
-		if ( count( $payment_method->card->networks->available ) > 1 ) {
-			$token->set_available_networks( $payment_method->card->networks->available );
-			$token->set_preferred_network( $payment_method->card->networks->preferred ?? $payment_method->card->brand );
-		} else {
-			$token->set_available_networks( [ $payment_method->card->brand ] );
+		if ( version_compare( WC_VERSION, '8.8.0', '>' ) ) {
+			// This is a co-branded card. We need to store some additional information.
+			if ( count( $payment_method->card->networks->available ) > 1 ) {
+				$token->set_available_networks( $payment_method->card->networks->available );
+				$token->set_preferred_network( $payment_method->card->networks->preferred ?? $payment_method->card->brand );
+			} else {
+				$token->set_available_networks( [ $payment_method->card->brand ] );
+			}
 		}
 		$token->save();
 		return $token;
