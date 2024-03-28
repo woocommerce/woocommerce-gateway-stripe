@@ -92,7 +92,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		// This is a co-branded card. We need to store some additional information.
 		if ( count( $payment_method->card->networks->available ) > 1 ) {
 			$token->set_available_networks( $payment_method->card->networks->available );
-			$token->set_preferred_network( $payment_method->card->networks->preferred );
+			$token->set_preferred_network( $payment_method->card->networks->preferred ?? $payment_method->card->brand );
 		} else {
 			$token->set_available_networks( [ $payment_method->card->brand ] );
 		}

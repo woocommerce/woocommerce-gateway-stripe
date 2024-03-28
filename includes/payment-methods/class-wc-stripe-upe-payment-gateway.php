@@ -1804,59 +1804,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Controls the output for credit cards on the my account page (with co-branded cards support).
-	 *
-	 * @param  array                      $item         Individual list item from woocommerce_saved_payment_methods_list.
-	 * @param  WC_Payment_Token_CC_Stripe $payment_token The payment token associated with this method entry.
-	 * @return array                           Filtered item.
-	 */
-	public function display_co_branded_credit_card_info( $item, $payment_token ) {
-		if ( 'cc_stripe' !== strtolower( $payment_token->get_type() ) ) {
-			return $item;
-		}
-
-		$card_type                           = $payment_token->get_card_type();
-		$item['method']['last4']             = $payment_token->get_last4();
-		$item['method']['brand']             = ( ! empty( $card_type ) ? ucfirst( $card_type ) : esc_html__( 'Credit card', 'woocommerce-gateway-stripe' ) );
-		$item['method']['is_co_branded']     = $payment_token->is_co_branded();
-		$item['method']['networks']          = $payment_token->get_available_networks();
-		$item['method']['preferred_network'] = $payment_token->get_preferred_network();
-		$item['expires']                     = $payment_token->get_expiry_month() . '/' . substr( $payment_token->get_expiry_year(), -2 );
-
-		return $item;
-	}
-
-	/**
-	 * Correctly display co-branded credit cards.
-	 *
-	 * @param array $method Payment method data.
-	 * @return void
-	 */
-	public function display_co_branded_credit_card_label( $method ) {
-		if ( $method['method']['is_co_branded'] && count( $method['method']['networks'] ) > 1 ) {
-			$brands_label = implode(
-				' / ',
-				array_map(
-					function ( $network ) {
-						return esc_html( wc_get_credit_card_type_label( $network ) );
-					},
-					$method['method']['networks']
-				)
-			);
-			/* translators: %s: a credit card brand. */
-			$brands_label .= ' (' . sprintf( esc_html__( '%s preferred', 'woocommerce-gateway-stripe' ), esc_html( wc_get_credit_card_type_label( $method['method']['preferred_network'] ) ) ) . ')';
-		} else {
-			$brands_label = esc_html( wc_get_credit_card_type_label( $method['method']['brand'] ) );
-		}
-		if ( ! empty( $method['method']['last4'] ) ) {
-			/* translators: 1: credit card type 2: last 4 digits */
-			echo sprintf( esc_html__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ), $brands_label, esc_html( $method['method']['last4'] ) );
-		} else {
-			echo $brands_label;
-		}
-	}
-
-	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
 	 * @param string   $path   Stripe API endpoint path to query.
