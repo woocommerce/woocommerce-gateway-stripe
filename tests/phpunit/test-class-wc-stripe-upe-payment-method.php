@@ -466,9 +466,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			switch ( $payment_method_id ) {
 				case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
 					$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
-					/** @var WC_Payment_Token_CC_Stripe $token */
-					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
-					$this->assertTrue( 'WC_Payment_Token_CC_Stripe' === get_class( $token ) );
+					$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $card_payment_method_mock->card->last4 );
 					$this->assertSame( $token->get_token(), $card_payment_method_mock->id );
 					$this->assertTrue( $token->is_co_branded() );
