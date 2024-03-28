@@ -482,6 +482,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
 					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
 					unset( $card_payment_method_mock->card->networks->preferred );
+					if ( version_compare( WC_VERSION, '8.7.0', '>' ) ) {
+						$this->assertTrue( $token->is_co_branded() );
+						$this->assertSame( $token->get_available_networks(), $card_payment_method_mock->card->networks->available );
+						$this->assertSame( $token->get_preferred_network(), $card_payment_method_mock->card->networks->preferred );
+					}
 					break;
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					$link_payment_method_mock = $this->array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );
