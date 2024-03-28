@@ -147,6 +147,8 @@ class WC_Stripe_Settings_Controller {
 			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'is_test_mode'              => $this->gateway->is_in_test_mode(),
+			'plugin_version'            => WC_STRIPE_VERSION,
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

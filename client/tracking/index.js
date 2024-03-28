@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import domReady from '@wordpress/dom-ready';
 
 const LIBRARY_MOCK = {
@@ -48,6 +49,12 @@ export function recordEvent( eventName, eventProperties ) {
 		if ( ! isEnabled() ) {
 			return;
 		}
+
+		// Add default properties to every event.
+		Object.assign( eventProperties, {
+			is_test_mode: wc_stripe_settings_params.is_test_mode ? 'yes' : 'no',
+			stripe_version: wc_stripe_settings_params.plugin_version,
+		} );
 
 		getLibrary().recordEvent( eventName, eventProperties );
 	} );
