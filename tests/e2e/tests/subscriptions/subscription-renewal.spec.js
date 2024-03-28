@@ -80,8 +80,10 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		await page.click( 'text=Renew now' );
 		await page.waitForURL( '**/checkout/' );
-		await page.click( 'input[id^="wc-stripe-payment-token-"]' );
-		await page.click( 'text=Renew subscription' );
+		await page.click(
+			'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+		);
+		await page.click( 'text=Place Order' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);
