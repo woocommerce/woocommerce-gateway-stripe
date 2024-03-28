@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.0 - xxxx-xx-xx =
+= 8.1.0 - 2024-03-28 =
 * Add - Include Stripe account details to the settings page.
 * Add - Include Stripe API version in logs.
 * Add - Enable the updated checkout experience (UPE) by default for new accounts.
