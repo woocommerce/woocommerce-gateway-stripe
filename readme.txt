@@ -140,6 +140,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
 * Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
 * Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
+* Fix - Error saving Stripe settings when testmode is enabled without any Stripe test API keys saved yet.
 * Tweak - Update the Stripe JS library to 1.36.0.
 * Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
 * Tweak - Remove unused UPE title field.
