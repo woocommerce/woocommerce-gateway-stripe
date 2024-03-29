@@ -66,11 +66,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'title_upe'                        => [
-						'description'       => __( 'New checkout experience title.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -136,20 +131,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'statement_descriptor'               => [
-						'description'       => __( 'Bank account descriptor to be displayed in customers\' bank accounts.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => [ $this, 'validate_regular_statement_descriptor' ],
-					],
 					'is_short_statement_descriptor_enabled' => [
 						'description'       => __( 'When enabled, we\'ll include the order number for card and express checkout transactions.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'short_statement_descriptor'         => [
-						'description'       => __( 'We\'ll use the short version in combination with the customer order number.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => [ $this, 'validate_short_statement_descriptor' ],
 					],
 					'is_debug_log_enabled'               => [
 						'description'       => __( 'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.', 'woocommerce-gateway-stripe' ),
@@ -223,72 +208,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Validate the regular statement descriptor.
-	 *
-	 * @param mixed           $value The value being validated.
-	 * @param WP_REST_Request $request The request made.
-	 * @param string          $param The parameter name, used in error messages.
-	 * @return true|WP_Error
-	 */
-	public function validate_regular_statement_descriptor( $value, $request, $param ) {
-		return $this->validate_statement_descriptor( $value, $request, $param, 22 );
-	}
-
-	/**
-	 * Validate the short statement descriptor.
-	 *
-	 * @param mixed           $value The value being validated.
-	 * @param WP_REST_Request $request The request made.
-	 * @param string          $param The parameter name, used in error messages.
-	 * @return true|WP_Error
-	 */
-	public function validate_short_statement_descriptor( $value, $request, $param ) {
-		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
-
-		// bypassing validation to avoid errors in the client, it won't be updated under this condition
-		if ( ! $is_short_account_statement_enabled ) {
-			return true;
-		}
-
-		return $this->validate_statement_descriptor( $value, $request, $param, 10 );
-	}
-
-	/**
-	 * Validate the statement descriptor argument.
-	 *
-	 * @since 4.7.0
-	 *
-	 * @param mixed           $value The value being validated.
-	 * @param WP_REST_Request $request The request made.
-	 * @param string          $param The parameter name, used in error messages.
-	 * @param int             $max_length Maximum statement length.
-	 * @return true|WP_Error
-	 */
-	public function validate_statement_descriptor( $value, $request, $param, $max_length ) {
-		$string_validation_result = rest_validate_request_arg( $value, $request, $param );
-		if ( true !== $string_validation_result ) {
-			return $string_validation_result;
-		}
-
-		// Relaxing validation because it's blocking the user from saving it when they're on another tab of the settings screen
-		// TODO: work that out with either a UX approach or handling the validations of each tab separately
-		if ( '' === $value ) {
-			return true;
-		}
-
-		try {
-			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
-		} catch ( Exception $exception ) {
-			return new WP_Error(
-				'rest_invalid_pattern',
-				$exception->getMessage()
-			);
-		}
-
-		return true;
-	}
-
-	/**
 	 * Retrieve settings.
 	 *
 	 * @return WP_REST_Response
@@ -296,16 +215,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$enabled_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
-				'title_upe'                             => $this->gateway->get_validated_option( 'title_upe' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
+				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'          => $available_payment_method_ids,
 				'ordered_payment_method_ids'            => array_values( array_diff( $available_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
 				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
@@ -340,7 +259,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_title_upe( $request );
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout */
@@ -355,9 +273,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_manual_capture_enabled( $request );
 		$this->update_is_saved_cards_enabled( $request );
 		$this->update_is_separate_card_form_enabled( $request );
-		$this->update_account_statement_descriptor( $request );
 		$this->update_is_short_account_statement_enabled( $request );
-		$this->update_short_account_statement_descriptor( $request );
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
@@ -412,21 +328,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		} else {
 			$this->gateway->disable();
 		}
-	}
-
-	/**
-	 * Updates UPE title.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_title_upe( WP_REST_Request $request ) {
-		$title_upe = $request->get_param( 'title_upe' );
-
-		if ( null === $title_upe ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'title_upe', $title_upe );
 	}
 
 	/**
@@ -505,21 +406,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates account statement descriptor.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_account_statement_descriptor( WP_REST_Request $request ) {
-		$account_statement_descriptor = $request->get_param( 'statement_descriptor' );
-
-		if ( null === $account_statement_descriptor ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'statement_descriptor', $account_statement_descriptor );
-	}
-
-	/**
 	 * Updates whether short account statement should be used.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -532,27 +418,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'is_short_statement_descriptor_enabled', $is_short_account_statement_enabled ? 'yes' : 'no' );
-	}
-
-	/**
-	 * Updates short account statement descriptor.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_short_account_statement_descriptor( WP_REST_Request $request ) {
-		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
-		$short_account_statement_descriptor = $request->get_param( 'short_statement_descriptor' );
-
-		// since we're bypassing the validation on the same condition, we shouldn't update it
-		if ( ! $is_short_account_statement_enabled ) {
-			return;
-		}
-
-		if ( null === $short_account_statement_descriptor ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'short_statement_descriptor', $short_account_statement_descriptor );
 	}
 
 	/**

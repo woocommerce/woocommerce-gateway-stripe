@@ -157,7 +157,6 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
-export const useUpeTitle = makeSettingsHook( 'title_upe', '' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );

@@ -78,8 +78,8 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardHeader>
 				<HeaderDetails>
 					<h4>
-						{ data.account?.email
-							? data.account.email
+						{ data.account?.email && data.account?.id
+							? data.account.email + ' (' + data.account.id + ')'
 							: __(
 									'Account status',
 									'woocommerce-gateway-stripe'

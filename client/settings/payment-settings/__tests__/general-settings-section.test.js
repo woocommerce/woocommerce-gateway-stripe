@@ -6,10 +6,8 @@ import {
 	useIsStripeEnabled,
 	useEnabledPaymentMethodIds,
 	useTestMode,
-	useUpeTitle,
 } from 'wcstripe/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -65,17 +63,5 @@ describe( 'GeneralSettingsSection', () => {
 		userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
-	} );
-
-	it( 'should render UPE title field when UPE is enabled', () => {
-		useUpeTitle.mockReturnValue( [ 'UPE title', jest.fn() ] );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect( screen.getByDisplayValue( 'UPE title' ) ).toBeInTheDocument();
 	} );
 } );

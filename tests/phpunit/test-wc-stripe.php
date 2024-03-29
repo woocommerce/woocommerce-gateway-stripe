@@ -134,7 +134,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertContains( WC_Stripe_UPE_Payment_Gateway::class, $loaded_gateway_classes );
 	}
 
-	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_only() {
+	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
 		$this->upe_helper->enable_upe_feature_flag();
 		// Store default stripe options
 		update_option( 'woocommerce_stripe_settings', [] );
@@ -151,7 +151,8 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
 		$this->assertContains( 'card', $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertCount( 1, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( 'link', $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertCount( 2, $stripe_settings['upe_checkout_experience_accepted_payments'] );
 	}
 
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {

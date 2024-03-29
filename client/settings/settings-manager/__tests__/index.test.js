@@ -8,6 +8,10 @@ jest.mock( '@woocommerce/navigation', () => ( {
 
 jest.mock( 'wcstripe/settings/customization-options-notice', () => () => null );
 
+jest.mock( 'wcstripe/settings/notices/legacy-experience-transition', () => () =>
+	null
+);
+
 describe( 'SettingsManager', () => {
 	beforeEach( () => {
 		global.wc_stripe_settings_params = {

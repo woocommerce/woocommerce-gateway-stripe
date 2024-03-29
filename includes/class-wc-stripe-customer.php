@@ -194,6 +194,34 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * If customer does not exist, create a new customer. Else retrieve the Stripe customer through the API to check it's existence.
+	 * Recreate the customer if it does not exist in this Stripe account.
+	 *
+	 * @return string Customer ID
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	public function maybe_create_customer() {
+		if ( ! $this->get_id() ) {
+			return $this->set_id( $this->create_customer() );
+		}
+
+		$response = WC_Stripe_API::retrieve( 'customers/' . $this->get_id() );
+
+		if ( ! empty( $response->error ) ) {
+			if ( $this->is_no_such_customer_error( $response->error ) ) {
+				// This can happen when switching the main Stripe account or importing users from another site.
+				// Recreate the customer in this case.
+				return $this->recreate_customer();
+			}
+
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+		}
+
+		return $response->id;
+	}
+
+	/**
 	 * Create a customer via API.
 	 *
 	 * @param array $args

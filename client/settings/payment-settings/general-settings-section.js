@@ -1,29 +1,19 @@
 import { __ } from '@wordpress/i18n';
 import { React, useState, useContext } from 'react';
-import { Card, CheckboxControl, TextControl } from '@wordpress/components';
+import { Card, CheckboxControl } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
-import {
-	useIsStripeEnabled,
-	useUpeTitle,
-	useEnabledPaymentMethodIds,
-} from 'wcstripe/data';
+import { useIsStripeEnabled, useEnabledPaymentMethodIds } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
 `;
 
-const Description = styled.div`
-	color: #757575;
-	font-size: 12px;
-`;
-
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
-	const [ upeTitle, setUpeTitle ] = useUpeTitle();
 	const [
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
@@ -83,29 +73,6 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-					{ isUpeEnabled && (
-						<>
-							<h4>
-								{ __(
-									'Display settings',
-									'woocommerce-gateway-stripe'
-								) }
-							</h4>
-							<Description>
-								{ __(
-									'Enter the payment method name that will be displayed at checkout when there are multiple available payment methods.',
-									'woocommerce-gateway-stripe'
-								) }
-							</Description>
-						</>
-					) }
-					{ isUpeEnabled && (
-						<TextControl
-							label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
-							value={ upeTitle }
-							onChange={ setUpeTitle }
-						/>
-					) }
 					<TestModeCheckbox />
 				</CardBody>
 			</StyledCard>
