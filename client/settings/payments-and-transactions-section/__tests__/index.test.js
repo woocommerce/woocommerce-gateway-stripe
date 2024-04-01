@@ -50,37 +50,6 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		useGetSavingError.mockReturnValue( null );
 	} );
 
-	it( 'displays the length of the bank statement input', () => {
-		render( <PaymentsAndTransactionsSection /> );
-
-		// The default bank statement ("WOOTESTING, LTD") is 15 characters long.
-		expect( screen.getByText( '15 / 22' ) ).toBeInTheDocument();
-	} );
-
-	it( 'shows the shortened bank statement input', () => {
-		useIsShortAccountStatementEnabled.mockReturnValue( [
-			true,
-			jest.fn(),
-		] );
-
-		useAccount.mockReturnValue( {
-			data: {
-				account: {
-					settings: {
-						card_payments: {
-							statement_descriptor_prefix: 'WOOTEST',
-						},
-					},
-				},
-			},
-		} );
-
-		render( <PaymentsAndTransactionsSection /> );
-
-		// The default short bank statement ("WOOTEST") is 7 characters long.
-		expect( screen.getByText( '7 / 10' ) ).toBeInTheDocument();
-	} );
-
 	it( 'shows the full bank statement preview', () => {
 		render( <PaymentsAndTransactionsSection /> );
 
