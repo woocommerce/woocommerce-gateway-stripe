@@ -731,7 +731,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
-			$this->set_preferred_card_brand_for_order( $order, $payment_information['preferred_card_brand'] );
+			// Set the preferred card brand for the order, when set.
+			if ( isset( $payment_information['preferred_card_brand'] ) ) {
+				$this->set_preferred_card_brand_for_order( $order, $payment_information['preferred_card_brand'] );
+			}
 
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
 			if ( '' !== $selected_payment_type ) {
