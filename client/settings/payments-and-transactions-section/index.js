@@ -50,8 +50,6 @@ const PaymentsAndTransactionsSection = () => {
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	const statementDescriptorErrorMessage = useGetSavingError()?.data?.details
-		?.statement_descriptor?.message;
 	const shortStatementDescriptorErrorMessage = useGetSavingError()?.data
 		?.details?.short_statement_descriptor?.message;
 
@@ -118,15 +116,6 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h4>
-				{ statementDescriptorErrorMessage && (
-					<InlineNotice status="error" isDismissible={ false }>
-						<span
-							dangerouslySetInnerHTML={ {
-								__html: statementDescriptorErrorMessage,
-							} }
-						/>
-					</InlineNotice>
-				) }
 				<StatementDescriptorInputWrapper>
 					<TextControl
 						help={ interpolateComponents( {

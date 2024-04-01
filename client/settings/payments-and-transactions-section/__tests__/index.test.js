@@ -6,7 +6,6 @@ import {
 	useSavedCards,
 	useIsShortAccountStatementEnabled,
 	useSeparateCardForm,
-	useAccountStatementDescriptor,
 	useShortAccountStatementDescriptor,
 	useGetSavingError,
 } from 'wcstripe/data';
@@ -20,7 +19,6 @@ jest.mock( 'wcstripe/data', () => ( {
 	useSavedCards: jest.fn(),
 	useIsShortAccountStatementEnabled: jest.fn(),
 	useSeparateCardForm: jest.fn(),
-	useAccountStatementDescriptor: jest.fn(),
 	useShortAccountStatementDescriptor: jest.fn(),
 	useGetSavingError: jest.fn(),
 } ) );
@@ -88,37 +86,6 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.shortened-bank-statement .transaction-detail.description'
 			)
 		).toBe( null );
-	} );
-
-	it( 'displays the error message for the statement input', () => {
-		useAccountStatementDescriptor.mockReturnValue( [ 'WOO', jest.fn() ] );
-		useGetSavingError.mockReturnValue( {
-			code: 'rest_invalid_param',
-			message: 'Invalid parameter(s): statement_descriptor',
-			data: {
-				status: 400,
-				params: {
-					statement_descriptor:
-						'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
-				},
-				details: {
-					statement_descriptor: {
-						code: 'rest_invalid_pattern',
-						message:
-							'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
-						data: null,
-					},
-				},
-			},
-		} );
-
-		render( <PaymentsAndTransactionsSection /> );
-
-		expect(
-			screen.getByText(
-				`Customer bank statement is invalid. No special characters: ' " * < >`
-			)
-		).toBeInTheDocument();
 	} );
 
 	it( 'displays the error message for the short statement input', () => {
