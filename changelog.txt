@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.2.0 - xxxx-xx-xx =
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 
 = 8.1.0 - 2024-03-28 =

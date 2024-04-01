@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.2.0 - xxxx-xx-xx =
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
