@@ -132,7 +132,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 		add_filter( 'woocommerce_get_checkout_payment_url', [ $this, 'get_checkout_payment_url' ], 10, 2 );
-		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
 		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', [ $this, 'update_onboarding_settings' ] );
 
 		// Note: display error is in the parent class.
@@ -1042,22 +1041,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return '';
 		}
 		return $value;
-	}
-
-	/**
-	 * Ensures the statement descriptor about to be saved to options does not contain any invalid characters.
-	 *
-	 * @since 4.8.0
-	 * @param $settings WC_Settings_API settings to be filtered
-	 * @return Filtered settings
-	 */
-	public function settings_api_sanitized_fields( $settings ) {
-		if ( is_array( $settings ) ) {
-			if ( array_key_exists( 'statement_descriptor', $settings ) ) {
-				$settings['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $settings['statement_descriptor'] );
-			}
-		}
-		return $settings;
 	}
 
 	/**
