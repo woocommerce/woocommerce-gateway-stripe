@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import PaymentsAndTransactionsSection from '..';
 import { useAccount } from 'wcstripe/data/account';
 import {
@@ -6,7 +6,6 @@ import {
 	useSavedCards,
 	useIsShortAccountStatementEnabled,
 	useSeparateCardForm,
-	useShortAccountStatementDescriptor,
 	useGetSavingError,
 } from 'wcstripe/data';
 
@@ -19,7 +18,6 @@ jest.mock( 'wcstripe/data', () => ( {
 	useSavedCards: jest.fn(),
 	useIsShortAccountStatementEnabled: jest.fn(),
 	useSeparateCardForm: jest.fn(),
-	useShortAccountStatementDescriptor: jest.fn(),
 	useGetSavingError: jest.fn(),
 } ) );
 
@@ -86,43 +84,5 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.shortened-bank-statement .transaction-detail.description'
 			)
 		).toBe( null );
-	} );
-
-	it( 'displays the error message for the short statement input', () => {
-		useShortAccountStatementDescriptor.mockReturnValue( [
-			'WOO',
-			jest.fn(),
-		] );
-		useIsShortAccountStatementEnabled.mockReturnValue( [
-			true,
-			jest.fn(),
-		] );
-		useGetSavingError.mockReturnValue( {
-			code: 'rest_invalid_param',
-			message: 'Invalid parameter(s): short_statement_descriptor',
-			data: {
-				status: 400,
-				params: {
-					short_statement_descriptor:
-						'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
-				},
-				details: {
-					short_statement_descriptor: {
-						code: 'rest_invalid_pattern',
-						message:
-							'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
-						data: null,
-					},
-				},
-			},
-		} );
-
-		render( <PaymentsAndTransactionsSection /> );
-
-		expect(
-			screen.getByText(
-				`Customer bank statement is invalid. No special characters: ' " * < >`
-			)
-		).toBeInTheDocument();
 	} );
 } );

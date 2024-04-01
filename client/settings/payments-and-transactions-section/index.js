@@ -17,9 +17,7 @@ import {
 	useSavedCards,
 	useSeparateCardForm,
 	useIsShortAccountStatementEnabled,
-	useGetSavingError,
 } from 'wcstripe/data';
-import InlineNotice from 'wcstripe/components/inline-notice';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StatementDescriptorInputWrapper = styled.div`
@@ -49,9 +47,6 @@ const PaymentsAndTransactionsSection = () => {
 	] = useIsShortAccountStatementEnabled();
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	const shortStatementDescriptorErrorMessage = useGetSavingError()?.data
-		?.details?.short_statement_descriptor?.message;
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
 		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
@@ -151,41 +146,27 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 				/>
 				{ isShortAccountStatementEnabled && (
-					<>
-						{ shortStatementDescriptorErrorMessage && (
-							<InlineNotice
-								status="error"
-								isDismissible={ false }
-							>
-								<span
-									dangerouslySetInnerHTML={ {
-										__html: shortStatementDescriptorErrorMessage,
-									} }
-								/>
-							</InlineNotice>
-						) }
-						<StatementDescriptorInputWrapper>
-							<TextControl
-								help={ interpolateComponents( {
-									mixedString: __(
-										"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description in your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
-										'woocommerce-gateway-stripe'
-									),
-									components: {
-										settingsLink: (
-											<ExternalLink href="https://dashboard.stripe.com/settings/public" />
-										),
-									},
-								} ) }
-								label={ __(
-									'Shortened customer bank statement',
+					<StatementDescriptorInputWrapper>
+						<TextControl
+							help={ interpolateComponents( {
+								mixedString: __(
+									"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description in your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
 									'woocommerce-gateway-stripe'
-								) }
-								value={ stripeAccountShortStatementDescriptor }
-								disabled={ true } // This field is read only. It is set in the Stripe account.
-							/>
-						</StatementDescriptorInputWrapper>
-					</>
+								),
+								components: {
+									settingsLink: (
+										<ExternalLink href="https://dashboard.stripe.com/settings/public" />
+									),
+								},
+							} ) }
+							label={ __(
+								'Shortened customer bank statement',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ stripeAccountShortStatementDescriptor }
+							disabled={ true } // This field is read only. It is set in the Stripe account.
+						/>
+					</StatementDescriptorInputWrapper>
 				) }
 				<StatementPreviewsWrapper>
 					{ isShortAccountStatementEnabled && (
