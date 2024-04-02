@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.2.0 - xxxx-xx-xx =
+- Tweak - Remove the functionality for saving the customized statement descriptors.
 
 = 8.1.0 - 2024-03-28 =
 * Add - Include Stripe account details to the settings page.
