@@ -590,6 +590,8 @@ class WC_Stripe_Intent_Controller {
 
 			/* translators: error message */
 			if ( $order ) {
+				// Remove the awaiting confirmation order meta.
+				$order->delete_meta_data( '_stripe_payment_awaiting_action' );
 				$order->update_status( 'failed' );
 			}
 
