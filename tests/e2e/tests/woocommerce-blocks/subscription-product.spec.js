@@ -45,7 +45,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	await setupBlocksCheckout( page, customerData );
 	await fillCardDetails( page, config.get( 'cards.basic' ) );
 
-	await page.locator( 'text=Place Order' ).click();
+	await page.locator( 'text=Sign up now' ).click();
 	await page.waitForNavigation();
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
