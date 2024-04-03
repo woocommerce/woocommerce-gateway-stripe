@@ -131,4 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 8.1.1 - xxxx-xx-xx =
 * Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
 
+* Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
+
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
