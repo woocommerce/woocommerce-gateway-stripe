@@ -18,19 +18,46 @@ class WC_Stripe_Settings_Controller {
 	private $account;
 
 	/**
+	 * The Stripe gateway instance.
+	 *
+	 * @var WC_Stripe_Payment_Gateway
+	 */
+	private $gateway;
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Account $account Stripe account
 	 */
-	public function __construct( WC_Stripe_Account $account ) {
+	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway ) {
 		$this->account = $account;
+		$this->gateway = $gateway;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
+		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
 
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
+	}
+
+	/**
+	* This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
+	*
+	* A help tooltip explains that refunds are not available for orders which have not been captured yet.
+	*
+	* @param WC_Order $order The order that is being viewed.
+	*/
+	public function hide_refund_button_for_uncaptured_orders( $order ) {
+		$intent = $this->gateway->get_intent_from_order( $order );
+
+		if ( $intent && 'requires_capture' === $intent->status ) {
+			$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
+			$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
+			echo '<style>.button.refund-items { display: none; }</style>';
+			echo '<span class="button button-disabled">' . $no_refunds_button . wc_help_tip( $no_refunds_tooltip ) . '</span>';
+		}
 	}
 
 	/**
@@ -120,6 +147,8 @@ class WC_Stripe_Settings_Controller {
 			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'is_test_mode'              => $this->gateway->is_in_test_mode(),
+			'plugin_version'            => WC_STRIPE_VERSION,
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

@@ -3,14 +3,11 @@ import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
-import DisableUpeConfirmationModal from './disable-upe-confirmation-modal';
-import Pill from 'wcstripe/components/pill';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useGetAvailablePaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
-import useToggle from 'wcstripe/hooks/use-toggle';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledHeader = styled( CardHeader )`
@@ -63,10 +60,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 		saveOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
 
-	const [ isConfirmationModalOpen, toggleConfirmationModal ] = useToggle(
-		false
-	);
-
 	const { refreshAccount } = useAccount();
 
 	const onChangeDisplayOrderCancel = () => {
@@ -85,17 +78,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 				<span>
 					{ __( 'Payment methods', 'woocommerce-gateway-stripe' ) }
 				</span>{ ' ' }
-				{ isUpeEnabled && (
-					<Pill data-testid="upe-early-access-pill">
-						{ __( 'Early access', 'woocommerce-gateway-stripe' ) }
-					</Pill>
-				) }
 			</Title>
-			{ isConfirmationModalOpen && (
-				<DisableUpeConfirmationModal
-					onClose={ toggleConfirmationModal }
-				/>
-			) }
 			<ActionItems>
 				{ ! isChangingDisplayOrder ? (
 					<>
@@ -119,13 +102,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 									'woocommerce-gateway-stripe'
 								) }
 								controls={ [
-									{
-										title: __(
-											'Disable',
-											'woocommerce-gateway-stripe'
-										),
-										onClick: toggleConfirmationModal,
-									},
 									{
 										title: __(
 											'Refresh payment methods',

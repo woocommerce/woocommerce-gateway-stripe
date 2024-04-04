@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 8.1.0
+Stable tag: 8.1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,10 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.0 - xxxx-xx-xx =
-* Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
-* Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
-* Add - Include Stripe API version in logs.
-* Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
+= 8.2.0 - xxxx-xx-xx =
+- Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
