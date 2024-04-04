@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import CreditCardIcon from './payment-method-icons/cards';
 import GiropayIcon from './payment-method-icons/giropay';
+import KlarnaIcon from './payment-method-icons/klarna';
 import SofortIcon from './payment-method-icons/sofort';
 import SepaIcon from './payment-method-icons/sepa';
 import EpsIcon from './payment-method-icons/eps';
@@ -35,6 +36,16 @@ export default {
 		Icon: GiropayIcon,
 		currencies: [ 'EUR' ],
 		capability: 'giropay_payments',
+	},
+	klarna: {
+		id: 'klarna',
+		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Klarna. Available to all customers paying in USD.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: KlarnaIcon,
+		currencies: [ 'USD' ],
 	},
 	sepa_debit: {
 		id: 'sepa_debit',

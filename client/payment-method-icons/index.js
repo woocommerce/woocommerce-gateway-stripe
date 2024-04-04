@@ -1,5 +1,6 @@
 import CreditCardIcon from './cards';
 import GiropayIcon from './giropay';
+import KlarnaIcon from './klarna';
 import SofortIcon from './sofort';
 import SepaIcon from './sepa';
 import EpsIcon from './eps';
@@ -12,6 +13,7 @@ import OxxoIcon from './oxxo';
 export default {
 	card: <CreditCardIcon />,
 	giropay: <GiropayIcon />,
+	klarna: <KlarnaIcon />,
 	sepa_debit: <SepaIcon />,
 	sofort: <SofortIcon />,
 	eps: <EpsIcon />,
