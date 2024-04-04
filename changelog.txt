@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.2.0 - xxxx-xx-xx =
+* Fix - Alipay icon not being displayed on the Block checkout page.
 
 = 8.1.1 - 2024-04-04 =
 * Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
