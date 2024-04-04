@@ -128,8 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.1 - 2024-04-04 =
-* Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
-* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
+= 8.2.0 - xxxx-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
