@@ -65,6 +65,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'card_payments'       => 'inactive',
 		'eps_payments'        => 'inactive',
 		'giropay_payments'    => 'inactive',
+		'klarna_payments'     => 'inactive',
 		'ideal_payments'      => 'inactive',
 		'p24_payments'        => 'inactive',
 		'sepa_debit_payments' => 'inactive',
@@ -84,6 +85,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'card_payments'       => 'active',
 		'eps_payments'        => 'active',
 		'giropay_payments'    => 'active',
+		'klarna_payments'     => 'active',
 		'ideal_payments'      => 'active',
 		'p24_payments'        => 'active',
 		'sepa_debit_payments' => 'active',
@@ -334,6 +336,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$giropay_method    = $this->mock_payment_methods['giropay'];
+		$klarna_method     = $this->mock_payment_methods['klarna'];
 		$p24_method        = $this->mock_payment_methods['p24'];
 		$eps_method        = $this->mock_payment_methods['eps'];
 		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
@@ -345,6 +348,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
+		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $p24_method->is_enabled_at_checkout() );
 		$this->assertFalse( $eps_method->is_enabled_at_checkout() );
 		$this->assertFalse( $sepa_method->is_enabled_at_checkout() );
@@ -373,7 +377,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			}
 
 			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
-			$currency                   = 'link' === $id ? 'USD' : ( 'alipay' === $id ? 'CNY' : 'EUR' );
+
+			$currency = 'EUR';
+			if ( in_array( $id, [ 'link', 'klarna' ], true ) ) {
+				$currency = 'USD';
+			} elseif ( 'alipay' === $id ) {
+				$currency = 'CNY';
+			}
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
