@@ -707,7 +707,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$mandate_options['amount']          = $sub_amount;
 		$mandate_options['reference']       = $order->get_id();
-		$mandate_options['start_date']      = $sub->get_time( 'start' );
+		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
 
 		return $mandate_options;

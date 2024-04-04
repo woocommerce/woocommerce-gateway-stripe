@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 8.1.1 - 2024-04-04 =
+* Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
+* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
+
 = 8.1.0 - 2024-03-28 =
 * Add - Include Stripe account details to the settings page.
 * Add - Include Stripe API version in logs.
