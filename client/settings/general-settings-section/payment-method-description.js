@@ -45,7 +45,7 @@ const PaymentMethodDescription = ( {
 	return (
 		<Wrapper { ...restProps }>
 			<IconWrapper>
-				<Icon size="medium" />
+				<Icon size="medium" alt={ label } />
 			</IconWrapper>
 			<div>
 				<LabelWrapper>
