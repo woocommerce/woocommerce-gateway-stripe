@@ -23,10 +23,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			'exp_year'  => '2099',
 			'funding'   => 'credit',
 			'last4'     => '4242',
-			'networks'  => [
-				'available' => [ 'visa', 'cartes_bancaires' ],
-				'preferred' => 'visa',
-			],
 		],
 	];
 
