@@ -11,8 +11,8 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	 */
 	private $order_handler;
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->order_handler = $this->createPartialMock( WC_Stripe_Order_Handler::class, [ 'get_intent_from_order' ] );
 	}
