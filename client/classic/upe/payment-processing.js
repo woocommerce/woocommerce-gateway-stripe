@@ -217,6 +217,10 @@ export const processPayment = (
 		return;
 	}
 
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return;
+	}
+
 	blockUI( jQueryForm );
 
 	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
