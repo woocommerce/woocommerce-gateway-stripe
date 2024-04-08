@@ -11,6 +11,7 @@ import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import PromotionalBannerSection from "wcstripe/settings/payment-settings/promotional-banner-section";
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -89,6 +90,19 @@ const PaymentSettingsPanel = () => {
 					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
+			<SettingsSection>
+				<LoadableSettingsSection numLines={ 20 }>
+					<LoadableAccountSection
+						numLines={ 20 }
+						keepContent={ keepModalContent }
+					>
+						<PromotionalBannerSection
+							setKeepModalContent={ setKeepModalContent }
+						/>
+					</LoadableAccountSection>
+				</LoadableSettingsSection>
+				<CustomizationOptionsNotice />
+			</SettingsSection>
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
 					<LoadableAccountSection
