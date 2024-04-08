@@ -396,7 +396,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
-				'charges'        => (object) [
+				'charges' => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -1439,12 +1439,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'             => $amount,
-			'currency'           => $currency,
-			'description'        => $description,
-			'customer'           => $customer_id,
-			'metadata'           => $metadata,
-			'setup_future_usage' => 'off_session',
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'description'          => $description,
+			'customer'             => $customer_id,
+			'metadata'             => $metadata,
+			'setup_future_usage'   => 'off_session',
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
