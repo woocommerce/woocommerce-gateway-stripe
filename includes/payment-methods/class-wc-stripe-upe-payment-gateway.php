@@ -50,6 +50,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const UPDATE_SAVED_PAYMENT_METHOD = 'wc_stripe_update_saved_payment_method';
 
 	/**
+	 * Transient name for appearance settings.
+	 *
+	 * @type string
+	 */
+	const APPEARANCE_TRANSIENT = 'wc_stripe_appearance';
+
+	/**
+	 * Transient name for appearance settings on the block checkout.
+	 *
+	 * @type string
+	 */
+	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -201,6 +215,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
+
+		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
 	}
 
 	/**
@@ -2353,5 +2369,49 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $this->id;
+	}
+
+	/**
+	 * Fetches the appearance settings for Stripe Elements from the transient cache.
+	 *
+	 * @param bool $is_block_checkout Whether the appearance settings are for the block checkout.
+	 *
+	 * @return array|null The appearance settings.
+	 */
+	private function get_appearance_transient_key( $is_block_checkout = false ) {
+		return ( $is_block_checkout ? self::BLOCKS_APPEARANCE_TRANSIENT : self::APPEARANCE_TRANSIENT ) . '_' . get_option( 'stylesheet' );
+	}
+
+	/**
+	 * Saves the default appearance settings to a transient cache.
+	 *
+	 * Individual appearance settings are saved for both block and shortcode checkout and also against each theme so that changing the theme will use different transient setting.
+	 */
+	public function save_appearance_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_appearance_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'Invalid nonce saving appearance.', __( 'Unable to update Stripe Elements appearance values at this time.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$is_block_checkout = isset( $_POST['is_block_checkout'] ) ? wc_string_to_bool( wc_clean( wp_unslash( $_POST['is_block_checkout'] ) ) ) : false;
+			$appearance        = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
+
+			if ( null !== $appearance ) {
+				set_transient( $this->get_appearance_transient_key( $is_block_checkout ), $appearance, DAY_IN_SECONDS );
+			}
+
+			wp_send_json_success( $appearance, 200 );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getLocalizedMessage(),
+					],
+				]
+			);
+		}
 	}
 }
