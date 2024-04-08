@@ -2,8 +2,11 @@
 
 = 8.2.0 - xxxx-xx-xx =
 * Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
+- Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
 
-= 8.1.1 - xxxx-xx-xx =
+= 8.1.1 - 2024-04-04 =
+* Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
 * Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
 
 = 8.1.0 - 2024-03-28 =

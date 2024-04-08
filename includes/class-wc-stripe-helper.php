@@ -804,33 +804,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Sanitize and retrieve the shortened statement descriptor concatenated with the order number.
-	 *
-	 * @param string   $statement_descriptor Shortened statement descriptor.
-	 * @param WC_Order $order Order.
-	 * @param string   $fallback_descriptor (optional) Fallback of the shortened statement descriptor in case it's blank.
-	 * @return string $statement_descriptor Final shortened statement descriptor.
-	 */
-	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null, $fallback_descriptor = '' ) {
-		$actual_descriptor = ! empty( $statement_descriptor ) ? $statement_descriptor : $fallback_descriptor;
-		$prefix            = self::clean_statement_descriptor( $actual_descriptor );
-		$suffix            = '';
-
-		if ( empty( $prefix ) ) {
-			return '';
-		}
-
-		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
-			$suffix = '* #' . $order->get_order_number();
-		}
-
-		// Make sure it is limited at 22 characters.
-		$statement_descriptor = substr( $prefix . $suffix, 0, 22 );
-
-		return $statement_descriptor;
-	}
-
-	/**
 	 * Gets the dynamic bank statement descriptor suffix.
 	 *
 	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
