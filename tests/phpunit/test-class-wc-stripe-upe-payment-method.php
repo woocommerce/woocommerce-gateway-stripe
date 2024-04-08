@@ -489,7 +489,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
