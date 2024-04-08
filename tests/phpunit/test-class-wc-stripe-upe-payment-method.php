@@ -180,7 +180,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				]
 			),
 		];
-		$mock_alipay_details    = [
+		$mock_alipay_details     = [
 			'type' => 'alipay',
 		];
 		$mock_giropay_details    = [
@@ -398,8 +398,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
-		$stripe_settings['capture']  = 'yes';
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['capture'] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
@@ -478,7 +478,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
 					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
 					unset( $card_payment_method_mock->card->networks->preferred );
-					if ( version_compare( WC_VERSION, '8.7.0', '>' ) ) {
 					if ( version_compare( WC_VERSION, '8.8.0', '>' ) ) {
 						$this->assertTrue( $token->is_co_branded() );
 						$this->assertSame( $token->get_available_networks(), $card_payment_method_mock->card->networks->available );
@@ -507,7 +506,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
