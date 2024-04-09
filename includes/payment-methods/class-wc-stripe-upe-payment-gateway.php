@@ -2379,6 +2379,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Fetches the appearance settings for Stripe Elements from the transient cache.
 	 *
+	 * Include the theme name in the transient key because getAppearance (found in client/styles/upe/index.js) will generate different
+	 * appearance rules based on the active theme, so we need to cache the appearance settings per theme.
+	 *
 	 * @param bool $is_block_checkout Whether the appearance settings are for the block checkout.
 	 *
 	 * @return array|null The appearance settings.
