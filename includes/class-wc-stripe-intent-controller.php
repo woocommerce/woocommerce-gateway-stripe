@@ -590,6 +590,8 @@ class WC_Stripe_Intent_Controller {
 
 			/* translators: error message */
 			if ( $order ) {
+				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
+				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
 				$order->update_status( 'failed' );
 			}
 
