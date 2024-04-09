@@ -11,7 +11,7 @@ import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import PromotionalBannerSection from "wcstripe/settings/payment-settings/promotional-banner-section";
+import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -76,6 +76,9 @@ const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		true
+	);
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -90,19 +93,23 @@ const PaymentSettingsPanel = () => {
 					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
-			<SettingsSection>
-				<LoadableSettingsSection numLines={ 20 }>
-					<LoadableAccountSection
-						numLines={ 20 }
-						keepContent={ keepModalContent }
-					>
-						<PromotionalBannerSection
-							setKeepModalContent={ setKeepModalContent }
-						/>
-					</LoadableAccountSection>
-				</LoadableSettingsSection>
-				<CustomizationOptionsNotice />
-			</SettingsSection>
+			{ showPromotionalBanner && (
+				<SettingsSection>
+					<LoadableSettingsSection numLines={ 20 }>
+						<LoadableAccountSection
+							numLines={ 20 }
+							keepContent={ keepModalContent }
+						>
+							<PromotionalBannerSection
+								setShowPromotionalBanner={
+									setShowPromotionalBanner
+								}
+							/>
+						</LoadableAccountSection>
+					</LoadableSettingsSection>
+					<CustomizationOptionsNotice />
+				</SettingsSection>
+			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
 					<LoadableAccountSection
