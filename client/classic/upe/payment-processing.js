@@ -71,7 +71,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		amount,
 		paymentMethodCreation: 'manual',
 		paymentMethodTypes,
-		appearance: initializeUPEAppearance(),
+		appearance: initializeUPEAppearance( api ),
 		fonts: getFontRulesFromPage(),
 	};
 

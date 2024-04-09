@@ -83,7 +83,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await page.click(
 			'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
 		);
-		await page.click( 'text=Place Order' );
+		await page.click( 'text=Renew subscription' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);

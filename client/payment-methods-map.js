@@ -1,16 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import CreditCardIcon from './payment-method-icons/cards';
-import GiropayIcon from './payment-method-icons/giropay';
-import SofortIcon from './payment-method-icons/sofort';
-import SepaIcon from './payment-method-icons/sepa';
-import EpsIcon from './payment-method-icons/eps';
-import BancontactIcon from './payment-method-icons/bancontact';
-import IdealIcon from './payment-method-icons/ideal';
-import P24Icon from './payment-method-icons/p24';
-import BoletoIcon from './payment-method-icons/boleto';
-import OxxoIcon from './payment-method-icons/oxxo';
-import AlipayIcon from './payment-method-icons/alipay';
-import MultibancoIcon from './payment-method-icons/multibanco';
+import icons from './payment-method-icons';
 
 export default {
 	card: {
@@ -20,7 +9,7 @@ export default {
 			'Let your customers pay with major credit and debit cards without leaving your store.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: CreditCardIcon,
+		Icon: icons.card,
 		currencies: [],
 		capability: 'card_payments',
 		allows_manual_capture: true,
@@ -32,7 +21,7 @@ export default {
 			'Expand your business with giropay — Germany’s second most popular payment system.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: GiropayIcon,
+		Icon: icons.giropay,
 		currencies: [ 'EUR' ],
 		capability: 'giropay_payments',
 	},
@@ -43,7 +32,7 @@ export default {
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: SepaIcon,
+		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
 		capability: 'sepa_debit_payments',
 	},
@@ -54,7 +43,7 @@ export default {
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: SepaIcon,
+		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
 		capability: 'sepa_debit_payments',
 	},
@@ -65,7 +54,7 @@ export default {
 			'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: SofortIcon,
+		Icon: icons.sofort,
 		currencies: [ 'EUR' ],
 		capability: 'sofort_payments',
 	},
@@ -76,7 +65,7 @@ export default {
 			'EPS is an Austria-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: EpsIcon,
+		Icon: icons.eps,
 		currencies: [ 'EUR' ],
 		capability: 'eps_payments',
 	},
@@ -87,7 +76,7 @@ export default {
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: BancontactIcon,
+		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
 		capability: 'bancontact_payments',
 	},
@@ -98,7 +87,7 @@ export default {
 			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: IdealIcon,
+		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
 		capability: 'ideal_payments',
 	},
@@ -109,7 +98,7 @@ export default {
 			'Przelewy24 is a Poland-based payment method aggregator that allows customers to complete transactions online using bank transfers and other methods.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: P24Icon,
+		Icon: icons.p24,
 		currencies: [ 'EUR', 'PLN' ],
 		capability: 'p24_payments',
 	},
@@ -120,7 +109,7 @@ export default {
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: BoletoIcon,
+		Icon: icons.boleto,
 		currencies: [ 'BRL' ],
 		capability: 'boleto_payments',
 	},
@@ -131,7 +120,7 @@ export default {
 			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: OxxoIcon,
+		Icon: icons.oxxo,
 		currencies: [ 'MXN' ],
 		capability: 'oxxo_payments',
 	},
@@ -142,7 +131,7 @@ export default {
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: AlipayIcon,
+		Icon: icons.alipay,
 		currencies: [
 			'AUD',
 			'CAD',
@@ -164,7 +153,7 @@ export default {
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: MultibancoIcon,
+		Icon: icons.multibanco,
 		currencies: [ 'EUR' ],
 		capability: 'multibanco_payments',
 	},

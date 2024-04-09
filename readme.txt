@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 8.2.0
+Stable tag: 8.1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -129,5 +129,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.2.0 - xxxx-xx-xx =
+* Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
+* Fix - Alipay icon not being displayed on the Block checkout page.
+* Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
+* Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
+* Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
