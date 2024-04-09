@@ -25,7 +25,7 @@ const upeMethods = getPaymentMethodsConstants();
 Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
 	.forEach( ( [ upeName, upeConfig ] ) => {
-		const icon = Icons[ upeName ];
+		const Icon = Icons[ upeName ];
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
 			content: getDeferredIntentCreationUPEFields(
@@ -49,7 +49,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				<>
 					<span>
 						{ upeConfig.title }
-						{ icon }
+						<Icon alt={ upeConfig.title } />
 					</span>
 				</>
 			),
