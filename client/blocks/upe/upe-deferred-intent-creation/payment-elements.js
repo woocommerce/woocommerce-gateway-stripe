@@ -23,7 +23,7 @@ const PaymentElements = ( { api, ...props } ) => {
 	const stripe = api.getStripe();
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
 	const currency = getBlocksConfiguration()?.currency.toLowerCase();
-	const appearance = initializeUPEAppearance();
+	const appearance = initializeUPEAppearance( api, 'true' );
 	const options = {
 		mode: amount < 1 ? 'setup' : 'payment',
 		amount,

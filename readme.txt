@@ -129,7 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.2.0 - xxxx-xx-xx =
-- Tweak - Remove the functionality for saving the customized statement descriptors.
+* Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
+* Tweak - Remove the functionality for saving the customized statement descriptors.
 * Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
+* Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
