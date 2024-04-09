@@ -56,7 +56,7 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 	};
 
 	return (
-		<BannerCard>
+		<BannerCard data-testid="promotional-banner-card">
 			<CardBody>
 				<CardInner>
 					<CardColumn>
@@ -87,12 +87,16 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 					</CardColumn>
 				</CardInner>
 				<ButtonsRow>
-					<LearnMoreLink href="https://stripe.com/en-br/capital">
+					<LearnMoreLink
+						href="https://stripe.com/en-br/capital"
+						data-testid="learn-more"
+					>
 						{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 					</LearnMoreLink>
 					<DismissButton
 						variant="secondary"
 						onClick={ handleBannerDismiss }
+						data-testid="dismiss"
 					>
 						{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
 					</DismissButton>
