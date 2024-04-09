@@ -149,17 +149,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
-	/**
-	 * @dataProvider statement_descriptor_field_provider
-	 */
-	public function test_statement_descriptor_fields( $option_name, $max_allowed_length ) {
-		// It returns option value under expected key with HTTP code 200.
-		$this->get_gateway()->update_option( $option_name, 'foobar' );
-		$response = $this->rest_get_settings();
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'foobar', $response->get_data()[ $option_name ] );
-	}
-
 	public function test_individual_payment_method_settings() {
 		// Disable UPE and set up EPS gateway.
 		update_option(
@@ -356,13 +345,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-		];
-	}
-
-	public function statement_descriptor_field_provider() {
-		return [
-			'statement_descriptor'       => [ 'statement_descriptor', 22 ],
-			'short_statement_descriptor' => [ 'short_statement_descriptor', 10 ],
 		];
 	}
 

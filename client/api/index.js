@@ -395,4 +395,34 @@ export default class WCStripeAPI {
 			// we would still rather throw the Stripe error rather than this one.
 		} );
 	}
+
+	/**
+	 * Saves the Stripe Payment Elements appearance settings in a transient on server.
+	 *
+	 * @param {Object} appearance      The appearance settings.
+	 * @param {string} isBlockCheckout Whether the request is from the block checkout.
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
+	saveAppearance( appearance, isBlockCheckout = 'false' ) {
+		return this.request( this.getAjaxUrl( 'save_appearance' ), {
+			appearance: JSON.stringify( appearance ),
+			is_block_checkout: isBlockCheckout,
+			theme_name: this.options?.theme_name,
+			_ajax_nonce: this.options?.saveAppearanceNonce,
+		} )
+			.then( ( response ) => {
+				return response.success;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
+				}
+			} );
+	}
 }

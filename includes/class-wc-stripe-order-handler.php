@@ -26,6 +26,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
+
+		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
 	}
 
 	/**
@@ -375,6 +377,39 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$properties['woocommerce_default_country']        = get_option( 'woocommerce_default_country' );
 
 		return $properties;
+	}
+
+	/**
+	 * Prevents WooCommerce's hold stock feature from cancelling Stripe orders that are awaiting action from the customer,
+	 * whether it's waiting for the customer to complete 3DS or waiting for the redirect/webhook
+	 * to be processed to complete the payment.
+	 *
+	 * This function uses the _stripe_payment_awaiting_action meta to determine if the order is waiting for customer action, however if the order has
+	 * been pending for more than a day and still has this meta, we assume it's been abandoned and should be cancelled.
+	 *
+	 * @since 6.9.0
+	 *
+	 * @param bool     $cancel_order Whether to cancel the order.
+	 * @param WC_Order $order        The order object.
+	 *
+	 * @return bool
+	 */
+	public function prevent_cancelling_orders_awaiting_action( $cancel_order, $order ) {
+		if ( ! $cancel_order || ! $order instanceof WC_Order ) {
+			return $cancel_order;
+		}
+
+		// Bail if payment method is not stripe or `stripe_{apm_method}` or doesn't have an intent yet.
+		if ( substr( (string) $order->get_payment_method(), 0, 6 ) !== 'stripe' || ! $this->get_intent_from_order( $order ) ) {
+			return $cancel_order;
+		}
+
+		// If the order is awaiting action and was modified within the last day, don't cancel it.
+		if ( wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) ) && $order->get_date_modified( 'edit' )->getTimestamp() > strtotime( '-1 day' ) ) {
+			$cancel_order = false;
+		}
+
+		return $cancel_order;
 	}
 }
 

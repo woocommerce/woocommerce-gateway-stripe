@@ -240,9 +240,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
 				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
 				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
-				'statement_descriptor'                  => $this->gateway->get_validated_option( 'statement_descriptor' ),
 				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
-				'short_statement_descriptor'            => $this->gateway->get_validated_option( 'short_statement_descriptor' ),
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
