@@ -1,7 +1,8 @@
 *** Changelog ***
 
 = 8.2.0 - xxxx-xx-xx =
-- Tweak - Remove the functionality for saving the customized statement descriptors.
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
+* Tweak - Remove the functionality for saving the customized statement descriptors.
 * Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
 
 = 8.1.1 - 2024-04-04 =
