@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.2.0 - xxxx-xx-xx =
 * Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
+* Fix - Alipay icon not being displayed on the Block checkout page.
 * Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
 * Tweak - Remove the functionality for saving the customized statement descriptors.
 * Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
