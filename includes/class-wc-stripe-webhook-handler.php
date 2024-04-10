@@ -461,10 +461,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );
 		}
 
-		$order->payment_complete( $notification->data->object->id );
+		/**
+		 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
+		 * processing/completed if it has already been handled by the `review.open` webhook.
+		 *
+		 * Depending on when Stripe sends their events and how quickly it is processed by the store, the review.open webhook (which marks orders as on-hold)
+		 * can be processed before or after the payment_intent.success webhook. This difference can lead to orders being incorrectly marked as processing/completed
+		 * in WooCommerce, but flagged for manual renewal in Stripe.
+		 *
+		 * If the review.open webhook was processed before the payment_intent.success, set the processing/completed status in `_stripe_status_before_hold`
+		 * to ensure the review.closed event handler will update the status to the proper status.
+		 */
+		if ( 'manual_review' === $this->get_risk_outcome( $notification ) && $this->get_stripe_order_status_before_hold( $order, false ) ) {
+			$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete', false );
+		} else {
+			$order->payment_complete( $notification->data->object->id );
 
-		/* translators: transaction id */
-		$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+			/* translators: transaction id */
+			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
