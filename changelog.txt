@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.2.0 - xxxx-xx-xx =
+* Tweak - Improve the display of the Stripe account ID in the settings page.
 * Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
 * Fix - Alipay icon not being displayed on the Block checkout page.
 * Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
