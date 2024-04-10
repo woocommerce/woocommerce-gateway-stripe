@@ -1057,7 +1057,7 @@ class WC_Stripe_Intent_Controller {
 		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true );
 	}
 
-	/*
+	/**
 	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
 	 *
 	 * @deprecated 8.2.0
@@ -1065,7 +1065,7 @@ class WC_Stripe_Intent_Controller {
 	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
-		wc_deprecated_function( __FUNCTION__, '8.2', 'WC_Stripe_UPE_Payment_Gateway::maybe_process_upe_redirect' );
+		wc_deprecated_function( __FUNCTION__, '8.2', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
 
 		$gateway = $this->get_gateway();
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
