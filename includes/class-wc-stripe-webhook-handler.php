@@ -310,7 +310,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status(), false );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -323,6 +323,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
+			$order->save();
 		}
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
@@ -361,7 +362,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_status_final', true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
-			$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
+			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
 			$order->update_status( $order_status, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -710,7 +711,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status(), false );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
@@ -724,6 +725,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
+			$order->save(); // update_status() calls save on the order, so make sure we manually call save() when not updating the status to ensure meta is saved.
 		}
 	}
 
@@ -758,7 +760,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
 			! $order->get_meta( '_stripe_status_final', false )
 		) {
-			$order->update_status( $order->get_meta( '_stripe_status_before_hold', 'processing' ), $message );
+			$order->update_status( $this->get_stripe_order_status_before_hold( $order ), $message );
 		} else {
 			$order->add_order_note( $message );
 		}
