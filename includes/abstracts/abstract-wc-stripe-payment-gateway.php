@@ -2089,4 +2089,66 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	private function needs_ssl_setup() {
 		return ! $this->testmode && ! is_ssl();
 	}
+
+	/**
+	 * Helper method to retrieve the status of the order before it was put on hold.
+	 *
+	 * @since 8.3.0
+	 *
+	 * @param WC_Order $order          The order.
+	 * @param string   $default_status The default status to return if the metadata is not set. Defaults to the payment complete status.
+	 *
+	 * @return string The status of the order before it was put on hold.
+	 */
+	protected function get_stripe_order_status_before_hold( $order, $default_status = null ) {
+		if ( is_null( $default_status ) ) {
+			$default_status = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+		}
+
+		return $order->get_meta( '_stripe_status_before_hold', true ) ?? $default_payment_complete_status;
+	}
+
+	/**
+	 * Stores the status of the order before being put on hold in metadata.
+	 *
+	 * @since 8.3.0
+	 *
+	 * @param WC_Order    $order  The order.
+	 * @param string|null $status The status to store. Defaults to the current order status. Also accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @param bool        $save   Whether to save the order.
+	 *
+	 * @return void
+	 */
+	protected function set_stripe_order_status_before_hold( $order, $status = null, $save = true ) {
+		if ( empty( $status ) ) {
+			$status = $order->get_status();
+		} elseif ( 'default_payment_complete' === $status ) {
+			$status = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+		}
+
+		$order->update_meta_data( '_stripe_status_before_hold', $status );
+
+		if ( $save && is_callable( [ $order, 'save' ] ) ) {
+			$order->save();
+		}
+	}
+
+	/**
+	 * Retrieves the risk/fraud outcome from the webhook payload.
+	 *
+	 * @param object $event_data The event data from the webhook.
+	 *
+	 * @return string The fraud type.
+	 */
+	protected function get_risk_outcome( $event_data ) {
+		$fraud_type = '';
+
+		if ( isset( $event_data->data->object->outcome->type ) ) { // Gets thCharge.succeeded event.
+			$fraud_type = $event_data->data->object->outcome->type;
+		} elseif ( isset( $event_data->outcome->type ) ) { // Payment_intent.succeeded event.
+			$fraud_type = $event_data->outcome->type;
+		}
+
+		return $fraud_type;
+	}
 }
