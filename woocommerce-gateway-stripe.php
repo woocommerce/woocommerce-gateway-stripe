@@ -7,10 +7,10 @@
  * Author URI: https://woocommerce.com/
  * Version: 8.1.1
  * Requires Plugins: woocommerce
- * Requires at least: 6.1
- * Tested up to: 6.5.0
- * WC requires at least: 8.2
- * WC tested up to: 8.7
+ * Requires at least: 6.2
+ * Tested up to: 6.5.2
+ * WC requires at least: 8.5
+ * WC tested up to: 8.8
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */

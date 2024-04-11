@@ -1,8 +1,8 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.1
-Tested up to: 6.4.2
+Requires at least: 6.2
+Tested up to: 6.5.2
 Requires PHP: 7.4
 Stable tag: 8.1.1
 License: GPLv3
@@ -137,5 +137,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove the functionality for saving the customized statement descriptors.
 * Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
 * Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
+* Tweak - Update Link by Stripe branding assets.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
