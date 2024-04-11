@@ -2054,7 +2054,7 @@ class WC_Stripe_Payment_Request {
 				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
 
 				// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
-				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] )  ) {
+				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
 					$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
 				}
 			}
