@@ -99,7 +99,7 @@ jQuery( function( $ ) {
 			var data     = {
 				_wpnonce:                  wc_stripe_payment_request_params.nonce.checkout,
 				billing_first_name:        name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-				billing_last_name:         name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
+				billing_last_name:         name?.split( ' ' )?.slice( 1 )?.join( ' ' ) || '-',
 				billing_company:           '',
 				billing_email:             null !== email   ? email : evt.payerEmail,
 				billing_phone:             null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
