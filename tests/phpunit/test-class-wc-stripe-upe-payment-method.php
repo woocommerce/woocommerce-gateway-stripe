@@ -23,10 +23,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			'exp_year'  => '2099',
 			'funding'   => 'credit',
 			'last4'     => '4242',
-			'networks'  => [
-				'available' => [ 'visa', 'cartes_bancaires' ],
-				'preferred' => 'visa',
-			],
 		],
 	];
 
@@ -470,11 +466,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $card_payment_method_mock->card->last4 );
 					$this->assertSame( $token->get_token(), $card_payment_method_mock->id );
-					if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() ) {
-						$this->assertTrue( $token->is_co_branded() );
-						$this->assertSame( $token->get_available_networks(), $card_payment_method_mock->card->networks->available );
-						$this->assertSame( $token->get_preferred_network(), $card_payment_method_mock->card->networks->preferred );
-					}
+					// Test display brand
+					$cartes_bancaires_brand                        = 'cartes_bancaires';
+					$card_payment_method_mock->card->display_brand = $cartes_bancaires_brand;
+					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
+					unset( $card_payment_method_mock->card->display_brand );
+					// Test preferred network
+					$card_payment_method_mock->card->networks            = new stdClass();
+					$card_payment_method_mock->card->networks->preferred = $cartes_bancaires_brand;
+					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
+					unset( $card_payment_method_mock->card->networks->preferred );
 					break;
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					$link_payment_method_mock = $this->array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );

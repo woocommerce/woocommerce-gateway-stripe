@@ -3,6 +3,12 @@
 = 8.2.0 - xxxx-xx-xx =
 * Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
+- Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
+
+= 8.1.1 - 2024-04-04 =
+* Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
+* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
 
 = 8.1.0 - 2024-03-28 =
 * Add - Include Stripe account details to the settings page.
