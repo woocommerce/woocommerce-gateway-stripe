@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
@@ -10,7 +11,6 @@
 * Fix - Prevent checkout errors when customers with one-word names process payment using Apple Pay or Google Pay.
 * Tweak - Remove the functionality for saving the customized statement descriptors.
 * Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
-* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 * Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
 * Tweak - Update Link by Stripe branding assets.
 
