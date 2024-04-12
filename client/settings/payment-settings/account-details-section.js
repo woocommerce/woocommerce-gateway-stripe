@@ -22,6 +22,12 @@ const HeaderDetails = styled.div`
 	}
 `;
 
+const StripeAccountId = styled.span`
+	font-size: 12px;
+	color: #757575;
+	margin-left: auto;
+`;
+
 // @todo - remove setModalType as prop
 const AccountSettingsDropdownMenu = ( {
 	setModalType,
@@ -78,8 +84,8 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardHeader>
 				<HeaderDetails>
 					<h4>
-						{ data.account?.email && data.account?.id
-							? data.account.email + ' (' + data.account.id + ')'
+						{ data.account?.email
+							? data.account.email
 							: __(
 									'Account status',
 									'woocommerce-gateway-stripe'
@@ -92,6 +98,9 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						</Pill>
 					) }
 				</HeaderDetails>
+				{ data.account?.id && (
+					<StripeAccountId>{ data.account.id }</StripeAccountId>
+				) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
 					setKeepModalContent={ setKeepModalContent }
