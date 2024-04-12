@@ -2038,7 +2038,7 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * This function needs to be called after `WC()->cart->calculate_totals()` is run, otherwise `WC()->cart->recurring_carts` won't exist yet.
 	 *
-	 * @since 8.2.0
+	 * @since 8.3.0
 	 *
 	 * @param array $previous_chosen_methods The previously chosen shipping methods.
 	 */
