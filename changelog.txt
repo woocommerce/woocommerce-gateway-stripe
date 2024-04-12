@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
