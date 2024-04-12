@@ -202,6 +202,17 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Gets the account default currency.
+	 *
+	 * @return string Currency code in lowercase.
+	 */
+	public function get_account_default_currency(): string {
+		$account = $this->get_cached_account_data();
+
+		return strtolower( $account['default_currency'] ) ?? '';
+	}
+
+	/**
 	 * Returns the Stripe account's card payment bank statement prefix.
 	 *
 	 * Merchants can set this in their Stripe settings at: https://dashboard.stripe.com/settings/public.

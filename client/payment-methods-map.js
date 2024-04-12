@@ -45,7 +45,20 @@ export default {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: KlarnaIcon,
-		currencies: [ 'USD' ],
+		currencies: [
+			'AUD',
+			'CAD',
+			'CHF',
+			'CZK',
+			'DKK',
+			'EUR',
+			'GBP',
+			'NOK',
+			'NZD',
+			'PLN',
+			'SEK',
+			'USD',
+		],
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
