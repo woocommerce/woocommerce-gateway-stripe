@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.1
-Tested up to: 6.4.2
+Requires at least: 6.2
+Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.1.1
+Stable tag: 8.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,8 +128,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.1 - 2024-04-04 =
-* Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
-* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
+= 8.2.0 - 2024-04-11 =
+* Tweak - Improve the display of the Stripe account ID in the settings page.
+* Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
+* Fix - Alipay icon not being displayed on the Block checkout page.
+* Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
+* Fix - Prevent checkout errors when customers with one-word names process payment using Apple Pay or Google Pay.
+* Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
+* Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
+* Tweak - Update Link by Stripe branding assets.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

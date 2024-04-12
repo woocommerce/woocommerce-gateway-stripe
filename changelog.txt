@@ -1,5 +1,16 @@
 *** Changelog ***
 
+= 8.2.0 - 2024-04-11 =
+* Tweak - Improve the display of the Stripe account ID in the settings page.
+* Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
+* Fix - Alipay icon not being displayed on the Block checkout page.
+* Fix - Ensure the hold stock setting does not cancel pending stripe orders that are still waiting for customer action (eg confirm 3DS or complete payment redirect).
+* Fix - Prevent checkout errors when customers with one-word names process payment using Apple Pay or Google Pay.
+* Tweak - Remove the functionality for saving the customized statement descriptors.
+* Tweak - Remove unused WC_Stripe_Old_Settings_UPE_Toggle_Controller class and related scripts.
+* Update - Save the Stripe default appearance settings in a transient instead of the browsers local storage.
+* Tweak - Update Link by Stripe branding assets.
+
 = 8.1.1 - 2024-04-04 =
 * Fix - Do not hide PRB on cart and product page when there are required custom checkout fields.
 * Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.

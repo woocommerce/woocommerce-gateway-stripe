@@ -452,20 +452,25 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 /**
  * Initializes the appearance of the payment element by retrieving the UPE configuration
- * from the API and saving the appearance if it doesn't exist. If the appearance already exists,
- * it is simply returned.
+ * from the API and saving the appearance if it doesn't exist.
+ *
+ * If the appearance already exists, it is simply returned.
+ *
+ * @param {Object} api             The API object used to save the appearance.
+ * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
  *
  * @return {Object} The appearance object for the UPE.
  */
-export const initializeUPEAppearance = () => {
-	const themeName = getStripeServerData()?.theme_name;
-	const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
-	let appearance = getStorageWithExpiration( storageKey );
+export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
+	let appearance =
+		isBlockCheckout === 'true'
+			? getStripeServerData()?.blocksAppearance
+			: getStripeServerData()?.appearance;
 
+	// If appearance is empty, get a fresh copy and save it in a transient.
 	if ( ! appearance ) {
 		appearance = getAppearance();
-		const oneDayDuration = 24 * 60 * 60 * 1000;
-		setStorageWithExpiration( storageKey, appearance, oneDayDuration );
+		api.saveAppearance( appearance, isBlockCheckout );
 	}
 
 	return appearance;
