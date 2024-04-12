@@ -91,6 +91,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $accept_only_domestic_payment = false;
 
 	/**
+	 * Should payment method be restricted to only domestic payments.
+	 * E.g. only to Stripe's connected account currency.
+	 *
+	 * @var boolean
+	 */
+	protected $accept_only_domestic_payment = false;
+
+	/**
 	 * Wether this UPE method is in testmode.
 	 *
 	 * @var bool
