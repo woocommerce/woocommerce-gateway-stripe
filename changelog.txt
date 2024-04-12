@@ -1,5 +1,7 @@
 *** Changelog ***
 
+= 8.3.0 - xxxx-xx-xx =
+
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
 * Add - Enable custom styling of the Payment Elements for stores using the updated checkout experience.
