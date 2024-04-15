@@ -463,7 +463,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		/**
 		 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
-		 * processing/completed if it has already been handled by the `review.open` webhook.
+		 * processing/completed. This will be handled by the incoming review.open webhook.
 		 *
 		 * Depending on when Stripe sends their events and how quickly it is processed by the store, the review.open webhook (which marks orders as on-hold)
 		 * can be processed before or after the payment_intent.success webhook. This difference can lead to orders being incorrectly marked as processing/completed
@@ -472,9 +472,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * If the review.open webhook was processed before the payment_intent.success, set the processing/completed status in `_stripe_status_before_hold`
 		 * to ensure the review.closed event handler will update the status to the proper status.
 		 */
-		if ( 'manual_review' === $this->get_risk_outcome( $notification ) && $this->get_stripe_order_status_before_hold( $order, false ) ) {
-			$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete', false );
-		} else {
+		if ( 'manual_review' !== $this->get_risk_outcome( $notification ) ) {
 			$order->payment_complete( $notification->data->object->id );
 
 			/* translators: transaction id */
