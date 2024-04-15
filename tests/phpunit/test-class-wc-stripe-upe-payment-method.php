@@ -11,6 +11,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	private $mock_payment_methods = [];
 
 	/**
+	 * WC_Stripe_Account mock.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $mock_account;
+
+	/**
 	 * Base template for Stripe card payment method.
 	 */
 	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
@@ -101,6 +108,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		$this->mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_account_default_currency' ] )
+			->getMock();
+
 		$this->reset_payment_method_mocks();
 	}
 
@@ -111,12 +124,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	private function reset_payment_method_mocks() {
 		$this->mock_payment_methods = [];
 
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
-									->disableOriginalConstructor()
-									->getMock();
-
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
+				->setConstructorArgs( [ $this->mock_account ] )
 				->setMethods(
 					[
 						'get_capabilities_response',
@@ -125,8 +135,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					]
 				)
 				->getMock();
-
-			$mocked_payment_method->account = $mock_account;
 
 			$this->mock_payment_methods[ $mocked_payment_method->get_id() ] = $mocked_payment_method;
 		}
@@ -393,34 +401,34 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$currency = 'CNY';
 			}
 
+			// BNPLs are only enabled for domestic payments.
+			if ( 'klarna' === $id ) {
+				$this->set_stripe_account_default_currency( $currency );
+			}
+
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
-
-			// BNPLs are only enabled for domestic payments.
-			if ( 'klarna' === $id ) {
-				$this->set_stripe_account_default_currency( $payment_method, $currency );
-			}
 
 			$this->assertFalse( $payment_method->is_enabled_at_checkout() );
 
 			$capability_key                                = $payment_method->get_id() . '_payments';
 			$mock_capabilities_response[ $capability_key ] = 'active';
 
+			// BNPLs are only enabled for domestic payments.
+			if ( 'klarna' === $id ) {
+				$this->set_stripe_account_default_currency( $currency );
+			}
+
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 
-			// BNPLs are only enabled for domestic payments.
-			if ( 'klarna' === $id ) {
-				$this->set_stripe_account_default_currency( $payment_method, $currency );
-			}
-
-			$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+			$this->assertTrue( $payment_method->is_enabled_at_checkout( $currency ) );
 		}
 	}
 
@@ -444,21 +452,22 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			if ( empty( $supported_currencies ) ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
 			} else {
-
-				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
-
 				$woocommerce_currency = end( $supported_currencies );
+
+				// BNPLs are only enabled for domestic payments.
+				if ( 'klarna' === $id ) {
+					$this->set_stripe_account_default_currency( $woocommerce_currency );
+				}
+
+				$this->assertFalse( $payment_method->is_enabled_at_checkout( $woocommerce_currency ) );
+
 				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $woocommerce_currency, true );
 				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 				$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 				$payment_method = $this->mock_payment_methods[ $id ];
 
-				// BNPLs are only enabled for domestic payments.
-				if ( 'klarna' === $id ) {
-					$this->set_stripe_account_default_currency( $payment_method, $woocommerce_currency );
-				}
-				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( $woocommerce_currency ) );
 			}
 		}
 	}
@@ -571,12 +580,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 *
 	 * When accept_only_domestic_payment is true, the account default currency must match the order currency to be enabled.
 	 *
-	 * @param WC_Stripe_UPE_Payment_Method $payment_method Mock of the payment method.
-	 * @param string                       $currency       Currency code to set as the account default.
+	 * @param string $currency Currency code to set as the account default.
 	 */
-	private function set_stripe_account_default_currency( WC_Stripe_UPE_Payment_Method $payment_method, string $currency ) {
-		$payment_method->account->expects( $this->any() )
+	private function set_stripe_account_default_currency( string $currency ) {
+		$this->mock_account->expects( $this->any() )
 			->method( 'get_account_default_currency' )
-			->willReturn( $currency );
+			->willReturn( strtolower( $currency ) );
 	}
 }

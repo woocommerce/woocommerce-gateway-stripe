@@ -94,7 +94,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->getMock();
+
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
+			->setConstructorArgs( [ $mock_account ] )
 			->setMethods(
 				[
 					'create_and_confirm_intent_for_off_session',
