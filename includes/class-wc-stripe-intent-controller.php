@@ -752,7 +752,7 @@ class WC_Stripe_Intent_Controller {
 					'brand' => $payment_information['preferred_card_brand'],
 				],
 			];
-			WC_Tracks::record_event( 'co_branded_cc_preferred_brand_selected', [ 'brand' => $payment_information['preferred_card_brand'] ] );
+			wc_admin_record_tracks_event( 'co_branded_cc_preferred_brand_selected', [ 'brand' => $payment_information['preferred_card_brand'] ] );
 		}
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
