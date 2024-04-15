@@ -1978,8 +1978,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 			}
 			// Add the preferred card brand to the payment information.
-			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $token->is_co_branded() && $token->get_preferred_network() ) {
-				$payment_information['preferred_card_brand'] = $token->get_preferred_network();
+			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() ) {
+				/**
+				 * The credit card payment token
+				 *
+				 * @var $token WC_Payment_Token_CC
+				 */
+				$payment_information['preferred_card_brand'] = $token->get_card_type();
 			}
 		}
 
