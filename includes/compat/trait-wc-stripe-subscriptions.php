@@ -658,10 +658,17 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Create mandate options for a subscription order to be added to the payment intent request.
 	 *
 	 * @param WC_Order $order The renewal order.
+	 * @param WC_Order $subscriptions Subscriptions for the renewal order.
 	 * @return array the mandate_options for the subscription order.
 	 */
 	private function create_mandate_options_for_order( $order, $subscriptions ) {
 		$mandate_options = [];
+		$currency        = strtolower( $order->get_currency() );
+
+		// India recurring payment mandates can only be requested for the following currencies.
+		if ( ! in_array( $currency, [ 'inr', 'usd', 'eur', 'gbp', 'sgd', 'cad', 'chf', 'sek', 'aed', 'jpy', 'nok', 'myr', 'hkd' ], true ) ) {
+			return [];
+		}
 
 		// If this is the first order, not a renewal, then get the subscriptions for the parent order.
 		if ( empty( $subscriptions ) ) {
@@ -705,7 +712,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$mandate_options['amount']          = $sub_amount;
 		$mandate_options['reference']       = $order->get_id();
-		$mandate_options['start_date']      = $sub->get_time( 'start' );
+		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
 
 		return $mandate_options;

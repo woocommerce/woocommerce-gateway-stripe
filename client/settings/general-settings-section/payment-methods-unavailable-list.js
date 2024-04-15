@@ -29,7 +29,7 @@ const PaymentMethodsUnavailableList = () => {
 					className="payment-methods__unavailable-method"
 					aria-label={ label }
 				>
-					<Icon height="24" width="38" />
+					<Icon height="24" width="38" alt={ label } />
 				</li>
 			) ) }
 			{ unavailablePaymentMethodIds.length > countIconsToDisplay && (

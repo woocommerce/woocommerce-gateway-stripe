@@ -11,11 +11,12 @@ use Automattic\WooCommerce\Utilities\OrderUtil;
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const LEGACY_META_NAME_FEE      = 'Stripe Fee';
-	const LEGACY_META_NAME_NET      = 'Net Revenue From Stripe';
-	const META_NAME_FEE             = '_stripe_fee';
-	const META_NAME_NET             = '_stripe_net';
-	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
+	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
+	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
+	const META_NAME_FEE                = '_stripe_fee';
+	const META_NAME_NET                = '_stripe_net';
+	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
 	 * List of legacy Stripe gateways.
@@ -181,8 +182,14 @@ class WC_Stripe_Helper {
 			$currency = get_woocommerce_currency();
 		}
 
-		if ( in_array( strtolower( $currency ), self::no_decimal_currencies() ) ) {
+		$currency = strtolower( $currency );
+
+		if ( in_array( $currency, self::no_decimal_currencies(), true ) ) {
 			return absint( $total );
+		} elseif ( in_array( $currency, self::three_decimal_currencies(), true ) ) {
+			$price_decimals = wc_get_price_decimals();
+			$amount         = absint( wc_format_decimal( ( (float) $total * 1000 ), $price_decimals ) ); // For tree decimal currencies.
+			return $amount - ( $amount % 10 ); // Round the last digit down. See https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 		} else {
 			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
 		}
@@ -252,6 +259,22 @@ class WC_Stripe_Helper {
 			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
 			'xpf', // Cfp Franc
+		];
+	}
+
+	/**
+	 * List of currencies supported by Stripe that has three decimals
+	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
+	 *
+	 * @return array $currencies
+	 */
+	private static function three_decimal_currencies() {
+		return [
+			'bhd', // Bahraini Dinar
+			'jod', // Jordanian Dinar
+			'kwd', // Kuwaiti Dinar
+			'omr', // Omani Rial
+			'tnd', // Tunisian Dinar
 		];
 	}
 
@@ -687,7 +710,7 @@ class WC_Stripe_Helper {
 		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
-					'limit'          => 1,
+					'limit'      => 1,
 					'meta_query' => [
 						[
 							'key'   => '_stripe_refund_id',
@@ -778,33 +801,6 @@ class WC_Stripe_Helper {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Sanitize and retrieve the shortened statement descriptor concatenated with the order number.
-	 *
-	 * @param string   $statement_descriptor Shortened statement descriptor.
-	 * @param WC_Order $order Order.
-	 * @param string   $fallback_descriptor (optional) Fallback of the shortened statement descriptor in case it's blank.
-	 * @return string $statement_descriptor Final shortened statement descriptor.
-	 */
-	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null, $fallback_descriptor = '' ) {
-		$actual_descriptor = ! empty( $statement_descriptor ) ? $statement_descriptor : $fallback_descriptor;
-		$prefix            = self::clean_statement_descriptor( $actual_descriptor );
-		$suffix            = '';
-
-		if ( empty( $prefix ) ) {
-			return '';
-		}
-
-		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
-			$suffix = '* #' . $order->get_order_number();
-		}
-
-		// Make sure it is limited at 22 characters.
-		$statement_descriptor = substr( $prefix . $suffix, 0, 22 );
-
-		return $statement_descriptor;
 	}
 
 	/**
@@ -1182,5 +1178,39 @@ class WC_Stripe_Helper {
 		}
 
 		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
+	}
+
+	/**
+	 * Adds metadata to the order to indicate that the payment is awaiting action.
+	 *
+	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
+	 *
+	 * @param WC_Order $order The order to add the metadata to.
+	 * @param bool     $save  Whether to save the order after adding the metadata.
+	 *
+	 * @return void
+	 */
+	public static function set_payment_awaiting_action( $order, $save = true ) {
+		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
+
+		if ( $save ) {
+			$order->save();
+		}
+	}
+
+	/**
+	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
+	 *
+	 * @param WC_Order $order The order to remove the metadata from.
+	 * @param bool     $save  Whether to save the order after removing the metadata.
+	 *
+	 * @return void
+	 */
+	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
+
+		if ( $save ) {
+			$order->save();
+		}
 	}
 }

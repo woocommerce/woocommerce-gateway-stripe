@@ -585,7 +585,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			/* translators: transaction id */
-			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization. Attempting to refund the order in part or in full will release the authorization and cancel the payment.', 'woocommerce-gateway-stripe' ), $response->id ) );
+			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization. Refunding is unavailable until payment has been captured.', 'woocommerce-gateway-stripe' ), $response->id ) );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -819,25 +819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $_POST['stripe_source'] ) ) {
 			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
-
-			// This checks to see if customer opted to save the payment method to file.
-			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-
-			/**
-			 * This is true if the user wants to store the card to their account.
-			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
-			 * actually reusable. Either that or force_save_source is true.
-			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) || $force_save_source ) {
-				$response = $customer->attach_source( $source_object->id );
-
-				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
-				}
-				if ( is_wp_error( $response ) ) {
-					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
-				}
-			}
+			$customer->maybe_create_customer();
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
 			$wc_token_id = isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ? wc_clean( wp_unslash( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ) : '';
@@ -1306,9 +1288,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$payment_method_types = [ $prepared_source->source_object->type ];
 		}
 
+		$currency = strtolower( $order->get_currency() );
+
 		$request = [
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-			'currency'             => strtolower( $order->get_currency() ),
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+			'currency'             => $currency,
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
@@ -1453,7 +1437,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 		}
 
-		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		$currency   = strtolower( $order->get_currency() );
+		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		if ( $intent->amount !== $new_amount ) {
 			$request['amount'] = $new_amount;
 		}
@@ -1916,8 +1901,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		// If Stripe is not enabled bail.
-		if ( 'no' === $this->enabled ) {
+		// Bail if no Stripe payment method is enabled.
+		if ( 'no' === $this->enabled && empty( WC_Stripe_Helper::get_legacy_enabled_payment_methods() ) ) {
 			return;
 		}
 
