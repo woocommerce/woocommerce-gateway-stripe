@@ -209,7 +209,7 @@ class WC_Stripe_Account {
 	public function get_account_default_currency(): string {
 		$account = $this->get_cached_account_data();
 
-		return strtolower( $account['default_currency'] ) ?? '';
+		return isset( $account['default_currency'] ) ? strtolower( $account['default_currency'] ) : '';
 	}
 
 	/**
