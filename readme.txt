@@ -1,8 +1,8 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.1
-Tested up to: 6.4.2
+Requires at least: 6.2
+Tested up to: 6.5.2
 Requires PHP: 7.4
 Stable tag: 8.2.0
 License: GPLv3
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.1 - xxxx-xx-xx =
-* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
+= 8.3.0 - xxxx-xx-xx =
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
