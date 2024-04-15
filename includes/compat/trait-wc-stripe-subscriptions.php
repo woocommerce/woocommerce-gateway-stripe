@@ -351,6 +351,10 @@ trait WC_Stripe_Subscriptions_Trait {
 					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 				}
 
+				if ( isset( $response->error->request_log_url ) ) {
+					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
+				}
+
 				$renewal_order->add_order_note( $localized_message );
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
