@@ -97,13 +97,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $testmode;
 
 	/**
-	 * WC_Stripe_Account instance to get information about the account
-	 *
-	 * @var WC_Stripe_Account
-	 */
-	public $account;
-
-	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -114,8 +107,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->supports = [ 'products', 'refunds' ];
-
-		$this->account = WC_Stripe::get_instance()->account;
 	}
 
 	/**
@@ -220,7 +211,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @param int|null $order_id
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout( $order_id = null ) {
+	public function is_enabled_at_checkout( $account_domestic_currency = null, $order_id = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
 			return false;
@@ -235,8 +226,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
 		if ( $this->has_domestic_transactions_restrictions() ) {
-			$account_domestic_currency = $this->account->get_account_default_currency();
-			if ( $current_store_currency !== $account_domestic_currency ) {
+			if ( null === $account_domestic_currency ) {
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+			}
+
+			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
 				return false;
 			}
 		}
@@ -314,7 +308,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$data = $this->account->get_cached_account_data();
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}

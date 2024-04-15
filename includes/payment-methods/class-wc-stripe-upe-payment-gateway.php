@@ -121,6 +121,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $action_scheduler_service;
 
 	/**
+	 * WC_Stripe_Account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -130,7 +137,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account      = $account;
 		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: link */
@@ -473,13 +481,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
+		$account_domestic_currency    = $this->account->get_account_default_currency();
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
 			}
 
 			$method = $this->payment_methods[ $payment_method_id ];
-			if ( $method->is_enabled_at_checkout( $order_id ) === false ) {
+			if ( $method->is_enabled_at_checkout( $account_domestic_currency, $order_id ) === false ) {
 				continue;
 			}
 
@@ -1500,7 +1509,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
-		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout();
+
+		$account_domestic_currency = $this->account->get_account_default_currency();
+
+		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( $account_domestic_currency );
 	}
 
 	/**
