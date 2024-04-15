@@ -578,6 +578,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
 					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete', false );
+					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
 					$order->payment_complete( $response->id );
 
