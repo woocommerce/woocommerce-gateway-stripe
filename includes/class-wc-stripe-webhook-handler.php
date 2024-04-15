@@ -384,7 +384,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === $order->get_payment_method() ) { // Note: Authorize & capture is only available on credit card payments so we only need to check for 'stripe' payment methods.
 			$charge   = $order->get_transaction_id();
 			$captured = $order->get_meta( '_stripe_charge_captured', true );
 
@@ -560,7 +560,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge        = $order->get_transaction_id();
 			$captured      = $order->get_meta( '_stripe_charge_captured' );
 			$refund_id     = $order->get_meta( '_stripe_refund_id' );
@@ -635,7 +635,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge     = $order->get_transaction_id();
 			$refund_id  = $order->get_meta( '_stripe_refund_id' );
 			$currency   = $order->get_currency();
