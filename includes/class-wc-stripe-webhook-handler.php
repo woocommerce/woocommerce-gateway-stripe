@@ -774,7 +774,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
 			! $order->get_meta( '_stripe_status_final', false )
 		) {
-			$order->update_status( $this->get_stripe_order_status_before_hold( $order ), $message );
+			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
+
+			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
+			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ) ) ) {
+				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+			}
+
+			$order->update_status( $status_after_review, $message );
 		} else {
 			$order->add_order_note( $message );
 		}
