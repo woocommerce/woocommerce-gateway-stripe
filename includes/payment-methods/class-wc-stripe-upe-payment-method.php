@@ -97,6 +97,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $testmode;
 
 	/**
+	 * WC_Stripe_Account instance to get information about the account
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	public $account;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -107,6 +114,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->supports = [ 'products', 'refunds' ];
+
+		$this->account = WC_Stripe::get_instance()->account;
 	}
 
 	/**
@@ -226,8 +235,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
 		if ( $this->has_domestic_transactions_restrictions() ) {
-			$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
-			if ( strtolower( $current_store_currency ) !== $account_domestic_currency ) {
+			$account_domestic_currency = $this->account->get_account_default_currency();
+			if ( $current_store_currency !== $account_domestic_currency ) {
 				return false;
 			}
 		}
@@ -305,8 +314,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$account = WC_Stripe::get_instance()->account;
-		$data    = $account->get_cached_account_data();
+		$data = $this->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
