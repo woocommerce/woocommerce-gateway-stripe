@@ -2,6 +2,7 @@
 
 = 8.3.0 - xxxx-xx-xx =
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
+* Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
