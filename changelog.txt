@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 = 8.2.0 - 2024-04-11 =

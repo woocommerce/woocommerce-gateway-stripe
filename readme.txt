@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.3.0 - xxxx-xx-xx =
+* Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
