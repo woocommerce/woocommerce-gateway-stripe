@@ -696,7 +696,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		if ( 1 === count( $subscriptions ) ) {
 			$mandate_options['amount_type']    = 'fixed';
-			$mandate_options['interval']       = $sub->get_billing_period();
+			$mandate_options['interval']       = strtolower( $sub->get_billing_period() );
 			$mandate_options['interval_count'] = $sub->get_billing_interval();
 		} else {
 			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
