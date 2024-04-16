@@ -683,16 +683,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		// If the amount is 0 we don't need to create a mandate since we won't be charging anything.
 		// And there won't be any renewal for this free subscription.
 		if ( 0 === $sub_amount ) {
-			return $request;
+			return [];
 		}
 
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
-
-		// If the amount zero we just return since mandate is not required and can not be created with zero amount.
-		if ( 0 === $sub_amount ) {
-			return [];
-		}
 
 		if ( 1 === count( $subscriptions ) ) {
 			$mandate_options['amount_type']    = 'fixed';
