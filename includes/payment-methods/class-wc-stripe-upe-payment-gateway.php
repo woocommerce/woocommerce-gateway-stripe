@@ -1552,6 +1552,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$order->set_payment_method( $payment_method_id );
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
+
+		// Update the subscription's purchased in this order with the payment method ID.
+		if ( isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+			$this->update_subscription_payment_method_from_order( $order, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
+		}
 	}
 
 	/**
