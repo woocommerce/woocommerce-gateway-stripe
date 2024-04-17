@@ -731,10 +731,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
-			// Set the preferred card brand for the order, when set.
-			if ( isset( $payment_information['preferred_card_brand'] ) ) {
-				$this->set_preferred_card_brand_for_order( $order, $payment_information['preferred_card_brand'] );
-			}
 
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
 			if ( '' !== $selected_payment_type ) {
@@ -778,6 +774,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Set the selected UPE payment method type title in the WC order.
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+
+			// Set the preferred card brand for the order, when set.
+			$preferred_brand = $payment_method->card->networks->preferred ?? null;
+			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
+				$this->set_preferred_card_brand_for_order( $order, $preferred_brand );
+				wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+			}
 
 			$redirect = $this->get_return_url( $order );
 
@@ -870,7 +873,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 
 			return [
-				'result' => 'failure',
+				'result'   => 'failure',
 				'redirect' => '',
 			];
 		}
@@ -1973,19 +1976,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
-		if ( 'card' === $selected_payment_type ) {
-			if ( $is_short_statement_descriptor_enabled ) {
-				$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
-			}
-			// Add the preferred card brand to the payment information.
-			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() ) {
-				/**
-				 * The credit card payment token
-				 *
-				 * @var $token WC_Payment_Token_CC
-				 */
-				$payment_information['preferred_card_brand'] = $token->get_card_type();
-			}
+		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
+			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
 		return $payment_information;
