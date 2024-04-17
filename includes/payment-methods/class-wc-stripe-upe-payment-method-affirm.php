@@ -18,7 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id                    = self::STRIPE_ID;
 		$this->title                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
-		$this->supported_currencies         = [ 'AUD', 'CAD', 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'NOK', 'NZD', 'PLN', 'SEK', 'USD' ];
+		$this->supported_currencies         = [ 'CAD', 'USD' ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
