@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 * Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
