@@ -827,7 +827,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
+		$user_id = wc_get_order( $order_id )->get_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false, $customer );
 
 		if ( $this->save_payment_method_requested() || $force_save_source_value ) {
 			$query_params['save_payment_method'] = true;
