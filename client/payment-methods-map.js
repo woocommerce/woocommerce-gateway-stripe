@@ -48,6 +48,29 @@ export default {
 			'USD',
 		],
 	},
+	affirm: {
+		id: 'affirm',
+		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Affirm. Available to all customers paying in USD.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.affirm,
+		currencies: [
+			'AUD',
+			'CAD',
+			'CHF',
+			'CZK',
+			'DKK',
+			'EUR',
+			'GBP',
+			'NOK',
+			'NZD',
+			'PLN',
+			'SEK',
+			'USD',
+		],
+	},
 	sepa_debit: {
 		id: 'sepa_debit',
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
