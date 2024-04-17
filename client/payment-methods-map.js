@@ -56,20 +56,7 @@ export default {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
-		currencies: [
-			'AUD',
-			'CAD',
-			'CHF',
-			'CZK',
-			'DKK',
-			'EUR',
-			'GBP',
-			'NOK',
-			'NZD',
-			'PLN',
-			'SEK',
-			'USD',
-		],
+		currencies: [ 'USD', 'CAD' ],
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
