@@ -779,7 +779,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$preferred_brand = $payment_method->card->networks->preferred ?? null;
 			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 				$this->set_preferred_card_brand_for_order( $order, $preferred_brand );
-				wc_admin_record_tracks_event( 'co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+				wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
 			}
 
 			$redirect = $this->get_return_url( $order );
