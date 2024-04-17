@@ -215,9 +215,11 @@ describe( 'AccountDetailsSection', () => {
 		] );
 
 		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
-		const stripeAccountDetails = screen.getByText(
-			/test@example.com \(acct_123\)/i
-		);
-		expect( stripeAccountDetails ).toBeInTheDocument();
+
+		const stripeAccountEmail = screen.getByText( /test@example.com/i );
+		expect( stripeAccountEmail ).toBeInTheDocument();
+
+		const stripeAccountId = screen.getByText( /acct_123/i );
+		expect( stripeAccountId ).toBeInTheDocument();
 	} );
 } );
