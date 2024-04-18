@@ -903,7 +903,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
-				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+				if ( ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) ) ) {
 					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
 					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;
