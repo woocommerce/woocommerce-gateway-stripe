@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 		$this->title                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
 		$this->supported_currencies         = [ 'CAD', 'USD' ];
-		$this->supported_countries          = [ 'US', 'CA' ];
+		$this->supported_countries          = [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
@@ -27,19 +27,19 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 		$this->limits_per_currency          = [
-			'CAD' => [
-				'CA' => [
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR      => [
+				WC_Stripe_Country_Code::CANADA => [
 					'min' => 5000,
 					'max' => 3000000,
 				], // Represents CAD 50 - 30,000 CAD.
 			],
-			'USD' => [
-				'US' => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
+				WC_Stripe_Country_Code::UNITED_STATES => [
 					'min' => 5000,
 					'max' => 3000000,
 				], // Represents USD 50 - 30,000 USD.
 			],
 		];
-		$this->countries                    = [ 'US', 'CA' ];
+		$this->countries                    = [ WC_Stripe_Country_Code::UNITED_STATES, WC_Stripe_Country_Code::CANADA ];
 	}
 }

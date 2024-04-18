@@ -263,6 +263,21 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Check whether a given currency is in the list of currencies supported by Stripe that has no decimals.
+	 *
+	 * @param string $currency The currency code.
+	 *
+	 * @return bool
+	 */
+	public static function is_non_decimal_currency( string $currency ): bool {
+		if ( in_array( strtolower( $currency ), self::no_decimal_currencies(), true ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * List of currencies supported by Stripe that has three decimals
 	 * https://docs.stripe.com/currencies?presentment-currency=AE#three-decimal
 	 *
