@@ -257,7 +257,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
 		if ( [] !== $this->limits_per_currency ) {
-			return $this->is_inside_currency_limits();
+			return $this->is_inside_currency_limits( $current_store_currency );
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -402,7 +402,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Wrapper function for get_woocommerce_currency global function
 	 */
 	public function get_woocommerce_currency() {
-		return get_woocommerce_currency();
+		return \get_woocommerce_currency();
 	}
 
 	/**
@@ -588,9 +588,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
-	public function is_inside_currency_limits(): bool {
-		$current_store_currency = $this->get_woocommerce_currency();
-		$conversion_rate        = 100;
+	public function is_inside_currency_limits( $current_store_currency ): bool {
+		$conversion_rate = 100;
 		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 			$conversion_rate = 1;
 		}
