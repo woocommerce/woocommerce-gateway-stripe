@@ -2130,14 +2130,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 8.3.0
 	 *
 	 * @param WC_Order    $order  The order.
-	 * @param string|null $status The status to store. Defaults to the current order status. Also accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @param string|null $status The status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
 	 *
 	 * @return void
 	 */
-	protected function set_stripe_order_status_before_hold( $order, $status = null ) {
-		if ( empty( $status ) ) {
-			$status = $order->get_status();
-		} elseif ( 'default_payment_complete' === $status ) {
+	protected function set_stripe_order_status_before_hold( $order, $status ) {
+		if ( 'default_payment_complete' === $status ) {
 			$status = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
 		}
 
