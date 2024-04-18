@@ -310,7 +310,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$this->set_stripe_order_status_before_hold( $order, $order->get_status(), false );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -724,7 +724,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$this->set_stripe_order_status_before_hold( $order, $order->get_status(), false );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
