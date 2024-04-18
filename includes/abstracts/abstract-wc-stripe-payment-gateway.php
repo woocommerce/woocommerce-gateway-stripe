@@ -2111,17 +2111,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 8.3.0
 	 *
-	 * @param WC_Order $order          The order.
-	 * @param string   $default_status The default status to return if the metadata is not set. Defaults to the payment complete status.
+	 * @param WC_Order $order The order.
 	 *
 	 * @return string The status of the order before it was put on hold.
 	 */
-	protected function get_stripe_order_status_before_hold( $order, $default_status = null ) {
-		if ( is_null( $default_status ) ) {
-			$default_status = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+	protected function get_stripe_order_status_before_hold( $order ) {
+		$before_hold_status = $order->get_meta( '_stripe_status_before_hold', true );
+
+		if ( ! empty( $before_hold_status ) ) {
+			return $before_hold_status;
 		}
 
-		return $order->get_meta( '_stripe_status_before_hold', true ) ?? $default_payment_complete_status;
+		$default_before_hold_status = $order->needs_processing() ? 'processing' : 'completed';
+		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $order->get_id(), $order );
 	}
 
 	/**
