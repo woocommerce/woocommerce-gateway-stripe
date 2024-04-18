@@ -589,11 +589,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
+		// Pay for order page will check for the current order total instead of the cart's.
+		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			$order        = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			$order_amount = $order->get_total( '' );
+		} else {
+			$order_amount = WC()->cart->get_total( '' );
+		}
 		$conversion_rate = 100;
 		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 			$conversion_rate = 1;
 		}
-		$amount          = (int) round( (float) WC()->cart->get_total( '' ) * $conversion_rate );
+		$amount          = (int) round( (float) $order_amount * $conversion_rate );
 		$account_country = WC_Stripe::get_instance()->account->get_account_country();
 		$range           = null;
 		if ( isset( $this->limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
