@@ -589,10 +589,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
 	public function is_inside_currency_limits(): bool {
-		$amount                 = (int) round( (float) WC()->cart->get_total( '' ) * 100 );
-		$account_country        = WC_Stripe::get_instance()->account->get_account_country();
-		$range                  = null;
 		$current_store_currency = $this->get_woocommerce_currency();
+		$conversion_rate        = 100;
+		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			$conversion_rate = 1;
+		}
+		$amount          = (int) round( (float) WC()->cart->get_total( '' ) * $conversion_rate );
+		$account_country = WC_Stripe::get_instance()->account->get_account_country();
+		$range           = null;
 		if ( isset( $this->limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
 			$range = $this->limits_per_currency[ $current_store_currency ][ $account_country ];
 		} elseif ( isset( $this->limits_per_currency[ $current_store_currency ]['default'] ) ) {
