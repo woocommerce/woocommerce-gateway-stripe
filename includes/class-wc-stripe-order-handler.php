@@ -42,6 +42,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Processes payments.
+	 *
 	 * Note at this time the original source has already been
 	 * saved to a customer card (if applicable) from process_payment.
 	 *
@@ -199,6 +200,21 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateway->maybe_process_upe_redirect();
+		} else {
+			$this->maybe_process_legacy_redirect();
+		}
+	}
+
+	/**
+	 * Processes redirect payment for stores with legacy checkout experience enabled.
+	 *
+	 * @since 8.3.0
+	 */
+	private function maybe_process_legacy_redirect() {
 		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
 			return;
 		}

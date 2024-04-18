@@ -129,6 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.3.0 - xxxx-xx-xx =
+* Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
+* Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
