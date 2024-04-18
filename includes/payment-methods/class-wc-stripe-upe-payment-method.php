@@ -1,4 +1,7 @@
 <?php
+
+use function WCPay\Payment_Methods\get_woocommerce_currency;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -88,6 +91,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @var boolean
 	 */
 	protected $accept_only_domestic_payment = false;
+
+	/**
+	 * Represent payment total limitations for the payment method (per-currency).
+	 *
+	 * @var array<string,array<string,array<string,int>>>
+	 */
+	protected $limits_per_currency = [];
 
 	/**
 	 * Wether this UPE method is in testmode.
@@ -233,6 +243,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
 				return false;
 			}
+		}
+
+		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
+		if ( [] !== $this->limits_per_currency ) {
+			return $this->is_inside_currency_limits();
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -547,6 +562,30 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function should_show_save_option() {
 		return $this->is_reusable() && $this->is_saved_cards_enabled();
+	}
+
+	/**
+	 * Determines if the payment method is inside the currency limits.
+	 *
+	 * @return bool True if the payment method is inside the currency limits, false otherwise.
+	 */
+	public function is_inside_currency_limits(): bool {
+		$amount                 = (int) round( (float) WC()->cart->get_total( '' ) * 100 );
+		$account_country        = WC_Stripe::get_instance()->account->get_account_country();
+		$range                  = null;
+		$current_store_currency = $this->get_woocommerce_currency();
+		if ( isset( $this->limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
+			$range = $this->limits_per_currency[ $current_store_currency ][ $account_country ];
+		} elseif ( isset( $this->limits_per_currency[ $current_store_currency ]['default'] ) ) {
+			$range = $this->limits_per_currency[ $current_store_currency ]['default'];
+		}
+		// If there is no range specified for the currency-country pair we don't support it and return false.
+		if ( null === $range ) {
+			return false;
+		}
+		$is_valid_minimum = null === $range['min'] || $amount >= $range['min'];
+		$is_valid_maximum = null === $range['max'] || $amount <= $range['max'];
+		return $is_valid_minimum && $is_valid_maximum;
 	}
 
 	/**
