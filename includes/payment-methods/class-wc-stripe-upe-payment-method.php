@@ -590,10 +590,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
 		// Pay for order page will check for the current order total instead of the cart's.
+		$order_amount = 0;
 		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
 			$order        = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 			$order_amount = $order->get_total( '' );
-		} else {
+		} elseif ( WC()->cart ) {
 			$order_amount = WC()->cart->get_total( '' );
 		}
 		$conversion_rate = 100;
