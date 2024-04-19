@@ -1,7 +1,5 @@
 <?php
 
-use function WCPay\Payment_Methods\get_woocommerce_currency;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -402,7 +400,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Wrapper function for get_woocommerce_currency global function
 	 */
 	public function get_woocommerce_currency() {
-		return \get_woocommerce_currency();
+		return get_woocommerce_currency();
 	}
 
 	/**
@@ -584,30 +582,49 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the payment method's limits per currency.
+	 *
+	 * @return int[][][]
+	 */
+	public function get_limits_per_currency(): array {
+		return $this->limits_per_currency;
+	}
+
+	/**
+	 * Returns the current order amount (from the "pay for order" page or from the current cart).
+	 *
+	 * @return float|int|string
+	 */
+	public function get_current_order_amount() {
+		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			return $order->get_total( '' );
+		} elseif ( WC()->cart ) {
+			return WC()->cart->get_total( '' );
+		}
+		return 0;
+	}
+
+	/**
 	 * Determines if the payment method is inside the currency limits.
 	 *
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
 		// Pay for order page will check for the current order total instead of the cart's.
-		$order_amount = 0;
-		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
-			$order        = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-			$order_amount = $order->get_total( '' );
-		} elseif ( WC()->cart ) {
-			$order_amount = WC()->cart->get_total( '' );
-		}
+		$order_amount    = $this->get_current_order_amount();
 		$conversion_rate = 100;
 		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 			$conversion_rate = 1;
 		}
-		$amount          = (int) round( (float) $order_amount * $conversion_rate );
-		$account_country = WC_Stripe::get_instance()->account->get_account_country();
-		$range           = null;
-		if ( isset( $this->limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
-			$range = $this->limits_per_currency[ $current_store_currency ][ $account_country ];
-		} elseif ( isset( $this->limits_per_currency[ $current_store_currency ]['default'] ) ) {
-			$range = $this->limits_per_currency[ $current_store_currency ]['default'];
+		$amount              = (int) round( (float) $order_amount * $conversion_rate );
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
+		$range               = null;
+		$limits_per_currency = $this->get_limits_per_currency();
+		if ( isset( $limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ][ $account_country ];
+		} elseif ( isset( $limits_per_currency[ $current_store_currency ]['default'] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ]['default'];
 		}
 		// If there is no range specified for the currency-country pair we don't support it and return false.
 		if ( null === $range ) {

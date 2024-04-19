@@ -120,6 +120,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_capabilities_response',
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
+						'get_current_order_amount',
 					]
 				)
 				->getMock();
@@ -495,6 +496,48 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$this->assertTrue( $is_enabled );
 			} else {
 				$this->assertTrue( $is_enabled );
+			}
+		}
+	}
+
+	/**
+	 * Payment method is only enabled when the cart amount is within the payment method's limits.
+	 */
+	public function test_payment_methods_are_only_enabled_within_currency_limits() {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['capture'] = 'yes';
+
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
+		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		foreach ( $payment_method_ids as $id ) {
+			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
+			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'get_current_order_amount', 50 );
+
+			// Payment methods with currency limits.
+			if ( 'affirm' === $id ) {
+				$this->set_mock_payment_method_return_value(
+					'get_limits_per_currency',
+					[
+						'US' => [
+							'USD' => [
+								'min' => 100,
+								'max' => 1000,
+							],
+						],
+					],
+					true
+				);
+			}
+
+			$payment_method = $this->mock_payment_methods[ $id ];
+
+			if ( 'affirm' === $id ) {
+				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+			} else {
+				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
 			}
 		}
 	}
