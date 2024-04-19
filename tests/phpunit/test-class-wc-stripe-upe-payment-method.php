@@ -121,6 +121,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
 						'get_current_order_amount',
+						'get_limits_per_currency',
+						'has_domestic_transactions_restrictions',
+						'get_supported_currencies',
 					]
 				)
 				->getMock();
@@ -386,7 +389,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
 
 			$currency = 'EUR';
-			if ( 'link' === $id ) {
+			if ( 'link' === $id || 'affirm' === $id ) {
 				$currency = 'USD';
 			} elseif ( 'alipay' === $id ) {
 				$currency = 'CNY';
@@ -395,6 +398,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'get_limits_per_currency', null, true );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 
@@ -514,6 +518,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'has_domestic_transactions_restrictions', false );
+			$this->set_mock_payment_method_return_value( 'get_supported_currencies', null, true );
 			$this->set_mock_payment_method_return_value( 'get_current_order_amount', 50 );
 
 			// Payment methods with currency limits.

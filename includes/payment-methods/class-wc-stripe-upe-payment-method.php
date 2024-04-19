@@ -254,7 +254,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
-		if ( [] !== $this->limits_per_currency ) {
+		if ( [] !== $this->get_limits_per_currency() ) {
 			return $this->is_inside_currency_limits( $current_store_currency );
 		}
 
