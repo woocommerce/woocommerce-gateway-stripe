@@ -460,7 +460,7 @@ class WC_Stripe_Payment_Tokens {
 				$token = new WC_Payment_Token_CC();
 				$token->set_expiry_month( $payment_method->card->exp_month );
 				$token->set_expiry_year( $payment_method->card->exp_year );
-				$token->set_card_type( strtolower( $payment_method->card->brand ) );
+				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
 				break;
 
