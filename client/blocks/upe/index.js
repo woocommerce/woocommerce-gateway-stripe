@@ -43,7 +43,15 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeConfig.showSaveOption ?? false
 			),
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
-			canMakePayment: () => !! api.getStripe(),
+			canMakePayment: ( cartData ) => {
+				const billingCountry = cartData.billingAddress.country;
+				const isRestrictedInAnyCountry = !! upeConfig.countries.length;
+				const isAvailableInTheCountry =
+					! isRestrictedInAnyCountry ||
+					upeConfig.countries.includes( billingCountry );
+
+				return isAvailableInTheCountry && !! api.getStripe();
+			},
 			// see .wc-block-checkout__payment-method styles in blocks/style.scss
 			label: (
 				<>

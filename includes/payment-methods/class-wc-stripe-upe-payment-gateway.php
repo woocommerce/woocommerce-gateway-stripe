@@ -451,12 +451,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$settings                = [];
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
 
-		foreach ( $enabled_payment_methods as $payment_method ) {
-			$settings[ $payment_method ] = [
-				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
-				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
-				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $payment_method ] ),
+		foreach ( $enabled_payment_methods as $payment_method_id ) {
+			$payment_method = $this->payment_methods[ $payment_method_id ];
+
+			$settings[ $payment_method_id ] = [
+				'isReusable'          => $payment_method->is_reusable(),
+				'title'               => $payment_method->get_title(),
+				'testingInstructions' => $payment_method->get_testing_instructions(),
+				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'countries'           => $payment_method->get_countries(),
 			];
 		}
 
