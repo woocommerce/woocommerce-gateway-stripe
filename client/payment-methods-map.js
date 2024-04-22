@@ -29,7 +29,7 @@ export default {
 		id: 'klarna',
 		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'Allow customers to pay over time with Klarna. Available to all customers paying in USD.',
+			'Allow customers to pay over time with Klarna.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.klarna,
