@@ -75,11 +75,12 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
-	 * List of supported countries
+	 * Supported customer locations for which charges for a payment method can be processed.
+	 * Empty if all customer locations are supported.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
-	protected $supported_countries;
+	protected $supported_countries = [];
 
 	/**
 	 * Should payment method be restricted to only domestic payments.
@@ -251,6 +252,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for a payment method can be processed.
+	 *
+	 * @return array
+	 */
+	public function get_countries() {
+		return $this->supported_countries;
 	}
 
 	/**
