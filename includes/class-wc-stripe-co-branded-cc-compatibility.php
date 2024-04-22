@@ -1,4 +1,11 @@
 <?php
+/**
+ * Stripe Co-branded cards compatibility class.
+ *
+ * @package WooCommerce Stripe
+ * @since 8.3.0
+ */
+ 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
