@@ -380,9 +380,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 
 		// Add appearance settings.
-		$stripe_params['appearance']                       = get_transient( $this->get_appearance_transient_key() );
-		$stripe_params['blocksAppearance']                 = get_transient( $this->get_appearance_transient_key( true ) );
-		$stripe_params['saveAppearanceNonce']              = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
+		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
+		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
+		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -800,7 +800,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$preferred_brand = $payment_method->card->networks->preferred ?? null;
 			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 				$this->set_preferred_card_brand_for_order( $order, $preferred_brand );
-				wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+				if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
+					wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+				}
 			}
 
 			$redirect = $this->get_return_url( $order );
