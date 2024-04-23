@@ -26,6 +26,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Affirm::class,
+		WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
 		WC_Stripe_UPE_Payment_Method_Eps::class,
 		WC_Stripe_UPE_Payment_Method_Bancontact::class,
 		WC_Stripe_UPE_Payment_Method_Boleto::class,

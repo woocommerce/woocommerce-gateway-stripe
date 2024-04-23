@@ -58,6 +58,27 @@ export default {
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
 	},
+	afterpay_clearpay: {
+		id: 'afterpay_clearpay',
+		label:
+			accountCountry === 'GB'
+				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
+				: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
+		description:
+			accountCountry === 'GB'
+				? __(
+						// translators: %s is the store currency.
+						'Allow customers to pay over time with Clearpay.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						// translators: %s is the store currency.
+						'Allow customers to pay over time with Afterpay.',
+						'woocommerce-gateway-stripe'
+				  ),
+		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
+		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
+	},
 	sepa_debit: {
 		id: 'sepa_debit',
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
