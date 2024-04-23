@@ -2,17 +2,12 @@ import { __, sprintf } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { Button } from '@wordpress/components';
-import PaymentMethodsMap from '../../payment-methods-map';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
-import { useAccount } from 'wcstripe/data/account';
+import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
 
 const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
-	let { label } = PaymentMethodsMap[ method ];
-	const { data } = useAccount();
-	if ( data?.account?.country === 'GB' && method === 'afterpay_clearpay' ) {
-		label = PaymentMethodsMap[ method ].labelClearpay;
-	}
+	const { label } = usePaymentMethodData( method );
 
 	const confirmMethodRemovalString = sprintf(
 		/* translators: %1: payment method name (e.g.: giropay, EPS, etc). */

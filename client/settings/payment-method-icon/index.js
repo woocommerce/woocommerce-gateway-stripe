@@ -1,21 +1,15 @@
 import React from 'react';
 import paymentMethodsMap from '../../payment-methods-map';
 import './style.scss';
-import { useAccount } from 'wcstripe/data/account';
+import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
+	const { label, Icon } = usePaymentMethodData();
+
 	const paymentMethod = paymentMethodsMap[ name ];
-	const { data } = useAccount();
 
 	if ( ! paymentMethod ) {
 		return <></>;
-	}
-
-	let { label, Icon } = paymentMethod;
-	if ( data?.account?.country === 'GB' && name === 'afterpay_clearpay' ) {
-		const { IconClearpay, labelClearpay } = paymentMethod;
-		Icon = IconClearpay;
-		label = labelClearpay;
 	}
 
 	return (

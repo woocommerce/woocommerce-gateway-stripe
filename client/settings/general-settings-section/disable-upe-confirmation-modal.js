@@ -4,13 +4,13 @@ import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useGetCapabilities } from 'wcstripe/data/account';
+import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;
@@ -93,8 +93,6 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 		);
 	} );
 
-	const { data } = useAccount();
-
 	return (
 		<>
 			<ConfirmationModal
@@ -145,23 +143,11 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 						</p>
 						<DeactivatingPaymentMethodsList>
 							{ upePaymentMethods.map( ( method ) => {
-								let {
+								const {
 									Icon: MethodIcon,
 									label,
-								} = PaymentMethodsMap[ method ];
-
-								if (
-									data?.account?.country === 'GB' &&
-									method === 'afterpay_clearpay'
-								) {
-									const {
-										IconClearpay,
-										labelClearpay,
-									} = PaymentMethodsMap[ method ];
-									MethodIcon = IconClearpay;
-									label = labelClearpay;
-								}
-
+									// eslint-disable-next-line react-hooks/rules-of-hooks
+								} = usePaymentMethodData( method );
 								return (
 									<li key={ method }>
 										<PaymentMethodListItemContent>
