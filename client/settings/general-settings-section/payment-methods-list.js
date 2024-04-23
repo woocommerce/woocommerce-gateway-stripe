@@ -230,12 +230,25 @@ const GeneralSettingsSection = ( {
 			onReorder={ onReorder }
 		>
 			{ availablePaymentMethods.map( ( method ) => {
-				const {
+				let {
 					Icon,
 					label,
 					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
+				if (
+					data?.account?.country === 'GB' &&
+					method === 'afterpay_clearpay'
+				) {
+					const {
+						IconClearpay,
+						labelClearpay,
+						descriptionClearpay,
+					} = PaymentMethodsMap[ method ];
+					Icon = IconClearpay;
+					label = labelClearpay;
+					description = descriptionClearpay;
+				}
 
 				return (
 					<DraggableListElement

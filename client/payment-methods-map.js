@@ -58,25 +58,21 @@ export default {
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
 	},
+	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
 		id: 'afterpay_clearpay',
-		label:
-			accountCountry === 'GB'
-				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
-				: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
-		description:
-			accountCountry === 'GB'
-				? __(
-						// translators: %s is the store currency.
-						'Allow customers to pay over time with Clearpay.',
-						'woocommerce-gateway-stripe'
-				  )
-				: __(
-						// translators: %s is the store currency.
-						'Allow customers to pay over time with Afterpay.',
-						'woocommerce-gateway-stripe'
-				  ),
-		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
+		label: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
+		labelClearpay: __( 'Clearpay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Afterpay.',
+			'woocommerce-gateway-stripe'
+		),
+		descriptionClearpay: __(
+			'Allow customers to pay over time with Clearpay.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.afterpay,
+		IconClearpay: icons.clearpay,
 		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
 	},
 	sepa_debit: {

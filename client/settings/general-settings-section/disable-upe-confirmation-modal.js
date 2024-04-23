@@ -10,7 +10,7 @@ import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import { useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;
@@ -93,6 +93,8 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 		);
 	} );
 
+	const { data } = useAccount();
+
 	return (
 		<>
 			<ConfirmationModal
@@ -143,10 +145,22 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 						</p>
 						<DeactivatingPaymentMethodsList>
 							{ upePaymentMethods.map( ( method ) => {
-								const {
+								let {
 									Icon: MethodIcon,
 									label,
 								} = PaymentMethodsMap[ method ];
+
+								if (
+									data?.account?.country === 'GB' &&
+									method === 'afterpay_clearpay'
+								) {
+									const {
+										IconClearpay,
+										labelClearpay,
+									} = PaymentMethodsMap[ method ];
+									MethodIcon = IconClearpay;
+									label = labelClearpay;
+								}
 
 								return (
 									<li key={ method }>

@@ -58,9 +58,17 @@ export function* refreshAccount() {
 					),
 					newPaymentMethods
 						.map( ( method ) => {
-							return PaymentMethodsMap[
+							let { label } = PaymentMethodsMap[
 								method.replace( '_payments', '' )
-							].label;
+							];
+							if (
+								data?.country === 'GB' &&
+								method === 'afterpay_clearpay'
+							) {
+								label =
+									PaymentMethodsMap[ method ].labelClearpay;
+							}
+							return label;
 						} )
 						.join( ', ' )
 				),
