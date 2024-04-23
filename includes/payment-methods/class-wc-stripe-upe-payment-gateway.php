@@ -491,7 +491,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$method = $this->payment_methods[ $payment_method_id ];
-			if ( $method->is_enabled_at_checkout( $account_domestic_currency, $order_id ) === false ) {
+			if ( $method->is_enabled_at_checkout( $order_id, $account_domestic_currency ) === false ) {
 				continue;
 			}
 
@@ -1515,7 +1515,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$account_domestic_currency = $this->account->get_account_default_currency();
 
-		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( $account_domestic_currency );
+		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( null, $account_domestic_currency );
 	}
 
 	/**

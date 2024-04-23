@@ -209,10 +209,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
-	 * @param int|null $order_id
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout( $account_domestic_currency = null, $order_id = null ) {
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
 			return false;

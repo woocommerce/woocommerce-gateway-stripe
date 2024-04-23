@@ -428,7 +428,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 
-			$this->assertTrue( $payment_method->is_enabled_at_checkout( $currency ) );
+			$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $currency ) );
 		}
 	}
 
@@ -458,7 +458,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->set_stripe_account_default_currency( $woocommerce_currency );
 				}
 
-				$this->assertFalse( $payment_method->is_enabled_at_checkout( $woocommerce_currency ) );
+				$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ) );
 
 				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $woocommerce_currency, true );
 				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
@@ -466,7 +466,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 				$payment_method = $this->mock_payment_methods[ $id ];
 
-				$this->assertTrue( $payment_method->is_enabled_at_checkout( $woocommerce_currency ) );
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ) );
 			}
 		}
 	}
