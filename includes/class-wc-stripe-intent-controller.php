@@ -908,6 +908,16 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
+		// Add the preferred credit card brand when defined
+		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
+		if ( isset( $preferred_brand ) ) {
+			$request['payment_method_options'] = [
+				'card' => [
+					'brand' => $preferred_brand,
+				],
+			];
+		}
+
 		return $request;
 	}
 
