@@ -491,7 +491,7 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
 };
 
 /**
- * Determines if the payment method is restricted to specific countries. 
+ * Determines if the payment method is restricted to specific countries.
  *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {boolean} Whether the payment method is restricted to selected billing country.
@@ -511,11 +511,10 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
 
-	/* global wcpayCustomerData */
 	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
 	const billingCountry =
 		document.getElementById( 'billing_country' )?.value ||
-		wcpayCustomerData?.billing_country ||
+		getStripeServerData()?.customerData.billing_country ||
 		'';
 
 	const upeContainer = document.querySelector(
