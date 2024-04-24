@@ -3,9 +3,15 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RemoveMethodConfirmationModal from '../remove-method-confirmation-modal';
 
-jest.mock( 'wcstripe/utils/use-payment-methods-data', () => ( {
-	usePaymentMethodsData: jest.fn().mockReturnValue( { label: 'giropay' } ),
-} ) );
+jest.mock( 'wcstripe/utils/use-payment-methods-data', () => {
+	const mockedPaymentMethodsData = [];
+	mockedPaymentMethodsData.giropay = { label: 'giropay' };
+	return {
+		usePaymentMethodsData: jest
+			.fn()
+			.mockReturnValue( mockedPaymentMethodsData ),
+	};
+} );
 
 describe( 'RemoveMethodConfirmationModal', () => {
 	const handleCloseMock = jest.fn();
