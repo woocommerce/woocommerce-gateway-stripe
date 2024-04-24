@@ -4,7 +4,7 @@ import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import PaymentMethodsMap from '../../payment-methods-map';
 import ACTION_TYPES from './action-types';
-import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodsData } from 'wcstripe/utils/use-payment-methods-data';
 
 export function updateAccount( payload ) {
 	return {
@@ -59,9 +59,10 @@ export function* refreshAccount() {
 					),
 					newPaymentMethods
 						.map( ( method ) => {
-							const { label } = usePaymentMethodData(
+							const paymentMethodsData = usePaymentMethodsData();
+							const { label } = paymentMethodsData[
 								method.replace( '_payments', '' )
-							);
+							];
 							return label;
 						} )
 						.join( ', ' )

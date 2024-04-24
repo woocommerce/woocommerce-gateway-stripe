@@ -19,7 +19,7 @@ import {
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodsData } from 'wcstripe/utils/use-payment-methods-data';
 
 const List = styled.ul`
 	margin: 0;
@@ -179,6 +179,7 @@ const GeneralSettingsSection = ( {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 	const alipayCurrencies = useAliPayCurrencies();
+	const paymentMethodsData = usePaymentMethodsData();
 
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
@@ -236,8 +237,7 @@ const GeneralSettingsSection = ( {
 					label,
 					description,
 					allows_manual_capture: isAllowingManualCapture,
-					// eslint-disable-next-line react-hooks/rules-of-hooks
-				} = usePaymentMethodData( method );
+				} = paymentMethodsData[ method ];
 
 				return (
 					<DraggableListElement
@@ -276,7 +276,7 @@ const GeneralSettingsSection = ( {
 					label,
 					description,
 					allows_manual_capture: isAllowingManualCapture,
-				} = PaymentMethodsMap[ method ];
+				} = paymentMethodsData[ method ];
 				const paymentMethodCurrencies =
 					method === 'alipay'
 						? alipayCurrencies
