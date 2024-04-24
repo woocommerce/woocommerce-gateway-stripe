@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
-import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 	const { label } = usePaymentMethodData( method );

@@ -1,7 +1,7 @@
 import React from 'react';
 import paymentMethodsMap from '../../payment-methods-map';
 import './style.scss';
-import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
 	const { label, Icon } = usePaymentMethodData();

@@ -3,6 +3,10 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RemoveMethodConfirmationModal from '../remove-method-confirmation-modal';
 
+jest.mock( 'utils/use-payment-method-data', () => ( {
+	usePaymentMethodData: jest.fn().mockReturnValue( { label: 'giropay' } ),
+} ) );
+
 describe( 'RemoveMethodConfirmationModal', () => {
 	const handleCloseMock = jest.fn();
 	const handleRemoveMock = jest.fn();

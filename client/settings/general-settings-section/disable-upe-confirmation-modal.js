@@ -10,7 +10,7 @@ import InlineNotice from 'wcstripe/components/inline-notice';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import { useGetCapabilities } from 'wcstripe/data/account';
-import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;

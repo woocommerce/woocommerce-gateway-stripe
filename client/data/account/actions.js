@@ -4,7 +4,7 @@ import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import PaymentMethodsMap from '../../payment-methods-map';
 import ACTION_TYPES from './action-types';
-import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 export function updateAccount( payload ) {
 	return {

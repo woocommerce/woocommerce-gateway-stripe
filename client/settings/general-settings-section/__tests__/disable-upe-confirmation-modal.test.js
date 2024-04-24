@@ -24,6 +24,10 @@ jest.mock( 'wcstripe/data/account', () => ( {
 	useGetCapabilities: jest.fn(),
 } ) );
 
+jest.mock( 'utils/use-payment-method-data', () => ( {
+	usePaymentMethodData: jest.fn().mockReturnValue( { label: 'giropay' } ),
+} ) );
+
 describe( 'DisableUpeConfirmationModal', () => {
 	beforeEach( () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [

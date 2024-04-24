@@ -19,7 +19,7 @@ import {
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import usePaymentMethodData from 'wcstripe/utils/use-payment-method-data';
+import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 const List = styled.ul`
 	margin: 0;
