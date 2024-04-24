@@ -491,7 +491,7 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
 };
 
 /**
- * Hides payment method if it has set specific countries in the PHP class.
+ * Determines if the payment method is restricted to specific countries. 
  *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {boolean} Whether the payment method is restricted to selected billing country.
