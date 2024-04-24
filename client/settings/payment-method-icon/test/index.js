@@ -1,8 +1,19 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import PaymentMethodIcon from '..';
+import { useAccount } from 'wcstripe/data/account';
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+} ) );
 
 describe( 'PaymentMethodIcon', () => {
+	beforeEach( () => {
+		useAccount.mockReturnValue( {
+			data: { account: { country: 'GB' } },
+		} );
+	} );
+
 	test( 'renders giropay payment method icon', () => {
 		const { container } = render( <PaymentMethodIcon name="giropay" /> );
 		expect( container.querySelector( 'img' ).src ).toContain(

@@ -4,13 +4,14 @@ import './style.scss';
 import { usePaymentMethodData } from 'wcstripe/utils/use-payment-method-data';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
-	const { label, Icon } = usePaymentMethodData();
-
 	const paymentMethod = paymentMethodsMap[ name ];
 
 	if ( ! paymentMethod ) {
 		return <></>;
 	}
+
+	// eslint-disable-next-line react-hooks/rules-of-hooks
+	const { label, Icon } = usePaymentMethodData( name );
 
 	return (
 		<span className="woocommerce-gateway-stripe__payment-method-icon">
