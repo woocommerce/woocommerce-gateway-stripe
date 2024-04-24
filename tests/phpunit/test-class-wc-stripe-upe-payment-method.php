@@ -472,6 +472,59 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
+	 */
+	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+
+		$stripe_account_currency = 'MXN';
+
+		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			$supported_currencies = $payment_method->get_supported_currencies() ?? [];
+
+			$payment_method
+				->expects( $this->any() )
+				->method( 'get_woocommerce_currency' )
+				->will(
+					$this->returnValue( end( $supported_currencies ) )
+				);
+
+				$is_enabled = $payment_method->is_enabled_at_checkout( null, $stripe_account_currency );
+			if ( $payment_method->has_domestic_transactions_restrictions() ) {
+				$this->assertFalse( $is_enabled );
+			} else {
+				$this->assertTrue( $is_enabled );
+			}
+		}
+	}
+
+	/**
+	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
+	 */
+	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+
+		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			$supported_currencies    = $payment_method->get_supported_currencies() ?? [];
+			$stripe_account_currency = end( $supported_currencies );
+
+			$payment_method
+				->expects( $this->any() )
+				->method( 'get_woocommerce_currency' )
+				->will(
+					$this->returnValue( $stripe_account_currency )
+				);
+
+				$is_enabled = $payment_method->is_enabled_at_checkout( null, $stripe_account_currency );
+			if ( $payment_method->has_domestic_transactions_restrictions() ) {
+				$this->assertTrue( $is_enabled );
+			} else {
+				$this->assertTrue( $is_enabled );
+			}
+		}
+	}
+
+	/**
 	 * If subscription product is in cart, enabled payment methods must be reusable.
 	 */
 	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
