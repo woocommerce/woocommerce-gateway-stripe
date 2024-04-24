@@ -8,7 +8,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from 'wcstripe/data';
-import { useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
@@ -21,11 +21,8 @@ jest.mock( '@wordpress/data', () => ( {
 	combineReducers: jest.fn(),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 	useGetCapabilities: jest.fn(),
-} ) );
-
-jest.mock( 'utils/use-payment-method-data', () => ( {
-	usePaymentMethodData: jest.fn().mockReturnValue( { label: 'giropay' } ),
 } ) );
 
 describe( 'DisableUpeConfirmationModal', () => {
@@ -40,6 +37,9 @@ describe( 'DisableUpeConfirmationModal', () => {
 		} );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useDispatch.mockReturnValue( {} );
+		useAccount.mockReturnValue( {
+			data: { account: { country: 'GB' } },
+		} );
 	} );
 
 	it( 'should not render the list of payment methods when only card is enabled', () => {
