@@ -27,6 +27,38 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			'Allow customers to pay over time with Clearpay / Afterpay.',
 			'woocommerce-gateway-stripe'
 		);
+		$this->limits_per_currency          = [
+			'AU' => [
+				'AUD' => [
+					'min' => 100,
+					'max' => 200000,
+				], // Represents AUD 100 - 2,000 AUD.
+			],
+			'CA' => [
+				'CAD' => [
+					'min' => 100,
+					'max' => 200000,
+				], // Represents CAD 100 - 2,000 CAD.
+			],
+			'NZ' => [
+				'NZD' => [
+					'min' => 100,
+					'max' => 200000,
+				], // Represents NZD 100 - 2,000 NZD.
+			],
+			'GB' => [
+				'GBP' => [
+					'min' => 100,
+					'max' => 120000,
+				], // Represents GBP 100 - 1,200 GBP.
+			],
+			'US' => [
+				'USD' => [
+					'min' => 100,
+					'max' => 400000,
+				], // Represents USD 100 - 4,000 USD.
+			],
+		];
 	}
 
 	/**
