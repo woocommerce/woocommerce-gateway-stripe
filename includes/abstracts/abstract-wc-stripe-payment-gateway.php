@@ -2014,15 +2014,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		// Disables the co-branded credit card dropdown when the legacy checkout experience is enabled due to incompatibility.
-		if ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) {
-			$co_branded_card_disabled_option = [ 'hideIcon' => true ];
-		} else {
-			$co_branded_card_disabled_option = [ 'showIcon' => false ];
-		}
-
-		$elements_options = apply_filters( 'wc_stripe_elements_options', $co_branded_card_disabled_option );
-
 		$sepa_elements_options = apply_filters(
 			'wc_stripe_sepa_elements_options',
 			[
@@ -2045,7 +2036,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params['ajaxurl']                     = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']        = $this->statement_descriptor;
-		$stripe_params['elements_options']            = $elements_options;
+		$stripe_params['elements_options']            = apply_filters( 'wc_stripe_elements_options', [] );
 		$stripe_params['sepa_elements_options']       = $sepa_elements_options;
 		$stripe_params['invalid_owner_name']          = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
 		$stripe_params['is_change_payment_page']      = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
