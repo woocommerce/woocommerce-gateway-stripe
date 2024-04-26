@@ -4,7 +4,9 @@ import {
 	generateCheckoutEventNames,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
+	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
+	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
 import {
@@ -85,7 +87,19 @@ jQuery( function ( $ ) {
 				'.wc-stripe-upe-element'
 			).toArray() ) {
 				await mountStripePaymentElement( api, upeElement );
+				restrictPaymentMethodToLocation( upeElement );
 			}
+		}
+	}
+
+	function restrictPaymentMethodToLocation( upeElement ) {
+		if ( isPaymentMethodRestrictedToLocation( upeElement ) ) {
+			togglePaymentMethodForCountry( upeElement );
+
+			// this event only applies to the checkout form, but not "place order" or "add payment method" pages.
+			$( '#billing_country' ).on( 'change', function () {
+				togglePaymentMethodForCountry( upeElement );
+			} );
 		}
 	}
 
