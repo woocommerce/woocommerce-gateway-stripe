@@ -898,7 +898,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 
 			return [
-				'result' => 'failure',
+				'result'   => 'failure',
 				'redirect' => '',
 			];
 		}
