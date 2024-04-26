@@ -1910,6 +1910,87 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test for `process_payment` with a co-branded credit card and preferred brand set.
+	 *
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
+	public function test_process_payment_deferred_intent_with_co_branded_cc_and_preferred_brand() {
+		if ( ! WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() ) {
+			$this->markTestSkipped( 'Test requires WooCommerce ' . WC_Stripe_Co_Branded_CC_Compatibility::MIN_WC_VERSION . ' or newer.' );
+		}
+
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		// Set the appropriate POST flag to trigger a deferred intent request.
+		$_POST['wc-stripe-is-deferred-intent'] = '1';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
+
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = $token->get_token();
+		$customer_id       = 'cus_mock';
+
+		list( $amount ) = $this->get_order_details( $order );
+
+		$payment_intent_mock = (object) array_merge(
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE,
+			[
+				'id'             => $payment_intent_id,
+				'amount'         => $amount,
+				'payment_method' => $payment_method_id,
+				'charges'        => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			]
+		);
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $payment_intent_mock );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
+
+		$response    = $this->mock_gateway->process_payment( $order_id );
+		$final_order = wc_get_order( $order_id );
+		$note        = wc_get_order_notes(
+			[
+				'order_id' => $order_id,
+				'limit'    => 1,
+			]
+		)[0];
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+		$this->assertEquals( 'visa', $final_order->get_meta( '_stripe_card_brand', true ) );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
 	 * @param array $account_data
 	 *
 	 * @return void

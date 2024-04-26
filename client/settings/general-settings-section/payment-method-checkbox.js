@@ -24,7 +24,7 @@ const AlertIcon = styled( Icon )`
 `;
 
 const IconWrapper = styled.span`
-	margin-right: 12px;
+	margin-right: 8px;
 	flex-shrink: 0;
 `;
 
