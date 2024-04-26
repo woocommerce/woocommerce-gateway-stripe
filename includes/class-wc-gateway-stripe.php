@@ -132,7 +132,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 		add_filter( 'woocommerce_get_checkout_payment_url', [ $this, 'get_checkout_payment_url' ], 10, 2 );
-		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
 		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', [ $this, 'update_onboarding_settings' ] );
 
 		// Note: display error is in the parent class.
@@ -455,6 +454,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( 'requires_action' === $intent->status ) {
 					$this->unlock_order_payment( $order );
+
+					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
+					WC_Stripe_Helper::set_payment_awaiting_action( $order );
 
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
@@ -915,6 +917,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		$this->unlock_order_payment( $order );
+
+		/**
+		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
+		 * Now that payment is confirmed, we can remove this meta.
+		 */
+		WC_Stripe_Helper::remove_payment_awaiting_action( $order );
 	}
 
 	/**
@@ -1045,22 +1053,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Ensures the statement descriptor about to be saved to options does not contain any invalid characters.
-	 *
-	 * @since 4.8.0
-	 * @param $settings WC_Settings_API settings to be filtered
-	 * @return Filtered settings
-	 */
-	public function settings_api_sanitized_fields( $settings ) {
-		if ( is_array( $settings ) ) {
-			if ( array_key_exists( 'statement_descriptor', $settings ) ) {
-				$settings['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $settings['statement_descriptor'] );
-			}
-		}
-		return $settings;
-	}
-
-	/**
 	 * Checks whether the gateway is enabled.
 	 *
 	 * @return bool The result.
@@ -1099,70 +1091,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_automatic_capture_enabled() {
 		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
-	}
-
-	/**
-	 * Validates statement descriptor value
-	 *
-	 * @param string $param Param name.
-	 * @param string $value Posted Value.
-	 * @param int    $max_length Maximum statement length.
-	 *
-	 * @return string                   Sanitized statement descriptor.
-	 * @throws InvalidArgumentException When statement descriptor is invalid.
-	 */
-	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
-		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
-		$value          = trim( stripslashes( $value ) );
-		$error_messages = [];
-
-		// Has a valid length.
-		if ( ! preg_match( '/^.{5,' . $max_length . '}$/', $value ) ) {
-			$error_messages[] = sprintf(
-				/* translators: Number of the maximum characters allowed */
-				__( '- Has between 5 and %s characters', 'woocommerce-gateway-stripe' ),
-				$max_length
-			);
-		}
-
-		// Contains at least one letter.
-		if ( ! preg_match( '/^.*[a-zA-Z]+/', $value ) ) {
-			$error_messages[] = __( '- Contains at least one letter', 'woocommerce-gateway-stripe' );
-		}
-
-		// Doesn't contain any of the specified special characters.
-		if ( ! preg_match( '/^[^*"\'<>]*$/', $value ) ) {
-			$error_messages[] = __( '- Does not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' );
-		}
-
-		/*
-		 * Doesn't contain a non-Latin character.
-		 * We're not matching accentuated Latin characters, numbers, whitespace, or special characters.
-		 */
-		if ( preg_match( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', $value, $matches ) ) {
-			$error_messages[] = __( '- Contains only Latin characters', 'woocommerce-gateway-stripe' );
-		}
-
-		// Display the validation errors if any was found.
-		if ( ! empty( $error_messages ) ) {
-			$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
-
-			if ( 'short_statement_descriptor' === $param ) {
-				$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
-			}
-
-			$error_message = sprintf(
-				/* translators: %1 The field name, %2 <br> tag, %3 Validation error messages */
-				__( 'The %1$s is invalid. Please make sure it: %2$s%3$s', 'woocommerce-gateway-stripe' ),
-				$field,
-				'<br>',
-				implode( '<br>', $error_messages )
-			);
-
-			throw new InvalidArgumentException( $error_message );
-		}
-
-		return $value;
 	}
 
 	/**

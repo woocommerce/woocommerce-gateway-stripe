@@ -1,8 +1,8 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.1
-Tested up to: 6.4.2
+Requires at least: 6.2
+Tested up to: 6.5.2
 Requires PHP: 7.4
 Stable tag: 8.2.0
 License: GPLv3
@@ -128,7 +128,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.1.1 - xxxx-xx-xx =
-* Fix - Issue with subscription renewal when the `start_date` of the mandate is set in the past.
+= 8.3.0 - xxxx-xx-xx =
+* Add - Add Klarna to the available payment methods.
+* Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
+* Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
+* Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
+* Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.
+* Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
+* Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -163,16 +163,8 @@ export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
 	'is_separate_card_form_enabled'
 );
-export const useAccountStatementDescriptor = makeSettingsHook(
-	'statement_descriptor',
-	''
-);
 export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
-);
-export const useShortAccountStatementDescriptor = makeSettingsHook(
-	'short_statement_descriptor',
-	''
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
