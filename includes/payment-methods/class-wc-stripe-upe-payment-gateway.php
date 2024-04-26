@@ -217,10 +217,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
-		// Display co-branded card information correctly.
-		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'display_co_branded_credit_card_info' ], 11, 2 );
-		add_action( 'woocommerce_account_payment_methods_column_method', [ $this, 'display_co_branded_credit_card_label' ] );
 	}
 
 	/**
