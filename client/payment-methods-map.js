@@ -1,8 +1,8 @@
-/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
 
-const accountCountry = wc_stripe_settings_params?.account_country || 'US';
+const accountCountry =
+	window.wc_stripe_settings_params?.account_country || 'US';
 
 export default {
 	card: {
