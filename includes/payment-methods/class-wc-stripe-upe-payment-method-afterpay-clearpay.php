@@ -95,6 +95,24 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	}
 
 	/**
+	 * Returns payment method icon.
+	 *
+	 * @return string|null
+	 */
+	public function get_icon() {
+		$icon_file_name = $this->is_gb_country() ? 'clearpay' : 'afterpay';
+
+		$asset_url = sprintf( '%s/assets/images/%s.svg', WC_STRIPE_PLUGIN_URL, $icon_file_name );
+
+		return sprintf(
+			'<img src="%s" class="stripe-%s-icon stripe-icon" alt="%s">',
+			esc_url( $asset_url ),
+			esc_attr( $this->stripe_id ),
+			esc_attr( $this->get_title() )
+		);
+	}
+
+	/**
 	 * Returns true if the Stripe account country is GB
 	 *
 	 * @return boolean
