@@ -123,6 +123,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $action_scheduler_service;
 
 	/**
+	 * WC_Stripe_Account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
