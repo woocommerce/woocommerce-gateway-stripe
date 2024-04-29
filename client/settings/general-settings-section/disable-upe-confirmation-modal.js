@@ -4,13 +4,13 @@ import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
+import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import { useGetCapabilities } from 'wcstripe/data/account';
-import { usePaymentMethodsData } from 'wcstripe/utils/use-payment-methods-data';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;
@@ -40,7 +40,6 @@ const PaymentMethodListItemContent = styled.div`
 
 const DisableUpeConfirmationModal = ( { onClose } ) => {
 	const { status, setIsUpeEnabled } = useContext( UpeToggleContext );
-	const paymentMethodsData = usePaymentMethodsData();
 
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
@@ -147,7 +146,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 								const {
 									Icon: MethodIcon,
 									label,
-								} = paymentMethodsData[ method ];
+								} = PaymentMethodsMap[ method ];
 								return (
 									<li key={ method }>
 										<PaymentMethodListItemContent>
