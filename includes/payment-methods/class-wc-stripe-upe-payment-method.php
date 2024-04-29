@@ -75,11 +75,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
-	 * List of supported countries
+	 * Supported customer locations for which charges for a payment method can be processed.
+	 * Empty if all customer locations are supported.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
-	protected $supported_countries;
+	protected $supported_countries = [];
+
+	/**
+	 * Should payment method be restricted to only domestic payments.
+	 * E.g. only to Stripe's connected account currency.
+	 *
+	 * @var boolean
+	 */
+	protected $accept_only_domestic_payment = false;
 
 	/**
 	 * Wether this UPE method is in testmode.
@@ -200,19 +209,32 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
-	 * @param int|null $order_id
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout( $order_id = null ) {
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
 			return false;
 		}
 
 		// Check currency compatibility.
-		$currencies = $this->get_supported_currencies();
-		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
+		$current_store_currency = $this->get_woocommerce_currency();
+		$currencies             = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( $current_store_currency, $currencies, true ) ) {
 			return false;
+		}
+
+		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
+		if ( $this->has_domestic_transactions_restrictions() ) {
+			if ( null === $account_domestic_currency ) {
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+			}
+
+			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
+				return false;
+			}
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -231,6 +253,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for a payment method can be processed.
+	 *
+	 * @return array
+	 */
+	public function get_countries() {
+		return $this->supported_countries;
 	}
 
 	/**
@@ -288,8 +319,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$account = WC_Stripe::get_instance()->account;
-		$data    = $account->get_cached_account_data();
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
@@ -333,6 +363,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Determines whether the payment method is restricted to the Stripe account's currency.
+	 * E.g.: Afterpay/Clearpay and Affirm only supports domestic payments; Klarna also implements a simplified version of these market restrictions.
+	 *
+	 * @return bool
+	 */
+	public function has_domestic_transactions_restrictions(): bool {
+		return $this->accept_only_domestic_payment;
 	}
 
 	/**

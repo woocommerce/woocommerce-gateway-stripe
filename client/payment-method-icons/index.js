@@ -1,6 +1,7 @@
 import AlipayIcon from './alipay';
 import CreditCardIcon from './cards';
 import GiropayIcon from './giropay';
+import KlarnaIcon from './klarna';
 import MultibancoIcon from './multibanco';
 import SofortIcon from './sofort';
 import SepaIcon from './sepa';
@@ -15,6 +16,7 @@ export default {
 	alipay: AlipayIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
+	klarna: KlarnaIcon,
 	multibanco: MultibancoIcon,
 	sepa_debit: SepaIcon,
 	sofort: SofortIcon,

@@ -24,6 +24,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
+		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Eps::class,
 		WC_Stripe_UPE_Payment_Method_Bancontact::class,
 		WC_Stripe_UPE_Payment_Method_Boleto::class,
@@ -120,6 +121,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $action_scheduler_service;
 
 	/**
+	 * WC_Stripe_Account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -129,7 +137,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account      = $account;
 		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: link */
@@ -411,6 +420,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
+				$stripe_params['customerData']   = [ 'billing_country' => $order->get_billing_country() ];
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
@@ -422,6 +432,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->get_return_url( $order )
 					)
 				);
+
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['cartTotal'] = 0;
@@ -442,12 +453,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$settings                = [];
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
 
-		foreach ( $enabled_payment_methods as $payment_method ) {
-			$settings[ $payment_method ] = [
-				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
-				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
-				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $payment_method ] ),
+		foreach ( $enabled_payment_methods as $payment_method_id ) {
+			$payment_method = $this->payment_methods[ $payment_method_id ];
+
+			$settings[ $payment_method_id ] = [
+				'isReusable'          => $payment_method->is_reusable(),
+				'title'               => $payment_method->get_title(),
+				'testingInstructions' => $payment_method->get_testing_instructions(),
+				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'countries'           => $payment_method->get_countries(),
 			];
 		}
 
@@ -472,13 +486,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
+		$account_domestic_currency    = $this->account->get_account_default_currency();
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
 			}
 
 			$method = $this->payment_methods[ $payment_method_id ];
-			if ( $method->is_enabled_at_checkout( $order_id ) === false ) {
+			if ( $method->is_enabled_at_checkout( $order_id, $account_domestic_currency ) === false ) {
 				continue;
 			}
 
@@ -547,7 +562,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			?>
 
 			<fieldset id="wc-stripe-upe-form" class="wc-upe-form wc-payment-form">
-				<div class="wc-stripe-upe-element"></div>
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ); ?>"></div>
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
@@ -1507,7 +1522,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
-		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout();
+
+		$account_domestic_currency = $this->account->get_account_default_currency();
+
+		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( null, $account_domestic_currency );
 	}
 
 	/**
