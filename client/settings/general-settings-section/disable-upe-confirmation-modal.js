@@ -147,6 +147,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 									Icon: MethodIcon,
 									label,
 								} = PaymentMethodsMap[ method ];
+
 								return (
 									<li key={ method }>
 										<PaymentMethodListItemContent>

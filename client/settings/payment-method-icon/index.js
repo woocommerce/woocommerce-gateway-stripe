@@ -1,6 +1,6 @@
 import React from 'react';
-import './style.scss';
 import paymentMethodsMap from '../../payment-methods-map';
+import './style.scss';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
 	const paymentMethod = paymentMethodsMap[ name ];
