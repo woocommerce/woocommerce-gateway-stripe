@@ -28,32 +28,32 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			'woocommerce-gateway-stripe'
 		);
 		$this->limits_per_currency          = [
-			'AU' => [
-				'AUD' => [
+			'AUD' => [
+				'AU' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents AUD 100 - 2,000 AUD.
 			],
-			'CA' => [
-				'CAD' => [
+			'CAD' => [
+				'CA' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents CAD 100 - 2,000 CAD.
 			],
-			'NZ' => [
-				'NZD' => [
+			'NZD' => [
+				'NZ' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents NZD 100 - 2,000 NZD.
 			],
-			'GB' => [
-				'GBP' => [
+			'GBP' => [
+				'GB' => [
 					'min' => 100,
 					'max' => 120000,
 				], // Represents GBP 100 - 1,200 GBP.
 			],
-			'US' => [
-				'USD' => [
+			'USD' => [
+				'US' => [
 					'min' => 100,
 					'max' => 400000,
 				], // Represents USD 100 - 4,000 USD.
