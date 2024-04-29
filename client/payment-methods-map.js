@@ -1,5 +1,8 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
+
+const accountCountry = wc_stripe_settings_params?.account_country || 'US';
 
 export default {
 	card: {
@@ -61,18 +64,21 @@ export default {
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
 		id: 'afterpay_clearpay',
-		label: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
-		labelClearpay: __( 'Clearpay', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Allow customers to pay over time with Afterpay.',
-			'woocommerce-gateway-stripe'
-		),
-		descriptionClearpay: __(
-			'Allow customers to pay over time with Clearpay.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.afterpay,
-		IconClearpay: icons.clearpay,
+		label:
+			accountCountry === 'GB'
+				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
+				: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
+		description:
+			accountCountry === 'GB'
+				? __(
+						'Allow customers to pay over time with Clearpay.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						'Allow customers to pay over time with Afterpay.',
+						'woocommerce-gateway-stripe'
+				  ),
+		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
 		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
 	},
 	sepa_debit: {
