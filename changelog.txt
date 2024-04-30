@@ -1,10 +1,17 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Tweak - Credit card brand selection disabled when the "Legacy checkout experience" is enabled.
+* Add - Add Klarna to the available payment methods.
+* Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 * Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
+* Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.
+* Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
+* Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
