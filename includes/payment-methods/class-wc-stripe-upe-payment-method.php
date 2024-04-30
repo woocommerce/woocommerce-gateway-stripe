@@ -600,6 +600,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Determines if the payment method is inside the currency limits.
 	 *
+	 * @param  string $current_store_currency The store's currency.
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
