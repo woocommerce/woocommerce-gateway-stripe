@@ -40,7 +40,6 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 				], // Represents USD 50 - 30,000 USD.
 			],
 		];
-		$this->countries                    = [ 'US', 'CA' ];
 	}
 
 	/**
