@@ -256,7 +256,9 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			)
 			.click();
 
-		await page.getByLabel( 'State' ).fill( billingDetails[ 'state' ] );
+		await page
+			.getByLabel( 'State', { exact: true } )
+			.fill( billingDetails[ 'state' ] );
 		await page
 			.locator(
 				'.components-form-token-field__suggestions-list > li:first-child'
