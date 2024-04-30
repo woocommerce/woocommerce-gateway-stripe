@@ -1,19 +1,24 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
 	setupProductCheckout,
-	setupCheckout,
+	setupBlocksCheckout,
 	fillCardDetails,
 } = payments;
 
-test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
+test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
+	page,
+} ) => {
 	await emptyCart( page );
 
 	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
+	await setupBlocksCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
 	await fillCardDetails( page, config.get( 'cards.3ds' ) );
 	await page.locator( 'text=Place order' ).click();
 

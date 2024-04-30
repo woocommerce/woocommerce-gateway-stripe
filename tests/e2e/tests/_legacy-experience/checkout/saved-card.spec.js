@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user } from '../../utils';
+import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,

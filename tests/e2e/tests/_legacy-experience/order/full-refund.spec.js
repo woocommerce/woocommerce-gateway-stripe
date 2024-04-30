@@ -1,7 +1,7 @@
 import stripe from 'stripe';
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { api, payments } from '../../utils';
+import { api, payments } from '../../../utils';
 
 const {
 	emptyCart,
