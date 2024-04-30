@@ -51,12 +51,14 @@ export default {
 	affirm: {
 		id: 'affirm',
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		// translators: %s is the store currency.
 		description: __(
-			'Allow customers to pay over time with Affirm.',
+			'Allow customers to pay over time with Affirm. Available to all customers paying in %s.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
+		acceptsDomesticPaymentsOnly: true,
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
