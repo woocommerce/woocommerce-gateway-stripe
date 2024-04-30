@@ -889,7 +889,10 @@ class WC_Stripe_Payment_Request {
 				?>
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
+			<!-- Add an order attribution container for WC core to populate. -->
+			<wc-order-attribution-inputs></wc-order-attribution-inputs>
 		</div>
+
 		<?php
 		$this->display_payment_request_button_separator_html();
 	}
