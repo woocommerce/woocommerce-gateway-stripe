@@ -109,7 +109,7 @@
     }
   },
   "scripts": {
-    "postinstall": "composer install",
+    "postinstall": "composer install && npx playwright install",
     "prebuild": "npm install && composer install",
     "prepare": "is-ci || husky install",
     "build": "npm run uglify && npm run sass && rimraf build/* && npm run build:webpack && npm run build:i18n && npm run build:release",
