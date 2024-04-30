@@ -29,12 +29,6 @@ const config = {
 	// Folder for test artifacts such as screenshots, videos, traces, etc
 	outputDir: '../test-results/output',
 
-	// Run tests in files in parallel
-	// fullyParallel: false,
-
-	// Fail the build on CI if you accidentally left test.only in the source code.
-	// forbidOnly: !!process.env.CI,
-
 	/* Retry on CI only */
 	retries: CI ? 2 : 0,
 
@@ -56,7 +50,6 @@ const config = {
 				outputFolder: 'tests/e2e/test-results/report-allure/',
 			},
 		],
-		// [ 'json', { outputFile: '../test-results/test-results.json' } ],
 	],
 
 	maxFailures: E2E_MAX_FAILURES ? Number( E2E_MAX_FAILURES ) : 0,
