@@ -596,7 +596,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool True if the transaction is domestic, false otherwise.
 	 */
 	protected function is_domestic_transaction( $billing_country ) {
-		$account_country = strtoupper( WC_Stripe::get_instance()->account->get_cached_account_data()['country'] ?? WC()->countries->get_base_country() );
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = $account ? strtoupper( $account['country'] ) : '';
 
 		return $billing_country === $account_country;
 	}
