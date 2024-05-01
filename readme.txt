@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 * Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
