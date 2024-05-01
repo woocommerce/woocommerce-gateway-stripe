@@ -29,34 +29,25 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Determines if the payment method is enabled at checkout.
+	 * Determines if the billing country is considered a domestic transaction.
 	 *
 	 * Klarna has unique requirements for domestic transactions. The customer must be located in the same country as the merchant's Stripe account.
 	 * Additionally, customers in the EEA can transact across all other EEA countries - including Switzerland and the UK.
 	 *
-	 * @return boolean
+	 * @return bool True if the transaction is domestic, false otherwise.
 	 */
-	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
-		if ( ! parent::is_enabled_at_checkout( $order_id, $account_domestic_currency ) ) {
-			return false;
-		}
-
-		// If there's no customer, default to true as to not block a payment attempt.
-		if ( ! isset( WC()->customer ) ) {
+	public function is_domestic_transaction( $billing_country ) {
+		// If the customer is in the same country as the merchant's Stripe account, the transaction is domestic.
+		if ( parent::is_domestic_transaction( $billing_country ) ) {
 			return true;
 		}
 
-		$billing_country = strtoupper( WC()->customer->get_billing_country() );
 		$account_country = strtoupper( WC_Stripe::get_instance()->account->get_cached_account_data()['country'] ?? WC()->countries->get_base_country() );
-
-		// A domestic transaction is allowed.
-		if ( $billing_country === $account_country ) {
-			return true;
-		}
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
 		$eea_countries = WC_Stripe_Helper::get_european_economic_area_countries() + [ 'CH', 'GB' ];
 
+		// If the customer is in the EEA and the merchant is in the EEA, the transaction is also considered domestic for Klarna.
 		if ( in_array( $billing_country, $eea_countries, true ) && in_array( $account_country, $eea_countries, true ) ) {
 			return true;
 		}
