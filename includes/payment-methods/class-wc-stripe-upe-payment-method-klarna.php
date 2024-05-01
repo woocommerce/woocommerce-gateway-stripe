@@ -29,9 +29,12 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Undocumented function
+	 * Returns the supported customer locations for which charges for a payment method can be processed.
 	 *
-	 * @return void
+	 * Klarna has unique requirements for domestic transactions. The customer must be located in the same country as the merchant's Stripe account.
+	 * Additionally, merchants located in the EEA can transact with customers located across all other EEA countries - including Switzerland and the UK.
+	 *
+	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
 		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
@@ -40,7 +43,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
 		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
 
-		// If the customer is in the EEA and the merchant is in the EEA, the transaction is also considered domestic for Klarna.
+		// If the merchant is in the EEA, all EEA countries are supported.
 		if ( in_array( $account_country, $eea_countries, true ) ) {
 			return $eea_countries;
 		}
