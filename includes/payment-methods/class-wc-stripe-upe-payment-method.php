@@ -609,7 +609,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 			$conversion_rate = 1;
 		}
-		$amount              = (int) round( (float) $order_amount * $conversion_rate );
+
+		$amount = (int) round( (float) $order_amount * $conversion_rate );
+
+		// Don't engage with limits verification in non-checkout context (cart is not available or empty).
+		if ( $amount <= 0 ) {
+			return true;
+		}
+
 		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
 		$range               = null;
 		$limits_per_currency = $this->get_limits_per_currency();
