@@ -32,31 +32,31 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 				'AU' => [
 					'min' => 100,
 					'max' => 200000,
-				], // Represents AUD 100 - 2,000 AUD.
+				], // Represents AUD 1 - 2,000 AUD.
 			],
 			'CAD' => [
 				'CA' => [
 					'min' => 100,
 					'max' => 200000,
-				], // Represents CAD 100 - 2,000 CAD.
+				], // Represents CAD 1 - 2,000 CAD.
 			],
 			'NZD' => [
 				'NZ' => [
 					'min' => 100,
 					'max' => 200000,
-				], // Represents NZD 100 - 2,000 NZD.
+				], // Represents NZD 1 - 2,000 NZD.
 			],
 			'GBP' => [
 				'GB' => [
 					'min' => 100,
 					'max' => 120000,
-				], // Represents GBP 100 - 1,200 GBP.
+				], // Represents GBP 1 - 1,200 GBP.
 			],
 			'USD' => [
 				'US' => [
 					'min' => 100,
 					'max' => 400000,
-				], // Represents USD 100 - 4,000 USD.
+				], // Represents USD 1 - 4,000 USD.
 			],
 		];
 	}
