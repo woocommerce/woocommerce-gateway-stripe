@@ -235,17 +235,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
 				return false;
 			}
-
-			if ( $order_id ) {
-				$order           = wc_get_order( $order_id );
-				$billing_country = $order ? strtoupper( $order->get_billing_country() ) : '';
-			} elseif ( isset( WC()->customer ) ) {
-				$billing_country = strtoupper( WC()->customer->get_billing_country() );
-			}
-
-			if ( isset( $billing_country ) && ! $this->is_domestic_transaction( $billing_country ) ) {
-				return false;
-			}
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -271,8 +260,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 *
 	 * @return array
 	 */
-	public function get_countries() {
-		return $this->supported_countries;
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+
+		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
 	}
 
 	/**
@@ -588,17 +580,5 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</p>
 		</fieldset>
 		<?php
-	}
-
-	/**
-	 * Determines if the billing country is considered a domestic transaction.
-	 *
-	 * @return bool True if the transaction is domestic, false otherwise.
-	 */
-	protected function is_domestic_transaction( $billing_country ) {
-		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country = $account ? strtoupper( $account['country'] ) : '';
-
-		return $billing_country === $account_country;
 	}
 }

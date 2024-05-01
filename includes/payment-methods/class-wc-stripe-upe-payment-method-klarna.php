@@ -29,29 +29,22 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Determines if the billing country is considered a domestic transaction.
+	 * Undocumented function
 	 *
-	 * Klarna has unique requirements for domestic transactions. The customer must be located in the same country as the merchant's Stripe account.
-	 * Additionally, customers in the EEA can transact across all other EEA countries - including Switzerland and the UK.
-	 *
-	 * @return bool True if the transaction is domestic, false otherwise.
+	 * @return void
 	 */
-	public function is_domestic_transaction( $billing_country ) {
-		// If the customer is in the same country as the merchant's Stripe account, the transaction is domestic.
-		if ( parent::is_domestic_transaction( $billing_country ) ) {
-			return true;
-		}
-
-		$account_country = strtoupper( WC_Stripe::get_instance()->account->get_cached_account_data()['country'] ?? WC()->countries->get_base_country() );
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = strtoupper( $account['country'] );
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
 		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
 
 		// If the customer is in the EEA and the merchant is in the EEA, the transaction is also considered domestic for Klarna.
-		if ( in_array( $billing_country, $eea_countries, true ) && in_array( $account_country, $eea_countries, true ) ) {
-			return true;
+		if ( in_array( $account_country, $eea_countries, true ) ) {
+			return $eea_countries;
 		}
 
-		return false;
+		return parent::get_available_billing_countries();
 	}
 }
