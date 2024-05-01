@@ -45,7 +45,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$account_country = strtoupper( WC_Stripe::get_instance()->account->get_cached_account_data()['country'] ?? WC()->countries->get_base_country() );
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
-		$eea_countries = WC_Stripe_Helper::get_european_economic_area_countries() + [ 'CH', 'GB' ];
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
 
 		// If the customer is in the EEA and the merchant is in the EEA, the transaction is also considered domestic for Klarna.
 		if ( in_array( $billing_country, $eea_countries, true ) && in_array( $account_country, $eea_countries, true ) ) {
