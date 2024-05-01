@@ -16,6 +16,7 @@ import BoletoIcon from './boleto';
 import OxxoIcon from './oxxo';
 
 export default {
+	afterpay_clearpay: AfterpayIcon, // Temporary. There's WIP to fix this.
 	alipay: AlipayIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
