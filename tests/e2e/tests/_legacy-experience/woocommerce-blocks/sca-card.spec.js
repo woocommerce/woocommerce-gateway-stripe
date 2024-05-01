@@ -4,22 +4,21 @@ import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
+	setupCart,
 	setupBlocksCheckout,
-	fillCardDetails,
+	fillCreditCardDetailsLegacy,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 	page,
 } ) => {
 	await emptyCart( page );
-
-	await setupProductCheckout( page );
+	await setupCart( page );
 	await setupBlocksCheckout(
 		page,
 		config.get( 'addresses.customer.billing' )
 	);
-	await fillCardDetails( page, config.get( 'cards.3ds' ) );
+	await fillCreditCardDetailsLegacy( page, config.get( 'cards.3ds' ) );
 	await page.locator( 'text=Place order' ).click();
 
 	// Wait until the SCA frame is available

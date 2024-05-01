@@ -4,15 +4,15 @@ import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
+	setupCart,
 	setupBlocksCheckout,
-	fillCardDetails,
+	fillCreditCardDetailsLegacy,
 	isUpeCheckout,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
-	await setupProductCheckout( page );
+	await setupCart( page );
 	await setupBlocksCheckout(
 		page,
 		config.get( 'addresses.customer.billing' )
@@ -22,7 +22,7 @@ test.beforeEach( async ( { page } ) => {
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
-	await fillCardDetails( page, card );
+	await fillCreditCardDetailsLegacy( page, card );
 	await page.locator( 'text=Place order' ).click();
 
 	const isUpe = await isUpeCheckout( page );

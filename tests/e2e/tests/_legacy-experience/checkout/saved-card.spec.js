@@ -4,9 +4,9 @@ import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
 let username, userEmail;
@@ -38,10 +38,12 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 
 	await test.step( 'checkout and choose to save the card', async () => {
 		await emptyCart( page );
-
-		await setupProductCheckout( page );
-		await setupCheckout( page );
-		await fillCardDetails( page, config.get( 'cards.basic' ) );
+		await setupCart( page );
+		await setupShortcodeCheckout( page );
+		await fillCreditCardDetailsShortcodeLegacy(
+			page,
+			config.get( 'cards.basic' )
+		);
 
 		// check box to save payment method.
 		await page.locator( '#wc-stripe-new-payment-method' ).click();
@@ -56,8 +58,8 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 
 	await test.step( 'checkout and pay with the saved card', async () => {
 		await emptyCart( page );
-		await setupProductCheckout( page );
-		await setupCheckout( page, null, true );
+		await setupCart( page );
+		await setupShortcodeCheckout( page, null, true );
 
 		// check that there are saved payment methods.
 		await expect(

@@ -4,8 +4,8 @@ import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	fillCardDetails,
+	setupCart,
+	fillCreditCardDetailsLegacy,
 	setupBlocksCheckout,
 } = payments;
 
@@ -13,14 +13,13 @@ test( 'customer can checkout with a normal credit card @smoke @blocks', async ( 
 	page,
 } ) => {
 	await emptyCart( page );
-
-	await setupProductCheckout( page );
+	await setupCart( page );
 	await setupBlocksCheckout(
 		page,
 		config.get( 'addresses.customer.billing' )
 	);
 
-	await fillCardDetails( page, config.get( 'cards.basic' ) );
+	await fillCreditCardDetailsLegacy( page, config.get( 'cards.basic' ) );
 	await page.locator( 'text=Place order' ).click();
 	await page.waitForNavigation();
 

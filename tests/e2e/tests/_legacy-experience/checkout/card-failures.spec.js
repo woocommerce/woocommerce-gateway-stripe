@@ -4,21 +4,24 @@ import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
-	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
+	await setupCart( page );
+	await setupShortcodeCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
 } );
 
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
-	await fillCardDetails( page, card );
+	await fillCreditCardDetailsShortcodeLegacy( page, card );
 	await page.locator( 'text=Place order' ).click();
 
 	expect
@@ -29,7 +32,7 @@ const testCard = async ( page, cardKey ) => {
 const testCardBlocks = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
-	await fillCardDetails( page, card );
+	await fillCreditCardDetailsShortcodeLegacy( page, card );
 	await page.locator( 'text=Place order' ).click();
 
 	expect

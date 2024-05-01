@@ -4,9 +4,9 @@ import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
+	setupCart,
 	setupBlocksCheckout,
-	fillCardDetails,
+	fillCreditCardDetailsLegacy,
 } = payments;
 
 let username, userEmail;
@@ -40,10 +40,9 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 	await test.step( 'checkout and choose to save the card', async () => {
 		await emptyCart( page );
-
-		await setupProductCheckout( page );
+		await setupCart( page );
 		await setupBlocksCheckout( page );
-		await fillCardDetails( page, config.get( 'cards.basic' ) );
+		await fillCreditCardDetailsLegacy( page, config.get( 'cards.basic' ) );
 
 		// check box to save payment method.
 		await page
@@ -60,7 +59,7 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 
 	await test.step( 'checkout and pay with the saved card', async () => {
 		await emptyCart( page );
-		await setupProductCheckout( page );
+		await setupCart( page );
 		await setupBlocksCheckout( page, null, true );
 
 		// check that there are saved payment methods.
