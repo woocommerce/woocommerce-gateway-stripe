@@ -11,8 +11,7 @@ export const PAYMENT_METHOD_NAME_BANCONTACT = 'stripe_bancontact';
 export const PAYMENT_METHOD_NAME_ALIPAY = 'stripe_alipay';
 export const PAYMENT_METHOD_NAME_KLARNA = 'stripe_klarna';
 export const PAYMENT_METHOD_NAME_AFFIRM = 'stripe_affirm';
-export const PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY =
-	'woocommerce_payments_afterpay_clearpay';
+export const PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY = 'stripe_afterpay_clearpay';
 
 export function getPaymentMethodsConstants() {
 	return {
