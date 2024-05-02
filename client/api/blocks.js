@@ -68,6 +68,7 @@ export const updateShippingDetails = ( shippingOption ) => {
 export const createOrder = ( sourceEvent, paymentRequestType ) => {
 	let data = normalizeOrderData( sourceEvent, paymentRequestType );
 	data = getRequiredFieldDataFromCheckoutForm( data );
+	data = getOrderAttributionData( data );
 
 	return $.ajax( {
 		type: 'POST',
@@ -106,6 +107,31 @@ const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 			}
 		} );
 	}
+
+	return data;
+};
+
+/**
+ *
+ * @param {*} data
+ */
+const getOrderAttributionData = ( data ) => {
+	const orderAttributionData = document.querySelector(
+		'#wc-stripe-payment-request-wrapper wc-order-attribution-inputs'
+	);
+
+	if ( ! orderAttributionData.length ) {
+		return data;
+	}
+
+	orderAttributionData.find( 'input' ).forEach( ( field ) => {
+		const name = field.name;
+		const value = field.value;
+
+		if ( name && value ) {
+			data[ name ] = value;
+		}
+	} );
 
 	return data;
 };
