@@ -147,6 +147,7 @@ const PaymentRequestExpressComponent = ( {
 				'woocommerce-gateway-stripe'
 			) }
 		>
+			<wc-order-attribution-inputs />
 			<PaymentRequestButtonElement
 				onClick={ onPaymentRequestButtonClick }
 				options={ {
