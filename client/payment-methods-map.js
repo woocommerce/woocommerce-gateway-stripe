@@ -48,6 +48,16 @@ export default {
 			'USD',
 		],
 	},
+	affirm: {
+		id: 'affirm',
+		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Affirm.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.affirm,
+		currencies: [ 'USD', 'CAD' ],
+	},
 	sepa_debit: {
 		id: 'sepa_debit',
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
