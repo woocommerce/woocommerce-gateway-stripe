@@ -141,6 +141,9 @@ jQuery( function( $ ) {
 
 			data = wc_stripe_payment_request.getRequiredFieldDataFromCheckoutForm( data );
 
+			// Add order attribution data if it's available.
+			data = wc_stripe_payment_request.getOrderAttributionData( data );
+
 			return data;
 		},
 
@@ -163,7 +166,7 @@ jQuery( function( $ ) {
 						if ( ! data[ name ] ) {
 							data[ name ] = value;
 						}
-	
+
 						// if shipping same as billing is selected, copy the billing field to shipping field.
 						const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
 						if ( ! shipToDiffAddress ) {
@@ -175,6 +178,31 @@ jQuery( function( $ ) {
 					}
 				});
 			}
+
+			return data;
+		},
+
+		/**
+		 * Adds order attribution data, if it's available to the order data for submission.
+		 *
+		 * @param {Object} data Order data.
+		 * @return {Object}
+		 */
+		getOrderAttributionData: function( data ) {
+			var orderAttributionData = $( '#wc-stripe-payment-request-wrapper wc-order-attribution-inputs' );
+
+			if ( ! orderAttributionData.length ) {
+				return data;
+			}
+
+			orderAttributionData.find( 'input' ).each( function() {
+				var name = $( this ).attr( 'name' );
+				var value = $( this ).val();
+
+				if ( name && value ) {
+					data[ name ] = value;
+				}
+			} );
 
 			return data;
 		},

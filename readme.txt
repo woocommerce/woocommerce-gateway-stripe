@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
 * Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
+* Fix - Ensure Order Attribution data is correctly set when processing a payment with an Express Payment button. eg Apple Pay or Google Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
