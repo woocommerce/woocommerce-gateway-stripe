@@ -9,6 +9,8 @@ export const PAYMENT_METHOD_NAME_BOLETO = 'stripe_boleto';
 export const PAYMENT_METHOD_NAME_OXXO = 'stripe_oxxo';
 export const PAYMENT_METHOD_NAME_BANCONTACT = 'stripe_bancontact';
 export const PAYMENT_METHOD_NAME_ALIPAY = 'stripe_alipay';
+export const PAYMENT_METHOD_NAME_KLARNA = 'stripe_klarna';
+export const PAYMENT_METHOD_NAME_AFFIRM = 'stripe_affirm';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -23,6 +25,8 @@ export function getPaymentMethodsConstants() {
 		oxxo: PAYMENT_METHOD_NAME_OXXO,
 		bancontact: PAYMENT_METHOD_NAME_BANCONTACT,
 		alipay: PAYMENT_METHOD_NAME_ALIPAY,
+		klarna: PAYMENT_METHOD_NAME_KLARNA,
+		affirm: PAYMENT_METHOD_NAME_AFFIRM,
 	};
 }
 

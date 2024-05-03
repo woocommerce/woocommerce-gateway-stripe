@@ -25,6 +25,39 @@ export default {
 		currencies: [ 'EUR' ],
 		capability: 'giropay_payments',
 	},
+	klarna: {
+		id: 'klarna',
+		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Klarna.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.klarna,
+		currencies: [
+			'AUD',
+			'CAD',
+			'CHF',
+			'CZK',
+			'DKK',
+			'EUR',
+			'GBP',
+			'NOK',
+			'NZD',
+			'PLN',
+			'SEK',
+			'USD',
+		],
+	},
+	affirm: {
+		id: 'affirm',
+		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Affirm.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.affirm,
+		currencies: [ 'USD', 'CAD' ],
+	},
 	sepa_debit: {
 		id: 'sepa_debit',
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),

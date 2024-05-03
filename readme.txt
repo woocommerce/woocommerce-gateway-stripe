@@ -129,6 +129,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.3.0 - xxxx-xx-xx =
+* Add - Include Affirm as a payment method for stores using the updated checkout experience.
+* Tweak - Credit card brand selection disabled when the "Legacy checkout experience" is enabled.
+* Add - Add Klarna to the available payment methods.
+* Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
 * Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.

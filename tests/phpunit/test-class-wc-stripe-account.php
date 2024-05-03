@@ -176,4 +176,20 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertEquals( 'restricted_soon', $this->account->get_account_status() );
 	}
+
+	/**
+	 * Test for `get_account_country` method.
+	 *
+	 * @return void
+	 */
+	public function test_get_account_country() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'      => '1234',
+			'email'   => 'test@example.com',
+			'country' => 'US',
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertEquals( 'US', $this->account->get_account_country() );
+	}
 }
