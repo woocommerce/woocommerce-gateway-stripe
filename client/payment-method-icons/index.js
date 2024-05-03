@@ -14,13 +14,8 @@ import IdealIcon from './ideal';
 import P24Icon from './p24';
 import BoletoIcon from './boleto';
 import OxxoIcon from './oxxo';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 export default {
-	afterpay_clearpay:
-		getBlocksConfiguration()?.accountCountry === 'GB'
-			? ClearpayIcon
-			: AfterpayIcon,
 	alipay: AlipayIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
