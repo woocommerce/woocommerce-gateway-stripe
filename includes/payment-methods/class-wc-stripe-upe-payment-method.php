@@ -600,16 +600,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Determines if the payment method is inside the currency limits.
 	 *
+	 * @param  string $current_store_currency The store's currency.
 	 * @return bool True if the payment method is inside the currency limits, false otherwise.
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
 		// Pay for order page will check for the current order total instead of the cart's.
-		$order_amount    = $this->get_current_order_amount();
-		$conversion_rate = 100;
-		if ( in_array( strtolower( $current_store_currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-			$conversion_rate = 1;
-		}
-		$amount              = (int) round( (float) $order_amount * $conversion_rate );
+		$order_amount        = $this->get_current_order_amount();
+		$amount              = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
 		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
 		$range               = null;
 		$limits_per_currency = $this->get_limits_per_currency();

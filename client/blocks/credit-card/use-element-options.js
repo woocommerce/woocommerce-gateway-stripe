@@ -78,10 +78,15 @@ export const useElementOptions = ( overloadedOptions ) => {
 		const color = isActive ? '#CFD7E0' : '#fff';
 
 		setOptions( ( prevOptions ) => {
-			const showIcon =
-				typeof prevOptions.showIcon !== 'undefined'
-					? { showIcon: isActive }
-					: {};
+			let showIcon;
+			// forced when disabling co-badged cards (for Sources API)
+			if ( prevOptions.showIcon === false ) {
+				showIcon = { showIcon: false };
+			} else if ( typeof prevOptions.showIcon !== 'undefined' ) {
+				showIcon = { showIcon: isActive };
+			} else {
+				showIcon = {};
+			}
 			return {
 				...prevOptions,
 				style: {

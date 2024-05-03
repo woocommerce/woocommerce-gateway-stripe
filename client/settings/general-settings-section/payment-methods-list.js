@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -161,6 +161,27 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
+/**
+ * Formats the payment method description with the account default currency.
+ *
+ * @param {*} method Payment method ID.
+ * @param {*} accountDefaultCurrency Account default currency.
+ */
+const getFormattedPaymentMethodDescription = (
+	method,
+	accountDefaultCurrency
+) => {
+	const { description, acceptsDomesticPaymentsOnly } = PaymentMethodsMap[
+		method
+	];
+
+	if ( acceptsDomesticPaymentsOnly ) {
+		return sprintf( description, accountDefaultCurrency?.toUpperCase() );
+	}
+
+	return description;
+};
+
 const GeneralSettingsSection = ( {
 	isChangingDisplayOrder,
 	onSaveChanges,
@@ -235,7 +256,6 @@ const GeneralSettingsSection = ( {
 				const {
 					Icon,
 					label,
-					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = paymentMethodsData[ method ];
 
@@ -258,7 +278,10 @@ const GeneralSettingsSection = ( {
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
 								Icon={ Icon }
-								description={ description }
+								description={ getFormattedPaymentMethodDescription(
+									method,
+									data.account?.default_currency
+								) }
 								label={ label }
 							/>
 							<StyledFees id={ method } />
@@ -274,7 +297,6 @@ const GeneralSettingsSection = ( {
 				const {
 					Icon,
 					label,
-					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = paymentMethodsData[ method ];
 				const paymentMethodCurrencies =
@@ -311,7 +333,10 @@ const GeneralSettingsSection = ( {
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
 									Icon={ Icon }
-									description={ description }
+									description={ getFormattedPaymentMethodDescription(
+										method,
+										data.account?.default_currency
+									) }
 									label={ label }
 								/>
 								<StyledFees id={ method } />
