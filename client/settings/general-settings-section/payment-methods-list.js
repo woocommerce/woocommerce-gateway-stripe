@@ -175,7 +175,7 @@ const getFormattedPaymentMethodDescription = (
 	];
 
 	if ( acceptsDomesticPaymentsOnly ) {
-		return sprintf( description, accountDefaultCurrency.toUpperCase() );
+		return sprintf( description, accountDefaultCurrency?.toUpperCase() );
 	}
 
 	return description;
