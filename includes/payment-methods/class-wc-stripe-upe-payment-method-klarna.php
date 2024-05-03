@@ -27,4 +27,13 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Returns whether the payment method requires automatic capture.
+	 *
+	 * @inheritDoc
+	 */
+	public function requires_automatic_capture() {
+		return false;
+	}
 }
