@@ -98,6 +98,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'boleto_payments'            => 'active',
 		'oxxo_payments'              => 'active',
 		'link_payments'              => 'active',
+
 	];
 
 	/**

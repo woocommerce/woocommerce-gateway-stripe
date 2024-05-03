@@ -55,7 +55,7 @@ export default {
 		id: 'affirm',
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'Allow customers to pay over time with Affirm. Available to all customers paying in USD.',
+			'Allow customers to pay over time with Affirm.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
