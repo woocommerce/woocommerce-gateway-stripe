@@ -60,42 +60,45 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'     => 'inactive',
-		'bancontact_payments' => 'inactive',
-		'card_payments'       => 'inactive',
-		'eps_payments'        => 'inactive',
-		'giropay_payments'    => 'inactive',
-		'klarna_payments'     => 'inactive',
-		'affirm_payments'     => 'inactive',
-		'ideal_payments'      => 'inactive',
-		'p24_payments'        => 'inactive',
-		'sepa_debit_payments' => 'inactive',
-		'sofort_payments'     => 'inactive',
-		'transfers'           => 'inactive',
-		'boleto_payments'     => 'inactive',
-		'oxxo_payments'       => 'inactive',
-		'link_payments'       => 'inactive',
+		'alipay_payments'            => 'inactive',
+		'bancontact_payments'        => 'inactive',
+		'card_payments'              => 'inactive',
+		'eps_payments'               => 'inactive',
+		'giropay_payments'           => 'inactive',
+		'klarna_payments'            => 'inactive',
+		'affirm_payments'            => 'inactive',
+		'clearpay_afterpay_payments' => 'inactive',
+		'ideal_payments'             => 'inactive',
+		'p24_payments'               => 'inactive',
+		'sepa_debit_payments'        => 'inactive',
+		'sofort_payments'            => 'inactive',
+		'transfers'                  => 'inactive',
+		'boleto_payments'            => 'inactive',
+		'oxxo_payments'              => 'inactive',
+		'link_payments'              => 'inactive',
 	];
 
 	/**
 	 * Mock capabilities object from Stripe response--all active.
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'     => 'active',
-		'bancontact_payments' => 'active',
-		'card_payments'       => 'active',
-		'eps_payments'        => 'active',
-		'giropay_payments'    => 'active',
-		'klarna_payments'     => 'active',
-		'affirm_payments'     => 'active',
-		'ideal_payments'      => 'active',
-		'p24_payments'        => 'active',
-		'sepa_debit_payments' => 'active',
-		'sofort_payments'     => 'active',
-		'transfers'           => 'active',
-		'boleto_payments'     => 'active',
-		'oxxo_payments'       => 'active',
-		'link_payments'       => 'active',
+		'alipay_payments'            => 'active',
+		'bancontact_payments'        => 'active',
+		'card_payments'              => 'active',
+		'eps_payments'               => 'active',
+		'giropay_payments'           => 'active',
+		'klarna_payments'            => 'active',
+		'affirm_payments'            => 'active',
+		'clearpay_afterpay_payments' => 'active',
+		'ideal_payments'             => 'active',
+		'p24_payments'               => 'active',
+		'sepa_debit_payments'        => 'active',
+		'sofort_payments'            => 'active',
+		'transfers'                  => 'active',
+		'boleto_payments'            => 'active',
+		'oxxo_payments'              => 'active',
+		'link_payments'              => 'active',
+
 	];
 
 	/**
@@ -342,23 +345,25 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
-		$card_method       = $this->mock_payment_methods['card'];
-		$giropay_method    = $this->mock_payment_methods['giropay'];
-		$klarna_method     = $this->mock_payment_methods['klarna'];
-		$affirm_method     = $this->mock_payment_methods['affirm'];
-		$p24_method        = $this->mock_payment_methods['p24'];
-		$eps_method        = $this->mock_payment_methods['eps'];
-		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
-		$sofort_method     = $this->mock_payment_methods['sofort'];
-		$bancontact_method = $this->mock_payment_methods['bancontact'];
-		$ideal_method      = $this->mock_payment_methods['ideal'];
-		$boleto_method     = $this->mock_payment_methods['boleto'];
-		$oxxo_method       = $this->mock_payment_methods['oxxo'];
+		$card_method              = $this->mock_payment_methods['card'];
+		$giropay_method           = $this->mock_payment_methods['giropay'];
+		$klarna_method            = $this->mock_payment_methods['klarna'];
+		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+		$affirm_method            = $this->mock_payment_methods['affirm'];
+		$p24_method               = $this->mock_payment_methods['p24'];
+		$eps_method               = $this->mock_payment_methods['eps'];
+		$sepa_method              = $this->mock_payment_methods['sepa_debit'];
+		$sofort_method            = $this->mock_payment_methods['sofort'];
+		$bancontact_method        = $this->mock_payment_methods['bancontact'];
+		$ideal_method             = $this->mock_payment_methods['ideal'];
+		$boleto_method            = $this->mock_payment_methods['boleto'];
+		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
+		$this->assertFalse( $afterpay_clearpay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $p24_method->is_enabled_at_checkout() );
 		$this->assertFalse( $eps_method->is_enabled_at_checkout() );
 		$this->assertFalse( $sepa_method->is_enabled_at_checkout() );
