@@ -106,6 +106,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+		delete_option( 'woocommerce_stripe_settings' );
 		$this->reset_payment_method_mocks();
 	}
 
