@@ -76,8 +76,7 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	}
 
 	/**
-	 * /**
-	 *  Return the gateway's description.
+	 * Return the gateway's description.
 	 *
 	 * @return string
 	 */
