@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -89,6 +90,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @var boolean
 	 */
 	protected $accept_only_domestic_payment = false;
+
+	/**
+	 * Represent payment total limitations for the payment method (per-currency).
+	 *
+	 * @var array<string,array<string,array<string,int>>>
+	 */
+	protected $limits_per_currency = [];
 
 	/**
 	 * Wether this UPE method is in testmode.
@@ -235,6 +243,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
 				return false;
 			}
+		}
+
+		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
+		if ( [] !== $this->get_limits_per_currency() ) {
+			return $this->is_inside_currency_limits( $current_store_currency );
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -561,6 +574,61 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function should_show_save_option() {
 		return $this->is_reusable() && $this->is_saved_cards_enabled();
+	}
+
+	/**
+	 * Returns the payment method's limits per currency.
+	 *
+	 * @return int[][][]
+	 */
+	public function get_limits_per_currency(): array {
+		return $this->limits_per_currency;
+	}
+
+	/**
+	 * Returns the current order amount (from the "pay for order" page or from the current cart).
+	 *
+	 * @return float|int|string
+	 */
+	public function get_current_order_amount() {
+		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			return $order->get_total( '' );
+		} elseif ( WC()->cart ) {
+			return WC()->cart->get_total( '' );
+		}
+		return 0;
+	}
+
+	/**
+	 * Determines if the payment method is inside the currency limits.
+	 *
+	 * @param  string $current_store_currency The store's currency.
+	 * @return bool True if the payment method is inside the currency limits, false otherwise.
+	 */
+	public function is_inside_currency_limits( $current_store_currency ): bool {
+		// Pay for order page will check for the current order total instead of the cart's.
+		$order_amount        = $this->get_current_order_amount();
+		$amount              = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
+		$range               = null;
+		$limits_per_currency = $this->get_limits_per_currency();
+
+		if ( isset( $limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ][ $account_country ];
+		} elseif ( isset( $limits_per_currency[ $current_store_currency ]['default'] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ]['default'];
+		}
+
+		// If there is no range specified for the currency-country pair we don't support it and return false.
+		if ( null === $range ) {
+			return false;
+		}
+
+		$is_valid_minimum = null === $range['min'] || $amount >= $range['min'];
+		$is_valid_maximum = null === $range['max'] || $amount <= $range['max'];
+
+		return $is_valid_minimum && $is_valid_maximum;
 	}
 
 	/**

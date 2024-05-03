@@ -223,4 +223,14 @@ class WC_Stripe_Account {
 		$account = $this->get_cached_account_data();
 		return $account['settings']['card_payments']['statement_descriptor_prefix'] ?? '';
 	}
+
+	/**
+	 * Gets the account country.
+	 *
+	 * @return string Country.
+	 */
+	public function get_account_country() {
+		$account = $this->get_cached_account_data();
+		return $account['country'] ?? 'US';
+	}
 }

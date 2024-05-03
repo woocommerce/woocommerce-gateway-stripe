@@ -129,6 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.3.0 - xxxx-xx-xx =
+* Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
+* Add - Include Affirm as a payment method for stores using the updated checkout experience.
 * Tweak - Credit card brand selection disabled when the "Legacy checkout experience" is enabled.
 * Add - Add Klarna to the available payment methods.
 * Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
@@ -137,7 +139,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.
 * Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
-* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
+* Tweak - Improve performance with handling redirect payments by not constructing every payment gateway on each page load.
+* Tweak - Improve the order note message recorded when a subscription-renewal order payment fails.
 * Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
