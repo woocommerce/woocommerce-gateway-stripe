@@ -27,4 +27,17 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * Klarna is available for domestic transactions in the following countries:
+	 * Austria, Belgium, Canada, Czech Republic, Denmark, Finland, France, Germany, Greece, Ireland, Italy, Netherlands,
+	 * New Zealand, Norway, Poland, Portugal, Spain, Sweden, Switzerland, United Kingdom, United States.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+	}
 }

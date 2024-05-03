@@ -104,4 +104,15 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		$account_country     = $cached_account_data['country'] ?? null;
 		return 'GB' === $account_country;
 	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * Afterpay / Clearpay is only available for domestic transactions in the United States, Canada, Australia, New Zealand, and the United Kingdom.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+	}
 }
