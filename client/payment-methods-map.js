@@ -54,12 +54,14 @@ export default {
 	affirm: {
 		id: 'affirm',
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		// translators: %s is the store currency.
 		description: __(
-			'Allow customers to pay over time with Affirm.',
+			'Allow customers to pay over time with Affirm. Available to all customers paying in %s.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
+		acceptsDomesticPaymentsOnly: true,
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
