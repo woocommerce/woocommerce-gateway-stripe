@@ -25,7 +25,18 @@ const upeMethods = getPaymentMethodsConstants();
 Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
 	.forEach( ( [ upeName, upeConfig ] ) => {
-		const Icon = Icons[ upeName ];
+		let iconName = upeName;
+
+		// Afterpay/Clearpay have different icons for UK merchants.
+		if ( upeName === 'afterpay_clearpay' ) {
+			iconName =
+				getBlocksConfiguration()?.accountCountry === 'GB'
+					? 'clearpay'
+					: 'afterpay';
+		}
+
+		const Icon = Icons[ iconName ];
+
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
 			content: getDeferredIntentCreationUPEFields(
