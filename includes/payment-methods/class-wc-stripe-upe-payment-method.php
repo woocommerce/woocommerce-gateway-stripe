@@ -271,10 +271,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns the supported customer locations for which charges for a payment method can be processed.
 	 *
-	 * @return array
+	 * @return array Supported customer locations.
 	 */
-	public function get_countries() {
-		return $this->supported_countries;
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+
+		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
 	}
 
 	/**
