@@ -22,7 +22,10 @@ const api = new WCStripeAPI(
 );
 
 const upeMethods = getPaymentMethodsConstants();
-Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
+const paymentMethodsConfig =
+	getBlocksConfiguration()?.paymentMethodsConfig || {};
+
+Object.entries( paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
