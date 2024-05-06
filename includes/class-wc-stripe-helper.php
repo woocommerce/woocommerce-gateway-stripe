@@ -1255,4 +1255,14 @@ class WC_Stripe_Helper {
 			'SE', // Sweden.
 		];
 	}
+
+	/**
+	 * Verifies if the provided payment method ID supports manual capture.
+	 *
+	 * @param string $payment_method_id Payment method ID.
+	 * @return bool Whether the payment method allows manual capture.
+	 */
+	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
+		return in_array( $payment_method_id, [ 'stripe', 'affirm', 'klarna', 'afterpay_clearpay' ], true );
+	}
 }
