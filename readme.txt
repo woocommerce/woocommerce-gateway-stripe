@@ -132,16 +132,16 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
-* Tweak - Credit card brand selection disabled when the "Legacy checkout experience" is enabled.
-* Add - Add Klarna to the available payment methods.
-* Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
-* Fix - The preferred card brand is used when paying with a co-branded credit card.
+* Add - Include Klarna as a payment method for stores using the updated checkout experience.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
+* Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
+* Fix - The preferred card brand is used when paying with a co-branded credit card.
 * Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
 * Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.
 * Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
+* Tweak - Credit card brand selection disabled when the "Legacy checkout experience" is enabled.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateway on each page load.
+* Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
 * Tweak - Improve the order note message recorded when a subscription-renewal order payment fails.
-* Fix - Resolved an error that could prevent purchasing subscriptions that have a capital letter in the billing period. eg "Year" instead of "year".
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

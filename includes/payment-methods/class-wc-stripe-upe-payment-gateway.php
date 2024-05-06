@@ -464,7 +464,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'title'               => $payment_method->get_title(),
 				'testingInstructions' => $payment_method->get_testing_instructions(),
 				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_countries(),
+				'countries'           => $payment_method->get_available_billing_countries(),
 			];
 		}
 
