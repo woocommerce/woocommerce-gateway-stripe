@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.3.0 - xxxx-xx-xx =
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
+* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
 * Add - Include Klarna as a payment method for stores using the updated checkout experience.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
