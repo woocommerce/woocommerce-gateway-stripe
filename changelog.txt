@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.0 - xxxx-xx-xx =
+* Add - Include support for separate authorization and capture for BNPL payment methods.
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
