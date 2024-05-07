@@ -246,8 +246,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
-		if ( [] !== $this->get_limits_per_currency() ) {
-			return $this->is_inside_currency_limits( $current_store_currency );
+		if ( [] !== $this->get_limits_per_currency() && ! $this->is_inside_currency_limits( $current_store_currency ) ) {
+			return false;
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -271,10 +271,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns the supported customer locations for which charges for a payment method can be processed.
 	 *
-	 * @return array
+	 * @return array Supported customer locations.
 	 */
-	public function get_countries() {
-		return $this->supported_countries;
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+
+		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
 	}
 
 	/**
@@ -605,22 +608,32 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_inside_currency_limits( $current_store_currency ): bool {
 		// Pay for order page will check for the current order total instead of the cart's.
-		$order_amount        = $this->get_current_order_amount();
-		$amount              = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+		$order_amount = $this->get_current_order_amount();
+		$amount       = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+
+		// Don't engage in limits verification in non-checkout context (cart is not available or empty).
+		if ( $amount <= 0 ) {
+			return true;
+		}
+
 		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
 		$range               = null;
 		$limits_per_currency = $this->get_limits_per_currency();
+
 		if ( isset( $limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
 			$range = $limits_per_currency[ $current_store_currency ][ $account_country ];
 		} elseif ( isset( $limits_per_currency[ $current_store_currency ]['default'] ) ) {
 			$range = $limits_per_currency[ $current_store_currency ]['default'];
 		}
+
 		// If there is no range specified for the currency-country pair we don't support it and return false.
 		if ( null === $range ) {
 			return false;
 		}
+
 		$is_valid_minimum = null === $range['min'] || $amount >= $range['min'];
 		$is_valid_maximum = null === $range['max'] || $amount <= $range['max'];
+
 		return $is_valid_minimum && $is_valid_maximum;
 	}
 

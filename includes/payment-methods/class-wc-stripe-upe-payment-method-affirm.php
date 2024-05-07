@@ -43,11 +43,13 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns whether the payment method requires automatic capture.
+	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
-	 * @inheritDoc
+	 * Affirm is only available domestic transactions in the United States or Canada.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
-	public function requires_automatic_capture() {
-		return false;
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }
