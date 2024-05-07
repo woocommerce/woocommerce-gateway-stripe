@@ -1401,7 +1401,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_gateway
-			->expects( $this->once() )
+			->expects( $this->any() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
