@@ -15,6 +15,7 @@
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateway on each page load.
 * Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
 * Tweak - Improve the order note message recorded when a subscription-renewal order payment fails.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
