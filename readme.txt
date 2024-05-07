@@ -143,5 +143,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateway on each page load.
 * Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
 * Tweak - Improve the order note message recorded when a subscription-renewal order payment fails.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
