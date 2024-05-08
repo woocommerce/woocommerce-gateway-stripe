@@ -92,7 +92,7 @@ jQuery( function( $ ) {
 			elementClasses = wc_stripe_params.elements_classes ? wc_stripe_params.elements_classes : elementClasses;
 
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-				stripe_card = elements.create( 'card', { style: elementStyles, hidePostalCode: true } );
+				stripe_card = elements.create( 'card', { style: elementStyles, hidePostalCode: true, hideIcon: true } );
 
 				stripe_card.addEventListener( 'change', function( event ) {
 					wc_stripe_form.onCCFormChange();
@@ -102,7 +102,7 @@ jQuery( function( $ ) {
 					}
 				} );
 			} else {
-				stripe_card = elements.create( 'cardNumber', { style: elementStyles, classes: elementClasses } );
+				stripe_card = elements.create( 'cardNumber', { style: elementStyles, classes: elementClasses, showIcon: false } );
 				stripe_exp  = elements.create( 'cardExpiry', { style: elementStyles, classes: elementClasses } );
 				stripe_cvc  = elements.create( 'cardCvc', { style: elementStyles, classes: elementClasses } );
 

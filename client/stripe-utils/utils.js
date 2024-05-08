@@ -489,3 +489,40 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 export const getPaymentMethodName = ( paymentMethodType ) => {
 	return getPaymentMethodsConstants()[ paymentMethodType ] || 'stripe';
 };
+
+/**
+ * Determines if the payment method is restricted to specific countries.
+ *
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ * @return {boolean} Whether the payment method is restricted to selected billing country.
+ **/
+export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	return !! paymentMethodsConfig[ paymentMethodType ].countries.length;
+};
+
+/**
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ **/
+export const togglePaymentMethodForCountry = ( upeElement ) => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	const supportedCountries =
+		paymentMethodsConfig[ paymentMethodType ].countries;
+
+	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
+	const billingCountry =
+		document.getElementById( 'billing_country' )?.value ||
+		getStripeServerData()?.customerData.billing_country ||
+		'';
+
+	const upeContainer = document.querySelector(
+		'.payment_method_stripe_' + paymentMethodType
+	);
+	if ( supportedCountries.includes( billingCountry ) ) {
+		upeContainer.style.display = 'block';
+	} else {
+		upeContainer.style.display = 'none';
+	}
+};
