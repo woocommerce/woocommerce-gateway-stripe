@@ -1,8 +1,11 @@
 *** Changelog ***
 
+= 8.4.0 - xxxx-xx-xx =
+* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+
 = 8.3.0 - xxxx-xx-xx =
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
-* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
 * Add - Include Klarna as a payment method for stores using the updated checkout experience.
 * Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
@@ -15,7 +18,6 @@
 * Tweak - Improve performance with handling redirect payments by not constructing every payment gateway on each page load.
 * Tweak - Adds the tracking of a selected card brand when paying using co-branded credit cards.
 * Tweak - Improve the order note message recorded when a subscription-renewal order payment fails.
-* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 
 = 8.2.0 - 2024-04-11 =
 * Tweak - Improve the display of the Stripe account ID in the settings page.
