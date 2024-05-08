@@ -1914,4 +1914,32 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 												->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
+
+	/**
+	 * Undocumented function
+	 *
+	 * @return void
+	 */
+	public function test_set_payment_method_title_for_order() {
+		$order = WC_Helper_Order::create_order();
+
+		// Subscriptions - note that orders are used here as subscriptions. Subscriptions inherit all order methods so should suffice for testing.
+		$mock_subscription_0 = WC_Helper_Order::create_order();
+		$mock_subscription_1 = WC_Helper_Order::create_order();
+
+		$this->expectsFunctions( [ 'wcs_get_subscriptions_for_order' ] )->willReturn( [ $mock_subscription_0, $mock_subscription_1 ] );
+		$this->expectsFunctions( [ 'wcs_get_subscriptions_for_order' ] )->willReturn( [ $mock_subscription_0, $mock_subscription_1 ] );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_subscriptions_enabled' )
+			->willReturn( true );
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+
+		$this->assertEquals( 'stripe_sepa_debit', $order->get_payment_method() );
+		$this->assertEquals( 'SEPA Direct Debit', $order->get_payment_method_title() );
+
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+	}
 }
