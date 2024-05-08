@@ -1927,8 +1927,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription_0 = WC_Helper_Order::create_order();
 		$mock_subscription_1 = WC_Helper_Order::create_order();
 
-		$this->expectsFunctions( [ 'wcs_get_subscriptions_for_order' ] )->willReturn( [ $mock_subscription_0, $mock_subscription_1 ] );
-		$this->expectsFunctions( [ 'wcs_get_subscriptions_for_order' ] )->willReturn( [ $mock_subscription_0, $mock_subscription_1 ] );
+		WC_Subscriptions::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'is_subscriptions_enabled' )
