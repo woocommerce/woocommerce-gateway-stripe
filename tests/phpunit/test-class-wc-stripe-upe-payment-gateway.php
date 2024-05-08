@@ -115,6 +115,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_subscriptions_enabled',
 				]
 			)
 			->getMock();
