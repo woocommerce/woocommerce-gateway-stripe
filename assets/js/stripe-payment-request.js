@@ -157,19 +157,28 @@ jQuery( function( $ ) {
 			if ( requiredfields.length ) {
 				requiredfields.each( function() {
 					const field = $( this ).find( ':input' );
-					const value = field.val();
 					const name = field.attr( 'name' );
-					if ( value && name ) {
+
+					let value = '';
+					if ( field.attr( 'type' ) === 'checkbox' ) {
+						value = field.is( ':checked' );
 						if ( ! data[ name ] ) {
 							data[ name ] = value;
 						}
-	
-						// if shipping same as billing is selected, copy the billing field to shipping field.
-						const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
-						if ( ! shipToDiffAddress ) {
-							var shippingFieldName = name.replace( 'billing_', 'shipping_' );
-							if ( ! data[ shippingFieldName ] && data[ name ] ) {
-								data[ shippingFieldName ] = data[ name ];
+					} else {
+						value = field.val();
+						if ( value && name ) {
+							if ( ! data[ name ] ) {
+								data[ name ] = value;
+							}
+		
+							// if shipping same as billing is selected, copy the billing field to shipping field.
+							const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
+							if ( ! shipToDiffAddress ) {
+								var shippingFieldName = name.replace( 'billing_', 'shipping_' );
+								if ( ! data[ shippingFieldName ] && data[ name ] ) {
+									data[ shippingFieldName ] = data[ name ];
+								}
 							}
 						}
 					}
