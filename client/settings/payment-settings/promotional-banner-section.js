@@ -65,13 +65,13 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 						</NewPill>
 						<h4>
 							{ __(
-								'You’re eligible: Fast financing with Stripe',
+								'Boost sales and checkout conversion',
 								'woocommerce-gateway-stripe'
 							) }
 						</h4>
 						<p>
 							{ __(
-								'Based on your business’ strong performance, you’re pre-qualified for a loan offer through our partnership with Stripe Capital. You can use the financing for whatever your business needs.',
+								'Enable the new Stripe checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
 								'woocommerce-gateway-stripe'
 							) }
 						</p>
@@ -80,7 +80,7 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 						<BannerIllustration
 							src={ bannerIllustration }
 							alt={ __(
-								'Stripe Capital',
+								'New Checkout',
 								'woocommerce-gateway-stripe'
 							) }
 						/>
@@ -88,10 +88,13 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 				</CardInner>
 				<ButtonsRow>
 					<LearnMoreLink
-						href="https://stripe.com/en-br/capital"
-						data-testid="learn-more"
+						href="#"
+						data-testid="enable-the-new-checkout"
 					>
-						{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
+						{ __(
+							'Enable the new checkout',
+							'woocommerce-gateway-stripe'
+						) }
 					</LearnMoreLink>
 					<DismissButton
 						variant="secondary"
