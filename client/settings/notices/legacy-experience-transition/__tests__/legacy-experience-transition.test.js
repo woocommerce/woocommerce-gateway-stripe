@@ -34,9 +34,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 		);
 
 		expect(
-			screen.queryByText(
-				'Ensure payments continue to work on your store'
-			)
+			screen.queryByTestId( 'legacy-exp-title' )
 		).toBeInTheDocument();
 	} );
 
@@ -49,9 +47,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 		);
 
 		expect(
-			screen.queryByText(
-				'Ensure payments continue to work on your store'
-			)
+			screen.queryByTestId( 'legacy-exp-title' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -65,7 +61,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 
@@ -77,7 +73,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 
 		expect( noticesDispatch.createSuccessNotice ).toHaveBeenCalledWith(
 			'New checkout experience enabled'
@@ -92,7 +88,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_legacy_experience_disabled',
