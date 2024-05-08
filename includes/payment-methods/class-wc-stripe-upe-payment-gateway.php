@@ -464,7 +464,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'title'               => $payment_method->get_title(),
 				'testingInstructions' => $payment_method->get_testing_instructions(),
 				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_countries(),
+				'countries'           => $payment_method->get_available_billing_countries(),
 			];
 		}
 
@@ -1898,7 +1898,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->save_intent_to_order( $order, $payment_intent->error->payment_intent );
 			}
 
-			$this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
+			$has_removed_customer = $this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
 
 			if ( ! $this->is_retryable_error( $payment_intent->error ) || ! $retry ) {
 				throw new WC_Stripe_Exception(
@@ -1906,6 +1906,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					print_r( $payment_intent, true ),
 					$payment_intent->error->message
 				);
+			}
+
+			// If the non existent customer was removed, we need to recreate a customer.
+			if ( $has_removed_customer ) {
+				$payment_information['customer'] = $this->get_customer_id_for_order( $order );
 			}
 
 			// Don't do anymore retries after this.
