@@ -943,7 +943,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
 	 */
 	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
-		if ( ! $this->is_subscriptions_enabled() ) {
+		if ( ! $this->is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
 			return;
 		}
 
