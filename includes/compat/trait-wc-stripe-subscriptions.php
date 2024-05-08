@@ -70,6 +70,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		self::$has_attached_integration_hooks = true;
 
+		add_filter( 'woocommerce_subscription_get_payment_method', [ $this, 'use_sepa_updated_checkout_gateway_id_for_subscriptions' ] );
+
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
@@ -895,6 +897,22 @@ trait WC_Stripe_Subscriptions_Trait {
 		);
 
 		exit;
+	}
+
+	/**
+	 * Filters the return value of 'WC_Subscription::get_payment_method()'.
+	 *
+	 * Returns 'stripe_sepa_debit' if UPE is enabled and the gateway is 'stripe_sepa'.
+	 *
+	 * @param string $value The payment method ID.
+	 * @return string
+	 */
+	public function use_sepa_updated_checkout_gateway_id_for_subscriptions( $value ) {
+		if ( 'stripe_sepa' === $value && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return 'stripe_sepa_debit';
+		}
+
+		return $value;
 	}
 
 	/**
