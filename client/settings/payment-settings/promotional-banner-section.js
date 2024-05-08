@@ -1,10 +1,12 @@
 import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import { Card, ExternalLink, Button } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import Pill from 'wcstripe/components/pill';
+import { recordEvent } from 'wcstripe/tracking';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -50,7 +52,49 @@ const DismissButton = styled( Button )`
 	color: #757575 !important;
 `;
 
-const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
+const PromotionalBannerSection = ( {
+	setShowPromotionalBanner,
+	isUpeEnabled,
+	setIsUpeEnabled,
+} ) => {
+	const { createErrorNotice, createSuccessNotice } = useDispatch(
+		'core/notices'
+	);
+
+	// The merchant already disabled the legacy experience. Nothing to do here.
+	if ( isUpeEnabled ) {
+		return null;
+	}
+
+	const handleButtonClick = () => {
+		const callback = async () => {
+			try {
+				await setIsUpeEnabled( true );
+
+				recordEvent( 'wcstripe_legacy_experience_disabled', {
+					source: 'payment-methods-tab-notice',
+				} );
+
+				createSuccessNotice(
+					__(
+						'New checkout experience enabled',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			} catch ( err ) {
+				createErrorNotice(
+					__(
+						'There was an error. Please reload the page and try again.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+		};
+
+		// creating a separate callback so that the UI isn't blocked by the async call.
+		callback();
+	};
+
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
 	};
@@ -90,6 +134,7 @@ const PromotionalBannerSection = ( { setShowPromotionalBanner } ) => {
 					<LearnMoreLink
 						href="#"
 						data-testid="enable-the-new-checkout"
+						onClick={ handleButtonClick }
 					>
 						{ __(
 							'Enable the new checkout',

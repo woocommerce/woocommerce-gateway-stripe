@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React, useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
@@ -12,6 +12,7 @@ import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -79,6 +80,7 @@ const PaymentSettingsPanel = () => {
 	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
 		true
 	);
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -104,6 +106,8 @@ const PaymentSettingsPanel = () => {
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
+								isUpeEnabled={ isUpeEnabled }
+								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
