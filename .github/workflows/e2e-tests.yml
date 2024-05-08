@@ -86,6 +86,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WP_latest-WC_latest-results
-          path: tests/e2e/report
+          path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14

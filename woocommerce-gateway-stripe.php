@@ -179,6 +179,7 @@ function woocommerce_gateway_stripe() {
 
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php';
@@ -200,6 +201,9 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-affirm.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-afterpay-clearpay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-boleto.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oxxo.php';
@@ -573,7 +577,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function disable_upe( $settings ) {
-				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
+				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway( $this->account );
 				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
@@ -683,7 +687,7 @@ function woocommerce_gateway_stripe() {
 				}
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway( $this->account );
 
 					return $this->stripe_gateway;
 				}

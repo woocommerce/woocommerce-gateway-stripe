@@ -106,7 +106,7 @@ const ExperimentalFeatures = () => {
 				) }
 			</h4>
 			<CheckboxControl
-				data-testid="new-checkout-experience-checkbox"
+				data-testid="legacy-checkout-experience-checkbox"
 				label={ __(
 					'Enable the legacy checkout experience',
 					'woocommerce-gateway-stripe'

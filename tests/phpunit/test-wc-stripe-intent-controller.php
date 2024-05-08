@@ -33,9 +33,13 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->getMock();
+
 		$this->order           = WC_Helper_Order::create_order();
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
-			->disableOriginalConstructor()
+			->setConstructorArgs( [ $mock_account ] )
 			->setMethods( [ 'maybe_process_upe_redirect' ] )
 			->getMock();
 		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )

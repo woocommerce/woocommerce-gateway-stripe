@@ -128,11 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.3.0 - xxxx-xx-xx =
-* Add - Additional information is displayed on the "Payment methods" page when listing co-branded credit cards.
-* Fix - Prevent duplicate stripe meta data on orders caused by processing redirect payments and webhooks simultaneously.
-* Fix - Processing a refund of a non-card payments (i.e. iDeal, giropay) through the Stripe dashboard was not showing as refunded in WooCommerce for stores with UPE enabled.
-* Fix - Prevent orders that require manual review in Stripe being marked as processing in WooCommerce before approval.
-* Tweak - Improve performance with handling redirect payments by not constructing every payment gateways on each page load.
+= 8.4.0 - xxxx-xx-xx =
+* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
