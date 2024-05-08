@@ -1917,9 +1917,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Undocumented function
+	 * Test test_set_payment_method_title_for_order.
 	 *
-	 * @return void
 	 */
 	public function test_set_payment_method_title_for_order() {
 		$order = WC_Helper_Order::create_order();
@@ -1930,7 +1929,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( $this->exactly( 3 ) ) // 3 times because we test 3 payment methods.
 			->method( 'is_subscriptions_enabled' )
 			->willReturn( true );
 
