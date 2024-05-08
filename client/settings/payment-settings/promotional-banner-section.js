@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
-import { Card, ExternalLink, Button } from '@wordpress/components';
+import { Card, Button } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
@@ -43,7 +43,7 @@ const ButtonsRow = styled.p`
 	margin: 0;
 `;
 
-const LearnMoreLink = styled( ExternalLink )`
+const MainCTALink = styled( Button )`
 	margin-right: 8px;
 `;
 
@@ -131,8 +131,8 @@ const PromotionalBannerSection = ( {
 					</CardColumn>
 				</CardInner>
 				<ButtonsRow>
-					<LearnMoreLink
-						href="#"
+					<MainCTALink
+						variant="secondary"
 						data-testid="enable-the-new-checkout"
 						onClick={ handleButtonClick }
 					>
@@ -140,7 +140,7 @@ const PromotionalBannerSection = ( {
 							'Enable the new checkout',
 							'woocommerce-gateway-stripe'
 						) }
-					</LearnMoreLink>
+					</MainCTALink>
 					<DismissButton
 						variant="secondary"
 						onClick={ handleBannerDismiss }
