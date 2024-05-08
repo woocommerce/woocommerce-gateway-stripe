@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import PaymentMethodsMap from '../../payment-methods-map';
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
+import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 const StyledPill = styled( Pill )`
 	border: 1px solid #f0b849;
@@ -13,7 +14,11 @@ const StyledPill = styled( Pill )`
 `;
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
-	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
+	const alipayCurrencies = useAliPayCurrencies();
+	const paymentMethodCurrencies =
+		id === 'alipay'
+			? alipayCurrencies
+			: PaymentMethodsMap[ id ]?.currencies || [];
 	const storeCurrency = window?.wcSettings?.currency?.code;
 
 	if (
