@@ -30,131 +30,18 @@ export async function emptyCart( page ) {
 }
 
 /**
- * Fills in the card details on the WC checkout page (non-blocks).
- * @param {Page} page Playwright page fixture.
- * @param {Object} card The CC info in the format provided on the test-data.
- */
-export async function fillCardDetails( page, card ) {
-	let isUpe = await isUpeCheckout( page );
-
-	// blocks checkout
-	if ( await page.$( '.wc-block-checkout' ) ) {
-		if ( ! isUpe ) {
-			await page
-				.frameLocator( '#wc-stripe-card-number-element iframe' )
-				.locator( 'input[name="cardnumber"]' )
-				.fill( card.number );
-			await page
-				.frameLocator( '#wc-stripe-card-expiry-element iframe' )
-				.locator( 'input[name="exp-date"]' )
-				.fill( card.expires.month + card.expires.year );
-			await page
-				.frameLocator( '#wc-stripe-card-code-element iframe' )
-				.locator( 'input[name="cvc"]' )
-				.fill( card.cvc );
-			return;
-		} else {
-			await page
-				.frameLocator(
-					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-				)
-				.locator( '[name="number"]' )
-				.fill( card.number );
-			await page
-				.frameLocator(
-					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-				)
-				.locator( '[name="expiry"]' )
-				.fill( card.expires.month + card.expires.year );
-			await page
-				.frameLocator(
-					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-				)
-				.locator( '[name="cvc"]' )
-				.fill( card.cvc );
-			return;
-		}
-	}
-
-	// regular checkout
-	if ( isUpe ) {
-		const frameHandle = await page.waitForSelector(
-			'#payment #wc-stripe-upe-element iframe'
-		);
-
-		page.locator(
-			'#payment #wc-stripe-upe-element iframe'
-		).scrollIntoViewIfNeeded();
-
-		const stripeFrame = await frameHandle.contentFrame();
-
-		await stripeFrame.fill( '[name="number"]', card.number );
-		await stripeFrame.fill(
-			'[name="expiry"]',
-			card.expires.month + card.expires.year
-		);
-		await stripeFrame.fill( '[name="cvc"]', card.cvc );
-	} else {
-		await page
-			.frameLocator(
-				'#stripe-card-element iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '[name="cardnumber"]' )
-			.fill( card.number );
-		await page
-			.frameLocator(
-				'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '[name="exp-date"]' )
-			.fill( card.expires.month + card.expires.year );
-		await page
-			.frameLocator(
-				'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '[name="cvc"]' )
-			.fill( card.cvc );
-	}
-}
-
-/**
- * Checks if the checkout is using the UPE.
- * @param {Page} page Playwright page fixture.
- * @returns {boolean} True if the checkout is using the UPE, false otherwise.
- */
-export async function isUpeCheckout( page ) {
-	// blocks checkout
-	if ( await page.$( '.wc-block-checkout' ) ) {
-		try {
-			await page.waitForSelector(
-				'#wc-stripe-card-expiry-element iframe',
-				{
-					timeout: 5000,
-				}
-			);
-			return false;
-		} catch ( e ) {
-			// If the card elements are not present, we assume the checkout is using the UPE.
-			return true;
-		}
-	}
-
-	// regular checkout
-	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
-}
-
-/**
- * Set up checkout with any number of products.
+ * Set up cart with `lineItems` products.
  *
- * @param {any} billingDetails Values to be entered into the 'Billing details' form in the Checkout page
+ * @param {Page} page Playwright page fixture.
  * @param {any} lineItems A 2D array of line items where each line item is an array
  * that contains the product title as the first element, and the quantity as the second.
- * For example, if you want to checkout the products x2 "Hoodie" and x3 "Belt" then you can set this `lineItems` parameter like this:
+ * For example, if you want to add the products x2 "Hoodie" and x3 "Belt" then you can set this `lineItems` parameter like this:
  *
  * `[ [ "Hoodie", 2 ], [ "Belt", 3 ] ]`.
  *
  * Default value is 1 piece of `config.get( 'products.simple.name' )`.
  */
-export async function setupProductCheckout(
+export async function setupCart(
 	page,
 	lineItems = [ [ config.get( 'products.simple.name' ), 1 ] ]
 ) {
@@ -190,12 +77,134 @@ export async function setupProductCheckout(
 }
 
 /**
- * Go to the checkout page, enter the billing information, and select the payment gateway.
+ * Fills in the credit card details on the default (blocks) checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetails( page, card ) {
+	await page
+		.frameLocator(
+			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="number"]' )
+		.fill( card.number );
+	await page
+		.frameLocator(
+			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="expiry"]' )
+		.fill( card.expires.month + card.expires.year );
+	await page
+		.frameLocator(
+			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="cvc"]' )
+		.fill( card.cvc );
+}
+
+/**
+ * Fills in the credit card details on the shortcode checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetailsShortcode( page, card ) {
+	const frameHandle = await page.waitForSelector(
+		'#payment #wc-stripe-upe-element iframe'
+	);
+
+	await page
+		.locator( '#payment #wc-stripe-upe-element iframe' )
+		.scrollIntoViewIfNeeded();
+
+	const stripeFrame = await frameHandle.contentFrame();
+
+	await stripeFrame.fill( '[name="number"]', card.number );
+	await stripeFrame.fill(
+		'[name="expiry"]',
+		card.expires.month + card.expires.year
+	);
+	await stripeFrame.fill( '[name="cvc"]', card.cvc );
+}
+
+/**
+ * Fills in the credit card details on the legacy experience default (blocks) checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetailsLegacy( page, card ) {
+	await page
+		.frameLocator( '#wc-stripe-card-number-element iframe' )
+		.locator( 'input[name="cardnumber"]' )
+		.fill( card.number );
+	await page
+		.frameLocator( '#wc-stripe-card-expiry-element iframe' )
+		.locator( 'input[name="exp-date"]' )
+		.fill( card.expires.month + card.expires.year );
+	await page
+		.frameLocator( '#wc-stripe-card-code-element iframe' )
+		.locator( 'input[name="cvc"]' )
+		.fill( card.cvc );
+}
+
+/**
+ * Fills in the credit card details on the legacy experience shortcode checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ */
+export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
+	await page
+		.frameLocator(
+			'#stripe-card-element iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="cardnumber"]' )
+		.fill( card.number );
+	await page
+		.frameLocator(
+			'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="exp-date"]' )
+		.fill( card.expires.month + card.expires.year );
+	await page
+		.frameLocator(
+			'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
+		)
+		.locator( '[name="cvc"]' )
+		.fill( card.cvc );
+}
+
+/**
+ * Checks if the checkout is using the UPE.
+ * @param {Page} page Playwright page fixture.
+ * @returns {boolean} True if the checkout is using the UPE, false otherwise.
+ */
+export async function isUpeCheckout( page ) {
+	// blocks checkout
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		try {
+			await page.waitForSelector(
+				'#wc-stripe-card-expiry-element iframe',
+				{
+					timeout: 5000,
+				}
+			);
+			return false;
+		} catch ( e ) {
+			// If the card elements are not present, we assume the checkout is using the UPE.
+			return true;
+		}
+	}
+
+	// regular checkout
+	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
+}
+
+/**
+ * Go to the shortcode checkout page, enter the billing information, and select the payment gateway.
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
  */
-export async function setupCheckout( page, billingDetails = null ) {
+export async function setupShortcodeCheckout( page, billingDetails = null ) {
 	await page.goto( '/checkout-shortcode/' );
 
 	if ( billingDetails ) {
@@ -227,7 +236,7 @@ export async function setupCheckout( page, billingDetails = null ) {
 }
 
 /**
- * Go to the checkout page, enter the billing information, and select the payment gateway.
+ * Go to the default (blocks) checkout page, enter the billing information, and select the payment gateway.
  * If billingDetails are empty, they're skipped.
  * @param {Page} page Playwright page fixture.
  * @param {Object} billingDetails The billing details in the format provided on the test-data.
@@ -256,7 +265,9 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			)
 			.click();
 
-		await page.getByLabel( 'State' ).fill( billingDetails[ 'state' ] );
+		await page
+			.getByLabel( 'State', { exact: true } )
+			.fill( billingDetails[ 'state' ] );
 		await page
 			.locator(
 				'.components-form-token-field__suggestions-list > li:first-child'

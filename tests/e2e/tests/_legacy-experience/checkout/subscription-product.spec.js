@@ -1,8 +1,11 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api } from '../../utils';
+import { payments, api } from '../../../utils';
 
-const { setupCheckout, fillCardDetails } = payments;
+const {
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
+} = payments;
 
 let productId;
 
@@ -42,8 +45,11 @@ test( 'customer can purchase a subscription product @smoke @subscriptions', asyn
 			Date.now() + '+' + config.get( 'addresses.customer.billing.email' ),
 	};
 
-	await setupCheckout( page, customerData );
-	await fillCardDetails( page, config.get( 'cards.basic' ) );
+	await setupShortcodeCheckout( page, customerData );
+	await fillCreditCardDetailsShortcodeLegacy(
+		page,
+		config.get( 'cards.basic' )
+	);
 
 	await page.locator( 'text=Sign up now' ).click();
 	await page.waitForNavigation();

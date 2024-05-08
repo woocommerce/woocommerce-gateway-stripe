@@ -9,7 +9,6 @@ services:
     build: .
     image: wordpress
     container_name: wcstripe-e2e-wordpress
-    restart: always
     depends_on:
       - db
     links:
