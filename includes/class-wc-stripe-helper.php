@@ -1213,4 +1213,46 @@ class WC_Stripe_Helper {
 			$order->save();
 		}
 	}
+
+	/**
+	 * Returns the list of countries in the European Economic Area (EEA).
+	 *
+	 * Based on the list documented at https://www.gov.uk/eu-eea.
+	 *
+	 * @return string[]
+	 */
+	public static function get_european_economic_area_countries() {
+		return [
+			'AT', // Austria.
+			'BE', // Belgium.
+			'BG', // Bulgaria.
+			'HR', // Croatia.
+			'CY', // Cyprus.
+			'CZ', // Czech Republic.
+			'DK', // Denmark.
+			'EE', // Estonia.
+			'FI', // Finland.
+			'FR', // France.
+			'DE', // Germany.
+			'GR', // Greece.
+			'HU', // Hungary.
+			'IE', // Ireland.
+			'IS', // Iceland
+			'IT', // Italy.
+			'LV', // Latvia.
+			'LI', // Liechtenstein.
+			'LT', // Lithuania.
+			'LU', // Luxembourg.
+			'MT', // Malta.
+			'NO', // Norway.
+			'NL', // Netherlands.
+			'PL', // Poland.
+			'PT', // Portugal.
+			'RO', // Romania.
+			'SK', // Slovakia.
+			'SI', // Slovenia.
+			'ES', // Spain.
+			'SE', // Sweden.
+		];
+	}
 }

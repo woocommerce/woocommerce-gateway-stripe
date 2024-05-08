@@ -34,6 +34,7 @@ const PublishableKey = () => {
 			disabled={ isSaving }
 			name="publishable_key"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };
@@ -55,6 +56,7 @@ const TestPublishableKey = () => {
 			disabled={ isSaving }
 			name="test_publishable_key"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };
@@ -75,6 +77,7 @@ const SecretKey = () => {
 			disabled={ isSaving }
 			name="secret_key"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };
@@ -95,6 +98,7 @@ const TestSecretKey = () => {
 			disabled={ isSaving }
 			name="test_secret_key"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };
@@ -115,6 +119,7 @@ const WebhookSecret = () => {
 			disabled={ isSaving }
 			name="webhook_secret"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };
@@ -135,6 +140,7 @@ const TestWebhookSecret = () => {
 			disabled={ isSaving }
 			name="test_webhook_secret"
 			autoComplete="off"
+			onFocus={ ( e ) => e.target.select() }
 		/>
 	);
 };

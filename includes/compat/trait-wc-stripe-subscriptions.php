@@ -327,7 +327,12 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
 					} else {
-						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
+						$localized_message = sprintf(
+							/* translators: 1) error message from Stripe; 2) request log URL */
+							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+							$response->error->message,
+							isset( $response->error->request_log_url ) ? make_clickable( $response->error->request_log_url ) : ''
+						);
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
@@ -344,6 +349,10 @@ trait WC_Stripe_Subscriptions_Trait {
 					);
 				} else {
 					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+				}
+
+				if ( isset( $response->error->request_log_url ) ) {
+					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
 				}
 
 				$renewal_order->add_order_note( $localized_message );
@@ -683,20 +692,15 @@ trait WC_Stripe_Subscriptions_Trait {
 		// If the amount is 0 we don't need to create a mandate since we won't be charging anything.
 		// And there won't be any renewal for this free subscription.
 		if ( 0 === $sub_amount ) {
-			return $request;
+			return [];
 		}
 
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
 
-		// If the amount zero we just return since mandate is not required and can not be created with zero amount.
-		if ( 0 === $sub_amount ) {
-			return [];
-		}
-
 		if ( 1 === count( $subscriptions ) ) {
 			$mandate_options['amount_type']    = 'fixed';
-			$mandate_options['interval']       = $sub->get_billing_period();
+			$mandate_options['interval']       = strtolower( $sub->get_billing_period() );
 			$mandate_options['interval_count'] = $sub->get_billing_interval();
 		} else {
 			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
