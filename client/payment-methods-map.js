@@ -50,6 +50,7 @@ export default {
 			'SEK',
 			'USD',
 		],
+		allows_manual_capture: true,
 	},
 	affirm: {
 		id: 'affirm',
@@ -62,6 +63,7 @@ export default {
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
 		acceptsDomesticPaymentsOnly: true,
+		allows_manual_capture: true,
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
@@ -82,6 +84,7 @@ export default {
 				  ),
 		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
 		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
+		allows_manual_capture: true,
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
