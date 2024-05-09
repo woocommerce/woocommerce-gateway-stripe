@@ -115,7 +115,7 @@ const PromotionalBannerSection = ( {
 						</h4>
 						<p>
 							{ __(
-								'Enable the new Stripe checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
+								'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
 								'woocommerce-gateway-stripe'
 							) }
 						</p>
