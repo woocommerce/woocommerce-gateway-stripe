@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api } from '../../utils';
+import { payments, api } from '../../../utils';
 
-const { setupBlocksCheckout, fillCardDetails } = payments;
+const { setupBlocksCheckout, fillCreditCardDetailsLegacy } = payments;
 
 let productId;
 
@@ -43,7 +43,7 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 	};
 
 	await setupBlocksCheckout( page, customerData );
-	await fillCardDetails( page, config.get( 'cards.basic' ) );
+	await fillCreditCardDetailsLegacy( page, config.get( 'cards.basic' ) );
 
 	await page.locator( 'text=Sign up now' ).click();
 	await page.waitForNavigation();

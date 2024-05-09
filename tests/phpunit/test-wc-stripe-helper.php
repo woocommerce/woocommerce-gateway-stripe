@@ -303,4 +303,47 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `payment_method_allows_manual_capture`
+	 *
+	 * @param string $payment_method The payment method.
+	 * @param bool   $expected       Whether manual capture is allowed.
+	 * @dataProvider provide_payment_method_allows_manual_capture
+	 * @return void
+	 */
+	public function test_payment_method_allows_manual_capture( $payment_method, $expected ): void {
+		$actual = WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_payment_method_allows_manual_capture`
+	 *
+	 * @return array
+	 */
+	public function provide_payment_method_allows_manual_capture(): array {
+		return [
+			'Card'              => [
+				'payment_method' => 'stripe',
+				'expected'       => true,
+			],
+			'Affirm'            => [
+				'payment_method' => 'stripe_affirm',
+				'expected'       => true,
+			],
+			'Klarna'            => [
+				'payment_method' => 'stripe_klarna',
+				'expected'       => true,
+			],
+			'Afterpay/Clearpay' => [
+				'payment_method' => 'stripe_afterpay_clearpay',
+				'expected'       => true,
+			],
+			'EPS'               => [
+				'payment_method' => 'stripe_eps',
+				'expected'       => false,
+			],
+		];
+	}
 }
