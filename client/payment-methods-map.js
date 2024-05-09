@@ -14,7 +14,6 @@ export default {
 		),
 		Icon: icons.card,
 		currencies: [],
-		capability: 'card_payments',
 		allows_manual_capture: true,
 	},
 	giropay: {
@@ -26,7 +25,6 @@ export default {
 		),
 		Icon: icons.giropay,
 		currencies: [ 'EUR' ],
-		capability: 'giropay_payments',
 	},
 	klarna: {
 		id: 'klarna',
@@ -95,7 +93,6 @@ export default {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		capability: 'sepa_debit_payments',
 	},
 	sepa: {
 		id: 'sepa',
@@ -106,7 +103,6 @@ export default {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		capability: 'sepa_debit_payments',
 	},
 	sofort: {
 		id: 'sofort',
@@ -117,7 +113,6 @@ export default {
 		),
 		Icon: icons.sofort,
 		currencies: [ 'EUR' ],
-		capability: 'sofort_payments',
 	},
 	eps: {
 		id: 'eps',
@@ -128,7 +123,6 @@ export default {
 		),
 		Icon: icons.eps,
 		currencies: [ 'EUR' ],
-		capability: 'eps_payments',
 	},
 	bancontact: {
 		id: 'bancontact',
@@ -139,7 +133,6 @@ export default {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		capability: 'bancontact_payments',
 	},
 	ideal: {
 		id: 'ideal',
@@ -150,7 +143,6 @@ export default {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		capability: 'ideal_payments',
 	},
 	p24: {
 		id: 'p24',
@@ -161,7 +153,6 @@ export default {
 		),
 		Icon: icons.p24,
 		currencies: [ 'EUR', 'PLN' ],
-		capability: 'p24_payments',
 	},
 	boleto: {
 		id: 'boleto',
@@ -172,7 +163,6 @@ export default {
 		),
 		Icon: icons.boleto,
 		currencies: [ 'BRL' ],
-		capability: 'boleto_payments',
 	},
 	oxxo: {
 		id: 'oxxo',
@@ -183,7 +173,6 @@ export default {
 		),
 		Icon: icons.oxxo,
 		currencies: [ 'MXN' ],
-		capability: 'oxxo_payments',
 	},
 	alipay: {
 		id: 'alipay',
@@ -205,7 +194,6 @@ export default {
 			'NZD',
 			'USD',
 		],
-		capability: 'alipay_payments',
 	},
 	multibanco: {
 		id: 'multibanco',
@@ -216,6 +204,5 @@ export default {
 		),
 		Icon: icons.multibanco,
 		currencies: [ 'EUR' ],
-		capability: 'multibanco_payments',
 	},
 };
