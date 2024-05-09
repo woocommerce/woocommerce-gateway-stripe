@@ -439,7 +439,7 @@ export const setupStripe = ( page, baseUrl ) =>
 					payment_request_button_size: 'default',
 					saved_cards: 'yes',
 					logging: 'no',
-					upe_checkout_experience_enabled: 'no',
+					upe_checkout_experience_enabled: 'yes',
 				};
 
 				await sshExecCommands( [

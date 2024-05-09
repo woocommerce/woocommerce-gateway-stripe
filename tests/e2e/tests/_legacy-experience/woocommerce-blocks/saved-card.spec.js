@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user } from '../../utils';
+import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupBlocksCheckout,
+	fillCreditCardDetailsLegacy,
 } = payments;
 
 let username, userEmail;
@@ -27,7 +27,9 @@ test.beforeAll( async () => {
 	await api.create.customer( user );
 } );
 
-test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
+test( 'customer can checkout with a saved card @smoke @blocks', async ( {
+	page,
+} ) => {
 	await test.step( 'customer login', async () => {
 		await user.login(
 			page,
@@ -38,13 +40,14 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 
 	await test.step( 'checkout and choose to save the card', async () => {
 		await emptyCart( page );
-
-		await setupProductCheckout( page );
-		await setupCheckout( page );
-		await fillCardDetails( page, config.get( 'cards.basic' ) );
+		await setupCart( page );
+		await setupBlocksCheckout( page );
+		await fillCreditCardDetailsLegacy( page, config.get( 'cards.basic' ) );
 
 		// check box to save payment method.
-		await page.locator( '#wc-stripe-new-payment-method' ).click();
+		await page
+			.locator( '.wc-block-components-payment-methods__save-card-info' )
+			.click();
 
 		await page.locator( 'text=Place order' ).click();
 
@@ -56,15 +59,21 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 
 	await test.step( 'checkout and pay with the saved card', async () => {
 		await emptyCart( page );
-		await setupProductCheckout( page );
-		await setupCheckout( page, null, true );
+		await setupCart( page );
+		await setupBlocksCheckout( page, null, true );
 
 		// check that there are saved payment methods.
 		await expect(
 			page.locator(
-				'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe-payment-token-"]'
+				'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
 			)
 		).toHaveCount( 1 );
+
+		await page
+			.locator(
+				'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
+			)
+			.click();
 
 		await page.locator( 'text=Place order' ).click();
 
