@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
 import PaymentMethodsMap from '../../payment-methods-map';
-import Tooltip from 'wcstripe/components/tooltip';
 import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
+import Popover from 'wcstripe/components/popover';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -23,10 +23,9 @@ const StyledPill = styled.span`
 `;
 
 const StyledLink = styled.a`
-	&,
-	&:hover,
+	&:focus,
 	&:visited {
-		color: white;
+		box-shadow: none;
 	}
 `;
 
@@ -37,6 +36,13 @@ const IconWrapper = styled.span`
 const AlertIcon = styled( Icon )`
 	fill: #674600;
 `;
+
+const IconComponent = ( { children, ...props } ) => (
+	<IconWrapper { ...props }>
+		<AlertIcon icon={ info } size="16" />
+		{ children }
+	</IconWrapper>
+);
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const alipayCurrencies = useAliPayCurrencies();
@@ -53,7 +59,8 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		return (
 			<StyledPill>
 				{ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
-				<Tooltip
+				<Popover
+					BaseComponent={ IconComponent }
 					content={ interpolateComponents( {
 						mixedString: sprintf(
 							/* translators: $1: a payment method name. %2: Currency(ies). */
@@ -78,11 +85,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 							),
 						},
 					} ) }
-				>
-					<IconWrapper>
-						<AlertIcon icon={ info } size="16" />
-					</IconWrapper>
-				</Tooltip>
+				/>
 			</StyledPill>
 		);
 	}
