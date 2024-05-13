@@ -1,19 +1,18 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupBlocksCheckout,
-	fillCardDetails,
-	isUpeCheckout,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
-	await setupProductCheckout( page );
-	await setupBlocksCheckout(
+	await setupCart( page );
+	await setupShortcodeCheckout(
 		page,
 		config.get( 'addresses.customer.billing' )
 	);
@@ -22,37 +21,31 @@ test.beforeEach( async ( { page } ) => {
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
-	await fillCardDetails( page, card );
+	await fillCreditCardDetailsShortcodeLegacy( page, card );
 	await page.locator( 'text=Place order' ).click();
 
-	const isUpe = await isUpeCheckout( page );
-
-	/**
-	 * The invalid card error message is shown in the input field validation.
-	 * The customer isn't allowed to place the order for this type of card failure.
-	 */
-	let expected;
-	if ( isUpe && cardKey === 'cards.declined-incorrect' ) {
-		expected = await page
-			.frameLocator(
-				'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '#Field-numberError' )
-			.innerText();
-	} else {
-		expected = await page.innerText(
-			cardKey === 'cards.declined-incorrect'
-				? '.wc-card-number-element .wc-block-components-validation-error'
-				: '.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'
-		);
-	}
 	expect
-		.soft( expected )
+		.soft( await page.innerText( '.woocommerce-error' ) )
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+};
+
+const testCardBlocks = async ( page, cardKey ) => {
+	const card = config.get( cardKey );
+
+	await fillCreditCardDetailsShortcodeLegacy( page, card );
+	await page.locator( 'text=Place order' ).click();
+
+	expect
+		.soft(
+			await page.innerText(
+				'.wc-block-components-notice-banner.is-error'
+			)
+		)
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
 test.describe.configure( { mode: 'parallel' } );
-test.describe( 'customer cannot checkout with invalid cards @blocks', () => {
+test.describe( 'customer cannot checkout with invalid cards', () => {
 	test( `a declined card shows the correct error message @smoke`, async ( {
 		page,
 	} ) => testCard( page, 'cards.declined' ) );

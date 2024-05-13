@@ -112,6 +112,15 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	}
 
 	/**
+	 * Returns whether the payment method requires automatic capture.
+	 *
+	 * @inheritDoc
+	 */
+	public function requires_automatic_capture() {
+		return false;
+	}
+
+	/**
 	 * Returns true if the Stripe account country is GB
 	 *
 	 * @return boolean
