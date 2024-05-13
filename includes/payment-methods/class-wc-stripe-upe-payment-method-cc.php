@@ -106,7 +106,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * The Credit Card method allows automatic capture.
 	 *
-	 * @return bool
+	 * @inheritDoc
 	 */
 	public function requires_automatic_capture() {
 		return false;

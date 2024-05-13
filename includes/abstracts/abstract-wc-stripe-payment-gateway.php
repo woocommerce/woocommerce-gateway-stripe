@@ -458,7 +458,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['receipt_email'] = $billing_email;
 		}
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$post_data['capture'] = $capture ? 'true' : 'false';
 			if ( $is_short_statement_descriptor_enabled ) {
 				$post_data['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );

@@ -129,7 +129,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+* Fix - Handle checkbox type required fields correctly on the shortcode checkout when paying with Google Pay/Apple Pay.
+* Tweak - Remove unused confirmation modal a capability properties.
+* Fix - Resgister script on the checkout page only when the gateway is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

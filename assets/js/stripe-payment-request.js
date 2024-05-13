@@ -157,8 +157,15 @@ jQuery( function( $ ) {
 			if ( requiredfields.length ) {
 				requiredfields.each( function() {
 					const field = $( this ).find( ':input' );
-					const value = field.val();
 					const name = field.attr( 'name' );
+
+					let value = '';
+					if ( field.attr( 'type' ) === 'checkbox' ) {
+						value = field.is( ':checked' );
+					} else {
+						value = field.val();
+					}
+
 					if ( value && name ) {
 						if ( ! data[ name ] ) {
 							data[ name ] = value;

@@ -296,6 +296,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		// Bail if Stripe is not enabled.
+		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
