@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove unused confirmation modal a capability properties.
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
+* Add - Show currency requirement details in a popover.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
