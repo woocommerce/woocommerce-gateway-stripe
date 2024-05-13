@@ -5,6 +5,7 @@
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
 * Tweak - Remove unused confirmation modal a capability properties.
+* Fix - Resgister script on the checkout page only when the gateway is enabled.
 
 = 8.3.0 - xxxx-xx-xx =
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
