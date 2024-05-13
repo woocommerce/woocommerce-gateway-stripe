@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Handle checkbox type required fields correctly on the shortcode checkout when paying with Google Pay/Apple Pay.
 * Tweak - Remove unused confirmation modal a capability properties.
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
+* Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
