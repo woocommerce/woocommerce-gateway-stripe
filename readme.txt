@@ -129,7 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+* Tweak - Remove unused confirmation modal a capability properties.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
