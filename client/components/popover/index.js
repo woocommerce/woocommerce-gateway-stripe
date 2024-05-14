@@ -4,16 +4,18 @@ import styled from '@emotion/styled';
 
 const StyledPopover = styled( PopoverComponent )`
 	top: -10px !important;
-	.components-popover {
-		top: -10px !important;
-	}
 
 	.components-popover__content {
 		border: 1px solid #cccccc;
 		border-radius: 2px;
 		box-shadow: 0px 2px 6px 0px rgba( 0, 0, 0, 0.05 );
 		padding: 12px;
-		width: 250px;
+	}
+
+	@media ( min-width: 660px ) {
+		.components-popover__content {
+			width: 250px;
+		}
 	}
 `;
 
