@@ -79,7 +79,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool Indicates whether the save payment method checkbox should be displayed or not.
 	 */
 	public function display_save_payment_method_checkbox( $display ) {
-		if ( class_exists( 'WC_Subscriptions_Cart' ) || WC_Subscriptions_Cart::cart_contains_subscription() || $this->is_changing_payment_method_for_subscription() ) {
+		if ( ! $this->is_subscriptions_enabled() || WC_Subscriptions_Cart::cart_contains_subscription() || $this->is_changing_payment_method_for_subscription() ) {
 			return false;
 		}
 		// Only render the "Save payment method" checkbox if there are no subscription products in the cart.
