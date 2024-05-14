@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React, useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
@@ -11,6 +11,8 @@ import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -75,6 +77,10 @@ const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		true
+	);
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -88,6 +94,25 @@ const PaymentSettingsPanel = () => {
 					onClose={ handleModalDismiss }
 					setKeepModalContent={ setKeepModalContent }
 				/>
+			) }
+			{ showPromotionalBanner && (
+				<SettingsSection>
+					<LoadableSettingsSection numLines={ 20 }>
+						<LoadableAccountSection
+							numLines={ 20 }
+							keepContent={ keepModalContent }
+						>
+							<PromotionalBannerSection
+								setShowPromotionalBanner={
+									setShowPromotionalBanner
+								}
+								isUpeEnabled={ isUpeEnabled }
+								setIsUpeEnabled={ setIsUpeEnabled }
+							/>
+						</LoadableAccountSection>
+					</LoadableSettingsSection>
+					<CustomizationOptionsNotice />
+				</SettingsSection>
 			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
