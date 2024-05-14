@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
