@@ -44,6 +44,7 @@ const PaymentRequestExpressComponent = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	buttonAttributes,
 } ) => {
 	const stripe = useStripe();
 	const { needsShipping } = shippingData;
@@ -71,17 +72,12 @@ const PaymentRequestExpressComponent = ( {
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
-	const {
-		type = 'default',
-		theme = 'dark',
-		height = '48',
-	} = getBlocksConfiguration()?.button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
-			type,
-			theme,
-			height: `${ height }px`,
+			type: buttonAttributes.label,
+			theme: buttonAttributes?.darkMode ? 'light' : 'dark',
+			height: buttonAttributes?.height ?? buttonAttributes.defaultHeight,
 		},
 	};
 
