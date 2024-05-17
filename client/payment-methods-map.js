@@ -212,7 +212,7 @@ export default {
 			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.alipay,
+		Icon: icons.wechat_pay,
 		currencies: [
 			'CNY',
 			'AUD',
