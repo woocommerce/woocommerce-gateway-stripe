@@ -32,6 +32,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 * Constructor.
 	 */
 	public function __construct() {
+		$this->scheduled_hook = 'stripe_schedule_legacy_sepa_token_repairs';
+		$this->repair_hook    = 'stripe_legacy_sepa_token_repair';
+
 		$this->logger = wc_get_logger();
 	}
 
