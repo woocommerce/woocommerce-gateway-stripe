@@ -2047,6 +2047,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
+		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
+		if ( 'wechat_pay' === $selected_payment_type ) {
+			$payment_information['payment_method_options'] = [
+				'wechat_pay' => [
+					'client' => 'web',
+				],
+			];
+		}
+
 		return $payment_information;
 	}
 
