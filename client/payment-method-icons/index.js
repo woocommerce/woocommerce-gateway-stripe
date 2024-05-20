@@ -14,6 +14,7 @@ import IdealIcon from './ideal';
 import P24Icon from './p24';
 import BoletoIcon from './boleto';
 import OxxoIcon from './oxxo';
+import CashAppIcon from './cashapp';
 
 export default {
 	alipay: AlipayIcon,
@@ -32,4 +33,5 @@ export default {
 	p24: P24Icon,
 	boleto: BoletoIcon,
 	oxxo: OxxoIcon,
+	cashapp: CashAppIcon,
 };
