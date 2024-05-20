@@ -77,7 +77,7 @@ const PaymentRequestExpressComponent = ( {
 		paymentRequestButton: {
 			type: buttonAttributes.label,
 			theme: buttonAttributes?.darkMode ? 'light' : 'dark',
-			height: buttonAttributes?.height ?? buttonAttributes.defaultHeight,
+			height: buttonAttributes?.height,
 		},
 	};
 
