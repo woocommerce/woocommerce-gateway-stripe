@@ -119,9 +119,17 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 					$user_id,
 					WC_Gateway_Stripe_Sepa::ID
 				);
+
+				if ( ! $legacy_token ) {
+					$updated_token = $this->get_customer_default_token( $user_id );
+				}
 			}
 
-			$this->update_subscription_legacy_payment_method( $subscription );
+			if ( ! $updated_token ) {
+				throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. No updated token found.', $subscription_id ) );
+			}
+
+			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
 		} catch ( \Exception $e ) {
 			$this->logger->info( $e->getMessage() );
 		}
@@ -160,26 +168,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	}
 
 	/**
-	 * Updates the payment method for the subscription.
-	 *
-	 * @param WC_Subscription $subscription Subscriptions for which the payment method must be updated.
-	 */
-	private function update_subscription_legacy_payment_method( WC_Subscription $subscription ) {
-		// This is what we do in WC_Stripe_Subscriptions_Trait::maybe_update_source_on_subscription_order,
-		// but shouldn't we use WCS_Payment_Tokens::update_subscription_token() instead? Or WC_Order::add_payment_token()?
-		// The latter is the one used by WooPayments.
-		$sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
-
-		// Update the payment method associated with the subscription.
-		$subscription->set_payment_method( $sepa_gateway_id );
-
-		// Add a meta to the subscription to flag that its token got updated.
-		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
-
-		$subscription->save();
-	}
-
-	/**
 	 * Returns the token associated with a subscription.
 	 *
 	 * @todo Is there a better way to retrieve these? WC_Order::get_payment_tokens() returns an empty array for some reason.
@@ -209,5 +197,44 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns the default token associated with the given customer.
+	 *
+	 * @param int $customer_id The customer's WordPress User ID for whom we want to retrieve the default token.
+	 * @return WC_Payment_Token|false
+	 */
+	private function get_customer_default_token( int $customer_id ) {
+		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id );
+
+		foreach ( $customer_tokens as $token ) {
+			if ( $token->is_default() ) {
+				return $token;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Sets the updated payment method for the subscription.
+	 *
+	 * @param WC_Subscription  $subscription Subscription for which the payment method must be updated.
+	 * @param WC_Payment_Token $token        The token to be set as the payment method for the subscription.
+	 */
+	private function set_subscription_updated_payment_method( WC_Subscription $subscription, WC_Payment_Token $token ) {
+		// This is what we do in WC_Stripe_Subscriptions_Trait::maybe_update_source_on_subscription_order,
+		// but shouldn't we use WCS_Payment_Tokens::update_subscription_token() instead? Or WC_Order::add_payment_token()?
+		// The latter is the one used by WooPayments.
+
+		// Add a meta to the subscription to flag that its token got updated.
+		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $token->get_token() );
+
+		$subscription->set_payment_method( $token->get_gateway_id() );
+		$subscription->set_payment_method_title( $token->get_title() );
+
+		$subscription->save();
 	}
 }
