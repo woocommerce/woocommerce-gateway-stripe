@@ -104,32 +104,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 			$user_id      = $subscription->get_user_id();
 
-			// It's possible that a token using the updated gateway ID already exists.
-			// We create these when the shopper vistis the Checkout and the My account > Payment methods page.
-			$updated_token = $this->get_subscription_token(
-				$source_id,
-				$user_id,
-				WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID
-			);
-
-			// Create an updated token from the legacy one.
-			if ( ! $updated_token ) {
-				$legacy_token = $this->get_subscription_token(
-					$source_id,
-					$user_id,
-					WC_Gateway_Stripe_Sepa::ID
-				);
-
-				if ( $legacy_token ) {
-					$updated_token = $this->create_updated_token_from_legacy( $legacy_token );
-				} else {
-					$updated_token = $this->get_customer_default_token( $user_id );
-				}
-			}
-
-			if ( ! $updated_token ) {
-				throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. No updated token found.', $subscription_id ) );
-			}
+			// The tokens for the Legacy SEPA gateway aren't available when the Legacy experience is disabled.
+			// Let's retrieve a token that can be used instead.
+			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
 
 			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
 		} catch ( \Exception $e ) {
@@ -167,6 +144,54 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		}
 
 		return $subscription;
+	}
+
+	/**
+	 * Returns an updated token to be used for the subscription, given the source ID.
+	 *
+	 * It will return the updated token if it already exists, otherwise it will create one from the legacy token.
+	 * If no legacy token is found, it will return the default token for the customer.
+	 *
+	 * @param string  $source_id The Source or Payment Method ID associated with the subscription.
+	 * @param integer $user_id   The WordPress User ID to whom the subscription belongs.
+	 * @throws \Exception If no replacement token is found.
+	 * @return WC_Payment_Token
+	 */
+	private function get_updated_sepa_token_by_source_id( string $source_id, int $user_id ): WC_Payment_Token {
+		// It's possible that a token using the updated gateway ID already exists. Retrieve it if so.
+		// We create these when the shopper vistis the Checkout and the My account > Payment methods page.
+		$updated_token = $this->get_subscription_token(
+			$source_id,
+			$user_id,
+			WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID
+		);
+
+		// Return the updated token if we already have it.
+		if ( $updated_token ) {
+			return $updated_token;
+		}
+
+		// Retrieve the legacy SEPA token used for the subscription.
+		$legacy_token = $this->get_subscription_token(
+			$source_id,
+			$user_id,
+			WC_Gateway_Stripe_Sepa::ID
+		);
+
+		if ( $legacy_token ) {
+			// Create an updated token from the legacy SEPA one, using the UPE SEPA gateway.
+			$updated_token = $this->create_updated_token_from_legacy( $legacy_token );
+		} else {
+			// Use the default token for the customer when we can't find the associated legacy SEPA one.
+			$updated_token = $this->get_customer_default_token( $user_id );
+		}
+
+		// We can't proceed with updating the subscription if we don't have a token to use.
+		if ( ! $updated_token ) {
+			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. No replacement token was found.', $subscription_id ) );
+		}
+
+		return $updated_token;
 	}
 
 	/**
