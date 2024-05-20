@@ -120,7 +120,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 					WC_Gateway_Stripe_Sepa::ID
 				);
 
-				if ( ! $legacy_token ) {
+				if ( $legacy_token ) {
+					$updated_token = $this->create_updated_token_from_legacy( $legacy_token );
+				} else {
 					$updated_token = $this->get_customer_default_token( $user_id );
 				}
 			}
@@ -197,6 +199,26 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		}
 
 		return false;
+	}
+
+	/**
+	 * Creates an updated token using the UPE SEPA gateway from the legacy SEPA token.
+	 *
+	 * @param WC_Payment_Token $legacy_token The legacy token from which the updated one will be created.
+	 * @return WC_Payment_Token The updated token.
+	 */
+	private function create_updated_token_from_legacy( WC_Payment_Token $legacy_token ): WC_Payment_Token {
+		$updated_token = new WC_Payment_Token_SEPA();
+
+		$updated_token->set_last4( $legacy_token->get_last4() );
+		$updated_token->set_payment_method_type( $legacy_token->get_type() );
+		$updated_token->set_gateway_id( $legacy_token->get_gateway_id() );
+		$updated_token->set_token( $legacy_token->get_token() );
+		$updated_token->set_user_id( $legacy_token->get_user_id() );
+
+		$updated_token->save();
+
+		return $updated_token;
 	}
 
 	/**
