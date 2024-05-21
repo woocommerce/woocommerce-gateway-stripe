@@ -1,17 +1,24 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+/**
+ * Class UPE Cash App Pay Method
+ *
+ * @package WooCommerce_Stripe\Payment_Methods
+ */
+
+defined( 'ABSPATH' ) || exit;
 
 /**
- * The Cash App Pay Payment Method class extending UPE base class
+ * The Cash App Pay Payment Method class extending UPE base class.
  */
 class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Method {
 
+	/**
+	 * The Stripe ID for the payment method.
+	 */
 	const STRIPE_ID = 'cashapp';
 
 	/**
-	 * Constructor for Cash App payment method
+	 * Constructor for Cash App payment method.
 	 */
 	public function __construct() {
 		parent::__construct();
