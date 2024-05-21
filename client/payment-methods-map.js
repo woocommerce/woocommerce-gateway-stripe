@@ -205,6 +205,30 @@ export default {
 		Icon: icons.multibanco,
 		currencies: [ 'EUR' ],
 	},
+	wechat_pay: {
+		id: 'wechat_pay',
+		label: __( 'WeChat Pay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.wechat_pay,
+		currencies: [
+			'CNY',
+			'AUD',
+			'CAD',
+			'EUR',
+			'GBP',
+			'HKD',
+			'JPY',
+			'SGD',
+			'USD',
+			'DKK',
+			'NOK',
+			'SEK',
+			'CHF',
+		],
+	},
 	cashapp: {
 		id: 'cashapp',
 		label: __( 'Cash App Pay', 'woocommerce-gateway-stripe' ),

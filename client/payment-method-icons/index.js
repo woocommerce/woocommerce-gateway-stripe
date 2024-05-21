@@ -14,6 +14,7 @@ import IdealIcon from './ideal';
 import P24Icon from './p24';
 import BoletoIcon from './boleto';
 import OxxoIcon from './oxxo';
+import WechatPayIcon from './wechat-pay';
 import CashAppIcon from './cashapp';
 
 export default {
@@ -33,5 +34,6 @@ export default {
 	p24: P24Icon,
 	boleto: BoletoIcon,
 	oxxo: OxxoIcon,
+	wechat_pay: WechatPayIcon,
 	cashapp: CashAppIcon,
 };
