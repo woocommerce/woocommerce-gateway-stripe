@@ -76,6 +76,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'boleto_payments'            => 'inactive',
 		'oxxo_payments'              => 'inactive',
 		'link_payments'              => 'inactive',
+		'wechat_pay_payments'        => 'inactive',
 	];
 
 	/**
@@ -98,7 +99,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'boleto_payments'            => 'active',
 		'oxxo_payments'              => 'active',
 		'link_payments'              => 'active',
-
+		'wechat_pay_payments'        => 'inactive',
 	];
 
 	/**
@@ -226,6 +227,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_oxxo_details       = [
 			'type' => 'oxxo',
 		];
+		$mock_wechat_pay_details = [
+			'type' => 'wechat_pay',
+		];
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$alipay_method     = $this->mock_payment_methods['alipay'];
@@ -238,6 +242,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$ideal_method      = $this->mock_payment_methods['ideal'];
 		$boleto_method     = $this->mock_payment_methods['boleto'];
 		$oxxo_method       = $this->mock_payment_methods['oxxo'];
+		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
 
 		$this->assertEquals( 'card', $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -332,6 +337,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $oxxo_method->is_reusable() );
 		$this->assertEquals( 'oxxo', $oxxo_method->get_retrievable_type() );
 		$this->assertEquals( '', $oxxo_method->get_testing_instructions() );
+
+		$this->assertEquals( 'wechat_pay', $wechat_pay_method->get_id() );
+		$this->assertEquals( 'WeChat Pay', $wechat_pay_method->get_label() );
+		$this->assertEquals( 'WeChat Pay', $wechat_pay_method->get_title() );
+		$this->assertEquals( 'WeChat Pay', $wechat_pay_method->get_title( $mock_wechat_pay_details ) );
+		$this->assertFalse( $wechat_pay_method->is_reusable() );
+		$this->assertEquals( 'wechat_pay', $wechat_pay_method->get_retrievable_type() );
+		$this->assertEquals( '', $wechat_pay_method->get_testing_instructions() );
 	}
 
 	/**
@@ -361,6 +374,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$ideal_method             = $this->mock_payment_methods['ideal'];
 		$boleto_method            = $this->mock_payment_methods['boleto'];
 		$oxxo_method              = $this->mock_payment_methods['oxxo'];
+		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
@@ -375,6 +389,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $ideal_method->is_enabled_at_checkout() );
 		$this->assertFalse( $boleto_method->is_enabled_at_checkout() );
 		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
+		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 	}
 
 	/**
