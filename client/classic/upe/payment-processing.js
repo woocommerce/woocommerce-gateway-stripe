@@ -378,7 +378,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  * Handles displaying the CashApp or WeChat modal to the customer and then redirecting
  * them to the order received page once they authenticate the payment.
  *
- * When processing a payment for a wallet payment methods on the checkout or order pay page,
+ * When processing a payment for a wallet payment method on the checkout or order pay page,
  * the process_payment_with_deferred_intent() function redirects the customer to a URL
  * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<client_secret>:<redirect_url>.
  *
@@ -444,10 +444,14 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 
-		// Once the customer closes the voucher and there are no errors, redirect them to the order received page.
-		window.location.href = decodeURIComponent( partials[ 4 ] );
+		// Do not redirect to the order received page if the modal is closed without payment.
+		// Otherwise redirect to the order received page.
+		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
+			window.location.href = decodeURIComponent( partials[ 4 ] );
+		}
 	} catch ( error ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
 		showErrorCheckout( error.message );
+	} finally {
+		jQueryForm.removeClass( 'processing' ).unblock();
 	}
 };
