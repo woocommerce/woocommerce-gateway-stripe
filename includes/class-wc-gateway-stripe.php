@@ -656,6 +656,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
 	 */
 	public function reorder_available_payment_gateways( $gateways ) {
+		if ( ! is_array( $gateways ) ) {
+			return $gateways;
+		}
+
 		$ordered_available_stripe_methods = [];
 
 		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.

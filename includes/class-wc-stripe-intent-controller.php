@@ -722,6 +722,10 @@ class WC_Stripe_Intent_Controller {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
 		}
 
+		if ( isset( $payment_information['payment_method_options'] ) ) {
+			$request['payment_method_options'] = $payment_information['payment_method_options'];
+		}
+
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
 		}

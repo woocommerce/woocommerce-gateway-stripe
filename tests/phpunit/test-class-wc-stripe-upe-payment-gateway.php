@@ -79,6 +79,28 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Wallet payment intent.
+	 */
+	const MOCK_WECHAT_PAY_PAYMENT_INTENT_TEMPLATE = [
+		'id'                 => 'pi_mock',
+		'object'             => 'payment_intent',
+		'status'             => 'succeeded',
+		'last_payment_error' => [],
+		'client_secret'      => 'cs_mock',
+		'charges'            => [
+			'total_count' => 1,
+			'data'        => [
+				[
+					'id'                     => 'ch_mock',
+					'captured'               => true,
+					'payment_method_details' => [],
+					'status'                 => 'succeeded',
+				],
+			],
+		],
+	];
+
+	/**
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_SETUP_INTENT_TEMPLATE = [
@@ -247,6 +269,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 				],
 			],
 			[
@@ -262,6 +285,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 				],
 			],
 		];
@@ -443,6 +467,73 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
+	}
+
+	/**
+	 * Test Wallet checkout process_payment flow with deferred intent.
+	 */
+	public function test_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response() {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		// Set payment gateway.
+		$payment_gateways = WC()->payment_gateways->payment_gateways();
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID );
+		$order->save();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'         => 'requires_action',
+				'data'           => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+				'payment_method' => 'pm_mock',
+				'payment_method_types' => [ 'wechat_pay' ],
+				'charges' => (object) [
+					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
+					'data'        => [],
+				],
+			],
+			self::MOCK_WECHAT_PAY_PAYMENT_INTENT_TEMPLATE
+		);
+
+		// Set the appropriate POST flag to trigger a deferred intent request.
+		$_POST = [
+			'payment_method'               => 'stripe_wechat_pay',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-is-deferred-intent' => '1',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		// We only use this when handling mandates.
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) [] );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
+
+		$response   = $this->mock_gateway->process_payment( $order_id );
+		$return_url = self::MOCK_RETURN_URL;
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-wallet-{$order_id}:wechat_pay:{$mock_intent->client_secret}:{$return_url}/", $response['redirect'] );
 	}
 
 	/**

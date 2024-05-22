@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
@@ -136,6 +137,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove unused confirmation modal a capability properties.
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
+* Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
 * Add - Show currency requirement details in a popover.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
