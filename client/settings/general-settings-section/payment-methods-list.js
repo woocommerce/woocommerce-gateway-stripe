@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -17,7 +17,6 @@ import {
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -101,10 +100,6 @@ const ListElement = styled.li`
 		}
 	}
 
-	&.disabled {
-		opacity: 0.6;
-	}
-
 	button {
 		&.hide {
 			visibility: hidden;
@@ -160,11 +155,31 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
+/**
+ * Formats the payment method description with the account default currency.
+ *
+ * @param {*} method Payment method ID.
+ * @param {*} accountDefaultCurrency Account default currency.
+ */
+const getFormattedPaymentMethodDescription = (
+	method,
+	accountDefaultCurrency
+) => {
+	const { description, acceptsDomesticPaymentsOnly } = PaymentMethodsMap[
+		method
+	];
+
+	if ( acceptsDomesticPaymentsOnly ) {
+		return sprintf( description, accountDefaultCurrency?.toUpperCase() );
+	}
+
+	return description;
+};
+
 const GeneralSettingsSection = ( {
 	isChangingDisplayOrder,
 	onSaveChanges,
 } ) => {
-	const storeCurrency = window?.wcSettings?.currency?.code;
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
@@ -177,7 +192,6 @@ const GeneralSettingsSection = ( {
 	} = useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
-	const alipayCurrencies = useAliPayCurrencies();
 
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
@@ -233,7 +247,6 @@ const GeneralSettingsSection = ( {
 				const {
 					Icon,
 					label,
-					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
 
@@ -255,8 +268,12 @@ const GeneralSettingsSection = ( {
 						/>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
+								id={ method }
 								Icon={ Icon }
-								description={ description }
+								description={ getFormattedPaymentMethodDescription(
+									method,
+									data.account?.default_currency
+								) }
 								label={ label }
 							/>
 							<StyledFees id={ method } />
@@ -272,16 +289,8 @@ const GeneralSettingsSection = ( {
 				const {
 					Icon,
 					label,
-					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
-				const paymentMethodCurrencies =
-					method === 'alipay'
-						? alipayCurrencies
-						: PaymentMethodsMap[ method ]?.currencies || [];
-				const isCurrencySupported =
-					method === 'card' ||
-					paymentMethodCurrencies.includes( storeCurrency );
 
 				return (
 					<div key={ method }>
@@ -292,7 +301,6 @@ const GeneralSettingsSection = ( {
 									! isAllowingManualCapture &&
 									isManualCaptureEnabled,
 								expanded: customizationStatus[ method ],
-								disabled: ! isCurrencySupported,
 							} ) }
 						>
 							<PaymentMethodCheckbox
@@ -301,21 +309,20 @@ const GeneralSettingsSection = ( {
 								isAllowingManualCapture={
 									isAllowingManualCapture
 								}
-								isCurrencySupported={ isCurrencySupported }
-								paymentMethodCurrencies={
-									paymentMethodCurrencies
-								}
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
+									id={ method }
 									Icon={ Icon }
-									description={ description }
+									description={ getFormattedPaymentMethodDescription(
+										method,
+										data.account?.default_currency
+									) }
 									label={ label }
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! isUpeEnabled &&
-								isCurrencySupported &&
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"
@@ -333,19 +340,17 @@ const GeneralSettingsSection = ( {
 									</Button>
 								) }
 						</ListElement>
-						{ ! isUpeEnabled &&
-							isCurrencySupported &&
-							customizationStatus[ method ] && (
-								<CustomizePaymentMethod
-									method={ method }
-									onClose={ ( customizationData ) =>
-										onSaveCustomization(
-											method,
-											customizationData
-										)
-									}
-								/>
-							) }
+						{ ! isUpeEnabled && customizationStatus[ method ] && (
+							<CustomizePaymentMethod
+								method={ method }
+								onClose={ ( customizationData ) =>
+									onSaveCustomization(
+										method,
+										customizationData
+									)
+								}
+							/>
+						) }
 					</div>
 				);
 			} ) }

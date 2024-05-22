@@ -10,6 +10,9 @@ export const PAYMENT_METHOD_NAME_OXXO = 'stripe_oxxo';
 export const PAYMENT_METHOD_NAME_BANCONTACT = 'stripe_bancontact';
 export const PAYMENT_METHOD_NAME_ALIPAY = 'stripe_alipay';
 export const PAYMENT_METHOD_NAME_KLARNA = 'stripe_klarna';
+export const PAYMENT_METHOD_NAME_AFFIRM = 'stripe_affirm';
+export const PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY = 'stripe_afterpay_clearpay';
+export const PAYMENT_METHOD_NAME_WECHAT_PAY = 'stripe_wechat_pay';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -25,6 +28,9 @@ export function getPaymentMethodsConstants() {
 		bancontact: PAYMENT_METHOD_NAME_BANCONTACT,
 		alipay: PAYMENT_METHOD_NAME_ALIPAY,
 		klarna: PAYMENT_METHOD_NAME_KLARNA,
+		affirm: PAYMENT_METHOD_NAME_AFFIRM,
+		afterpay_clearpay: PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY,
+		wechat_pay: PAYMENT_METHOD_NAME_WECHAT_PAY,
 	};
 }
 

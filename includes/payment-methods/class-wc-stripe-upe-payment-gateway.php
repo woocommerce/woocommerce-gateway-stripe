@@ -25,6 +25,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
+		WC_Stripe_UPE_Payment_Method_Affirm::class,
+		WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
 		WC_Stripe_UPE_Payment_Method_Eps::class,
 		WC_Stripe_UPE_Payment_Method_Bancontact::class,
 		WC_Stripe_UPE_Payment_Method_Boleto::class,
@@ -34,6 +36,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_P24::class,
 		WC_Stripe_UPE_Payment_Method_Sofort::class,
 		WC_Stripe_UPE_Payment_Method_Link::class,
+		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 	];
 
 	/**
@@ -294,6 +297,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		// Bail if Stripe is not enabled.
+		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -387,6 +395,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
+		$stripe_params['accountCountry']                   = $this->account->get_account_country();
 
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
@@ -461,7 +470,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'title'               => $payment_method->get_title(),
 				'testingInstructions' => $payment_method->get_testing_instructions(),
 				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_countries(),
+				'countries'           => $payment_method->get_available_billing_countries(),
 			];
 		}
 
@@ -825,6 +834,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
 			 *
 			 * - Voucher payments (Boleto or Oxxo) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
+			 * - Wallet payments (CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
 			 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
 			 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
 			 */
@@ -833,6 +843,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					// For Voucher payment method types (Boleto/Oxxo), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 					$redirect = sprintf(
 						'#wc-stripe-voucher-%s:%s:%s:%s',
+						$order_id,
+						$payment_information['selected_payment_type'],
+						$payment_intent->client_secret,
+						rawurlencode( $redirect )
+					);
+				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
+					$redirect = sprintf(
+						'#wc-stripe-wallet-%s:%s:%s:%s',
 						$order_id,
 						$payment_information['selected_payment_type'],
 						$payment_intent->client_secret,
@@ -1895,7 +1914,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->save_intent_to_order( $order, $payment_intent->error->payment_intent );
 			}
 
-			$this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
+			$has_removed_customer = $this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
 
 			if ( ! $this->is_retryable_error( $payment_intent->error ) || ! $retry ) {
 				throw new WC_Stripe_Exception(
@@ -1903,6 +1922,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					print_r( $payment_intent, true ),
 					$payment_intent->error->message
 				);
+			}
+
+			// If the non existent customer was removed, we need to recreate a customer.
+			if ( $has_removed_customer ) {
+				$payment_information['customer'] = $this->get_customer_id_for_order( $order );
 			}
 
 			// Don't do anymore retries after this.
@@ -2031,6 +2055,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
 		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+		}
+
+		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
+		if ( 'wechat_pay' === $selected_payment_type ) {
+			$payment_information['payment_method_options'] = [
+				'wechat_pay' => [
+					'client' => 'web',
+				],
+			];
 		}
 
 		return $payment_information;

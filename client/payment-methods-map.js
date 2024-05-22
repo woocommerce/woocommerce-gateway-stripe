@@ -1,6 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
 
+const accountCountry =
+	window.wc_stripe_settings_params?.account_country || 'US';
+
 export default {
 	card: {
 		id: 'card',
@@ -11,7 +14,6 @@ export default {
 		),
 		Icon: icons.card,
 		currencies: [],
-		capability: 'card_payments',
 		allows_manual_capture: true,
 	},
 	giropay: {
@@ -23,7 +25,6 @@ export default {
 		),
 		Icon: icons.giropay,
 		currencies: [ 'EUR' ],
-		capability: 'giropay_payments',
 	},
 	klarna: {
 		id: 'klarna',
@@ -47,6 +48,41 @@ export default {
 			'SEK',
 			'USD',
 		],
+		allows_manual_capture: true,
+	},
+	affirm: {
+		id: 'affirm',
+		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		// translators: %s is the store currency.
+		description: __(
+			'Allow customers to pay over time with Affirm. Available to all customers paying in %s.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.affirm,
+		currencies: [ 'USD', 'CAD' ],
+		acceptsDomesticPaymentsOnly: true,
+		allows_manual_capture: true,
+	},
+	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
+	afterpay_clearpay: {
+		id: 'afterpay_clearpay',
+		label:
+			accountCountry === 'GB'
+				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
+				: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
+		description:
+			accountCountry === 'GB'
+				? __(
+						'Allow customers to pay over time with Clearpay.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						'Allow customers to pay over time with Afterpay.',
+						'woocommerce-gateway-stripe'
+				  ),
+		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
+		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
+		allows_manual_capture: true,
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
@@ -57,7 +93,6 @@ export default {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		capability: 'sepa_debit_payments',
 	},
 	sepa: {
 		id: 'sepa',
@@ -68,7 +103,6 @@ export default {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		capability: 'sepa_debit_payments',
 	},
 	sofort: {
 		id: 'sofort',
@@ -79,7 +113,6 @@ export default {
 		),
 		Icon: icons.sofort,
 		currencies: [ 'EUR' ],
-		capability: 'sofort_payments',
 	},
 	eps: {
 		id: 'eps',
@@ -90,7 +123,6 @@ export default {
 		),
 		Icon: icons.eps,
 		currencies: [ 'EUR' ],
-		capability: 'eps_payments',
 	},
 	bancontact: {
 		id: 'bancontact',
@@ -101,7 +133,6 @@ export default {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		capability: 'bancontact_payments',
 	},
 	ideal: {
 		id: 'ideal',
@@ -112,7 +143,6 @@ export default {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		capability: 'ideal_payments',
 	},
 	p24: {
 		id: 'p24',
@@ -123,7 +153,6 @@ export default {
 		),
 		Icon: icons.p24,
 		currencies: [ 'EUR', 'PLN' ],
-		capability: 'p24_payments',
 	},
 	boleto: {
 		id: 'boleto',
@@ -134,7 +163,6 @@ export default {
 		),
 		Icon: icons.boleto,
 		currencies: [ 'BRL' ],
-		capability: 'boleto_payments',
 	},
 	oxxo: {
 		id: 'oxxo',
@@ -145,7 +173,6 @@ export default {
 		),
 		Icon: icons.oxxo,
 		currencies: [ 'MXN' ],
-		capability: 'oxxo_payments',
 	},
 	alipay: {
 		id: 'alipay',
@@ -167,7 +194,6 @@ export default {
 			'NZD',
 			'USD',
 		],
-		capability: 'alipay_payments',
 	},
 	multibanco: {
 		id: 'multibanco',
@@ -178,6 +204,29 @@ export default {
 		),
 		Icon: icons.multibanco,
 		currencies: [ 'EUR' ],
-		capability: 'multibanco_payments',
+	},
+	wechat_pay: {
+		id: 'wechat_pay',
+		label: __( 'WeChat Pay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.wechat_pay,
+		currencies: [
+			'CNY',
+			'AUD',
+			'CAD',
+			'EUR',
+			'GBP',
+			'HKD',
+			'JPY',
+			'SGD',
+			'USD',
+			'DKK',
+			'NOK',
+			'SEK',
+			'CHF',
+		],
 	},
 };

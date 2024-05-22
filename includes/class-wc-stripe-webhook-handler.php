@@ -385,7 +385,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'stripe' === $order->get_payment_method() ) { // Note: Authorize & capture is only available on credit card payments so we only need to check for 'stripe' payment methods.
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge   = $order->get_transaction_id();
 			$captured = $order->get_meta( '_stripe_charge_captured', true );
 
@@ -885,6 +885,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id           = $order->get_id();
 		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
+		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay' ] );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
@@ -899,11 +900,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
-				// TODO: This is a stop-gap to fix a critical issue, see
-				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
-				// be better if we removed the need for additional meta data in favor of refactoring
-				// this part of the payment processing.
-				if ( ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) ) ) {
+				/**
+				 * Check if the order is awaiting further action from the customer. If so, do not process the payment via the webhook, let the redirect handle it.
+				 *
+				 * This is a stop-gap to fix a critical issue, see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+				 * be better if we removed the need for additional meta data in favor of refactoring this part of the payment processing.
+				 */
+				$is_awaiting_action = ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) );
+
+				// Voucher payments are only processed via the webhook so are excluded from the above check.
+				// Wallets are also processed via the webhook, not redirection.
+				if ( ! $is_voucher_payment && ! $is_wallet_payment && $is_awaiting_action ) {
 					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
 					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;
