@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -75,11 +76,27 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
-	 * List of supported countries
+	 * Supported customer locations for which charges for a payment method can be processed.
+	 * Empty if all customer locations are supported.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
-	protected $supported_countries;
+	protected $supported_countries = [];
+
+	/**
+	 * Should payment method be restricted to only domestic payments.
+	 * E.g. only to Stripe's connected account currency.
+	 *
+	 * @var boolean
+	 */
+	protected $accept_only_domestic_payment = false;
+
+	/**
+	 * Represent payment total limitations for the payment method (per-currency).
+	 *
+	 * @var array<string,array<string,array<string,int>>>
+	 */
+	protected $limits_per_currency = [];
 
 	/**
 	 * Wether this UPE method is in testmode.
@@ -200,18 +217,36 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
-	 * @param int|null $order_id
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout( $order_id = null ) {
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
 			return false;
 		}
 
 		// Check currency compatibility.
-		$currencies = $this->get_supported_currencies();
-		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
+		$current_store_currency = $this->get_woocommerce_currency();
+		$currencies             = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( $current_store_currency, $currencies, true ) ) {
+			return false;
+		}
+
+		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
+		if ( $this->has_domestic_transactions_restrictions() ) {
+			if ( null === $account_domestic_currency ) {
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+			}
+
+			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
+				return false;
+			}
+		}
+
+		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
+		if ( [] !== $this->get_limits_per_currency() && ! $this->is_inside_currency_limits( $current_store_currency ) ) {
 			return false;
 		}
 
@@ -231,6 +266,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for a payment method can be processed.
+	 *
+	 * @return array Supported customer locations.
+	 */
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+
+		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
 	}
 
 	/**
@@ -288,8 +335,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$account = WC_Stripe::get_instance()->account;
-		$data    = $account->get_cached_account_data();
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
@@ -333,6 +379,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Determines whether the payment method is restricted to the Stripe account's currency.
+	 * E.g.: Afterpay/Clearpay and Affirm only supports domestic payments; Klarna also implements a simplified version of these market restrictions.
+	 *
+	 * @return bool
+	 */
+	public function has_domestic_transactions_restrictions(): bool {
+		return $this->accept_only_domestic_payment;
 	}
 
 	/**
@@ -518,6 +574,67 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function should_show_save_option() {
 		return $this->is_reusable() && $this->is_saved_cards_enabled();
+	}
+
+	/**
+	 * Returns the payment method's limits per currency.
+	 *
+	 * @return int[][][]
+	 */
+	public function get_limits_per_currency(): array {
+		return $this->limits_per_currency;
+	}
+
+	/**
+	 * Returns the current order amount (from the "pay for order" page or from the current cart).
+	 *
+	 * @return float|int|string
+	 */
+	public function get_current_order_amount() {
+		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			return $order->get_total( '' );
+		} elseif ( WC()->cart ) {
+			return WC()->cart->get_total( '' );
+		}
+		return 0;
+	}
+
+	/**
+	 * Determines if the payment method is inside the currency limits.
+	 *
+	 * @param  string $current_store_currency The store's currency.
+	 * @return bool True if the payment method is inside the currency limits, false otherwise.
+	 */
+	public function is_inside_currency_limits( $current_store_currency ): bool {
+		// Pay for order page will check for the current order total instead of the cart's.
+		$order_amount = $this->get_current_order_amount();
+		$amount       = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+
+		// Don't engage in limits verification in non-checkout context (cart is not available or empty).
+		if ( $amount <= 0 ) {
+			return true;
+		}
+
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
+		$range               = null;
+		$limits_per_currency = $this->get_limits_per_currency();
+
+		if ( isset( $limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ][ $account_country ];
+		} elseif ( isset( $limits_per_currency[ $current_store_currency ]['default'] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ]['default'];
+		}
+
+		// If there is no range specified for the currency-country pair we don't support it and return false.
+		if ( null === $range ) {
+			return false;
+		}
+
+		$is_valid_minimum = null === $range['min'] || $amount >= $range['min'];
+		$is_valid_maximum = null === $range['max'] || $amount <= $range['max'];
+
+		return $is_valid_minimum && $is_valid_maximum;
 	}
 
 	/**

@@ -1,6 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
 
+const accountCountry =
+	window.wc_stripe_settings_params?.account_country || 'US';
+
 export default {
 	card: {
 		id: 'card',
@@ -24,6 +27,61 @@ export default {
 		Icon: icons.giropay,
 		currencies: [ 'EUR' ],
 		capability: 'giropay_payments',
+	},
+	klarna: {
+		id: 'klarna',
+		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Allow customers to pay over time with Klarna.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.klarna,
+		currencies: [
+			'AUD',
+			'CAD',
+			'CHF',
+			'CZK',
+			'DKK',
+			'EUR',
+			'GBP',
+			'NOK',
+			'NZD',
+			'PLN',
+			'SEK',
+			'USD',
+		],
+	},
+	affirm: {
+		id: 'affirm',
+		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
+		// translators: %s is the store currency.
+		description: __(
+			'Allow customers to pay over time with Affirm. Available to all customers paying in %s.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.affirm,
+		currencies: [ 'USD', 'CAD' ],
+		acceptsDomesticPaymentsOnly: true,
+	},
+	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
+	afterpay_clearpay: {
+		id: 'afterpay_clearpay',
+		label:
+			accountCountry === 'GB'
+				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
+				: __( 'Afterpay', 'woocommerce-gateway-stripe' ),
+		description:
+			accountCountry === 'GB'
+				? __(
+						'Allow customers to pay over time with Clearpay.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						'Allow customers to pay over time with Afterpay.',
+						'woocommerce-gateway-stripe'
+				  ),
+		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
+		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
 	},
 	sepa_debit: {
 		id: 'sepa_debit',

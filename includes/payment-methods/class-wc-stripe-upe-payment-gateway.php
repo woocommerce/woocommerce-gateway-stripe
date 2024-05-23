@@ -24,6 +24,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
+		WC_Stripe_UPE_Payment_Method_Klarna::class,
+		WC_Stripe_UPE_Payment_Method_Affirm::class,
+		WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
 		WC_Stripe_UPE_Payment_Method_Eps::class,
 		WC_Stripe_UPE_Payment_Method_Bancontact::class,
 		WC_Stripe_UPE_Payment_Method_Boleto::class,
@@ -120,6 +123,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $action_scheduler_service;
 
 	/**
+	 * WC_Stripe_Account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -129,7 +139,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Constructor
 	 */
-	public function __construct() {
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account      = $account;
 		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: link */
@@ -378,11 +389,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
+		$stripe_params['accountCountry']                   = $this->account->get_account_country();
 
 		// Add appearance settings.
-		$stripe_params['appearance']                       = get_transient( $this->get_appearance_transient_key() );
-		$stripe_params['blocksAppearance']                 = get_transient( $this->get_appearance_transient_key( true ) );
-		$stripe_params['saveAppearanceNonce']              = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
+		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
+		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
+		$stripe_params['saveAppearanceNonce'] = wp_create_nonce( 'wc_stripe_save_appearance_nonce' );
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -411,6 +423,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
+				$stripe_params['customerData']   = [ 'billing_country' => $order->get_billing_country() ];
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
@@ -422,6 +435,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->get_return_url( $order )
 					)
 				);
+
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['cartTotal'] = 0;
@@ -442,12 +456,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$settings                = [];
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
 
-		foreach ( $enabled_payment_methods as $payment_method ) {
-			$settings[ $payment_method ] = [
-				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
-				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
-				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $payment_method ] ),
+		foreach ( $enabled_payment_methods as $payment_method_id ) {
+			$payment_method = $this->payment_methods[ $payment_method_id ];
+
+			$settings[ $payment_method_id ] = [
+				'isReusable'          => $payment_method->is_reusable(),
+				'title'               => $payment_method->get_title(),
+				'testingInstructions' => $payment_method->get_testing_instructions(),
+				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'countries'           => $payment_method->get_available_billing_countries(),
 			];
 		}
 
@@ -472,13 +489,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
+		$account_domestic_currency    = $this->account->get_account_default_currency();
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
 			}
 
 			$method = $this->payment_methods[ $payment_method_id ];
-			if ( $method->is_enabled_at_checkout( $order_id ) === false ) {
+			if ( $method->is_enabled_at_checkout( $order_id, $account_domestic_currency ) === false ) {
 				continue;
 			}
 
@@ -547,7 +565,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			?>
 
 			<fieldset id="wc-stripe-upe-form" class="wc-upe-form wc-payment-form">
-				<div class="wc-stripe-upe-element"></div>
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ); ?>"></div>
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
@@ -732,6 +750,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
 			$payment_needed        = $this->is_payment_needed( $order->get_id() );
+			$payment_method        = $payment_information['payment_method_details'];
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
 			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
@@ -757,9 +776,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( '' !== $selected_payment_type ) {
 				$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
 			}
-
-			// Retrieve the payment method object from Stripe.
-			$payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
 
 			// Throw an exception when the payment method is a prepaid card and it's disallowed.
 			$this->maybe_disallow_prepaid_card( $payment_method );
@@ -795,6 +811,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Set the selected UPE payment method type title in the WC order.
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+
+			// Set the preferred card brand for the order, when set.
+			// Retrieve the preferred card brand for the payment method.
+			$preferred_brand = $payment_method->card->networks->preferred ?? null;
+			if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
+				$this->set_preferred_card_brand_for_order( $order, $preferred_brand );
+				if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
+					wc_admin_record_tracks_event( 'wcstripe_co_branded_cc_preferred_brand_selected', [ 'brand' => $preferred_brand ] );
+				}
+			}
 
 			$redirect = $this->get_return_url( $order );
 
@@ -890,7 +916,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 
 			return [
-				'result' => 'failure',
+				'result'   => 'failure',
 				'redirect' => '',
 			];
 		}
@@ -1499,7 +1525,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
-		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout();
+
+		$account_domestic_currency = $this->account->get_account_default_currency();
+
+		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( null, $account_domestic_currency );
 	}
 
 	/**
@@ -1977,6 +2006,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
+		// Retrieve the payment method object from Stripe.
+		$payment_method_details = WC_Stripe_API::get_payment_method( $payment_method_id );
+
 		$payment_information = [
 			'amount'                        => $amount,
 			'currency'                      => $currency,
@@ -1988,6 +2020,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'order'                         => $order,
 			'payment_initiated_by'          => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'                => $payment_method_id,
+			'payment_method_details'        => $payment_method_details,
 			'payment_type'                  => 'single', // single | recurring.
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'selected_payment_type'         => $selected_payment_type,
@@ -2132,6 +2165,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
 		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Set the preferred card brand for the order.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string   $brand The value to be set.
+	 */
+	private function set_preferred_card_brand_for_order( WC_Order $order, string $brand ) {
+		$order->update_meta_data( '_stripe_card_brand', $brand );
 		$order->save_meta_data();
 	}
 

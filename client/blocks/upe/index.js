@@ -25,7 +25,18 @@ const upeMethods = getPaymentMethodsConstants();
 Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
 	.forEach( ( [ upeName, upeConfig ] ) => {
-		const Icon = Icons[ upeName ];
+		let iconName = upeName;
+
+		// Afterpay/Clearpay have different icons for UK merchants.
+		if ( upeName === 'afterpay_clearpay' ) {
+			iconName =
+				getBlocksConfiguration()?.accountCountry === 'GB'
+					? 'clearpay'
+					: 'afterpay';
+		}
+
+		const Icon = Icons[ iconName ];
+
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
 			content: getDeferredIntentCreationUPEFields(
@@ -43,7 +54,15 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeConfig.showSaveOption ?? false
 			),
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
-			canMakePayment: () => !! api.getStripe(),
+			canMakePayment: ( cartData ) => {
+				const billingCountry = cartData.billingAddress.country;
+				const isRestrictedInAnyCountry = !! upeConfig.countries.length;
+				const isAvailableInTheCountry =
+					! isRestrictedInAnyCountry ||
+					upeConfig.countries.includes( billingCountry );
+
+				return isAvailableInTheCountry && !! api.getStripe();
+			},
 			// see .wc-block-checkout__payment-method styles in blocks/style.scss
 			label: (
 				<>

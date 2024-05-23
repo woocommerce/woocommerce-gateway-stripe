@@ -60,38 +60,45 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'     => 'inactive',
-		'bancontact_payments' => 'inactive',
-		'card_payments'       => 'inactive',
-		'eps_payments'        => 'inactive',
-		'giropay_payments'    => 'inactive',
-		'ideal_payments'      => 'inactive',
-		'p24_payments'        => 'inactive',
-		'sepa_debit_payments' => 'inactive',
-		'sofort_payments'     => 'inactive',
-		'transfers'           => 'inactive',
-		'boleto_payments'     => 'inactive',
-		'oxxo_payments'       => 'inactive',
-		'link_payments'       => 'inactive',
+		'alipay_payments'            => 'inactive',
+		'bancontact_payments'        => 'inactive',
+		'card_payments'              => 'inactive',
+		'eps_payments'               => 'inactive',
+		'giropay_payments'           => 'inactive',
+		'klarna_payments'            => 'inactive',
+		'affirm_payments'            => 'inactive',
+		'clearpay_afterpay_payments' => 'inactive',
+		'ideal_payments'             => 'inactive',
+		'p24_payments'               => 'inactive',
+		'sepa_debit_payments'        => 'inactive',
+		'sofort_payments'            => 'inactive',
+		'transfers'                  => 'inactive',
+		'boleto_payments'            => 'inactive',
+		'oxxo_payments'              => 'inactive',
+		'link_payments'              => 'inactive',
 	];
 
 	/**
 	 * Mock capabilities object from Stripe response--all active.
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'     => 'active',
-		'bancontact_payments' => 'active',
-		'card_payments'       => 'active',
-		'eps_payments'        => 'active',
-		'giropay_payments'    => 'active',
-		'ideal_payments'      => 'active',
-		'p24_payments'        => 'active',
-		'sepa_debit_payments' => 'active',
-		'sofort_payments'     => 'active',
-		'transfers'           => 'active',
-		'boleto_payments'     => 'active',
-		'oxxo_payments'       => 'active',
-		'link_payments'       => 'active',
+		'alipay_payments'            => 'active',
+		'bancontact_payments'        => 'active',
+		'card_payments'              => 'active',
+		'eps_payments'               => 'active',
+		'giropay_payments'           => 'active',
+		'klarna_payments'            => 'active',
+		'affirm_payments'            => 'active',
+		'clearpay_afterpay_payments' => 'active',
+		'ideal_payments'             => 'active',
+		'p24_payments'               => 'active',
+		'sepa_debit_payments'        => 'active',
+		'sofort_payments'            => 'active',
+		'transfers'                  => 'active',
+		'boleto_payments'            => 'active',
+		'oxxo_payments'              => 'active',
+		'link_payments'              => 'active',
+
 	];
 
 	/**
@@ -99,7 +106,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+		delete_option( 'woocommerce_stripe_settings' );
 		$this->reset_payment_method_mocks();
+	}
+
+	public function tear_down() {
+		delete_option( 'woocommerce_stripe_settings' );
+		parent::tear_down();
 	}
 
 	/**
@@ -108,6 +121,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	private function reset_payment_method_mocks() {
 		$this->mock_payment_methods = [];
+
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
 				->setMethods(
@@ -115,9 +129,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_capabilities_response',
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
+						'get_current_order_amount',
 					]
 				)
 				->getMock();
+
 			$this->mock_payment_methods[ $mocked_payment_method->get_id() ] = $mocked_payment_method;
 		}
 	}
@@ -180,7 +196,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				]
 			),
 		];
-		$mock_alipay_details    = [
+		$mock_alipay_details     = [
 			'type' => 'alipay',
 		];
 		$mock_giropay_details    = [
@@ -332,19 +348,25 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
-		$card_method       = $this->mock_payment_methods['card'];
-		$giropay_method    = $this->mock_payment_methods['giropay'];
-		$p24_method        = $this->mock_payment_methods['p24'];
-		$eps_method        = $this->mock_payment_methods['eps'];
-		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
-		$sofort_method     = $this->mock_payment_methods['sofort'];
-		$bancontact_method = $this->mock_payment_methods['bancontact'];
-		$ideal_method      = $this->mock_payment_methods['ideal'];
-		$boleto_method     = $this->mock_payment_methods['boleto'];
-		$oxxo_method       = $this->mock_payment_methods['oxxo'];
+		$card_method              = $this->mock_payment_methods['card'];
+		$giropay_method           = $this->mock_payment_methods['giropay'];
+		$klarna_method            = $this->mock_payment_methods['klarna'];
+		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+		$affirm_method            = $this->mock_payment_methods['affirm'];
+		$p24_method               = $this->mock_payment_methods['p24'];
+		$eps_method               = $this->mock_payment_methods['eps'];
+		$sepa_method              = $this->mock_payment_methods['sepa_debit'];
+		$sofort_method            = $this->mock_payment_methods['sofort'];
+		$bancontact_method        = $this->mock_payment_methods['bancontact'];
+		$ideal_method             = $this->mock_payment_methods['ideal'];
+		$boleto_method            = $this->mock_payment_methods['boleto'];
+		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
+		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
+		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
+		$this->assertFalse( $afterpay_clearpay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $p24_method->is_enabled_at_checkout() );
 		$this->assertFalse( $eps_method->is_enabled_at_checkout() );
 		$this->assertFalse( $sepa_method->is_enabled_at_checkout() );
@@ -373,14 +395,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			}
 
 			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
-			$currency                   = 'link' === $id ? 'USD' : ( 'alipay' === $id ? 'CNY' : 'EUR' );
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
-			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
-			$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+
+			$supported_currencies = $payment_method->get_supported_currencies() ?? [];
+			$currency = end( $supported_currencies );
+
+			$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $currency ) );
 
 			$capability_key                                = $payment_method->get_id() . '_payments';
 			$mock_capabilities_response[ $capability_key ] = 'active';
@@ -390,7 +414,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
-			$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+
+			$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $currency ) );
 		}
 	}
 
@@ -398,10 +423,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
-		$stripe_settings['capture']  = 'yes';
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['capture'] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
+
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150, true );
+
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
@@ -413,16 +441,96 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			if ( empty( $supported_currencies ) ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
 			} else {
-				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+				$woocommerce_currency = end( $supported_currencies );
 
-				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', end( $supported_currencies ), true );
+				$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ) );
+
+				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $woocommerce_currency, true );
 				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 				$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 				$payment_method = $this->mock_payment_methods[ $id ];
-				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ) );
 			}
 		}
+	}
+
+	/**
+	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
+	 */
+	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
+		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+		// $this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'MXN', true );
+
+		// This is a currency supported by all of the BNPLs.
+		$stripe_account_currency = 'USD';
+
+		$affirm_method   = $this->mock_payment_methods['affirm'];
+		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+		$klarna_method   = $this->mock_payment_methods['klarna'];
+
+		$this->assertFalse( $affirm_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+		$this->assertFalse( $afterpay_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+		$this->assertFalse( $klarna_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+	}
+
+	/**
+	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
+	 */
+	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
+		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
+
+		// This is a currency supported by all of the BNPLs.
+		$stripe_account_currency = 'USD';
+
+		$affirm_method   = $this->mock_payment_methods['affirm'];
+		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+		$klarna_method   = $this->mock_payment_methods['klarna'];
+
+		$this->assertTrue( $affirm_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+		$this->assertTrue( $afterpay_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+		$this->assertTrue( $klarna_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+	}
+
+	public function test_bnpl_is_unavailable_when_not_within_currency_limits() {
+		$store_currency = 'USD';
+
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 0.3 );
+
+		$affirm_method   = $this->mock_payment_methods['affirm'];
+		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+
+		$this->assertFalse( $affirm_method->is_inside_currency_limits( $store_currency ) );
+		$this->assertFalse( $afterpay_method->is_inside_currency_limits( $store_currency ) );
+	}
+
+	public function test_bnpl_is_available_when_within_currency_limits() {
+		$store_currency = 'USD';
+
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
+
+		$affirm_method   = $this->mock_payment_methods['affirm'];
+		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+
+		$this->assertTrue( $affirm_method->is_inside_currency_limits( $store_currency ) );
+		$this->assertTrue( $afterpay_method->is_inside_currency_limits( $store_currency ) );
+	}
+
+	public function test_bnpl_is_available_when_order_is_anmount_is_zero() {
+		$store_currency = 'USD';
+
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 0 );
+
+		$affirm_method   = $this->mock_payment_methods['affirm'];
+		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
+
+		$this->assertTrue( $affirm_method->is_inside_currency_limits( $store_currency ) );
+		$this->assertTrue( $afterpay_method->is_inside_currency_limits( $store_currency ) );
 	}
 
 	/**
@@ -466,6 +574,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $card_payment_method_mock->card->last4 );
 					$this->assertSame( $token->get_token(), $card_payment_method_mock->id );
+					// Test display brand
+					$cartes_bancaires_brand                        = 'cartes_bancaires';
+					$card_payment_method_mock->card->display_brand = $cartes_bancaires_brand;
+					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
+					unset( $card_payment_method_mock->card->display_brand );
+					// Test preferred network
+					$card_payment_method_mock->card->networks            = new stdClass();
+					$card_payment_method_mock->card->networks->preferred = $cartes_bancaires_brand;
+					$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertSame( $token->get_card_type(), $cartes_bancaires_brand );
+					unset( $card_payment_method_mock->card->networks->preferred );
 					break;
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					$link_payment_method_mock = $this->array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );
@@ -489,7 +609,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );

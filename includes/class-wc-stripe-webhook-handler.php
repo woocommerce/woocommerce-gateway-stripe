@@ -310,7 +310,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -323,6 +323,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
+			$order->save();
 		}
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
@@ -361,7 +362,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_status_final', true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
-			$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
+			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
 			$order->update_status( $order_status, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -384,7 +385,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === $order->get_payment_method() ) { // Note: Authorize & capture is only available on credit card payments so we only need to check for 'stripe' payment methods.
 			$charge   = $order->get_transaction_id();
 			$captured = $order->get_meta( '_stripe_charge_captured', true );
 
@@ -460,10 +461,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );
 		}
 
-		$order->payment_complete( $notification->data->object->id );
+		/**
+		 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
+		 * processing/completed. This will be handled by the incoming review.open webhook.
+		 *
+		 * Depending on when Stripe sends their events and how quickly it is processed by the store, the review.open webhook (which marks orders as on-hold)
+		 * can be processed before or after the payment_intent.success webhook. This difference can lead to orders being incorrectly marked as processing/completed
+		 * in WooCommerce, but flagged for manual renewal in Stripe.
+		 *
+		 * If the review.open webhook was processed before the payment_intent.success, set the processing/completed status in `_stripe_status_before_hold`
+		 * to ensure the review.closed event handler will update the status to the proper status.
+		 */
+		if ( 'manual_review' !== $this->get_risk_outcome( $notification ) ) {
+			$order->payment_complete( $notification->data->object->id );
 
-		/* translators: transaction id */
-		$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+			/* translators: transaction id */
+			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -560,7 +574,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge        = $order->get_transaction_id();
 			$captured      = $order->get_meta( '_stripe_charge_captured' );
 			$refund_id     = $order->get_meta( '_stripe_refund_id' );
@@ -635,7 +649,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge     = $order->get_transaction_id();
 			$refund_id  = $order->get_meta( '_stripe_refund_id' );
 			$currency   = $order->get_currency();
@@ -710,7 +724,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
+		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
@@ -724,6 +738,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
+			$order->save(); // update_status() calls save on the order, so make sure we manually call save() when not updating the status to ensure meta is saved.
 		}
 	}
 
@@ -754,11 +769,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
 		if (
+			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
 			$order->has_status( 'on-hold' ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
 			! $order->get_meta( '_stripe_status_final', false )
 		) {
-			$order->update_status( $order->get_meta( '_stripe_status_before_hold', 'processing' ), $message );
+			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
+
+			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
+			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ) ) ) {
+				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+			}
+
+			$order->update_status( $status_after_review, $message );
 		} else {
 			$order->add_order_note( $message );
 		}
@@ -876,11 +899,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
-				// TODO: This is a stop-gap to fix a critical issue, see
-				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
-				// be better if we removed the need for additional meta data in favor of refactoring
-				// this part of the payment processing.
-				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+				/**
+				 * Check if the order is awaiting further action from the customer. If so, do not process the payment via the webhook, let the redirect handle it.
+				 *
+				 * This is a stop-gap to fix a critical issue, see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+				 * be better if we removed the need for additional meta data in favor of refactoring this part of the payment processing.
+				 */
+				$is_awaiting_action = ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) );
+
+				// Voucher payments are only processed via the webhook so are excluded from the above check.
+				if ( ! $is_voucher_payment && $is_awaiting_action ) {
 					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
 					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;
