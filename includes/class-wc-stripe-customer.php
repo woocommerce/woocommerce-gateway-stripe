@@ -222,14 +222,40 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Search for an existing customer in Stripe account by email and name.
+	 *
+	 * @param string $email Customer email.
+	 * @param string $name  Customer name.
+	 * @return array
+	 */
+	public function get_existing_customer( $email, $name ) {
+		$search_query    = [ 'query' => 'name:\'' . $name . '\' AND email:\'' . $email . '\'' ];
+		$search_response = WC_Stripe_API::request( $search_query, 'customers/search', 'GET' );
+
+		if ( ! empty( $search_response->error ) ) {
+			return [];
+		}
+
+		return $search_response->data[0];
+	}
+
+	/**
 	 * Create a customer via API.
 	 *
 	 * @param array $args
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args = [] ) {
-		$args     = $this->generate_customer_request( $args );
-		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+		$args = $this->generate_customer_request( $args );
+
+		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
+		if ( ! $this->get_id() && 0 === $this->get_user_id() ) {
+			$response = $this->get_existing_customer( $args['email'], $args['name'] );
+		}
+
+		if ( empty( $response ) ) {
+			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+		}
 
 		if ( ! empty( $response->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
