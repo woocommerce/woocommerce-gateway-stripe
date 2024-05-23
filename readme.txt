@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.2.0
+Stable tag: 8.3.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.3.0 - xxxx-xx-xx =
+= 8.3.0 - 2024-05-23 =
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
 * Add - Include Klarna as a payment method for stores using the updated checkout experience.
