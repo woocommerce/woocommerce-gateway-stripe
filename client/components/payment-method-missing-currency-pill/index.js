@@ -3,9 +3,8 @@ import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
-import PaymentMethodsMap from '../../payment-methods-map';
 import Tooltip from 'wcstripe/components/tooltip';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
+import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -39,11 +38,7 @@ const AlertIcon = styled( Icon )`
 `;
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
-	const alipayCurrencies = useAliPayCurrencies();
-	const paymentMethodCurrencies =
-		id === 'alipay'
-			? alipayCurrencies
-			: PaymentMethodsMap[ id ]?.currencies || [];
+	const paymentMethodCurrencies = usePaymentMethodCurrencies( id );
 	const storeCurrency = window?.wcSettings?.currency?.code;
 
 	if (

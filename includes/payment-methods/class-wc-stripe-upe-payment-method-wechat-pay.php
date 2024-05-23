@@ -18,20 +18,21 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
+		$this->supported_countries  = [ 'AT', 'AU', 'BE', 'CA', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'HK', 'IE', 'IT', 'JP', 'LU', 'NL', 'NO', 'PT', 'SE', 'SG', 'UK', 'US' ];
 		$this->supported_currencies = [
-			'CNY',
 			'AUD',
 			'CAD',
+			'CHF',
+			'CNY',
+			'DKK',
 			'EUR',
 			'GBP',
 			'HKD',
 			'JPY',
-			'SGD',
-			'USD',
-			'DKK',
 			'NOK',
 			'SEK',
-			'CHF',
+			'SGD',
+			'USD',
 		];
 		$this->label                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -59,8 +60,11 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			case 'CA':
 				$currency = [ 'CAD', 'CNY' ];
 				break;
-			case 'UK':
-				$currency = [ 'GBP', 'CNY' ];
+			case 'CH':
+				$currency = [ 'CHF', 'CNY', 'EUR' ];
+				break;
+			case 'DK':
+				$currency = [ 'DKK', 'CNY', 'EUR' ];
 				break;
 			case 'HK':
 				$currency = [ 'HKD', 'CNY' ];
@@ -68,23 +72,20 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			case 'JP':
 				$currency = [ 'JPY', 'CNY' ];
 				break;
-			case 'SG':
-				$currency = [ 'SGD', 'CNY' ];
-				break;
-			case 'US':
-				$currency = [ 'USD', 'CNY' ];
-				break;
-			case 'DK':
-				$currency = [ 'DKK', 'CNY', 'EUR' ];
-				break;
 			case 'NO':
 				$currency = [ 'NOK', 'CNY', 'EUR' ];
 				break;
 			case 'SE':
 				$currency = [ 'SEK', 'CNY', 'EUR' ];
 				break;
-			case 'CH':
-				$currency = [ 'CHF', 'CNY', 'EUR' ];
+			case 'SG':
+				$currency = [ 'SGD', 'CNY' ];
+				break;
+			case 'UK':
+				$currency = [ 'GBP', 'CNY' ];
+				break;
+			case 'US':
+				$currency = [ 'USD', 'CNY' ];
 				break;
 			default:
 				$currency = [ 'CNY' ];
@@ -96,5 +97,16 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		}
 
 		return $currency;
+	}
+
+	/**
+	 * Returns whether the payment method is available for the Stripe account's country.
+	 *
+	 * WeChat Pay is available for the following countries: AT, AU, BE, CA, CH, DE, DK, ES, FI, FR, HK, IE, IT, JP, LU, NL, NO, PT, SE, SG, UK, US.
+	 *
+	 * @return bool True if the payment method is available for the account's country, false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }
