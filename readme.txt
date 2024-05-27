@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.2.0
+Stable tag: 8.3.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -129,6 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Add - Include Cash App as a payment method for stores using the updated checkout experience.
+* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
 * Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
@@ -136,5 +138,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove unused confirmation modal a capability properties.
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
+* Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
+* Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
+* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
