@@ -10,6 +10,7 @@
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
+* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
 
 = 8.3.0 - 2024-05-23 =
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
