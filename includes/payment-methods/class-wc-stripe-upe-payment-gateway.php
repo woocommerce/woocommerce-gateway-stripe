@@ -47,13 +47,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
 
 	/**
-	 * ActionScheduler hook name for updating saved payment method.
-	 *
-	 * @type string
-	 */
-	const UPDATE_SAVED_PAYMENT_METHOD = 'wc_stripe_update_saved_payment_method';
-
-	/**
 	 * Transient name for appearance settings.
 	 *
 	 * @type string
@@ -211,9 +204,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
-
-		// This is an ActionScheduler action.
-		add_action( self::UPDATE_SAVED_PAYMENT_METHOD, [ $this, 'update_saved_payment_method' ], 10, 2 );
 
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
@@ -762,18 +752,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args         = [];
 
-			// Update saved payment method async to include billing details.
-			if ( $payment_information['is_using_saved_payment_method'] ) {
-				$this->action_scheduler_service->schedule_job(
-					time(),
-					self::UPDATE_SAVED_PAYMENT_METHOD,
-					[
-						'payment_method' => $payment_method_id,
-						'order_id'       => $order->get_id(),
-					]
-				);
-			}
-
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
@@ -785,6 +763,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Throw an exception when the payment method is a prepaid card and it's disallowed.
 			$this->maybe_disallow_prepaid_card( $payment_method );
+
+			// Update saved payment method to include billing details.
+			if ( $payment_information['is_using_saved_payment_method'] ) {
+				$this->update_saved_payment_method( $payment_method_id, $order );
+			}
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
