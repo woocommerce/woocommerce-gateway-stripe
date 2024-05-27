@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.2.0
+Stable tag: 8.3.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
+* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
