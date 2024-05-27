@@ -1793,50 +1793,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Update the saved payment method information with checkout values, in a CRON job.
-	 *
-	 * @param string $payment_method_id The payment method to update.
-	 * @param int    $order_id          WC order id.
-	 */
-	public function update_saved_payment_method( $payment_method_id, $order_id ) {
-		$order = wc_get_order( $order_id );
-
-		try {
-			// Get the billing details from the order.
-			$billing_details = [
-				'address' => [
-					'city'        => $order->get_billing_city(),
-					'country'     => $order->get_billing_country(),
-					'line1'       => $order->get_billing_address_1(),
-					'line2'       => $order->get_billing_address_2(),
-					'postal_code' => $order->get_billing_postcode(),
-					'state'       => $order->get_billing_state(),
-				],
-				'email'   => $order->get_billing_email(),
-				'name'    => trim( $order->get_formatted_billing_full_name() ),
-				'phone'   => $order->get_billing_phone(),
-			];
-
-			$billing_details = array_filter( $billing_details );
-			if ( empty( $billing_details ) ) {
-				return;
-			}
-
-			// Update the billing details of the selected payment method in Stripe.
-			WC_Stripe_API::update_payment_method(
-				$payment_method_id,
-				[
-					'billing_details' => $billing_details,
-				]
-			);
-
-		} catch ( WC_Stripe_Exception $e ) {
-			// If updating the payment method fails, log the error message.
-			WC_Stripe_Logger::log( 'Error when updating saved payment method: ' . $e->getMessage() );
-		}
-	}
-
-	/**
 	 * Wrapper function to manage requests to WC_Stripe_API.
 	 *
 	 * @param string   $path   Stripe API endpoint path to query.
