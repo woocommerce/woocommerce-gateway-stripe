@@ -38,7 +38,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		'type' => 'card',
 		'card' => [
 			'brand'     => 'visa',
-			'network'   => 'visa',
+			'networks'  => [ 'preferred' => 'visa' ],
 			'exp_month' => '7',
 			'funding'   => 'credit',
 			'last4'     => '4242',
@@ -2065,6 +2065,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'payment_method' => $payment_method_id,
 					'order_id'       => $order_id,
 				]
+			);
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with(
+				"payment_methods/$payment_method_id",
+			)
+			->will(
+				$this->returnValue(
+					$this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE )
+				)
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
