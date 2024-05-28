@@ -2390,6 +2390,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return null;
 		}
 
+		// Cashapp intents with a requires payment method cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
+		if ( in_array( 'cashapp', $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
+			return null;
+		}
+
 		return $intent;
 	}
 
