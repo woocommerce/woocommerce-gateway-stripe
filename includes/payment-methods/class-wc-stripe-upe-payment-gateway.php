@@ -2067,7 +2067,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param WC_Order $order          The WC Order for which we're processing a payment.
 	 * @param stdClass $payment_method The payment method object.
 	 */
-	private function maybe_set_preferred_card_brand_for_order( WC_Order $order, stdClass $payment_method ) {
+	private function maybe_set_preferred_card_brand_for_order( WC_Order $order, $payment_method ) {
 		// Retrieve the preferred card brand for the payment method.
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
