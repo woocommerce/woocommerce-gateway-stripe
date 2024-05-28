@@ -72,15 +72,15 @@ const PaymentRequestExpressComponent = ( {
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
+	const { type = 'default' } = getBlocksConfiguration()?.button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
-			type: buttonAttributes.label,
+			type,
 			theme: buttonAttributes?.darkMode ? 'light' : 'dark',
 			height: buttonAttributes?.height,
 		},
 	};
-
 	const isBranded = getBlocksConfiguration()?.button?.is_branded;
 	const brandedType = getBlocksConfiguration()?.button?.branded_type;
 	const isCustom = getBlocksConfiguration()?.button?.is_custom;
