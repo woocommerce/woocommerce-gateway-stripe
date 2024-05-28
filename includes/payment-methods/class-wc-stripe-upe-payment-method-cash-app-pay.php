@@ -25,10 +25,13 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 
 		$this->stripe_id                    = self::STRIPE_ID;
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
-		$this->is_reusable                  = false;
+		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ 'USD' ];
 		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
+		$this->supports[]                   = 'subscriptions';
+		$this->supports[]                   = 'multiple_subscriptions';
+		$this->supports[]                   = 'tokenization';
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
