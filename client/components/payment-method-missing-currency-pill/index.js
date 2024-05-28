@@ -30,6 +30,7 @@ const StyledLink = styled.a`
 
 const IconWrapper = styled.span`
 	height: 16px;
+	cursor: pointer;
 `;
 
 const AlertIcon = styled( Icon )`
