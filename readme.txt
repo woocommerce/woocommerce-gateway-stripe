@@ -129,6 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.3.1 - xxxx-xx-xx =
-* Fix - Error on some enviroments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
+* Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
