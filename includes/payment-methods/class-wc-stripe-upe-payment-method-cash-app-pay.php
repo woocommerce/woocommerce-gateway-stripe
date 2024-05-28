@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * The Cash App Pay Payment Method class extending UPE base class.
  */
 class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	/**
 	 * The Stripe ID for the payment method.
@@ -29,14 +30,15 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->supported_currencies         = [ 'USD' ];
 		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
-		$this->supports[]                   = 'subscriptions';
-		$this->supports[]                   = 'multiple_subscriptions';
 		$this->supports[]                   = 'tokenization';
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Cash App Pay supports subscriptions. Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**
