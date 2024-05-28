@@ -229,4 +229,15 @@ export default {
 			'CHF',
 		],
 	},
+	cashapp: {
+		id: 'cashapp',
+		label: __( 'Cash App Pay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.cashapp,
+		currencies: [ 'USD' ],
+		capability: 'cashapp_payments',
+	},
 };
