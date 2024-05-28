@@ -131,7 +131,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
 						'get_current_order_amount',
-						'is_available_for_account_country',
 					]
 				)
 				->getMock();
@@ -557,17 +556,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			$store_currency = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR';
+
+			if ( $payment_method->has_domestic_transactions_restrictions() ) {
+				$store_currency = $payment_method->get_supported_currencies()[0];
+			}
+
 			$payment_method
 				->expects( $this->any() )
 				->method( 'get_woocommerce_currency' )
 				->will(
-					$this->returnValue( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR' )
+					$this->returnValue( $store_currency )
 				);
-
-			$payment_method
-				->expects( $this->any() )
-				->method( 'is_available_for_account_country' )
-				->willReturn( true );
 
 			if ( $payment_method->is_reusable() ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
