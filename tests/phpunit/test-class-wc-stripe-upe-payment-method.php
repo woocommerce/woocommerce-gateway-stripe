@@ -131,6 +131,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
 						'get_current_order_amount',
+						'is_available_for_account_country',
 					]
 				)
 				->getMock();
@@ -562,6 +563,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				->will(
 					$this->returnValue( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR' )
 				);
+
+			$payment_method
+				->expects( $this->any() )
+				->method( 'is_available_for_account_country' )
+				->willReturn( true );
 
 			if ( $payment_method->is_reusable() ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
