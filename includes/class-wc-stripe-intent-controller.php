@@ -810,8 +810,11 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
+		// Retrieve the payment method object from Stripe.
+		$payment_method = WC_Stripe_API::get_payment_method( $payment_information['payment_method'] );
+
 		// Add the updated preferred credit card brand when defined
-		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
+		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( isset( $preferred_brand ) ) {
 			$request['payment_method_options'] = [
 				'card' => [
