@@ -270,7 +270,9 @@ export const installWooSubscriptionsFromRepo = ( page ) =>
 
 			// Assert that the plugin is listed and active
 			await expect(
-				page.locator( '#deactivate-woo-subscriptions' )
+				page.locator(
+					`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
+				)
 			).toBeVisible();
 
 			console.log(
