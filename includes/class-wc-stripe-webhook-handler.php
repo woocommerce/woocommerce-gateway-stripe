@@ -885,6 +885,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id           = $order->get_id();
 		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
+		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay' ] );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
@@ -908,7 +909,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$is_awaiting_action = ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) );
 
 				// Voucher payments are only processed via the webhook so are excluded from the above check.
-				if ( ! $is_voucher_payment && $is_awaiting_action ) {
+				// Wallets are also processed via the webhook, not redirection.
+				if ( ! $is_voucher_payment && ! $is_wallet_payment && $is_awaiting_action ) {
 					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
 					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;

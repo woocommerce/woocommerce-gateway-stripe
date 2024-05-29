@@ -373,3 +373,85 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout( error.message );
 	}
 };
+
+/**
+ * Handles displaying the CashApp or WeChat modal to the customer and then redirecting
+ * them to the order received page once they authenticate the payment.
+ *
+ * When processing a payment for a wallet payment method on the checkout or order pay page,
+ * the process_payment_with_deferred_intent() function redirects the customer to a URL
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<client_secret>:<redirect_url>.
+ *
+ * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
+ *
+ * @param {Object} api           The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ */
+export const confirmWalletPayment = async ( api, jQueryForm ) => {
+	const isOrderPay = getStripeServerData()?.isOrderPay;
+
+	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
+	if ( isOrderPay ) {
+		blockUI( jQueryForm );
+	}
+
+	const partials = window.location.href.match(
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+)$/
+	);
+
+	if ( ! partials ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		return;
+	}
+
+	// Remove the hash from the URL.
+	history.replaceState(
+		'',
+		document.title,
+		window.location.pathname + window.location.search
+	);
+
+	const orderId = partials[ 1 ];
+	const clientSecret = partials[ 3 ];
+
+	// Verify the request using the data added to the URL.
+	if (
+		! clientSecret ||
+		( isOrderPay && orderId !== getStripeServerData()?.orderId )
+	) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		return;
+	}
+
+	const paymentMethodType = partials[ 2 ];
+
+	try {
+		// Confirm the payment to tell Stripe to display the modal to the customer.
+		let confirmPayment;
+		if ( paymentMethodType === 'wechat_pay' ) {
+			confirmPayment = await api
+				.getStripe()
+				.confirmWechatPayPayment( clientSecret, {
+					payment_method_options: {
+						wechat_pay: {
+							client: 'web',
+						},
+					},
+				} );
+		}
+
+		if ( confirmPayment.error ) {
+			throw confirmPayment.error;
+		}
+
+		// Do not redirect to the order received page if the modal is closed without payment.
+		// Otherwise redirect to the order received page.
+		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
+			window.location.href = decodeURIComponent( partials[ 4 ] );
+		}
+	} catch ( error ) {
+		showErrorCheckout( error.message );
+	} finally {
+		jQueryForm.removeClass( 'processing' ).unblock();
+	}
+};
