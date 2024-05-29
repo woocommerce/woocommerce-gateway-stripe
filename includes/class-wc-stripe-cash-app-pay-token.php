@@ -23,17 +23,6 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	protected $type = 'cashapp';
 
 	/**
-	 * Undocumented function
-	 *
-	 * @param string $token
-	 */
-	public function __construct( $token = '' ) {
-		parent::__construct( $token );
-
-		$this->extra_data['payment_method_type'] = 'cash_app';
-	}
-
-	/**
 	 * Returns the name of the token to display
 	 *
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
@@ -51,5 +40,4 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	protected function get_hook_prefix() {
 		return 'woocommerce_payment_token_cashapp_get_';
 	}
-
 }
