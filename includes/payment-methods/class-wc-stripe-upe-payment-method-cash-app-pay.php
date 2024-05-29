@@ -70,7 +70,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	 * @return WC_Payment_Token The payment token created.
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		$token = new WC_Stripe_Payment_Token_Cash_App_Pay();
+		$token = new WC_Payment_Token_CashApp();
 
 		$token->set_gateway_id( $this->id );
 		$token->set_token( $payment_method->id );
