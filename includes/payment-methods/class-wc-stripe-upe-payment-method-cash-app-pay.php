@@ -51,4 +51,32 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	public function is_available_for_account_country() {
 		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
+
+	/**
+	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
+	 *
+	 * @return string The payment method type.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Creates a Cash App Pay payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 *
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Stripe_Payment_Token_Cash_App_Pay();
+
+		$token->set_gateway_id( $this->id );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+		$token->save();
+
+		return $token;
+	}
 }
