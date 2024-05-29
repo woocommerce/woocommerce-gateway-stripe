@@ -74,8 +74,8 @@ const PaymentRequestExpressComponent = ( {
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
 	let {
 		type = 'default',
-		height = '48px',
 		theme = 'dark',
+		height = '48',
 	} = getBlocksConfiguration()?.button;
 
 	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
@@ -89,7 +89,7 @@ const PaymentRequestExpressComponent = ( {
 		paymentRequestButton: {
 			type,
 			theme,
-			height,
+			height: `${ height }px`,
 		},
 	};
 	const isBranded = getBlocksConfiguration()?.button?.is_branded;
