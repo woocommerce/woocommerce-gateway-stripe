@@ -859,7 +859,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						// To ensure the payment is confirmed when the customer returns to the site, use the UPE redirect URL.
 						rawurlencode( $payment_information['return_url'] )
 					);
-
 				} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
 					$redirect = $payment_intent->next_action->{$payment_intent->next_action->type}->url;
 				} else {
