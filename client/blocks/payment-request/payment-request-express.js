@@ -72,13 +72,24 @@ const PaymentRequestExpressComponent = ( {
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
-	const { type = 'default' } = getBlocksConfiguration()?.button;
+	let {
+		type = 'default',
+		height = '48px',
+		theme = 'dark',
+	} = getBlocksConfiguration()?.button;
+
+	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
+	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
+	if ( buttonAttributes !== undefined ) {
+		height = buttonAttributes.height || height;
+		theme = buttonAttributes?.darkMode ? 'light' : 'dark';
+	}
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
 			type,
-			theme: buttonAttributes?.darkMode ? 'light' : 'dark',
-			height: buttonAttributes?.height,
+			theme,
+			height,
 		},
 	};
 	const isBranded = getBlocksConfiguration()?.button?.is_branded;
