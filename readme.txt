@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.3.1 - xxxx-xx-xx =
 * Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
+* Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
