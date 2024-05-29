@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.3.1 - xxxx-xx-xx =
+* Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
 * Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.
 
 = 8.3.0 - 2024-05-23 =

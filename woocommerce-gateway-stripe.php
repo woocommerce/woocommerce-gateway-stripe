@@ -577,7 +577,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function disable_upe( $settings ) {
-				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway( $this->account );
+				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
 				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
@@ -687,7 +687,7 @@ function woocommerce_gateway_stripe() {
 				}
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway( $this->account );
+					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 
 					return $this->stripe_gateway;
 				}
