@@ -75,6 +75,11 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$token->set_gateway_id( $this->id );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
+
+		if ( isset( $payment_method->cashapp->cashtag ) ) {
+			$token->set_cashtag( $payment_method->cashapp->cashtag );
+		}
+
 		$token->save();
 
 		return $token;
