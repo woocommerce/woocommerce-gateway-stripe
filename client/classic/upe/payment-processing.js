@@ -424,20 +424,34 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const paymentMethodType = partials[ 2 ];
+	const returnURL = decodeURIComponent( partials[ 4 ] );
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
 		let confirmPayment;
-		if ( paymentMethodType === 'wechat_pay' ) {
-			confirmPayment = await api
-				.getStripe()
-				.confirmWechatPayPayment( clientSecret, {
-					payment_method_options: {
-						wechat_pay: {
-							client: 'web',
+		switch ( paymentMethodType ) {
+			case 'wechat_pay':
+				confirmPayment = await api
+					.getStripe()
+					.confirmWechatPayPayment( clientSecret, {
+						payment_method_options: {
+							wechat_pay: {
+								client: 'web',
+							},
 						},
-					},
-				} );
+					} );
+				break;
+			case 'cashapp':
+				confirmPayment = await api
+					.getStripe()
+					.confirmCashappPayment( clientSecret, {
+						return_url: returnURL,
+					} );
+				break;
+			default:
+				// eslint-disable-next-line no-console
+				console.error( 'Invalid wallet type:', paymentMethodType );
+				throw new Error( getStripeServerData()?.invalid_wallet_type );
 		}
 
 		if ( confirmPayment.error ) {
@@ -447,7 +461,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
-			window.location.href = decodeURIComponent( partials[ 4 ] );
+			window.location.href = returnURL;
 		}
 	} catch ( error ) {
 		showErrorCheckout( error.message );
