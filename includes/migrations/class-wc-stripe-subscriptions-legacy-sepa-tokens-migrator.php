@@ -190,14 +190,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 * @param WC_Payment_Token $token        The token to be set as the payment method for the subscription.
 	 */
 	private function set_subscription_updated_payment_method( WC_Subscription $subscription, WC_Payment_Token $token ) {
-		// This is what we do in WC_Stripe_Subscriptions_Trait::maybe_update_source_on_subscription_order,
-		// but shouldn't we use WCS_Payment_Tokens::update_subscription_token() instead? Or WC_Order::add_payment_token()?
-		// The latter is the one used by WooPayments.
-
 		// Add a meta to the subscription to flag that its token got updated.
 		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
 		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $token->get_token() );
-
 		$subscription->set_payment_method( $token->get_gateway_id() );
 
 		$subscription->save();
