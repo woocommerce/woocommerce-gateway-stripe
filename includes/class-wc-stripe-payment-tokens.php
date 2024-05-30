@@ -40,7 +40,7 @@ class WC_Stripe_Payment_Tokens {
 		self::$_this = $this;
 
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
+		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item_sepa' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
@@ -374,25 +374,9 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array                           Filtered item
 	 */
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
-	}
-
-	/**
-	 * Controls the output for SEPA on the my account page.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param  array            $item         Individual list item from woocommerce_saved_payment_methods_list
-	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
-	 * @return array                           Filtered item
-	 */
-	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
-
-		switch ( strtolower( $payment_token->get_type() ) ) {
-			case 'sepa':
-				$item['method']['last4'] = $payment_token->get_last4();
-				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
-				break;
+		if ( 'sepa' === strtolower( $payment_token->get_type() ) ) {
+			$item['method']['last4'] = $payment_token->get_last4();
+			$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 		}
 
 		return $item;
