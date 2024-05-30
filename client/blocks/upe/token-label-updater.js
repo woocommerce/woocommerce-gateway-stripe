@@ -1,3 +1,13 @@
+/**
+ * Stripe UPE saved token label updater.
+ *
+ * The WooCommerce Checkout Blocks default label for saved payment methods is either "brand ending in XXXX (expires XX/XX)" or "Saved token for $gateway_id".
+ * Some Stripe Payment Method tokens (eg Cash App Pay) don't have a last4 property, and so the default label is "Saved token for $gateway_id". There's
+ * currently no way to override this label other than using JS to update the label after the checkout form is loaded.
+ *
+ * This will be fixed via https://github.com/woocommerce/woocommerce/issues/47941. In the meantime, this script will update the saved payment method token labels based on
+ * a set of localized token label overrides provided in the blocks configuration via WC_Stripe_Payment_Tokens::get_token_label_overrides_for_checkout().
+ */
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
@@ -16,7 +26,7 @@ function hasTokenLabelOverrides() {
  * This function is called when the saved payment method tokens are loaded on the checkout form.
  * If there are any token label overrides passed in via JS params, it will update the labels accordingly.
  */
-function updateTokenLabelOverrides() {
+function updateTokenLabels() {
 	if ( ! hasTokenLabelOverrides() ) {
 		return;
 	}
@@ -39,11 +49,11 @@ function updateTokenLabelOverrides() {
  */
 export function updateTokenLabelsWhenLoaded() {
 	const selector = '[name="radio-control-wc-payment-method-saved-tokens"]';
-	const loadedTokens = document.querySelector( selector );
+	const hasTokenElements = document.querySelector( selector );
 
 	// If the tokens are already loaded, update the token labels.
-	if ( loadedTokens ) {
-		updateTokenLabelOverrides();
+	if ( hasTokenElements ) {
+		updateTokenLabels();
 	} else {
 		// Tokens are not loaded yet, set up an observer to trigger once they have been mounted.
 		const checkoutBlock = document.querySelector(
@@ -57,7 +67,7 @@ export function updateTokenLabelsWhenLoaded() {
 		const observer = new MutationObserver( ( mutationList, obs ) => {
 			if ( document.querySelector( selector ) ) {
 				// Tokens found, run the function and disconnect the observer.
-				updateTokenLabelOverrides();
+				updateTokenLabels();
 				obs.disconnect();
 			}
 		} );
