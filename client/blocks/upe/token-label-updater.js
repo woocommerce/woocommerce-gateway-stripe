@@ -23,13 +23,12 @@ function updateTokenLabelOverrides() {
 
 	Object.entries( getBlocksConfiguration()?.tokenLabelOverrides ).forEach(
 		( [ tokenID, label ] ) => {
-			const element = document.getElementById(
-				`#radio-control-wc-payment-method-saved-tokens-${ tokenID }__label`
-			);
+			const selector = `#radio-control-wc-payment-method-saved-tokens-${ tokenID }__label`;
+			const elementsToChange = document.querySelectorAll( selector );
 
-			if ( element ) {
+			elementsToChange.forEach( ( element ) => {
 				element.innerHTML = label;
-			}
+			} );
 		}
 	);
 }
