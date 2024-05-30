@@ -472,6 +472,10 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_CashApp();
+
+				if ( isset( $payment_method->cash_app->cashtag ) ) {
+					$token->set_cashtag( $payment_method->cash_app->cashtag );
+				}
 				break;
 			default:
 				$token = new WC_Payment_Token_SEPA();
