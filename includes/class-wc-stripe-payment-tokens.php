@@ -252,7 +252,6 @@ class WC_Stripe_Payment_Tokens {
 			! is_user_logged_in() ||
 			( ! empty( $gateway_id ) && ! in_array( $gateway_id, self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) )
 		) {
-
 			return $tokens;
 		}
 
