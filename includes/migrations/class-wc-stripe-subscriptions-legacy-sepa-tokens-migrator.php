@@ -157,10 +157,11 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 * @return WC_Payment_Token
 	 */
 	private function get_updated_sepa_token_by_source_id( string $source_id, int $user_id ): WC_Payment_Token {
-		$default_token = false;
+		$default_token           = false;
+		$updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 
 		// This method creates an updated token behind the scenes if it doesn't exist.
-		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id );
+		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, $updated_sepa_gateway_id );
 
 		foreach ( $customer_tokens as $token ) {
 			// Return the token once we find it.
