@@ -149,8 +149,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	/**
 	 * Returns an updated token to be used for the subscription, given the source ID.
 	 *
-	 * It will return the updated token if it already exists, otherwise it will create one from the legacy token.
-	 * If no legacy token is found, it will return the default token for the customer.
+	 * If no token is found, it will return the default token for the customer.
 	 *
 	 * @param string  $source_id The Source or Payment Method ID associated with the subscription.
 	 * @param integer $user_id   The WordPress User ID to whom the subscription belongs.
@@ -158,110 +157,29 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 * @return WC_Payment_Token
 	 */
 	private function get_updated_sepa_token_by_source_id( string $source_id, int $user_id ): WC_Payment_Token {
-		// It's possible that a token using the updated gateway ID already exists. Retrieve it if so.
-		// We create these when the shopper vistis the Checkout and the My account > Payment methods page.
-		$updated_token = $this->get_subscription_token(
-			$source_id,
-			$user_id,
-			WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID
-		);
+		$default_token = false;
 
-		// Return the updated token if we already have it.
-		if ( $updated_token ) {
-			return $updated_token;
-		}
+		// This method creates an updated token behind the scenes if it doesn't exist.
+		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id );
 
-		// Retrieve the legacy SEPA token used for the subscription.
-		$legacy_token = $this->get_subscription_token(
-			$source_id,
-			$user_id,
-			WC_Gateway_Stripe_Sepa::ID
-		);
+		foreach ( $customer_tokens as $token ) {
+			// Return the token once we find it.
+			if ( $source_id === $token->get_token() ) {
+				return $token;
+			}
 
-		if ( $legacy_token ) {
-			// Create an updated token from the legacy SEPA one, using the UPE SEPA gateway.
-			$updated_token = $this->create_updated_token_from_legacy( $legacy_token );
-		} else {
-			// Use the default token for the customer when we can't find the associated legacy SEPA one.
-			$updated_token = $this->get_customer_default_token( $user_id );
+			// Let's store the default token in case we don't find the one we're looking for.
+			if ( $token->is_default() ) {
+				$default_token = $token;
+			}
 		}
 
 		// We can't proceed with updating the subscription if we don't have a token to use.
-		if ( ! $updated_token ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. No replacement token was found.', $subscription_id ) );
+		if ( ! $default_token ) {
+			throw new \Exception( '---- Skipping migration of subscription. No replacement token was found.' );
 		}
 
-		return $updated_token;
-	}
-
-	/**
-	 * Returns the token associated with a subscription.
-	 *
-	 * @todo Is there a better way to retrieve these? WC_Order::get_payment_tokens() returns an empty array for some reason.
-	 *
-	 * @param string $subscription_source_id   The Source or Payment Method ID associated with the subscription.
-	 * @param int    $subscription_customer_id The WordPress User ID to whom the subscription belongs.
-	 * @param string $gateway_id               The ID of the payment gateway for which we're retrieving the tokens.
-	 * @return WC_Payment_Token|false
-	 */
-	private function get_subscription_token( string $subscription_source_id, int $subscription_customer_id, string $gateway_id ) {
-
-		// We specify the Gateway ID because
-		// - The Legacy SEPA gateway would be unavailable and its tokens are not retrieved.
-		// - The token value could be the same between two tokens with different gateway IDs,
-		//   like stripe_sepa (The Legacy gateway) and stripe_sepa_debit (The Updated gateway).
-		$customer_tokens = WC_Payment_Tokens::get_tokens(
-			[
-				'user_id'    => $subscription_customer_id,
-				'gateway_id' => $gateway_id,
-			]
-		);
-
-		foreach ( $customer_tokens as $token ) {
-			if ( $subscription_source_id === $token->get_token() ) {
-				return $token;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Creates an updated token using the UPE SEPA gateway from the legacy SEPA token.
-	 *
-	 * @param WC_Payment_Token $legacy_token The legacy token from which the updated one will be created.
-	 * @return WC_Payment_Token The updated token.
-	 */
-	private function create_updated_token_from_legacy( WC_Payment_Token $legacy_token ): WC_Payment_Token {
-		$updated_token = new WC_Payment_Token_SEPA();
-
-		$updated_token->set_last4( $legacy_token->get_last4() );
-		$updated_token->set_payment_method_type( $legacy_token->get_type() );
-		$updated_token->set_gateway_id( $legacy_token->get_gateway_id() );
-		$updated_token->set_token( $legacy_token->get_token() );
-		$updated_token->set_user_id( $legacy_token->get_user_id() );
-
-		$updated_token->save();
-
-		return $updated_token;
-	}
-
-	/**
-	 * Returns the default token associated with the given customer.
-	 *
-	 * @param int $customer_id The customer's WordPress User ID for whom we want to retrieve the default token.
-	 * @return WC_Payment_Token|false
-	 */
-	private function get_customer_default_token( int $customer_id ) {
-		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id );
-
-		foreach ( $customer_tokens as $token ) {
-			if ( $token->is_default() ) {
-				return $token;
-			}
-		}
-
-		return false;
+		return $default_token;
 	}
 
 	/**
@@ -280,7 +198,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $token->get_token() );
 
 		$subscription->set_payment_method( $token->get_gateway_id() );
-		$subscription->set_payment_method_title( $token->get_title() );
 
 		$subscription->save();
 	}
