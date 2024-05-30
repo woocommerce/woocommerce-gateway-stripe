@@ -509,6 +509,31 @@ class WC_Stripe_Payment_Tokens {
 		}
 		return $payment_method->type;
 	}
+
+	/**
+	 * Returns the list of payment tokens that belong to the current user that require a label override on the block checkout page.
+	 *
+	 * The block checkout will default to a string that includes the token's payment gateway ID. This method will return a list of
+	 * payment tokens that should have a custom label displayed instead.
+	 *
+	 * @return string[] List of payment token IDs and their custom labels.
+	 */
+	public static function get_token_label_overrides_for_checkout() {
+		$label_overrides      = [];
+		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		];
+
+		foreach ( $payment_method_types as $stripe_id ) {
+			$gateway_id = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
+
+			foreach ( WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id ) as $token ) {
+				$label_overrides[ $token->get_id() ] = $token->get_display_name();
+			}
+		}
+
+		return $label_overrides;
+	}
 }
 
 new WC_Stripe_Payment_Tokens();

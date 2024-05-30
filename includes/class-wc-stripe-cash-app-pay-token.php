@@ -29,7 +29,28 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	 * @return string The name of the token to display
 	 */
 	public function get_display_name( $deprecated = '' ) {
-		return __( 'Saved token for Cash App Pay', 'woocommerce-gateway-stripe' );
+		$cashtag = $this->get_cashtag();
+
+		// Translators: %s is the Cash App Pay $Cashtag.
+		return empty( $cashtag ) ? __( 'Cash App Pay', 'woocommerce-gateway-stripe' ) : sprintf( __( 'Cash App Pay (%s)', 'woocommerce-gateway-stripe' ), $cashtag );
+	}
+
+	/**
+	 * Sets the Cash App Pay $Cashtag for this token.
+	 *
+	 * @param string $cashtag A public identifier for buyers using Cash App.
+	 */
+	public function set_cashtag( $cashtag ) {
+		$this->add_meta_data( 'cashtag', $cashtag, true );
+	}
+
+	/**
+	 * Fetches the Cash App Pay token's $Cashtag.
+	 *
+	 * @return string The Cash App Pay $Cashtag.
+	 */
+	public function get_cashtag() {
+		return $this->get_meta( 'cashtag' );
 	}
 
 	/**
