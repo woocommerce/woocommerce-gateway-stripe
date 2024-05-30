@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.3.0
+Stable tag: 8.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.3.1 - xxxx-xx-xx =
+= 8.3.1 - 2024-05-30 =
 * Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
 * Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.
 
