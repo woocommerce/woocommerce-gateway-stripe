@@ -111,7 +111,6 @@ const PaymentSettingsPanel = () => {
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
-					<CustomizationOptionsNotice />
 				</SettingsSection>
 			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
