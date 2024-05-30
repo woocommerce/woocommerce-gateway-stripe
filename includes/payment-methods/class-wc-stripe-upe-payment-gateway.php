@@ -849,7 +849,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$payment_intent->client_secret,
 						rawurlencode( $redirect )
 					);
-				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
 					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 					$redirect = sprintf(
 						'#wc-stripe-wallet-%s:%s:%s:%s',
@@ -2387,6 +2387,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// If the intent requires confirmation to show voucher on checkout (i.e. Boleto or oxxo ) or requires action (i.e. need to show a 3DS confirmation card or handle the UPE redirect), don't reuse the intent
 		if ( in_array( $intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+			return null;
+		}
+
+		// Cash App Pay intents with a "requires payment method" status cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
+		if ( in_array( 'cashapp', $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
 			return null;
 		}
 

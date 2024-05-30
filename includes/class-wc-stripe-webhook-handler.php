@@ -885,7 +885,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id           = $order->get_id();
 		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
-		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay' ] );
+		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ] );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':

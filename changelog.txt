@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.4.0 - xxxx-xx-xx =
+* Fix - Remove the duplicated customization notice in the settings screen.
 * Add - Include Cash App as a payment method for stores using the updated checkout experience.
 * Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
