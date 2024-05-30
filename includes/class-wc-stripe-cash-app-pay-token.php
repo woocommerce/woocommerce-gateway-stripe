@@ -23,6 +23,15 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	protected $type = 'cashapp';
 
 	/**
+	 * Extra data.
+	 *
+	 * @var string[]
+	 */
+	protected $extra_data = [
+		'cashtag' => '',
+	];
+
+	/**
 	 * Returns the name of the token to display
 	 *
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
@@ -41,7 +50,7 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	 * @param string $cashtag A public identifier for buyers using Cash App.
 	 */
 	public function set_cashtag( $cashtag ) {
-		$this->add_meta_data( 'cashtag', $cashtag, true );
+		$this->set_prop( 'cashtag', $cashtag );
 	}
 
 	/**
@@ -50,7 +59,7 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	 * @return string The Cash App Pay $Cashtag.
 	 */
 	public function get_cashtag() {
-		return $this->get_meta( 'cashtag' );
+		return $this->get_prop( 'cashtag' );
 	}
 
 	/**
