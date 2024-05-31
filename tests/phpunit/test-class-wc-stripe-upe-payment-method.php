@@ -590,10 +590,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$store_currency = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR';
+			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR';
+			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
 				$store_currency = $payment_method->get_supported_currencies()[0];
+				$account_currency = $store_currency;
 			}
 
 			$payment_method
@@ -605,10 +607,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			if ( $payment_method->is_reusable() ) {
 				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
-				$this->assertTrue( $payment_method->is_enabled_at_checkout(), "Payment method {$payment_method_id} is not enabled" );
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is not enabled" );
 				unset( $GLOBALS['troubleshoot-jga'] );
 			} else {
-				$this->assertFalse( $payment_method->is_enabled_at_checkout(), "Payment method {$payment_method_id} is enabled" );
+				$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is enabled" );
 			}
 		}
 	}
