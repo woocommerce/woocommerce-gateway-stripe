@@ -27,22 +27,15 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	const SOURCE_ID_META_KEY = '_stripe_source_id';
 
 	/**
-	 * WC_Logger instance.
+	 * Constructor
 	 *
-	 * @todo Use WC_Stripe_Logger?
-	 *
-	 * @var WC_Logger
+	 * @param WC_Logger_Interface $logger The WC_Logger instance.
 	 */
-	protected $logger;
+	public function __construct( WC_Logger_Interface $logger ) {
+		$this->logger = $logger;
 
-	/**
-	 * Constructor.
-	 */
-	public function __construct() {
-		$this->scheduled_hook = 'stripe_schedule_legacy_sepa_token_repairs';
-		$this->repair_hook    = 'stripe_legacy_sepa_token_repair';
-
-		$this->logger = wc_get_logger();
+		$this->scheduled_hook = 'wc_stripe_schedule_legacy_sepa_token_repairs';
+		$this->repair_hook    = 'wc_stripe_legacy_sepa_token_repair';
 	}
 
 	/**
