@@ -34,8 +34,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	public function __construct( WC_Logger_Interface $logger ) {
 		$this->logger = $logger;
 
-		$this->scheduled_hook = 'wc_stripe_schedule_legacy_sepa_token_repairs';
-		$this->repair_hook    = 'wc_stripe_legacy_sepa_token_repair';
+		$this->scheduled_hook = 'wc_stripe_schedule_subscriptions_legacy_sepa_token_repairs';
+		$this->repair_hook    = 'wc_stripe_subscriptions_legacy_sepa_token_repair';
 		$this->log_handle     = 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs';
 	}
 
