@@ -45,7 +45,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 *
 	 * @return int[] The IDs of the subscriptions to migrate.
 	 */
-	public function get_items_to_repair( $page ) {
+	protected function get_items_to_repair( $page ) {
 		$items_to_repair = wc_get_orders(
 			[
 				'return'         => 'ids',
