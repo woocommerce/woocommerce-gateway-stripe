@@ -14,6 +14,7 @@
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
 * Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
+* Update - Declare compatibility with the Cart and Checkout blocks.
 
 = 8.3.1 - 2024-05-30 =
 * Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
