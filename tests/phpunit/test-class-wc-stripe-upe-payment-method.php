@@ -450,9 +450,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
-			$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
 			$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $currency ), "Payment method {$id} is not enabled" );
-			unset( $GLOBALS['troubleshoot-jga'] );
 		}
 	}
 
@@ -490,9 +488,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
 				$payment_method = $this->mock_payment_methods[ $id ];
-				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
 				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ), "Payment method {$id} is not enabled" );
-				unset( $GLOBALS['troubleshoot-jga'] );
 			}
 		}
 	}
@@ -606,9 +602,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				);
 
 			if ( $payment_method->is_reusable() ) {
-				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
 				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is not enabled" );
-				unset( $GLOBALS['troubleshoot-jga'] );
 			} else {
 				$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is enabled" );
 			}
