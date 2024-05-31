@@ -902,6 +902,7 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
@@ -910,7 +911,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type, $payment_information['is_using_saved_payment_method'] ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
