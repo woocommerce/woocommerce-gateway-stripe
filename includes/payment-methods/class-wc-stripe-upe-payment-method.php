@@ -250,8 +250,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
 				if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
-					error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4" );
-					echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4" );
+					error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4 acc:{$account_domestic_currency} wc:{$current_store_currency}" );
+					echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4 acc:{$account_domestic_currency} wc:{$current_store_currency}" );
 				}
 				return false;
 			}
