@@ -483,6 +483,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 				$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 				$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
+				$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
 				$payment_method = $this->mock_payment_methods[ $id ];
 				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
@@ -524,13 +525,16 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		// This is a currency supported by all of the BNPLs.
 		$stripe_account_currency = 'USD';
 
+		// Bypass the currency limits check while we're testing domestic restrictions.
+		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
+
 		$affirm_method   = $this->mock_payment_methods['affirm'];
 		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
 		$klarna_method   = $this->mock_payment_methods['klarna'];
 
-		$this->assertTrue( $affirm_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
-		$this->assertTrue( $afterpay_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
-		$this->assertTrue( $klarna_method->is_enabled_at_checkout( null, $stripe_account_currency ) );
+		$this->assertTrue( $affirm_method->is_enabled_at_checkout( null, $stripe_account_currency ), 'Affirm is not enabled at checkout' );
+		$this->assertTrue( $afterpay_method->is_enabled_at_checkout( null, $stripe_account_currency ), 'Afterpay is not enabled at checkout' );
+		$this->assertTrue( $klarna_method->is_enabled_at_checkout( null, $stripe_account_currency ), 'Klarna is not enabled at checkout' );
 	}
 
 	public function test_bnpl_is_unavailable_when_not_within_currency_limits() {
