@@ -36,6 +36,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 
 		$this->scheduled_hook = 'wc_stripe_schedule_legacy_sepa_token_repairs';
 		$this->repair_hook    = 'wc_stripe_legacy_sepa_token_repair';
+		$this->log_handle     = 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs';
 	}
 
 	/**
@@ -60,7 +61,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		);
 
 		if ( empty( $items_to_repair ) ) {
-			$this->logger->info( 'Finished scheduling subscription migrations.' );
+			$this->log( 'Finished scheduling subscription migrations.' );
 		}
 
 		return $items_to_repair;
@@ -91,7 +92,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 				return;
 			}
 
-			$this->logger->info( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) );
+			$this->log( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) );
 
 			$subscription = $this->get_subscription_to_migrate( $subscription_id );
 			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
@@ -103,7 +104,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 
 			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
 		} catch ( \Exception $e ) {
-			$this->logger->info( $e->getMessage() );
+			$this->log( $e->getMessage() );
 		}
 	}
 
