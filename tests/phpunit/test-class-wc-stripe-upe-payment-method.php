@@ -143,6 +143,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						'get_woocommerce_currency',
 						'is_subscription_item_in_cart',
 						'get_current_order_amount',
+						'is_inside_currency_limits',
 					]
 				)
 				->getMock();
@@ -485,7 +486,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 				$payment_method = $this->mock_payment_methods[ $id ];
 				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
-				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ) );
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $woocommerce_currency ), "Payment method {$id} is not enabled" );
 				unset( $GLOBALS['troubleshoot-jga'] );
 			}
 		}
