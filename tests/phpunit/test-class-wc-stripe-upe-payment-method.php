@@ -602,7 +602,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				);
 
 			if ( $payment_method->is_reusable() ) {
+				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+				unset( $GLOBALS['troubleshoot-jga'] );
 			} else {
 				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
 			}
