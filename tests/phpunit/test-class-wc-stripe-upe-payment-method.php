@@ -132,20 +132,23 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Reset mock_payment_methods to array of mocked payment methods
 	 * with no mocked expectations for methods.
 	 */
-	private function reset_payment_method_mocks() {
+	private function reset_payment_method_mocks( $exclude_methods = [] ) {
 		$this->mock_payment_methods = [];
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$mocked_methods = [
+				'get_capabilities_response',
+				'get_woocommerce_currency',
+				'is_subscription_item_in_cart',
+				'get_current_order_amount',
+				'is_inside_currency_limits',
+			];
+
+			// Remove any methods that should not be mocked.
+			$mocked_methods = array_diff( $mocked_methods, $exclude_methods );
+
 			$mocked_payment_method = $this->getMockBuilder( $payment_method_class )
-				->setMethods(
-					[
-						'get_capabilities_response',
-						'get_woocommerce_currency',
-						'is_subscription_item_in_cart',
-						'get_current_order_amount',
-						'is_inside_currency_limits',
-					]
-				)
+				->setMethods( $mocked_methods )
 				->getMock();
 
 			$this->mock_payment_methods[ $mocked_payment_method->get_id() ] = $mocked_payment_method;
@@ -552,6 +555,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function test_bnpl_is_available_when_within_currency_limits() {
 		$store_currency = 'USD';
 
+		$this->reset_payment_method_mocks( [ 'is_inside_currency_limits' ] );
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 
 		$affirm_method   = $this->mock_payment_methods['affirm'];
