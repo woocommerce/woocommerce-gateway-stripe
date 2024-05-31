@@ -585,6 +585,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
