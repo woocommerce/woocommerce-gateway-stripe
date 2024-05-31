@@ -465,6 +465,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 
 			$payment_method       = $this->mock_payment_methods[ $id ];
 			$supported_currencies = $payment_method->get_supported_currencies();
@@ -478,6 +479,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $woocommerce_currency, true );
 				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 				$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+				$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 
 				$payment_method = $this->mock_payment_methods[ $id ];
 				$GLOBALS['troubleshoot-jga'] = __FUNCTION__;
