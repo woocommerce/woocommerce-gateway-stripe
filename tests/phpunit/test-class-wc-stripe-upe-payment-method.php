@@ -413,6 +413,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 
@@ -427,6 +428,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+			$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 
