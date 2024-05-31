@@ -37,7 +37,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 			'woocommerce-gateway-stripe'
 		);
 
-		// Cash App Pay supports subscriptions. Init subscription so it can process subscription payments.
+		// Cash App Pay supports subscriptions. Init subscriptions so it can process subscription payments.
 		$this->maybe_init_subscriptions();
 	}
 
