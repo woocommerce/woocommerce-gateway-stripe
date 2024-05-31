@@ -51,7 +51,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 			[
 				'return'         => 'ids',
 				'type'           => 'shop_subscription',
-				'limit'          => 100,
+				'posts_per_page' => 20,
+				'paged'          => $page,
 				'status'         => 'any',
 				'paged'          => $page,
 				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
