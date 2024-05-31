@@ -62,6 +62,29 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	}
 
 	/**
+	 * Determines whether Cash App Pay is enabled at checkout.
+	 *
+	 * @param int    $order_id                  The order ID.
+	 * @param string $account_domestic_currency The account's default currency.
+	 *
+	 * @return bool Whether Cash App Pay is enabled at checkout.
+	 */
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
+
+		/**
+		 * Cash App Pay is incapable of processing zero amount payments with saved payment methods.
+		 *
+		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
+		 * disable Cash App Pay for zero amount orders.
+		 */
+		if ( $this->get_current_order_amount() <= 0 ) {
+			return false;
+		}
+
+		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
+	}
+
+	/**
 	 * Creates a Cash App Pay payment token for the customer.
 	 *
 	 * @param int      $user_id        The customer ID the payment token is associated with.
