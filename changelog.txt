@@ -14,6 +14,11 @@
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
 * Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
+* Update - Declare compatibility with the Cart and Checkout blocks.
+
+= 8.3.1 - 2024-05-30 =
+* Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
+* Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.
 
 = 8.3.0 - 2024-05-23 =
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
