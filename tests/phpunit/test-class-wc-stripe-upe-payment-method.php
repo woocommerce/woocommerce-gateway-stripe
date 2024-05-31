@@ -57,6 +57,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe Cash App Pay payment method.
+	 */
+	const MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE = [
+		'id'         => 'pm_mock_payment_method_id',
+		'type'       => 'cashapp',
+		'cashapp' => [
+			'cashtag'  => '$test_cashtag',
+			'buyer_id' => 'test_buyer_id',
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
@@ -615,6 +627,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $link_payment_method_mock );
 					$this->assertTrue( 'WC_Payment_Token_Link' === get_class( $token ) );
 					$this->assertSame( $token->get_email(), $link_payment_method_mock->link->email );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
+					$cash_app_payment_method_mock = $this->array_to_object( self::MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE );
+					$token                        = $payment_method->create_payment_token_for_user( $user_id, $cash_app_payment_method_mock );
+					$this->assertTrue( 'WC_Payment_Token_CashApp' === get_class( $token ) );
+					$this->assertSame( $token->get_cashtag(), $cash_app_payment_method_mock->cashapp->cashtag );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
