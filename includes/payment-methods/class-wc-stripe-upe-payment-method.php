@@ -224,8 +224,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
-			error_log( "{$this->stripe_id} failed at 2" );
-			echo( "{$this->stripe_id} failed at 2" );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 2" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 2" );
+			}
 			return false;
 		}
 
@@ -233,8 +235,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$current_store_currency = $this->get_woocommerce_currency();
 		$currencies             = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) && ! in_array( $current_store_currency, $currencies, true ) ) {
-			error_log( "{$this->stripe_id} failed at 3" );
-			echo( "{$this->stripe_id} failed at 3" );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 3" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 3" );
+			}
 			return false;
 		}
 
@@ -245,37 +249,48 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			}
 
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
-				error_log( "{$this->stripe_id} failed at 4" );
-				echo( "{$this->stripe_id} failed at 4" );
+				if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+					error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4" );
+					echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 4" );
+				}
 				return false;
 			}
 		}
 
 		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
 		if ( [] !== $this->get_limits_per_currency() && ! $this->is_inside_currency_limits( $current_store_currency ) ) {
-			error_log( "{$this->stripe_id} failed at 5" );
-			echo( "{$this->stripe_id} failed at 5" );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 5" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 5" );
+			}
+
 			return false;
 		}
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
-			error_log( "{$this->stripe_id} 8 - is reusable? " . var_export( $this->is_reusable(), true ) );
-			echo( "{$this->stripe_id} 8 - is reusable? " . var_export( $this->is_reusable(), true ) );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} 8 - is reusable? " . var_export( $this->is_reusable(), true ) );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} 8 - is reusable? " . var_export( $this->is_reusable(), true ) );
+			}
 			return $this->is_reusable();
 		}
 
 		// If cart or order contains pre-order, enable payment method if it's reusable.
 		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
-			error_log( "{$this->stripe_id} 7 - is reusable? " . var_export( $this->is_reusable(), true ) );
-			echo( "{$this->stripe_id} 7 - is reusable? " . var_export( $this->is_reusable(), true ) );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} 7 - is reusable? " . var_export( $this->is_reusable(), true ) );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} 7 - is reusable? " . var_export( $this->is_reusable(), true ) );
+			}
 			return $this->is_reusable();
 		}
 
 		// Note: this $this->is_automatic_capture_enabled() call will be handled by $this->__call() and fall through to the UPE gateway class.
 		if ( $this->requires_automatic_capture() && ! $this->is_automatic_capture_enabled() ) {
-			error_log( "{$this->stripe_id} failed at 6" );
-			echo( "{$this->stripe_id} failed at 6" );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 6" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 6" );
+			}
 			return false;
 		}
 

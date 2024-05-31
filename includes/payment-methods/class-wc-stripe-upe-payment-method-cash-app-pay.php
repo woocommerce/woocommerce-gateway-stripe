@@ -77,8 +77,10 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 * disable Cash App Pay for zero amount orders.
 		 */
 		if ( $this->get_current_order_amount() <= 0 ) {
-			error_log( "{$this->stripe_id} failed at 1" );
-			echo( "{$this->stripe_id} failed at 1" );
+			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1" );
+			}
 			return false;
 		}
 
