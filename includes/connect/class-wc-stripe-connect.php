@@ -129,14 +129,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test                                = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$prefix                                 = $is_test ? 'test_' : '';
-			$default_options                        = $this->get_default_stripe_config();
-			$options                                = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
-			$options['enabled']                     = 'yes';
-			$options['testmode']                    = $is_test ? 'yes' : 'no';
-			$options[ $prefix . 'publishable_key' ] = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'secret_key' ]      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                    = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$prefix                                     = $is_test ? 'test_' : '';
+			$default_options                            = $this->get_default_stripe_config();
+			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
+			$options['enabled']                         = 'yes';
+			$options['testmode']                        = $is_test ? 'yes' : 'no';
+			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
+			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -146,6 +147,20 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( self::SETTINGS_OPTION, $options );
 
 			return $result;
+		}
+
+		/**
+		 * If user is reconnecting and there are existing settings data, return the value from the settings.
+		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
+		 */
+		private function get_upe_checkout_experience_enabled() {
+			$existing_stripe_settings = get_option( self::SETTINGS_OPTION, [] );
+
+			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
+				return $existing_stripe_settings['upe_checkout_experience_enabled'];
+			}
+
+			return 'yes';
 		}
 
 		/**
@@ -183,6 +198,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					$result[ $key ] = $value['default'];
 				}
 			}
+
+			$result['upe_checkout_experience_enabled'] = 'yes';
+			$result['upe_checkout_experience_accepted_payments'][] = 'link';
 
 			return $result;
 		}

@@ -22,13 +22,6 @@ $stripe_settings = apply_filters(
 			'default'     => __( 'Credit Card (Stripe)', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
-		'title_upe'                           => [
-			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
-			'type'        => $is_gte_wc6_6 ? 'safe_text' : 'text',
-			'description' => __( 'This controls the title which the user sees during checkout when multiple payment methods are enabled.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'Popular payment methods', 'woocommerce-gateway-stripe' ),
-			'desc_tip'    => true,
-		],
 		'description'                         => [
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
@@ -283,7 +276,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
 			'title'   => __( 'Payments accepted on checkout (Early access)', 'woocommerce-gateway-stripe' ),
 			'type'    => 'upe_checkout_experience_accepted_payments',
-			'default' => [ 'card' ],
+			'default' => [ 'card', 'link' ],
 		];
 	}
 	// Insert UPE options below the 'logging' setting.

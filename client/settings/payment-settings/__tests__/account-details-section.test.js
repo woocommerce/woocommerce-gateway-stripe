@@ -190,4 +190,36 @@ describe( 'AccountDetailsSection', () => {
 		);
 		expect( connectionSuccessfulMessage ).toBeInTheDocument();
 	} );
+
+	it( 'Stripe account ID and email should be displayed with a live account', () => {
+		useAccount.mockReturnValue( {
+			data: {
+				webhook_url: 'example.com',
+				account: {
+					id: 'acct_123',
+					email: 'test@example.com',
+					testmode: false,
+				},
+			},
+		} );
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+
+		useAccountKeysPublishableKey.mockReturnValue( [
+			'live_pk',
+			jest.fn(),
+		] );
+		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+		useAccountKeysWebhookSecret.mockReturnValue( [
+			'live_whs',
+			jest.fn(),
+		] );
+
+		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
+
+		const stripeAccountEmail = screen.getByText( /test@example.com/i );
+		expect( stripeAccountEmail ).toBeInTheDocument();
+
+		const stripeAccountId = screen.getByText( /acct_123/i );
+		expect( stripeAccountId ).toBeInTheDocument();
+	} );
 } );

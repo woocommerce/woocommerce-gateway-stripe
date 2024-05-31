@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { createInterpolateElement } from '@wordpress/element';
+import { createInterpolateElement, useState } from '@wordpress/element';
 import { useDispatch } from '@wordpress/data';
 import { CheckboxControl, ExternalLink } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
@@ -11,6 +11,7 @@ import { STORE_NAME } from '../../data/constants';
 const ExperimentalFeatures = () => {
 	const dispatch = useDispatch();
 	const [ isUpeEnabled, setIsUpeEnabled ] = useIsUpeEnabled();
+	const [ isLegacyEnabled, setIsLegacyEnabled ] = useState( ! isUpeEnabled );
 	const { isSaving } = useSettings();
 	const savingError = useGetSavingError();
 	const { setIsUpeEnabledLocally } = useContext( UpeToggleContext );
@@ -90,23 +91,29 @@ const ExperimentalFeatures = () => {
 		setIsUpeEnabledLocally,
 	] );
 
+	// The checkbox control uses the opposite value of the UPE state since 8.1.0.
+	const setIsLegacyExperienceEnabled = ( value ) => {
+		setIsUpeEnabled( ! value );
+		setIsLegacyEnabled( value );
+	};
+
 	return (
 		<>
 			<h4 ref={ headingRef } tabIndex="-1">
 				{ __(
-					'New checkout experience',
+					'Legacy checkout experience',
 					'woocommerce-gateway-stripe'
 				) }
 			</h4>
 			<CheckboxControl
-				data-testid="new-checkout-experience-checkbox"
+				data-testid="legacy-checkout-experience-checkbox"
 				label={ __(
-					'Enable the updated checkout experience',
+					'Enable the legacy checkout experience',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						'Get access to a smarter payment experience on checkout and let us know what you think by <feedbackLink>submitting your feedback</feedbackLink>. We recommend this feature for experienced merchants as the functionality is currently limited. <learnMoreLink>Learn more</learnMoreLink>',
+						'If you enable this, your store may stop processing payments in the near future as Stripe will no longer support this integration. <learnMoreLink>Learn more</learnMoreLink>.<newLineElement />Going back to the legacy experience? Reach out to us through our <feedbackLink>feedback form</feedbackLink> or <supportLink>support channel</supportLink>.',
 						'woocommerce-gateway-stripe'
 					),
 					{
@@ -114,12 +121,16 @@ const ExperimentalFeatures = () => {
 							<ExternalLink href="https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey" />
 						),
 						learnMoreLink: (
-							<ExternalLink href="https://woocommerce.com/document/stripe/#new-checkout-experience" />
+							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
 						),
+						supportLink: (
+							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
+						),
+						newLineElement: <br />,
 					}
 				) }
-				checked={ isUpeEnabled }
-				onChange={ setIsUpeEnabled }
+				checked={ isLegacyEnabled }
+				onChange={ setIsLegacyExperienceEnabled }
 			/>
 		</>
 	);

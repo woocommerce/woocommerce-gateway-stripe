@@ -135,6 +135,12 @@ class WC_Stripe_API {
 			]
 		);
 
+		$response_headers = wp_remote_retrieve_headers( $response );
+		// Log the stripe version in the response headers, if present.
+		if ( isset( $response_headers['stripe-version'] ) ) {
+			WC_Stripe_Logger::log( "{$api} response with stripe-version: " . $response_headers['stripe-version'] );
+		}
+
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log(
 				'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r(
@@ -152,7 +158,7 @@ class WC_Stripe_API {
 
 		if ( $with_headers ) {
 			return [
-				'headers' => wp_remote_retrieve_headers( $response ),
+				'headers' => $response_headers,
 				'body'    => json_decode( $response['body'] ),
 			];
 		}

@@ -157,23 +157,14 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
-export const useUpeTitle = makeSettingsHook( 'title_upe', '' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
 	'is_separate_card_form_enabled'
 );
-export const useAccountStatementDescriptor = makeSettingsHook(
-	'statement_descriptor',
-	''
-);
 export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
-);
-export const useShortAccountStatementDescriptor = makeSettingsHook(
-	'short_statement_descriptor',
-	''
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );

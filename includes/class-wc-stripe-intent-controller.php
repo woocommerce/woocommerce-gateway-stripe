@@ -34,8 +34,6 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
-
-		add_action( 'wp', [ $this, 'maybe_process_upe_redirect' ] );
 	}
 
 	/**
@@ -206,9 +204,10 @@ class WC_Stripe_Intent_Controller {
 
 			// 2. Load the customer ID (and create a customer eventually).
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$customer->maybe_create_customer();
 
-			// 3. Attach the source to the customer (Setup Intents require that).
-			$source_object = $customer->attach_source( $source_id );
+			// 3. Fetch the source object.
+			$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
 			if ( ! empty( $source_object->error ) ) {
 				throw new Exception( $source_object->error->message );
@@ -589,6 +588,8 @@ class WC_Stripe_Intent_Controller {
 
 			/* translators: error message */
 			if ( $order ) {
+				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
+				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
 				$order->update_status( 'failed' );
 			}
 
@@ -666,19 +667,6 @@ class WC_Stripe_Intent_Controller {
 		wp_send_json_success();
 	}
 
-	/*
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 */
-	public function maybe_process_upe_redirect() {
-		$gateway = $this->get_gateway();
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			$gateway->maybe_process_upe_redirect();
-		}
-	}
-
 	/**
 	 * Creates and confirm a payment intent with the given payment information.
 	 * Used for dPE.
@@ -732,6 +720,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( isset( $payment_information['statement_descriptor_suffix'] ) ) {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
+		}
+
+		if ( isset( $payment_information['payment_method_options'] ) ) {
+			$request['payment_method_options'] = $payment_information['payment_method_options'];
 		}
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
@@ -817,6 +809,16 @@ class WC_Stripe_Intent_Controller {
 		$this->validate_payment_intent_required_params( $required_params, [], $instance_params, $payment_information );
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
+
+		// Add the updated preferred credit card brand when defined
+		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
+		if ( isset( $preferred_brand ) ) {
+			$request['payment_method_options'] = [
+				'card' => [
+					'brand' => $preferred_brand,
+				],
+			];
+		}
 
 		$order = $payment_information['order'];
 
@@ -1067,5 +1069,21 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
 		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true );
+	}
+
+	/**
+	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
+	 *
+	 * @deprecated 8.3.0
+	 * @since 5.6.0
+	 * @version 5.6.0
+	 */
+	public function maybe_process_upe_redirect() {
+		wc_deprecated_function( __FUNCTION__, '8.3', 'WC_Stripe_Order_Handler::maybe_process_redirect_order' );
+
+		$gateway = $this->get_gateway();
+		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateway->maybe_process_upe_redirect();
+		}
 	}
 }

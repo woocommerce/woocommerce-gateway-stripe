@@ -976,11 +976,6 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// Don't show on cart if there are required checkout fields.
-		if ( is_cart() && $this->has_required_checkout_fields() ) {
-			return false;
-		}
-
 		// Don't show on checkout if disabled.
 		if ( is_checkout() && ! $this->should_show_prb_on_checkout_page() ) {
 			return false;
@@ -988,11 +983,6 @@ class WC_Stripe_Payment_Request {
 
 		// Don't show if product page PRB is disabled.
 		if ( $this->is_product() && ! $this->should_show_prb_on_product_pages() ) {
-			return false;
-		}
-
-		// Don't show on product if there are required checkout fields.
-		if ( $this->is_product() && $this->has_required_checkout_fields() ) {
 			return false;
 		}
 
@@ -1068,54 +1058,6 @@ class WC_Stripe_Payment_Request {
 			! $should_show_on_product_page,
 			$post
 		);
-	}
-
-	/**
-	 * Returns true if the checkout has any required fields other than the default ones, false otherwise.
-	 * to not be empty.
-	 *
-	 * @since 8.0.0
-	 *
-	 * @return boolean
-	 */
-	public function has_required_checkout_fields() {
-		// Default WooCommerce Core required fields for billing and shipping.
-		$default_required_fields = [
-			'billing_first_name',
-			'billing_last_name',
-			'billing_country',
-			'billing_address_1',
-			'billing_city',
-			'billing_state',
-			'billing_postcode',
-			'billing_phone',
-			'billing_email',
-			'shipping_first_name',
-			'shipping_last_name',
-			'shipping_country',
-			'shipping_address_1',
-			'shipping_city',
-			'shipping_state',
-			'shipping_postcode',
-		];
-
-		$fields = WC()->checkout()->get_checkout_fields();
-		$fields = array_merge(
-			$fields['billing'] ?? [],
-			$fields['shipping'] ?? [],
-			$fields['order'] ?? [],
-			$fields['account'] ?? []
-		);
-
-		foreach ( $fields as $field_key => $field_data ) {
-			if ( false === array_search( $field_key, $default_required_fields, true ) ) {
-				if ( isset( $field_data['required'] ) && true === $field_data['required'] ) {
-					return true;
-				}
-			}
-		}
-
-		return false;
 	}
 
 	/**
@@ -1230,15 +1172,15 @@ class WC_Stripe_Payment_Request {
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
 			[
-				'country'   => FILTER_SANITIZE_STRING,
-				'state'     => FILTER_SANITIZE_STRING,
-				'postcode'  => FILTER_SANITIZE_STRING,
-				'city'      => FILTER_SANITIZE_STRING,
-				'address'   => FILTER_SANITIZE_STRING,
-				'address_2' => FILTER_SANITIZE_STRING,
+				'country'   => FILTER_SANITIZE_SPECIAL_CHARS,
+				'state'     => FILTER_SANITIZE_SPECIAL_CHARS,
+				'postcode'  => FILTER_SANITIZE_SPECIAL_CHARS,
+				'city'      => FILTER_SANITIZE_SPECIAL_CHARS,
+				'address'   => FILTER_SANITIZE_SPECIAL_CHARS,
+				'address_2' => FILTER_SANITIZE_SPECIAL_CHARS,
 			]
 		);
-		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
+		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_SPECIAL_CHARS ] );
 		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
 		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view );
@@ -1260,7 +1202,7 @@ class WC_Stripe_Payment_Request {
 			$data = [];
 
 			// Remember current shipping method before resetting.
-			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
 			$packages          = WC()->shipping->get_packages();
@@ -1317,6 +1259,8 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
+			$this->maybe_restore_recurring_chosen_shipping_methods( $chosen_shipping_methods );
+
 			$data          += $this->build_display_items( $itemized_display_items );
 			$data['result'] = 'success';
 		} catch ( Exception $e ) {
@@ -1342,7 +1286,7 @@ class WC_Stripe_Payment_Request {
 
 		WC()->cart->calculate_totals();
 
-		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
+		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_SPECIAL_CHARS ] );
 		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
 		$data           = [];
@@ -2079,5 +2023,43 @@ class WC_Stripe_Payment_Request {
 			$this->stripe_settings['payment_request_button_size'] = 'default';
 			$gateway->update_option( 'payment_request_button_size', 'default' );
 		}
+	}
+
+	/**
+	 * Restores the shipping methods previously chosen for each recurring cart after shipping was reset and recalculated
+	 * during the Payment Request get_shipping_options flow.
+	 *
+	 * When the cart contains multiple subscriptions with different billing periods, customers are able to select different shipping
+	 * methods for each subscription, however, this is not supported when purchasing with Apple Pay and Google Pay as it's
+	 * only concerned about handling the initial purchase.
+	 *
+	 * In order to avoid Woo Subscriptions's `WC_Subscriptions_Cart::validate_recurring_shipping_methods` throwing an error, we need to restore
+	 * the previously chosen shipping methods for each recurring cart.
+	 *
+	 * This function needs to be called after `WC()->cart->calculate_totals()` is run, otherwise `WC()->cart->recurring_carts` won't exist yet.
+	 *
+	 * @since 8.3.0
+	 *
+	 * @param array $previous_chosen_methods The previously chosen shipping methods.
+	 */
+	private function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
+		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
+			return;
+		}
+
+		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods', [] );
+
+		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
+			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
+				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
+
+				// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
+				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
+					$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
+				}
+			}
+		}
+
+		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
 	}
 }

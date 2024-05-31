@@ -4,7 +4,9 @@ import {
 	generateCheckoutEventNames,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
+	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
+	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
 import {
@@ -12,6 +14,7 @@ import {
 	mountStripePaymentElement,
 	createAndConfirmSetupIntent,
 	confirmVoucherPayment,
+	confirmWalletPayment,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -85,33 +88,55 @@ jQuery( function ( $ ) {
 				'.wc-stripe-upe-element'
 			).toArray() ) {
 				await mountStripePaymentElement( api, upeElement );
+				restrictPaymentMethodToLocation( upeElement );
 			}
 		}
 	}
 
-	/**
-	 * Checks if the URL hash starts with #wc-stripe-voucher- and whether we
-	 * should display the Boleto or Oxxo confirmation modal.
-	 */
-	function maybeConfirmVoucherPayment() {
-		if (
-			window.location.hash.startsWith( '#wc-stripe-voucher-' ) &&
-			( getStripeServerData()?.isOrderPay ||
-				getStripeServerData()?.isCheckout )
-		) {
-			confirmVoucherPayment(
-				api,
-				getStripeServerData()?.isOrderPay
-					? $( '#order_review' )
-					: $( 'form.checkout' )
-			);
+	function restrictPaymentMethodToLocation( upeElement ) {
+		if ( isPaymentMethodRestrictedToLocation( upeElement ) ) {
+			togglePaymentMethodForCountry( upeElement );
+
+			// this event only applies to the checkout form, but not "place order" or "add payment method" pages.
+			$( '#billing_country' ).on( 'change', function () {
+				togglePaymentMethodForCountry( upeElement );
+			} );
 		}
 	}
 
-	// On every page load and on hash change, check to see whether we should display the Boleto or Oxxo modal.
+	/**
+	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
+	 * should display the relevant confirmation modal.
+	 */
+	function maybeConfirmVoucherOrWalletPayment() {
+		if (
+			getStripeServerData()?.isOrderPay ||
+			getStripeServerData()?.isCheckout
+		) {
+			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
+				confirmVoucherPayment(
+					api,
+					getStripeServerData()?.isOrderPay
+						? $( '#order_review' )
+						: $( 'form.checkout' )
+				);
+			} else if (
+				window.location.hash.startsWith( '#wc-stripe-wallet-' )
+			) {
+				confirmWalletPayment(
+					api,
+					getStripeServerData()?.isOrderPay
+						? $( '#order_review' )
+						: $( 'form.checkout' )
+				);
+			}
+		}
+	}
+
+	// On every page load and on hash change, check to see whether we should display the Voucher (Boleto/Oxxo) or Wallet (CashApp/WeChat Pay) modal.
 	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
-	maybeConfirmVoucherPayment();
+	maybeConfirmVoucherOrWalletPayment();
 	$( window ).on( 'hashchange', () => {
-		maybeConfirmVoucherPayment();
+		maybeConfirmVoucherOrWalletPayment();
 	} );
 } );

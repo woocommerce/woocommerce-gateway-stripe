@@ -1,5 +1,6 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -64,11 +65,8 @@ export default class WCStripeAPI {
 			isUPEEnabled,
 			paymentMethodsConfig,
 		} = this.options;
-		const isStripeLinkEnabled =
-			undefined !== paymentMethodsConfig.card &&
-			undefined !== paymentMethodsConfig.link;
 		if ( ! this.stripe ) {
-			if ( isUPEEnabled && isStripeLinkEnabled ) {
+			if ( isUPEEnabled && isLinkEnabled( paymentMethodsConfig ) ) {
 				this.stripe = this.createStripe( key, locale, [
 					'link_autofill_modal_beta_1',
 				] );
@@ -396,5 +394,35 @@ export default class WCStripeAPI {
 			// If something goes wrong here,
 			// we would still rather throw the Stripe error rather than this one.
 		} );
+	}
+
+	/**
+	 * Saves the Stripe Payment Elements appearance settings in a transient on server.
+	 *
+	 * @param {Object} appearance      The appearance settings.
+	 * @param {string} isBlockCheckout Whether the request is from the block checkout.
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
+	saveAppearance( appearance, isBlockCheckout = 'false' ) {
+		return this.request( this.getAjaxUrl( 'save_appearance' ), {
+			appearance: JSON.stringify( appearance ),
+			is_block_checkout: isBlockCheckout,
+			theme_name: this.options?.theme_name,
+			_ajax_nonce: this.options?.saveAppearanceNonce,
+		} )
+			.then( ( response ) => {
+				return response.success;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
+				}
+			} );
 	}
 }
