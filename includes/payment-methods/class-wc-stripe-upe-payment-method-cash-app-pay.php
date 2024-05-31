@@ -70,7 +70,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	 * @return bool Whether Cash App Pay is enabled at checkout.
 	 */
 	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
-
 		/**
 		 * Cash App Pay is incapable of processing zero amount payments with saved payment methods.
 		 *
