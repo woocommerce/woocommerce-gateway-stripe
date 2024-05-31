@@ -78,8 +78,8 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 */
 		if ( $this->get_current_order_amount() <= 0 ) {
 			if ( isset( $GLOBALS['troubleshoot-jga'] ) ) {
-				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1" );
-				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1" );
+				error_log( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1 ({$this->get_current_order_amount()})" );
+				echo( "{$GLOBALS['troubleshoot-jga']} - {$this->stripe_id} failed at 1 ({$this->get_current_order_amount()})" );
 			}
 			return false;
 		}
