@@ -729,10 +729,10 @@ function woocommerce_gateway_stripe() {
 			 * Initializes updating subscriptions.
 			 */
 			public function initialize_subscriptions_updater() {
-				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-migrator.php';
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
 
 				$logger  = wc_get_logger();
-				$updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator( $logger );
+				$updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update( $logger );
 
 				$updater->maybe_update();
 			}
