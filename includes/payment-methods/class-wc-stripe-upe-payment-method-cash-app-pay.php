@@ -39,6 +39,14 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 
 		// Cash App Pay supports subscriptions. Init subscriptions so it can process subscription payments.
 		$this->maybe_init_subscriptions();
+
+		/**
+		 * Cash App Pay is incapable of processing zero amount payments with saved payment methods.
+		 *
+		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
+		 * disable customer's changing the payment method to Cash App Pay as that would result in a $0 set up intent.
+		 */
+		$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
 	}
 
 	/**
