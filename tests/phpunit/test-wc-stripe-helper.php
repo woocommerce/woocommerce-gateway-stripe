@@ -356,38 +356,41 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_is_wallet_payment_method
 	 */
 	public function test_is_wallet_payment_method( $payment_method, $expected ): void {
-		$actual = WC_Stripe_Helper::is_wallet_payment_method( $payment_method );
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_upe_payment_type', $payment_method );
+
+		$actual = WC_Stripe_Helper::is_wallet_payment_method( $order );
 		$this->assertSame( $expected, $actual );
 	}
 
 	public function provide_is_wallet_payment_method(): array {
 		return [
 			'Apple Pay'  => [
-				'stripe_apple_pay',
+				'apple_pay',
 				false,
 			],
 			'Google Pay' => [
-				'stripe_google_pay',
+				'google_pay',
 				false,
 			],
 			'Alipay'     => [
-				'stripe_alipay',
+				'alipay',
 				false,
 			],
 			'Klarna'     => [
-				'stripe_klarna',
+				'klarna',
 				false,
 			],
 			'EPS'        => [
-				'stripe_eps',
+				'eps',
 				false,
 			],
 			'WeChat'     => [
-				'stripe_wechat',
+				'wechat_pay',
 				true,
 			],
 			'Cash App'   => [
-				'stripe_cashapp',
+				'cashapp',
 				true,
 			],
 		];
