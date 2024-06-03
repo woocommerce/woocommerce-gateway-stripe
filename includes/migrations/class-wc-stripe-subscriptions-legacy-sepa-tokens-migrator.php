@@ -81,35 +81,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	}
 
 	/**
-	 * Gets the batch of subscriptions using the Legacy SEPA payment method to be updated.
-	 *
-	 * @param int $page The page of results to fetch.
-	 *
-	 * @return int[] The IDs of the subscriptions to migrate.
-	 */
-	protected function get_items_to_repair( $page ) {
-		$items_to_repair = wc_get_orders(
-			[
-				'return'         => 'ids',
-				'type'           => 'shop_subscription',
-				'posts_per_page' => 20,
-				'paged'          => $page,
-				'status'         => 'any',
-				'paged'          => $page,
-				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
-				'order'          => 'ASC',
-				'orderby'        => 'ID',
-			]
-		);
-
-		if ( empty( $items_to_repair ) ) {
-			$this->log( 'Finished scheduling subscription migrations.' );
-		}
-
-		return $items_to_repair;
-	}
-
-	/**
 	 * Triggers the conditional payment method update for the given subscription.
 	 *
 	 * This is the callback for the repair hook. Used as a wrapper for the method that does the actual processing.
@@ -148,6 +119,35 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		} catch ( \Exception $e ) {
 			$this->log( $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Gets the batch of subscriptions using the Legacy SEPA payment method to be updated.
+	 *
+	 * @param int $page The page of results to fetch.
+	 *
+	 * @return int[] The IDs of the subscriptions to migrate.
+	 */
+	protected function get_items_to_repair( $page ) {
+		$items_to_repair = wc_get_orders(
+			[
+				'return'         => 'ids',
+				'type'           => 'shop_subscription',
+				'posts_per_page' => 20,
+				'paged'          => $page,
+				'status'         => 'any',
+				'paged'          => $page,
+				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
+				'order'          => 'ASC',
+				'orderby'        => 'ID',
+			]
+		);
+
+		if ( empty( $items_to_repair ) ) {
+			$this->log( 'Finished scheduling subscription migrations.' );
+		}
+
+		return $items_to_repair;
 	}
 
 	/**
