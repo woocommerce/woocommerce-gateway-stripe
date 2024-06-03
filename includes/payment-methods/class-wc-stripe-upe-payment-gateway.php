@@ -382,7 +382,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['createSetupIntentNonce']           = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
 		$stripe_params['createAndConfirmSetupIntentNonce'] = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
 		$stripe_params['updateFailedOrderNonce']           = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
-		$stripe_params['processRedirectOrderNonce']        = wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' );
 		$stripe_params['paymentMethodsConfig']             = $this->get_enabled_payment_method_config();
 		$stripe_params['genericErrorMessage']              = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
@@ -1183,18 +1182,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
-
-		if ( ! is_object( $order ) ) {
-			return;
-		}
-
-		if ( wp_is_mobile() && WC_Stripe_Helper::is_wallet_payment_method( $order ) && isset( $_GET['redirect_status'] ) && 'failed' === $_GET['redirect_status'] ) {
-			wc_add_notice( __( 'An error occurred, please try again or try an alternate form of payment.', 'woocommerce-gateway-stripe' ), 'error' );
-			return;
-		}
-
-		$this->process_upe_redirect_payment( $order, $intent_id, $save_payment_method );
+		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method );
 	}
 
 	/**
@@ -1241,14 +1229,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Processes UPE redirect payments.
 	 *
-	 * @param WC_Order $order The order being processed.
-	 * @param string   $intent_id The Stripe setup/payment intent ID for the order payment.
-	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
+	 * @param int    $order_id The order ID being processed.
+	 * @param string $intent_id The Stripe setup/payment intent ID for the order payment.
+	 * @param bool   $save_payment_method Boolean representing whether payment method for order should be saved.
 	 *
 	 * @since 5.5.0
 	 * @version 5.5.0
 	 */
-	public function process_upe_redirect_payment( $order, $intent_id, $save_payment_method ) {
+	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
+		$order = wc_get_order( $order_id );
+
+		if ( ! is_object( $order ) ) {
+			return;
+		}
+
 		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
 			return;
 		}
