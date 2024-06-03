@@ -40,7 +40,7 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			'woocommerce-gateway-stripe'
 		);
 
-		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text' ], 10, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
 	}
 
 	/**
@@ -110,26 +110,5 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function is_available_for_account_country() {
 		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	}
-
-	/**
-	 * Custom Cash App order received text (for mobile only). This identifies the order failed and displays the error message.
-	 *
-	 * @param string   $text Default text.
-	 * @param WC_Order $order Order data.
-	 * @return string
-	 */
-	public function order_received_text( $text, $order ) {
-		$redirect_status = '';
-		if ( isset( $_GET['redirect_status'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			$redirect_status = wc_clean( wp_unslash( $_GET['redirect_status'] ) );
-		}
-		if ( $order && $this->id === $order->get_payment_method() && 'failed' === $redirect_status ) {
-			wc_add_notice( __( 'An error occurred, please try again or try an alternate form of payment.', 'woocommerce-gateway-stripe' ), 'error' );
-			wp_safe_redirect( wc_get_cart_url() );
-			exit;
-		}
-
-		return $text;
 	}
 }
