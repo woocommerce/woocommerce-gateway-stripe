@@ -39,8 +39,6 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
 			'woocommerce-gateway-stripe'
 		);
-
-		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
 	}
 
 	/**
