@@ -56,5 +56,6 @@ require_once __DIR__ . '/helpers/class-upe-test-helper.php';
 require_once __DIR__ . '/helpers/class-wc-helper-product.php';
 require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
 require_once __DIR__ . '/helpers/class-wc-helper-order.php';
+require_once __DIR__ . '/helpers/class-wc-helper-subscriptions.php';
 require_once __DIR__ . '/helpers/class-wc-helper-token.php';
 require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
