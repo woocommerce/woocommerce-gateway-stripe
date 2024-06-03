@@ -1274,6 +1274,6 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function is_wallet_payment_method( $order ) {
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ] );
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
 	}
 }
