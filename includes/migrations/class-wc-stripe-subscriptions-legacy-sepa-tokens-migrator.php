@@ -40,6 +40,27 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	}
 
 	/**
+	 * Conditionally schedules the repair of subscriptions using the Legacy SEPA payment method.
+	 *
+	 * Don't run if either of these conditions are met:
+	 *    - The WooCommerce Subscriptions extension isn't active.
+	 *    - The Legacy checkout experience is enabled (aka UPE is disabled).
+	 */
+	public function maybe_update() {
+		if (
+			! class_exists( 'WC_Subscriptions' ) ||
+			! WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
+		) {
+			return;
+		}
+
+		// Schedule the repair without checking if there are subscriptions to be migrated.
+		// This will be handled in the scheduled action.
+		$this->init();
+		$this->schedule_repair();
+	}
+
+	/**
 	 * Gets the batch of subscriptions using the Legacy SEPA payment method to be updated.
 	 *
 	 * @param int $page The page of results to fetch.
