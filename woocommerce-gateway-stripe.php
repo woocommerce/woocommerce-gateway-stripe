@@ -324,6 +324,9 @@ function woocommerce_gateway_stripe() {
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
 					$this->update_prb_location_settings();
+
+					// Intitialize the class for updating subscriptions.
+					$this->initialize_subscriptions_updater();
 				}
 			}
 
@@ -720,6 +723,18 @@ function woocommerce_gateway_stripe() {
 				}
 
 				return $fields;
+			}
+
+			/**
+			 * Initializes updating subscriptions.
+			 */
+			public function initialize_subscriptions_updater() {
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-migrator.php';
+
+				$logger  = wc_get_logger();
+				$updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator( $logger );
+
+				$updater->maybe_update();
 			}
 		}
 
