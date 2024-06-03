@@ -100,11 +100,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	 */
 	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
 		try {
-			// No need to update the tokens if Legacy is enabled.
-			if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-				return;
-			}
-
 			$this->log( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) );
 
 			$subscription = $this->get_subscription_to_migrate( $subscription_id );
@@ -151,18 +146,22 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	}
 
 	/**
-	 * Gets the subscription to migrate if it should be migrated.
+	 * Gets the subscription to update.
 	 *
 	 * Only allows migration if:
+	 * - The Legacy experience is disabled
 	 * - The WooCommerce Subscription extension is active
 	 * - The subscription ID is a valid subscription
-	 * - The subscription has not already been migrated
 	 *
 	 * @param int $subscription_id The ID of the subscription to migrate.
 	 * @return WC_Subscription The Subscription object for which its token must be updated.
 	 * @throws \Exception Skip the migration if the request is invalid.
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) );
+		}
+
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The WooCommerce Subscriptions extension is not active.', $subscription_id ) );
 		}
@@ -171,12 +170,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 
 		if ( ! $subscription ) {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) );
-		}
-
-		$migrated_legacy_token_id = $subscription->get_meta( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, true );
-
-		if ( ! empty( $migrated_legacy_token_id ) ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%1$d (%2$s). Token has already been updated.', $subscription_id, $migrated_legacy_token_id ) );
 		}
 
 		return $subscription;
