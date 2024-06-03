@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Fix - Added a feedback message + redirection back to cart when a wallet payment fails.
 * Fix - Remove the duplicated customization notice in the settings screen.
 * Add - Include Cash App as a payment method for stores using the updated checkout experience.
 * Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
