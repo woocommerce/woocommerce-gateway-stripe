@@ -92,31 +92,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 	}
 
 	/**
-	 * Conditionally calls the method to update the payment method of the subscription.
-	 *
-	 * We validate whether it must be updated first.
-	 *
-	 * @param int $subscription_id ID of the subscription to be processed.
-	 */
-	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
-		try {
-			$this->log( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) );
-
-			$subscription = $this->get_subscription_to_migrate( $subscription_id );
-			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
-			$user_id      = $subscription->get_user_id();
-
-			// The tokens for the Legacy SEPA gateway aren't available when the Legacy experience is disabled.
-			// Let's retrieve a token that can be used instead.
-			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
-
-			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
-		} catch ( \Exception $e ) {
-			$this->log( $e->getMessage() );
-		}
-	}
-
-	/**
 	 * Gets the batch of subscriptions using the Legacy SEPA payment method to be updated.
 	 *
 	 * @param int $page The page of results to fetch.
@@ -143,6 +118,31 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background
 		}
 
 		return $items_to_repair;
+	}
+
+	/**
+	 * Conditionally calls the method to update the payment method of the subscription.
+	 *
+	 * We validate whether it must be updated first.
+	 *
+	 * @param int $subscription_id ID of the subscription to be processed.
+	 */
+	private function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
+		try {
+			$this->log( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) );
+
+			$subscription = $this->get_subscription_to_migrate( $subscription_id );
+			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+			$user_id      = $subscription->get_user_id();
+
+			// The tokens for the Legacy SEPA gateway aren't available when the Legacy experience is disabled.
+			// Let's retrieve a token that can be used instead.
+			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
+
+			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
+		} catch ( \Exception $e ) {
+			$this->log( $e->getMessage() );
+		}
 	}
 
 	/**
