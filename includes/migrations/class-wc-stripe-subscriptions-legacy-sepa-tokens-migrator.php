@@ -8,6 +8,26 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Handles migrating the tokens of Subscriptions using SEPA's Legacy gateway ID.
  *
+ * We have two different payment gateway IDs for SEPA depending on whether we use the Legacy experience:
+ *   - stripe_sepa, when the Legacy experience is enabled (Sources API).
+ *   - stripe_sepa_debit, when the Updated experience is enabled (Payment Methods API).
+ *
+ * When purchasing a subscription using the Legacy experience (Sources API), we set stripe_sepa as the associated payment method gateway.
+ * When purchasing a subscription using the Updated experience (Payment Methods API), we set stripe_sepa_debit as the associated payment method gateway.
+ *
+ * Because we use a different payment gateway ID when disabling the Legacy experience (switching to the Payment Methods API),
+ * WooCommerce detects that the stripe_sepa payment gateway as no longer available.
+ * This causes the Subscription to change to Manual renewal, and automatic renewals to fail.
+ *
+ * This class fixes failing automatic renewals by:
+ *   - Retrieving all the subscriptions that are using the stripe_sepa payment gateway.
+ *   - Iterating over each subscription.
+ *   - Retrieving an Updated (Payment Methods API) token based on the Legacy (Sources API) token associated with the subscription.
+ *       - If none is found, we create a new Updated (Payment Methods API) token based on the Legacy (Sources API) token.
+ *       - If it can't be created, we use the default SEPA token for the customer if available.
+ *       - If a default SEPA token doesn't exist, we skip the migration.
+ *   - Associating this replacement token to the subscription.
+ *
  * This class extends the WCS_Background_Repairer for scheduling and running the individual migration actions.
  */
 class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Migrator extends WCS_Background_Repairer {
