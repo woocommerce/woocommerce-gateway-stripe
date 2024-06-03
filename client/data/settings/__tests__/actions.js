@@ -37,8 +37,6 @@ describe( 'Settings actions tests', () => {
 		test( 'makes POST request with settings', () => {
 			const settingsMock = {
 				enabled_payment_method_ids: [ 'foo', 'bar' ],
-				// TODO Uncomment code below once settings data API is fully ported.
-				// is_wcpay_enabled: true,
 			};
 
 			select.mockReturnValue( {
