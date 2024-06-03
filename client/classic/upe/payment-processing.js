@@ -461,12 +461,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
-			window.location.href =
-				returnURL +
-				'&_wpnonce=' +
-				getStripeServerData()?.processRedirectOrderNonce +
-				'&order_id=' +
-				orderId;
+			window.location.href = returnURL;
 		}
 	} catch ( error ) {
 		showErrorCheckout( error.message );
