@@ -11,7 +11,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 
 	/**
-	 * WCPay gateway mock.
+	 * Stripe gateway mock.
 	 *
 	 * @var MockObject|WC_Gateway_Stripe
 	 */
