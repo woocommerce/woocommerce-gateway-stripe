@@ -80,7 +80,7 @@ const PaymentRequestExpressComponent = ( {
 
 	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
 	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
-	if ( buttonAttributes !== undefined ) {
+	if ( typeof buttonAttributes !== 'undefined' ) {
 		height = buttonAttributes.height || height;
 		theme = buttonAttributes?.darkMode ? 'light' : 'dark';
 	}
