@@ -885,7 +885,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id           = $order->get_id();
 		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
-		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay' ] );
+		$is_wallet_payment  = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ] );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
@@ -906,7 +906,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				 * This is a stop-gap to fix a critical issue, see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				 * be better if we removed the need for additional meta data in favor of refactoring this part of the payment processing.
 				 */
-				$is_awaiting_action = ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) || wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) );
+				$is_awaiting_action = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
 
 				// Voucher payments are only processed via the webhook so are excluded from the above check.
 				// Wallets are also processed via the webhook, not redirection.
