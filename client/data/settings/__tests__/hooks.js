@@ -160,7 +160,7 @@ describe( 'Settings hooks tests', () => {
 				},
 			} );
 
-			customizePaymentMethod( 'giropay', true, {
+			customizePaymentMethod( true, 'giropay', true, {
 				giropay: {
 					name: 'Giropay',
 					description: 'Pay with Giropay',
@@ -170,6 +170,7 @@ describe( 'Settings hooks tests', () => {
 			expect(
 				actions.saveIndividualPaymentMethodSettings
 			).toHaveBeenCalledWith( {
+				isUpeEnabled: true,
 				isEnabled: true,
 				method: 'giropay',
 				name: 'Giropay',
