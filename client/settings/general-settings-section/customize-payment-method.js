@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import styled from '@emotion/styled';
 import { Button, TextControl } from '@wordpress/components';
 import { isEqual } from 'lodash';
+import UpeToggleContext from '../upe-toggle/context';
 import {
 	useCustomizePaymentMethodSettings,
 	useEnabledPaymentMethodIds,
@@ -16,6 +17,7 @@ const ButtonWrapper = styled.div`
 `;
 
 const CustomizePaymentMethod = ( { method, onClose } ) => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const {
 		individualPaymentMethodSettings,
 		isCustomizing,
@@ -53,6 +55,7 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 			},
 		};
 		await customizePaymentMethod(
+			isUpeEnabled,
 			method,
 			enabledPaymentMethodIds.includes( method ),
 			data

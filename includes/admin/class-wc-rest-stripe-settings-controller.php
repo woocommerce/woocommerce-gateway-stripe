@@ -545,11 +545,36 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
 		$payment_method_id = $request->get_param( 'payment_method_id' );
+		$is_enabled        = $request->get_param( 'is_enabled' );
+		$title             = sanitize_text_field( $request->get_param( 'title' ) );
+		$description       = sanitize_text_field( $request->get_param( 'description' ) );
+		$is_upe_enabled    = $request->get_param( 'is_upe_enabled' );
+
+		if ( $is_upe_enabled ) {
+			$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
+			if ( ! in_array( $payment_method_id, $available_payment_methods, true ) ) {
+				return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
+			}
+
+			$settings = [
+				'title'       => $title,
+				'description' => $description,
+			];
+
+			if ( in_array( $payment_method_id, [ 'boleto' ], true ) ) {
+				$settings['expiration'] = sanitize_text_field( $request->get_param( 'expiration' ) );
+			}
+
+			update_option(
+				'woocommerce_stripe_' . $payment_method_id . '_settings',
+				$settings
+			);
+
+			return new WP_REST_Response( [], 200 );
+		}
+
 		// Map the ids used in the frontend to the legacy gateway class ids.
 		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
-		$is_enabled              = $request->get_param( 'is_enabled' );
-		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
-		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
 		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
 		if ( 'card' === $payment_method_id ) {

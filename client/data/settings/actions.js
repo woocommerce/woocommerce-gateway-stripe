@@ -118,6 +118,7 @@ export function* saveIndividualPaymentMethodSettings(
 			path: `${ NAMESPACE }/settings/payment_method`,
 			method: 'post',
 			data: {
+				is_upe_enabled: paymentMethodData.isUpeEnabled,
 				is_enabled: paymentMethodData.isEnabled,
 				payment_method_id: paymentMethodData.method,
 				title: paymentMethodData.name,

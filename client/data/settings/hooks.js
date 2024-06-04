@@ -111,11 +111,12 @@ export const useCustomizePaymentMethodSettings = () => {
 	}, [] );
 
 	const customizePaymentMethod = useCallback(
-		async ( method, isEnabled, data ) => {
+		async ( isUpeEnabled, method, isEnabled, data ) => {
 			updateSettingsValues( {
 				individual_payment_method_settings: data,
 			} );
 			await saveIndividualPaymentMethodSettings( {
+				isUpeEnabled,
 				isEnabled,
 				method,
 				name: data[ method ].name,
