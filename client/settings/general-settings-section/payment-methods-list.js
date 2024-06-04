@@ -322,25 +322,24 @@ const GeneralSettingsSection = ( {
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
-							{ ! isUpeEnabled &&
-								! customizationStatus[ method ] && (
-									<Button
-										variant="secondary"
-										onClick={ () =>
-											setCustomizationStatus( {
-												...customizationStatus,
-												[ method ]: true,
-											} )
-										}
-									>
-										{ __(
-											'Customize',
-											'woocommerce-gateway-stripe'
-										) }
-									</Button>
-								) }
+							{ ! customizationStatus[ method ] && (
+								<Button
+									variant="secondary"
+									onClick={ () =>
+										setCustomizationStatus( {
+											...customizationStatus,
+											[ method ]: true,
+										} )
+									}
+								>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
+							) }
 						</ListElement>
-						{ ! isUpeEnabled && customizationStatus[ method ] && (
+						{ customizationStatus[ method ] && (
 							<CustomizePaymentMethod
 								method={ method }
 								onClose={ ( customizationData ) =>
