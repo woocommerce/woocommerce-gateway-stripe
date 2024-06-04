@@ -582,12 +582,12 @@ class WC_Stripe_Helper {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
 
 			$settings = [
-				'name'        => $individual_gateway_settings['title'],
-				'description' => $individual_gateway_settings['description'],
+				'name'        => isset( $individual_gateway_settings['title'] ) ? $individual_gateway_settings['title'] : '',
+				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
 			];
 
 			if ( in_array( $gateway, [ 'boleto' ], true ) ) {
-				$settings['expiration'] = $individual_gateway_settings['expiration'];
+				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
 			}
 
 			$payment_method_settings[ $gateway ] = $settings;
