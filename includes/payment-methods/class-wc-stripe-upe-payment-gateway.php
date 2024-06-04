@@ -750,6 +750,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$payment_needed        = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id     = $payment_information['payment_method'];
+			$payment_method_object = $payment_information['payment_method_details'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
 			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args         = [];
@@ -796,7 +797,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
-					$payment_information['payment_method'],
+					$payment_method_object,
 					$selected_payment_type
 				);
 			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
@@ -2017,6 +2018,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
+		$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
+
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
 		$payment_information = [
@@ -2030,6 +2033,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'order'                         => $order,
 			'payment_initiated_by'          => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'                => $payment_method_id,
+			'payment_method_details'        => $payment_method_object,
 			'payment_type'                  => 'single', // single | recurring.
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'selected_payment_type'         => $selected_payment_type,
@@ -2045,14 +2049,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
+		$payment_method_options = [];
+
 		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
 		if ( 'wechat_pay' === $selected_payment_type ) {
-			$payment_information['payment_method_options'] = [
+			$payment_method_options = [
 				'wechat_pay' => [
 					'client' => 'web',
 				],
 			];
 		}
+
+		// Add the updated preferred credit card brand when defined
+		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
+		if ( isset( $preferred_brand ) ) {
+			$payment_method_options = [
+				'card' => [
+					'network' => $preferred_brand,
+				],
+			];
+		}
+
+		$payment_information['payment_method_options'] = $payment_method_options;
 
 		return $payment_information;
 	}
@@ -2153,21 +2171,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Save the selected payment method information to the order and as a payment token for the user.
 	 *
-	 * @param WC_Order $order               The WC order for which we're saving the payment method.
-	 * @param string   $payment_method_id   The ID of the payment method in Stripe, like `pm_xyz`.
-	 * @param string   $payment_method_type The payment method type, like `card`, `sepa_debit`, etc.
+	 * @param WC_Order $order                  The WC order for which we're saving the payment method.
+	 * @param stdClass $payment_method_object  The payment method object retrieved from Stripe.
+	 * @param string   $payment_method_type    The payment method type, like `card`, `sepa_debit`, etc.
 	 */
-	private function handle_saving_payment_method( WC_Order $order, string $payment_method_id, string $payment_method_type ) {
-		$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
-
-		// The payment method couldn't be retrieved from Stripe.
-		if ( is_wp_error( $payment_method_object ) ) {
-			throw new WC_Stripe_Exception(
-				sprintf( 'Error retrieving the selected payment method from Stripe for saving it. ID: %s. Type: %s', $payment_method_id, $payment_method_type ),
-				$payment_method_object->get_error_message()
-			);
-		}
-
+	private function handle_saving_payment_method( WC_Order $order, $payment_method_object, string $payment_method_type ) {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
