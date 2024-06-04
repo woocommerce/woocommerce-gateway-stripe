@@ -1920,8 +1920,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		// Bail if no Stripe payment method is enabled.
-		if ( 'no' === $this->enabled && empty( WC_Stripe_Helper::get_legacy_enabled_payment_methods() ) ) {
+		// Bail if no legacy Stripe payment method is enabled.
+		if ( 'no' === $this->enabled || empty( WC_Stripe_Helper::get_legacy_enabled_payment_methods() ) ) {
 			return;
 		}
 
