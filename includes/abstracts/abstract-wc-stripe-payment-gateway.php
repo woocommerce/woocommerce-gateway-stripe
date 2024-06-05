@@ -549,6 +549,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
 		}
 
+		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
+			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
+		}
+
 		if ( 'yes' === $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods

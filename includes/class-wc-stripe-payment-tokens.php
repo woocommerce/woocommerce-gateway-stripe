@@ -544,6 +544,48 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
+	 * Updates a saved payment token from payment method details received from Stripe.
+	 *
+	 * @param int       $user_id                The user ID.
+	 * @param string    $payment_method         The Stripe payment method ID.
+	 * @param stdClass  $payment_method_details The payment method object from Stripe.
+	 */
+	public static function update_token_from_method_details( $user_id, $payment_method, $payment_method_details ) {
+		// Payment method types that we want to update from updated payment method details.
+		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		];
+
+		// Exit early if this payment method type is not one we need to update.
+		if ( ! isset( $payment_method_details->type ) || ! in_array( $payment_method_details->type, $payment_method_types ) ) {
+			return;
+		}
+
+		$tokens = WC_Payment_Tokens::get_tokens(
+			[
+				'type'       => $payment_method_details->type,
+				'gateway_id' => self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_details->type ],
+				'user_id'    => $user_id,
+			]
+		);
+
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() !== $payment_method ) {
+				continue;
+			}
+
+			switch ( $payment_method_details->type ) {
+				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
+					if ( isset( $payment_method_details->cashapp->cashtag ) ) {
+						$token->set_cashtag( $payment_method_details->cashapp->cashtag );
+						$token->save();
+					}
+					break;
+			}
+		}
+	}
+
+	/**
 	 * Controls the output for SEPA on the my account page.
 	 *
 	 * @since 4.0.0
