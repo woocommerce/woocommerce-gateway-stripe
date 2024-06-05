@@ -182,7 +182,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		return $this->title;
+		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
+		return ! empty( $payment_method_settings['title'] ) ? $payment_method_settings['title'] : $this->title;
 	}
 
 	/**
@@ -200,7 +201,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		return $this->description;
+		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
+		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : $this->description;
 	}
 
 	/**
@@ -531,6 +533,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
 				<p class="testmode-info"><?php echo wp_kses_post( $this->get_testing_instructions() ); ?></p>
 			<?php endif; ?>
+			<?php
+				echo wp_kses_post( $this->get_description() );
+			?>
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
