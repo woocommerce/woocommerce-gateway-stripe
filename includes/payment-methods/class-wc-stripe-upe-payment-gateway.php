@@ -461,6 +461,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$settings[ $payment_method_id ] = [
 				'isReusable'          => $payment_method->is_reusable(),
 				'title'               => $payment_method->get_title(),
+				'description'         => $payment_method->get_description(),
 				'testingInstructions' => $payment_method->get_testing_instructions(),
 				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'countries'           => $payment_method->get_available_billing_countries(),

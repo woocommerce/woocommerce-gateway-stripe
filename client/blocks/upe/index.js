@@ -43,6 +43,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
@@ -50,6 +51,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
