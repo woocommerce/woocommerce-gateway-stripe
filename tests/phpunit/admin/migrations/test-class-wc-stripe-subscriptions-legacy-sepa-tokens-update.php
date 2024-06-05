@@ -27,8 +27,15 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 	 */
 	private $updater;
 
+	/**
+	 * @var UPE_Test_Helper
+	 */
+	private $upe_helper;
+
 	public function set_up() {
 		parent::set_up();
+
+		$this->upe_helper = new UPE_Test_Helper();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
 
@@ -174,11 +181,88 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->repair_item( $subscription_id );
 	}
 
-	// public function test_get_updated_sepa_token_by_source_id_bails_when_no_token_is_found() {}
+	public function test_get_updated_sepa_token_by_source_id_bails_when_no_token_is_found() {
+		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( '---- Skipping migration of subscription. No replacement token was found.' )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+	}
+
+	public function test_get_updated_sepa_token_by_source_id_returns_a_default_token() {
+		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->enable_upe();
+		$this->upe_helper->reload_payment_gateways();
+
+		$stripe_payment_tokens_instance = WC_Stripe_Payment_Tokens::get_instance();
+
+		// The SEPA token we create below gets deleted by the method we hook in this filter because it's not found in Stripe.
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens_instance, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		$updated_sepa_gateway_id = 'stripe_sepa_debit';
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+		$subscription    = new WC_Subscription( $subscription_id );
+		$customer_id     = $subscription->get_user_id();
+
+		$token = WC_Helper_Token::create_sepa_token( 'src_999', $customer_id, $updated_sepa_gateway_id );
+		WC_Payment_Tokens::set_users_default( $customer_id, $token->get_id() );
+
+		$this->logger_mock
+			->expects( $this->at( 0 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
+			);
+
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+
+		$subscription = new WC_Subscription( $subscription_id );
+
+		// Confirm the subscription's payment method was updated.
+		$this->assertEquals( $updated_sepa_gateway_id, $subscription->get_payment_method() );
+
+		// Confirm the subscription's source ID was updated to use the default token.
+		$this->assertEquals( 'src_999', $subscription->get_meta( '_stripe_source_id' ) );
+
+		// Confirm the flag for the migration was set.
+		$this->assertEquals( WC_Gateway_Stripe_Sepa::ID, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
+	}
 
 	// public function test_get_updated_sepa_token_by_source_id_returns_the_right_token() {}
-
-	// public function test_get_updated_sepa_token_by_source_id_returns_a_default_token() {}
 
 	// public function test_subscription_payment_method_gets_correctly_updated() {}
 

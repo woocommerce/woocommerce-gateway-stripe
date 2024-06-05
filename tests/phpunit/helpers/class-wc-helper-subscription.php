@@ -26,6 +26,17 @@ class WC_Subscription extends WC_Order {
 	 * @param int|WC_Subscription $subscription Subscription to read.
 	 */
 	public function __construct( $subscription = 0 ) {
+		// Add the subscription to the order types so retrieving the subscription doesn't trigger an "Invalid order" exception.
+		add_filter(
+			'wc_order_types',
+			function( $order_types ) {
+				if ( ! in_array( $this->order_type, $order_types, true ) ) {
+					$order_types[] = 'shop_subscription';
+				}
+
+				return $order_types;
+			}
+		);
 		parent::__construct( $subscription );
 		$this->order_type = 'shop_subscription';
 	}
