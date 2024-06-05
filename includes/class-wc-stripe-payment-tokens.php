@@ -380,7 +380,11 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		if ( 'cashapp' === strtolower( $payment_token->get_type() ) ) {
-			$item['method']['brand'] = $payment_token->get_display_name();
+			/**
+			 * WC's wc_get_credit_card_type_label() function will automatically replace underscores and dashes with spaces.
+			 * Cashtags can include `_` and `-` characters and so to keep the cashtag intact, we need to avoid that by using their HTML entity.
+			 */
+			$item['method']['brand'] = str_replace( [ '_', '-' ], [ '&#95;', '&#8211' ], $payment_token->get_display_name() );
 		}
 
 		return $item;
