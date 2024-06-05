@@ -16,6 +16,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 	private $logger_mock;
 
 	/**
+	 * Subscriptions IDs that must be migrated.
+	 *
+	 * @var array
+	 */
+	private $subs_ids_to_migrate = [];
+
+	/**
 	 * @var WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update
 	 */
 	private $updater;
@@ -66,6 +73,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->maybe_update();
 	}
 
+	/**
+	 * Run this test before creating the orders and subscriptions.
+	 */
 	public function test_get_items_to_repair_logs_on_empty_results() {
 		$this->logger_mock
 			->expects( $this->once() )
@@ -79,7 +89,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 	}
 
 	public function test_get_items_to_repair_return_the_right_items() {
-		$expected_ids = $this->create_orders_and_subscriptions();
+		$expected_ids = $this->get_subs_ids_to_migrate();
 
 		$first_page_items_to_repair  = $this->updater->get_items_to_update( 1 );
 		$second_page_items_to_repair = $this->updater->get_items_to_update( 2 );
@@ -101,11 +111,68 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->assertEmpty( array_intersect( $first_page_items_to_repair, $second_page_items_to_repair ) );
 	}
 
-	// public function test_maybe_update_subscription_legacy_payment_method_logs_on_exception() {}
+	public function test_maybe_update_subscription_legacy_payment_method_logs_on_exception() {
+		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
-	// public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_legacy_experience_is_enabled() {}
+		// Throw an arbitrary exception to confirm the logger is called with the Exception's message.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				throw new Exception( 'Mistakes were made' );
+			}
+		);
 
-	// public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_subscription_is_not_found() {}
+		$ids_to_migrate = $this->get_subs_ids_to_migrate();
+
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( 'Mistakes were made' )
+			);
+
+		$this->updater->repair_item( $ids_to_migrate[0] );
+	}
+
+	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_legacy_experience_is_enabled() {
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+
+		// We didn't set upe_checkout_experience_enabled to 'yes', which means the Legacy experience is enabled.
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+	}
+
+	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_subscription_is_not_found() {
+		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+
+		// Mock the subscription not being found.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return false;
+			}
+		);
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+	}
 
 	// public function test_get_updated_sepa_token_by_source_id_bails_when_no_token_is_found() {}
 
@@ -161,7 +228,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		return $expected;
 	}
 
-
 	private function create_subscription( $payment_method, $customer_id, $source_id ) {
 		$subscription = new WC_Subscription();
 		$subscription->set_customer_id( $customer_id );
@@ -171,5 +237,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$subscription->save();
 
 		return $subscription;
+	}
+
+	private function get_subs_ids_to_migrate() {
+		if ( empty( $this->subs_ids_to_migrate ) ) {
+			$this->subs_ids_to_migrate = $this->create_orders_and_subscriptions();
+		}
+		return $this->subs_ids_to_migrate;
 	}
 }
