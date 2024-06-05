@@ -2061,7 +2061,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Add the updated preferred credit card brand when defined
-		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
+		$preferred_brand = $payment_method_object->card->networks->preferred ?? null;
 		if ( isset( $preferred_brand ) ) {
 			$payment_method_options = [
 				'card' => [
