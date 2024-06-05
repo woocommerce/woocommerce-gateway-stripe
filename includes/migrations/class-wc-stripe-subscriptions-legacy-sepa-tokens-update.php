@@ -140,6 +140,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
 
 			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
+
+			$this->log( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) );
 		} catch ( \Exception $e ) {
 			$this->log( $e->getMessage() );
 		}
