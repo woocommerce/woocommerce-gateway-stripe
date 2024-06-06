@@ -225,9 +225,7 @@ export default class WCStripeAPI {
 
 			// Card Payments.
 			return this.getStripe()
-				.confirmCashappSetup( response.data.client_secret, {
-					return_url: response.data.return_url,
-				} )
+				.confirmCardSetup( response.data.client_secret )
 				.then( ( confirmedSetupIntent ) => {
 					const { setupIntent, error } = confirmedSetupIntent;
 					if ( error ) {
