@@ -130,9 +130,15 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 			$redirect_status = wc_clean( wp_unslash( $_GET['redirect_status'] ) );
 		}
 		if ( $order && $this->id === $order->get_payment_method() && 'failed' === $redirect_status ) {
-			wc_add_notice( __( 'An error occurred, please try again or try an alternate form of payment.', 'woocommerce-gateway-stripe' ), 'error' );
-			wp_safe_redirect( wc_get_cart_url() );
-			exit;
+			$text = '<p class="woocommerce-error">';
+				$text .= esc_html( 'Unfortunately your order cannot be processed as the payment method has declined your transaction. Please attempt your purchase again.' );
+			$text .= '</p>';
+			$text .= '<p class="woocommerce-notice woocommerce-notice--error woocommerce-thankyou-order-failed-actions">';
+				$text .= '<a href="' . esc_url( $order->get_checkout_payment_url() ) . '" class="button pay">' . esc_html( 'Pay' ) . '</a>';
+			if ( is_user_logged_in() ) {
+				$text .= '<a href="' . esc_url( wc_get_page_permalink( 'myaccount' ) ) . '" class="button pay">' . esc_html( 'My account' ) . '</a>';
+			}
+			$text .= '</p>';
 		}
 
 		return $text;
