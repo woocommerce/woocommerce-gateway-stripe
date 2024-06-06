@@ -31,14 +31,13 @@ class WC_Subscription extends WC_Order {
 			'wc_order_types',
 			function( $order_types ) {
 				if ( ! in_array( $this->order_type, $order_types, true ) ) {
-					$order_types[] = 'shop_subscription';
+					$order_types[] = $this->order_type;
 				}
 
 				return $order_types;
 			}
 		);
 		parent::__construct( $subscription );
-		$this->order_type = 'shop_subscription';
 	}
 
 	/**
@@ -47,6 +46,6 @@ class WC_Subscription extends WC_Order {
 	 * @return string
 	 */
 	public function get_type() {
-		return 'shop_subscription';
+		return $this->order_type;
 	}
 }
