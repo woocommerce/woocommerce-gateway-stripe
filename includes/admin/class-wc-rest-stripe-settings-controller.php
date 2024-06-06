@@ -297,6 +297,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		if ( $is_upe_enabled ) {
 			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
+
+			$ordered_enabled_payment_methods = [];
+			$enabled_payment_methods         = $this->gateway->get_upe_enabled_at_checkout_payment_method_ids();
+
+			foreach ( $ordered_payment_method_ids as $payment_method_id ) {
+				if ( in_array( $payment_method_id, $enabled_payment_methods, true ) ) {
+					$ordered_enabled_payment_methods[] = $payment_method_id;
+				}
+			}
+
+			$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $ordered_enabled_payment_methods );
 		} else {
 			$ordered_payment_method_ids = array_map(
 				function ( $id ) {
