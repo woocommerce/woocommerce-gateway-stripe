@@ -295,7 +295,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return new WP_REST_Response( [], 403 );
 		}
 
-		// $ordered_payment_method_ids = []; //array_slice( $ordered_payment_method_ids, 5 );
 		if ( $is_upe_enabled ) {
 			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
 		} else {
