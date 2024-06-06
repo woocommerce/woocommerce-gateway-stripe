@@ -753,12 +753,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
-			$payment_needed        = $this->is_payment_needed( $order->get_id() );
-			$payment_method_id     = $payment_information['payment_method'];
-			$payment_method_object = $payment_information['payment_method_details'];
-			$selected_payment_type = $payment_information['selected_payment_type'];
-			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
-			$response_args         = [];
+			$payment_needed         = $this->is_payment_needed( $order->get_id() );
+			$payment_method_id      = $payment_information['payment_method'];
+			$payment_method_details = $payment_information['payment_method_details'];
+			$selected_payment_type  = $payment_information['selected_payment_type'];
+			$upe_payment_method     = $this->payment_methods[ $selected_payment_type ] ?? null;
+			$response_args          = [];
 
 			// Update saved payment method async to include billing details.
 			if ( $payment_information['is_using_saved_payment_method'] ) {
@@ -802,7 +802,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
-					$payment_method_object,
+					$payment_method_details,
 					$selected_payment_type
 				);
 			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
