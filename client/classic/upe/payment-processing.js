@@ -286,7 +286,7 @@ export const createAndConfirmSetupIntent = (
 	setCustomerRedirected
 ) => {
 	return api
-		.setupIntent( paymentMethod )
+		.setupIntent( paymentMethod, setCustomerRedirected )
 		.then( function ( confirmedSetupIntent ) {
 			if ( confirmedSetupIntent === 'redirect_to_url' ) {
 				setCustomerRedirected();
