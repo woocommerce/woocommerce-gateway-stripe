@@ -165,11 +165,10 @@ export default class WCStripeAPI {
 	 * Creates and confirms a setup intent.
 	 *
 	 * @param {Object}   paymentMethod         Payment method data.
-	 * @param {Function} setCustomerRedirected Function to call which flags the customer has been redirected.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
-	setupIntent( paymentMethod, setCustomerRedirected = null ) {
+	setupIntent( paymentMethod ) {
 		return this.request(
 			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
 			{
@@ -216,11 +215,10 @@ export default class WCStripeAPI {
 						}
 
 						if ( setupIntent.status === 'succeeded' ) {
-							if ( setCustomerRedirected ) {
-								setCustomerRedirected();
-							}
 							window.location.href = returnURL;
-							return setupIntent;
+
+							// Return 'redirect_to_url' so the calling function is aware of the redirect.
+							return 'redirect_to_url';
 						}
 					} );
 			} else {
