@@ -421,7 +421,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 5.6.0
 	 *
 	 * @param WC_Order $order              The order object.
-	 * @param string   $source_id          The source ID.
+	 * @param stdClass $source             The source object.
 	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
