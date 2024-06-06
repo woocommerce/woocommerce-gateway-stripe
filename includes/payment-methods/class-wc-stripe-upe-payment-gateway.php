@@ -2023,7 +2023,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
-		$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
+		$payment_method_details = WC_Stripe_API::get_payment_method( $payment_method_id );
 
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
@@ -2038,7 +2038,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'order'                         => $order,
 			'payment_initiated_by'          => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'                => $payment_method_id,
-			'payment_method_details'        => $payment_method_object,
+			'payment_method_details'        => $payment_method_details,
 			'payment_type'                  => 'single', // single | recurring.
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'selected_payment_type'         => $selected_payment_type,
@@ -2066,7 +2066,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Add the updated preferred credit card brand when defined
-		$preferred_brand = $payment_method_object->card->networks->preferred ?? null;
+		$preferred_brand = $payment_method_details->card->networks->preferred ?? null;
 		if ( isset( $preferred_brand ) ) {
 			$payment_method_options = [
 				'card' => [
