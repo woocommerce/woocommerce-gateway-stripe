@@ -164,7 +164,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates and confirms a setup intent.
 	 *
-	 * @param {Object}   paymentMethod         Payment method data.
+	 * @param {Object}   paymentMethod Payment method data.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
