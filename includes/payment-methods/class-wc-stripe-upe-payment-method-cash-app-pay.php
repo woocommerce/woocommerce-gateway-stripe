@@ -86,7 +86,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
 		 * disable Cash App Pay for zero amount orders.
 		 */
-		if ( $this->get_current_order_amount() <= 0 ) {
+		if ( ! is_add_payment_method_page() && $this->get_current_order_amount() <= 0 ) {
 			return false;
 		}
 
