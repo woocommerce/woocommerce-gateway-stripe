@@ -249,7 +249,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			$error &&
 			1 < $this->retry_interval &&
-			! empty( $source_object ) &&
+			! empty( $source_object->status ) &&
 			'chargeable' === $source_object->status &&
 			self::is_same_idempotency_error( $error )
 		);
@@ -547,6 +547,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		}
+
+		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
+			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
 		}
 
 		if ( 'yes' === $captured ) {
@@ -1660,8 +1664,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return boolean Whether or not it's a 'authentication_required' error
 	 */
 	public function is_authentication_required_for_payment( $response ) {
-		return ( ! empty( $response->error ) && 'authentication_required' === $response->error->code )
-			|| ( ! empty( $response->last_payment_error ) && 'authentication_required' === $response->last_payment_error->code );
+		return ( ! empty( $response->error->code ) && 'authentication_required' === $response->error->code )
+			|| ( ! empty( $response->last_payment_error->code ) && 'authentication_required' === $response->last_payment_error->code );
 	}
 
 	/**

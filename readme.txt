@@ -121,14 +121,16 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
-2. Offer a range of payment methods such as local and alternative payment methods.
-3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
-4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
+1. The Stripe payment gateway settings page used to configure the plugin.
+2. Offer a range of payment options such as local methods and express checkouts.
+3. Allow customers to save payment methods and add new ones for their future purchases.
+4. Apple Pay and other express methods can be added to product pages, cart, and checkout.
 
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
+* Tweak - Update WordPress.org screenshots and captions.
 * Fix - Remove the duplicated customization notice in the settings screen.
 * Add - Include Cash App as a payment method for stores using the updated checkout experience.
 * Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
