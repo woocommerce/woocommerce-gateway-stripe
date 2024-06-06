@@ -577,11 +577,41 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
+
 		$available_gateways = $gateway->get_upe_available_payment_methods();
 		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
 		$available_gateways[] = 'multibanco';
 
-		return $available_gateways;
+		$unordered_gateways         = array_diff( $available_gateways, $ordered_payment_method_ids );
+		$ordered_payment_method_ids = array_merge( $ordered_payment_method_ids, $unordered_gateways );
+
+		$available_gateways_with_capability = [];
+
+		$account = WC_Stripe::get_instance()->account;
+		$data    = $account->get_cached_account_data();
+
+		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
+			return [];
+		}
+
+		foreach ( $ordered_payment_method_ids as $gateway ) {
+			if ( 'multibanco' === $gateway ) {
+				// As Multibanco uses Stripe sources, we don't need to check for the capability.
+				$available_gateways_with_capability[] = $gateway;
+				continue;
+			}
+
+			$key            = $gateway . '_payments';
+			$has_capability = isset( $data['capabilities'][ $key ] );
+			if ( $has_capability || $testmode ) {
+				$available_gateways_with_capability[] = $gateway;
+			}
+		}
+
+		return $available_gateways_with_capability;
 	}
 
 	/**

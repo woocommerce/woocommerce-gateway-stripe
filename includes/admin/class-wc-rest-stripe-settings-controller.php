@@ -157,7 +157,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
+							'enum' => array_merge( WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -288,23 +288,29 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_payment_methods_order( WP_REST_Request $request ) {
+		$is_upe_enabled             = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
 
 		if ( empty( $ordered_payment_method_ids ) ) {
 			return new WP_REST_Response( [], 403 );
 		}
 
-		$ordered_payment_method_ids = array_map(
-			function ( $id ) {
-				if ( 'card' === $id ) {
-					return 'stripe';
-				}
-				return 'stripe_' . $id;
-			},
-			$ordered_payment_method_ids
-		);
+		// $ordered_payment_method_ids = []; //array_slice( $ordered_payment_method_ids, 5 );
+		if ( $is_upe_enabled ) {
+			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
+		} else {
+			$ordered_payment_method_ids = array_map(
+				function ( $id ) {
+					if ( 'card' === $id ) {
+						return 'stripe';
+					}
+					return 'stripe_' . $id;
+				},
+				$ordered_payment_method_ids
+			);
 
-		$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
+			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
+		}
 
 		return new WP_REST_Response( [], 200 );
 	}
