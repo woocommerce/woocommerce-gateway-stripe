@@ -197,14 +197,13 @@ export default class WCStripeAPI {
 				return response.data.next_action.type;
 			}
 
-			let setupIntentPromise = null;
-
 			if ( response.data.payment_type === 'cashapp' ) {
 				// Cash App Payments.
 				const returnURL = decodeURIComponent(
 					response.data.return_url
 				);
-				setupIntentPromise = this.getStripe()
+
+				return this.getStripe()
 					.confirmCashappSetup( response.data.client_secret, {
 						return_url: returnURL,
 					} )
@@ -222,23 +221,21 @@ export default class WCStripeAPI {
 						// When the setup intent is incomplete, we need to notify the calling function that the set up didn't complete.
 						return 'incomplete';
 					} );
-			} else {
-				// Card Payments.
-				setupIntentPromise = this.getStripe()
-					.confirmCashappSetup( response.data.client_secret, {
-						return_url: response.data.return_url,
-					} )
-					.then( ( confirmedSetupIntent ) => {
-						const { setupIntent, error } = confirmedSetupIntent;
-						if ( error ) {
-							throw error;
-						}
-
-						return setupIntent;
-					} );
 			}
 
-			return setupIntentPromise;
+			// Card Payments.
+			return this.getStripe()
+				.confirmCashappSetup( response.data.client_secret, {
+					return_url: response.data.return_url,
+				} )
+				.then( ( confirmedSetupIntent ) => {
+					const { setupIntent, error } = confirmedSetupIntent;
+					if ( error ) {
+						throw error;
+					}
+
+					return setupIntent;
+				} );
 		} );
 	}
 
