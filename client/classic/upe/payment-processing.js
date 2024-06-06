@@ -228,7 +228,7 @@ export const processPayment = (
 	( async () => {
 		try {
 			await validateElements( elements );
-			let customerRedirected = false;
+			let stopFormSubmission = false;
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
@@ -246,11 +246,11 @@ export const processPayment = (
 				api,
 				() => {
 					// Provide a callback to flag that a redirect has occurred.
-					customerRedirected = true;
+					stopFormSubmission = true;
 				}
 			);
 
-			if ( customerRedirected ) {
+			if ( stopFormSubmission ) {
 				return;
 			}
 
@@ -275,7 +275,7 @@ export const processPayment = (
  * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
  * @param {Object} api The API object used to create the Stripe payment method.
- * @param {Function} setCustomerRedirected The callback function to execute when a redirect is needed.
+ * @param {Function} setStopFormSubmission The callback function to execute when a redirect occurred or the setup wasn't completed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
  */
@@ -283,18 +283,23 @@ export const createAndConfirmSetupIntent = (
 	paymentMethod,
 	jQueryForm,
 	api,
-	setCustomerRedirected
+	setStopFormSubmission
 ) => {
 	return api
-		.setupIntent( paymentMethod, setCustomerRedirected )
+		.setupIntent( paymentMethod )
 		.then( function ( confirmedSetupIntent ) {
-			if ( confirmedSetupIntent === 'redirect_to_url' ) {
-				setCustomerRedirected();
-				return;
+			switch ( confirmedSetupIntent ) {
+				case 'incomplete':
+					// When the set up wasn't completed, we need to unlock the form and stop the process.
+					jQueryForm.removeClass( 'processing' ).unblock();
+				// eslint-disable-next-line no-fallthrough -- intentional we need to stop the form submission on incomplete.
+				case 'redirect_to_url':
+					setStopFormSubmission();
+					return;
+				default:
+					appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
+					return confirmedSetupIntent;
 			}
-
-			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
-			return confirmedSetupIntent;
 		} );
 };
 

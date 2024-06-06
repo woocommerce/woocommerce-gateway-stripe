@@ -216,10 +216,11 @@ export default class WCStripeAPI {
 
 						if ( setupIntent.status === 'succeeded' ) {
 							window.location.href = returnURL;
-
-							// Return 'redirect_to_url' so the calling function is aware of the redirect.
 							return 'redirect_to_url';
 						}
+
+						// When the setup intent is incomplete, we need to notify the calling function that the set up didn't complete.
+						return 'incomplete';
 					} );
 			} else {
 				// Card Payments.
