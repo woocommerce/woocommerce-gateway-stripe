@@ -9,6 +9,13 @@
 class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTestCase {
 
 	/**
+	 * Subscription meta key used to store the associated source ID.
+	 *
+	 * @var string
+	 */
+	const SOURCE_ID_META_KEY = '_stripe_source_id';
+
+	/**
 	 * Logger mock.
 	 *
 	 * @var MockObject|WC_Logger
@@ -31,6 +38,20 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 	 * @var UPE_Test_Helper
 	 */
 	private $upe_helper;
+
+	/**
+	 * Gateway ID for the updated SEPA payment method.
+	 *
+	 * @var string
+	 */
+	private $updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+
+	/**
+	 * Gateway ID for the legacy SEPA payment method.
+	 *
+	 * @var string
+	 */
+	private $legacy_sepa_gateway_id = WC_Gateway_Stripe_Sepa::ID;
 
 	public function set_up() {
 		parent::set_up();
@@ -222,15 +243,19 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 			}
 		);
 
-		$updated_sepa_gateway_id = 'stripe_sepa_debit';
-
 		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
 		$subscription_id = $ids_to_migrate[0];
 		$subscription    = new WC_Subscription( $subscription_id );
 		$customer_id     = $subscription->get_user_id();
 
-		$token = WC_Helper_Token::create_sepa_token( 'src_999', $customer_id, $updated_sepa_gateway_id );
-		WC_Payment_Tokens::set_users_default( $customer_id, $token->get_id() );
+		// Create the legacy token associated with the subscription.
+		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+		$original_token     = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->legacy_sepa_gateway_id );
+
+		// Create default updated token we expect the subscription to be updated with.
+		$default_token_source = 'src_999';
+		$default_token        = WC_Helper_Token::create_sepa_token( $default_token_source, $customer_id, $this->updated_sepa_gateway_id );
+		WC_Payment_Tokens::set_users_default( $customer_id, $default_token->get_id() );
 
 		$this->logger_mock
 			->expects( $this->at( 0 ) )
@@ -253,18 +278,77 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$subscription = new WC_Subscription( $subscription_id );
 
 		// Confirm the subscription's payment method was updated.
-		$this->assertEquals( $updated_sepa_gateway_id, $subscription->get_payment_method() );
+		$this->assertEquals( $this->updated_sepa_gateway_id, $subscription->get_payment_method() );
 
 		// Confirm the subscription's source ID was updated to use the default token.
-		$this->assertEquals( 'src_999', $subscription->get_meta( '_stripe_source_id' ) );
+		$this->assertEquals( $default_token_source, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
 
 		// Confirm the flag for the migration was set.
-		$this->assertEquals( WC_Gateway_Stripe_Sepa::ID, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
+		$this->assertEquals( $this->legacy_sepa_gateway_id, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
 	}
 
-	// public function test_get_updated_sepa_token_by_source_id_returns_the_right_token() {}
+	public function test_get_updated_sepa_token_by_source_id_returns_the_updated_token() {
+		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->enable_upe();
+		$this->upe_helper->reload_payment_gateways();
 
-	// public function test_subscription_payment_method_gets_correctly_updated() {}
+		$stripe_payment_tokens_instance = WC_Stripe_Payment_Tokens::get_instance();
+
+		// The SEPA token we create below gets deleted by the method we hook in this filter because it's not found in Stripe.
+		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens_instance, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+		$subscription    = new WC_Subscription( $subscription_id );
+		$customer_id     = $subscription->get_user_id();
+
+		// Create the legacy token associated with the subscription.
+		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+		$original_token     = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->legacy_sepa_gateway_id );
+
+		// Create the updated token we expect the subscription to be updated with.
+		$updated_token = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->updated_sepa_gateway_id );
+
+		// Create default updated token we don't expect the subscription to use.
+		$default_token = WC_Helper_Token::create_sepa_token( 'src_999', $customer_id, $this->updated_sepa_gateway_id );
+		WC_Payment_Tokens::set_users_default( $customer_id, $default_token->get_id() );
+
+		$this->logger_mock
+			->expects( $this->at( 0 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
+			);
+
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+
+		$subscription = new WC_Subscription( $subscription_id );
+
+		// Confirm the subscription's payment method was updated.
+		$this->assertEquals( $this->updated_sepa_gateway_id, $subscription->get_payment_method() );
+
+		// Confirm the subscription's source ID remains the same.
+		$this->assertEquals( $original_source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
+
+		// Confirm the flag for the migration was set.
+		$this->assertEquals( $this->legacy_sepa_gateway_id, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
+	}
 
 	/**
 	 * Creates orders and subscriptions, and returns the IDs of the subscriptions that must be updated.
@@ -275,7 +359,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$first_customer_id  = $this->factory->user->create();
 		$second_customer_id = $this->factory->user->create();
 
-		$payment_methods = [ 'stripe_sepa', 'stripe', 'stripe_sepa_debit' ];
+		$payment_methods = [ $this->legacy_sepa_gateway_id, 'stripe', $this->updated_sepa_gateway_id ];
 		$customers       = [ $first_customer_id, $second_customer_id ];
 		$sources         = [
 			$first_customer_id  => [ 'src_111', 'src_222' ],
@@ -284,11 +368,11 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 
 		$expected = [];
 
-		// Create 25 subscriptions with the 'stripe_sepa' payment method.
+		// Create 25 subscriptions with the legacy SEPA gateway, 'stripe_sepa'.
 		for ( $i = 0; $i < 25; $i++ ) {
 			$customer_id  = $customers[ array_rand( $customers ) ];
-			$source_id    = array_rand( $sources[ $customer_id ] );
-			$subscription = $this->create_subscription( 'stripe_sepa', $customer_id, $source_id );
+			$source_id    = 'src_' . rand( 100, 999 );
+			$subscription = $this->create_subscription( $this->legacy_sepa_gateway_id, $customer_id, $source_id );
 			$expected[]   = $subscription->get_id();
 		}
 
@@ -298,7 +382,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 			foreach ( $payment_methods as $payment_method_id ) {
 
 				// Create subscriptions with other payment methods.
-				if ( 'stripe_sepa' !== $payment_method_id ) {
+				if ( $this->legacy_sepa_gateway_id !== $payment_method_id ) {
 					$source_id   = array_rand( $sources[ $customer_id ] );
 					$subscription = $this->create_subscription( $payment_method_id, $customer_id, $source_id );
 				}
@@ -312,17 +396,31 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		return $expected;
 	}
 
+	/**
+	 * Creates a subscription with the given payment method, customer ID, and source ID.
+	 *
+	 * @param string $payment_method The gateway ID of the payment method to use.
+	 * @param int    $customer_id    The ID of the customer the subscription is for.
+	 * @param string $source_id      The source ID to associate with the subscription.
+	 *
+	 * @return WC_Subscription The created subscription.
+	*/
 	private function create_subscription( $payment_method, $customer_id, $source_id ) {
 		$subscription = new WC_Subscription();
 		$subscription->set_customer_id( $customer_id );
 		$subscription->set_payment_method( $payment_method );
 
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $source_id );
 		$subscription->save();
 
 		return $subscription;
 	}
 
+	/**
+	 * Returns the subscriptions IDs that must be migrated.
+	 *
+	 * @return array
+	 */
 	private function get_subs_ids_to_migrate() {
 		if ( empty( $this->subs_ids_to_migrate ) ) {
 			$this->subs_ids_to_migrate = $this->create_orders_and_subscriptions();
