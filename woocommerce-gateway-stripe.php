@@ -237,6 +237,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
 
@@ -729,8 +730,6 @@ function woocommerce_gateway_stripe() {
 			 * Initializes updating subscriptions.
 			 */
 			public function initialize_subscriptions_updater() {
-				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
-
 				$logger  = wc_get_logger();
 				$updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update( $logger );
 
