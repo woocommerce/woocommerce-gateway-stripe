@@ -548,7 +548,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_enabled        = $request->get_param( 'is_enabled' );
 		$title             = sanitize_text_field( $request->get_param( 'title' ) );
 		$description       = sanitize_text_field( $request->get_param( 'description' ) );
-		$is_upe_enabled    = $request->get_param( 'is_upe_enabled' );
+		$is_upe_enabled    = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 
 		// Multibanco is currently the only non-UPE payment method that is part of the UPE settings page.
 		// It is handled below like legacy methods.
@@ -572,7 +572,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				$settings
 			);
 
-			return new WP_REST_Response( [], 200 );
+			return new WP_REST_Response( [ 'result' => 'upe' ], 200 );
 		}
 
 		// Map the ids used in the frontend to the legacy gateway class ids.
@@ -599,7 +599,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$payment_gateway->update_unique_settings( $request );
 		}
 
-		return new WP_REST_Response( [], 200 );
+		return new WP_REST_Response( [ 'result' => 'legacy' ], 200 );
 	}
 
 	/**
