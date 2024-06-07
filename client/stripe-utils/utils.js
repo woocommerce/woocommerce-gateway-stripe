@@ -537,10 +537,13 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 };
 
 /**
- *
+ * Unblock the Block Checkout form.
  */
 export const unblockBlockCheckoutForm = () => {
 	if ( wcSettings.wcBlocksConfig ) {
-		dispatch( CHECKOUT_STORE_KEY ).__internalSetHasError( true );
+		// We need to unset the redirect URL otherwise WC core will redirect the the previous checkout redirectURL.
+		// For Wallet payment methods, that will include the #wc-stripe-wallet-... hash and cause the modal to show again.
+		dispatch( CHECKOUT_STORE_KEY ).__internalSetRedirectUrl( null );
+		dispatch( CHECKOUT_STORE_KEY ).__internalSetIdle();
 	}
 };
