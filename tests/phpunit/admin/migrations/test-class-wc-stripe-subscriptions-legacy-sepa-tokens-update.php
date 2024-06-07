@@ -80,20 +80,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 
 		$this->updater
 			 ->expects( $this->once() )
-			 ->method( 'init' );
-
-		$this->updater
-			 ->expects( $this->once() )
 			 ->method( 'schedule_repair' );
 
 		$this->updater->maybe_update();
 	}
 
 	public function test_updater_doesn_not_get_initiated_when_legacy_is_enabled() {
-		$this->updater
-			 ->expects( $this->never() )
-			 ->method( 'init' );
-
 		$this->updater
 			 ->expects( $this->never() )
 			 ->method( 'schedule_repair' );
