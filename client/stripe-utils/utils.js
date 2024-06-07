@@ -423,6 +423,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		}
 	}
 
+	// Use the WC Blocks API to show the error notice if we're in a block context.
 	if ( wcSettings.wcBlocksConfig ) {
 		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
 			context: `wc/checkout/payments`,
