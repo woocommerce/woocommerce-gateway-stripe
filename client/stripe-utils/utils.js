@@ -8,7 +8,7 @@ import {
 	getPaymentMethodsConstants,
 } from './constants';
 
-const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
+const { CHECKOUT_STORE_KEY, PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -538,9 +538,9 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 };
 
 /**
- * Unblock the Block Checkout form.
+ * Unblocks the Block Checkout form.
  */
-export const unblockBlockCheckoutForm = () => {
+export const unblockBlockCheckout = () => {
 	// Exit early if we're not in a block context.
 	if ( ! wcSettings.wcBlocksConfig ) {
 		return;
@@ -552,4 +552,18 @@ export const unblockBlockCheckoutForm = () => {
 	// For Wallet payment methods, that will include the #wc-stripe-wallet-... hash and cause the modal to show again.
 	checkoutStore.__internalSetRedirectUrl( null );
 	checkoutStore.__internalSetIdle();
+};
+
+/**
+ * Resets the payment state to idle so the selected payment method can re-setup.
+ */
+export const resetBlockCheckoutPaymentState = () => {
+	// Exit early if we're not in a block context.
+	if ( ! wcSettings.wcBlocksConfig ) {
+		return;
+	}
+
+	// Set the payment state to idle so the selected payment method can re-setup.
+	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
+	dispatch( PAYMENT_STORE_KEY ).__internalSetPaymentIdle();
 };

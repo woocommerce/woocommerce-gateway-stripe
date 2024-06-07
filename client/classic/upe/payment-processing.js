@@ -6,7 +6,8 @@ import {
 	getUpeSettings,
 	showErrorCheckout,
 	appendSetupIntentToForm,
-	unblockBlockCheckoutForm,
+	unblockBlockCheckout,
+	resetBlockCheckoutPaymentState,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -479,6 +480,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout( error.message );
 	} finally {
 		jQueryForm.removeClass( 'processing' ).unblock();
-		unblockBlockCheckoutForm();
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
 	}
 };
