@@ -892,6 +892,7 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
@@ -900,7 +901,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -919,16 +920,21 @@ class WC_Stripe_Intent_Controller {
 	 * Determines if mandate data is required for deferred intent UPE payment.
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
-	 * This applies to SEPA and Link payment methods.
+	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
-	 * @param string $selected_payment_type The name of the selected UPE payment type.
+	 * @param string $selected_payment_type         The name of the selected UPE payment type.
+	 * @param bool   $is_using_saved_payment_method Option. True if the customer is using a saved payment method, false otherwise.
 	 *
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
-	public function is_mandate_data_required( $selected_payment_type ) {
+	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort' ], true ) ) {
+		if ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
+			return false;
+		}
+
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp' ], true ) ) {
 			return true;
 		}
 
@@ -1018,6 +1024,8 @@ class WC_Stripe_Intent_Controller {
 					'id'            => $setup_intent->id,
 					'client_secret' => $setup_intent->client_secret,
 					'next_action'   => $setup_intent->next_action,
+					'payment_type'  => $payment_type,
+					'return_url'    => rawurlencode( $payment_information['return_url'] ),
 				],
 				200
 			);
