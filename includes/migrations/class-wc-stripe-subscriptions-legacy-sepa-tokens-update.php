@@ -76,7 +76,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 
 		// Schedule the repair without checking if there are subscriptions to be migrated.
 		// This will be handled in the scheduled action.
-		$this->init();
 		$this->schedule_repair();
 	}
 
