@@ -36,6 +36,7 @@ function _manually_load_plugin() {
 	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
+	require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-background-repairer.php';
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
@@ -57,7 +58,6 @@ require_once __DIR__ . '/helpers/class-wc-helper-product.php';
 require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
 require_once __DIR__ . '/helpers/class-wc-helper-order.php';
 require_once __DIR__ . '/helpers/class-wc-helper-subscription.php';
-require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-background-repairer.php';
 require_once __DIR__ . '/helpers/class-wc-helper-subscriptions.php';
 require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-cart.php';
 require_once __DIR__ . '/helpers/class-wc-helper-token.php';
