@@ -327,6 +327,10 @@ function woocommerce_gateway_stripe() {
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
 					$this->update_prb_location_settings();
+
+					// Check for subscriptions using legacy SEPA tokens on upgrade.
+					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update.
+					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 				}
 			}
 
