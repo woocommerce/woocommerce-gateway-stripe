@@ -165,7 +165,7 @@ class WC_Stripe_Admin_Notices {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 					__( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these %1$sinstructions%2$s to fix.', 'woocommerce-gateway-stripe' ),
-					'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">',
+					'<a href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/" target="_blank">',
 					'</a>'
 				);
 
@@ -296,7 +296,7 @@ class WC_Stripe_Admin_Notices {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 					__( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. %1$sClick here to learn more%2$s.', 'woocommerce-gateway-stripe' ),
-					'<a href="https://woocommerce.com/document/stripe-fixing-customer-errors" target="_blank">',
+					'<a href="https://woocommerce.com/document/stripe/customization/database-cleanup/" target="_blank">',
 					'</a>'
 				);
 
