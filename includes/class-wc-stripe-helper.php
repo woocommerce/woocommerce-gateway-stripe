@@ -578,7 +578,7 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
-	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
+	public static function get_upe_available_payment_method_ids( $gateway ) {
 		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
 		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
