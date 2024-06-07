@@ -69,7 +69,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	public function maybe_update() {
 		if (
 			! class_exists( 'WC_Subscriptions' ) ||
-			! WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
+			! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ||
+			'yes' === get_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' )
 		) {
 			return;
 		}
@@ -77,6 +78,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 		// Schedule the repair without checking if there are subscriptions to be migrated.
 		// This will be handled in the scheduled action.
 		$this->schedule_repair();
+
+		// Prevent the repair from being scheduled again.
+		update_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated', 'yes' );
 	}
 
 	/**

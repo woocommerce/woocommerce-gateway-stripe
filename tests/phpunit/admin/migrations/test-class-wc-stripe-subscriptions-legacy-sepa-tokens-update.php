@@ -71,12 +71,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 	}
 
 	/**
-	 * For the repair to be scheduled, WC_Subscriptions must be active and UPE must be enabled.
+	 * For the repair to be scheduled, WC_Subscriptions must be active, UPE must be enabled, and the action must not have been scheduled before.
 	 *
-	 * We can't mock the check for WC_Subscriptions, so we'll only test the UPE check.
+	 * We can't mock the check for WC_Subscriptions, so we'll test the rest of the conditions.
 	 */
-	public function test_updater_gets_initiated_on_right_conditions() {
+	public function test_updater_gets_scheduled_on_right_conditions() {
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
 		$this->updater
 			 ->expects( $this->once() )
@@ -85,7 +86,20 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->maybe_update();
 	}
 
-	public function test_updater_doesn_not_get_initiated_when_legacy_is_enabled() {
+	public function test_updater_doesn_not_get_scheduled_when_legacy_is_enabled() {
+		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+		$this->updater
+			 ->expects( $this->never() )
+			 ->method( 'schedule_repair' );
+
+		$this->updater->maybe_update();
+	}
+
+	public function test_updater_doesn_not_get_scheduled_when_already_done() {
+		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		update_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated', 'yes' );
+
 		$this->updater
 			 ->expects( $this->never() )
 			 ->method( 'schedule_repair' );
