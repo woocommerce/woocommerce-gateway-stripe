@@ -1,5 +1,5 @@
 /* global wc_stripe_upe_params */
-
+import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
 import {
@@ -7,6 +7,8 @@ import {
 	errorCodes,
 	getPaymentMethodsConstants,
 } from './constants';
+
+const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -421,6 +423,13 @@ export const showErrorCheckout = ( errorMessage ) => {
 		}
 	}
 
+	if ( wcSettings.wcBlocksConfig ) {
+		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+			context: `wc/checkout/payments`,
+		} );
+		return;
+	}
+
 	let messageWrapper = '';
 	if ( errorMessage.includes( 'woocommerce-error' ) ) {
 		messageWrapper = errorMessage;
@@ -524,5 +533,14 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 		upeContainer.style.display = 'block';
 	} else {
 		upeContainer.style.display = 'none';
+	}
+};
+
+/**
+ *
+ */
+export const unblockBlockCheckoutForm = () => {
+	if ( wcSettings.wcBlocksConfig ) {
+		dispatch( CHECKOUT_STORE_KEY ).__internalSetHasError( true );
 	}
 };
