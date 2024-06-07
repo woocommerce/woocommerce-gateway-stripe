@@ -437,7 +437,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
-			$stripe_params['cartTotal'] = 0;
+			$stripe_params['cartTotal']    = 0;
+			$stripe_params['customerData'] = [ 'billing_country' => WC()->customer->get_billing_country() ];
 		}
 
 		// Pre-orders and free trial subscriptions don't require payments.
