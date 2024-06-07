@@ -222,6 +222,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
+
+		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
+	}
+
+	/**
+	 * Removes all saved payment methods when the setting to save cards is disabled.
+	 *
+	 * @return array An empty list of payment methods
+	 */
+	public function filter_saved_payment_methods_list( $item, $payment_token ) {
+		if ( ! $this->saved_cards ) {
+			return [];
+		}
+		return $item;
 	}
 
 	/**
