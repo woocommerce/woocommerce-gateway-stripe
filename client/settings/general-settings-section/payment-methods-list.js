@@ -155,6 +155,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
+const CustomizeButton = styled( Button )`
+	margin-left: auto;
+`;
+
 /**
  * Formats the payment method description with the account default currency.
  *
@@ -323,7 +327,7 @@ const GeneralSettingsSection = ( {
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! customizationStatus[ method ] && (
-								<Button
+								<CustomizeButton
 									variant="secondary"
 									onClick={ () =>
 										setCustomizationStatus( {
@@ -336,7 +340,7 @@ const GeneralSettingsSection = ( {
 										'Customize',
 										'woocommerce-gateway-stripe'
 									) }
-								</Button>
+								</CustomizeButton>
 							) }
 						</ListElement>
 						{ customizationStatus[ method ] && (
