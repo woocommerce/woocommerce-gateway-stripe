@@ -232,7 +232,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->repair_item( $subscription_id );
 	}
 
-	public function test_get_updated_sepa_token_by_source_id_returns_a_default_token() {
+	public function test_get_updated_sepa_token_by_source_id_creates_an_updated_token() {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();
 		$this->upe_helper->reload_payment_gateways();
@@ -258,10 +258,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 		$original_token     = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->legacy_sepa_gateway_id );
 
-		// Create default updated token we expect the subscription to be updated with.
-		$default_token_source = 'src_999';
-		$default_token        = WC_Helper_Token::create_sepa_token( $default_token_source, $customer_id, $this->updated_sepa_gateway_id );
-		WC_Payment_Tokens::set_users_default( $customer_id, $default_token->get_id() );
+		// Confirm the user doesn't have any updated tokens.
+		$customer_updated_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id, $this->updated_sepa_gateway_id );
+		$this->assertEmpty( $customer_updated_tokens );
 
 		$this->logger_mock
 			->expects( $this->at( 0 ) )
@@ -283,11 +282,15 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 
 		$subscription = new WC_Subscription( $subscription_id );
 
+		// Confirm the user has an updated token.
+		$customer_updated_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id, $this->updated_sepa_gateway_id );
+		$this->assertEquals( 1, count( $customer_updated_tokens ) );
+
 		// Confirm the subscription's payment method was updated.
 		$this->assertEquals( $this->updated_sepa_gateway_id, $subscription->get_payment_method() );
 
 		// Confirm the subscription's source ID was updated to use the default token.
-		$this->assertEquals( $default_token_source, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
+		$this->assertEquals( $original_source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
 
 		// Confirm the flag for the migration was set.
 		$this->assertEquals( $this->legacy_sepa_gateway_id, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
