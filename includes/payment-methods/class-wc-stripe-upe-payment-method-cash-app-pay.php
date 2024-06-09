@@ -47,6 +47,8 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 * disable customer's changing the payment method to Cash App Pay as that would result in a $0 set up intent.
 		 */
 		$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
+
+		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
 	}
 
 	/**
@@ -84,7 +86,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
 		 * disable Cash App Pay for zero amount orders.
 		 */
-		if ( $this->get_current_order_amount() <= 0 ) {
+		if ( ! is_add_payment_method_page() && $this->get_current_order_amount() <= 0 ) {
 			return false;
 		}
 
@@ -113,5 +115,32 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$token->save();
 
 		return $token;
+	}
+
+	/**
+	 * Custom wallet payment method order received text (for mobile only). This identifies the order failed and displays the error message.
+	 *
+	 * @param string   $text Default text.
+	 * @param WC_Order $order Order data.
+	 * @return string
+	 */
+	public function order_received_text_for_wallet_failure( $text, $order ) {
+		$redirect_status = '';
+		if ( isset( $_GET['redirect_status'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$redirect_status = wc_clean( wp_unslash( $_GET['redirect_status'] ) );
+		}
+		if ( $order && $this->id === $order->get_payment_method() && 'failed' === $redirect_status ) {
+			$text = '<p class="woocommerce-error">';
+				$text .= esc_html( 'Unfortunately your order cannot be processed as the payment method has declined your transaction. Please attempt your purchase again.' );
+			$text .= '</p>';
+			$text .= '<p class="woocommerce-notice woocommerce-notice--error woocommerce-thankyou-order-failed-actions">';
+				$text .= '<a href="' . esc_url( $order->get_checkout_payment_url() ) . '" class="button pay">' . esc_html( 'Pay' ) . '</a>';
+			if ( is_user_logged_in() ) {
+				$text .= '<a href="' . esc_url( wc_get_page_permalink( 'myaccount' ) ) . '" class="button pay">' . esc_html( 'My account' ) . '</a>';
+			}
+			$text .= '</p>';
+		}
+
+		return $text;
 	}
 }

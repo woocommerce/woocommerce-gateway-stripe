@@ -1024,6 +1024,8 @@ class WC_Stripe_Intent_Controller {
 					'id'            => $setup_intent->id,
 					'client_secret' => $setup_intent->client_secret,
 					'next_action'   => $setup_intent->next_action,
+					'payment_type'  => $payment_type,
+					'return_url'    => rawurlencode( $payment_information['return_url'] ),
 				],
 				200
 			);
