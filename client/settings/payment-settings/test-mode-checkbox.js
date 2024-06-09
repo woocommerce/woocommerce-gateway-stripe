@@ -30,7 +30,7 @@ const TestModeCheckbox = () => {
 						),
 						learnMoreLink: (
 							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a href="https://stripe.com/docs/testing" />
+							<a href="https://woocommerce.com/document/stripe/customer-experience/testing/" />
 						),
 					},
 				} ) }
