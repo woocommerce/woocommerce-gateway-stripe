@@ -208,30 +208,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->repair_item( $subscription_id );
 	}
 
-	public function test_get_updated_sepa_token_by_source_id_bails_when_no_token_is_found() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
-
-		// Retrieve the actual subscription.
-		WC_Subscriptions::set_wcs_get_subscription(
-			function ( $id ) {
-				return new WC_Subscription( $id );
-			}
-		);
-
-		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
-		$subscription_id = $ids_to_migrate[0];
-
-		$this->logger_mock
-			->expects( $this->at( 1 ) )
-			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( '---- Skipping migration of subscription. No replacement token was found.' )
-			);
-
-		$this->updater->repair_item( $subscription_id );
-	}
-
 	public function test_get_updated_sepa_token_by_source_id_creates_an_updated_token() {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();

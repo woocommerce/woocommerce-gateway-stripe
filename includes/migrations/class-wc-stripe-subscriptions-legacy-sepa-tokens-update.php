@@ -146,10 +146,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 			$user_id      = $subscription->get_user_id();
 
-			// Try to retrieve an updated token for the subscription.
-			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
+			// Try to create an update SEPA gateway token if none exists.
+			// We don't need this to update the subscription, but creating one for consistency.
+			// It could be confusing for a merchant to see the subscription renewing but no saved token in the store.
+			$this->maybe_create_updated_sepa_token_by_source_id( $source_id, $user_id );
 
-			$this->set_subscription_updated_payment_method( $subscription, $updated_token->get_token() );
+			// Update the subscription with the updated SEPA gateway ID.
+			$this->set_subscription_updated_payment_method( $subscription );
 
 			$this->log( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) );
 		} catch ( \Exception $e ) {
@@ -194,10 +197,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	 *
 	 * @param string  $source_id The Source or Payment Method ID associated with the subscription.
 	 * @param integer $user_id   The WordPress User ID to whom the subscription belongs.
-	 * @throws \Exception If no replacement token is found.
-	 * @return WC_Payment_Token
 	 */
-	public function get_updated_sepa_token_by_source_id( string $source_id, int $user_id ): WC_Payment_Token {
+	private function maybe_create_updated_sepa_token_by_source_id( string $source_id, int $user_id ) {
 
 		// Retrieve the updated SEPA tokens for the user.
 		$replacement_token = $this->get_customer_token_by_source_id( $source_id, $user_id, $this->updated_sepa_gateway_id );
@@ -206,13 +207,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 		if ( ! $replacement_token ) {
 			$replacement_token = $this->create_updated_sepa_token( $source_id, $user_id );
 		}
-
-		// We can't proceed with updating the subscription if we don't have a token to use.
-		if ( ! $replacement_token ) {
-			throw new \Exception( '---- Skipping migration of subscription. No replacement token was found.' );
-		}
-
-		return $replacement_token;
 	}
 
 	/**
@@ -263,15 +257,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	}
 
 	/**
-	 * Sets the updated payment method for the subscription.
+	 * Sets the updated SEPA gateway ID for the subscription.
 	 *
-	 * @param WC_Subscription  $subscription Subscription for which the payment method must be updated.
-	 * @param string           $source_id    The source ID to be associated with the subscription.
+	 * @param WC_Subscription $subscription Subscription for which the payment method must be updated.
 	 */
-	private function set_subscription_updated_payment_method( WC_Subscription $subscription, string $source_id ) {
+	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
 		// Add a meta to the subscription to flag that its token got updated.
 		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
-		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $source_id );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
 
 		$subscription->save();
