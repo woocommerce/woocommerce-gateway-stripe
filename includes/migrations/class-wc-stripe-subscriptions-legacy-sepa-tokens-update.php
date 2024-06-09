@@ -46,6 +46,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	const SOURCE_ID_META_KEY = '_stripe_source_id';
 
 	/**
+	 * Gateway ID for the Updated SEPA payment method.
+	 *
+	 * @var string
+	 */
+	private $updated_sepa_gateway_id;
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Logger_Interface $logger The WC_Logger instance.
@@ -56,6 +63,8 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 		$this->scheduled_hook = 'wc_stripe_schedule_subscriptions_legacy_sepa_token_repairs';
 		$this->repair_hook    = 'wc_stripe_subscriptions_legacy_sepa_token_repair';
 		$this->log_handle     = 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs';
+
+		$this->updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 	}
 
 	/**
@@ -137,11 +146,10 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 			$user_id      = $subscription->get_user_id();
 
-			// The tokens for the Legacy SEPA gateway aren't available when the Legacy experience is disabled.
-			// Let's retrieve a token that can be used instead.
+			// Try to retrieve an updated token for the subscription.
 			$updated_token = $this->get_updated_sepa_token_by_source_id( $source_id, $user_id );
 
-			$this->set_subscription_updated_payment_method( $subscription, $updated_token );
+			$this->set_subscription_updated_payment_method( $subscription, $updated_token->get_token() );
 
 			$this->log( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) );
 		} catch ( \Exception $e ) {
@@ -190,10 +198,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	 * @return WC_Payment_Token
 	 */
 	public function get_updated_sepa_token_by_source_id( string $source_id, int $user_id ): WC_Payment_Token {
-		$updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 
 		// Retrieve the updated SEPA tokens for the user.
-		$replacement_token = $this->get_customer_token_by_source_id( $source_id, $user_id, $updated_sepa_gateway_id );
+		$replacement_token = $this->get_customer_token_by_source_id( $source_id, $user_id, $this->updated_sepa_gateway_id );
 
 		// If no updated SEPA token was found, create a new one based on the source ID.
 		if ( ! $replacement_token ) {
@@ -244,12 +251,10 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 			return false;
 		}
 
-		$updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
-
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $legacy_token->get_last4() );
 		$token->set_payment_method_type( $legacy_token->get_payment_method_type() );
-		$token->set_gateway_id( $updated_sepa_gateway_id );
+		$token->set_gateway_id( $this->updated_sepa_gateway_id );
 		$token->set_token( $source_id );
 		$token->set_user_id( $user_id );
 		$token->save();
@@ -261,13 +266,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	 * Sets the updated payment method for the subscription.
 	 *
 	 * @param WC_Subscription  $subscription Subscription for which the payment method must be updated.
-	 * @param WC_Payment_Token $token        The token to be set as the payment method for the subscription.
+	 * @param string           $source_id    The source ID to be associated with the subscription.
 	 */
-	private function set_subscription_updated_payment_method( WC_Subscription $subscription, WC_Payment_Token $token ) {
+	private function set_subscription_updated_payment_method( WC_Subscription $subscription, string $source_id ) {
 		// Add a meta to the subscription to flag that its token got updated.
 		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
-		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $token->get_token() );
-		$subscription->set_payment_method( $token->get_gateway_id() );
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $source_id );
+		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
 
 		$subscription->save();
 	}
