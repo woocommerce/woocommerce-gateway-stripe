@@ -34,7 +34,7 @@ const GeneralSettingsDescription = () => (
 			</ExternalLink>
 		</p>
 		<p>
-			<ExternalLink href="https://woocommerce.com/my-account/create-a-ticket?select=18627">
+			<ExternalLink href="https://woocommerce.com/my-account/contact-support/?select=18627">
 				{ __( 'Get support', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
