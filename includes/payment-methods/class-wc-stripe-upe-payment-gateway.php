@@ -393,7 +393,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
 
-		$stripe_params['order'] = WC()->payment_gateways()->get_available_payment_gateways();
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
 		$stripe_params['blocksAppearance']    = get_transient( $this->get_appearance_transient_key( true ) );
