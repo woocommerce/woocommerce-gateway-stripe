@@ -128,6 +128,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 8.5.0 - xxxx-xx-xx =
+* Add - Allow changing display order of payment methods in the new checkout experience.
+
 = 8.4.0 - xxxx-xx-xx =
 * Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
 * Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
