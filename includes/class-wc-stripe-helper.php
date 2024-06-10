@@ -584,7 +584,7 @@ class WC_Stripe_Helper {
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
 		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
-		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) ) {
+		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
 			$ordered_payment_method_ids = array_map(
 				function( $payment_method_id ) {
 					return 'sepa' === $payment_method_id ? 'sepa_debit' : $payment_method_id;
@@ -611,9 +611,6 @@ class WC_Stripe_Helper {
 			$stripe_settings['stripe_upe_payment_method_order'] = $ordered_payment_method_ids;
 			update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		}
-
-		// unset( $stripe_settings['stripe_upe_payment_method_order'] );
-		// update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		return $ordered_payment_method_ids;
 	}
