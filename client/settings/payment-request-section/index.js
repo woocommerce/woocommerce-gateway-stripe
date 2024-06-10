@@ -186,7 +186,7 @@ const PaymentRequestSection = () => {
 												<a
 													target="_blank"
 													rel="noreferrer"
-													href="https://woocommerce.com/document/stripe/#stripe-link"
+													href="https://woocommerce.com/document/stripe/customer-experience/express-checkouts/#link-by-stripe"
 												/>
 											),
 										},
