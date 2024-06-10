@@ -583,6 +583,17 @@ class WC_Stripe_Helper {
 		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
+		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
+		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) ) {
+			$ordered_payment_method_ids = array_map(
+				function( $payment_method_id ) {
+					return 'sepa' === $payment_method_id ? 'sepa_debit' : $payment_method_id;
+				},
+				$stripe_settings['stripe_legacy_method_order']
+			);
+
+		}
+
 		// The `stripe_upe_payment_method_order` option has the order of the UPE methods set by the user.
 		// This list is filtered on the basis of the capabilities set in the Stripe account data on the frontend before saving.
 		// If the list is empty or we have any new available payment methods, we need to update the list by including the available payment methods having capabilities.
@@ -600,6 +611,9 @@ class WC_Stripe_Helper {
 			$stripe_settings['stripe_upe_payment_method_order'] = $ordered_payment_method_ids;
 			update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		}
+
+		// unset( $stripe_settings['stripe_upe_payment_method_order'] );
+		// update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		return $ordered_payment_method_ids;
 	}
