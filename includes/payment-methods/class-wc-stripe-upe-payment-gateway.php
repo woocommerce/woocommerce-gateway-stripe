@@ -229,13 +229,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Removes all saved payment methods when the setting to save cards is disabled.
 	 *
-	 * @return array An empty list of payment methods
+	 * @param  array $list         List of payment methods passed from wc_get_customer_saved_methods_list().
+	 * @param  int   $customer_id  The customer to fetch payment methods for.
+	 * @return array               Filtered list of customers payment methods.
 	 */
-	public function filter_saved_payment_methods_list( $item, $payment_token ) {
+	public function filter_saved_payment_methods_list( $list, $customer_id ) {
 		if ( ! $this->saved_cards ) {
 			return [];
 		}
-		return $item;
+		return $list;
 	}
 
 	/**
