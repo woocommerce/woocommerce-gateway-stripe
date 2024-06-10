@@ -544,7 +544,8 @@ export const unblockBlockCheckout = () => {
 		return;
 	}
 
-	const checkoutStore = dispatch( 'wc/store/checkout' );
+	const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
+	const checkoutStore = dispatch( CHECKOUT_STORE_KEY );
 
 	// We need to unset the redirect URL otherwise WC core will redirect the the previous checkout redirectURL.
 	// For Wallet payment methods, that will include the #wc-stripe-wallet-... hash and cause the modal to show again.
@@ -561,7 +562,9 @@ export const resetBlockCheckoutPaymentState = () => {
 		return;
 	}
 
+	const { PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
+
 	// Set the payment state to idle so the selected payment method can re-setup.
 	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
-	dispatch( 'wc/store/payment' ).__internalSetPaymentIdle();
+	dispatch( PAYMENT_STORE_KEY ).__internalSetPaymentIdle();
 };
