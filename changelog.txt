@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.4.0 - xxxx-xx-xx =
+* Tweak - Resets the list of payment methods when any Stripe key is updated.
 * Tweak - Update WooCommerce.com docs links.
 * Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
 * Tweak - Update WordPress.org screenshots and captions.
