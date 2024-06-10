@@ -8,8 +8,6 @@ import {
 	getPaymentMethodsConstants,
 } from './constants';
 
-const { CHECKOUT_STORE_KEY, PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
-
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
  * @typedef {import('./type-defs').StripePaymentItem} StripePaymentItem
@@ -546,6 +544,7 @@ export const unblockBlockCheckout = () => {
 		return;
 	}
 
+	const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
 	const checkoutStore = dispatch( CHECKOUT_STORE_KEY );
 
 	// We need to unset the redirect URL otherwise WC core will redirect the the previous checkout redirectURL.
@@ -562,6 +561,8 @@ export const resetBlockCheckoutPaymentState = () => {
 	if ( ! wcSettings.wcBlocksConfig ) {
 		return;
 	}
+
+	const { PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
 
 	// Set the payment state to idle so the selected payment method can re-setup.
 	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
