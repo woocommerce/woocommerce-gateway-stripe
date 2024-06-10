@@ -228,7 +228,7 @@ export const processPayment = (
 	( async () => {
 		try {
 			await validateElements( elements );
-			let customerRedirected = false;
+			let stopFormSubmission = false;
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
@@ -246,11 +246,11 @@ export const processPayment = (
 				api,
 				() => {
 					// Provide a callback to flag that a redirect has occurred.
-					customerRedirected = true;
+					stopFormSubmission = true;
 				}
 			);
 
-			if ( customerRedirected ) {
+			if ( stopFormSubmission ) {
 				return;
 			}
 
@@ -275,7 +275,7 @@ export const processPayment = (
  * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
  * @param {Object} api The API object used to create the Stripe payment method.
- * @param {Function} setCustomerRedirected The callback function to execute when a redirect is needed.
+ * @param {Function} setStopFormSubmission The callback function to execute when a redirect occurred or the setup wasn't completed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
  */
@@ -283,18 +283,23 @@ export const createAndConfirmSetupIntent = (
 	paymentMethod,
 	jQueryForm,
 	api,
-	setCustomerRedirected
+	setStopFormSubmission
 ) => {
 	return api
 		.setupIntent( paymentMethod )
 		.then( function ( confirmedSetupIntent ) {
-			if ( confirmedSetupIntent === 'redirect_to_url' ) {
-				setCustomerRedirected();
-				return;
+			switch ( confirmedSetupIntent ) {
+				case 'incomplete':
+					// When the set up wasn't completed, we need to unlock the form and stop the process.
+					jQueryForm.removeClass( 'processing' ).unblock();
+				// eslint-disable-next-line no-fallthrough -- intentional we need to stop the form submission on incomplete.
+				case 'redirect_to_url':
+					setStopFormSubmission();
+					return;
+				default:
+					appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
+					return confirmedSetupIntent;
 			}
-
-			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
-			return confirmedSetupIntent;
 		} );
 };
 
@@ -424,20 +429,34 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const paymentMethodType = partials[ 2 ];
+	const returnURL = decodeURIComponent( partials[ 4 ] );
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
 		let confirmPayment;
-		if ( paymentMethodType === 'wechat_pay' ) {
-			confirmPayment = await api
-				.getStripe()
-				.confirmWechatPayPayment( clientSecret, {
-					payment_method_options: {
-						wechat_pay: {
-							client: 'web',
+		switch ( paymentMethodType ) {
+			case 'wechat_pay':
+				confirmPayment = await api
+					.getStripe()
+					.confirmWechatPayPayment( clientSecret, {
+						payment_method_options: {
+							wechat_pay: {
+								client: 'web',
+							},
 						},
-					},
-				} );
+					} );
+				break;
+			case 'cashapp':
+				confirmPayment = await api
+					.getStripe()
+					.confirmCashappPayment( clientSecret, {
+						return_url: returnURL,
+					} );
+				break;
+			default:
+				// eslint-disable-next-line no-console
+				console.error( 'Invalid wallet type:', paymentMethodType );
+				throw new Error( getStripeServerData()?.invalid_wallet_type );
 		}
 
 		if ( confirmPayment.error ) {
@@ -447,7 +466,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
-			window.location.href = decodeURIComponent( partials[ 4 ] );
+			window.location.href = returnURL;
 		}
 	} catch ( error ) {
 		showErrorCheckout( error.message );

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.3.0
+Stable tag: 8.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -121,14 +121,19 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
-2. Offer a range of payment methods such as local and alternative payment methods.
-3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
-4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
+1. The Stripe payment gateway settings page used to configure the plugin.
+2. Offer a range of payment options such as local methods and express checkouts.
+3. Allow customers to save payment methods and add new ones for their future purchases.
+4. Apple Pay and other express methods can be added to product pages, cart, and checkout.
 
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Tweak - Update WooCommerce.com docs links.
+* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
+* Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
+* Tweak - Update WordPress.org screenshots and captions.
+* Fix - Remove the duplicated customization notice in the settings screen.
 * Add - Include Cash App as a payment method for stores using the updated checkout experience.
 * Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
 * Add - Add a new dismissible banner to promote Stripe products to the settings page.
@@ -139,7 +144,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
+* Add - Show currency requirement details in a popover.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
 * Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
+* Update - Declare compatibility with the Cart and Checkout blocks.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

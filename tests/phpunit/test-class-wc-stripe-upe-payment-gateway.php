@@ -38,7 +38,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		'type' => 'card',
 		'card' => [
 			'brand'     => 'visa',
-			'network'   => 'visa',
+			'networks'  => [ 'preferred' => 'visa' ],
 			'exp_month' => '7',
 			'funding'   => 'credit',
 			'last4'     => '4242',
@@ -2067,6 +2067,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				]
 			);
 
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with(
+				"payment_methods/$payment_method_id",
+			)
+			->will(
+				$this->returnValue(
+					$this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE )
+				)
+			);
+
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
 		$note        = wc_get_order_notes(
@@ -2078,7 +2090,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
-		$this->assertEquals( 'visa', $final_order->get_meta( '_stripe_card_brand', true ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
