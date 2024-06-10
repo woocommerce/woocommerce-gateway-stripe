@@ -71,7 +71,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( WC_Stripe_Helper::get_upe_available_payment_method_ids( $this->gateway ), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => [ 'card', 'alipay', 'giropay', 'klarna', 'affirm', 'afterpay_clearpay', 'eps', 'bancontact', 'boleto', 'ideal', 'oxxo', 'sepa_debit', 'sepa', 'p24', 'sofort', 'multibanco', 'link', 'wechat_pay', 'cashapp' ],
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -157,7 +157,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( WC_Stripe_Helper::get_upe_available_payment_method_ids( $this->gateway ), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => [ 'card', 'alipay', 'giropay', 'klarna', 'affirm', 'afterpay_clearpay', 'eps', 'bancontact', 'boleto', 'ideal', 'oxxo', 'sepa_debit', 'sepa', 'p24', 'sofort', 'multibanco', 'link', 'wechat_pay', 'cashapp' ],
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
