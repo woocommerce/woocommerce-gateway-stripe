@@ -69,6 +69,12 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.shortened-bank-statement .transaction-detail.description'
 			)
 		).toHaveTextContent( 'WOOTEST* W #123456' );
+
+		expect(
+			document.querySelector(
+				'.full-bank-statement .statement-icon-and-title'
+			)
+		).toHaveTextContent( 'Most Other Payment Methods' );
 	} );
 
 	it( 'should not show the shortened customer bank statement preview when useIsShortAccountStatementEnabled is false', () => {
