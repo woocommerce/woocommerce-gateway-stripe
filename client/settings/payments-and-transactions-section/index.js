@@ -49,7 +49,7 @@ const PaymentsAndTransactionsSection = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
-		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
+		? __( 'Most Other Payment Methods', 'woocommerce-gateway-stripe' )
 		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
 
 	const { data } = useAccount();
