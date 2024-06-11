@@ -601,6 +601,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->returnValue( $store_currency )
 				);
 
+			$payment_method
+				->expects( $this->any() )
+				->method( 'is_inside_currency_limits' )
+				->will(
+					$this->returnValue( true )
+				);
+
 			if ( $payment_method->is_reusable() ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is not enabled" );
 			} else {
