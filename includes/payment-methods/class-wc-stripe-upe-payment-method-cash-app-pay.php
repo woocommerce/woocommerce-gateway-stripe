@@ -36,6 +36,14 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
 			'woocommerce-gateway-stripe'
 		);
+		$this->limits_per_currency          = [
+			'USD' => [
+				'US' => [
+					'min' => 100,
+					'max' => 200000,
+				], // Represents USD 1 - 2,000 USD.
+			],
+		];
 
 		// Cash App Pay supports subscriptions. Init subscriptions so it can process subscription payments.
 		$this->maybe_init_subscriptions();
