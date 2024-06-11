@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.4.0 - xxxx-xx-xx =
+* Tweak - Update statement descriptor preview title to "MOST OTHER PAYMENT METHODS" as Cash App does not support it. 
 * Fix - Removes the list of saved payment methods when the setting is disabled.
 * Tweak - Update WooCommerce.com docs links.
 * Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
