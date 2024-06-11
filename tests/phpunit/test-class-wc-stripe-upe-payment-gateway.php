@@ -321,11 +321,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'               => $amount,
-			'currency'             => $currency,
-			'description'          => $description,
-			'customer'             => $customer_id,
-			'metadata'             => $metadata,
+			'amount'      => $amount,
+			'currency'    => $currency,
+			'description' => $description,
+			'customer'    => $customer_id,
+			'metadata'    => $metadata,
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -428,7 +428,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
-				'charges' => (object) [
+				'charges'        => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -484,17 +484,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'         => 'requires_action',
-				'data'           => [
+				'status'               => 'requires_action',
+				'data'                 => [
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
 						'status'   => 'succeeded',
 					],
 				],
-				'payment_method' => 'pm_mock',
+				'payment_method'       => 'pm_mock',
 				'payment_method_types' => [ 'wechat_pay' ],
-				'charges' => (object) [
+				'charges'              => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -1538,12 +1538,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'               => $amount,
-			'currency'             => $currency,
-			'description'          => $description,
-			'customer'             => $customer_id,
-			'metadata'             => $metadata,
-			'setup_future_usage'   => 'off_session',
+			'amount'             => $amount,
+			'currency'           => $currency,
+			'description'        => $description,
+			'customer'           => $customer_id,
+			'metadata'           => $metadata,
+			'setup_future_usage' => 'off_session',
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -2091,6 +2091,50 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
+	 * Test for `filter_saved_payment_methods_list`
+	 *
+	 * @param bool $saved_cards Whether saved cards are enabled.
+	 * @param array $item The list of saved payment methods.
+	 * @param array $expected The expected list of saved payment methods.
+	 * @return void
+	 * @dataProvider provide_test_filter_saved_payment_methods_list
+	 */
+	public function test_filter_saved_payment_methods_list( $saved_cards, $item, $expected ) {
+		$payment_token                   = $this->getMockBuilder( 'WC_Payment_Token_CC' )
+			->disableOriginalConstructor()
+			->getMock();
+		$this->mock_gateway->saved_cards = $saved_cards;
+		$list                            = $this->mock_gateway->filter_saved_payment_methods_list( $item, $payment_token );
+		$this->assertSame( $expected, $list );
+	}
+
+	/**
+	 * Provider for `test_filter_saved_payment_methods_list`
+	 *
+	 * @return array
+	 */
+	public function provide_test_filter_saved_payment_methods_list() {
+		$item = [
+			'brand'     => 'visa',
+			'exp_month' => '7',
+			'exp_year'  => '2099',
+			'last4'     => '4242',
+		];
+		return [
+			'Saved cards enabled'  => [
+				'saved cards' => true,
+				'item'        => $item,
+				'expected'    => $item,
+			],
+			'Saved cards disabled' => [
+				'saved cards' => false,
+				'item'        => $item,
+				'expected'    => [],
+			],
+		];
 	}
 
 	/**
