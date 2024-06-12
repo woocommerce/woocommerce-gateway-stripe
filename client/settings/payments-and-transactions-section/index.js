@@ -16,6 +16,7 @@ import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
 	useSeparateCardForm,
+	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -25,7 +26,7 @@ const StatementDescriptorInputWrapper = styled.div`
 
 	.components-base-control__field {
 		@media ( min-width: 783px ) {
-			width: 50%;
+			width: ${ ( props ) => ( props.isCashAppEnabled ? 30 : 50 ) }%;
 		}
 
 		.components-text-control__input {
@@ -45,11 +46,14 @@ const PaymentsAndTransactionsSection = () => {
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
 	] = useIsShortAccountStatementEnabled();
+	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
+
+	const isCashAppEnabled = enabledPaymentMethods.includes( 'cashapp' );
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
-		? __( 'Most Other Payment Methods', 'woocommerce-gateway-stripe' )
+		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
 		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
 
 	const { data } = useAccount();
@@ -168,7 +172,7 @@ const PaymentsAndTransactionsSection = () => {
 						/>
 					</StatementDescriptorInputWrapper>
 				) }
-				<StatementPreviewsWrapper>
+				<StatementPreviewsWrapper withTreeColumns={ isCashAppEnabled }>
 					{ isShortAccountStatementEnabled && (
 						<StatementPreview
 							icon="creditCard"
@@ -178,6 +182,17 @@ const PaymentsAndTransactionsSection = () => {
 							) }
 							text={ `${ stripeAccountShortStatementDescriptor }* ${ shortStatementDescriptorSuffix } #123456` }
 							className="shortened-bank-statement"
+						/>
+					) }
+					{ isCashAppEnabled && (
+						<StatementPreview
+							icon="cashApp"
+							title={ __(
+								'Cash App Payments',
+								'woocommerce-gateway-stripe'
+							) }
+							text={ `CashApp*${ stripeAccountShortStatementDescriptor } #123456` }
+							className="full-bank-statement"
 						/>
 					) }
 					<StatementPreview
