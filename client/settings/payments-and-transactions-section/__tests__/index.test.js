@@ -94,4 +94,35 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			)
 		).toBe( null );
 	} );
+
+	it( 'should display a third statement preview when Cash App Pay is enabled', () => {
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'cashapp' ],
+			jest.fn(),
+		] );
+
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.shortened-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( 'WOOTEST* W #123456' );
+
+		expect(
+			document.querySelectorAll(
+				'.full-bank-statement .statement-icon-and-title'
+			)[ 0 ]
+		).toHaveTextContent( 'Cash App Payments' );
+
+		expect(
+			document.querySelectorAll(
+				'.full-bank-statement .statement-icon-and-title'
+			)[ 1 ]
+		).toHaveTextContent( 'All Other Payment Methods' );
+	} );
 } );
