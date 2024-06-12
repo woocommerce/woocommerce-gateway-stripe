@@ -19,6 +19,11 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	const STRIPE_ID = 'cashapp';
 
 	/**
+	 * The threshold for risky purchases.
+	 */
+	const RISKY_PURCHASE_THRESHOLD = 2000;
+
+	/**
 	 * Constructor for Cash App payment method.
 	 */
 	public function __construct() {
@@ -49,6 +54,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
 
 		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
+		add_action( 'woocommerce_checkout_init', [ $this, 'maybe_display_risky_purchase_warning' ] );
 	}
 
 	/**
@@ -142,5 +148,19 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		}
 
 		return $text;
+	}
+
+	/**
+	 * Display a warning to the customer if they are using Cash App Pay for a business transaction.
+	 *
+	 * @return void
+	 */
+	public function maybe_display_risky_purchase_warning() {
+		if ( ! is_checkout() || $this->get_current_order_amount() < self::RISKY_PURCHASE_THRESHOLD ) {
+			return;
+		}
+		echo '<p class="woocommerce-info">';
+		esc_html_e( 'Please note that, depending on your account and transaction history, Cash App Pay may reject your transaction due to its amount.', 'woocommerce-gateway-stripe' );
+		echo '</p>';
 	}
 }
