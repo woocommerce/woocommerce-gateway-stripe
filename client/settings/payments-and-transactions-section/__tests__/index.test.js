@@ -4,6 +4,7 @@ import { useAccount } from 'wcstripe/data/account';
 import {
 	useManualCapture,
 	useSavedCards,
+	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
 	useSeparateCardForm,
 	useGetSavingError,
@@ -19,6 +20,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useIsShortAccountStatementEnabled: jest.fn(),
 	useSeparateCardForm: jest.fn(),
 	useGetSavingError: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
 } ) );
 
 describe( 'PaymentsAndTransactionsSection', () => {
@@ -30,6 +32,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			jest.fn(),
 		] );
 		useSeparateCardForm.mockReturnValue( [ true, jest.fn() ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useAccount.mockReturnValue( {
 			data: {
 				account: {
@@ -74,7 +77,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			document.querySelector(
 				'.full-bank-statement .statement-icon-and-title'
 			)
-		).toHaveTextContent( 'Most Other Payment Methods' );
+		).toHaveTextContent( 'All Other Payment Methods' );
 	} );
 
 	it( 'should not show the shortened customer bank statement preview when useIsShortAccountStatementEnabled is false', () => {
