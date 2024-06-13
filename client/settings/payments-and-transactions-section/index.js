@@ -64,6 +64,8 @@ const PaymentsAndTransactionsSection = () => {
 		data?.account?.settings?.card_payments?.statement_descriptor_prefix ||
 		'';
 
+	const stripeAccountCompanyName = data?.account?.company_name || '';
+
 	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
 	// To meet this requirement, we use the first character of the full statement descriptor.
 	const shortStatementDescriptorSuffix = stripeAccountShortStatementDescriptor.charAt(
