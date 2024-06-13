@@ -421,7 +421,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 5.6.0
 	 *
 	 * @param WC_Order $order              The order object.
-	 * @param string   $source_id          The source ID.
+	 * @param stdClass $source             The source object.
 	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
@@ -788,7 +788,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		try {
 			$sources = array_merge(
 				$stripe_customer->get_payment_methods( 'card' ),
-				$stripe_customer->get_payment_methods( 'sepa_debit' )
+				$stripe_customer->get_payment_methods( 'sepa_debit' ),
+				$stripe_customer->get_payment_methods( 'cashapp' )
 			);
 
 			if ( $sources ) {
@@ -804,9 +805,12 @@ trait WC_Stripe_Subscriptions_Trait {
 						if ( $card ) {
 							/* translators: 1) card brand 2) last 4 digits */
 							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-						} elseif ( $source->sepa_debit ) {
+						} elseif ( ! empty( $source->sepa_debit ) ) {
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
+						} elseif ( ! empty( $source->cashapp ) ) {
+							/* translators: 1) Cash App Cashtag */
+							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
 						}
 
 						break;

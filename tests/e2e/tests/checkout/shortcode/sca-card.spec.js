@@ -1,20 +1,22 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcode,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 	await emptyCart( page );
-
-	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
-	await fillCardDetails( page, config.get( 'cards.3ds' ) );
+	await setupCart( page );
+	await setupShortcodeCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
+	await fillCreditCardDetailsShortcode( page, config.get( 'cards.3ds' ) );
 	await page.locator( 'text=Place order' ).click();
 
 	// Wait until the SCA frame is available

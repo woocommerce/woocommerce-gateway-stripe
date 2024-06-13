@@ -1,5 +1,28 @@
 *** Changelog ***
 
+= 8.4.0 - 2024-06-13 =
+* Tweak - Resets the list of payment methods when any Stripe key is updated.
+* Fix - Removes the list of saved payment methods when the setting is disabled.
+* Tweak - Update WooCommerce.com docs links.
+* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
+* Tweak - Update WordPress.org screenshots and captions.
+* Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
+* Fix - Remove the duplicated customization notice in the settings screen.
+* Add - Include Cash App as a payment method for stores using the updated checkout experience.
+* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
+* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+* Fix - Handle checkbox type required fields correctly on the shortcode checkout when paying with Google Pay/Apple Pay.
+* Tweak - Remove unused confirmation modal a capability properties.
+* Fix - Resgister script on the checkout page only when the gateway is enabled.
+* Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
+* Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
+* Add - Show currency requirement details in a popover.
+* Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
+* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
+* Update - Declare compatibility with the Cart and Checkout blocks.
+
 = 8.3.1 - 2024-05-30 =
 * Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
 * Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.

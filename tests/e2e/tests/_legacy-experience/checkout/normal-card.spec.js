@@ -1,22 +1,27 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
 test( 'customer can checkout with a normal credit card @smoke', async ( {
 	page,
 } ) => {
 	await emptyCart( page );
-
-	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
-	await fillCardDetails( page, config.get( 'cards.basic' ) );
+	await setupCart( page );
+	await setupShortcodeCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
+	await fillCreditCardDetailsShortcodeLegacy(
+		page,
+		config.get( 'cards.basic' )
+	);
 	await page.locator( 'text=Place order' ).click();
 	await page.waitForNavigation();
 

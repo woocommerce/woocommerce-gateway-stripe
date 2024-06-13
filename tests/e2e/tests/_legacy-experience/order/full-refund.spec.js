@@ -1,13 +1,13 @@
 import stripe from 'stripe';
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { api, payments } from '../../utils';
+import { api, payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
 test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
@@ -23,14 +23,16 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 
 	await test.step( 'customer checkout with Stripe', async () => {
 		await emptyCart( userPage );
-
-		await setupProductCheckout( userPage );
-		await setupCheckout(
+		await setupCart( userPage );
+		await setupShortcodeCheckout(
 			userPage,
 			config.get( 'addresses.customer.billing' )
 		);
 
-		await fillCardDetails( userPage, config.get( 'cards.basic' ) );
+		await fillCreditCardDetailsShortcodeLegacy(
+			userPage,
+			config.get( 'cards.basic' )
+		);
 		await userPage.locator( 'text=Place order' ).click();
 		await userPage.waitForNavigation();
 

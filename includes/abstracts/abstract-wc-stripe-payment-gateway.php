@@ -249,7 +249,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			$error &&
 			1 < $this->retry_interval &&
-			! empty( $source_object ) &&
+			! empty( $source_object->status ) &&
 			'chargeable' === $source_object->status &&
 			self::is_same_idempotency_error( $error )
 		);
@@ -352,6 +352,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'boleto'     => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/boleto.svg" class="stripe-boleto-icon stripe-icon" alt="Boleto" />',
 				'oxxo'       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
 				'cards'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="credit / debit card" />',
+				'cashapp'    => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 			]
 		);
 	}
@@ -458,7 +459,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['receipt_email'] = $billing_email;
 		}
 
-		if ( 'stripe' === $order->get_payment_method() ) {
+		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$post_data['capture'] = $capture ? 'true' : 'false';
 			if ( $is_short_statement_descriptor_enabled ) {
 				$post_data['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
@@ -546,6 +547,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		}
+
+		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
+			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
 		}
 
 		if ( 'yes' === $captured ) {
@@ -1659,8 +1664,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return boolean Whether or not it's a 'authentication_required' error
 	 */
 	public function is_authentication_required_for_payment( $response ) {
-		return ( ! empty( $response->error ) && 'authentication_required' === $response->error->code )
-			|| ( ! empty( $response->last_payment_error ) && 'authentication_required' === $response->last_payment_error->code );
+		return ( ! empty( $response->error->code ) && 'authentication_required' === $response->error->code )
+			|| ( ! empty( $response->last_payment_error->code ) && 'authentication_required' === $response->last_payment_error->code );
 	}
 
 	/**

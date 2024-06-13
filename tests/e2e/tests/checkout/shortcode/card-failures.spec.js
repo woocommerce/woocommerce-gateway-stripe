@@ -1,43 +1,31 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { payments } from '../../../utils';
 
 const {
 	emptyCart,
-	setupProductCheckout,
-	setupCheckout,
-	fillCardDetails,
+	setupCart,
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcode,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
-	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
+	await setupCart( page );
+	await setupShortcodeCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
 } );
 
 const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
-	await fillCardDetails( page, card );
+	await fillCreditCardDetailsShortcode( page, card );
 	await page.locator( 'text=Place order' ).click();
 
 	expect
 		.soft( await page.innerText( '.woocommerce-error' ) )
-		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
-};
-
-const testCardBlocks = async ( page, cardKey ) => {
-	const card = config.get( cardKey );
-
-	await fillCardDetails( page, card );
-	await page.locator( 'text=Place order' ).click();
-
-	expect
-		.soft(
-			await page.innerText(
-				'.wc-block-components-notice-banner.is-error'
-			)
-		)
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 

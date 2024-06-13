@@ -13,7 +13,6 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -41,9 +40,6 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
-jest.mock( 'utils/use-alipay-currencies', () => ( {
-	useAliPayCurrencies: jest.fn(),
-} ) );
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
@@ -70,7 +66,6 @@ describe( 'GeneralSettingsSection', () => {
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
-		useAliPayCurrencies.mockReturnValue( [ 'EUR', 'CNY' ] );
 	} );
 
 	afterEach( () => {

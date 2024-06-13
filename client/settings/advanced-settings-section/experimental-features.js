@@ -106,7 +106,7 @@ const ExperimentalFeatures = () => {
 				) }
 			</h4>
 			<CheckboxControl
-				data-testid="new-checkout-experience-checkbox"
+				data-testid="legacy-checkout-experience-checkbox"
 				label={ __(
 					'Enable the legacy checkout experience',
 					'woocommerce-gateway-stripe'
@@ -121,10 +121,10 @@ const ExperimentalFeatures = () => {
 							<ExternalLink href="https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey" />
 						),
 						learnMoreLink: (
-							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/" />
 						),
 						supportLink: (
-							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
+							<ExternalLink href="https://woocommerce.com/my-account/create-a-ticket?select=18627" />
 						),
 						newLineElement: <br />,
 					}

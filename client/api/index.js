@@ -164,9 +164,7 @@ export default class WCStripeAPI {
 	/**
 	 * Creates and confirms a setup intent.
 	 *
-	 * @param {Object} paymentMethod      Payment method data.
-	 * @param {string} paymentMethod.id   The ID of the payment method.
-	 * @param {string} paymentMethod.type The type of the payment method.
+	 * @param {Object} paymentMethod Payment method data.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
@@ -199,6 +197,33 @@ export default class WCStripeAPI {
 				return response.data.next_action.type;
 			}
 
+			if ( response.data.payment_type === 'cashapp' ) {
+				// Cash App Payments.
+				const returnURL = decodeURIComponent(
+					response.data.return_url
+				);
+
+				return this.getStripe()
+					.confirmCashappSetup( response.data.client_secret, {
+						return_url: returnURL,
+					} )
+					.then( ( confirmedSetupIntent ) => {
+						const { setupIntent, error } = confirmedSetupIntent;
+						if ( error ) {
+							throw error;
+						}
+
+						if ( setupIntent.status === 'succeeded' ) {
+							window.location.href = returnURL;
+							return 'redirect_to_url';
+						}
+
+						// When the setup intent is incomplete, we need to notify the calling function that the set up didn't complete.
+						return 'incomplete';
+					} );
+			}
+
+			// Card Payments.
 			return this.getStripe()
 				.confirmCardSetup( response.data.client_secret )
 				.then( ( confirmedSetupIntent ) => {

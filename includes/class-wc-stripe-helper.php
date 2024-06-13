@@ -231,6 +231,7 @@ class WC_Stripe_Helper {
 				'amount_too_small'         => __( 'The order total is too low for this payment method', 'woocommerce-gateway-stripe' ),
 				'country_code_invalid'     => __( 'Invalid country code, please try again with a valid country code', 'woocommerce-gateway-stripe' ),
 				'tax_id_invalid'           => __( 'Invalid Tax Id, please try again with a valid tax id', 'woocommerce-gateway-stripe' ),
+				'invalid_wallet_type'      => __( 'Invalid wallet payment type, please try again or use an alternative method.', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}
@@ -1254,5 +1255,25 @@ class WC_Stripe_Helper {
 			'ES', // Spain.
 			'SE', // Sweden.
 		];
+	}
+
+	/**
+	 * Verifies if the provided payment method ID supports manual capture.
+	 *
+	 * @param string $payment_method_id Payment method ID.
+	 * @return bool Whether the payment method allows manual capture.
+	 */
+	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
+		return in_array( $payment_method_id, [ 'stripe', 'stripe_affirm', 'stripe_klarna', 'stripe_afterpay_clearpay' ], true );
+	}
+
+	/**
+	 * Verifies if the provided order contains the identifier for a wallet method.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public static function is_wallet_payment_method( $order ) {
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
 	}
 }

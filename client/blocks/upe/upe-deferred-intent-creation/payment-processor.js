@@ -262,7 +262,7 @@ const PaymentProcessor = ( {
 			<PaymentElement
 				options={ getStripeElementOptions() }
 				onChange={ updatePaymentElementCompletionStatus }
-				className="wcpay-payment-element"
+				className="wcstripe-payment-element"
 			/>
 		</>
 	);
