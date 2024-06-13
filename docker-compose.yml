@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   wordpress:
     build: ./docker/wordpress_xdebug
