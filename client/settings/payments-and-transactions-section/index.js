@@ -191,7 +191,7 @@ const PaymentsAndTransactionsSection = () => {
 								'Cash App Payments',
 								'woocommerce-gateway-stripe'
 							) }
-							text={ `CashApp*${ stripeAccountShortStatementDescriptor } #123456` }
+							text={ `CashApp*${ stripeAccountCompanyName }` }
 							className="full-bank-statement"
 						/>
 					) }
