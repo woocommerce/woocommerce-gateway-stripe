@@ -1177,16 +1177,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
-		$this->mock_gateway->action_scheduler_service
+		$this->mock_gateway
 			->expects( $this->once() )
-			->method( 'schedule_job' )
+			->method( 'update_saved_payment_method' )
 			->with(
-				$this->greaterThanOrEqual( time() ),
-				'wc_stripe_update_saved_payment_method',
-				[
-					'payment_method' => $payment_method_id,
-					'order_id'       => $order_id,
-				]
+				$payment_method_id,
+				$order
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
