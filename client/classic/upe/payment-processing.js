@@ -361,6 +361,10 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 			confirmPayment = await api
 				.getStripe()
 				.confirmBoletoPayment( clientSecret, {} );
+		} else if ( paymentMethodType === 'multibanco' ) {
+			confirmPayment = await api
+				.getStripe()
+				.confirmMultibancoPayment( clientSecret, {} );
 		} else {
 			confirmPayment = await api
 				.getStripe()
