@@ -183,7 +183,9 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							text={ `${ stripeAccountShortStatementDescriptor }* ${ shortStatementDescriptorSuffix } #123456` }
-							className="shortened-bank-statement"
+							className={ `shortened-bank-statement ${
+								isCashAppEnabled ? 'with-tree-columns' : ''
+							}` }
 						/>
 					) }
 					{ isCashAppEnabled && (
@@ -194,7 +196,7 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							text={ `CashApp*${ stripeAccountCompanyName }` }
-							className="full-bank-statement"
+							className="full-bank-statement with-tree-columns"
 						/>
 					) }
 					<StatementPreview
@@ -204,7 +206,9 @@ const PaymentsAndTransactionsSection = () => {
 							stripeAccountStatementDescriptor ||
 							stripeAccountShortStatementDescriptor
 						}
-						className="full-bank-statement"
+						className={ `full-bank-statement ${
+							isCashAppEnabled ? 'with-tree-columns' : ''
+						}` }
 					/>
 				</StatementPreviewsWrapper>
 			</CardBody>
