@@ -123,6 +123,28 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/configure_webhooks',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'configure_webhooks' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'live_mode'      => [
+						'description'       => __( 'Whether the account is in live mode.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'secret_key'           => [
+						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_secret_key' ],
+					],
+				],
+			]
+		);
 	}
 
 	/**

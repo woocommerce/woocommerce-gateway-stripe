@@ -1,7 +1,12 @@
 import { __ } from '@wordpress/i18n';
 import { React, useRef, useState } from 'react';
 import styled from '@emotion/styled';
-import { Button, TabPanel, TextControl } from '@wordpress/components';
+import {
+	Button,
+	TabPanel,
+	TextControl,
+	BaseControl,
+} from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import {
 	useAccountKeys,
@@ -10,11 +15,9 @@ import {
 	useAccountKeysWebhookSecret,
 	useAccountKeysTestPublishableKey,
 	useAccountKeysTestSecretKey,
-	useAccountKeysTestWebhookSecret,
 } from 'wcstripe/data/account-keys';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
-import { WebhookInformation } from 'wcstripe/components/webhook-information';
 import { AccountKeysConnectionStatus } from 'wcstripe/settings/payment-settings/account-keys-connection-status';
 
 const PublishableKey = () => {
@@ -125,23 +128,39 @@ const WebhookSecret = () => {
 };
 
 const TestWebhookSecret = () => {
-	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
-	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState( testWebhookSecret );
+	const { isSaving, configureWebhooks, isConfiguring } = useAccountKeys();
+	const [ testSecretKey ] = useAccountKeysTestSecretKey();
+	const [ secretKey ] = useState( testSecretKey );
+
+	const onConfigureWebhooks = () => {
+		configureWebhooks( {
+			live: false,
+			secret: secretKey,
+		} );
+	};
 	return (
-		<TextControl
-			label={ __( 'Test Webhook secret', 'woocommerce-gateway-stripe' ) }
+		<BaseControl
+			id="wc-stripe-test-webhook-element"
+			label={ __( 'Test Webhook', 'woocommerce-gateway-stripe' ) }
 			help={ __(
-				'Get your webhook signing secret from the webhooks section in your Stripe account.',
+				'Configuring webhooks will enable your store to receive notifications on charge statuses from Stripe.',
 				'woocommerce-gateway-stripe'
 			) }
-			value={ value }
-			onChange={ ( val ) => setValue( val ) }
-			disabled={ isSaving }
-			name="test_webhook_secret"
-			autoComplete="off"
-			onFocus={ ( e ) => e.target.select() }
-		/>
+		>
+			<Button
+				disabled={ isSaving || isConfiguring }
+				isBusy={ isConfiguring }
+				onClick={ onConfigureWebhooks }
+				variant="primary"
+				text={ __(
+					'Configure webhooks',
+					'woocommerce-gateway-stripe'
+				) }
+				style={ {
+					display: 'block',
+				} }
+			/>
+		</BaseControl>
 	);
 };
 
@@ -150,7 +169,6 @@ const Form = ( { formRef, testMode } ) => {
 		<form ref={ formRef }>
 			{ testMode ? <TestPublishableKey /> : <PublishableKey /> }
 			{ testMode ? <TestSecretKey /> : <SecretKey /> }
-			<WebhookInformation />
 			{ testMode ? <TestWebhookSecret /> : <WebhookSecret /> }
 		</form>
 	);

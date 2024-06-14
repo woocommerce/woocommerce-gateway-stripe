@@ -111,3 +111,34 @@ export function* testAccountKeys( { live, publishable, secret } ) {
 
 	return error === null;
 }
+
+export function updateIsConfiguringWebhooks( isProcessing ) {
+	return {
+		type: ACTION_TYPES.SET_IS_CONFIGURING_WEBHOOKS,
+		isProcessing,
+	};
+}
+
+export function* configureWebhooks( { live, secret } ) {
+	let error = null;
+
+	try {
+		yield updateIsConfiguringWebhooks( true );
+
+		// Send the request to Configure the Webhook.
+		yield apiFetch( {
+			path: `${ NAMESPACE }/account_keys/configure_webhooks`,
+			method: 'POST',
+			data: {
+				live_mode: live,
+				secret,
+			},
+		} );
+	} catch ( e ) {
+		error = e;
+	} finally {
+		yield updateIsConfiguringWebhooks( false );
+	}
+
+	return error === null;
+}
