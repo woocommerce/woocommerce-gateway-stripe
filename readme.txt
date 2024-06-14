@@ -128,28 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.4.0 - 2024-06-13 =
-* Tweak - Update statement descriptor preview title to "MOST OTHER PAYMENT METHODS" as Cash App does not support it. 
-* Tweak - Resets the list of payment methods when any Stripe key is updated.
-* Fix - Removes the list of saved payment methods when the setting is disabled.
-* Tweak - Update WooCommerce.com docs links.
-* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
-* Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
-* Tweak - Update WordPress.org screenshots and captions.
-* Fix - Remove the duplicated customization notice in the settings screen.
-* Add - Include Cash App as a payment method for stores using the updated checkout experience.
-* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
-* Add - Add a new dismissible banner to promote Stripe products to the settings page.
-* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
-* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
-* Fix - Handle checkbox type required fields correctly on the shortcode checkout when paying with Google Pay/Apple Pay.
-* Tweak - Remove unused confirmation modal a capability properties.
-* Fix - Resgister script on the checkout page only when the gateway is enabled.
-* Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
-* Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
-* Add - Show currency requirement details in a popover.
-* Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
-* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
-* Update - Declare compatibility with the Cart and Checkout blocks.
+= 8.5.0 - 2024-xx-xx =
+* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
