@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.3.1
+Stable tag: 8.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.4.0 - xxxx-xx-xx =
+= 8.4.0 - 2024-06-13 =
 * Tweak - Resets the list of payment methods when any Stripe key is updated.
 * Fix - Removes the list of saved payment methods when the setting is disabled.
 * Tweak - Update WooCommerce.com docs links.
