@@ -514,8 +514,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'failed' );
 
 			return [
-				'result'   => 'fail',
-				'redirect' => '',
+				'result'     => 'fail',
+				'result_msg' => $e->getLocalizedMessage(),
+				'redirect'   => '',
 			];
 		}
 	}
