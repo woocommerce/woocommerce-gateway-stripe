@@ -347,6 +347,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// I'm not sure if this will be useful when a customer changes the form before then clicking the button to generate the webhook
 		// secret. ie change keys -> click button to generate webhook secret. We'll want to generate the webhook secret for the new keys, not the old ones.
 		// WC_Stripe_API::set_secret_key();
+		$live_mode = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 
 		$request = [
 			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
@@ -374,14 +375,18 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
-		if ( is_wp_error( $response ) || ! isset( $response['secret'], $response['id'] ) ) {
+		if ( is_wp_error( $response ) || ! isset( $response->secret, $response->id ) ) {
 			return new WP_REST_Response( [], 422 );
 		}
 
 		// Save the Webhook secret and ID.
-		$settings                   = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-		$settings['webhook_secret'] = wc_clean( $response['secret'] );
-		$settings['webhook_id']     = wc_clean( $response['id'] );
+		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+
+		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_id_setting     = $live_mode ? 'webhook_id' : 'test_webhook_id';
+
+		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
+		$settings[ $webhook_id_setting ]     = wc_clean( $response->id );
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 	}
