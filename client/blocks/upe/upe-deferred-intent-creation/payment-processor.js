@@ -72,6 +72,7 @@ export function validateElements( elements ) {
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
+ * @param {string}      args.description         The payment method description to display.
  * @param {string}      args.testingInstructions The testing instructions to display.
  * @param {Object}      args.eventRegistration   The checkout event emitter registration object.
  * @param {Object}      args.emitResponse        Various helpers for usage with observer response objects.
@@ -87,6 +88,7 @@ export function validateElements( elements ) {
 const PaymentProcessor = ( {
 	api,
 	activePaymentMethod,
+	description,
 	testingInstructions,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	emitResponse,
@@ -253,6 +255,12 @@ const PaymentProcessor = ( {
 
 	return (
 		<>
+			<p
+				className="content"
+				dangerouslySetInnerHTML={ {
+					__html: description,
+				} }
+			/>
 			<p
 				className="content"
 				dangerouslySetInnerHTML={ {
