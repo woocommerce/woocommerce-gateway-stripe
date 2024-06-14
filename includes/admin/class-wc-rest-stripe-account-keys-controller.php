@@ -349,14 +349,41 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// WC_Stripe_API::set_secret_key();
 
 		$request = [
+			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
 			'enabled_events' => [
+				'source.chargeable',
+				'source.canceled',
 				'charge.succeeded',
 				'charge.failed',
+				'charge.captured',
+				'charge.dispute.created',
+				'charge.dispute.closed',
+				'charge.refunded',
+				'charge.refund.updated',
+				'review.opened',
+				'review.closed',
+				'payment_intent.succeeded',
+				'payment_intent.payment_failed',
+				'payment_intent.amount_capturable_updated',
+				'payment_intent.requires_action',
+				'setup_intent.succeeded',
+				'setup_intent.setup_failed',
 			],
 			'url' => WC_Stripe_Helper::get_webhook_url(),
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+
+		if ( is_wp_error( $response ) || ! isset( $response['secret'], $response['id'] ) ) {
+			return new WP_REST_Response( [], 422 );
+		}
+
+		// Save the Webhook secret and ID.
+		$settings                   = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$settings['webhook_secret'] = wc_clean( $response['secret'] );
+		$settings['webhook_id']     = wc_clean( $response['id'] );
+
+		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 	}
 
 	/**
