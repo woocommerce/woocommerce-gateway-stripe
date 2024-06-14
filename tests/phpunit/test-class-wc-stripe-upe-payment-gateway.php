@@ -1178,8 +1178,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -1251,8 +1255,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$response      = $this->mock_gateway->process_payment( $order_id );
@@ -1310,8 +1318,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -1390,8 +1402,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -1481,8 +1497,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -2036,8 +2056,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'update_saved_payment_method' )
 			->with(
-				$payment_method_id,
-				$order
+				$this->equalTo( $payment_method_id ),
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			);
 
 		$this->mock_gateway
