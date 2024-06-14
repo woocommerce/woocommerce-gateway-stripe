@@ -250,6 +250,29 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		// Disable all payment methods if all keys are different from the current ones
+		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
+			|| $current_account_keys['secret_key'] !== $settings['secret_key']
+			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
+			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
+
+			$is_upe_enabled = 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+			if ( ! $is_upe_enabled ) {
+				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+				foreach ( $payment_gateways as $gateway ) {
+					$gateway->update_option( 'enabled', 'no' );
+				}
+			} else {
+				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+				$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ 'card', 'link' ] );
+
+				// handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
+				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
+				$multibanco->update_option( 'enabled', 'no' );
+			}
+		}
+
 		$this->account->clear_cache();
 
 		// Gives an instant reply if the connection was succesful or not + rebuild the cache for the next request

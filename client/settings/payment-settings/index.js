@@ -34,7 +34,7 @@ const GeneralSettingsDescription = () => (
 			</ExternalLink>
 		</p>
 		<p>
-			<ExternalLink href="https://woocommerce.com/contact-us/">
+			<ExternalLink href="https://woocommerce.com/my-account/contact-support/?select=18627">
 				{ __( 'Get support', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
@@ -64,12 +64,6 @@ const PaymentsAndTransactionsDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="https://woocommerce.com/document/stripe/#faq">
-			{ __(
-				'View Frequently Asked Questions',
-				'woocommerce-gateway-stripe'
-			) }
-		</ExternalLink>
 	</>
 );
 
