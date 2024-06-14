@@ -34,7 +34,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 * @return array
 	 */
 	public function get_supported_currencies() {
-		$billing_country = isset( WC()->session ) ? WC()->session->get( 'customer' )['country'] : '';
+		$billing_country = isset( WC()->session ) && isset( WC()->session->get( 'customer' )['country'] ) ? WC()->session->get( 'customer' )['country'] : '';
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
 		$eea_countries = WC_Stripe_Helper::get_european_economic_area_countries();

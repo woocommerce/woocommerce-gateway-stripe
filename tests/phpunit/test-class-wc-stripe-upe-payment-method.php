@@ -522,6 +522,22 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
 
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+													->disableOriginalConstructor()
+													->setMethods(
+														[
+															'get_cached_account_data',
+														]
+													)
+													->getMock();
+
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country'          => 'US',
+				'default_currency' => 'USD',
+			]
+		);
+
 		// This is a currency supported by all of the BNPLs.
 		$stripe_account_currency = 'USD';
 
