@@ -16,6 +16,7 @@ import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
 	useSeparateCardForm,
+	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -25,7 +26,7 @@ const StatementDescriptorInputWrapper = styled.div`
 
 	.components-base-control__field {
 		@media ( min-width: 783px ) {
-			width: 50%;
+			width: ${ ( props ) => ( props.isCashAppEnabled ? 30 : 50 ) }%;
 		}
 
 		.components-text-control__input {
@@ -45,6 +46,9 @@ const PaymentsAndTransactionsSection = () => {
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
 	] = useIsShortAccountStatementEnabled();
+	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
+
+	const isCashAppEnabled = enabledPaymentMethods.includes( 'cashapp' );
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
@@ -59,6 +63,8 @@ const PaymentsAndTransactionsSection = () => {
 	const stripeAccountShortStatementDescriptor =
 		data?.account?.settings?.card_payments?.statement_descriptor_prefix ||
 		'';
+
+	const stripeAccountCompanyName = data?.account?.company_name || '';
 
 	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
 	// To meet this requirement, we use the first character of the full statement descriptor.
@@ -168,7 +174,7 @@ const PaymentsAndTransactionsSection = () => {
 						/>
 					</StatementDescriptorInputWrapper>
 				) }
-				<StatementPreviewsWrapper>
+				<StatementPreviewsWrapper withTreeColumns={ isCashAppEnabled }>
 					{ isShortAccountStatementEnabled && (
 						<StatementPreview
 							icon="creditCard"
@@ -177,7 +183,20 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							text={ `${ stripeAccountShortStatementDescriptor }* ${ shortStatementDescriptorSuffix } #123456` }
-							className="shortened-bank-statement"
+							className={ `shortened-bank-statement ${
+								isCashAppEnabled ? 'with-tree-columns' : ''
+							}` }
+						/>
+					) }
+					{ isCashAppEnabled && (
+						<StatementPreview
+							icon="cashApp"
+							title={ __(
+								'Cash App Payments',
+								'woocommerce-gateway-stripe'
+							) }
+							text={ `CashApp*${ stripeAccountCompanyName }` }
+							className="full-bank-statement with-tree-columns"
 						/>
 					) }
 					<StatementPreview
@@ -187,7 +206,9 @@ const PaymentsAndTransactionsSection = () => {
 							stripeAccountStatementDescriptor ||
 							stripeAccountShortStatementDescriptor
 						}
-						className="full-bank-statement"
+						className={ `full-bank-statement ${
+							isCashAppEnabled ? 'with-tree-columns' : ''
+						}` }
 					/>
 				</StatementPreviewsWrapper>
 			</CardBody>
