@@ -336,6 +336,30 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
+	 * Configure webhooks for the Stripe Account.
+	 *
+	 * This will create a webhook endpoint in the Stripe account with the events we need to listen to at the correct URL.
+	 * The webhook secret will be stored in the settings.
+	 *
+	 * @param WP_REST_Request $request Data about the request.
+	 */
+	public function configure_webhooks( WP_REST_Request $request ) {
+		// I'm not sure if this will be useful when a customer changes the form before then clicking the button to generate the webhook
+		// secret. ie change keys -> click button to generate webhook secret. We'll want to generate the webhook secret for the new keys, not the old ones.
+		// WC_Stripe_API::set_secret_key();
+
+		$request = [
+			'enabled_events' => [
+				'charge.succeeded',
+				'charge.failed',
+			],
+			'url' => WC_Stripe_Helper::get_webhook_url(),
+		];
+
+		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+	}
+
+	/**
 	 * Records a track event when the keys of an account are manually removed (account disconnected).
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
