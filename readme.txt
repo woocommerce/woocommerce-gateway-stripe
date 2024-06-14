@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 8.5.0 - 2024-xx-xx =
 * Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
 * Add - Allow customizing the title and description of the UPE payment methods.
+* Fix - Display Klarna only when the presentment currency matches the currency of the customer’s country.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
