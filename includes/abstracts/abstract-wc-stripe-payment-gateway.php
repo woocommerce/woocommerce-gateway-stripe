@@ -553,6 +553,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
 		}
 
+		// Use a transient to lock the process to avoid simultaneous execution
+		$lock_key = 'order_' . $order_id . '_payment_lock';
+		if (get_transient($lock_key)) {
+			// If the transient exists, another process is already handling this
+			WC_Stripe_Logger::log('Payment process is already in progress for order: ' . $order_id);
+			return;
+		}
+
+		// Set a transient to lock the process for a short period
+		set_transient($lock_key, true, 30);
+
 		if ( 'yes' === $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
@@ -587,11 +598,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
-					$order->payment_complete( $response->id );
+					// Check if the payment has already been completed
+					if (!in_array($order->get_status(), array('processing', 'completed'))) {
+						$order->payment_complete($response->id);
 
-					/* translators: transaction id */
-					$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
-					$order->add_order_note( $message );
+						/* translators: transaction id */
+						$message = sprintf(__('Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe'), $response->id);
+						$order->add_order_note($message);
+					}
 				}
 			}
 
@@ -614,6 +628,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
 		}
+
+		// Remove the transient to release the lock
+		delete_transient($lock_key);
 
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
 
