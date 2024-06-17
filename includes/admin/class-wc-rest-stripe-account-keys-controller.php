@@ -376,14 +376,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			WC_Stripe_API::set_secret_key( $secret );
 		}
 
-		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
-		$webhook_id_setting     = $live_mode ? 'webhook_id' : 'test_webhook_id';
-
-		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
-		if ( isset( $settings[ $webhook_id_setting ] ) ) {
-			WC_Stripe_API::request( [], "webhook_endpoints/{$settings[ $webhook_id_setting ]}", 'DELETE' );
-		}
-
 		$request = [
 			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
 			'enabled_events' => [
@@ -413,6 +405,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		if ( is_wp_error( $response ) || ! isset( $response->secret, $response->id ) ) {
 			$message = $response->message ?? __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' );
 			return new WP_REST_Response( [ 'message' => $message ], 400 );
+		}
+
+		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_id_setting     = $live_mode ? 'webhook_id' : 'test_webhook_id';
+
+		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
+		if ( ! empty( $settings[ $webhook_id_setting ] ) ) {
+			WC_Stripe_API::request( [], "webhook_endpoints/{$settings[ $webhook_id_setting ]}", 'DELETE' );
 		}
 
 		// Save the Webhook secret and ID.
