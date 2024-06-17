@@ -290,9 +290,10 @@ jQuery( function ( $ ) {
 		.on( 'change', 'input[name="payment_method"]', () => {
 			// Check to see whether we should display the Cash App limit notice.
 			if ( $( 'input#payment_method_stripe_cashapp' ).is( ':checked' ) ) {
+				const cartAmount = Number( getStripeServerData()?.cartTotal );
 				maybeShowCashAppLimitNotice(
 					'.woocommerce-checkout-payment',
-					0
+					cartAmount
 				);
 			} else {
 				removeCashAppLimitNotice();

@@ -46,23 +46,27 @@ function maybeRenderCashAppLimitNotice( cartAmount ) {
 /**
  * Show the Cash App limit notice in the checkout form.
  *
- * @param {string} selector
+ * @param {string} wrapperElementSelector
  * @param {number} cartAmount
  * @param {boolean} listenToElement
  */
 export function maybeShowCashAppLimitNotice(
-	selector,
+	wrapperElementSelector,
 	cartAmount = 0,
 	listenToElement = false
 ) {
-	const hasNoticeWrapperElement = document.querySelector( selector );
+	const hasNoticeWrapperElement = document.querySelector(
+		wrapperElementSelector
+	);
 
 	// If the wrapper is already loaded, insert the notice element.
 	if ( hasNoticeWrapperElement ) {
 		maybeRenderCashAppLimitNotice( cartAmount );
 	} else if ( listenToElement ) {
-		callWhenElementIsAvailable( selector, maybeRenderCashAppLimitNotice, [
-			cartAmount,
-		] );
+		callWhenElementIsAvailable(
+			wrapperElementSelector,
+			maybeRenderCashAppLimitNotice,
+			[ cartAmount ]
+		);
 	}
 }
