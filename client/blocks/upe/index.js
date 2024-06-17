@@ -11,7 +11,6 @@ import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import './styles.scss';
-import { maybeShowCashAppLimitNotice } from 'wcstripe/blocks/upe/cash-app-notice-display';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -92,6 +91,3 @@ registerExpressPaymentMethod( paymentRequestPaymentMethod );
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
-
-// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
-maybeShowCashAppLimitNotice();
