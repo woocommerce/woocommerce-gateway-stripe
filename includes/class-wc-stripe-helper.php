@@ -535,7 +535,7 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Get settings of individual payment methods.
+	 * Get settings of individual legacy payment methods.
 	 *
 	 * @return array
 	 */
@@ -564,6 +564,53 @@ class WC_Stripe_Helper {
 			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
 
 			$payment_method_settings[ $payment_method_id ] = $settings;
+		}
+
+		return $payment_method_settings;
+	}
+
+	/**
+	 * Get settings of individual upe payment methods.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return array
+	 */
+	public static function get_upe_individual_payment_method_settings( $gateway ) {
+		$available_gateways = self::get_upe_settings_available_payment_method_ids( $gateway );
+
+		foreach ( $available_gateways as $gateway ) {
+			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
+
+			$settings = [
+				'name'        => isset( $individual_gateway_settings['title'] ) ? $individual_gateway_settings['title'] : '',
+				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
+			];
+
+			if ( in_array( $gateway, [ 'boleto' ], true ) ) {
+				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
+			}
+
+			$payment_method_settings[ $gateway ] = $settings;
+		}
+
+		// If card settings are not set, get it from the default Stripe settings which might be set before enabling UPE.
+		if ( ! isset( $payment_method_settings['card']['title'] ) && ! isset( $payment_method_settings['card']['description'] ) ) {
+			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+			$title           = isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '';
+			$description     = isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '';
+
+			$payment_method_settings['card'] = [
+				'name'        => $title,
+				'description' => $description,
+			];
+			// Save the title and description to the card settings option.
+			update_option(
+				'woocommerce_stripe_card_settings',
+				[
+					'title'       => $title,
+					'description' => $description,
+				]
+			);
 		}
 
 		return $payment_method_settings;
@@ -1265,5 +1312,15 @@ class WC_Stripe_Helper {
 	 */
 	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
 		return in_array( $payment_method_id, [ 'stripe', 'stripe_affirm', 'stripe_klarna', 'stripe_afterpay_clearpay' ], true );
+	}
+
+	/**
+	 * Verifies if the provided order contains the identifier for a wallet method.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public static function is_wallet_payment_method( $order ) {
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
 	}
 }

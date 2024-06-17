@@ -1,6 +1,16 @@
 *** Changelog ***
+= 8.5.0 - 2024-xx-xx =
+* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
+* Add - Allow customizing the title and description of the UPE payment methods.
 
-= 8.4.0 - xxxx-xx-xx =
+= 8.4.0 - 2024-06-13 =
+* Tweak - Resets the list of payment methods when any Stripe key is updated.
+* Fix - Removes the list of saved payment methods when the setting is disabled.
+* Tweak - Update WooCommerce.com docs links.
+* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
+* Tweak - Update WordPress.org screenshots and captions.
+* Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
 * Fix - Remove the duplicated customization notice in the settings screen.
 * Add - Include Cash App as a payment method for stores using the updated checkout experience.
 * Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
@@ -12,6 +22,7 @@
 * Fix - Resgister script on the checkout page only when the gateway is enabled.
 * Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
 * Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
+* Add - Show currency requirement details in a popover.
 * Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
 * Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
 * Update - Declare compatibility with the Cart and Checkout blocks.

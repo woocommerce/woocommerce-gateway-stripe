@@ -408,6 +408,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 
+			// Update the saved payment method to have the latest billing details.
+			if ( $prepared_source->source && $this->is_using_saved_payment_method() ) {
+				$this->update_saved_payment_method( $prepared_source->source, $order );
+			}
+
 			if ( 0 >= $order->get_total() ) {
 				return $this->complete_free_order( $order, $prepared_source, $force_save_source );
 			}

@@ -121,10 +121,10 @@ const ExperimentalFeatures = () => {
 							<ExternalLink href="https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey" />
 						),
 						learnMoreLink: (
-							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/" />
 						),
 						supportLink: (
-							<ExternalLink href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/" />
+							<ExternalLink href="https://woocommerce.com/my-account/create-a-ticket?select=18627" />
 						),
 						newLineElement: <br />,
 					}

@@ -97,7 +97,7 @@ const LegacyExperienceTransitionNotice = ( {
 					) }
 				</DisableLegacyButton>
 				<LearnMoreAnchor
-					href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/"
+					href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/"
 					className="components-button is-tertiary"
 					target="_blank"
 					rel="noreferrer"

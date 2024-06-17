@@ -249,7 +249,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			$error &&
 			1 < $this->retry_interval &&
-			! empty( $source_object ) &&
+			! empty( $source_object->status ) &&
 			'chargeable' === $source_object->status &&
 			self::is_same_idempotency_error( $error )
 		);
@@ -547,6 +547,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		}
+
+		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
+			WC_Stripe_Payment_Tokens::update_token_from_method_details( $order->get_customer_id(), $response->payment_method, $response->payment_method_details );
 		}
 
 		if ( 'yes' === $captured ) {
@@ -1660,8 +1664,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return boolean Whether or not it's a 'authentication_required' error
 	 */
 	public function is_authentication_required_for_payment( $response ) {
-		return ( ! empty( $response->error ) && 'authentication_required' === $response->error->code )
-			|| ( ! empty( $response->last_payment_error ) && 'authentication_required' === $response->last_payment_error->code );
+		return ( ! empty( $response->error->code ) && 'authentication_required' === $response->error->code )
+			|| ( ! empty( $response->last_payment_error->code ) && 'authentication_required' === $response->last_payment_error->code );
 	}
 
 	/**
@@ -2165,5 +2169,53 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $fraud_type;
+	}
+
+	/**
+	 * Update the saved payment method information with updated billing values.
+	 *
+	 * @param string       $payment_method_id The payment method to update.
+	 * @param WC_Order|int $order             Order object or id.
+	 */
+	public function update_saved_payment_method( $payment_method_id, $order ) {
+		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
+
+		if ( ! $order || ! $this->is_type_payment_method( $payment_method_id ) ) {
+			return;
+		}
+
+		try {
+			// Get the billing details from the order.
+			$billing_details = [
+				'address' => [
+					'city'        => $order->get_billing_city(),
+					'country'     => $order->get_billing_country(),
+					'line1'       => $order->get_billing_address_1(),
+					'line2'       => $order->get_billing_address_2(),
+					'postal_code' => $order->get_billing_postcode(),
+					'state'       => $order->get_billing_state(),
+				],
+				'email'   => $order->get_billing_email(),
+				'name'    => trim( $order->get_formatted_billing_full_name() ),
+				'phone'   => $order->get_billing_phone(),
+			];
+
+			$billing_details = array_filter( $billing_details );
+			if ( empty( $billing_details ) ) {
+				return;
+			}
+
+			// Update the billing details of the selected payment method in Stripe.
+			WC_Stripe_API::update_payment_method(
+				$payment_method_id,
+				[
+					'billing_details' => $billing_details,
+				]
+			);
+
+		} catch ( WC_Stripe_Exception $e ) {
+			// If updating the payment method fails, log the error message.
+			WC_Stripe_Logger::log( 'Error when updating saved payment method: ' . $e->getMessage() );
+		}
 	}
 }
