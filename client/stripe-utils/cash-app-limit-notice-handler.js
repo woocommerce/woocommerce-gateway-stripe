@@ -60,7 +60,7 @@ export function maybeShowCashAppLimitNotice(
 	cartAmount = 0,
 	isBlockCheckout = false
 ) {
-	if ( cartAmount <= CashAppNoticeAmountThreshold ) {
+	if ( cartAmount <= CASHAPP_NOTICE_AMOUNT_THRESHOLD ) {
 		return;
 	}
 
