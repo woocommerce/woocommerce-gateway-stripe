@@ -16,7 +16,7 @@ export function callWhenElementIsAvailable( selector, callable, params = [] ) {
 
 	const observer = new MutationObserver( ( mutationList, obs ) => {
 		if ( document.querySelector( selector ) ) {
-			// Tokens found, run the function and disconnect the observer.
+			// Element found, run the function and disconnect the observer.
 			callable( ...params );
 			obs.disconnect();
 		}
