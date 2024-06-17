@@ -136,6 +136,7 @@ export function* configureWebhooks( { live, secret } ) {
 		} );
 	} catch ( e ) {
 		error = e;
+		yield dispatch( 'core/notices' ).createErrorNotice( error.message );
 	} finally {
 		yield updateIsConfiguringWebhooks( false );
 	}

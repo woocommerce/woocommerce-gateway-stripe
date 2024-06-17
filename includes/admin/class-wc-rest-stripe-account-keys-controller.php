@@ -366,10 +366,23 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Data about the request.
 	 */
 	public function configure_webhooks( WP_REST_Request $request ) {
-		// I'm not sure if this will be useful when a customer changes the form before then clicking the button to generate the webhook
-		// secret. ie change keys -> click button to generate webhook secret. We'll want to generate the webhook secret for the new keys, not the old ones.
-		// WC_Stripe_API::set_secret_key();
-		$live_mode = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$settings     = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$live_mode    = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
+		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
+
+		// If the user has changed the secret key in the UI, use that to create the webhook.
+		if ( $secret !== $this->mask_key_value( $saved_secret ) ) {
+			WC_Stripe_API::set_secret_key( $secret );
+		}
+
+		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_id_setting     = $live_mode ? 'webhook_id' : 'test_webhook_id';
+
+		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
+		if ( isset( $settings[ $webhook_id_setting ] ) ) {
+			WC_Stripe_API::request( [], "webhook_endpoints/{$settings[ $webhook_id_setting ]}", 'DELETE' );
+		}
 
 		$request = [
 			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
@@ -398,19 +411,22 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
 		if ( is_wp_error( $response ) || ! isset( $response->secret, $response->id ) ) {
-			return new WP_REST_Response( [], 422 );
+			$message = $response->message ?? __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' );
+			return new WP_REST_Response( [ 'message' => $message ], 400 );
 		}
 
 		// Save the Webhook secret and ID.
-		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-
-		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
-		$webhook_id_setting     = $live_mode ? 'webhook_id' : 'test_webhook_id';
-
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
 		$settings[ $webhook_id_setting ]     = wc_clean( $response->id );
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		return new WP_REST_Response(
+			[
+				'message'    => __( 'Webhooks have been setup successfully.', 'woocommerce-gateway-stripe' ),
+				'webhookURL' => rawurlencode( $response->url ),
+			]
+		);
 	}
 
 	/**

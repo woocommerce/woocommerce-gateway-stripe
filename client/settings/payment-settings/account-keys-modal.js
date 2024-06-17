@@ -86,7 +86,7 @@ const SecretKey = () => {
 };
 
 const TestSecretKey = () => {
-	const [ testSecretKey ] = useAccountKeysTestSecretKey();
+	const [ testSecretKey, setTestSecretKey ] = useAccountKeysTestSecretKey();
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( testSecretKey );
 	return (
@@ -97,7 +97,10 @@ const TestSecretKey = () => {
 				'woocommerce-gateway-stripe'
 			) }
 			value={ value }
-			onChange={ ( val ) => setValue( val ) }
+			onChange={ ( val ) => {
+				setValue( val );
+				setTestSecretKey( val );
+			} }
 			disabled={ isSaving }
 			name="test_secret_key"
 			autoComplete="off"
@@ -130,12 +133,11 @@ const WebhookSecret = () => {
 const TestWebhookSecret = () => {
 	const { isSaving, configureWebhooks, isConfiguring } = useAccountKeys();
 	const [ testSecretKey ] = useAccountKeysTestSecretKey();
-	const [ secretKey ] = useState( testSecretKey );
 
 	const onConfigureWebhooks = () => {
 		configureWebhooks( {
 			live: false,
-			secret: secretKey,
+			secret: testSecretKey,
 		} );
 	};
 	return (
