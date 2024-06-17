@@ -270,7 +270,7 @@ const PaymentProcessor = ( {
 
 	useStripeLink( api, elements, paymentMethodsConfig );
 
-	const onChange = ( { value, complete } ) => {
+	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
 	};
