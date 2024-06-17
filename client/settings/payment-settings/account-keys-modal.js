@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { React, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import {
@@ -8,6 +8,7 @@ import {
 	BaseControl,
 } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
+import SectionStatus from '../section-status';
 import {
 	useAccountKeys,
 	useAccountKeysPublishableKey,
@@ -15,7 +16,9 @@ import {
 	useAccountKeysWebhookSecret,
 	useAccountKeysTestPublishableKey,
 	useAccountKeysTestSecretKey,
+	useAccountKeysTestWebhookSecret,
 } from 'wcstripe/data/account-keys';
+import { useAccount } from 'wcstripe/data/account';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import { AccountKeysConnectionStatus } from 'wcstripe/settings/payment-settings/account-keys-connection-status';
@@ -133,36 +136,85 @@ const WebhookSecret = () => {
 const TestWebhookSecret = () => {
 	const { isSaving, configureWebhooks, isConfiguring } = useAccountKeys();
 	const [ testSecretKey ] = useAccountKeysTestSecretKey();
+	const { data } = useAccount();
+	const [ webhookURL, setWebhookURL ] = useState(
+		data.configured_webhooks.test
+	);
 
+	const [
+		webhookSecret,
+		setWebhookSecret,
+	] = useAccountKeysTestWebhookSecret();
+
+	/**
+	 * The callback to be called when the webhook configuration is successful.
+	 *
+	 * @param {*} secret The webhook secret.
+	 * @param {*} URL    The webhook URL.
+	 */
+	const successCallback = ( secret, URL ) => {
+		setWebhookSecret( secret );
+		setWebhookURL( URL );
+	};
+
+	/**
+	 * Configure webhooks for the test mode.
+	 */
 	const onConfigureWebhooks = () => {
 		configureWebhooks( {
 			live: false,
 			secret: testSecretKey,
+			callback: successCallback,
 		} );
 	};
+
+	const buttonType = webhookSecret ? 'secondary' : 'primary';
+	const buttonText = webhookSecret
+		? __( 'Reconfigure webhooks', 'woocommerce-gateway-stripe' )
+		: __( 'Configure webhooks', 'woocommerce-gateway-stripe' );
+
+	const helpText = webhookSecret
+		? interpolateComponents( {
+				mixedString: sprintf(
+					/* translators: %s: a payment method name. */
+					__(
+						'Your webhooks are configured and will be sent to: {{webhookURL}}%s{{/webhookURL}}.',
+						'woocommerce-gateway-stripe'
+					),
+					decodeURIComponent( webhookURL )
+				),
+				components: {
+					webhookURL: <strong />,
+				},
+		  } )
+		: __(
+				'Configuring webhooks will enable your store to receive notifications on charge statuses from Stripe.',
+				'woocommerce-gateway-stripe'
+		  );
 
 	return (
 		<BaseControl
 			id="wc-stripe-test-webhook-element"
 			label={ __( 'Test Webhook', 'woocommerce-gateway-stripe' ) }
-			help={ __(
-				'Configuring webhooks will enable your store to receive notifications on charge statuses from Stripe.',
-				'woocommerce-gateway-stripe'
-			) }
+			help={ helpText }
 		>
-			<Button
-				disabled={ isSaving || isConfiguring }
-				isBusy={ isConfiguring }
-				onClick={ onConfigureWebhooks }
-				variant="primary"
-				text={ __(
-					'Configure webhooks',
-					'woocommerce-gateway-stripe'
+			<div className="wc-stripe-configure-webhook-control__content-wrapper">
+				{ webhookSecret && (
+					<SectionStatus isEnabled={ true }>
+						{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
+					</SectionStatus>
 				) }
-				style={ {
-					display: 'block',
-				} }
-			/>
+				<Button
+					disabled={ isSaving || isConfiguring }
+					isBusy={ isConfiguring }
+					onClick={ onConfigureWebhooks }
+					variant={ buttonType }
+					text={ buttonText }
+					style={ {
+						display: 'block',
+					} }
+				/>
+			</div>
 		</BaseControl>
 	);
 };

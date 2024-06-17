@@ -119,14 +119,14 @@ export function updateIsConfiguringWebhooks( isProcessing ) {
 	};
 }
 
-export function* configureWebhooks( { live, secret } ) {
+export function* configureWebhooks( { live, secret, callback } ) {
 	let error = null;
 
 	try {
 		yield updateIsConfiguringWebhooks( true );
 
 		// Send the request to Configure the Webhook.
-		yield apiFetch( {
+		const response = yield apiFetch( {
 			path: `${ NAMESPACE }/account_keys/configure_webhooks`,
 			method: 'POST',
 			data: {
@@ -134,6 +134,8 @@ export function* configureWebhooks( { live, secret } ) {
 				secret,
 			},
 		} );
+
+		yield callback( response.webhookSecret, response.webhookURL );
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			__(

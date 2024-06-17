@@ -245,4 +245,19 @@ class WC_Stripe_Webhook_State {
 		);
 		return $message;
 	}
+
+	/**
+	 * Undocumented function
+	 *
+	 * @return void
+	 */
+	public static function get_configured_webhook_urls() {
+		$live_webhooks = WC_Stripe_Helper::get_settings( null, 'webhook_data' );
+		$test_webhooks = WC_Stripe_Helper::get_settings( null, 'test_webhook_data' );
+
+		return [
+			'live' => empty( $live_webhooks['url'] ) ? null : rawurlencode( $live_webhooks['url'] ),
+			'test' => empty( $test_webhooks['url'] ) ? null : rawurlencode( $test_webhooks['url'] ),
+		];
+	}
 };

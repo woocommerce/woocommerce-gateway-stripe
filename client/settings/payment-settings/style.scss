@@ -50,3 +50,10 @@
 	// to be able to see snackbar's messages
 	z-index: 99998;
 }
+
+.wc-stripe-configure-webhook-control__content-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 15px;
+}

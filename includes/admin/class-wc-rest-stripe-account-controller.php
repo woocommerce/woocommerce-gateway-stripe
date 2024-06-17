@@ -94,6 +94,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'testmode'               => WC_Stripe_Webhook_State::get_testmode(),
 				'webhook_status_message' => WC_Stripe_Webhook_State::get_webhook_status_message(),
 				'webhook_url'            => WC_Stripe_Helper::get_webhook_url(),
+				'configured_webhooks'    => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
 			]
 		);
 	}
