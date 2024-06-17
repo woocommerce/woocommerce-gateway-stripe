@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import {
-	CashAppNoticeAmountThreshold,
+	CASH_APP_NOTICE_AMOUNT_THRESHOLD,
 	maybeShowCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
@@ -45,7 +45,7 @@ describe( 'cash-app-limit-notice-handler', () => {
 		render( <div className={ wrapperElementClassName } /> );
 		maybeShowCashAppLimitNotice(
 			'.woocommerce-checkout-payment',
-			CashAppNoticeAmountThreshold + 1,
+			CASH_APP_NOTICE_AMOUNT_THRESHOLD + 1,
 			false
 		);
 		expect(
@@ -67,7 +67,7 @@ describe( 'cash-app-limit-notice-handler', () => {
 
 		maybeShowCashAppLimitNotice(
 			'.' + wrapperElementClassName,
-			CashAppNoticeAmountThreshold + 1,
+			CASH_APP_NOTICE_AMOUNT_THRESHOLD + 1,
 			true
 		);
 

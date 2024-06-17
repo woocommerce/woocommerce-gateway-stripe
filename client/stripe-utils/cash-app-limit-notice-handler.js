@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
 
 /** The amount threshold for displaying the notice. */
-export const CASHAPP_NOTICE_AMOUNT_THRESHOLD = 2000;
+export const CASH_APP_NOTICE_AMOUNT_THRESHOLD = 2000;
 
 /** The class name for the limit notice element. */
 const LIMIT_NOTICE_CLASSNAME = 'wc-block-checkout__payment-method-limit-notice';
@@ -60,7 +60,7 @@ export function maybeShowCashAppLimitNotice(
 	cartAmount = 0,
 	isBlockCheckout = false
 ) {
-	if ( cartAmount <= CASHAPP_NOTICE_AMOUNT_THRESHOLD ) {
+	if ( cartAmount <= CASH_APP_NOTICE_AMOUNT_THRESHOLD ) {
 		return;
 	}
 
