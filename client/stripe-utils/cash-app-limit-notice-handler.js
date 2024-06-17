@@ -39,10 +39,10 @@ function maybeRenderCashAppLimitNotice(
 ) {
 	const wrapperElement = document.querySelector( wrapperElementSelector );
 	if ( appendToElement ) {
-		wrapperElement.appendChild( CashAppLimitNotice );
+		wrapperElement.appendChild( cashAppLimitNotice );
 	} else {
 		wrapperElement.insertBefore(
-			CashAppLimitNotice,
+			cashAppLimitNotice,
 			wrapperElement.firstChild
 		);
 	}
