@@ -4,8 +4,10 @@ import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
-import { maybeShowCashAppLimitNotice } from './cash-app-limit-notice-classic-handler';
-import { removeCashAppLimitNotice } from 'wcstripe/cash-app-limit-notice-handler';
+import {
+	maybeShowCashAppLimitNotice,
+	removeCashAppLimitNotice,
+} from 'wcstripe/cash-app-limit-notice-handler';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -288,7 +290,10 @@ jQuery( function ( $ ) {
 		.on( 'change', 'input[name="payment_method"]', () => {
 			// Check to see whether we should display the Cash App limit notice.
 			if ( $( 'input#payment_method_stripe_cashapp' ).is( ':checked' ) ) {
-				maybeShowCashAppLimitNotice();
+				maybeShowCashAppLimitNotice(
+					'.woocommerce-checkout-payment',
+					0
+				);
 			} else {
 				removeCashAppLimitNotice();
 			}

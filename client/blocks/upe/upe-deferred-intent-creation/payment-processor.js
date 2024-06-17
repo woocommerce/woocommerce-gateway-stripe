@@ -20,8 +20,10 @@ import {
 } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
-import { maybeShowCashAppLimitNotice } from 'wcstripe/blocks/upe/cash-app-limit-notice-blocks-handler';
-import { removeCashAppLimitNotice } from 'wcstripe/cash-app-limit-notice-handler';
+import {
+	maybeShowCashAppLimitNotice,
+	removeCashAppLimitNotice,
+} from 'wcstripe/cash-app-limit-notice-handler';
 
 /**
  * Gets the Stripe element options.
@@ -239,7 +241,12 @@ const PaymentProcessor = ( {
 	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
 		if ( selectedPaymentMethodType === 'cashapp' ) {
-			maybeShowCashAppLimitNotice();
+			const cartAmount = Number( getBlocksConfiguration()?.cartTotal );
+			maybeShowCashAppLimitNotice(
+				'.wc-block-checkout__payment-method .wc-block-components-notices',
+				cartAmount,
+				true
+			);
 		} else {
 			removeCashAppLimitNotice();
 		}

@@ -3,8 +3,9 @@
  *
  * @param {string} selector The selector to look for.
  * @param {Function} callable fThe function to call when the element is available.
+ * @param {Array} params The parameters to pass to the callable function.
  */
-export function callWhenElementIsAvailable( selector, callable ) {
+export function callWhenElementIsAvailable( selector, callable, params = [] ) {
 	const checkoutBlock = document.querySelector(
 		'[data-block-name="woocommerce/checkout"]'
 	);
@@ -16,7 +17,7 @@ export function callWhenElementIsAvailable( selector, callable ) {
 	const observer = new MutationObserver( ( mutationList, obs ) => {
 		if ( document.querySelector( selector ) ) {
 			// Tokens found, run the function and disconnect the observer.
-			callable();
+			callable( ...params );
 			obs.disconnect();
 		}
 	} );
