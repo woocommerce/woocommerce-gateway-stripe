@@ -10,12 +10,12 @@ const LIMIT_NOTICE_CLASSNAME = 'wc-block-checkout__payment-method-limit-notice';
 /**
  * The Cash App limit notice element.
  */
-export const CashAppLimitNotice = document.createElement( 'div' );
-CashAppLimitNotice.classList.add( 'woocommerce-info', LimitNoticeClassName );
-CashAppLimitNotice.textContent = __(
+export const cashAppLimitNotice = document.createElement( 'div' );
+cashAppLimitNotice.classList.add( 'woocommerce-info', LIMIT_NOTICE_CLASSNAME );
+cashAppLimitNotice.textContent = __(
 	'Please note that, depending on your account and transaction history, Cash App Pay may reject your transaction due to its amount.'
 );
-CashAppLimitNotice.setAttribute( 'data-testid', 'cash-app-limit-notice' );
+cashAppLimitNotice.setAttribute( 'data-testid', 'cash-app-limit-notice' );
 
 /**
  * Remove the Cash App limit notice from the checkout form.
