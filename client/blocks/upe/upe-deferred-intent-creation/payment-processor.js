@@ -20,10 +20,8 @@ import {
 } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
-import {
-	maybeShowCashAppLimitNotice,
-	removeCashAppLimitNotice,
-} from 'wcstripe/blocks/upe/cash-app-limit-notice-handler';
+import { maybeShowCashAppLimitNotice } from 'wcstripe/blocks/upe/cash-app-limit-notice-blocks-handler';
+import { removeCashAppLimitNotice } from 'wcstripe/cash-app-limit-notice-handler';
 
 /**
  * Gets the Stripe element options.
