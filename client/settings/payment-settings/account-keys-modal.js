@@ -140,6 +140,7 @@ const TestWebhookSecret = () => {
 			secret: testSecretKey,
 		} );
 	};
+
 	return (
 		<BaseControl
 			id="wc-stripe-test-webhook-element"

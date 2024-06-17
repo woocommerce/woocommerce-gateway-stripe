@@ -134,6 +134,13 @@ export function* configureWebhooks( { live, secret } ) {
 				secret,
 			},
 		} );
+
+		yield dispatch( 'core/notices' ).createSuccessNotice(
+			__(
+				'Webhooks have been setup successfully.',
+				'woocommerce-gateway-stripe'
+			)
+		);
 	} catch ( e ) {
 		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice( error.message );
