@@ -235,7 +235,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	 *
 	 * @param string  $source_id Source ID from which to create the new token.
 	 * @param integer $user_id
-	 * @return void
+	 * @return WC_Payment_Token_SEPA|bool The new SEPA token, or false if no legacy token was found.
 	 */
 	private function create_updated_sepa_token( string $source_id, int $user_id ) {
 		$legacy_token = $this->get_customer_token_by_source_id( $source_id, $user_id, WC_Gateway_Stripe_Sepa::ID );
