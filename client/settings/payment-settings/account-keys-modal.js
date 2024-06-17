@@ -199,11 +199,6 @@ const TestWebhookSecret = () => {
 			help={ helpText }
 		>
 			<div className="wc-stripe-configure-webhook-control__content-wrapper">
-				{ webhookSecret && (
-					<SectionStatus isEnabled={ true }>
-						{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
-					</SectionStatus>
-				) }
 				<Button
 					disabled={ isSaving || isConfiguring }
 					isBusy={ isConfiguring }
@@ -214,6 +209,11 @@ const TestWebhookSecret = () => {
 						display: 'block',
 					} }
 				/>
+				{ webhookSecret && ! isConfiguring && (
+					<SectionStatus isEnabled={ true }>
+						{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
+					</SectionStatus>
+				) }
 			</div>
 		</BaseControl>
 	);
