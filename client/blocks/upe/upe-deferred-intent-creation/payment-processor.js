@@ -20,6 +20,10 @@ import {
 } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
+import {
+	maybeShowCashAppLimitNotice,
+	removeCashAppLimitNotice,
+} from 'wcstripe/blocks/upe/cash-app-limit-notice-handler';
 
 /**
  * Gets the Stripe element options.
@@ -101,6 +105,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
+	const [
+		selectedPaymentMethodType,
+		setSelectedPaymentMethodType,
+	] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
@@ -230,6 +238,14 @@ const PaymentProcessor = ( {
 		]
 	);
 
+	useEffect( () => {
+		if ( selectedPaymentMethodType === 'cashapp' ) {
+			maybeShowCashAppLimitNotice();
+		} else {
+			removeCashAppLimitNotice();
+		}
+	}, [ selectedPaymentMethodType ] );
+
 	usePaymentCompleteHandler(
 		api,
 		stripe,
@@ -249,8 +265,9 @@ const PaymentProcessor = ( {
 
 	useStripeLink( api, elements, paymentMethodsConfig );
 
-	const updatePaymentElementCompletionStatus = ( event ) => {
-		setIsPaymentElementComplete( event.complete );
+	const onChange = ( { value, complete } ) => {
+		setSelectedPaymentMethodType( value.type );
+		setIsPaymentElementComplete( complete );
 	};
 
 	return (
@@ -269,7 +286,7 @@ const PaymentProcessor = ( {
 			/>
 			<PaymentElement
 				options={ getStripeElementOptions() }
-				onChange={ updatePaymentElementCompletionStatus }
+				onChange={ onChange }
 				className="wcstripe-payment-element"
 			/>
 		</>

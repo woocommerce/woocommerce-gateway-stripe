@@ -8,17 +8,23 @@ import { __ } from '@wordpress/i18n';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
+/** The amount threshold for displaying the notice. */
+const CashAppNoticeAmountThreshold = 2000;
+
+/** The class name for the limit notice element. */
+const LimitNoticeClassName = 'wc-block-checkout__payment-method-limit-notice';
+
+/**
+ * Render the Cash App limit notice in the checkout form if the amount is above the threshold.
+ */
 function maybeRenderCashAppLimitNotice() {
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
-	if ( amount <= 2000 ) {
+	if ( amount <= CashAppNoticeAmountThreshold ) {
 		return;
 	}
 
 	const limitNotice = document.createElement( 'div' );
-	limitNotice.classList.add(
-		'woocommerce-info',
-		'wc-block-checkout__payment-method-limit-notice'
-	);
+	limitNotice.classList.add( 'woocommerce-info', LimitNoticeClassName );
 	limitNotice.textContent = __(
 		'Please note that, depending on your account and transaction history, Cash App Pay may reject your transaction due to its amount.'
 	);
@@ -29,6 +35,9 @@ function maybeRenderCashAppLimitNotice() {
 		.appendChild( limitNotice );
 }
 
+/**
+ * Show the Cash App limit notice in the checkout form.
+ */
 export function maybeShowCashAppLimitNotice() {
 	const selector =
 		'.wc-block-checkout__payment-method .wc-block-components-notices';
@@ -39,5 +48,15 @@ export function maybeShowCashAppLimitNotice() {
 		maybeRenderCashAppLimitNotice();
 	} else {
 		callWhenElementIsAvailable( selector, maybeRenderCashAppLimitNotice );
+	}
+}
+
+/**
+ * Remove the Cash App limit notice from the checkout form.
+ */
+export function removeCashAppLimitNotice() {
+	const limitNotice = document.querySelector( '.' + LimitNoticeClassName );
+	if ( limitNotice ) {
+		limitNotice.remove();
 	}
 }
