@@ -21,7 +21,7 @@ cashAppLimitNotice.setAttribute( 'data-testid', 'cash-app-limit-notice' );
  * Remove the Cash App limit notice from the checkout form.
  */
 export function removeCashAppLimitNotice() {
-	const limitNotice = document.querySelector( '.' + LimitNoticeClassName );
+	const limitNotice = document.querySelector( '.' + LIMIT_NOTICE_CLASSNAME );
 	if ( limitNotice ) {
 		limitNotice.remove();
 	}
