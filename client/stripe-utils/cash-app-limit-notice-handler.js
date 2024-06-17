@@ -30,27 +30,20 @@ export function removeCashAppLimitNotice() {
 /**
  * Render the Cash App limit notice in the checkout form if the amount is above the threshold.
  *
- * @param {number} cartAmount The cart amount.
- * @param {boolean} isBlockCheckout Whether the checkout form is a block checkout.
+ * @param {string} wrapperElementSelector
+ * @param {boolean} appendToElement Whether to append the notice to the element.
  */
-function maybeRenderCashAppLimitNotice( cartAmount, isBlockCheckout = false ) {
-	if ( cartAmount <= CashAppNoticeAmountThreshold ) {
-		return;
-	}
-
-	if ( isBlockCheckout ) {
-		document
-			.querySelector(
-				'.wc-block-checkout__payment-method .wc-block-components-notices'
-			)
-			.appendChild( CashAppLimitNotice );
+function maybeRenderCashAppLimitNotice(
+	wrapperElementSelector,
+	appendToElement = false
+) {
+	const wrapperElement = document.querySelector( wrapperElementSelector );
+	if ( appendToElement ) {
+		wrapperElement.appendChild( CashAppLimitNotice );
 	} else {
-		const noticeWrapperElement = document.querySelector(
-			'.woocommerce-checkout-payment'
-		);
-		noticeWrapperElement.insertBefore(
+		wrapperElement.insertBefore(
 			CashAppLimitNotice,
-			noticeWrapperElement.firstChild
+			wrapperElement.firstChild
 		);
 	}
 }
@@ -67,18 +60,26 @@ export function maybeShowCashAppLimitNotice(
 	cartAmount = 0,
 	isBlockCheckout = false
 ) {
+	if ( cartAmount <= CashAppNoticeAmountThreshold ) {
+		return;
+	}
+
 	const hasNoticeWrapperElement = document.querySelector(
 		wrapperElementSelector
 	);
+	const appendToElement = isBlockCheckout;
 
 	// If the wrapper is already loaded, insert the notice element.
 	if ( hasNoticeWrapperElement ) {
-		maybeRenderCashAppLimitNotice( cartAmount, isBlockCheckout );
+		maybeRenderCashAppLimitNotice(
+			wrapperElementSelector,
+			appendToElement
+		);
 	} else if ( isBlockCheckout ) {
 		callWhenElementIsAvailable(
 			wrapperElementSelector,
 			maybeRenderCashAppLimitNotice,
-			[ cartAmount, isBlockCheckout ]
+			[ wrapperElementSelector, appendToElement ]
 		);
 	}
 }
