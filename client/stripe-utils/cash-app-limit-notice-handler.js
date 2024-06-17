@@ -5,7 +5,7 @@ import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-elemen
 export const CASHAPP_NOTICE_AMOUNT_THRESHOLD = 2000;
 
 /** The class name for the limit notice element. */
-const LimitNoticeClassName = 'wc-block-checkout__payment-method-limit-notice';
+const LIMIT_NOTICE_CLASSNAME = 'wc-block-checkout__payment-method-limit-notice';
 
 /**
  * The Cash App limit notice element.
