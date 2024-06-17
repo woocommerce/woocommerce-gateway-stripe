@@ -291,7 +291,7 @@ const PaymentProcessor = ( {
 			/>
 			<PaymentElement
 				options={ getStripeElementOptions() }
-				onChange={ onChange }
+				onChange={ onSelectedPaymentMethodChange }
 				className="wcstripe-payment-element"
 			/>
 		</>
