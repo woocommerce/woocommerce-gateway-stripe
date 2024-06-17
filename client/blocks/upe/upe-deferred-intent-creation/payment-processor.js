@@ -23,7 +23,7 @@ import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
-} from 'wcstripe/cash-app-limit-notice-handler';
+} from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 
 /**
  * Gets the Stripe element options.

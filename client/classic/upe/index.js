@@ -7,7 +7,7 @@ import './deferred-intent.js';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
-} from 'wcstripe/cash-app-limit-notice-handler';
+} from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
