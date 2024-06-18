@@ -146,7 +146,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 			$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 			$user_id      = $subscription->get_user_id();
 
-			// Try to create an update SEPA gateway token if none exists.
+			// Try to create an updated SEPA gateway token if none exists.
 			// We don't need this to update the subscription, but creating one for consistency.
 			// It could be confusing for a merchant to see the subscription renewing but no saved token in the store.
 			$this->maybe_create_updated_sepa_token_by_source_id( $source_id, $user_id );
@@ -167,6 +167,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 	 * - The Legacy experience is disabled
 	 * - The WooCommerce Subscription extension is active
 	 * - The subscription ID is a valid subscription
+	 * - The payment method associated with the subscription is the legacy SEPA gateway, `stripe_sepa`
 	 *
 	 * @param int $subscription_id The ID of the subscription to migrate.
 	 * @return WC_Subscription The Subscription object for which its token must be updated.
@@ -185,6 +186,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_R
 
 		if ( ! $subscription ) {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) );
+		}
+
+		$subscription_payment_method = $subscription->get_payment_method();
+
+		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
+			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) );
 		}
 
 		return $subscription;

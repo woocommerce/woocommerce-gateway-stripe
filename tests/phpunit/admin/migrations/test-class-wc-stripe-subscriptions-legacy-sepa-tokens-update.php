@@ -208,6 +208,35 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 		$this->updater->repair_item( $subscription_id );
 	}
 
+	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_payment_method_is_not_sepa() {
+		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+
+		$subscription = new WC_Subscription( $subscription_id );
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		// The payment method associated with the subscription isn't SEPA, so no migration is needed.
+		$this->logger_mock
+			->expects( $this->at( 1 ) )
+			->method( 'add' )
+			->with(
+				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) )
+			);
+
+		$this->updater->repair_item( $subscription_id );
+	}
+
 	public function test_get_updated_sepa_token_by_source_id_creates_an_updated_token() {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();
