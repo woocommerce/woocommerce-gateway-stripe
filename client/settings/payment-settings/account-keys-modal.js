@@ -159,23 +159,14 @@ const WebhookSecretComponent = ( {
 	/**
 	 * The callback to be called when the webhook configuration is successful.
 	 *
+	 * This callback is passed to the configureWebhooks action function and is called when the API request succeeds.
+	 *
 	 * @param {*} secret The webhook secret.
 	 * @param {*} URL    The webhook URL.
 	 */
 	const successCallback = ( secret, URL ) => {
 		setWebhookSecret( secret );
 		setWebhookURL( URL );
-	};
-
-	/**
-	 * Configure webhooks for the test mode.
-	 */
-	const onConfigureWebhooks = () => {
-		configureWebhooks( {
-			live: liveMode,
-			secret: secretKey,
-			callback: successCallback,
-		} );
 	};
 
 	const hasSecretKey = Boolean( secretKey );
@@ -219,7 +210,13 @@ const WebhookSecretComponent = ( {
 				<Button
 					disabled={ isSaving || isConfiguring || ! hasSecretKey }
 					isBusy={ isConfiguring }
-					onClick={ onConfigureWebhooks }
+					onClick={ () => {
+						configureWebhooks( {
+							live: liveMode,
+							secret: secretKey,
+							callback: successCallback,
+						} );
+					} }
 					variant={ buttonType }
 					text={ buttonText }
 					style={ {
