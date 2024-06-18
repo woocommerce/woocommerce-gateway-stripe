@@ -138,7 +138,7 @@ const TestWebhookSecret = () => {
 	const [ testSecretKey ] = useAccountKeysTestSecretKey();
 	const { data } = useAccount();
 	const [ webhookURL, setWebhookURL ] = useState(
-		data.configured_webhooks.test
+		data.configured_webhook_urls.test
 	);
 
 	const [
@@ -168,6 +168,9 @@ const TestWebhookSecret = () => {
 		} );
 	};
 
+	const hasSecretKey = Boolean( testSecretKey );
+
+	// Determine the button type and text based on whether a webhook as already been configured.
 	const buttonType = webhookSecret ? 'secondary' : 'primary';
 	const buttonText = webhookSecret
 		? __( 'Reconfigure webhooks', 'woocommerce-gateway-stripe' )
@@ -200,7 +203,7 @@ const TestWebhookSecret = () => {
 		>
 			<div className="wc-stripe-configure-webhook-control__content-wrapper">
 				<Button
-					disabled={ isSaving || isConfiguring }
+					disabled={ isSaving || isConfiguring || ! hasSecretKey }
 					isBusy={ isConfiguring }
 					onClick={ onConfigureWebhooks }
 					variant={ buttonType }
