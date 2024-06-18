@@ -1,12 +1,12 @@
 <?php
 /**
- * Class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test
+ * Class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test
  */
 
 /**
- * WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update unit tests.
+ * WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test unit tests.
  */
-class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTestCase {
+class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTestCase {
 
 	/**
 	 * Subscription meta key used to store the associated source ID.
@@ -58,13 +58,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update_Test extends WP_UnitTest
 
 		$this->upe_helper = new UPE_Test_Helper();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
 
 		$this->logger_mock = $this->getMockBuilder( 'WC_Logger' )
 								   ->disableOriginalConstructor()
 								   ->setMethods( [ 'add' ] )
 								   ->getMock();
-		$this->updater     = $this->getMockBuilder( 'WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update' )
+		$this->updater     = $this->getMockBuilder( 'WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens' )
 								   ->setConstructorArgs( [ $this->logger_mock ] )
 								   ->setMethods( [ 'init', 'schedule_repair' ] )
 								   ->getMock();

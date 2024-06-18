@@ -1,6 +1,6 @@
 <?php
 /**
- * Class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update
+ * Class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -29,7 +29,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * This class extends the WCS_Background_Repairer for scheduling and running the individual migration actions.
  */
-class WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update extends WCS_Background_Repairer {
+class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background_Repairer {
 
 	/**
 	 * Subscription meta key used to store the payment method used before migration.

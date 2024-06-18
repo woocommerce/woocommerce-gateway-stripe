@@ -738,10 +738,10 @@ function woocommerce_gateway_stripe() {
 				if ( ! class_exists( 'WC_Subscriptions' ) ) {
 					return;
 				}
-				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-legacy-sepa-tokens-update.php';
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
 
 				$logger  = wc_get_logger();
-				$updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update( $logger );
+				$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
 
 				$updater->init();
 				$updater->maybe_update();
