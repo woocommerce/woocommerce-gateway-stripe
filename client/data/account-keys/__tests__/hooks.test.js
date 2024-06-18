@@ -37,6 +37,8 @@ describe( 'Account keys hooks tests', () => {
 				hasFinishedResolution: jest.fn(),
 				isResolving: jest.fn(),
 				isSavingAccountKeys: jest.fn(),
+				configureWebhooks: jest.fn(),
+				isConfiguring: jest.fn(),
 			};
 		} );
 
