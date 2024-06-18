@@ -4,6 +4,10 @@ import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
+import {
+	maybeShowCashAppLimitNotice,
+	removeCashAppLimitNotice,
+} from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -274,14 +278,26 @@ jQuery( function ( $ ) {
 	}
 
 	// Handle the checkout form when WooCommerce Gateway Stripe is chosen.
-	$( 'form.checkout' ).on( 'checkout_place_order_stripe', function () {
-		if ( ! isUsingSavedPaymentMethod() ) {
-			if ( isUPEEnabled && paymentIntentId ) {
-				handleUPECheckout( $( this ) );
-				return false;
+	$( 'form.checkout' )
+		.on( 'checkout_place_order_stripe', function () {
+			if ( ! isUsingSavedPaymentMethod() ) {
+				if ( isUPEEnabled && paymentIntentId ) {
+					handleUPECheckout( $( this ) );
+					return false;
+				}
 			}
-		}
-	} );
+		} )
+		.on( 'change', 'input[name="payment_method"]', () => {
+			// Check to see whether we should display the Cash App limit notice.
+			if ( $( 'input#payment_method_stripe_cashapp' ).is( ':checked' ) ) {
+				maybeShowCashAppLimitNotice(
+					'.woocommerce-checkout-payment',
+					Number( getStripeServerData()?.cartTotal )
+				);
+			} else {
+				removeCashAppLimitNotice();
+			}
+		} );
 
 	// Add terms parameter to UPE if save payment information checkbox is checked.
 	// This shows required legal mandates when customer elects to save payment method during checkout.
