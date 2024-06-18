@@ -227,7 +227,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'          => $available_payment_method_ids,
 				'ordered_payment_method_ids'            => array_values( array_diff( $available_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
-				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
+				'individual_payment_method_settings'    => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
@@ -545,11 +545,38 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
 		$payment_method_id = $request->get_param( 'payment_method_id' );
+		$is_enabled        = $request->get_param( 'is_enabled' );
+		$title             = sanitize_text_field( $request->get_param( 'title' ) );
+		$description       = sanitize_text_field( $request->get_param( 'description' ) );
+		$is_upe_enabled    = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+
+		// Multibanco is currently the only non-UPE payment method that is part of the UPE settings page.
+		// It is handled below like legacy methods.
+		if ( $is_upe_enabled && 'multibanco' !== $payment_method_id ) {
+			$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
+			if ( ! in_array( $payment_method_id, $available_payment_methods, true ) ) {
+				return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
+			}
+
+			$settings = [
+				'title'       => $title,
+				'description' => $description,
+			];
+
+			if ( in_array( $payment_method_id, [ 'boleto' ], true ) ) {
+				$settings['expiration'] = sanitize_text_field( $request->get_param( 'expiration' ) );
+			}
+
+			update_option(
+				'woocommerce_stripe_' . $payment_method_id . '_settings',
+				$settings
+			);
+
+			return new WP_REST_Response( [ 'result' => 'upe' ], 200 );
+		}
+
 		// Map the ids used in the frontend to the legacy gateway class ids.
 		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
-		$is_enabled              = $request->get_param( 'is_enabled' );
-		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
-		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
 		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
 		if ( 'card' === $payment_method_id ) {
@@ -572,7 +599,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$payment_gateway->update_unique_settings( $request );
 		}
 
-		return new WP_REST_Response( [], 200 );
+		return new WP_REST_Response( [ 'result' => 'legacy' ], 200 );
 	}
 
 	/**
