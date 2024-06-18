@@ -144,7 +144,7 @@ const WebhooksSection = () => {
 	);
 
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
-	const isWarningMessage = message.includes( 'Warning: ' );
+	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
 
 	return (
 		<>

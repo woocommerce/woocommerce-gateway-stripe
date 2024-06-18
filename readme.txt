@@ -129,11 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.5.0 - 2024-xx-xx =
-<<<<<<< HEAD
-* Tweak - Improve the display of warning messages related to webhook configuration.
-=======
 * Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
->>>>>>> develop
+* Tweak - Improve the display of warning messages related to webhook configuration.
 * Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
 * Add - Allow customizing the title and description of the UPE payment methods.
 * Tweak - Add a statement descriptor preview for Cash App Payments.
