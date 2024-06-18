@@ -152,8 +152,8 @@ const WebhookSecretComponent = ( {
 	const [ webhookSecret, setWebhookSecret ] = webhookSecretHook();
 
 	const initialWebhookURL = liveMode
-		? data.configured_webhook_urls.live
-		: data.configured_webhook_urls.test;
+		? data?.configured_webhook_urls?.live ?? ''
+		: data?.configured_webhook_urls?.test ?? '';
 	const [ webhookURL, setWebhookURL ] = useState( initialWebhookURL );
 
 	/**
