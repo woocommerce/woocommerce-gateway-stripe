@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { Button, ExternalLink, Icon } from '@wordpress/components';
-import { warning, help } from '@wordpress/icons';
+import { help, warning } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import useWebhookStateMessage from './use-webhook-state-message';
