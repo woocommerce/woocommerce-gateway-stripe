@@ -2,8 +2,8 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { Button, ExternalLink, Icon } from '@wordpress/components';
+import { warning, help } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
-import { help } from '@wordpress/icons';
 import styled from '@emotion/styled';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
@@ -45,6 +45,25 @@ const WebhookDescription = styled.div`
 	font-size: 12px;
 	font-style: normal;
 	color: rgb( 117, 117, 117 );
+	display: flex;
+	align-items: stretch;
+
+	> span {
+		align-self: center;
+	}
+
+	p.warning {
+		background-color: #fcf9e8;
+		color: #674600;
+		padding: 4px 8px;
+		border-radius: 2px;
+	}
+`;
+
+const WarningIcon = styled( Icon )`
+	fill: #674600;
+	padding: 5px;
+	margin: 1em 0;
 `;
 
 const AccountDetailsError = styled.p`
@@ -125,6 +144,7 @@ const WebhooksSection = () => {
 	);
 
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
+	const isWarningMessage = message.includes( 'Warning: ' );
 
 	return (
 		<>
@@ -137,8 +157,13 @@ const WebhooksSection = () => {
 				</SectionStatus>
 			</AccountSection>
 			<WebhookDescription>
+				{ isWarningMessage && (
+					<span data-testid="warning">
+						<WarningIcon icon={ warning } size="16" />
+					</span>
+				) }
 				{ ! isWebhookSecretEntered && <WebhookInformation /> }
-				<p>
+				<p className={ isWarningMessage ? 'warning' : '' }>
 					{ message }{ ' ' }
 					<Button
 						disabled={ requestStatus === 'pending' }
