@@ -30,7 +30,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	private $subs_ids_to_migrate = [];
 
 	/**
-	 * @var WC_Stripe_Subscriptions_Legacy_SEPA_Tokens_Update
+	 * @var WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update
 	 */
 	private $updater;
 
