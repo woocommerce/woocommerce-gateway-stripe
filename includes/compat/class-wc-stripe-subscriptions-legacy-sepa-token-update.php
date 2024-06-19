@@ -52,6 +52,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 */
 	private $updated_sepa_gateway_id = WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 
+	/**
+	 * Conditionally updates the payment method of a subscription and creates a new token for it.
+	 *
+	 * @param int $subscription_id The ID of the subscription to update.
+	 * @throws \Exception When updating the payment method of the subscription was skipped.
+	 */
 	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
 		$subscription = $this->get_subscription_to_migrate( $subscription_id );
 		$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
@@ -75,9 +81,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * - The subscription ID is a valid subscription
 	 * - The payment method associated with the subscription is the legacy SEPA gateway, `stripe_sepa`
 	 *
-	 * @param int $subscription_id The ID of the subscription to migrate.
-	 * @return WC_Subscription The Subscription object for which its token must be updated.
-	 * @throws \Exception Skip the migration if the request is invalid.
+	 * @param int $subscription_id The ID of the subscription to update.
+	 * @return WC_Subscription An instance of the subscription to be updated.
+	 * @throws \Exception When the subscription can't or doesn't need to be updated.
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
