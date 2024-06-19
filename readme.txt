@@ -129,8 +129,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.5.0 - 2024-xx-xx =
+* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
 * Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
 * Add - Allow customizing the title and description of the UPE payment methods.
 * Fix - Display Klarna only when the presentment currency matches the currency of the customer’s country.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
