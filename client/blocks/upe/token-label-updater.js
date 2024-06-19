@@ -11,6 +11,7 @@
  * WC_Stripe_Payment_Tokens::get_token_label_overrides_for_checkout().
  */
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
 
 /**
  * Determines whether there are token label overrides.
@@ -57,26 +58,6 @@ export function updateTokenLabelsWhenLoaded() {
 	if ( hasTokenElements ) {
 		updateTokenLabels();
 	} else {
-		// Tokens are not loaded yet, set up an observer to trigger once they have been mounted.
-		const checkoutBlock = document.querySelector(
-			'[data-block-name="woocommerce/checkout"]'
-		);
-
-		if ( ! checkoutBlock ) {
-			return;
-		}
-
-		const observer = new MutationObserver( ( mutationList, obs ) => {
-			if ( document.querySelector( selector ) ) {
-				// Tokens found, run the function and disconnect the observer.
-				updateTokenLabels();
-				obs.disconnect();
-			}
-		} );
-
-		observer.observe( checkoutBlock, {
-			childList: true,
-			subtree: true,
-		} );
+		callWhenElementIsAvailable( selector, updateTokenLabels );
 	}
 }
