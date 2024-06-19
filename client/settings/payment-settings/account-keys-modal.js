@@ -331,7 +331,7 @@ export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 					<AccountKeysConnectionStatus
 						formRef={ testMode ? testFormRef : formRef }
 					/>
-					<div>
+					<div className="wcstripe-modal-button-group-container">
 						<Button
 							isSecondary
 							onClick={ onCloseHelper }
@@ -340,7 +340,6 @@ export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 						</Button>
 						<Button
-							className="ml-unit-20"
 							isPrimary
 							isBusy={ isSaving || isDisabled }
 							disabled={ isDisabled }
