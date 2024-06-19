@@ -74,6 +74,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
 
+		// Update the payment method for a subscription when using the Legacy SEPA payment method.
+		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_update_subscription_legacy_sepa_payment_method' ], 0 );
+
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
 		// Add the necessary information to create a mandate to the payment intent.
@@ -627,6 +630,25 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return $request;
+	}
+
+	/**
+	 * Conditionally update the payment method for the subscription when using the Legacy SEPA payment method.
+	 *
+	 * This is a just-in-time fallback for subscriptions that
+	 * weren't repaired by WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens.
+	 *
+	 * @param int $subscription_id The ID of the subscription to be renewed.
+	 */
+	public function maybe_update_subscription_legacy_sepa_payment_method( $subscription_id ) {
+		try {
+			$token_updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update();
+			$token_updater->maybe_update_subscription_legacy_payment_method( $subscription_id );
+
+		} catch ( Exception $e ) {
+			// Do nothing. We throw an exception when the subscription payment method doesn't need to be updated.
+			return;
+		}
 	}
 
 	/**
