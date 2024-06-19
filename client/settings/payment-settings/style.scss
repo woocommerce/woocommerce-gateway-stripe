@@ -1,7 +1,8 @@
 @import '../../styles/abstracts/styles.scss';
 
-.ml-unit-20 {
-	margin-left: $grid-unit-20;
+.wcstripe-modal-button-group-container {
+	display: flex;
+	gap: $grid-unit-20;
 }
 
 .account-details {
