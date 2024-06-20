@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
+	generateCheckoutSavePaymentMethodInputId,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
 	isPaymentMethodRestrictedToLocation,
@@ -13,6 +14,7 @@ import {
 	processPayment,
 	mountStripePaymentElement,
 	createAndConfirmSetupIntent,
+	renderTerms,
 	confirmVoucherPayment,
 	confirmWalletPayment,
 } from './payment-processing';
@@ -45,6 +47,16 @@ jQuery( function ( $ ) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
+
+	const savePaymentMethodInputIds = generateCheckoutSavePaymentMethodInputId();
+	$( document ).on( 'change', function ( event ) {
+		if (
+			event.target &&
+			savePaymentMethodInputIds.includes( event.target.id )
+		) {
+			renderTerms( event );
+		}
+	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
 	if (

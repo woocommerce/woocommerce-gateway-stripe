@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import { getStripeServerData } from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
@@ -298,19 +298,6 @@ jQuery( function ( $ ) {
 				removeCashAppLimitNotice();
 			}
 		} );
-
-	// Add terms parameter to UPE if save payment information checkbox is checked.
-	// This shows required legal mandates when customer elects to save payment method during checkout.
-	$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
-		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
-			? 'always'
-			: 'never';
-		if ( isUPEEnabled && upeElement ) {
-			upeElement.update( {
-				terms: getUPETerms( value ),
-			} );
-		}
-	} );
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.
