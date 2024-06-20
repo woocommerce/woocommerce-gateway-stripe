@@ -242,6 +242,10 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 				'.components-form-token-field__suggestions-list > li:first-child'
 			)
 			.click();
+		// Expand the address 2 field.
+		await page
+			.locator( '.wc-block-components-address-form__address_2-toggle' )
+			.click();
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
