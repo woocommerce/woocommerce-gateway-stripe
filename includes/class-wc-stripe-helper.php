@@ -576,7 +576,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$available_gateways = self::get_upe_settings_available_payment_method_ids( $gateway );
+		$available_gateways = self::get_upe_available_payment_method_ids( $gateway );
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -634,7 +634,12 @@ class WC_Stripe_Helper {
 		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
 			$ordered_payment_method_ids = array_map(
 				function( $payment_method_id ) {
-					return 'sepa' === $payment_method_id ? 'sepa_debit' : $payment_method_id;
+					if ( 'stripe' === $payment_method_id ) {
+						return 'card';
+					} elseif ( 'stripe_sepa' === $payment_method_id ) {
+						return 'sepa_debit';
+					}
+					return str_replace( 'stripe_', '', $payment_method_id );
 				},
 				$stripe_settings['stripe_legacy_method_order']
 			);
