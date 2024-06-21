@@ -100,7 +100,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) );
 		}
 
-
 		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) );
 		}
