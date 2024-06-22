@@ -554,15 +554,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Use a transient to lock the process to avoid simultaneous execution
-		$lock_key = 'order_' . $order_id . '_payment_lock';
-		if (get_transient($lock_key)) {
+		if ($this->lock_order_payment($order)) {
 			// If the transient exists, another process is already handling this
 			WC_Stripe_Logger::log('Payment process is already in progress for order: ' . $order_id);
 			return;
 		}
-
-		// Set a transient to lock the process for a short period
-		set_transient($lock_key, true, 30);
 
 		if ( 'yes' === $captured ) {
 			/**
@@ -630,7 +626,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Remove the transient to release the lock
-		delete_transient($lock_key);
+		$this->unlock_order_payment($order);
 
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
 
