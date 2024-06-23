@@ -1534,6 +1534,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
+		// When the order contains a subscription, the payment type is expected to be "recurring".
+		$metadata['payment_type'] = 'recurring';
+
 		$expected_request = [
 			'amount'             => $amount,
 			'currency'           => $currency,
