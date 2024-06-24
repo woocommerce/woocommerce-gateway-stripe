@@ -79,7 +79,14 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'handle_deferred_payment_intent_succeeded' )
-			->with( $order, $intent_id );
+			->with(
+				$this->callback(
+					function( $passed_order ) use ( $order ) {
+						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
+					}
+				),
+				$this->equalTo( $intent_id ),
+			);
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
 	}
