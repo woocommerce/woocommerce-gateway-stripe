@@ -134,6 +134,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
 * Add - Allow customizing the title and description of the UPE payment methods.
 * Tweak - Add a statement descriptor preview for Cash App Payments.
-* Fix - Ensure payments processed via a redirect are processed via the webhook if the redirect never occurs. Fixes issues with orders being left in a pending payment state.
+* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
