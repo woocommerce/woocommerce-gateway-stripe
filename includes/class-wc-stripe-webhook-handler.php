@@ -39,7 +39,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	protected $deferred_webhook_delay = 2 * MINUTE_IN_SECONDS;
 
-
 	/**
 	 * The Action Scheduler hook to use when retrying a webhook.
 	 *
