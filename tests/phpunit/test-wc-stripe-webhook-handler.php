@@ -20,7 +20,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Mock card payment intent template.
 	 */
-	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
+	const MOCK_PAYMENT_INTENT = [
 		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
 		'status'             => 'succeeded',
@@ -130,6 +130,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'intent_id' => 'pi_wrong_id',
 		];
 
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+				]
+			)
+			->getMock();
+
 		// Mock the get intent from order to return the mock intent.
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'get_intent_from_order' )
@@ -139,7 +149,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
 					}
 				)
-			)->willReturn( (object) self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE );
+			)->willReturn( (object) self::MOCK_PAYMENT_INTENT );
 
 		// Expect the get latest charge from intent to be called.
 		$this->mock_webhook_handler->expects( $this->never() )
@@ -159,13 +169,23 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
 			'order_id' => $order->get_id(),
-			'intent_id' => self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE['id'],
+			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
 		];
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods(
+				[
+					'get_intent_from_order',
+					'get_latest_charge_from_intent',
+					'process_response',
+				]
+			)
+			->getMock();
 
 		// Mock the get intent from order to return the mock intent.
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'get_intent_from_order' )
-			->willReturn( (object) self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE );
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT );
 
 		// Expect the get latest charge from intent to be called.
 		$this->mock_webhook_handler->expects( $this->once() )
@@ -175,7 +195,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'process_response' )
 			->with(
-				self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE['charges']['data'][0],
+				self::MOCK_PAYMENT_INTENT['charges']['data'][0],
 				$this->callback(
 					function( $passed_order ) use ( $order ) {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
