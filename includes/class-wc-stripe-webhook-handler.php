@@ -1066,10 +1066,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				case 'payment_intent.amount_capturable_updated':
 					$order         = isset( $additional_data['order_id'] ) ? wc_get_order( $additional_data['order_id'] ) : null;
 					$intent_id     = $additional_data['intent_id'] ?? '';
-					$error_message = 'Missing required data: %s is invalid or not found for the deferred payment_intent.succeeded event';
+					$error_message = 'Missing required data: %s is invalid or not found for the deferred payment_intent.succeeded event.';
 
 					if ( empty( $order ) ) {
-						throw new Exception( sprintf( $error_message, 'order' ) );
+						throw new Exception( sprintf( $error_message, 'order_id' ) );
 					}
 
 					if ( empty( $intent_id ) ) {
