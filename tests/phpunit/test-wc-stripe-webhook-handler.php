@@ -42,16 +42,24 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
+		$this->mock_webhook_handler();
+	}
+
+	/**
+	 * Mock the webhook handler.
+	 */
+	private function mock_webhook_handler( $exclude_methods = [] ) {
+		$methods = [
+			'handle_deferred_payment_intent_succeeded',
+			'get_intent_from_order',
+			'get_latest_charge_from_intent',
+			'process_response',
+		];
+
+		$methods = array_diff( $methods, $exclude_methods );
 
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
-				[
-					'handle_deferred_payment_intent_succeeded',
-					'get_intent_from_order',
-					'get_latest_charge_from_intent',
-					'process_response',
-				]
-			)
+			->setMethods( $methods )
 			->getMock();
 	}
 
@@ -130,15 +138,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'intent_id' => 'pi_wrong_id',
 		];
 
-		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
-				[
-					'get_intent_from_order',
-					'get_latest_charge_from_intent',
-					'process_response',
-				]
-			)
-			->getMock();
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
 
 		// Mock the get intent from order to return the mock intent.
 		$this->mock_webhook_handler->expects( $this->once() )
@@ -172,15 +172,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
 		];
 
-		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
-			->setMethods(
-				[
-					'get_intent_from_order',
-					'get_latest_charge_from_intent',
-					'process_response',
-				]
-			)
-			->getMock();
+		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
 
 		// Mock the get intent from order to return the mock intent.
 		$this->mock_webhook_handler->expects( $this->once() )
@@ -189,7 +181,8 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Expect the get latest charge from intent to be called.
 		$this->mock_webhook_handler->expects( $this->once() )
-			->method( 'get_latest_charge_from_intent' );
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
 
 		// Expect the process response to be called with the charge and order.
 		$this->mock_webhook_handler->expects( $this->once() )
