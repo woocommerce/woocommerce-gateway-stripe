@@ -121,13 +121,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test successful deferred webhook.
+	 * Test deferred webhook where the intent is no longer stored on the order.
 	 */
-	public function test_process_of_successful_payment_intent_deferred_webhook() {
+	public function test_mismatch_intent_id_process_deferred_webhook() {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
 			'order_id' => $order->get_id(),
-			'intent_id' => self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE['id'],
+			'intent_id' => 'pi_wrong_id',
 		];
 
 		// Mock the get intent from order to return the mock intent.
@@ -140,6 +140,32 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					}
 				)
 			)->willReturn( (object) self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE );
+
+		// Expect the get latest charge from intent to be called.
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'get_latest_charge_from_intent' );
+
+		// Expect the process response to be called with the charge and order.
+		$this->mock_webhook_handler->expects( $this->never() )
+			->method( 'process_response' );
+
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+	}
+
+	/**
+	 * Test successful deferred webhook.
+	 */
+	public function test_process_of_successful_payment_intent_deferred_webhook() {
+		$order = WC_Helper_Order::create_order();
+		$data  = [
+			'order_id' => $order->get_id(),
+			'intent_id' => self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE['id'],
+		];
+
+		// Mock the get intent from order to return the mock intent.
+		$this->mock_webhook_handler->expects( $this->once() )
+			->method( 'get_intent_from_order' )
+			->willReturn( (object) self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE );
 
 		// Expect the get latest charge from intent to be called.
 		$this->mock_webhook_handler->expects( $this->once() )
