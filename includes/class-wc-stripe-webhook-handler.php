@@ -1074,6 +1074,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						throw new Exception( "Missing required data: 'intent_id' is missing for the deferred {$webhook_type} event." );
 					}
 
+					// Check if the order is still in a valid state to process the webhook.
+					if ( ! $order->has_status(
+						apply_filters(
+							'wc_stripe_allowed_payment_processing_statuses',
+							[ 'pending', 'failed' ],
+							$order
+						)
+					) ) {
+						return;
+					}
+
 					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
 					break;
 				default:
