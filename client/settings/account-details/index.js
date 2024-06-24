@@ -45,8 +45,11 @@ const WebhookDescription = styled.div`
 	font-size: 12px;
 	font-style: normal;
 	color: rgb( 117, 117, 117 );
-	display: flex;
-	align-items: stretch;
+
+	.expanded {
+		display: flex;
+		align-items: stretch;
+	}
 
 	> span {
 		align-self: center;
@@ -156,7 +159,9 @@ const WebhooksSection = () => {
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
 			</AccountSection>
-			<WebhookDescription>
+			<WebhookDescription
+				className={ isWebhookSecretEntered ? 'expanded' : '' }
+			>
 				{ isWarningMessage && (
 					<span data-testid="warning">
 						<WarningIcon icon={ warning } size="16" />
