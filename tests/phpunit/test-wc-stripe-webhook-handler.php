@@ -33,4 +33,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->expectExceptionMessage( 'Unsupported webhook type: event-id' );
 		$this->webhook_handler->process_deferred_webhook( 'event-id', [] );
 	}
+
+	public function test_process_deferred_webhook_invalid_args() {
+		$data = [
+			'order_id' => 'invalid_order_id',
+		];
+
+		$this->expectExceptionMessage( 'Unsupported webhook type: event-id' );
+		$this->webhook_handler->process_deferred_webhook( 'charge.succeeded', $data );
+	}
 }
