@@ -1067,11 +1067,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$intent_id = $additional_data['intent_id'] ?? '';
 
 					if ( empty( $order ) ) {
-						throw new Exception( "Missing required data: 'order_id' is invalid or not found for the deferred {$webhook_type} event." );
+						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
 
 					if ( empty( $intent_id ) ) {
-						throw new Exception( "Missing required data: 'intent_id' is missing for the deferred {$webhook_type} event." );
+						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
 					}
 
 					// Check if the order is still in a valid state to process the webhook.
