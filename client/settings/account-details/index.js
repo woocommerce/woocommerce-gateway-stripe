@@ -41,15 +41,10 @@ const Label = styled.p`
 	margin: 0;
 `;
 
-const WebhookDescription = styled.div`
+const WebhookDescriptionWrapper = styled.div`
 	font-size: 12px;
 	font-style: normal;
 	color: rgb( 117, 117, 117 );
-
-	.expanded {
-		display: flex;
-		align-items: stretch;
-	}
 
 	> span {
 		align-self: center;
@@ -61,6 +56,11 @@ const WebhookDescription = styled.div`
 		padding: 4px 8px;
 		border-radius: 2px;
 	}
+`;
+
+const WebhookDescription = styled.div`
+	display: flex;
+	align-items: center;
 `;
 
 const WarningIcon = styled( Icon )`
@@ -159,27 +159,29 @@ const WebhooksSection = () => {
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
 			</AccountSection>
-			<WebhookDescription
-				className={ isWebhookSecretEntered ? 'expanded' : '' }
-			>
-				{ isWarningMessage && (
-					<span data-testid="warning">
-						<WarningIcon icon={ warning } size="16" />
-					</span>
-				) }
+			<WebhookDescriptionWrapper>
 				{ ! isWebhookSecretEntered && <WebhookInformation /> }
-				<p className={ isWarningMessage ? 'warning' : '' }>
-					{ message }{ ' ' }
-					<Button
-						disabled={ requestStatus === 'pending' }
-						onClick={ refreshMessage }
-						isBusy={ requestStatus === 'pending' }
-						isLink
-					>
-						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-					</Button>
-				</p>
-			</WebhookDescription>
+				<WebhookDescription
+					className={ isWebhookSecretEntered ? 'expanded' : '' }
+				>
+					{ isWarningMessage && (
+						<span data-testid="warning">
+							<WarningIcon icon={ warning } size="16" />
+						</span>
+					) }
+					<p className={ isWarningMessage ? 'warning' : '' }>
+						{ message }{ ' ' }
+						<Button
+							disabled={ requestStatus === 'pending' }
+							onClick={ refreshMessage }
+							isBusy={ requestStatus === 'pending' }
+							isLink
+						>
+							{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+						</Button>
+					</p>
+				</WebhookDescription>
+			</WebhookDescriptionWrapper>
 		</>
 	);
 };
