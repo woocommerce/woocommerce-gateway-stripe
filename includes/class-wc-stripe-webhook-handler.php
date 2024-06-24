@@ -1082,6 +1082,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 							$order
 						)
 					) ) {
+						WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
 
