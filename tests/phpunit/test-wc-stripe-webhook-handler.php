@@ -67,7 +67,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Undocumented function
+	 * Test process_deferred_webhook with valid args.
 	 */
 	public function test_test_process_deferred_webhook() {
 		$order     = WC_Helper_Order::create_order();
