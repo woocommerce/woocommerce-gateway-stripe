@@ -1075,13 +1075,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Check if the order is still in a valid state to process the webhook.
-					if ( ! $order->has_status(
-						apply_filters(
-							'wc_stripe_allowed_payment_processing_statuses',
-							[ 'pending', 'failed' ],
-							$order
-						)
-					) ) {
+					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ 'pending', 'failed' ], $order ) ) ) {
 						WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
