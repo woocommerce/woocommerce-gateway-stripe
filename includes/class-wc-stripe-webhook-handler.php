@@ -1100,6 +1100,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( $intent && $intent->id === $intent_id ) {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
+			WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
+
 			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 			$this->process_response( $charge, $order );
 		}
