@@ -56,7 +56,7 @@ export function* saveAccountKeys( accountKeys ) {
 		} );
 
 		if ( ! isDisconnecting && ! accountData?.id ) {
-			throw 'Account not Found';
+			throw 'Account not found.';
 		}
 
 		// refresh account data after keys are updated in the database
