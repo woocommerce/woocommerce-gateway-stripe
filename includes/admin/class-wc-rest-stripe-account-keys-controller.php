@@ -460,16 +460,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	private function decommission_configured_webhook_after_key_update( $settings, $current_account_keys ) {
 		$key_data = [
 			'live' => [
-				'publishable_key' => $settings['publishable_key'] ?? '',
-				'secret_key'      => $settings['secret_key'] ?? '',
-				'webhook_id'      => $settings['webhook_data']['id'] ?? '',
-				'current_secret'  => $current_account_keys['secret_key'] ?? '',
+				'secret_key'     => $settings['secret_key'] ?? '',
+				'webhook_id'     => $settings['webhook_data']['id'] ?? '',
+				'current_secret' => $current_account_keys['secret_key'] ?? '',
 			],
 			'test' => [
-				'publishable_key' => $settings['test_publishable_key'] ?? '',
-				'secret_key'      => $settings['test_secret_key'] ?? '',
-				'webhook_id'      => $settings['test_webhook_data']['id'] ?? '',
-				'current_secret'  => $current_account_keys['test_secret_key'] ?? '',
+				'secret_key'     => $settings['test_secret_key'] ?? '',
+				'webhook_id'     => $settings['test_webhook_data']['id'] ?? '',
+				'current_secret' => $current_account_keys['test_secret_key'] ?? '',
 			],
 		];
 
