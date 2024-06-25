@@ -55,7 +55,7 @@ export function* saveAccountKeys( accountKeys ) {
 			data: accountKeys,
 		} );
 
-		if ( ! accountData?.id ) {
+		if ( ! isDisconnecting && ! accountData?.id ) {
 			throw 'Account not Found';
 		}
 
