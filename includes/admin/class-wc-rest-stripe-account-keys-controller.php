@@ -292,7 +292,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 				$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ 'card', 'link' ] );
 
-				// handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
+				// Handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
 				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
 				$multibanco->update_option( 'enabled', 'no' );
 			}
@@ -300,7 +300,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		$this->account->clear_cache();
 
-		// Gives an instant reply if the connection was succesful or not + rebuild the cache for the next request
+		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
 
 		return new WP_REST_Response( $account, 200 );
