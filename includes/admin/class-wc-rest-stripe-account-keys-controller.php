@@ -271,6 +271,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
 		}
 
+		// Before saving the settings, decommission the any previously automatically configured webhook endpoint.
+		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
+
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 
 		// Disable all payment methods if all keys are different from the current ones
@@ -443,6 +446,52 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'webhookSecret' => $this->mask_key_value( $response->secret ),
 			]
 		);
+	}
+
+	/**
+	 * Decommissions the configured Webhook if the user is removing their secret key.
+	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
+	 *
+	 * @param array $settings             The current settings.
+	 * @param array $current_account_keys The current account keys.
+	 *
+	 * @return array The updated settings. The webhook data will be removed if the webhook was decommissioned.
+	 */
+	private function decommission_configured_webhook_after_key_update( $settings, $current_account_keys ) {
+		$key_data = [
+			'live' => [
+				'publishable_key' => $settings['publishable_key'] ?? '',
+				'secret_key'      => $settings['secret_key'] ?? '',
+				'webhook_id'      => $settings['webhook_data']['id'] ?? '',
+				'current_secret'  => $current_account_keys['secret_key'] ?? '',
+			],
+			'test' => [
+				'publishable_key' => $settings['test_publishable_key'] ?? '',
+				'secret_key'      => $settings['test_secret_key'] ?? '',
+				'webhook_id'      => $settings['test_webhook_data']['id'] ?? '',
+				'current_secret'  => $current_account_keys['test_secret_key'] ?? '',
+			],
+		];
+
+		foreach ( $key_data as $mode => $keys ) {
+			// If there's no webhook ID or secret key, we can skip.
+			if ( empty( $keys['webhook_id'] ) || empty( $keys['current_secret'] ) ) {
+				continue;
+			}
+
+			// If the user is removing or changing their secret key, we should decommission the webhook.
+			if ( empty( $keys['secret_key'] ) || $keys['current_secret'] !== $keys['secret_key'] ) {
+				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
+				WC_Stripe_API::set_secret_key( $keys['current_secret'] );
+				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_id'], 'DELETE' );
+
+				// Update the webhook settings now that the webhook has been decommissioned.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
+				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			}
+		}
+
+		return $settings;
 	}
 
 	/**
