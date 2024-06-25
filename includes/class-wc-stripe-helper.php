@@ -723,6 +723,52 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
+	 * in the order merchants have chosen in the settings.
+	 *
+	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
+	 */
+	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids ) {
+		$gateway_order = get_option( 'woocommerce_gateway_order' );
+
+		$ordered_available_stripe_methods = [];
+		// Map the Stripe payment method list to the right format to save in the 'woocommerce_gateway_order' option.
+		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
+			if ( 'card' === $payment_method_id ) {
+				$gateway_id                         = 'stripe';
+				$ordered_available_stripe_methods[] = $gateway_id;
+				continue;
+			} elseif ( 'sepa_debit' === $payment_method_id ) {
+				$gateway_id = 'stripe_sepa';
+			}
+
+			$gateway_id = str_starts_with( $payment_method_id, 'stripe_' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
+
+			$ordered_available_stripe_methods[] = $gateway_id;
+
+			if ( isset( $gateway_order[ $gateway_id ] ) ) {
+				unset( $gateway_order[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
+			}
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+		// Add the Stripe methods back in the right order and assign all the payment methods the updated order index.
+		foreach ( $gateway_order as $gateway => $order ) {
+			if ( 'stripe' === $gateway ) {
+				unset( $gateway_order['stripe'] );
+				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
+					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
+				}
+			} else {
+				$updated_gateway_order[ $gateway ] = (string) $index++;
+			}
+		}
+
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
