@@ -576,7 +576,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$available_gateways = self::get_upe_settings_available_payment_method_ids( $gateway );
+		$available_gateways = self::get_upe_available_payment_method_ids( $gateway );
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -619,16 +619,87 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the list of payment methods for the settings page when UPE is enabled. The list includes
 	 * all the UPE methods and Multibanco.
+	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
+	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
-	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
-		$available_gateways = $gateway->get_upe_available_payment_methods();
-		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
-		$available_gateways[] = 'multibanco';
+	public static function get_upe_available_payment_method_ids( $gateway ) {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
-		return $available_gateways;
+		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
+		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
+			$ordered_payment_method_ids = array_map(
+				function( $payment_method_id ) {
+					if ( 'stripe' === $payment_method_id ) {
+						return 'card';
+					} elseif ( 'stripe_sepa' === $payment_method_id ) {
+						return 'sepa_debit';
+					}
+					return str_replace( 'stripe_', '', $payment_method_id );
+				},
+				$stripe_settings['stripe_legacy_method_order']
+			);
+
+		}
+
+		// The `stripe_upe_payment_method_order` option has the order of the UPE methods set by the user.
+		// This list is filtered on the basis of the capabilities set in the Stripe account data on the frontend before saving.
+		// If the list is empty or we have any new available payment methods, we need to update the list by including the available payment methods having capabilities.
+		$upe_available_payment_methods = $gateway->get_upe_available_payment_methods();
+		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
+		$upe_available_payment_methods[] = 'multibanco';
+
+		$additional_methods                = array_diff( $upe_available_payment_methods, $ordered_payment_method_ids );
+		$available_methods_with_capability = self::filter_payment_methods_with_capabilities( $additional_methods, $testmode );
+
+		// Update the `stripe_upe_payment_method_order` option with the new order including the available methods with capabilities.
+		if ( count( $available_methods_with_capability ) ) {
+			$ordered_payment_method_ids = array_merge( $ordered_payment_method_ids, $available_methods_with_capability );
+
+			$stripe_settings['stripe_upe_payment_method_order'] = $ordered_payment_method_ids;
+			update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		}
+
+		return $ordered_payment_method_ids;
+	}
+
+	/**
+	 * Returns the list of payment methods that have capabilities set in the Stripe account data.
+	 *
+	 * @param string[] $payment_method_ids Payment method ids to filter by capabilities.
+	 * @param bool     $testmode Whether stripe is in test mode.
+	 * @return string[]
+	 */
+	public static function filter_payment_methods_with_capabilities( $payment_method_ids, $testmode ) {
+		$account = WC_Stripe::get_instance()->account;
+		$data    = $account->get_cached_account_data();
+
+		// return empty array if capabilities are not set.
+		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
+			return [];
+		}
+
+		$payment_method_ids_with_capability = [];
+
+		foreach ( $payment_method_ids as $payment_method_id ) {
+			if ( 'multibanco' === $payment_method_id ) {
+				// As Multibanco uses Stripe sources, we don't need to check for the capability.
+				$payment_method_ids_with_capability[] = $payment_method_id;
+				continue;
+			}
+
+			$key            = $payment_method_id . '_payments';
+			$has_capability = isset( $data['capabilities'][ $key ] );
+			if ( $has_capability || $testmode ) {
+				$payment_method_ids_with_capability[] = $payment_method_id;
+			}
+		}
+
+		return $payment_method_ids_with_capability;
 	}
 
 	/**

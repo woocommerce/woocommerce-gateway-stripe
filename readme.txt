@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.5.0 - 2024-xx-xx =
+* Add - Allow changing display order of payment methods in the new checkout experience.
 * Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
 * Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
 * Tweak - Improve the display of warning messages related to webhook configuration.

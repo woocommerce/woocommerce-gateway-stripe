@@ -12,7 +12,6 @@ import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
@@ -186,7 +185,6 @@ const GeneralSettingsSection = ( {
 } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -201,7 +199,7 @@ const GeneralSettingsSection = ( {
 	// Show all methods in test mode.
 	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
 	const availablePaymentMethods = isUpeEnabled
-		? availablePaymentMethodIds
+		? orderedPaymentMethodIds
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||
