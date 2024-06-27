@@ -946,9 +946,8 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array $payment_information The payment information to be used for the setup intent.
 	 *
-	 * @throws WC_Stripe_Exception If the create intent call returns with an error.
-	 *
-	 * @return array
+	 * @return object
+	 *@throws WC_Stripe_Exception If the create intent call returns with an error.
 	 */
 	public function create_and_confirm_setup_intent( $payment_information ) {
 		$request = [
@@ -958,6 +957,16 @@ class WC_Stripe_Intent_Controller {
 			'confirm'              => 'true',
 			'return_url'           => $payment_information['return_url'],
 		];
+
+		// Skip the setup intent request if the payment method is Cash App Pay.
+		if ( 'cashapp' === $payment_information['selected_payment_type'] ) {
+			return (object) [
+				'status'        => 'succeeded',
+				'id'            => 'cashapp',
+				'client_secret' => 'cashapp',
+				'next_action'   => [],
+			];
+		}
 
 		if ( isset( $payment_information['use_stripe_sdk'] ) ) {
 			$request['use_stripe_sdk'] = $payment_information['use_stripe_sdk'];

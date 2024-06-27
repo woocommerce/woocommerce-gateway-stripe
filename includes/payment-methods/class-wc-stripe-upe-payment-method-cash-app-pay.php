@@ -46,7 +46,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
 		 * disable customer's changing the payment method to Cash App Pay as that would result in a $0 set up intent.
 		 */
-		$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
+		//$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
 
 		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
 	}

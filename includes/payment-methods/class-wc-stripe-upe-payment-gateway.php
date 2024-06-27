@@ -984,6 +984,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
+					// @todo maybe skip cash app here?
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
 				}
@@ -1976,6 +1977,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
 				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 			}
+			// @todo maybe we need to add cashapp here as well.
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
@@ -2273,14 +2275,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$user            = wp_get_current_user();
-			$setup_intent_id = wc_clean( wp_unslash( $_POST['wc-stripe-setup-intent'] ) );
-			$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
 
-			if ( ! empty( $setup_intent->last_payment_error ) ) {
-				throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
+			// Cash App Pay doesn't require a setup intent (as its intents cannot be reused).
+			if ( isset( $_POST['payment_method'] ) && 'stripe_cashapp' === $_POST['payment_method'] && isset( $_POST['wc-stripe-payment-method'] ) ) {
+				$payment_method_id = wc_clean( wp_unslash( $_POST['wc-stripe-payment-method'] ) );
+			} else {
+				$setup_intent_id = wc_clean( wp_unslash( $_POST['wc-stripe-setup-intent'] ) );
+				$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+
+				if ( ! empty( $setup_intent->last_payment_error ) ) {
+					throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
+				}
+
+				$payment_method_id     = $setup_intent->payment_method;
 			}
 
-			$payment_method_id     = $setup_intent->payment_method;
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
@@ -2364,7 +2373,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Cash App Pay intents with a "requires payment method" status cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
-		if ( in_array( 'cashapp', $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
+		// @todo maybe the issue with reusing tokens is here.
+		if ( in_array( 'cashapp', $intent->payment_method_types, true ) && 'requires_payment_method' === $intent->status ) {
 			return null;
 		}
 
