@@ -217,9 +217,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_alipay_details     = [
 			'type' => 'alipay',
 		];
-		$mock_giropay_details    = [
-			'type' => 'giropay',
-		];
 		$mock_p24_details        = [
 			'type' => 'p24',
 		];
@@ -250,7 +247,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$alipay_method     = $this->mock_payment_methods['alipay'];
-		$giropay_method    = $this->mock_payment_methods['giropay'];
 		$p24_method        = $this->mock_payment_methods['p24'];
 		$eps_method        = $this->mock_payment_methods['eps'];
 		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
@@ -279,14 +275,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Alipay', $alipay_method->get_title( $mock_alipay_details ) );
 		$this->assertFalse( $alipay_method->is_reusable() );
 		$this->assertEquals( 'alipay', $alipay_method->get_retrievable_type() );
-
-		$this->assertEquals( 'giropay', $giropay_method->get_id() );
-		$this->assertEquals( 'giropay', $giropay_method->get_label() );
-		$this->assertEquals( 'giropay', $giropay_method->get_title() );
-		$this->assertEquals( 'giropay', $giropay_method->get_title( $mock_giropay_details ) );
-		$this->assertFalse( $giropay_method->is_reusable() );
-		$this->assertEquals( 'giropay', $giropay_method->get_retrievable_type() );
-		$this->assertEquals( '', $giropay_method->get_testing_instructions() );
 
 		$this->assertEquals( 'p24', $p24_method->get_id() );
 		$this->assertEquals( 'Przelewy24', $p24_method->get_label() );
@@ -379,7 +367,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods['card'];
-		$giropay_method           = $this->mock_payment_methods['giropay'];
 		$klarna_method            = $this->mock_payment_methods['klarna'];
 		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
 		$affirm_method            = $this->mock_payment_methods['affirm'];
@@ -394,7 +381,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
-		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
 		$this->assertFalse( $afterpay_clearpay_method->is_enabled_at_checkout() );
