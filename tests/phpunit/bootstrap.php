@@ -62,3 +62,4 @@ require_once __DIR__ . '/helpers/class-wc-helper-subscriptions.php';
 require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-cart.php';
 require_once __DIR__ . '/helpers/class-wc-helper-token.php';
 require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
+require_once __DIR__ . '/helpers/class-wc-subscriptions-helper.php';

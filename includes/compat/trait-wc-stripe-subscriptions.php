@@ -943,4 +943,21 @@ trait WC_Stripe_Subscriptions_Trait {
 			&& 'processing' === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
 	}
+
+	/**
+	 * Updates the payment method for all subscriptions related to an order.
+	 *
+	 * @param WC_Order $order               The order to update the related subscriptions for.
+	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
+	 */
+	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
+		if ( ! $this->is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return;
+		}
+
+		foreach ( wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] ) as $subscription ) {
+			$subscription->set_payment_method( $payment_method_type );
+			$subscription->save();
+		}
+	}
 }
