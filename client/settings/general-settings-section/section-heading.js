@@ -82,17 +82,15 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 			<ActionItems>
 				{ ! isChangingDisplayOrder ? (
 					<>
-						{ ! isUpeEnabled && (
-							<Button
-								variant="tertiary"
-								onClick={ () => onChangeDisplayOrder( true ) }
-							>
-								{ __(
-									'Change display order',
-									'woocommerce-gateway-stripe'
-								) }
-							</Button>
-						) }
+						<Button
+							variant="tertiary"
+							onClick={ () => onChangeDisplayOrder( true ) }
+						>
+							{ __(
+								'Change display order',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
 						{ isUpeEnabled && (
 							<DropdownMenu
 								data-testid="upe-expandable-menu"

@@ -214,6 +214,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
 
+		// Reorder the available payment gateways on the checkout page.
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'reorder_available_payment_gateways' ] );
+
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 	}
 
@@ -540,6 +543,43 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $available_payment_methods;
+	}
+
+	/**
+	 * Reorders the list of available payment gateways to include the Stripe methods in the order merchants have chosen in the settings.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
+	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
+	 */
+	public function reorder_available_payment_gateways( $gateways ) {
+		if ( ! is_array( $gateways ) ) {
+			return $gateways;
+		}
+
+		$ordered_available_stripe_methods = [];
+
+		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.
+		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
+
+		// Generate a list of all available Stripe payment methods in the order they should be displayed.
+		foreach ( WC_Stripe_Helper::get_upe_available_payment_method_ids( $this ) as $payment_method ) {
+			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
+
+			if ( isset( $gateways[ $gateway_id ] ) ) {
+				$ordered_available_stripe_methods[ $gateway_id ] = $gateways[ $gateway_id ];
+				unset( $gateways[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
+			}
+		}
+
+		// Add the ordered list of available Stripe payment methods back into the list of available gateways.
+		if ( $stripe_index ) {
+			$gateways = array_slice( $gateways, 0, $stripe_index, true ) + $ordered_available_stripe_methods + array_slice( $gateways, $stripe_index, null, true );
+		} else {
+			// In cases where Stripe is not found in the list of available gateways but there were other legacy methods available, add the Stripe methods to the front of the list.
+			$gateways = array_merge( $ordered_available_stripe_methods, $gateways );
+		}
+
+		return $gateways;
 	}
 
 	/**

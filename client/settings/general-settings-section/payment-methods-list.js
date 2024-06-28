@@ -12,7 +12,6 @@ import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
@@ -186,7 +185,6 @@ const GeneralSettingsSection = ( {
 } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -200,7 +198,7 @@ const GeneralSettingsSection = ( {
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
 	const availablePaymentMethods = isUpeEnabled
-		? availablePaymentMethodIds
+		? orderedPaymentMethodIds
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||

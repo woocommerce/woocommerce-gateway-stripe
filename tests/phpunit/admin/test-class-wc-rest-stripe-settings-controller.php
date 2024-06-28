@@ -108,6 +108,30 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider enum_field_provider
 	 */
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'capabilities' => [
+					'bancontact_payments' => 'active',
+					'card_payments'       => 'active',
+					'eps_payments'        => 'active',
+					'giropay_payments'           => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
+			]
+		);
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 		$response = $this->rest_get_settings();
@@ -204,7 +228,19 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country' => 'US',
+				'country'      => 'US',
+				'capabilities' => [
+					'bancontact_payments'        => 'active',
+					'card_payments'              => 'active',
+					'eps_payments'               => 'active',
+					'giropay_payments'           => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
 			]
 		);
 		$response = $this->rest_get_settings();
@@ -231,6 +267,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
 				'country' => 'US',
+				'capabilities' => [
+					'bancontact_payments'        => 'active',
+					'card_payments'              => 'active',
+					'eps_payments'               => 'active',
+					'giropay_payments'           => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
 			]
 		);
 		$response = $this->rest_get_settings();
