@@ -14,6 +14,7 @@ import {
 	mountStripePaymentElement,
 	createAndConfirmSetupIntent,
 	confirmVoucherPayment,
+	confirmWalletPayment,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -104,28 +105,38 @@ jQuery( function ( $ ) {
 	}
 
 	/**
-	 * Checks if the URL hash starts with #wc-stripe-voucher- and whether we
-	 * should display the Boleto or Oxxo confirmation modal.
+	 * Checks if the URL hash starts with #wc-stripe-voucher- or #wc-stripe-wallet- and whether we
+	 * should display the relevant confirmation modal.
 	 */
-	function maybeConfirmVoucherPayment() {
+	function maybeConfirmVoucherOrWalletPayment() {
 		if (
-			window.location.hash.startsWith( '#wc-stripe-voucher-' ) &&
-			( getStripeServerData()?.isOrderPay ||
-				getStripeServerData()?.isCheckout )
+			getStripeServerData()?.isOrderPay ||
+			getStripeServerData()?.isCheckout
 		) {
-			confirmVoucherPayment(
-				api,
-				getStripeServerData()?.isOrderPay
-					? $( '#order_review' )
-					: $( 'form.checkout' )
-			);
+			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
+				confirmVoucherPayment(
+					api,
+					getStripeServerData()?.isOrderPay
+						? $( '#order_review' )
+						: $( 'form.checkout' )
+				);
+			} else if (
+				window.location.hash.startsWith( '#wc-stripe-wallet-' )
+			) {
+				confirmWalletPayment(
+					api,
+					getStripeServerData()?.isOrderPay
+						? $( '#order_review' )
+						: $( 'form.checkout' )
+				);
+			}
 		}
 	}
 
-	// On every page load and on hash change, check to see whether we should display the Boleto or Oxxo modal.
+	// On every page load and on hash change, check to see whether we should display the Voucher (Boleto/Oxxo/Multibanco) or Wallet (CashApp/WeChat Pay) modal.
 	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
-	maybeConfirmVoucherPayment();
+	maybeConfirmVoucherOrWalletPayment();
 	$( window ).on( 'hashchange', () => {
-		maybeConfirmVoucherPayment();
+		maybeConfirmVoucherOrWalletPayment();
 	} );
 } );

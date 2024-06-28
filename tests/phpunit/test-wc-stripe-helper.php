@@ -303,4 +303,96 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `payment_method_allows_manual_capture`
+	 *
+	 * @param string $payment_method The payment method.
+	 * @param bool   $expected       Whether manual capture is allowed.
+	 * @dataProvider provide_payment_method_allows_manual_capture
+	 * @return void
+	 */
+	public function test_payment_method_allows_manual_capture( $payment_method, $expected ): void {
+		$actual = WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_payment_method_allows_manual_capture`
+	 *
+	 * @return array
+	 */
+	public function provide_payment_method_allows_manual_capture(): array {
+		return [
+			'Card'              => [
+				'payment_method' => 'stripe',
+				'expected'       => true,
+			],
+			'Affirm'            => [
+				'payment_method' => 'stripe_affirm',
+				'expected'       => true,
+			],
+			'Klarna'            => [
+				'payment_method' => 'stripe_klarna',
+				'expected'       => true,
+			],
+			'Afterpay/Clearpay' => [
+				'payment_method' => 'stripe_afterpay_clearpay',
+				'expected'       => true,
+			],
+			'EPS'               => [
+				'payment_method' => 'stripe_eps',
+				'expected'       => false,
+			],
+		];
+	}
+
+	/**
+	 * Test for `is_wallet_payment_method`
+	 *
+	 * @param $payment_method string Payment method.
+	 * @param $expected bool Expected result.
+	 * @return void
+	 * @dataProvider provide_is_wallet_payment_method
+	 */
+	public function test_is_wallet_payment_method( $payment_method, $expected ): void {
+		$order = WC_Helper_Order::create_order();
+		$order->update_meta_data( '_stripe_upe_payment_type', $payment_method );
+
+		$actual = WC_Stripe_Helper::is_wallet_payment_method( $order );
+		$this->assertSame( $expected, $actual );
+	}
+
+	public function provide_is_wallet_payment_method(): array {
+		return [
+			'Apple Pay'  => [
+				'apple_pay',
+				false,
+			],
+			'Google Pay' => [
+				'google_pay',
+				false,
+			],
+			'Alipay'     => [
+				'alipay',
+				false,
+			],
+			'Klarna'     => [
+				'klarna',
+				false,
+			],
+			'EPS'        => [
+				'eps',
+				false,
+			],
+			'WeChat'     => [
+				'wechat_pay',
+				true,
+			],
+			'Cash App'   => [
+				'cashapp',
+				true,
+			],
+		];
+	}
 }

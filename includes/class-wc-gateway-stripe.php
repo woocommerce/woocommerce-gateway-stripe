@@ -408,6 +408,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 
+			// Update the saved payment method to have the latest billing details.
+			if ( $prepared_source->source && $this->is_using_saved_payment_method() ) {
+				$this->update_saved_payment_method( $prepared_source->source, $order );
+			}
+
 			if ( 0 >= $order->get_total() ) {
 				return $this->complete_free_order( $order, $prepared_source, $force_save_source );
 			}
@@ -656,6 +661,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
 	 */
 	public function reorder_available_payment_gateways( $gateways ) {
+		if ( ! is_array( $gateways ) ) {
+			return $gateways;
+		}
+
 		$ordered_available_stripe_methods = [];
 
 		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.

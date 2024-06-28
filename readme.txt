@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.2.0
+Stable tag: 8.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -121,16 +121,22 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
-2. Offer a range of payment methods such as local and alternative payment methods.
-3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
-4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
+1. The Stripe payment gateway settings page used to configure the plugin.
+2. Offer a range of payment options such as local methods and express checkouts.
+3. Allow customers to save payment methods and add new ones for their future purchases.
+4. Apple Pay and other express methods can be added to product pages, cart, and checkout.
 
 == Changelog ==
 
-= 8.4.0 - xxxx-xx-xx =
-* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
-* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+= 8.5.0 - 2024-xx-xx =
+* Add - Allow changing display order of payment methods in the new checkout experience.
+* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
+* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
+* Tweak - Improve the display of warning messages related to webhook configuration.
+* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
+* Add - Allow customizing the title and description of the UPE payment methods.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
+* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
 * Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

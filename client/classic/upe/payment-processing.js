@@ -217,6 +217,10 @@ export const processPayment = (
 		return;
 	}
 
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return;
+	}
+
 	blockUI( jQueryForm );
 
 	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
@@ -224,7 +228,7 @@ export const processPayment = (
 	( async () => {
 		try {
 			await validateElements( elements );
-			let customerRedirected = false;
+			let stopFormSubmission = false;
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
@@ -242,11 +246,11 @@ export const processPayment = (
 				api,
 				() => {
 					// Provide a callback to flag that a redirect has occurred.
-					customerRedirected = true;
+					stopFormSubmission = true;
 				}
 			);
 
-			if ( customerRedirected ) {
+			if ( stopFormSubmission ) {
 				return;
 			}
 
@@ -271,7 +275,7 @@ export const processPayment = (
  * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
  * @param {Object} api The API object used to create the Stripe payment method.
- * @param {Function} setCustomerRedirected The callback function to execute when a redirect is needed.
+ * @param {Function} setStopFormSubmission The callback function to execute when a redirect occurred or the setup wasn't completed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
  */
@@ -279,23 +283,28 @@ export const createAndConfirmSetupIntent = (
 	paymentMethod,
 	jQueryForm,
 	api,
-	setCustomerRedirected
+	setStopFormSubmission
 ) => {
 	return api
 		.setupIntent( paymentMethod )
 		.then( function ( confirmedSetupIntent ) {
-			if ( confirmedSetupIntent === 'redirect_to_url' ) {
-				setCustomerRedirected();
-				return;
+			switch ( confirmedSetupIntent ) {
+				case 'incomplete':
+					// When the set up wasn't completed, we need to unlock the form and stop the process.
+					jQueryForm.removeClass( 'processing' ).unblock();
+				// eslint-disable-next-line no-fallthrough -- intentional we need to stop the form submission on incomplete.
+				case 'redirect_to_url':
+					setStopFormSubmission();
+					return;
+				default:
+					appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
+					return confirmedSetupIntent;
 			}
-
-			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
-			return confirmedSetupIntent;
 		} );
 };
 
 /**
- * Handles displaying the Boleto or Oxxo voucher to the customer and then redirecting
+ * Handles displaying the Boleto or Oxxo or Multibanco voucher to the customer and then redirecting
  * them to the order received page once they close the voucher window.
  *
  * When processing a payment for one of our voucher payment methods on the checkout or order pay page,
@@ -352,6 +361,10 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 			confirmPayment = await api
 				.getStripe()
 				.confirmBoletoPayment( clientSecret, {} );
+		} else if ( paymentMethodType === 'multibanco' ) {
+			confirmPayment = await api
+				.getStripe()
+				.confirmMultibancoPayment( clientSecret, {} );
 		} else {
 			confirmPayment = await api
 				.getStripe()
@@ -367,5 +380,101 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	} catch ( error ) {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		showErrorCheckout( error.message );
+	}
+};
+
+/**
+ * Handles displaying the CashApp or WeChat modal to the customer and then redirecting
+ * them to the order received page once they authenticate the payment.
+ *
+ * When processing a payment for a wallet payment method on the checkout or order pay page,
+ * the process_payment_with_deferred_intent() function redirects the customer to a URL
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<client_secret>:<redirect_url>.
+ *
+ * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
+ *
+ * @param {Object} api           The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm    The jQuery object for the form being submitted.
+ */
+export const confirmWalletPayment = async ( api, jQueryForm ) => {
+	const isOrderPay = getStripeServerData()?.isOrderPay;
+
+	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
+	if ( isOrderPay ) {
+		blockUI( jQueryForm );
+	}
+
+	const partials = window.location.href.match(
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+)$/
+	);
+
+	if ( ! partials ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		return;
+	}
+
+	// Remove the hash from the URL.
+	history.replaceState(
+		'',
+		document.title,
+		window.location.pathname + window.location.search
+	);
+
+	const orderId = partials[ 1 ];
+	const clientSecret = partials[ 3 ];
+
+	// Verify the request using the data added to the URL.
+	if (
+		! clientSecret ||
+		( isOrderPay && orderId !== getStripeServerData()?.orderId )
+	) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		return;
+	}
+
+	const paymentMethodType = partials[ 2 ];
+	const returnURL = decodeURIComponent( partials[ 4 ] );
+
+	try {
+		// Confirm the payment to tell Stripe to display the modal to the customer.
+		let confirmPayment;
+		switch ( paymentMethodType ) {
+			case 'wechat_pay':
+				confirmPayment = await api
+					.getStripe()
+					.confirmWechatPayPayment( clientSecret, {
+						payment_method_options: {
+							wechat_pay: {
+								client: 'web',
+							},
+						},
+					} );
+				break;
+			case 'cashapp':
+				confirmPayment = await api
+					.getStripe()
+					.confirmCashappPayment( clientSecret, {
+						return_url: returnURL,
+					} );
+				break;
+			default:
+				// eslint-disable-next-line no-console
+				console.error( 'Invalid wallet type:', paymentMethodType );
+				throw new Error( getStripeServerData()?.invalid_wallet_type );
+		}
+
+		if ( confirmPayment.error ) {
+			throw confirmPayment.error;
+		}
+
+		// Do not redirect to the order received page if the modal is closed without payment.
+		// Otherwise redirect to the order received page.
+		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
+			window.location.href = returnURL;
+		}
+	} catch ( error ) {
+		showErrorCheckout( error.message );
+	} finally {
+		jQueryForm.removeClass( 'processing' ).unblock();
 	}
 };

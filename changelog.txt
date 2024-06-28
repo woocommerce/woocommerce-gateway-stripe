@@ -1,11 +1,35 @@
 *** Changelog ***
-
-= 8.4.0 - xxxx-xx-xx =
-* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
-* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+= 8.5.0 - 2024-xx-xx =
+* Add - Allow changing display order of payment methods in the new checkout experience.
+* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
+* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
+* Tweak - Improve the display of warning messages related to webhook configuration.
+* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
+* Add - Allow customizing the title and description of the UPE payment methods.
+* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
 * Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
 
-= 8.3.0 - xxxx-xx-xx =
+= 8.4.0 - 2024-06-13 =
+* Tweak - Resets the list of payment methods when any Stripe key is updated.
+* Fix - Removes the list of saved payment methods when the setting is disabled.
+* Tweak - Update WooCommerce.com docs links.
+* Fix - Correctly setting the preferred card brand when creating and updating a payment intent.
+* Tweak - Update WordPress.org screenshots and captions.
+* Fix - Added a feedback message + redirection back to cart when a Cash App payment fails.
+* Fix - Remove the duplicated customization notice in the settings screen.
+* Add - Include Cash App as a payment method for stores using the updated checkout experience.
+* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
+* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
+* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
+
+= 8.3.1 - 2024-05-30 =
+* Fix - Error on some environments due to the parameter in the WC_Stripe_UPE_Payment_Gateway constructor method.
+* Fix - Prevents orders purchased using a 3DS card being stuck as "pending payment" for stores with the Legacy Checkout Experience setting enabled.
+
+= 8.3.0 - 2024-05-23 =
+* Add - Add a new dismissible banner to promote Stripe products to the settings page.
 * Add - Include Afterpay (Clearpay in the UK) as a payment method for stores using the updated checkout experience.
 * Add - Include Affirm as a payment method for stores using the updated checkout experience.
 * Add - Include Klarna as a payment method for stores using the updated checkout experience.

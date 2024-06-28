@@ -13,7 +13,6 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -41,9 +40,6 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
-jest.mock( 'utils/use-alipay-currencies', () => ( {
-	useAliPayCurrencies: jest.fn(),
-} ) );
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
@@ -70,7 +66,6 @@ describe( 'GeneralSettingsSection', () => {
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
-		useAliPayCurrencies.mockReturnValue( [ 'EUR', 'CNY' ] );
 	} );
 
 	afterEach( () => {
@@ -373,7 +368,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'display customization section in the payment method when UPE is disabled', async () => {
+	it( 'display customization section in the payment method', async () => {
 		const PromiseMock = Promise.resolve();
 		const customizePaymentMethodMock = jest
 			.fn()
@@ -459,7 +454,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 	} );
 
-	it( 'should not display customization section in the payment method when UPE is enabled', () => {
+	it( 'should display customization section in the payment method when UPE is enabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [ 'giropay' ],
@@ -482,7 +477,7 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByRole( 'button', {
 				name: 'Customize',
 			} )
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {

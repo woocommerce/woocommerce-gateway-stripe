@@ -12,12 +12,10 @@ import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -101,10 +99,6 @@ const ListElement = styled.li`
 		}
 	}
 
-	&.disabled {
-		opacity: 0.6;
-	}
-
 	button {
 		&.hide {
 			visibility: hidden;
@@ -160,6 +154,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
+const CustomizeButton = styled( Button )`
+	margin-left: auto;
+`;
+
 /**
  * Formats the payment method description with the account default currency.
  *
@@ -185,10 +183,8 @@ const GeneralSettingsSection = ( {
 	isChangingDisplayOrder,
 	onSaveChanges,
 } ) => {
-	const storeCurrency = window?.wcSettings?.currency?.code;
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -198,17 +194,14 @@ const GeneralSettingsSection = ( {
 	} = useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
-	const alipayCurrencies = useAliPayCurrencies();
 
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
-	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
 	const availablePaymentMethods = isUpeEnabled
-		? availablePaymentMethodIds
+		? orderedPaymentMethodIds
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||
-						method === 'multibanco' ||
 						capabilities.hasOwnProperty( `${ method }_payments` )
 				)
 				.filter( ( id ) => id !== 'link' )
@@ -275,6 +268,7 @@ const GeneralSettingsSection = ( {
 						/>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
+								id={ method }
 								Icon={ Icon }
 								description={ getFormattedPaymentMethodDescription(
 									method,
@@ -297,13 +291,6 @@ const GeneralSettingsSection = ( {
 					label,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
-				const paymentMethodCurrencies =
-					method === 'alipay'
-						? alipayCurrencies
-						: PaymentMethodsMap[ method ]?.currencies || [];
-				const isCurrencySupported =
-					method === 'card' ||
-					paymentMethodCurrencies.includes( storeCurrency );
 
 				return (
 					<div key={ method }>
@@ -314,7 +301,6 @@ const GeneralSettingsSection = ( {
 									! isAllowingManualCapture &&
 									isManualCaptureEnabled,
 								expanded: customizationStatus[ method ],
-								disabled: ! isCurrencySupported,
 							} ) }
 						>
 							<PaymentMethodCheckbox
@@ -323,13 +309,10 @@ const GeneralSettingsSection = ( {
 								isAllowingManualCapture={
 									isAllowingManualCapture
 								}
-								isCurrencySupported={ isCurrencySupported }
-								paymentMethodCurrencies={
-									paymentMethodCurrencies
-								}
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
+									id={ method }
 									Icon={ Icon }
 									description={ getFormattedPaymentMethodDescription(
 										method,
@@ -339,38 +322,34 @@ const GeneralSettingsSection = ( {
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
-							{ ! isUpeEnabled &&
-								isCurrencySupported &&
-								! customizationStatus[ method ] && (
-									<Button
-										variant="secondary"
-										onClick={ () =>
-											setCustomizationStatus( {
-												...customizationStatus,
-												[ method ]: true,
-											} )
-										}
-									>
-										{ __(
-											'Customize',
-											'woocommerce-gateway-stripe'
-										) }
-									</Button>
-								) }
-						</ListElement>
-						{ ! isUpeEnabled &&
-							isCurrencySupported &&
-							customizationStatus[ method ] && (
-								<CustomizePaymentMethod
-									method={ method }
-									onClose={ ( customizationData ) =>
-										onSaveCustomization(
-											method,
-											customizationData
-										)
+							{ ! customizationStatus[ method ] && (
+								<CustomizeButton
+									variant="secondary"
+									onClick={ () =>
+										setCustomizationStatus( {
+											...customizationStatus,
+											[ method ]: true,
+										} )
 									}
-								/>
+								>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</CustomizeButton>
 							) }
+						</ListElement>
+						{ customizationStatus[ method ] && (
+							<CustomizePaymentMethod
+								method={ method }
+								onClose={ ( customizationData ) =>
+									onSaveCustomization(
+										method,
+										customizationData
+									)
+								}
+							/>
+						) }
 					</div>
 				);
 			} ) }

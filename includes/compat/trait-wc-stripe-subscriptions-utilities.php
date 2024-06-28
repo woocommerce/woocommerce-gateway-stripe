@@ -19,7 +19,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool Whether subscriptions is enabled or not.
 	 */
 	public function is_subscriptions_enabled() {
-		return class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
+		return class_exists( 'WC_Subscriptions' ) && class_exists( 'WC_Subscription' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
 	}
 
 	/**

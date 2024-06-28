@@ -270,7 +270,9 @@ export const installWooSubscriptionsFromRepo = ( page ) =>
 
 			// Assert that the plugin is listed and active
 			await expect(
-				page.locator( '#deactivate-woo-subscriptions' )
+				page.locator(
+					`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
+				)
 			).toBeVisible();
 
 			console.log(
@@ -439,7 +441,7 @@ export const setupStripe = ( page, baseUrl ) =>
 					payment_request_button_size: 'default',
 					saved_cards: 'yes',
 					logging: 'no',
-					upe_checkout_experience_enabled: 'no',
+					upe_checkout_experience_enabled: 'yes',
 				};
 
 				await sshExecCommands( [
