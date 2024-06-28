@@ -617,8 +617,7 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the list of payment methods for the settings page when UPE is enabled. The list includes
-	 * all the UPE methods and Multibanco.
+	 * Returns the list of payment methods for the settings page when UPE is enabled.
 	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
 	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
 	 *
@@ -650,8 +649,6 @@ class WC_Stripe_Helper {
 		// This list is filtered on the basis of the capabilities set in the Stripe account data on the frontend before saving.
 		// If the list is empty or we have any new available payment methods, we need to update the list by including the available payment methods having capabilities.
 		$upe_available_payment_methods = $gateway->get_upe_available_payment_methods();
-		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
-		$upe_available_payment_methods[] = 'multibanco';
 
 		$additional_methods                = array_diff( $upe_available_payment_methods, $ordered_payment_method_ids );
 		$available_methods_with_capability = self::filter_payment_methods_with_capabilities( $additional_methods, $testmode );
@@ -686,12 +683,6 @@ class WC_Stripe_Helper {
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
-			if ( 'multibanco' === $payment_method_id ) {
-				// As Multibanco uses Stripe sources, we don't need to check for the capability.
-				$payment_method_ids_with_capability[] = $payment_method_id;
-				continue;
-			}
-
 			$key            = $payment_method_id . '_payments';
 			$has_capability = isset( $data['capabilities'][ $key ] );
 			if ( $has_capability || $testmode ) {
@@ -703,21 +694,13 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the list of enabled payment methods for the settings page when UPE is enabled. The list includes
-	 * the UPE methods and Multibanco if it's enabled.
+	 * Returns the list of enabled payment methods for the settings page when UPE is enabled.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
 	public static function get_upe_settings_enabled_payment_method_ids( $gateway ) {
 		$enabled_gateways = $gateway->get_upe_enabled_payment_method_ids();
-
-		// Multibanco is a non UPE method that uses Stripe sources. Adding to the list if it's enabled
-		// to show it in the Stripe settings page.
-		$multibanco = self::get_legacy_payment_method( 'stripe_multibanco' );
-		if ( $multibanco->is_enabled() ) {
-			$enabled_gateways[] = 'multibanco';
-		}
 
 		return $enabled_gateways;
 	}
