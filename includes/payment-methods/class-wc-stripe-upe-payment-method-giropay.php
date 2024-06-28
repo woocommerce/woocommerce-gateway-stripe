@@ -27,4 +27,16 @@ class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method 
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Returns boolean dependent on whether payment method
+	 * can be used at checkout
+	 *
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
+	 * @return bool
+	 */
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
+		return false;
+	}
 }
