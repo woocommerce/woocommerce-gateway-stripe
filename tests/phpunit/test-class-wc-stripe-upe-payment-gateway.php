@@ -1552,6 +1552,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
 
 		$this->mock_gateway->expects( $this->any() )
+			->method( 'is_subscriptions_enabled' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_subscription' )
 			->will( $this->returnValue( true ) );
 
