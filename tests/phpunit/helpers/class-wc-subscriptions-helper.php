@@ -4,7 +4,7 @@
  */
 
 /**
- * Undocumented function
+ * A function to mock wcs_get_subscriptions_for_order.
  *
  * @param WC_Order $order
  * @return array
