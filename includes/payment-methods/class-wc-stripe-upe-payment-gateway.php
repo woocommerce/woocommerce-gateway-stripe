@@ -2507,14 +2507,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$redirect = $this->get_return_url( $order );
 
-		/**
-		 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
-		 *
-		 * - Voucher payments (Boleto or Oxxo) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
-		 * - Wallet payments (CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
-		 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
-		 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
-		 */
 		if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
 			switch ( true ) {
 				// For Voucher payment method types (Boleto/Oxxo), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
