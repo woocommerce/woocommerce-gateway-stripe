@@ -886,11 +886,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->process_response( $charge, $order );
 				}
 			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
-				// If the payment method is Cash App Pay and the order has no cost, mark the order as paid.
-				if ( WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID === $upe_payment_method->get_id() && $order->get_total() === 0.0 ) {
-					$order->payment_complete();
-				}
-
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
 					'wc_stripe_change_subs_payment_method_success',
