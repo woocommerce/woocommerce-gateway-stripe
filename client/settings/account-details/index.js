@@ -49,24 +49,27 @@ const WebhookDescriptionWrapper = styled.div`
 	> span {
 		align-self: center;
 	}
-
-	p.warning {
-		background-color: #fcf9e8;
-		color: #674600;
-		padding: 4px 8px;
-		border-radius: 2px;
-	}
 `;
 
 const WebhookDescription = styled.div`
 	display: flex;
 	align-items: center;
+
+	&.warning {
+		background-color: #fcf9e8;
+		color: #674600;
+		padding: 4px 1em;
+		border-radius: 2px;
+	}
 `;
 
 const WarningIcon = styled( Icon )`
-	fill: #674600;
+	fill: none;
+	stroke: #674600;
+	width: 32px;
+	height: 32px;
 	padding: 5px;
-	margin: 1em 0;
+	margin: 1em 0.5em;
 `;
 
 const AccountDetailsError = styled.p`
@@ -149,6 +152,14 @@ const WebhooksSection = () => {
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
 
+	const webhookDescriptionClassesAr = [];
+	if ( isWebhookSecretEntered ) {
+		webhookDescriptionClassesAr.push( 'expanded' );
+	}
+	if ( isWarningMessage ) {
+		webhookDescriptionClassesAr.push( 'warning' );
+	}
+
 	return (
 		<>
 			<AccountSection>
@@ -162,14 +173,14 @@ const WebhooksSection = () => {
 			<WebhookDescriptionWrapper>
 				{ ! isWebhookSecretEntered && <WebhookInformation /> }
 				<WebhookDescription
-					className={ isWebhookSecretEntered ? 'expanded' : '' }
+					className={ webhookDescriptionClassesAr.join( ' ' ) }
 				>
 					{ isWarningMessage && (
 						<span data-testid="warning">
 							<WarningIcon icon={ warning } size="16" />
 						</span>
 					) }
-					<p className={ isWarningMessage ? 'warning' : '' }>
+					<p>
 						{ message }{ ' ' }
 						<Button
 							disabled={ requestStatus === 'pending' }
