@@ -576,7 +576,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$available_gateways = self::get_upe_available_payment_method_ids( $gateway );
+		$available_gateways = $gateway->get_upe_available_payment_methods();
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -617,14 +617,14 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the list of payment methods for the settings page when UPE is enabled.
+	 * Returns the list of ordered payment methods for the settings page when UPE is enabled.
 	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
 	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
-	public static function get_upe_available_payment_method_ids( $gateway ) {
+	public static function get_upe_ordered_payment_method_ids( $gateway ) {
 		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
 		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
