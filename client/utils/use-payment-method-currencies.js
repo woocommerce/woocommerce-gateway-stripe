@@ -154,16 +154,89 @@ const getWechatPayCurrencies = () => {
 	return upeCurrencies;
 };
 
+// Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
+// Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
+const getKlarmaCurrencies = () => {
+	let currencies = [];
+
+	// Accounts can transact in their local currency.
+	switch ( accountCountry ) {
+		case 'AU':
+			currencies = [ 'AUD' ];
+			break;
+		case 'CA':
+			currencies = [ 'CAD' ];
+			break;
+		case 'CH':
+			currencies = [ 'CHF' ];
+			break;
+		case 'CZ':
+			currencies = [ 'CZK' ];
+			break;
+		case 'DK':
+			currencies = [ 'DKK' ];
+			break;
+		case 'GB':
+			currencies = [ 'GBP' ];
+			break;
+		case 'NO':
+			currencies = [ 'NOK' ];
+			break;
+		case 'NZ':
+			currencies = [ 'NZD' ];
+			break;
+		case 'PL':
+			currencies = [ 'PLN' ];
+			break;
+		case 'SE':
+			currencies = [ 'SEK' ];
+			break;
+		case 'US':
+			currencies = [ 'USD' ];
+			break;
+	}
+
+	const EuroSupportedCountries = [
+		'AT', // Austria
+		'BE', // Belgium
+		'CH', // Switzerland
+		'CZ', // Czechia
+		'DE', // Germany
+		'DK', // Denmark
+		'ES', // Spain
+		'FI', // Finland
+		'FR', // France
+		'GR', // Greece
+		'IE', // Ireland
+		'IT', // Italy
+		'NL', // Netherlands
+		'NO', // Norway
+		'PL', // Poland
+		'PT', // Portugal
+		'SE', // Sweden
+	];
+
+	// Countries located in the EEA, Switzerland and the UK can also transact across borders in EUR.
+	if ( EuroSupportedCountries.includes( accountCountry ) ) {
+		currencies.push( 'EUR' );
+	}
+
+	return currencies;
+};
+
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	if ( paymentMethodId === 'alipay' ) {
-		return getAliPayCurrencies( isUpeEnabled );
-	} else if ( paymentMethodId === 'wechat_pay' ) {
-		return getWechatPayCurrencies();
+	switch ( paymentMethodId ) {
+		case 'alipay':
+			return getAliPayCurrencies( isUpeEnabled );
+		case 'wechat_pay':
+			return getWechatPayCurrencies();
+		case 'klarna':
+			return getKlarmaCurrencies();
+		default:
+			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 	}
-
-	return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 };
 
 export default usePaymentMethodCurrencies;
