@@ -2,9 +2,10 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { Button, ExternalLink, Icon } from '@wordpress/components';
-import { help, warning } from '@wordpress/icons';
+import { help } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
+import GridIcon from 'gridicons';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
 import Tooltip from 'wcstripe/components/tooltip';
@@ -61,15 +62,6 @@ const WebhookDescription = styled.div`
 		padding: 4px 1em;
 		border-radius: 2px;
 	}
-`;
-
-const WarningIcon = styled( Icon )`
-	fill: none;
-	stroke: #674600;
-	width: 32px;
-	height: 32px;
-	padding: 5px;
-	margin: 1em 0.5em;
 `;
 
 const AccountDetailsError = styled.p`
@@ -177,7 +169,15 @@ const WebhooksSection = () => {
 				>
 					{ isWarningMessage && (
 						<span data-testid="warning">
-							<WarningIcon icon={ warning } size="16" />
+							<GridIcon
+								icon="notice-outline"
+								size={ 24 }
+								style={ {
+									marginRight: '1rem',
+									marginLeft: '0.5rem',
+									fill: '#674600',
+								} }
+							/>
 						</span>
 					) }
 					<p>
