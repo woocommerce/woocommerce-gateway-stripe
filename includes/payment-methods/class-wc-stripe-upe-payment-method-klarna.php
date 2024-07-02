@@ -55,6 +55,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 			return [ $account_country ];
 		}
 
+		// EEA currencies can only transact with countries where that currency is the standard currency.
 		switch ( get_woocommerce_currency() ) {
 			case 'CHF':
 				return [ 'CH' ];
