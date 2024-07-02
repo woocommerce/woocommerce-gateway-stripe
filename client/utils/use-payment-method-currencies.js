@@ -190,7 +190,7 @@ const getKlarnaCurrencies = () => {
 		'SE', // Sweden
 	];
 
-	// Countries located in the EEA, Switzerland and the UK can also transact across borders in EUR.
+	// Countries located in the EEA, Switzerland and the UK can also transact in any EU based currencies including NOK, PLN, DKK etc.
 	if ( eeaCountries.includes( accountCountry ) ) {
 		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
 	}
