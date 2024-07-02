@@ -157,46 +157,19 @@ const getWechatPayCurrencies = () => {
 // Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
 // Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
 const getKlarnaCurrencies = () => {
-	let presentmentCurrencies = [];
-
 	// Accounts can transact in their local currency.
 	switch ( accountCountry ) {
 		case 'AU':
-			presentmentCurrencies = [ 'AUD' ];
-			break;
+			return [ 'AUD' ];
 		case 'CA':
-			presentmentCurrencies = [ 'CAD' ];
-			break;
-		case 'CH':
-			presentmentCurrencies = [ 'CHF' ];
-			break;
-		case 'CZ':
-			presentmentCurrencies = [ 'CZK' ];
-			break;
-		case 'DK':
-			presentmentCurrencies = [ 'DKK' ];
-			break;
-		case 'GB':
-			presentmentCurrencies = [ 'GBP' ];
-			break;
-		case 'NO':
-			presentmentCurrencies = [ 'NOK' ];
-			break;
+			return [ 'CAD' ];
 		case 'NZ':
-			presentmentCurrencies = [ 'NZD' ];
-			break;
-		case 'PL':
-			presentmentCurrencies = [ 'PLN' ];
-			break;
-		case 'SE':
-			presentmentCurrencies = [ 'SEK' ];
-			break;
+			return [ 'NZD' ];
 		case 'US':
-			presentmentCurrencies = [ 'USD' ];
-			break;
+			return [ 'USD' ];
 	}
 
-	const EuroSupportedCountries = [
+	const eeaCountries = [
 		'AT', // Austria
 		'BE', // Belgium
 		'CH', // Switzerland
@@ -206,6 +179,7 @@ const getKlarnaCurrencies = () => {
 		'ES', // Spain
 		'FI', // Finland
 		'FR', // France
+		'GB', // United Kingdom
 		'GR', // Greece
 		'IE', // Ireland
 		'IT', // Italy
@@ -217,11 +191,11 @@ const getKlarnaCurrencies = () => {
 	];
 
 	// Countries located in the EEA, Switzerland and the UK can also transact across borders in EUR.
-	if ( EuroSupportedCountries.includes( accountCountry ) ) {
-		presentmentCurrencies.push( 'EUR' );
+	if ( eeaCountries.includes( accountCountry ) ) {
+		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
 	}
 
-	return presentmentCurrencies;
+	return [];
 };
 
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
