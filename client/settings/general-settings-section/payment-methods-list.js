@@ -197,13 +197,11 @@ const GeneralSettingsSection = ( {
 
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
-	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
 	const availablePaymentMethods = isUpeEnabled
 		? orderedPaymentMethodIds
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||
-						method === 'multibanco' ||
 						capabilities.hasOwnProperty( `${ method }_payments` )
 				)
 				.filter( ( id ) => id !== 'link' )
