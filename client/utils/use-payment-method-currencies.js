@@ -156,43 +156,43 @@ const getWechatPayCurrencies = () => {
 
 // Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
 // Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
-const getKlarmaCurrencies = () => {
-	let currencies = [];
+const getKlarnaCurrencies = () => {
+	let presentmentCurrencies = [];
 
 	// Accounts can transact in their local currency.
 	switch ( accountCountry ) {
 		case 'AU':
-			currencies = [ 'AUD' ];
+			presentmentCurrencies = [ 'AUD' ];
 			break;
 		case 'CA':
-			currencies = [ 'CAD' ];
+			presentmentCurrencies = [ 'CAD' ];
 			break;
 		case 'CH':
-			currencies = [ 'CHF' ];
+			presentmentCurrencies = [ 'CHF' ];
 			break;
 		case 'CZ':
-			currencies = [ 'CZK' ];
+			presentmentCurrencies = [ 'CZK' ];
 			break;
 		case 'DK':
-			currencies = [ 'DKK' ];
+			presentmentCurrencies = [ 'DKK' ];
 			break;
 		case 'GB':
-			currencies = [ 'GBP' ];
+			presentmentCurrencies = [ 'GBP' ];
 			break;
 		case 'NO':
-			currencies = [ 'NOK' ];
+			presentmentCurrencies = [ 'NOK' ];
 			break;
 		case 'NZ':
-			currencies = [ 'NZD' ];
+			presentmentCurrencies = [ 'NZD' ];
 			break;
 		case 'PL':
-			currencies = [ 'PLN' ];
+			presentmentCurrencies = [ 'PLN' ];
 			break;
 		case 'SE':
-			currencies = [ 'SEK' ];
+			presentmentCurrencies = [ 'SEK' ];
 			break;
 		case 'US':
-			currencies = [ 'USD' ];
+			presentmentCurrencies = [ 'USD' ];
 			break;
 	}
 
@@ -218,10 +218,10 @@ const getKlarmaCurrencies = () => {
 
 	// Countries located in the EEA, Switzerland and the UK can also transact across borders in EUR.
 	if ( EuroSupportedCountries.includes( accountCountry ) ) {
-		currencies.push( 'EUR' );
+		presentmentCurrencies.push( 'EUR' );
 	}
 
-	return currencies;
+	return presentmentCurrencies;
 };
 
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
@@ -233,7 +233,7 @@ export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 		case 'wechat_pay':
 			return getWechatPayCurrencies();
 		case 'klarna':
-			return getKlarmaCurrencies();
+			return getKlarnaCurrencies();
 		default:
 			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 	}
