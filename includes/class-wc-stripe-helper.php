@@ -734,28 +734,24 @@ class WC_Stripe_Helper {
 		$ordered_available_stripe_methods = [];
 		// Map the Stripe payment method list to the right format to save in the 'woocommerce_gateway_order' option.
 		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
+			$gateway_id = str_starts_with( $payment_method_id, 'stripe' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
+
 			if ( 'card' === $payment_method_id ) {
-				$gateway_id                         = 'stripe';
-				$ordered_available_stripe_methods[] = $gateway_id;
-				continue;
+				$gateway_id = 'stripe';
 			} elseif ( 'sepa_debit' === $payment_method_id ) {
 				$gateway_id = 'stripe_sepa';
 			}
 
-			$gateway_id = str_starts_with( $payment_method_id, 'stripe_' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
-
 			$ordered_available_stripe_methods[] = $gateway_id;
-
-			if ( isset( $gateway_order[ $gateway_id ] ) ) {
-				unset( $gateway_order[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
-			}
 		}
 
 		$updated_gateway_order = [];
 		$index                 = 0;
 		// Add the Stripe methods back in the right order and assign all the payment methods the updated order index.
 		foreach ( $gateway_order as $gateway => $order ) {
-			if ( 'stripe' === $gateway ) {
+			if ( str_starts_with( $gateway, 'stripe_' ) ) {
+				continue; // Skip the other stripe gateways. We'll add all Stripe methods back in the right order.
+			} elseif ( 'stripe' === $gateway ) {
 				unset( $gateway_order['stripe'] );
 				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
 					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
