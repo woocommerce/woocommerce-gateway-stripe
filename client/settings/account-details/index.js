@@ -5,8 +5,8 @@ import { Button, ExternalLink, Icon } from '@wordpress/components';
 import { help, warning } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
+import SectionStatus from '../section-status';
 import useWebhookStateMessage from './use-webhook-state-message';
-import SectionStatus from './section-status';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import {

@@ -123,6 +123,28 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/configure_webhooks',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'configure_webhooks' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'live_mode'      => [
+						'description'       => __( 'Whether the account is in live mode.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'secret_key'           => [
+						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_secret_key' ],
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -333,6 +355,94 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Configure webhooks for the Stripe Account.
+	 *
+	 * This will create a webhook endpoint in the Stripe account with the events we need to listen to at the correct URL.
+	 * The webhook secret will be stored in the settings.
+	 *
+	 * @param WP_REST_Request $request Data about the request.
+	 */
+	public function configure_webhooks( WP_REST_Request $request ) {
+		$settings     = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$live_mode    = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
+		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
+
+		// Check if the user is configuring the opposite mode. ie if the store is in live mode and is configuring webhooks for test mode.
+		$is_test_mode_enabled    = ! empty( $settings['testmode'] ) && 'yes' === $settings['testmode'];
+		$configure_opposite_mode = ( $live_mode && $is_test_mode_enabled ) || ( ! $live_mode && ! $is_test_mode_enabled );
+
+		// If the user has changed the secret key in the UI, use that to create the webhook.
+		if ( $secret !== $this->mask_key_value( $saved_secret ) ) {
+			WC_Stripe_API::set_secret_key( $secret );
+		} elseif ( $configure_opposite_mode ) {
+			// If the request is to configure webhooks for the mode not currently active, use the saved secret key for that mode.
+			WC_Stripe_API::set_secret_key( $saved_secret );
+		}
+
+		$request = [
+			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
+			'enabled_events' => [
+				'source.chargeable',
+				'source.canceled',
+				'charge.succeeded',
+				'charge.failed',
+				'charge.captured',
+				'charge.dispute.created',
+				'charge.dispute.closed',
+				'charge.refunded',
+				'charge.refund.updated',
+				'review.opened',
+				'review.closed',
+				'payment_intent.succeeded',
+				'payment_intent.payment_failed',
+				'payment_intent.amount_capturable_updated',
+				'payment_intent.requires_action',
+				'setup_intent.succeeded',
+				'setup_intent.setup_failed',
+			],
+			'url' => WC_Stripe_Helper::get_webhook_url(),
+		];
+
+		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+
+		if ( isset( $response->error->message ) ) {
+			// Translators: %s is the error message from the Stripe API.
+			return new WP_REST_Response( [ 'message' => sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) ], 400 );
+		}
+
+		if ( ! isset( $response->secret, $response->id ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
+
+		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_data_setting   = $live_mode ? 'webhook_data' : 'test_webhook_data';
+		$configured_webhook_id  = $settings[ $webhook_data_setting ]['id'] ?? null;
+
+		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
+		if ( $configured_webhook_id ) {
+			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
+		}
+
+		// Save the Webhook secret and ID.
+		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
+		$settings[ $webhook_data_setting ]   = [
+			'id'  => wc_clean( $response->id ),
+			'url' => wc_clean( $response->url ),
+		];
+
+		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		return new WP_REST_Response(
+			[
+				'message'       => __( 'Webhooks have been setup successfully.', 'woocommerce-gateway-stripe' ),
+				'webhookURL'    => rawurlencode( $response->url ),
+				'webhookSecret' => $this->mask_key_value( $response->secret ),
+			]
+		);
 	}
 
 	/**
