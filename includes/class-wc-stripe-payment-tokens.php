@@ -262,9 +262,9 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$stored_tokens        = [];
-			$deprecated_tokens    = [];
-			$tokens_using_sources = [];
+			$stored_tokens = [];
+
+			$deprecated_tokens = [];
 
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
@@ -273,11 +273,6 @@ class WC_Stripe_Payment_Tokens {
 					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
-					}
-
-					// List the tokens using sources to check whether they were migrated on the Stripe side later on.
-					if ( str_starts_with( $token->get_token(), 'src_' ) ) {
-						$tokens_using_sources[ $token->get_token() ] = $token;
 					}
 
 					$stored_tokens[ $token->get_token() ] = $token;
@@ -310,16 +305,6 @@ class WC_Stripe_Payment_Tokens {
 			foreach ( $payment_methods as $payment_method ) {
 				if ( ! isset( $payment_method->type ) ) {
 					continue;
-				}
-
-				// Remove the token locally when:
-				// - The payment method is listed within the tokens in WooCommerce using sources.
-				// - It was migrated to a payment method on the Stripe side.
-				if (
-					isset( $tokens_using_sources[ $payment_method->id ] ) &&
-					! empty( $payment_method->metadata->migrated_payment_method )
-				) {
-					$deprecated_tokens[ $payment_method->id ] = $tokens_using_sources[ $payment_method->id ];
 				}
 
 				// Retrieve the real APM behind SEPA PaymentMethods.
