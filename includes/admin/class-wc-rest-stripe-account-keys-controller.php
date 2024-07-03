@@ -271,7 +271,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
 		}
 
-		// Before saving the settings, decommission the any previously automatically configured webhook endpoint.
+		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
@@ -449,7 +449,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-<<<<<<< HEAD
 	 * Decommissions the configured Webhook if the user is removing their secret key.
 	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
 	 *
@@ -494,8 +493,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-=======
->>>>>>> develop
 	 * Records a track event when the keys of an account are manually removed (account disconnected).
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
