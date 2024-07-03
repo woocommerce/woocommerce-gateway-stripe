@@ -382,8 +382,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 
 		// Check if the user is configuring the opposite mode. ie if the store is in live mode and is configuring webhooks for test mode.
-		$is_testmode_enabled     = 'yes' === $settings['testmode'];
-		$configure_opposite_mode = isset( $settings['testmode'] ) && ( $live_mode && $is_testmode_enabled ) || ( ! $live_mode && ! $is_testmode_enabled );
+		$is_test_mode_enabled     = 'yes' === $settings['testmode'];
+		$configure_opposite_mode = isset( $settings['testmode'] ) && ( $live_mode && $is_test_mode_enabled ) || ( ! $live_mode && ! $is_test_mode_enabled );
 
 		// If the user has changed the secret key in the UI, use that to create the webhook.
 		if ( $secret !== $this->mask_key_value( $saved_secret ) ) {

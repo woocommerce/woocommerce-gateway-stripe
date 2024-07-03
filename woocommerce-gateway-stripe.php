@@ -187,8 +187,10 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
@@ -212,6 +214,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
@@ -230,7 +233,6 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -287,6 +289,9 @@ function woocommerce_gateway_stripe() {
 				}
 
 				new WC_Stripe_UPE_Compatibility_Controller();
+
+				// Intitialize the class for updating subscriptions' Legacy SEPA payment methods.
+				add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
 			}
 
 			/**
@@ -325,6 +330,10 @@ function woocommerce_gateway_stripe() {
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
 					$this->update_prb_location_settings();
+
+					// Check for subscriptions using legacy SEPA tokens on upgrade.
+					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
+					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 				}
 			}
 
@@ -429,6 +438,7 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_P24::class;
 					$methods[] = WC_Gateway_Stripe_Boleto::class;
 					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -438,9 +448,6 @@ function woocommerce_gateway_stripe() {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
 				}
-
-				// Multibanco will always be added to the gateway list, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -721,6 +728,23 @@ function woocommerce_gateway_stripe() {
 				}
 
 				return $fields;
+			}
+
+			/**
+			 * Initializes updating subscriptions.
+			 */
+			public function initialize_subscriptions_updater() {
+				// The updater depends on WC_Subscriptions. Bail out if not active.
+				if ( ! class_exists( 'WC_Subscriptions' ) ) {
+					return;
+				}
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
+
+				$logger  = wc_get_logger();
+				$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
+
+				$updater->init();
+				$updater->maybe_update();
 			}
 		}
 
