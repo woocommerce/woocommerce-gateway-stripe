@@ -262,15 +262,19 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$stored_tokens = [];
-
+			$stored_tokens     = [];
 			$deprecated_tokens = [];
 
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 
-					// APM tokens from before Split PE was in place that will get removed.
-					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+					// Remove the following deprecated tokens:
+					// - APM tokens from before Split PE was in place.
+					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					if (
+						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						str_starts_with( $token->get_token(), 'src_' )
+					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
 					}
