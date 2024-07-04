@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
 * Add - Introduce a way for store managers to automatically configure webhooks on their Stripe account with a single button in the admin settings.
 * Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
+* Fix - PHP warnings within the WC_Stripe_Intent_Controller class.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
