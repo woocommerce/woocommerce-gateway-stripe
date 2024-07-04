@@ -195,7 +195,10 @@ const getKlarnaCurrencies = () => {
 		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
 	}
 
-	return [];
+	// Throw an error if the country is not recognized.
+	throw new Error(
+		`Unable to determine Klarna currencies for: ${ accountCountry }`
+	);
 };
 
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
