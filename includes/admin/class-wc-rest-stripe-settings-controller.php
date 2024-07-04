@@ -71,7 +71,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -157,7 +157,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
+							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -214,7 +214,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-		$available_payment_method_ids = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
 		$enabled_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
@@ -226,7 +227,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'          => $available_payment_method_ids,
-				'ordered_payment_method_ids'            => array_values( array_diff( $available_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
+				'ordered_payment_method_ids'            => array_values( array_diff( $ordered_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
 				'individual_payment_method_settings'    => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
@@ -288,23 +289,28 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_payment_methods_order( WP_REST_Request $request ) {
+		$is_upe_enabled             = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
 
 		if ( empty( $ordered_payment_method_ids ) ) {
 			return new WP_REST_Response( [], 403 );
 		}
 
-		$ordered_payment_method_ids = array_map(
-			function ( $id ) {
-				if ( 'card' === $id ) {
-					return 'stripe';
-				}
-				return 'stripe_' . $id;
-			},
-			$ordered_payment_method_ids
-		);
+		if ( $is_upe_enabled ) {
+			$this->gateway->update_option( 'stripe_upe_payment_method_order', $ordered_payment_method_ids );
+		} else {
+			$ordered_payment_method_ids = array_map(
+				function ( $id ) {
+					if ( 'card' === $id ) {
+						return 'stripe';
+					}
+					return 'stripe_' . $id;
+				},
+				$ordered_payment_method_ids
+			);
 
-		$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
+			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
+		}
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -525,15 +531,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
-
-		// handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
-		$multibanco            = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
-		$is_multibanco_enabled = $multibanco->is_enabled();
-		if ( in_array( 'multibanco', $payment_method_ids_to_enable, true ) && ! $is_multibanco_enabled ) {
-			$multibanco->update_option( 'enabled', 'yes' );
-		} elseif ( ! in_array( 'multibanco', $payment_method_ids_to_enable, true ) && $is_multibanco_enabled ) {
-			$multibanco->update_option( 'enabled', 'no' );
-		}
 	}
 
 	/**

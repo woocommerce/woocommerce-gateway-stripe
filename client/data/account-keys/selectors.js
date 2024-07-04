@@ -27,3 +27,7 @@ export const getIsTestingAccountKeys = ( state ) => {
 export const getIsValidAccountKeys = ( state ) => {
 	return getAccountKeysState( state ).isValid;
 };
+
+export const isConfiguringWebhooks = ( state ) => {
+	return getAccountKeysState( state ).isConfiguringWebhooks || false;
+};

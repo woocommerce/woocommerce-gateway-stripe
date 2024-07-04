@@ -40,4 +40,5 @@ if ( defined( 'WC_REMOVE_ALL_DATA' ) && true === WC_REMOVE_ALL_DATA ) {
 	delete_option( 'woocommerce_stripe_giropay_settings' );
 	delete_option( 'woocommerce_stripe_sepa_settings' );
 	delete_option( 'woocommerce_stripe_sofort_settings' );
+	delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 }

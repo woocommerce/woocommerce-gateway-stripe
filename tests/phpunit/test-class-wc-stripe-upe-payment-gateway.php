@@ -142,6 +142,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'get_intent_from_order',
 					'has_pre_order_charged_upon_release',
 					'has_pre_order',
+					'is_subscriptions_enabled',
 					'update_saved_payment_method',
 				]
 			)
@@ -265,6 +266,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
@@ -283,6 +285,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 				],
 			],
 		];
@@ -1612,6 +1615,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
+		// When the order contains a subscription, the payment type is expected to be "recurring".
+		$metadata['payment_type'] = 'recurring';
+
 		$expected_request = [
 			'amount'             => $amount,
 			'currency'           => $currency,
@@ -1622,6 +1628,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'is_subscriptions_enabled' )
+			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_subscription' )
@@ -2256,5 +2266,58 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 												->setMethods( [ 'get_cached_account_data' ] )
 												->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
+	}
+
+	/**
+	 * Test test_set_payment_method_title_for_order.
+	 *
+	 */
+	public function test_set_payment_method_title_for_order() {
+		$order = WC_Helper_Order::create_order();
+
+		// Subscriptions - note that orders are used here as subscriptions. Subscriptions inherit all order methods so should suffice for testing.
+		$mock_subscription_0 = WC_Helper_Order::create_order();
+		$mock_subscription_1 = WC_Helper_Order::create_order();
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
+
+		$this->mock_gateway->expects( $this->exactly( 3 ) ) // 3 times because we test 3 payment methods.
+			->method( 'is_subscriptions_enabled' )
+			->willReturn( true );
+
+		/**
+		 * SEPA
+		 */
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+
+		$this->assertEquals( 'stripe_sepa_debit', $order->get_payment_method() );
+		$this->assertEquals( 'SEPA Direct Debit', $order->get_payment_method_title() );
+
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+
+		/**
+		 * iDEAL
+		 */
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID );
+
+		$this->assertEquals( 'stripe_ideal', $order->get_payment_method() );
+		$this->assertEquals( 'iDEAL', $order->get_payment_method_title() );
+
+		// iDEAL subscriptions should be set to SEPA as it's the processing payment method of subscription payments for iDEAL.
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+
+		/**
+		 * Cards
+		 */
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID );
+
+		// Cards should be set to `stripe`.
+		$this->assertEquals( 'stripe', $order->get_payment_method() );
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
 	}
 }
