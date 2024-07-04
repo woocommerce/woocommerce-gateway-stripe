@@ -118,7 +118,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		if ( $subscription && $subscription->get_payment_method() === WC_Gateway_Stripe_Sepa::ID ) {
 			$this->repair_item( $subscription_id );
 			// Unschedule the repair action as it's no longer needed.
-			as_unschedule_single_action( $this->repair_hook, array( 'repair_object' => $subscription_id ) );
+			as_unschedule_action( $this->repair_hook, [ 'repair_object' => $subscription_id ] );
 		}
 	}
 }
