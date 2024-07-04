@@ -24,7 +24,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		$this->repair_hook    = 'wc_stripe_subscriptions_legacy_sepa_token_repair';
 		$this->log_handle     = 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs';
 
-		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_migrate_before_renewal' ] );
+		// Repair subscriptions prior to renewal as a backstop. Hooked onto 1 to run before the actual renewal.
+		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_migrate_before_renewal' ], 1 );
 	}
 
 	/**
