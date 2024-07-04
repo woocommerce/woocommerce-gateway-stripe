@@ -863,6 +863,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( is_wp_error( $response ) ) {
 					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
 				}
+
+				// Save the payment method to the customer.
+				$this->save_payment_method( $source_object );
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
