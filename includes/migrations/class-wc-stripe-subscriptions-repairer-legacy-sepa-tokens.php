@@ -104,7 +104,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	/**
 	 * Updates subscriptions which need updating prior to it renewing.
 	 *
-	 * This function is a back stop to prevent subscription renewals from failing if we haven't ran the repair yet.
+	 * This function is a backstop to prevent subscription renewals from failing if we haven't ran the repair yet.
 	 *
 	 * @param int $subscription_id The subscription ID which is about to renew.
 	 */
