@@ -54,13 +54,16 @@ const WebhookDescriptionWrapper = styled.div`
 
 const WebhookDescription = styled.div`
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 
 	&.warning {
 		background-color: #fcf9e8;
-		color: #674600;
-		padding: 4px 1em;
-		border-radius: 2px;
+		color: #1e1e1e;
+		padding: 12px 15px 12px 12px;
+	}
+
+	> p {
+		margin: 0;
 	}
 `;
 
@@ -173,8 +176,7 @@ const WebhooksSection = () => {
 								icon="notice-outline"
 								size={ 24 }
 								style={ {
-									marginRight: '1rem',
-									marginLeft: '0.5rem',
+									marginRight: '0.6rem',
 									fill: '#674600',
 								} }
 							/>
