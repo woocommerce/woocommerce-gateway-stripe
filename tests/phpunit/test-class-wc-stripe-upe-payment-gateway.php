@@ -521,9 +521,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// We only use this when handling mandates.
 		$this->mock_gateway
-			->expects( $this->once() )
+			->expects( $this->exactly( 2 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( (object) [] );
+			->willReturn( null );
 
 		$this->mock_gateway
 			->expects( $this->never() )
@@ -2172,6 +2172,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		$charge = [
+			'id'                     => 'ch_mock',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+		];
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( $this->array_to_object( $charge ) );
 
 		$this->mock_gateway
 			->expects( $this->once() )
