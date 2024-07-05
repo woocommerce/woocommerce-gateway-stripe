@@ -848,10 +848,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			if ( $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card ) ) {
-				$this->maybe_attach_source_to_customer( $source_object, $customer );
-
-				// Save the payment method to the customer.
-				$this->save_payment_method( $source_object );
+				$response = $this->maybe_attach_source_to_customer( $source_object, $customer );
+				if ( $response ) {
+					// Save the payment method to the customer.
+					$this->save_payment_method( $source_object );
+				}
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
