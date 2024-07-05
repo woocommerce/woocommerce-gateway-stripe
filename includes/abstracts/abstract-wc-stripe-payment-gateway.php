@@ -843,6 +843,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
 			$customer->maybe_create_customer();
+
+			// Check if the customer opted to save the payment method to file.
+			$maybe_saved_card    = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+			$is_sepa_source      = isset( $source_object->type ) && 'sepa_debit' === $source_object->type;
+			$save_payment_method = $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card );
+
+			/**
+			 * Save the SEPA source to the customer if force save source is true or the user is logged in and the user has opted to save the payment method.
+			 *
+			 * We only need to save SEPA sources here. Saving card payment methods are handled by setup intents later in the flow. @see WC_Gateway_Stripe::process_payment().
+			 */
+			if ( $is_sepa_source && $save_payment_method ) {
+				$response = $customer->attach_source( $source_object->id );
+
+				if ( ! empty( $response->error ) ) {
+					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+				}
+				if ( is_wp_error( $response ) ) {
+					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+				}
+
+				// Save the payment method to the customer.
+				$this->save_payment_method( $source_object );
+			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
 			$wc_token_id = isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ? wc_clean( wp_unslash( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ) : '';
