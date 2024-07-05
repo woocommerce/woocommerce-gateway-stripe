@@ -18,7 +18,7 @@ redirect_output() {
 # https://hub.docker.com/_/wordpress#running-as-an-arbitrary-user
 cli()
 {
-	redirect_output docker run -it --env-file default.env --rm --user 33:33 --volumes-from $WP_CONTAINER --network container:$WP_CONTAINER wordpress:cli "$@"
+	redirect_output docker run -it --env-file default.env --rm --volumes-from $WP_CONTAINER --network container:$WP_CONTAINER wordpress:cli "$@"
 }
 
 set +e
