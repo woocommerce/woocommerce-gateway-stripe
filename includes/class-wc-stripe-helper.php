@@ -576,7 +576,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
-		$available_gateways = self::get_upe_available_payment_method_ids( $gateway );
+		$available_gateways = $gateway->get_upe_available_payment_methods();
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -617,14 +617,14 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the list of payment methods for the settings page when UPE is enabled.
+	 * Returns the list of ordered payment methods for the settings page when UPE is enabled.
 	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
 	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
-	public static function get_upe_available_payment_method_ids( $gateway ) {
+	public static function get_upe_ordered_payment_method_ids( $gateway ) {
 		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
 		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
@@ -648,20 +648,27 @@ class WC_Stripe_Helper {
 		// The `stripe_upe_payment_method_order` option has the order of the UPE methods set by the user.
 		// This list is filtered on the basis of the capabilities set in the Stripe account data on the frontend before saving.
 		// If the list is empty or we have any new available payment methods, we need to update the list by including the available payment methods having capabilities.
-		$upe_available_payment_methods = $gateway->get_upe_available_payment_methods();
+		$available_methods_with_capability = self::filter_payment_methods_with_capabilities( $gateway->get_upe_available_payment_methods(), $testmode );
 
-		$additional_methods                = array_diff( $upe_available_payment_methods, $ordered_payment_method_ids );
-		$available_methods_with_capability = self::filter_payment_methods_with_capabilities( $additional_methods, $testmode );
+		$ordered_payment_method_ids_with_capability = array_filter(
+			$ordered_payment_method_ids,
+			function( $payment_method_id ) use ( $available_methods_with_capability ) {
+				return in_array( $payment_method_id, $available_methods_with_capability, true );
+			}
+		);
 
-		// Update the `stripe_upe_payment_method_order` option with the new order including the available methods with capabilities.
-		if ( count( $available_methods_with_capability ) ) {
-			$ordered_payment_method_ids = array_merge( $ordered_payment_method_ids, $available_methods_with_capability );
-
-			$stripe_settings['stripe_upe_payment_method_order'] = $ordered_payment_method_ids;
-			update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		if ( count( $ordered_payment_method_ids_with_capability ) === count( $available_methods_with_capability ) ) {
+			return $ordered_payment_method_ids_with_capability;
 		}
 
-		return $ordered_payment_method_ids;
+		// Update the `stripe_upe_payment_method_order` option with the new order including rest of the available methods with capabilities.
+		$additional_methods = array_diff( $available_methods_with_capability, $ordered_payment_method_ids_with_capability );
+		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
+
+		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		return $updated_order;
 	}
 
 	/**
