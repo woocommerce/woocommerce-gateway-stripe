@@ -60,16 +60,9 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 */
 	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
 		$subscription = $this->get_subscription_to_migrate( $subscription_id );
-		$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
-		$user_id      = $subscription->get_user_id();
 
 		// Update the subscription with the updated SEPA gateway ID.
 		$this->set_subscription_updated_payment_gateway_id( $subscription );
-
-		// Try to create an updated SEPA gateway token if none exists.
-		// We don't need this to update the subscription, but creating one for consistency.
-		// It could be confusing for a merchant to see the subscription renewing but no saved token in the store.
-		$this->maybe_create_updated_sepa_token_by_source_id( $source_id, $user_id );
 
 		// Update the payment method used for renewals to the migrated pm_, if any.
 		$this->set_subscription_updated_payment_method( $subscription );
@@ -137,72 +130,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		// And set it as the payment method for the subscription.
 		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $migrated_payment_method_id );
 		$subscription->save();
-	}
-
-	/**
-	 * Returns an updated token to be used for the subscription, given the source ID.
-	 *
-	 * If no updated token is found, we create a new one based on the legacy one.
-	 *
-	 * @param string  $source_id The Source or Payment Method ID associated with the subscription.
-	 * @param integer $user_id   The WordPress User ID to whom the subscription belongs.
-	 */
-	private function maybe_create_updated_sepa_token_by_source_id( string $source_id, int $user_id ) {
-
-		// Retrieve the updated SEPA tokens for the user.
-		$replacement_token = $this->get_customer_token_by_source_id( $source_id, $user_id, $this->updated_sepa_gateway_id );
-
-		// If no updated SEPA token was found, create a new one based on the source ID.
-		if ( ! $replacement_token ) {
-			$replacement_token = $this->create_updated_sepa_token( $source_id, $user_id );
-		}
-	}
-
-	/**
-	 * Get the token for the user by its source ID and gateway ID. s
-	 *
-	 * @param string  $source_id  The ID of the source we're looking for.
-	 * @param integer $user_id    The ID of the user we're retrieving tokens for.
-	 * @param string  $gateway_id The ID of the gateway of the tokens we want to check.
-	 *
-	 * @return WC_Payment_Token|false
-	 */
-	private function get_customer_token_by_source_id( string $source_id, int $user_id, string $gateway_id ) {
-		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, $gateway_id );
-
-		foreach ( $customer_tokens as $token ) {
-			if ( $source_id === $token->get_token() ) {
-				return $token;
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Creates an updated SEPA token given the source ID.
-	 *
-	 * @param string  $source_id Source ID from which to create the new token.
-	 * @param integer $user_id
-	 * @return WC_Payment_Token_SEPA|bool The new SEPA token, or false if no legacy token was found.
-	 */
-	private function create_updated_sepa_token( string $source_id, int $user_id ) {
-		$legacy_token = $this->get_customer_token_by_source_id( $source_id, $user_id, WC_Gateway_Stripe_Sepa::ID );
-
-		// Bail out if we don't have a token from which to create an updated one.
-		if ( ! $legacy_token ) {
-			return false;
-		}
-
-		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $legacy_token->get_last4() );
-		$token->set_payment_method_type( $legacy_token->get_payment_method_type() );
-		$token->set_gateway_id( $this->updated_sepa_gateway_id );
-		$token->set_token( $source_id );
-		$token->set_user_id( $user_id );
-		$token->save();
-
-		return $token;
 	}
 
 	/**
