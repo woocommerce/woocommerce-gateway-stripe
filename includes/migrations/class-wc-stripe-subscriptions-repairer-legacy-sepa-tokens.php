@@ -23,6 +23,9 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		$this->scheduled_hook = 'wc_stripe_schedule_subscriptions_legacy_sepa_token_repairs';
 		$this->repair_hook    = 'wc_stripe_subscriptions_legacy_sepa_token_repair';
 		$this->log_handle     = 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs';
+
+		// Repair subscriptions prior to renewal as a backstop. Hooked onto 0 to run before the actual renewal.
+		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_migrate_before_renewal' ], 0 );
 	}
 
 	/**
@@ -96,5 +99,26 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		}
 
 		return $items_to_repair;
+	}
+
+	/**
+	 * Updates subscriptions which need updating prior to it renewing.
+	 *
+	 * This function is a backstop to prevent subscription renewals from failing if we haven't ran the repair yet.
+	 *
+	 * @param int $subscription_id The subscription ID which is about to renew.
+	 */
+	public function maybe_migrate_before_renewal( $subscription_id ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
+		$subscription = wcs_get_subscription( $subscription_id );
+
+		if ( $subscription && $subscription->get_payment_method() === WC_Gateway_Stripe_Sepa::ID ) {
+			$this->repair_item( $subscription_id );
+			// Unschedule the repair action as it's no longer needed.
+			as_unschedule_action( $this->repair_hook, [ 'repair_object' => $subscription_id ] );
+		}
 	}
 }

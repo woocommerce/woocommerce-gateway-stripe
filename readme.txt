@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Introduce a way for store managers to automatically configure webhooks on their Stripe account with a single button in the admin settings.
 * Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
 * Tweak - Stripe API version updated to support 2024-06-20.
+* Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
