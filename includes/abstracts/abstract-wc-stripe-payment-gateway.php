@@ -1137,7 +1137,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					if ( ! empty( $result->error ) ) {
 						$response = $result;
 					} else {
-						$charge   = end( $result->charges->data );
+						$charge   = $this->get_latest_charge_from_intent( $result );
 						$response = end( $charge->refunds->data );
 					}
 				}
