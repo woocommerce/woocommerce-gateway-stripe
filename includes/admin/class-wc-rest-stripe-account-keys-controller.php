@@ -433,8 +433,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Save the Webhook secret and ID.
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
 		$settings[ $webhook_data_setting ]   = [
-			'id'  => wc_clean( $response->id ),
-			'url' => wc_clean( $response->url ),
+			'id'     => wc_clean( $response->id ),
+			'url'    => wc_clean( $response->url ),
+			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
@@ -461,27 +462,27 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$key_data = [
 			'live' => [
 				'secret_key'     => $settings['secret_key'] ?? '',
-				'webhook_id'     => $settings['webhook_data']['id'] ?? '',
+				'webhook_data'   => $settings['webhook_data'] ?? '',
 				'current_secret' => $current_account_keys['secret_key'] ?? '',
 			],
 			'test' => [
 				'secret_key'     => $settings['test_secret_key'] ?? '',
-				'webhook_id'     => $settings['test_webhook_data']['id'] ?? '',
+				'webhook_data'   => $settings['test_webhook_data'] ?? '',
 				'current_secret' => $current_account_keys['test_secret_key'] ?? '',
 			],
 		];
 
 		foreach ( $key_data as $mode => $keys ) {
 			// If there's no webhook ID or secret key, we can skip.
-			if ( empty( $keys['webhook_id'] ) || empty( $keys['current_secret'] ) ) {
+			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
 				continue;
 			}
 
 			// If the user is removing or changing their secret key, we should decommission the webhook.
-			if ( empty( $keys['secret_key'] ) || $keys['current_secret'] !== $keys['secret_key'] ) {
+			if ( empty( $keys['secret_key'] ) || $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
 				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
-				WC_Stripe_API::set_secret_key( $keys['current_secret'] );
-				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_id'], 'DELETE' );
+				WC_Stripe_API::set_secret_key( $keys['webhook_data']['secret'] );
+				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
 
 				// Update the webhook settings now that the webhook has been decommissioned.
 				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
