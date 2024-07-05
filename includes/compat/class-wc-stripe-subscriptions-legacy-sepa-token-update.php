@@ -63,12 +63,15 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 		$user_id      = $subscription->get_user_id();
 
+		// Update the subscription with the updated SEPA gateway ID.
+		$this->set_subscription_updated_payment_gateway_id( $subscription );
+
 		// Try to create an updated SEPA gateway token if none exists.
 		// We don't need this to update the subscription, but creating one for consistency.
 		// It could be confusing for a merchant to see the subscription renewing but no saved token in the store.
 		$this->maybe_create_updated_sepa_token_by_source_id( $source_id, $user_id );
 
-		// Update the subscription with the updated SEPA gateway ID.
+		// Update the payment method used for renewals to the migrated pm_, if any.
 		$this->set_subscription_updated_payment_method( $subscription );
 	}
 
@@ -105,6 +108,35 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		}
 
 		return $subscription;
+	}
+
+	/**
+	 * Updates the payment method used for renewals to the migrated pm_, if any.
+	 *
+	 * The subscription is using a source for renewals at this point.
+	 * When the migration runs on the Stripe account, there will be a payment method (pm_) migrated from the source (src_).
+	 * This method updates the subscription to use the migrated payment method (pm_) for renewals, if it exists.
+	 *
+	 * @param WC_Subscription $subscription The subscription to update.
+	 */
+	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
+		$source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+
+		// Retrieve the source object from the API.
+		$source_object = WC_Stripe_API::get_payment_method( $source_id );
+
+		// Bail out if the src_ hasn't been migrated to pm_ yet.
+		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
+			// TODO: Maybe log something on the subscription?
+			return;
+		}
+
+		// Get the payment method ID that was migrated from the source.
+		$migrated_payment_method_id = $source_object->metadata->migrated_payment_method;
+
+		// And set it as the payment method for the subscription.
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $migrated_payment_method_id );
+		$subscription->save();
 	}
 
 	/**
@@ -178,7 +210,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @param WC_Subscription $subscription Subscription for which the payment method must be updated.
 	 */
-	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
+	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
 		// Add a meta to the subscription to flag that its token got updated.
 		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );
