@@ -414,7 +414,7 @@ class WC_Stripe_Helper {
 		foreach ( self::get_legacy_payment_method_classes() as $class ) {
 			// If the payment method is already registered, use it, otherwise create a new instance.
 			if ( in_array( $class, $payment_gateway_classes, true ) ) {
-				$gateway_id     = array_search( $class, $payment_gateway_classes );
+				$gateway_id     = array_search( $class, $payment_gateway_classes, true );
 				$payment_method = $payment_gateways[ $gateway_id ];
 			} else {
 				$payment_method = new $class();
