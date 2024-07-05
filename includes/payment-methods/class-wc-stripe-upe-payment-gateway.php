@@ -562,7 +562,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
 
 		// Generate a list of all available Stripe payment methods in the order they should be displayed.
-		foreach ( WC_Stripe_Helper::get_upe_available_payment_method_ids( $this ) as $payment_method ) {
+		foreach ( WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this ) as $payment_method ) {
 			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
 
 			if ( isset( $gateways[ $gateway_id ] ) ) {
