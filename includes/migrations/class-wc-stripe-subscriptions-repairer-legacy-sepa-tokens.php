@@ -6,7 +6,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles migrating the tokens of Subscriptions using SEPA's Legacy gateway ID.
+ * Handles repairing the Subscriptions using SEPA's Legacy payment method.
  *
  * This class extends the WCS_Background_Repairer for scheduling and running the individual migration actions.
  */

@@ -19,15 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * WooCommerce detects that the stripe_sepa payment gateway as no longer available.
  * This causes the Subscription to change to Manual renewal, and automatic renewals to fail.
  *
- * This class fixes failing automatic renewals by:
- *   - Retrieving all the subscriptions that are using the stripe_sepa payment gateway.
- *   - Iterating over each subscription.
- *   - Retrieving an Updated (Payment Methods API) token based on the Legacy (Sources API) token associated with the subscription.
- *       - If none is found, we create a new Updated (Payment Methods API) token based on the Legacy (Sources API) token.
- *       - If it can't be created, we skip the migration.
- *   - Associating this replacement token to the subscription.
- *
- * This class extends the WCS_Background_Repairer for scheduling and running the individual migration actions.
+ * This class updates the following for the given subscription:
+ *   - Setting the associated gateway ID to the one used for the updated checkout experience `stripe_sepa_debit`, so it doesn't switch to Manual Renewal.
+ *   - Updating the payment method used for renewals to the migrated pm_, if any.
  */
 class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
