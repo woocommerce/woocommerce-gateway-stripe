@@ -59,7 +59,25 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		$this->set_subscription_updated_payment_gateway_id( $subscription );
 
 		// Update the payment method to the migrated pm_.
-		$this->set_subscription_updated_payment_method( $subscription );
+		$this->maybe_update_subscription_source( $subscription );
+	}
+
+	/**
+	 * Attempts to to update the payment method for renewals from Sources to PaymentMethods.
+	 *
+	 * @param WC_Subscription $subscription The subscription for which the payment method must be updated.
+	 */
+	public function maybe_update_subscription_source( WC_Subscription $subscription ) {
+		try {
+			$this->set_subscription_updated_payment_method( $subscription );
+
+			$order_note = __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' );
+		} catch ( \Exception $e ) {
+			/* translators: Reason why the subscription payment method wasn't updated */
+			$order_note = sprintf( __( 'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+		}
+
+		$subscription->add_order_note( $order_note );
 	}
 
 	/**
@@ -107,7 +125,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out if the subscription is already using a pm_.
 		if ( ! str_starts_with( $source_id, 'src_' ) ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The subscription is not using a source.', $subscription_id ) );
+			throw new \Exception( sprintf( 'The subscription is not using a Stripe Source for renewals.', $subscription->get_id() ) );
 		}
 
 		// Retrieve the source object from the API.
@@ -115,7 +133,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The subscription is using a source that was not migrated to a payment method on the Stripe account.', $subscription_id ) );
+			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
 		}
 
 		// Get the payment method ID that was migrated from the source.
@@ -134,7 +152,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
 		// The subscription is not using the legacy SEPA gateway ID.
 		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) );
+			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription->get_id() ) );
 		}
 
 		// Add a meta to the subscription to flag that its token got updated.
