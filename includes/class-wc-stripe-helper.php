@@ -408,9 +408,7 @@ class WC_Stripe_Helper {
 			return self::$stripe_legacy_gateways;
 		}
 
-		// Don't call  WC()->payment_gateways()->payment_gateways if gateways haven't been initialized yet.
-		// Doing so would initialize the gateways before all payment gateway plugins have had a chance to register their gateways.
-		$payment_gateways        = did_action( 'wc_payment_gateways_initialized' ) ? WC()->payment_gateways()->payment_gateways() : [];
+		$payment_gateways        = WC()->payment_gateways()->payment_gateways();
 		$payment_gateway_classes = array_map( 'get_class', $payment_gateways );
 
 		foreach ( self::get_legacy_payment_method_classes() as $payment_method_class ) {
