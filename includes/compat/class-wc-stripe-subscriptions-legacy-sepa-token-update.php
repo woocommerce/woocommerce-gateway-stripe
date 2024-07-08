@@ -63,7 +63,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	}
 
 	/**
-	 * Attempts to to update the payment method for renewals from Sources to PaymentMethods.
+	 * Attempts to update the payment method for renewals from Sources to PaymentMethods.
 	 *
 	 * @param WC_Subscription $subscription The subscription for which the payment method must be updated.
 	 */
