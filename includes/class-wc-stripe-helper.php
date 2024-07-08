@@ -1359,6 +1359,30 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the currency of the EEA countries. This also includes currencies of Switzerland and the UK who aren't strictly in the EU.
+	 *
+	 * @param $country
+	 * 
+	 * @return string
+	 */
+	public static function get_european_economic_area_currencies( $country ) {
+		$currency_map = [
+			'BG' => 'BGN',
+			'HR' => 'HRK',
+			'CZ' => 'CZK',
+			'DK' => 'DKK',
+			'HU' => 'HUF',
+			'GB' => 'GBP',
+			'PL' => 'PLN',
+			'RO' => 'RON',
+			'SE' => 'SEK',
+			'CH' => 'CHF',
+		];
+
+		return isset( $currency_map[ $country ] ) ? [ $currency_map[ $country ] ] : [ 'EUR' ];
+	}
+
+	/**
 	 * Verifies if the provided payment method ID supports manual capture.
 	 *
 	 * @param string $payment_method_id Payment method ID.

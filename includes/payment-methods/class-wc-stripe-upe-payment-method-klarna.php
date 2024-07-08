@@ -20,7 +20,6 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable                  = false;
 		$this->supported_currencies         = [ 'AUD', 'CAD', 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'NOK', 'NZD', 'PLN', 'SEK', 'USD' ];
 		$this->supported_countries          = [ 'AU', 'AT', 'BE', 'CA', 'CZ', 'DK', 'FI', 'FR', 'GR', 'DE', 'IE', 'IT', 'NL', 'NZ', 'NO', 'PL', 'PT', 'ES', 'SE', 'CH', 'GB', 'US' ];
-		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(
 			'Allow customers to pay over time with Klarna.',
@@ -37,18 +36,37 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$billing_country = isset( WC()->session ) && isset( WC()->session->get( 'customer' )['country'] ) ? WC()->session->get( 'customer' )['country'] : '';
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
-		$eea_countries = WC_Stripe_Helper::get_european_economic_area_countries();
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
 
-		// If the merchant is in the EEA, all EEA countries are supported.
 		if ( in_array( $billing_country, $eea_countries, true ) ) {
-			return [ 'EUR' ];
-		} elseif ( 'GB' === $billing_country ) {
-			return [ 'GBP' ];
-		} elseif ( 'CH' === $billing_country ) {
-			return [ 'CHF' ];
+			return WC_Stripe_Helper::get_european_economic_area_currencies( $billing_country );
 		}
 
 		return [ strtoupper( WC_Stripe::get_instance()->account->get_account_default_currency() ) ];
+	}
+
+	/**
+	 * Determines whether the payment method is restricted to the Stripe account's currency.
+	 * The restriction is based on the billing country of the customer for Klarna.
+	 * If the customer is in the EEA, Switzerland or UK, the currency is not restricted within these countries.
+	 *
+	 * @return bool
+	 */
+	public function has_domestic_transactions_restrictions(): bool {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = strtoupper( $account['country'] );
+
+		$billing_country = isset( WC()->session ) && isset( WC()->session->get( 'customer' )['country'] ) ? WC()->session->get( 'customer' )['country'] : '';
+
+		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
+
+		// If the merchant and billing country both are in the EEA, there is no domestic transaction restrictions
+		if ( in_array( $account_country, $eea_countries, true ) && in_array( $billing_country, $eea_countries, true ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
