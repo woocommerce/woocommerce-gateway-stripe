@@ -369,8 +369,18 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Data about the request.
 	 */
 	public function configure_webhooks( WP_REST_Request $request ) {
+		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$environment    = $live_mode ? 'live' : 'test';
+		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+
+		// Prevent users from setting up webhooks too frequently.
+		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Please wait at least 1 minute before trying to configure webhooks again.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
+
+		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
+
 		$settings     = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-		$live_mode    = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
 		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 
