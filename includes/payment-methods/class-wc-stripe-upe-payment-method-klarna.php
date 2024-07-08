@@ -54,7 +54,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function has_domestic_transactions_restrictions(): bool {
 		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country = strtoupper( $account['country'] );
+		$account_country = strtoupper( $account['country'] ?? '' );
 
 		$billing_country = isset( WC()->session ) && isset( WC()->session->get( 'customer' )['country'] ) ? WC()->session->get( 'customer' )['country'] : '';
 
@@ -79,7 +79,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_available_billing_countries() {
 		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country = strtoupper( $account['country'] );
+		$account_country = strtoupper( $account['country'] ?? '' );
 
 		// Countries in the EEA can transact across all other EEA countries. This includes Switzerland and the UK who aren't strictly in the EU.
 		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
