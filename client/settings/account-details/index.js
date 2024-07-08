@@ -6,8 +6,8 @@ import { help } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
+import SectionStatus from '../section-status';
 import useWebhookStateMessage from './use-webhook-state-message';
-import SectionStatus from './section-status';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import {

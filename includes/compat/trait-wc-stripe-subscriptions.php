@@ -367,9 +367,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
 
-				$charge   = end( $response->error->payment_intent->charges->data );
-				$id       = $charge->id;
-				$order_id = $renewal_order->get_id();
+				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
+				$id     = $charge->id;
 
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
@@ -398,7 +397,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
-				$this->process_response( isset( $response->charges ) ? end( $response->charges->data ) : $response, $renewal_order );
+				$latest_charge = $this->get_latest_charge_from_intent( $response );
+				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 
 			// TODO: Remove when SEPA is migrated to payment intents.
@@ -876,7 +876,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
 
 		// Fail the payment attempt (order would be currently pending because of retry rules).
-		$charge    = end( $existing_intent->charges->data );
+		$charge    = $this->get_latest_charge_from_intent( $existing_intent );
 		$charge_id = $charge->id;
 		/* translators: %s is the stripe charge Id */
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
@@ -942,5 +942,22 @@ trait WC_Stripe_Subscriptions_Trait {
 		return ! empty( $payment_intent->status )
 			&& 'processing' === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
+	}
+
+	/**
+	 * Updates the payment method for all subscriptions related to an order.
+	 *
+	 * @param WC_Order $order               The order to update the related subscriptions for.
+	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
+	 */
+	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
+		if ( ! $this->is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return;
+		}
+
+		foreach ( wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] ) as $subscription ) {
+			$subscription->set_payment_method( $payment_method_type );
+			$subscription->save();
+		}
 	}
 }
