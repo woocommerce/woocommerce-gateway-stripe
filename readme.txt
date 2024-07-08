@@ -131,6 +131,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 8.5.0 - 2024-xx-xx =
 * Tweak - Additional visual improvement for the webhook configuration notice.
 * Add - Allow changing display order of payment methods in the new checkout experience.
+* Add - Update the payment method associated with a subscription to a PaymentMethod when it's using a Stripe Source that was migrated to PaymentMethods.
 * Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
 * Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
 * Tweak - Improve the display of warning messages related to webhook configuration.
