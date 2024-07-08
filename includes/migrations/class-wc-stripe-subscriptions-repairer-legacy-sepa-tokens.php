@@ -130,7 +130,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			return;
 		}
 
-		// It's possible that the Legacy SEPA gateway ID was updated by the reparing above, but that the Stripe account
+		// It's possible that the Legacy SEPA gateway ID was updated by the repairing above, but that the Stripe account
 		// hadn't been migrated from src_ to pm_ at the time.
 		// Thus, we keep checking if the associated payment method is a source in subsequent renewals.
 		$subscription_source = $subscription->get_meta( '_stripe_source_id' );
