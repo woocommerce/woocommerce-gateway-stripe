@@ -848,8 +848,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			if ( $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card ) ) {
-				$response = $this->maybe_attach_source_to_customer( $source_object, $customer );
-				if ( $response ) {
+				$was_attached = $this->maybe_attach_source_to_customer( $source_object, $customer );
+				if ( $was_attached ) {
 					// Save the payment method to the customer.
 					$this->save_payment_method( $source_object );
 				}
@@ -2242,11 +2242,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Stripe_Customer $customer The customer object to attach the source to. Optional.
 	 *
 	 * @throws WC_Stripe_Exception If the source could not be attached to the customer.
-	 * @return stdClass|WP_Error The response from the API request.
+	 * @return bool True if the source was successfully attached to the customer.
 	 */
 	private function maybe_attach_source_to_customer( $source, $customer = null ) {
 		if ( ! isset( $source->type ) || 'sepa_debit' !== $source->type ) {
-			return;
+			return false;
 		}
 
 		if ( ! $customer ) {
@@ -2264,6 +2264,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
 		}
 
-		return $response;
+		return true;
 	}
 }
