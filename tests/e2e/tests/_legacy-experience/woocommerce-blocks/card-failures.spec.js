@@ -7,7 +7,6 @@ const {
 	setupCart,
 	setupBlocksCheckout,
 	fillCreditCardDetailsLegacy,
-	isUpeCheckout,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
@@ -25,27 +24,15 @@ const testCard = async ( page, cardKey ) => {
 	await fillCreditCardDetailsLegacy( page, card );
 	await page.locator( 'text=Place order' ).click();
 
-	const isUpe = await isUpeCheckout( page );
-
 	/**
 	 * The invalid card error message is shown in the input field validation.
 	 * The customer isn't allowed to place the order for this type of card failure.
 	 */
-	let expected;
-	if ( isUpe && cardKey === 'cards.declined-incorrect' ) {
-		expected = await page
-			.frameLocator(
-				'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-			)
-			.locator( '#Field-numberError' )
-			.innerText();
-	} else {
-		expected = await page.innerText(
-			cardKey === 'cards.declined-incorrect'
-				? '.wc-card-number-element .wc-block-components-validation-error'
-				: '.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'
-		);
-	}
+	const expected = await page.innerText(
+		cardKey === 'cards.declined-incorrect'
+			? '.wc-card-number-element .wc-block-components-validation-error'
+			: '.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'
+	);
 	expect
 		.soft( expected )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );

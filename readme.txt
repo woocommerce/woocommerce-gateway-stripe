@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.3.0
+Stable tag: 8.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -121,26 +121,28 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
-2. Offer a range of payment methods such as local and alternative payment methods.
-3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
-4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
+1. The Stripe payment gateway settings page used to configure the plugin.
+2. Offer a range of payment options such as local methods and express checkouts.
+3. Allow customers to save payment methods and add new ones for their future purchases.
+4. Apple Pay and other express methods can be added to product pages, cart, and checkout.
 
 == Changelog ==
 
-= 8.4.0 - xxxx-xx-xx =
-* Add - Include Cash App as a payment method for stores using the updated checkout experience.
-* Fix - Fixed fatal errors with subscription helper methods when subscriptions classes (from WooCommerce Subscriptions) are not available.
-* Add - Add a new dismissible banner to promote Stripe products to the settings page.
-* Fix - Hiding BNPL payment methods when the Stripe account country is not supported.
-* Fix - Resolved checkout error with UPE when using test mode customer in live mode or vice versa.
-* Fix - Handle checkbox type required fields correctly on the shortcode checkout when paying with Google Pay/Apple Pay.
-* Tweak - Remove unused confirmation modal a capability properties.
-* Fix - Resgister script on the checkout page only when the gateway is enabled.
-* Tweak - Allow to enable/disable payment methods irrespective of currency requirement.
-* Add - Include WeChat Pay as a payment method for stores using the updated checkout experience.
-* Fix - Resolve invalid recurring shipping method errors when attempting to purchase multiple subscriptions with Apple Pay or Google Pay.
-* Fix - Deprecation errors on PHP 8.2 caused by using the deprecated constant FILTER_SANITIZE_STRING.
+= 8.5.0 - 2024-xx-xx =
+* Add - Allow changing display order of payment methods in the new checkout experience.
+* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
+* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
+* Tweak - Improve the display of warning messages related to webhook configuration.
+* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
+* Add - Allow customizing the title and description of the UPE payment methods.
+* Tweak - Add a statement descriptor preview for Cash App Payments.
+* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
+* Add - Introduce a way for store managers to automatically configure webhooks on their Stripe account with a single button in the admin settings.
+* Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
+* Tweak - Stripe API version updated to support 2024-06-20.
+* Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
+* Tweak - Limit the configure webhooks button to 1 click per minute to prevent multiple webhook creations.
+* Fix - Address Klarna currency rules to ensure correct presentment and availability based on merchant and customer locations.
 * Fix - Prevent duplicate customer creation during guest checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

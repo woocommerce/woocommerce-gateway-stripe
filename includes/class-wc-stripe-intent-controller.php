@@ -643,8 +643,8 @@ class WC_Stripe_Intent_Controller {
 
 				// Use the last charge within the intent to proceed.
 				$gateway = $this->get_gateway();
-				if ( isset( $intent->charges ) && ! empty( $intent->charges->data ) ) {
-					$charge = end( $intent->charges->data );
+				$charge  = $gateway->get_latest_charge_from_intent( $intent );
+				if ( ! empty( $charge ) ) {
 					$gateway->process_response( $charge, $order );
 				} else {
 					// TODO: Add implementation for setup intents.
@@ -730,7 +730,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
@@ -809,16 +809,6 @@ class WC_Stripe_Intent_Controller {
 		$this->validate_payment_intent_required_params( $required_params, [], $instance_params, $payment_information );
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
-
-		// Add the updated preferred credit card brand when defined
-		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
-		if ( isset( $preferred_brand ) ) {
-			$request['payment_method_options'] = [
-				'card' => [
-					'brand' => $preferred_brand,
-				],
-			];
-		}
 
 		$order = $payment_information['order'];
 
@@ -902,6 +892,7 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
@@ -910,7 +901,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -929,16 +920,21 @@ class WC_Stripe_Intent_Controller {
 	 * Determines if mandate data is required for deferred intent UPE payment.
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
-	 * This applies to SEPA and Link payment methods.
+	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
-	 * @param string $selected_payment_type The name of the selected UPE payment type.
+	 * @param string $selected_payment_type         The name of the selected UPE payment type.
+	 * @param bool   $is_using_saved_payment_method Option. True if the customer is using a saved payment method, false otherwise.
 	 *
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
-	public function is_mandate_data_required( $selected_payment_type ) {
+	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort' ], true ) ) {
+		if ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
+			return false;
+		}
+
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp' ], true ) ) {
 			return true;
 		}
 
@@ -1028,6 +1024,8 @@ class WC_Stripe_Intent_Controller {
 					'id'            => $setup_intent->id,
 					'client_secret' => $setup_intent->client_secret,
 					'next_action'   => $setup_intent->next_action,
+					'payment_type'  => $payment_type,
+					'return_url'    => rawurlencode( $payment_information['return_url'] ),
 				],
 				200
 			);
@@ -1051,16 +1049,16 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
-	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto or Oxxo. False otherwise.
+	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco' ] );
 	}
 
 	/**
 	 * Determines whether the intent needs to be confirmed later.
 	 *
-	 * Some payment methods such as Boleto and Oxxo require the payment to be confirmed later when
+	 * Some payment methods such as Boleto, Oxxo and Multibanco require the payment to be confirmed later when
 	 * displaying the voucher to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
@@ -1068,7 +1066,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true );
+		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true ) || in_array( 'multibanco', $payment_methods, true );
 	}
 
 	/**

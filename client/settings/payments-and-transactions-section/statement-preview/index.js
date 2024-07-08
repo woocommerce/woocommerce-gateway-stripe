@@ -4,10 +4,12 @@ import { Icon } from '@wordpress/components';
 import CurrencyFactory from '@woocommerce/currency';
 import './style.scss';
 import { CreditCardIcon } from './icons/creditCard';
+import { CashAppIcon } from './icons/cashApp.js';
 import { BankIcon } from './icons/bank.js';
 
 const icons = {
 	creditCard: CreditCardIcon,
+	cashApp: CashAppIcon,
 	bank: BankIcon,
 };
 

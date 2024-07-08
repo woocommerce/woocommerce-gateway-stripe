@@ -82,24 +82,17 @@ export async function setupCart(
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetails( page, card ) {
-	await page
-		.frameLocator(
-			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="number"]' )
-		.fill( card.number );
-	await page
-		.frameLocator(
-			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-		)
+	const form = await page.frameLocator(
+		'.wcstripe-payment-element iframe[name^="__privateStripeFrame"]'
+	);
+
+	await form.locator( '[name="number"]' ).fill( card.number );
+
+	await form
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
-	await page
-		.frameLocator(
-			'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cvc"]' )
-		.fill( card.cvc );
+
+	await form.locator( '[name="cvc"]' ).fill( card.cvc );
 }
 
 /**
@@ -109,11 +102,13 @@ export async function fillCreditCardDetails( page, card ) {
  */
 export async function fillCreditCardDetailsShortcode( page, card ) {
 	const frameHandle = await page.waitForSelector(
-		'#payment #wc-stripe-upe-element iframe'
+		'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
 	);
 
 	await page
-		.locator( '#payment #wc-stripe-upe-element iframe' )
+		.locator(
+			'.payment_method_stripe #wc-stripe-upe-form .wc-stripe-upe-element iframe'
+		)
 		.scrollIntoViewIfNeeded();
 
 	const stripeFrame = await frameHandle.contentFrame();
@@ -170,32 +165,6 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 		)
 		.locator( '[name="cvc"]' )
 		.fill( card.cvc );
-}
-
-/**
- * Checks if the checkout is using the UPE.
- * @param {Page} page Playwright page fixture.
- * @returns {boolean} True if the checkout is using the UPE, false otherwise.
- */
-export async function isUpeCheckout( page ) {
-	// blocks checkout
-	if ( await page.$( '.wc-block-checkout' ) ) {
-		try {
-			await page.waitForSelector(
-				'#wc-stripe-card-expiry-element iframe',
-				{
-					timeout: 5000,
-				}
-			);
-			return false;
-		} catch ( e ) {
-			// If the card elements are not present, we assume the checkout is using the UPE.
-			return true;
-		}
-	}
-
-	// regular checkout
-	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
 }
 
 /**
@@ -272,6 +241,10 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.locator(
 				'.components-form-token-field__suggestions-list > li:first-child'
 			)
+			.click();
+		// Expand the address 2 field.
+		await page
+			.locator( '.wc-block-components-address-form__address_2-toggle' )
 			.click();
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {

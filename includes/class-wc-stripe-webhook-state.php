@@ -245,4 +245,19 @@ class WC_Stripe_Webhook_State {
 		);
 		return $message;
 	}
+
+	/**
+	 * Fetches the configured webhook URLs.
+	 *
+	 * @return array URLs for live and test mode webhooks.
+	 */
+	public static function get_configured_webhook_urls() {
+		$live_webhook = WC_Stripe_Helper::get_settings( null, 'webhook_data' );
+		$test_webhook = WC_Stripe_Helper::get_settings( null, 'test_webhook_data' );
+
+		return [
+			'live' => empty( $live_webhook['url'] ) ? null : rawurlencode( $live_webhook['url'] ),
+			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
+		];
+	}
 };

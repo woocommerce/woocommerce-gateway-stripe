@@ -368,7 +368,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'display customization section in the payment method when UPE is disabled', async () => {
+	it( 'display customization section in the payment method', async () => {
 		const PromiseMock = Promise.resolve();
 		const customizePaymentMethodMock = jest
 			.fn()
@@ -454,7 +454,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 	} );
 
-	it( 'should not display customization section in the payment method when UPE is enabled', () => {
+	it( 'should display customization section in the payment method when UPE is enabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [ 'giropay' ],
@@ -477,7 +477,7 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByRole( 'button', {
 				name: 'Customize',
 			} )
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {
