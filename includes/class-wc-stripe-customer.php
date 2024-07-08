@@ -256,6 +256,8 @@ class WC_Stripe_Customer {
 
 		if ( empty( $response ) ) {
 			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+		} else {
+			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_update_customer_args', $args ), 'customers/' . $response->id );
 		}
 
 		if ( ! empty( $response->error ) ) {
