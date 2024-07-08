@@ -124,7 +124,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		$source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 
 		// Bail out if the subscription is already using a pm_.
-		if ( ! str_starts_with( $source_id, 'src_' ) ) {
+		if ( 0 === strpos( $source_id, 'src_' ) ) {
 			throw new \Exception( sprintf( 'The subscription is not using a Stripe Source for renewals.', $subscription->get_id() ) );
 		}
 

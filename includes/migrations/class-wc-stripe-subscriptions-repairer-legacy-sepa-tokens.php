@@ -135,7 +135,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		// Thus, we keep checking if the associated payment method is a source in subsequent renewals.
 		$subscription_source = $subscription->get_meta( '_stripe_source_id' );
 
-		if ( str_starts_with( $subscription_source, 'src_' ) ) {
+		if ( 0 === strpos( $subscription_source, 'src_' ) ) {
 			$token_updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update();
 			$token_updater->maybe_update_subscription_source( $subscription );
 		}
