@@ -83,7 +83,7 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect( screen.queryByTestId( 'warning' ) ).toBeInTheDocument();
+		expect( screen.queryByTestId( 'warning-icon' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( mockedWarningMessage )
 		).toBeInTheDocument();
