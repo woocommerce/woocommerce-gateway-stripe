@@ -132,13 +132,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Gets the payment gateway's Title.
 	 *
-	 * This method is used to override the default method title when the user is viewing the payment settings page.
-	 * On the admin settings page the title includes the count of enabled payment methods.
+	 * On payment settings page the default title includes the number of legacy payment methods enabled.
 	 *
-	 * @return string
+	 * @return string The payment gateway's title.
 	 */
 	public function get_title() {
-		// Title shows the count of enabled payment methods in settings page only.
+		// Change the title on the payment methods settings page to include the number of enabled payment methods.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
 			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
 			$this->title                   = $enabled_payment_methods_count ?
