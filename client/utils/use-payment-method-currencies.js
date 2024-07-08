@@ -154,16 +154,66 @@ const getWechatPayCurrencies = () => {
 	return upeCurrencies;
 };
 
+// Returns the specific currencies Klarna supports for the corresponding Stripe account based on location.
+// Documentation: https://docs.stripe.com/payments/klarna#:~:text=Merchant%20country%20availability.
+const getKlarnaCurrencies = () => {
+	// Accounts can transact in their local currency.
+	switch ( accountCountry ) {
+		case 'AU':
+			return [ 'AUD' ];
+		case 'CA':
+			return [ 'CAD' ];
+		case 'NZ':
+			return [ 'NZD' ];
+		case 'US':
+			return [ 'USD' ];
+	}
+
+	const eeaCountries = [
+		'AT', // Austria
+		'BE', // Belgium
+		'CH', // Switzerland
+		'CZ', // Czechia
+		'DE', // Germany
+		'DK', // Denmark
+		'ES', // Spain
+		'FI', // Finland
+		'FR', // France
+		'GB', // United Kingdom
+		'GR', // Greece
+		'IE', // Ireland
+		'IT', // Italy
+		'NL', // Netherlands
+		'NO', // Norway
+		'PL', // Poland
+		'PT', // Portugal
+		'SE', // Sweden
+	];
+
+	// Countries located in the EEA, Switzerland and the UK can also transact in any EU based currencies including NOK, PLN, DKK etc.
+	if ( eeaCountries.includes( accountCountry ) ) {
+		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
+	}
+
+	// Throw an error if the country is not recognized.
+	throw new Error(
+		`Unable to determine Klarna currencies for: ${ accountCountry }`
+	);
+};
+
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	if ( paymentMethodId === 'alipay' ) {
-		return getAliPayCurrencies( isUpeEnabled );
-	} else if ( paymentMethodId === 'wechat_pay' ) {
-		return getWechatPayCurrencies();
+	switch ( paymentMethodId ) {
+		case 'alipay':
+			return getAliPayCurrencies( isUpeEnabled );
+		case 'wechat_pay':
+			return getWechatPayCurrencies();
+		case 'klarna':
+			return getKlarnaCurrencies();
+		default:
+			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 	}
-
-	return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 };
 
 export default usePaymentMethodCurrencies;
