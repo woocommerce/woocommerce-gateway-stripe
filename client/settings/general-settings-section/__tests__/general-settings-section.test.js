@@ -152,7 +152,7 @@ describe( 'GeneralSettingsSection', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		const sofortCheckbox = screen.getByRole( 'checkbox', {
+		const alipayCheckbox = screen.getByRole( 'checkbox', {
 			name: /Alipay/,
 		} );
 
