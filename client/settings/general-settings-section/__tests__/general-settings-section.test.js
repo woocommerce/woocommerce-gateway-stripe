@@ -195,7 +195,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( sofortCheckbox ).not.toBeChecked();
+		expect( alipayCheckbox ).not.toBeChecked();
 
 		userEvent.click( sofortCheckbox );
 
