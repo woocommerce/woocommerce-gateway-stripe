@@ -235,7 +235,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$description = trim( $description );
 
-		echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id ); // wpcs: xss ok.
+		echo wp_kses_post( apply_filters( 'wc_stripe_description', wpautop( $description ), $this->id ) );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
@@ -545,7 +545,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -582,7 +582,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -1152,11 +1152,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function update_onboarding_settings( $settings ) {
-		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) {
+		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
 		}
 
-		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries ); // phpcs:ignore sanitization ok.
+		parse_str( wp_parse_url( wp_unslash( $_SERVER['HTTP_REFERER'] ), PHP_URL_QUERY ), $queries ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		// Determine if merchant is onboarding (page='wc-admin' and task='payments').
 		if (

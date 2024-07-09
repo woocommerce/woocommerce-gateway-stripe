@@ -250,7 +250,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		$description = trim( $description );
 
-		echo wpautop( esc_html( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
+		echo esc_html( wpautop( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();

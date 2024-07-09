@@ -56,7 +56,7 @@ class WC_Stripe_Settings_Controller {
 			$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
 			$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
 			echo '<style>.button.refund-items { display: none; }</style>';
-			echo '<span class="button button-disabled">' . $no_refunds_button . wc_help_tip( $no_refunds_tooltip ) . '</span>';
+			echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wc_help_tip( $no_refunds_tooltip ) . '</span>';
 		}
 	}
 
