@@ -20,6 +20,10 @@ import {
 } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
+import {
+	maybeShowCashAppLimitNotice,
+	removeCashAppLimitNotice,
+} from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 
 /**
  * Gets the Stripe element options.
@@ -72,6 +76,7 @@ export function validateElements( elements ) {
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
+ * @param {string}      args.description         The payment method description to display.
  * @param {string}      args.testingInstructions The testing instructions to display.
  * @param {Object}      args.eventRegistration   The checkout event emitter registration object.
  * @param {Object}      args.emitResponse        Various helpers for usage with observer response objects.
@@ -87,6 +92,7 @@ export function validateElements( elements ) {
 const PaymentProcessor = ( {
 	api,
 	activePaymentMethod,
+	description,
 	testingInstructions,
 	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	emitResponse,
@@ -99,6 +105,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
+	const [
+		selectedPaymentMethodType,
+		setSelectedPaymentMethodType,
+	] = useState( null );
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
@@ -228,6 +238,19 @@ const PaymentProcessor = ( {
 		]
 	);
 
+	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
+	useEffect( () => {
+		if ( selectedPaymentMethodType === 'cashapp' ) {
+			maybeShowCashAppLimitNotice(
+				'.wc-block-checkout__payment-method .wc-block-components-notices',
+				Number( getBlocksConfiguration()?.cartTotal ),
+				true
+			);
+		} else {
+			removeCashAppLimitNotice();
+		}
+	}, [ selectedPaymentMethodType ] );
+
 	usePaymentCompleteHandler(
 		api,
 		stripe,
@@ -247,12 +270,19 @@ const PaymentProcessor = ( {
 
 	useStripeLink( api, elements, paymentMethodsConfig );
 
-	const updatePaymentElementCompletionStatus = ( event ) => {
-		setIsPaymentElementComplete( event.complete );
+	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
+		setSelectedPaymentMethodType( value.type );
+		setIsPaymentElementComplete( complete );
 	};
 
 	return (
 		<>
+			<p
+				className="content"
+				dangerouslySetInnerHTML={ {
+					__html: description,
+				} }
+			/>
 			<p
 				className="content"
 				dangerouslySetInnerHTML={ {
@@ -261,7 +291,7 @@ const PaymentProcessor = ( {
 			/>
 			<PaymentElement
 				options={ getStripeElementOptions() }
-				onChange={ updatePaymentElementCompletionStatus }
+				onChange={ onSelectedPaymentMethodChange }
 				className="wcstripe-payment-element"
 			/>
 		</>

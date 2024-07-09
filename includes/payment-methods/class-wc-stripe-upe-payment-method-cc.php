@@ -42,7 +42,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_title( $payment_details = false ) {
 		if ( ! $payment_details ) {
-			return $this->title;
+			return parent::get_title();
 		}
 
 		$details       = $payment_details[ $this->stripe_id ];
