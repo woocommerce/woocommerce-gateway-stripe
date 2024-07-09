@@ -68,6 +68,10 @@ describe( 'AccountDetailsSection', () => {
 					id: 'acct_123',
 					testmode: false,
 				},
+				configured_webhook_urls: {
+					live: 'example.com',
+					test: 'example.com',
+				},
 			},
 		} );
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
@@ -98,6 +102,10 @@ describe( 'AccountDetailsSection', () => {
 				account: {
 					id: 'acct_123',
 					testmode: true,
+				},
+				configured_webhook_urls: {
+					live: 'example.com',
+					test: 'example.com',
 				},
 			},
 		} );
@@ -199,6 +207,10 @@ describe( 'AccountDetailsSection', () => {
 					id: 'acct_123',
 					email: 'test@example.com',
 					testmode: false,
+				},
+				configured_webhook_urls: {
+					live: 'example.com',
+					test: 'example.com',
 				},
 			},
 		} );

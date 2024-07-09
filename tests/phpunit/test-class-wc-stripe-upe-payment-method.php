@@ -85,6 +85,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'sepa_debit_payments'        => 'inactive',
 		'sofort_payments'            => 'inactive',
 		'transfers'                  => 'inactive',
+		'multibanco_payments'        => 'inactive',
 		'boleto_payments'            => 'inactive',
 		'oxxo_payments'              => 'inactive',
 		'link_payments'              => 'inactive',
@@ -108,11 +109,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'sepa_debit_payments'        => 'active',
 		'sofort_payments'            => 'active',
 		'transfers'                  => 'active',
+		'multibanco_payments'        => 'active',
 		'boleto_payments'            => 'active',
 		'oxxo_payments'              => 'active',
 		'link_payments'              => 'active',
 		'cashapp_payments'           => 'active',
-		'wechat_pay_payments'        => 'inactive',
+		'wechat_pay_payments'        => 'active',
 	];
 
 	/**
@@ -238,6 +240,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_boleto_details     = [
 			'type' => 'boleto',
 		];
+		$mock_multibanco_details     = [
+			'type' => 'multibanco',
+		];
 		$mock_oxxo_details       = [
 			'type' => 'oxxo',
 		];
@@ -253,6 +258,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$sofort_method     = $this->mock_payment_methods['sofort'];
 		$bancontact_method = $this->mock_payment_methods['bancontact'];
 		$ideal_method      = $this->mock_payment_methods['ideal'];
+		$multibanco_method = $this->mock_payment_methods['multibanco'];
 		$boleto_method     = $this->mock_payment_methods['boleto'];
 		$oxxo_method       = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
@@ -327,6 +333,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'sepa_debit', $ideal_method->get_retrievable_type() );
 		$this->assertEquals( '', $ideal_method->get_testing_instructions() );
 
+		$this->assertEquals( 'multibanco', $multibanco_method->get_id() );
+		$this->assertEquals( 'Multibanco', $multibanco_method->get_label() );
+		$this->assertEquals( 'Multibanco', $multibanco_method->get_title() );
+		$this->assertEquals( 'Multibanco', $multibanco_method->get_title( $mock_multibanco_details ) );
+		$this->assertFalse( $multibanco_method->is_reusable() );
+		$this->assertEquals( 'multibanco', $multibanco_method->get_retrievable_type() );
+		$this->assertEquals( '', $multibanco_method->get_testing_instructions() );
+
 		$this->assertEquals( 'boleto', $boleto_method->get_id() );
 		$this->assertEquals( 'Boleto', $boleto_method->get_label() );
 		$this->assertEquals( 'Boleto', $boleto_method->get_title() );
@@ -377,6 +391,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$bancontact_method        = $this->mock_payment_methods['bancontact'];
 		$ideal_method             = $this->mock_payment_methods['ideal'];
 		$boleto_method            = $this->mock_payment_methods['boleto'];
+		$multibanco_method        = $this->mock_payment_methods['multibanco'];
 		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 
@@ -391,6 +406,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $bancontact_method->is_enabled_at_checkout() );
 		$this->assertFalse( $ideal_method->is_enabled_at_checkout() );
 		$this->assertFalse( $boleto_method->is_enabled_at_checkout() );
+		$this->assertFalse( $multibanco_method->is_enabled_at_checkout() );
 		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 	}

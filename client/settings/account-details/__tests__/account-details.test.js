@@ -83,9 +83,9 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect( screen.queryByTestId( 'warning' ) ).toBeInTheDocument();
-		expect( screen.queryByText( mockedWarningMessage ) ).toHaveClass(
-			'warning'
-		);
+		expect( screen.queryByTestId( 'warning-icon' ) ).toBeInTheDocument();
+		expect(
+			screen.queryByText( mockedWarningMessage )
+		).toBeInTheDocument();
 	} );
 } );
