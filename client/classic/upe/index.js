@@ -194,7 +194,11 @@ jQuery( function ( $ ) {
 			if ( error ) {
 				const upeType = formFields.wc_stripe_selected_upe_payment_type;
 
-				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+				if (
+					upeType !== 'boleto' &&
+					upeType !== 'oxxo' &&
+					upeType !== 'multibanco'
+				) {
 					await api.updateFailedOrder(
 						paymentIntentId,
 						response.order_id

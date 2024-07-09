@@ -252,7 +252,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 				$this->remove_order_source_before_retry( $order );
 				$this->process_pre_order_release_payment( $order, false );
 			} elseif ( $is_authentication_required ) {
-				$charge = end( $response->error->payment_intent->charges->data );
+				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
 				$id     = $charge->id;
 
 				$order->set_transaction_id( $id );
@@ -269,7 +269,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			} else {
 				// Successful
-				$this->process_response( end( $response->charges->data ), $order );
+				$this->process_response( $this->get_latest_charge_from_intent( $response ), $order );
 			}
 		} catch ( Exception $e ) {
 			$error_message = is_callable( [ $e, 'getLocalizedMessage' ] ) ? $e->getLocalizedMessage() : $e->getMessage();
