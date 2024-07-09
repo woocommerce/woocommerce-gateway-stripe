@@ -454,7 +454,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			if ( ! empty( $intent ) ) {
 				// Use the last charge within the intent to proceed.
-				$response = end( $intent->charges->data );
+				$response = $this->get_latest_charge_from_intent( $intent );
 
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( 'requires_action' === $intent->status ) {
@@ -942,7 +942,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param stdClass $intent The Payment Intent object.
 	 */
 	protected function handle_intent_verification_success( $order, $intent ) {
-		$this->process_response( end( $intent->charges->data ), $order );
+		$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 		$this->maybe_process_subscription_early_renewal_success( $order, $intent );
 	}
 

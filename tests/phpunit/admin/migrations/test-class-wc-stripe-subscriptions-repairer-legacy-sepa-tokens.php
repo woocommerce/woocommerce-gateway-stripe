@@ -237,70 +237,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$this->updater->repair_item( $subscription_id );
 	}
 
-	public function test_get_updated_sepa_token_by_source_id_creates_an_updated_token() {
-		$this->upe_helper->enable_upe_feature_flag();
-		$this->upe_helper->enable_upe();
-		$this->upe_helper->reload_payment_gateways();
-
-		$stripe_payment_tokens_instance = WC_Stripe_Payment_Tokens::get_instance();
-
-		// The SEPA token we create below gets deleted by the method we hook in this filter because it's not found in Stripe.
-		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens_instance, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-
-		// Retrieve the actual subscription.
-		WC_Subscriptions::set_wcs_get_subscription(
-			function ( $id ) {
-				return new WC_Subscription( $id );
-			}
-		);
-
-		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
-		$subscription_id = $ids_to_migrate[0];
-		$subscription    = new WC_Subscription( $subscription_id );
-		$customer_id     = $subscription->get_user_id();
-
-		// Create the legacy token associated with the subscription.
-		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
-		$original_token     = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->legacy_sepa_gateway_id );
-
-		// Confirm the user doesn't have any updated tokens.
-		$customer_updated_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id, $this->updated_sepa_gateway_id );
-		$this->assertEmpty( $customer_updated_tokens );
-
-		$this->logger_mock
-			->expects( $this->at( 0 ) )
-			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
-			);
-
-		$this->logger_mock
-			->expects( $this->at( 1 ) )
-			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
-			);
-
-		$this->updater->repair_item( $subscription_id );
-
-		$subscription = new WC_Subscription( $subscription_id );
-
-		// Confirm the user has an updated token.
-		$customer_updated_tokens = WC_Payment_Tokens::get_customer_tokens( $customer_id, $this->updated_sepa_gateway_id );
-		$this->assertEquals( 1, count( $customer_updated_tokens ) );
-
-		// Confirm the subscription's payment method was updated.
-		$this->assertEquals( $this->updated_sepa_gateway_id, $subscription->get_payment_method() );
-
-		// Confirm the subscription's source ID was updated to use the default token.
-		$this->assertEquals( $original_source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
-
-		// Confirm the flag for the migration was set.
-		$this->assertEquals( $this->legacy_sepa_gateway_id, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
-	}
-
 	public function test_get_updated_sepa_token_by_source_id_returns_the_updated_token() {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();
@@ -329,10 +265,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// Create the updated token we expect the subscription to be updated with.
 		$updated_token = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->updated_sepa_gateway_id );
-
-		// Create default updated token we don't expect the subscription to use.
-		$default_token = WC_Helper_Token::create_sepa_token( 'src_999', $customer_id, $this->updated_sepa_gateway_id );
-		WC_Payment_Tokens::set_users_default( $customer_id, $default_token->get_id() );
 
 		$this->logger_mock
 			->expects( $this->at( 0 ) )

@@ -562,7 +562,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
 
 		// Generate a list of all available Stripe payment methods in the order they should be displayed.
-		foreach ( WC_Stripe_Helper::get_upe_available_payment_method_ids( $this ) as $payment_method ) {
+		foreach ( WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this ) as $payment_method ) {
 			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
 
 			if ( isset( $gateways[ $gateway_id ] ) ) {
@@ -918,7 +918,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$charge = end( $payment_intent->charges->data );
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
 
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
@@ -1115,7 +1115,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $intent->charges->data ), $order );
+				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -1380,7 +1380,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! $is_pre_order ) {
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $intent->charges->data ), $order );
+				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -1726,8 +1726,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method_details = false;
 
 		if ( 'payment_intent' === $intent->object ) {
-			if ( ! empty( $intent->charges ) && 0 < $intent->charges->total_count ) {
-				$charge                 = end( $intent->charges->data );
+			$charge = $this->get_latest_charge_from_intent( $intent );
+			if ( ! empty( $charge ) ) {
 				$payment_method_details = (array) $charge->payment_method_details;
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
