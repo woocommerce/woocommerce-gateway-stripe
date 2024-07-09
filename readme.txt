@@ -145,5 +145,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
 * Tweak - Limit the configure webhooks button to 1 click per minute to prevent multiple webhook creations.
 * Fix - Address Klarna currency rules to ensure correct presentment and availability based on merchant and customer locations.
+* Fix - Prevent saved SEPA Sources from being displayed as available payment methods when the Updated checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
