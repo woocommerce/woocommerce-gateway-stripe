@@ -5,7 +5,6 @@ import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
-import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 
 const PaymentMethodsDescription = () => {
@@ -51,7 +50,6 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
-				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
