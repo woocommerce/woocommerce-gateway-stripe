@@ -240,12 +240,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	public function test_get_updated_sepa_token_by_source_id_returns_the_updated_token() {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();
-		$this->upe_helper->reload_payment_gateways();
-
-		$stripe_payment_tokens_instance = WC_Stripe_Payment_Tokens::get_instance();
-
-		// The SEPA token we create below gets deleted by the method we hook in this filter because it's not found in Stripe.
-		remove_filter( 'woocommerce_get_customer_payment_tokens', [ $stripe_payment_tokens_instance, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
 		// Retrieve the actual subscription.
 		WC_Subscriptions::set_wcs_get_subscription(
@@ -288,6 +282,75 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// Confirm the flag for the migration was set.
 		$this->assertEquals( $this->legacy_sepa_gateway_id, $subscription->get_meta( '_migrated_sepa_payment_method' ) );
+	}
+
+	public function test_maybe_update_subscription_legacy_payment_method_adds_note_when_not_using_src() {
+		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->enable_upe();
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+		$subscription    = new WC_Subscription( $subscription_id );
+		$pm_id           = 'pm_123';
+
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $pm_id );
+		$subscription->save();
+
+		$this->updater->maybe_migrate_before_renewal( $subscription_id );
+
+		$subscription = new WC_Subscription( $subscription_id );
+		$notes        = wc_get_order_notes(
+			[ 'order_id' => $subscription_id ]
+		);
+
+		// Confirm the subscription's payment method remains the same.
+		$this->assertEquals( $pm_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
+
+		// Confirm a note is added when the Source wasn't migrated to PaymentMethods.
+		$this->assertEquals(
+			'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: The subscription is not using a Stripe Source for renewals.',
+			$notes[0]->content
+		);
+	}
+
+	public function test_maybe_update_subscription_legacy_payment_method_adds_note_when_source_not_migrated() {
+		$this->upe_helper->enable_upe_feature_flag();
+		$this->upe_helper->enable_upe();
+
+		// Retrieve the actual subscription.
+		WC_Subscriptions::set_wcs_get_subscription(
+			function ( $id ) {
+				return new WC_Subscription( $id );
+			}
+		);
+
+		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
+		$subscription_id = $ids_to_migrate[0];
+		$subscription    = new WC_Subscription( $subscription_id );
+		$source_id       = $subscription->get_meta( self::SOURCE_ID_META_KEY );
+
+		$this->updater->maybe_migrate_before_renewal( $subscription_id );
+
+		$subscription = new WC_Subscription( $subscription_id );
+		$notes        = wc_get_order_notes(
+			[ 'order_id' => $subscription_id ]
+		);
+
+		// Confirm the subscription's payment method remains the same.
+		$this->assertEquals( $source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
+
+		// Confirm a note is added when the Source wasn't migrated to PaymentMethods.
+		$this->assertEquals(
+			'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: The Source has not been migrated to PaymentMethods on the Stripe account.',
+			$notes[0]->content
+		);
 	}
 
 	/**
