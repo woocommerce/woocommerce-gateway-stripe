@@ -1,0 +1,51 @@
+@import '../../styles/abstracts/styles.scss';
+
+.wcstripe-chip {
+	font-size: 12px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 400;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.2rem;
+	line-height: 16px;
+	white-space: nowrap;
+	flex-direction: row;
+	gap: 2px;
+
+	&.wc-stripe-chip-gray {
+		background: $wp-gray-0;
+		color: $wp-gray-80;
+		svg {
+			fill: $wp-gray-80;
+		}
+	}
+	&.wc-stripe-chip-green {
+		background: $wp-green-0;
+		color: $wp-green-70;
+		svg {
+			fill: $wp-green-70;
+		}
+	}
+	&.wc-stripe-chip-blue {
+		background: $wp-blue-0;
+		color: $wp-blue-70;
+		svg {
+			fill: $wp-blue-70;
+		}
+	}
+	&.wc-stripe-chip-red {
+		background: $wp-red-0;
+		color: $wp-red-70;
+		svg {
+			fill: $wp-red-70;
+		}
+	}
+	&.wc-stripe-chip-yellow {
+		background: $wp-yellow-0;
+		color: $wp-yellow-70;
+		svg {
+			fill: $wp-yellow-70;
+		}
+	}
+}

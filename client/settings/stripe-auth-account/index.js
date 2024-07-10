@@ -4,6 +4,7 @@ import interpolateComponents from 'interpolate-components';
 import StripeAuthDiagram from './stripe-auth-diagram';
 import StripeAuthActions from './stripe-auth-actions';
 import './styles.scss';
+import AccountStatusPanel from './account-status-panel';
 import {
 	useAccountKeysWebhookURL,
 	useAccountKeysTestWebhookURL,
@@ -150,6 +151,7 @@ const StripeAuthAccount = ( { testMode } ) => {
 	return (
 		<div className="woocommerce-stripe-auth">
 			<StripeAuthDiagram />
+			<AccountStatusPanel testMode={ testMode } />
 			<h2>{ getHeading( testMode ) }</h2>
 			<p>
 				Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
