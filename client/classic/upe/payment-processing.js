@@ -306,7 +306,7 @@ export const createAndConfirmSetupIntent = (
 };
 
 /**
- * Handles displaying the Boleto or Oxxo voucher to the customer and then redirecting
+ * Handles displaying the Boleto or Oxxo or Multibanco voucher to the customer and then redirecting
  * them to the order received page once they close the voucher window.
  *
  * When processing a payment for one of our voucher payment methods on the checkout or order pay page,
@@ -363,6 +363,10 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 			confirmPayment = await api
 				.getStripe()
 				.confirmBoletoPayment( clientSecret, {} );
+		} else if ( paymentMethodType === 'multibanco' ) {
+			confirmPayment = await api
+				.getStripe()
+				.confirmMultibancoPayment( clientSecret, {} );
 		} else {
 			confirmPayment = await api
 				.getStripe()

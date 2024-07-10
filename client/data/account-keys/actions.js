@@ -55,8 +55,8 @@ export function* saveAccountKeys( accountKeys ) {
 			data: accountKeys,
 		} );
 
-		if ( ! accountData?.id ) {
-			throw 'Account not Found';
+		if ( ! isDisconnecting && ! accountData?.id ) {
+			throw 'Account not found.';
 		}
 
 		// refresh account data after keys are updated in the database
@@ -107,6 +107,47 @@ export function* testAccountKeys( { live, publishable, secret } ) {
 		error = e;
 	} finally {
 		yield updateIsTestingAccountKeys( false );
+	}
+
+	return error === null;
+}
+
+export function updateIsConfiguringWebhooks( isProcessing ) {
+	return {
+		type: ACTION_TYPES.SET_IS_CONFIGURING_WEBHOOKS,
+		isProcessing,
+	};
+}
+
+export function* configureWebhooks( { live, secret, callback } ) {
+	let error = null;
+
+	try {
+		yield updateIsConfiguringWebhooks( true );
+
+		// Send the request to Configure the Webhook.
+		const response = yield apiFetch( {
+			path: `${ NAMESPACE }/account_keys/configure_webhooks`,
+			method: 'POST',
+			data: {
+				live_mode: live,
+				secret,
+			},
+		} );
+
+		yield callback( response.webhookSecret, response.webhookURL );
+
+		yield dispatch( 'core/notices' ).createSuccessNotice(
+			__(
+				'Webhooks have been setup successfully.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+	} catch ( e ) {
+		error = e;
+		yield dispatch( 'core/notices' ).createErrorNotice( error.message );
+	} finally {
+		yield updateIsConfiguringWebhooks( false );
 	}
 
 	return error === null;
