@@ -244,6 +244,11 @@ const GeneralSettingsSection = ( {
 			onReorder={ onReorder }
 		>
 			{ availablePaymentMethods.map( ( method ) => {
+				// Skip giropay as it was deprecated by Jun, 30th 2024.
+				if ( method === 'giropay' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -286,6 +291,11 @@ const GeneralSettingsSection = ( {
 	) : (
 		<List>
 			{ availablePaymentMethods.map( ( method ) => {
+				// Skip giropay as it was deprecated by Jun, 30th 2024.
+				if ( method === 'giropay' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
