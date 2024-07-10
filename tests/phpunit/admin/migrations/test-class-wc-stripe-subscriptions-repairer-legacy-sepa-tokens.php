@@ -254,17 +254,11 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 			}
 		);
 
-		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
-		$subscription_id = $ids_to_migrate[0];
-		$subscription    = new WC_Subscription( $subscription_id );
-		$customer_id     = $subscription->get_user_id();
-
-		// Create the legacy token associated with the subscription.
+		$ids_to_migrate     = $this->get_subs_ids_to_migrate();
+		$subscription_id    = $ids_to_migrate[0];
+		$subscription       = new WC_Subscription( $subscription_id );
+		$customer_id        = $subscription->get_user_id();
 		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
-		$original_token     = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->legacy_sepa_gateway_id );
-
-		// Create the updated token we expect the subscription to be updated with.
-		$updated_token = WC_Helper_Token::create_sepa_token( $original_source_id, $customer_id, $this->updated_sepa_gateway_id );
 
 		$this->logger_mock
 			->expects( $this->at( 0 ) )
