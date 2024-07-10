@@ -1,150 +1,24 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { React, useRef, useState } from 'react';
+import { React, useRef, useState, useEffect } from 'react';
 import styled from '@emotion/styled';
-import {
-	Button,
-	TabPanel,
-	TextControl,
-	BaseControl,
-} from '@wordpress/components';
+import { Button, TabPanel, BaseControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import SectionStatus from '../section-status';
 import {
 	useAccountKeys,
-	useAccountKeysPublishableKey,
 	useAccountKeysSecretKey,
 	useAccountKeysWebhookSecret,
-	useAccountKeysTestPublishableKey,
 	useAccountKeysTestSecretKey,
 	useAccountKeysTestWebhookSecret,
 } from 'wcstripe/data/account-keys';
 import { useAccount } from 'wcstripe/data/account';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
-import InlineNotice from 'wcstripe/components/inline-notice';
-import { AccountKeysConnectionStatus } from 'wcstripe/settings/payment-settings/account-keys-connection-status';
-
-const PublishableKey = () => {
-	const [ publishableKey ] = useAccountKeysPublishableKey();
-	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState( publishableKey );
-
-	return (
-		<TextControl
-			label={ __( 'Live publishable key', 'woocommerce-gateway-stripe' ) }
-			help={ __(
-				'Only values starting with "pk_live_" will be saved.',
-				'woocommerce-gateway-stripe'
-			) }
-			value={ value }
-			onChange={ ( val ) => setValue( val ) }
-			disabled={ isSaving }
-			name="publishable_key"
-			autoComplete="off"
-			onFocus={ ( e ) => e.target.select() }
-		/>
-	);
-};
-
-const TestPublishableKey = () => {
-	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState( testPublishableKey );
-
-	return (
-		<TextControl
-			label={ __( 'Test publishable key', 'woocommerce-gateway-stripe' ) }
-			help={ __(
-				'Only values starting with "pk_test_" will be saved.',
-				'woocommerce-gateway-stripe'
-			) }
-			value={ value }
-			onChange={ ( val ) => setValue( val ) }
-			disabled={ isSaving }
-			name="test_publishable_key"
-			autoComplete="off"
-			onFocus={ ( e ) => e.target.select() }
-		/>
-	);
-};
-
-const SecretKey = () => {
-	const [ secretKey, setSecretKey ] = useAccountKeysSecretKey();
-	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState( secretKey );
-	return (
-		<TextControl
-			label={ __( 'Live secret key', 'woocommerce-gateway-stripe' ) }
-			help={ __(
-				'Only values starting with "sk_live_" or "rk_live_" will be saved.',
-				'woocommerce-gateway-stripe'
-			) }
-			value={ value }
-			onChange={ ( val ) => {
-				setValue( val );
-				setSecretKey( val );
-			} }
-			disabled={ isSaving }
-			name="secret_key"
-			autoComplete="off"
-			onFocus={ ( e ) => e.target.select() }
-		/>
-	);
-};
-
-const TestSecretKey = () => {
-	const [ testSecretKey, setTestSecretKey ] = useAccountKeysTestSecretKey();
-	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState( testSecretKey );
-	return (
-		<TextControl
-			label={ __( 'Test secret key', 'woocommerce-gateway-stripe' ) }
-			help={ __(
-				'Only values starting with "sk_test_" or "rk_test_" will be saved.',
-				'woocommerce-gateway-stripe'
-			) }
-			value={ value }
-			onChange={ ( val ) => {
-				setValue( val );
-				setTestSecretKey( val );
-			} }
-			disabled={ isSaving }
-			name="test_secret_key"
-			autoComplete="off"
-			onFocus={ ( e ) => e.target.select() }
-		/>
-	);
-};
-
-const WebhookSecret = () => {
-	return (
-		<WebhookSecretComponent
-			id="wc-stripe-webhook-element"
-			label={ __( 'Live Webhook', 'woocommerce-gateway-stripe' ) }
-			secretKeyHook={ useAccountKeysSecretKey }
-			webhookSecretHook={ useAccountKeysWebhookSecret }
-			liveMode={ true }
-		/>
-	);
-};
-
-const TestWebhookSecret = () => {
-	return (
-		<WebhookSecretComponent
-			id="wc-stripe-test-webhook-element"
-			label={ __( 'Test Webhook', 'woocommerce-gateway-stripe' ) }
-			secretKeyHook={ useAccountKeysTestSecretKey }
-			webhookSecretHook={ useAccountKeysTestWebhookSecret }
-			liveMode={ false }
-		/>
-	);
-};
+import StripeConnectionSection from 'wcstripe/settings/stripe-connection-section';
 
 const WebhookSecretComponent = ( {
-	id,
-	label,
 	secretKeyHook,
 	webhookSecretHook,
 	liveMode,
+	setWebhookHelpText,
 } ) => {
 	const { isSaving, configureWebhooks, isConfiguring } = useAccountKeys();
 	const { data } = useAccount();
@@ -177,57 +51,94 @@ const WebhookSecretComponent = ( {
 		? __( 'Reconfigure webhooks', 'woocommerce-gateway-stripe' )
 		: __( 'Configure webhooks', 'woocommerce-gateway-stripe' );
 
-	let helpText = __(
-		'Configuring webhooks will enable your store to receive notifications on charge statuses from Stripe.',
-		'woocommerce-gateway-stripe'
-	);
-
 	// If webhooks are configured, display a message with the webhook URL (if it's available).
-	if ( webhookSecret ) {
-		helpText = webhookURL
-			? interpolateComponents( {
-					mixedString: sprintf(
-						/* translators: %s: a payment method name. */
-						__(
-							'Your webhooks are configured and will be sent to: {{webhookURL}}%s{{/webhookURL}}.',
+	useEffect( () => {
+		if ( webhookSecret ) {
+			setWebhookHelpText(
+				webhookURL
+					? interpolateComponents( {
+							mixedString: sprintf(
+								/* translators: %s: is a webhook URL. */
+								__(
+									'Your webhooks are configured and will be sent to: {{webhookURL}}%s{{/webhookURL}}.',
+									'woocommerce-gateway-stripe'
+								),
+								decodeURIComponent( webhookURL )
+							),
+							components: {
+								webhookURL: <strong />,
+							},
+					  } )
+					: __(
+							'Your webhooks are configured.',
 							'woocommerce-gateway-stripe'
-						),
-						decodeURIComponent( webhookURL )
-					),
-					components: {
-						webhookURL: <strong />,
-					},
-			  } )
-			: __(
-					'Your webhooks are configured.',
-					'woocommerce-gateway-stripe'
-			  );
-	}
+					  )
+			);
+		}
+	}, [ webhookSecret, webhookURL, setWebhookHelpText ] );
 
 	return (
-		<BaseControl id={ id } label={ label } help={ helpText }>
-			<div className="wc-stripe-configure-webhook-control__content-wrapper">
-				<Button
-					disabled={ isSaving || isConfiguring || ! hasSecretKey }
-					isBusy={ isConfiguring }
-					onClick={ () => {
-						configureWebhooks( {
-							live: liveMode,
-							secret: secretKey,
-							callback: successCallback,
-						} );
-					} }
-					variant={ buttonType }
-					text={ buttonText }
-					style={ {
-						display: 'block',
-					} }
+		<Button
+			disabled={ isSaving || isConfiguring || ! hasSecretKey }
+			isBusy={ isConfiguring }
+			onClick={ () => {
+				configureWebhooks( {
+					live: liveMode,
+					secret: secretKey,
+					callback: successCallback,
+				} );
+			} }
+			variant={ buttonType }
+			text={ buttonText }
+			style={ {
+				display: 'block',
+			} }
+		/>
+	);
+};
+
+const WebhookConfigureButton = ( { testMode, setWebhookHelpText } ) => {
+	return testMode ? (
+		<WebhookSecretComponent
+			secretKeyHook={ useAccountKeysTestSecretKey }
+			webhookSecretHook={ useAccountKeysTestWebhookSecret }
+			liveMode={ false }
+			setWebhookHelpText={ setWebhookHelpText }
+		/>
+	) : (
+		<WebhookSecretComponent
+			secretKeyHook={ useAccountKeysSecretKey }
+			webhookSecretHook={ useAccountKeysWebhookSecret }
+			liveMode={ true }
+			setWebhookHelpText={ setWebhookHelpText }
+		/>
+	);
+};
+
+const StripeConnectActions = ( { testMode } ) => {
+	const [ webhookHelpText, setWebhookHelpText ] = useState(
+		__(
+			'Configuring webhooks will enable your store to receive notifications on charge statuses from Stripe.',
+			'woocommerce-gateway-stripe'
+		)
+	);
+	const mode = testMode ? 'test' : 'live';
+	const buttonText = testMode
+		? __( 'Connect a test account', 'woocommerce-gateway-stripe' )
+		: __( 'Connect an account', 'woocommerce-gateway-stripe' );
+	const buttonType = 'primary';
+	return (
+		<BaseControl
+			id={ `woocommerce-stripe-connection-${ mode }-actions` }
+			help={ webhookHelpText }
+			className="woocommerce-stripe-connection__actions"
+		>
+			<div className="woocommerce-stripe-connection__actions-wrapper">
+				<Button variant={ buttonType } text={ buttonText } />
+				<WebhookConfigureButton
+					testMode={ testMode }
+					setWebhookHelpText={ setWebhookHelpText }
 				/>
-				{ webhookSecret && ! isConfiguring && (
-					<SectionStatus isEnabled={ true }>
-						{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
-					</SectionStatus>
-				) }
 			</div>
 		</BaseControl>
 	);
@@ -236,9 +147,8 @@ const WebhookSecretComponent = ( {
 const Form = ( { formRef, testMode } ) => {
 	return (
 		<form ref={ formRef }>
-			{ testMode ? <TestPublishableKey /> : <PublishableKey /> }
-			{ testMode ? <TestSecretKey /> : <SecretKey /> }
-			{ testMode ? <TestWebhookSecret /> : <WebhookSecret /> }
+			<StripeConnectionSection testMode={ testMode } />
+			<StripeConnectActions testMode={ testMode } />
 		</form>
 	);
 };
@@ -271,14 +181,9 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 	}
 `;
 
-export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
+export const AccountKeysModal = ( { type, onClose } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
-	const {
-		isSaving,
-		saveAccountKeys,
-		updateIsValidAccountKeys,
-	} = useAccountKeys();
-	const [ isDisabled, setDisabled ] = useState( false );
+	const { updateIsValidAccountKeys } = useAccountKeys();
 	const formRef = useRef( null );
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
@@ -287,28 +192,6 @@ export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 		// Reset AccountKeysConnectionStatus to default state.
 		updateIsValidAccountKeys( null );
 		onClose();
-	};
-
-	const handleSave = async ( ref ) => {
-		setDisabled( true );
-		// Grab the HTMLCollection of elements of the HTML form, convert to array.
-		const elements = Array.from( ref.current.elements );
-		// Convert HTML elements array to an object acceptable for saving keys.
-		const keysToSave = elements.reduce( ( acc, curr ) => {
-			const { name, value } = curr;
-			return { ...acc, [ name ]: value };
-		}, {} );
-
-		const saveSuccess = await saveAccountKeys( keysToSave );
-		if ( ! saveSuccess ) {
-			setDisabled( false );
-		} else {
-			// After a successful save, we keep the modal open and disabled while the page reloads.
-			if ( setKeepModalContent ) {
-				setKeepModalContent( true );
-			}
-			window.location.reload();
-		}
 	};
 
 	const onTabSelect = ( tabName ) => {
@@ -320,85 +203,18 @@ export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 	return (
 		<StyledConfirmationModal
 			onRequestClose={ onCloseHelper }
-			actions={
-				<div
-					style={ {
-						display: 'flex',
-						justifyContent: 'space-between',
-						width: '100%',
-					} }
-				>
-					<AccountKeysConnectionStatus
-						formRef={ testMode ? testFormRef : formRef }
-					/>
-					<div className="wcstripe-modal-button-group-container">
-						<Button
-							isSecondary
-							onClick={ onCloseHelper }
-							disabled={ isDisabled }
-						>
-							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
-						</Button>
-						<Button
-							isPrimary
-							isBusy={ isSaving || isDisabled }
-							disabled={ isDisabled }
-							onClick={ () =>
-								handleSave( testMode ? testFormRef : formRef )
-							}
-						>
-							{ testMode
-								? __(
-										'Save test keys',
-										'woocommerce-gateway-stripe'
-								  )
-								: __(
-										'Save live keys',
-										'woocommerce-gateway-stripe'
-								  ) }
-						</Button>
-					</div>
-				</div>
-			}
 			title={
 				testMode
 					? __(
-							'Edit test account keys & webhooks',
+							'Test Stripe account & webhooks',
 							'woocommerce-gateway-stripe'
 					  )
 					: __(
-							'Edit live account keys & webhooks',
+							'Live Stripe account & webhooks',
 							'woocommerce-gateway-stripe'
 					  )
 			}
 		>
-			<InlineNotice isDismissible={ false }>
-				{ testMode
-					? interpolateComponents( {
-							mixedString: __(
-								'To enable the test mode, get the test account keys from your {{accountLink}}Stripe Account{{/accountLink}}.',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								accountLink: (
-									// eslint-disable-next-line jsx-a11y/anchor-has-content
-									<a href="https://dashboard.stripe.com/test/apikeys" />
-								),
-							},
-					  } )
-					: interpolateComponents( {
-							mixedString: __(
-								'To enable the live mode, get the account keys from your {{accountLink}}Stripe Account{{/accountLink}}.',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								accountLink: (
-									// eslint-disable-next-line jsx-a11y/anchor-has-content
-									<a href="https://dashboard.stripe.com/apikeys" />
-								),
-							},
-					  } ) }
-			</InlineNotice>
 			<StyledTabPanel
 				initialTabName={ type }
 				onSelect={ onTabSelect }
