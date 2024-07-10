@@ -122,11 +122,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
-			return false;
-		}
-
-		return parent::is_available();
+		return false;
 	}
 
 	/**

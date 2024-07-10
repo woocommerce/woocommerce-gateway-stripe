@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.5.0 - 2024-xx-xx =
+* Tweak - Remove Giropay from the list of payment methods (for all versions) due deprecation.
 * Tweak - Additional visual improvement for the webhook configuration notice.
 * Add - Allow changing display order of payment methods in the new checkout experience.
 * Add - Update the payment method associated with a subscription to a PaymentMethod when it's using a Stripe Source that was migrated to PaymentMethods.
@@ -145,5 +146,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
 * Tweak - Limit the configure webhooks button to 1 click per minute to prevent multiple webhook creations.
 * Fix - Address Klarna currency rules to ensure correct presentment and availability based on merchant and customer locations.
+* Fix - Prevent saved SEPA Sources from being displayed as available payment methods when the Updated checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
