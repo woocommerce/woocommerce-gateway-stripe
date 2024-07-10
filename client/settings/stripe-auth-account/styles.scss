@@ -1,0 +1,50 @@
+@import '../../styles/abstracts/styles.scss';
+.woocommerce-stripe-auth__help {
+	color: $gray-700;
+	font-size: $helptext-font-size;
+	font-style: normal;
+}
+.woocommerce-stripe-auth__diagram {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: $grid-unit-20;
+	margin: $grid-unit-40 0;
+
+	.woocommerce-stripe-auth__diagram__dotted-line {
+		position: relative;
+		border-top: 1px dashed $gray-600;
+		margin: 1px;
+		width: 50px;
+
+		&::before,
+		&::after {
+			content: '';
+			position: absolute;
+			top: -2.5px;
+			width: 4px;
+			height: 4px;
+			background-color: $gray-600;
+			border-radius: 50%;
+		}
+		&::before {
+			left: -4px;
+		}
+		&::after {
+			right: -4px;
+		}
+	}
+	img {
+		border-radius: 6px;
+	}
+	.woocommerce-stripe-woo-white-logo {
+		background-color: $studio-black;
+	}
+}
+.woocommerce-stripe-auth__actions {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: $grid-unit-20;
+}
