@@ -193,7 +193,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo esc_html( wpautop( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
+			echo wp_kses_post( wpautop( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
 		}
 
 		echo '</div>';

@@ -25,7 +25,7 @@ $billing_phone = $order->get_billing_phone();
 	</p>
 
 <?php if ( $email->get_custom_message() ) : ?>
-	<blockquote><?php echo esc_html( wpautop( wptexturize( $email->get_custom_message() ) ) ); ?></blockquote>
+	<blockquote><?php echo wp_kses_post( wpautop( wptexturize( $email->get_custom_message() ) ) ); ?></blockquote>
 <?php endif; ?>
 
 <?php

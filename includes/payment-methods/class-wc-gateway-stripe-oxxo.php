@@ -82,7 +82,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway_Voucher {
 		?>
 		<div class="stripe-source-errors" role="alert"></div>
 
-		<div id="stripe-boleto-payment-data"><?php echo esc_html( wpautop( $description ) ); ?></div>
+		<div id="stripe-boleto-payment-data"><?php echo wp_kses_post( wpautop( $description ) ); ?></div>
 		<?php
 	}
 

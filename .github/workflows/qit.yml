@@ -41,10 +41,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Download build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}
 
@@ -79,7 +79,7 @@ jobs:
       - name: Run API test
         if: "${{ ( ( inputs.tests == 'default' || inputs.tests == 'api' ) || contains(github.event.pull_request.labels.*.name, 'needs: qit default tests') || contains(github.event.pull_request.labels.*.name, 'needs: qit api test') ) && ( success() || failure() ) }}"
         id: run-api-test
-        run: ./vendor/bin/qit run:api ${{ github.event.repository.name }} --zip=${{ github.event.repository.name }}.zip --wait > api-result.txt
+        run: ./vendor/bin/qit run:woo-api ${{ github.event.repository.name }} --zip=${{ github.event.repository.name }}.zip --wait > api-result.txt
 
       - uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ failure() && steps.run-api-test.conclusion == 'failure' }}
@@ -91,7 +91,7 @@ jobs:
       - name: Run E2E test
         if: "${{ ( ( inputs.tests == 'default' || inputs.tests == 'e2e' ) || contains(github.event.pull_request.labels.*.name, 'needs: qit default tests') || contains(github.event.pull_request.labels.*.name, 'needs: qit e2e test') ) && ( success() || failure() ) }}"
         id: run-e2e-test
-        run: ./vendor/bin/qit run:e2e ${{ github.event.repository.name }} --zip=${{ github.event.repository.name }}.zip --wait > e2e-result.txt
+        run: ./vendor/bin/qit run:woo-e2e ${{ github.event.repository.name }} --zip=${{ github.event.repository.name }}.zip --wait > e2e-result.txt
 
       - uses: marocchino/sticky-pull-request-comment@v2
         if: ${{ failure() && steps.run-e2e-test.conclusion == 'failure' }}
