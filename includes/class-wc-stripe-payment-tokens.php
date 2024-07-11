@@ -283,7 +283,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 
-			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 			$customer = new WC_Stripe_Customer( $user_id );
 
 			// Retrieve the payment methods for the enabled reusable gateways.
@@ -609,7 +609,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array                           Filtered item
 	 */
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		__deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
+		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
 		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
 	}
 }

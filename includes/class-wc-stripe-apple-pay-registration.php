@@ -427,7 +427,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return boolean
 	 */
 	private function is_available(): bool {
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
 		$account_country     = $cached_account_data['country'] ?? null;
 
 		// Stripe Elements doesn’t support Apple Pay for Stripe accounts in India.

@@ -216,7 +216,7 @@ class WC_Stripe_Settings_Controller {
 			return;
 		}
 
-		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) { // @phpstan-ignore-line
 			return [];
 		}
 

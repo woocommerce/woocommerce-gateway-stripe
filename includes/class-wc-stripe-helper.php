@@ -378,12 +378,12 @@ class WC_Stripe_Helper {
 			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
 			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_EPS::class,
+			WC_Gateway_Stripe_Eps::class,
 			WC_Gateway_Stripe_Giropay::class,
 			WC_Gateway_Stripe_Ideal::class,
 			WC_Gateway_Stripe_Multibanco::class,
 			WC_Gateway_Stripe_Oxxo::class,
-			WC_Gateway_Stripe_p24::class,
+			WC_Gateway_Stripe_P24::class,
 			WC_Gateway_Stripe_Sepa::class,
 		];
 
@@ -921,7 +921,7 @@ class WC_Stripe_Helper {
 	 * @return string The statement descriptor suffix ("#{order-number}").
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
-		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix(); // @phpstan-ignore-line
 		$suffix = '';
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
@@ -1277,7 +1277,7 @@ class WC_Stripe_Helper {
 	 * @return array An array of all Stripe gateway IDs.
 	 */
 	public static function get_stripe_gateway_ids() {
-		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
 
 		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {

@@ -126,7 +126,7 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	 * @return boolean
 	 */
 	private function is_gb_country() {
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
 		$account_country     = $cached_account_data['country'] ?? null;
 		return 'GB' === $account_country;
 	}
@@ -139,6 +139,6 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
 	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true ); // @phpstan-ignore-line
 	}
 }

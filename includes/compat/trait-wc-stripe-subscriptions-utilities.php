@@ -31,7 +31,12 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return boolean
 	 */
 	public function has_subscription( $order_id ) {
-		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
+		return (
+			function_exists( 'wcs_order_contains_subscription' )
+			&& function_exists( 'wcs_is_subscription' )
+			&& function_exists( 'wcs_order_contains_renewal' )
+			&& ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) )
+		);
 	}
 
 	/**
@@ -79,7 +84,10 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool Indicates whether the save payment method checkbox should be displayed or not.
 	 */
 	public function display_save_payment_method_checkbox( $display ) {
-		if ( WC_Subscriptions_Cart::cart_contains_subscription() || $this->is_changing_payment_method_for_subscription() ) {
+		if (
+			( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_subscription() )
+			|| $this->is_changing_payment_method_for_subscription()
+		) {
 			return false;
 		}
 		// Only render the "Save payment method" checkbox if there are no subscription products in the cart.
@@ -96,7 +104,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 */
 	public function is_subscription_item_in_cart() {
 		if ( $this->is_subscriptions_enabled() ) {
-			return WC_Subscriptions_Cart::cart_contains_subscription() || $this->cart_contains_renewal();
+			return ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_subscription() ) || $this->cart_contains_renewal();
 		}
 		return false;
 	}

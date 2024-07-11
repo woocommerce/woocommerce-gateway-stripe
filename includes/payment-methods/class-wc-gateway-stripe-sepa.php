@@ -183,7 +183,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @return string
 	 */
 	public function mandate_display() {
 		/* translators: statement descriptor */

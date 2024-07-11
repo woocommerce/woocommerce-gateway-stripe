@@ -265,7 +265,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons(); // @phpstan-ignore-line
 		return isset( $icons['cards'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['cards'], $this->id ) : parent::get_icon();
 	}
 
@@ -397,7 +397,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
-		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
+		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country(); // @phpstan-ignore-line
 
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
@@ -504,7 +504,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
-		$account_domestic_currency    = WC_Stripe::get_instance()->account->get_account_default_currency();
+		$account_domestic_currency    = WC_Stripe::get_instance()->account->get_account_default_currency(); // @phpstan-ignore-line
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
@@ -1581,7 +1581,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return false;
 		}
 
-		$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+		$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency(); // @phpstan-ignore-line
 
 		return $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( null, $account_domestic_currency );
 	}

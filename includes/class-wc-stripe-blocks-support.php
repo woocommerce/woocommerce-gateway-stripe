@@ -1,7 +1,7 @@
 <?php
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
-use Automattic\WooCommerce\Blocks\Payments\PaymentResult;
-use Automattic\WooCommerce\Blocks\Payments\PaymentContext;
+use Automattic\WooCommerce\StoreApi\Payments\PaymentResult;
+use Automattic\WooCommerce\StoreApi\Payments\PaymentContext;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -57,7 +57,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		}
 
 		// If UPE is disabled, then we don't need to go further - we know the gateway is enabled.
-		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 
 		if ( ! is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return true;
@@ -249,7 +249,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( isset( $available_gateways['stripe'] ) ) {
 			$js_configuration = $available_gateways['stripe']->javascript_params();
 		} elseif ( $this->is_upe_method_available( $available_gateways ) ) {
-			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params();
+			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params(); // @phpstan-ignore-line
 		}
 
 		return apply_filters(
@@ -354,7 +354,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		}
 
 		$is_stripe_payment_method = $this->name === $context->payment_method;
-		$main_gateway             = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$main_gateway             = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 		$is_upe                   = $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway;
 
 		// Check if the payment method is a UPE payment method. UPE methods start with `stripe_`.
@@ -412,7 +412,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
 					'redirect_to' => rawurlencode( $result->redirect_url ),
 				],
-				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
+				home_url() . \WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
 			);
 
 			if ( ! empty( $payment_details['save_payment_method'] ) ) {
@@ -458,7 +458,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( isset( $gateways['stripe'] ) ) {
 			$gateway = $gateways['stripe'];
 		} elseif ( $this->is_upe_method_available( $gateways ) ) {
-			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 		} else {
 			return [];
 		}
@@ -473,7 +473,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return bool True if there is at least 1 UPE method available, false otherwise.
 	 */
 	private function is_upe_method_available( $available_gateways ) {
-		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 
 		if ( ! is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return false;

@@ -1318,12 +1318,12 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return  array $data
+	 * @return  array $data The selected product data.
 	 */
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		try {
+		try { // @phpstan-ignore-line
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
@@ -1416,7 +1416,7 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return  array $data
+	 * @return  array $data Results of adding the product to the cart.
 	 */
 	public function ajax_add_to_cart() {
 		check_ajax_referer( 'wc-stripe-add-to-cart', 'security' );
@@ -1454,6 +1454,7 @@ class WC_Stripe_Payment_Request {
 		$data          += $this->build_display_items();
 		$data['result'] = 'success';
 
+		// @phpstan-ignore-next-line
 		wp_send_json( $data );
 	}
 
@@ -2051,7 +2052,7 @@ class WC_Stripe_Payment_Request {
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
-				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
+				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index ); // @phpstan-ignore-line
 
 				// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
 				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {

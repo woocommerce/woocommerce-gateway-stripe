@@ -93,11 +93,11 @@ class WC_Stripe_Admin_Notices {
 		return [
 			'alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'eps'        => 'WC_Gateway_Stripe_EPS',
+			'eps'        => 'WC_Gateway_Stripe_Eps',
 			'giropay'    => 'WC_Gateway_Stripe_Giropay',
 			'ideal'      => 'WC_Gateway_Stripe_Ideal',
 			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'p24'        => 'WC_Gateway_Stripe_p24',
+			'p24'        => 'WC_Gateway_Stripe_P24',
 			'sepa'       => 'WC_Gateway_Stripe_Sepa',
 			'sofort'     => 'WC_Gateway_Stripe_Sofort',
 			'boleto'     => 'WC_Gateway_Stripe_Boleto',
@@ -252,7 +252,7 @@ class WC_Stripe_Admin_Notices {
 				}
 
 				// Check if Stripe Account data was successfully fetched.
-				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
 				if ( ! empty( $secret ) && empty( $account_data ) ) {
 					$setting_link = $this->get_setting_link();
 

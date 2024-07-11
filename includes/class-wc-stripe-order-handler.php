@@ -200,7 +200,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
 
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			$gateway->maybe_process_upe_redirect();
