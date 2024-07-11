@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 8.5.0 - 2024-xx-xx =
+= 8.5.0 - 2024-07-11 =
 * Tweak - Remove Giropay from the list of payment methods (for all versions) due deprecation.
 * Tweak - Additional visual improvement for the webhook configuration notice.
 * Add - Allow changing display order of payment methods in the new checkout experience.
