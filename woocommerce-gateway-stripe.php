@@ -8,9 +8,9 @@
  * Version: 8.4.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
- * Tested up to: 6.5.2
+ * Tested up to: 6.5.5
  * WC requires at least: 8.5
- * WC tested up to: 8.9
+ * WC tested up to: 9.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
