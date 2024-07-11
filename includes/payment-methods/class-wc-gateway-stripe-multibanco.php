@@ -197,7 +197,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo wp_kses_post( wpautop( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
+			echo wp_kses( wpautop( apply_filters( 'wc_stripe_description', $description, $this->id ) ), [ 'p' ] );
 		}
 
 		echo '</div>';

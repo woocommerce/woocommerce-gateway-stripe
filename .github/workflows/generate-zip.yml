@@ -11,24 +11,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v4
 
-            - name: Cache node_modules
-              id: cache-node-modules
-              uses: actions/cache@v4
-              env:
-                  cache-name: cache-node-modules
-              with:
-                  path: node_modules
-                  key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-
-            - name: Setup node version and npm cache
+            - name: Setup node version
               uses: actions/setup-node@v4
               with:
                   node-version-file: '.nvmrc'
-                  cache: 'npm'
-
-            - name: Install Node dependencies
-              if: steps.cache-node-modules.outputs.cache-hit != 'true'
-              run: npm ci --no-optional
 
             - name: Generate ZIP file
               run: npm run build && rm -rf ./woocommerce-gateway-stripe && unzip woocommerce-gateway-stripe.zip -d ./woocommerce-gateway-stripe
