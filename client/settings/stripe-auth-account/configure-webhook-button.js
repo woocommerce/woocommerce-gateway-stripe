@@ -10,12 +10,12 @@ import {
 
 /**
  * WebhookSecretComponent component.
- * Renders a Stripe authentication banner.
  *
- * @param {Object} props - The component props.
- * @param {boolean} props.secretKeyHook - Indicates whether the component is in test mode.
- * @param {boolean} props.webhookSecretHook - Indicates whether the component is in test mode.
- * @param {boolean} props.liveMode - Indicates whether the component is in test mode.
+ * @param {Object} props                    The component props.
+ * @param {boolean} props.secretKeyHook     Indicates whether the component is in test mode.
+ * @param {boolean} props.webhookSecretHook Indicates whether the component is in test mode.
+ * @param {boolean} props.liveMode          Indicates whether the component is in test mode.
+ *
  * @return {JSX.Element} The rendered StripeAuthAccount component.
  */
 const WebhookSecretComponent = ( {
@@ -55,8 +55,9 @@ const WebhookSecretComponent = ( {
 /**
  * ConfigureWebhookButton component.
  *
- * @param {Object} props - The component props.
- * @param {boolean} props.testMode - Indicates whether this is for test mode.
+ * @param {Object} props           The component props.
+ * @param {boolean} props.testMode Indicates whether this is for test mode.
+ *
  * @return {JSX.Element} The rendered ConfigureWebhookButton component.
  */
 const ConfigureWebhookButton = ( { testMode } ) => {
