@@ -25,6 +25,7 @@ const api = new WCStripeAPI(
 const upeMethods = getPaymentMethodsConstants();
 Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
+	.filter( ( [ upeName ] ) => upeName !== 'giropay' ) // Skip giropay as it was deprecated by Jun, 30th 2024.
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
 
@@ -44,6 +45,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
@@ -51,6 +53,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
