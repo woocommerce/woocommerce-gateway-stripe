@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.6.0 - xxxx-xx-xx =
+* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
