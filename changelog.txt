@@ -2,6 +2,9 @@
 
 = 8.6.0 - xxxx-xx-xx =
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
+ 
+= 8.5.1 - xxxx-xx-xx =
+* Fix - Fixed fatal error caused by non-existent class.
 
 = 8.5.0 - 2024-07-11 =
 * Tweak - Remove Giropay from the list of payment methods (for all versions) due deprecation.
