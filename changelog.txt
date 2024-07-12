@@ -1,8 +1,6 @@
 *** Changelog ***
 
 = 8.5.1 - xxxx-xx-xx =
-
-= 8.5.1 - xxxx-xx-xx =
 * Fix - Fixed fatal error caused by non-existent class.
 
 = 8.5.0 - 2024-07-11 =
