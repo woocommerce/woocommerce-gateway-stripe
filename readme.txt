@@ -132,4 +132,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
 
+= 8.5.1 - xxxx-xx-xx =
+* Fix - Fixed fatal error caused by non-existent class.
+
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
