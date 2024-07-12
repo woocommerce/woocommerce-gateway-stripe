@@ -734,8 +734,8 @@ function woocommerce_gateway_stripe() {
 			 * Initializes updating subscriptions.
 			 */
 			public function initialize_subscriptions_updater() {
-				// The updater depends on WC_Subscriptions. Bail out if not active.
-				if ( ! class_exists( 'WC_Subscriptions' ) ) {
+				// The updater depends on WCS_Background_Repairer. Bail out if class does not exist.
+				if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
 					return;
 				}
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
