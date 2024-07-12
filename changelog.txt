@@ -1,5 +1,10 @@
 *** Changelog ***
-= 8.5.0 - 2024-xx-xx =
+
+= 8.6.0 - xxxx-xx-xx =
+* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
+* Fix - Prevent duplicate customer creation during guest checkout.
+
+= 8.5.0 - 2024-07-11 =
 * Tweak - Remove Giropay from the list of payment methods (for all versions) due deprecation.
 * Tweak - Additional visual improvement for the webhook configuration notice.
 * Add - Allow changing display order of payment methods in the new checkout experience.
@@ -17,7 +22,6 @@
 * Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
 * Tweak - Limit the configure webhooks button to 1 click per minute to prevent multiple webhook creations.
 * Fix - Address Klarna currency rules to ensure correct presentment and availability based on merchant and customer locations.
-* Fix - Prevent duplicate customer creation during guest checkout.
 * Fix - Prevent saved SEPA Sources from being displayed as available payment methods when the Updated checkout experience is enabled.
 
 = 8.4.0 - 2024-06-13 =

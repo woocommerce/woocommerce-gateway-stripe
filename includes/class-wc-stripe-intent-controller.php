@@ -232,6 +232,7 @@ class WC_Stripe_Intent_Controller {
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
+					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
 			);
