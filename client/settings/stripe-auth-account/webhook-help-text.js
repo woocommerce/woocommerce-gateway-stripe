@@ -65,7 +65,7 @@ const WebhookHelpText = ( { testMode } ) => {
 					},
 			  } )
 			: __(
-					'Your webhooks are configured.',
+					'Webhooks have been manually configured via a webhook secret.',
 					'woocommerce-gateway-stripe'
 			  );
 	}
