@@ -68,7 +68,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons(); // @phpstan-ignore-line
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return isset( $icons['sepa'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['sepa'], $this->id ) : parent::get_icon();
 	}
 }

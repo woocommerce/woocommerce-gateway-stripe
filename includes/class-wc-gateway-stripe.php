@@ -1024,7 +1024,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		};
 
 		// Look for updates.
-		if ( // @phpstan-ignore-line
+		if (
 			$has_changed( $old_publishable_key, $new_publishable_key )
 			|| $has_changed( $old_secret_key, $new_secret_key )
 			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )

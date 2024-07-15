@@ -921,7 +921,7 @@ class WC_Stripe_Helper {
 	 * @return string The statement descriptor suffix ("#{order-number}").
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
-		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix(); // @phpstan-ignore-line
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
 		$suffix = '';
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
@@ -1277,7 +1277,7 @@ class WC_Stripe_Helper {
 	 * @return array An array of all Stripe gateway IDs.
 	 */
 	public static function get_stripe_gateway_ids() {
-		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
 
 		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {

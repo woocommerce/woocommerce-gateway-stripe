@@ -161,7 +161,7 @@ function woocommerce_gateway_stripe() {
 			public function __construct() {
 				add_action( 'admin_init', [ $this, 'install' ] );
 
-				$this->init(); // @phpstan-ignore-line
+				$this->init();
 
 				add_action( 'rest_api_init', [ $this, 'register_routes' ] );
 			}
@@ -243,10 +243,10 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
 
-				$this->api                           = new WC_Stripe_Connect_API(); // @phpstan-ignore-line
-				$this->connect                       = new WC_Stripe_Connect( $this->api ); // @phpstan-ignore-line
-				$this->payment_request_configuration = new WC_Stripe_Payment_Request(); // @phpstan-ignore-line
-				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' ); // @phpstan-ignore-line
+				$this->api                           = new WC_Stripe_Connect_API();
+				$this->connect                       = new WC_Stripe_Connect( $this->api );
+				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
+				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				$intent_controller = new WC_Stripe_Intent_Controller();
 				$intent_controller->init_hooks();
@@ -259,7 +259,7 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						new WC_Stripe_Settings_Controller( $this->account, $this->get_main_stripe_gateway() ); // @phpstan-ignore-line
+						new WC_Stripe_Settings_Controller( $this->account, $this->get_main_stripe_gateway() );
 					}
 
 					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
@@ -324,12 +324,12 @@ function woocommerce_gateway_stripe() {
 					}
 
 					add_woocommerce_inbox_variant();
-					$this->update_plugin_version(); // @phpstan-ignore-line
+					$this->update_plugin_version();
 
 					// TODO: Remove this when we're reasonably sure most merchants have had their
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
-					$this->update_prb_location_settings(); // @phpstan-ignore-line
+					$this->update_prb_location_settings();
 
 					// Check for subscriptions using legacy SEPA tokens on upgrade.
 					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
@@ -417,7 +417,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.6.0
 			 */
 			public function add_gateways( $methods ) {
-				$main_gateway = $this->get_main_stripe_gateway(); // @phpstan-ignore-line
+				$main_gateway = $this->get_main_stripe_gateway();
 				$methods[]    = $main_gateway;
 
 				// These payment gateways will be visible in the main settings page, if UPE enabled.
@@ -512,7 +512,7 @@ function woocommerce_gateway_stripe() {
 					return $settings;
 				}
 
-				return $this->toggle_upe( $settings, $old_settings ); // @phpstan-ignore-line
+				return $this->toggle_upe( $settings, $old_settings );
 			}
 
 			/**
@@ -535,10 +535,10 @@ function woocommerce_gateway_stripe() {
 				}
 
 				if ( 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
-					return $this->enable_upe( $settings ); // @phpstan-ignore-line
+					return $this->enable_upe( $settings );
 				}
 
-				return $this->disable_upe( $settings ); // @phpstan-ignore-line
+				return $this->disable_upe( $settings );
 			}
 
 			protected function enable_upe( $settings ) {
@@ -571,7 +571,7 @@ function woocommerce_gateway_stripe() {
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 					}
 
-					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) { // @phpstan-ignore-line
+					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
 						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
 						$settings['upe_checkout_experience_accepted_payments'][] = 'link';
 					}
@@ -654,13 +654,13 @@ function woocommerce_gateway_stripe() {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
 
-				$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() ); // @phpstan-ignore-line
+				$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
 				$locations_controller         = new WC_REST_Stripe_Locations_Controller();
-				$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() ); // @phpstan-ignore-line
+				$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
 				$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
-				$oauth_init                   = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api ); // @phpstan-ignore-line
-				$oauth_connect                = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api ); // @phpstan-ignore-line
-				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account ); // @phpstan-ignore-line
+				$oauth_init                   = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
+				$oauth_connect                = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
+				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
 
 				$connection_tokens_controller->register_routes();
 				$locations_controller->register_routes();
@@ -678,10 +678,10 @@ function woocommerce_gateway_stripe() {
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
-					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() ); // @phpstan-ignore-line
+					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 					$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account ); // @phpstan-ignore-line
+					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
 				}
 			}
@@ -692,19 +692,19 @@ function woocommerce_gateway_stripe() {
 			 * @return WC_Stripe_Payment_Gateway
 			 */
 			public function get_main_stripe_gateway() {
-				if ( ! is_null( $this->stripe_gateway ) ) { // @phpstan-ignore-line
-					return $this->stripe_gateway; // @phpstan-ignore-line
+				if ( ! is_null( $this->stripe_gateway ) ) {
+					return $this->stripe_gateway;
 				}
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway(); // @phpstan-ignore-line
+					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 
-					return $this->stripe_gateway; // @phpstan-ignore-line
+					return $this->stripe_gateway;
 				}
 
-				$this->stripe_gateway = new WC_Gateway_Stripe(); // @phpstan-ignore-line
+				$this->stripe_gateway = new WC_Gateway_Stripe();
 
-				return $this->stripe_gateway; // @phpstan-ignore-line
+				return $this->stripe_gateway;
 			}
 
 			/**
@@ -748,7 +748,7 @@ function woocommerce_gateway_stripe() {
 			}
 		}
 
-		$plugin = WC_Stripe::get_instance(); // @phpstan-ignore-line
+		$plugin = WC_Stripe::get_instance();
 
 	}
 
@@ -828,7 +828,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 					WC_Stripe_Blocks_Support::class,
 					function() {
 						if ( class_exists( 'WC_Stripe' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration ); // @phpstan-ignore-line
+							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}

@@ -283,7 +283,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 
-			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
+			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
 			$customer = new WC_Stripe_Customer( $user_id );
 
 			// Retrieve the payment methods for the enabled reusable gateways.

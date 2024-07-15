@@ -252,7 +252,7 @@ class WC_Stripe_Admin_Notices {
 				}
 
 				// Check if Stripe Account data was successfully fetched.
-				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 				if ( ! empty( $secret ) && empty( $account_data ) ) {
 					$setting_link = $this->get_setting_link();
 

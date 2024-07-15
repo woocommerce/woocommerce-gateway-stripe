@@ -317,7 +317,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
-						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line
+						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
 							return $this->process_subscription_payment( $amount, $renewal_order, false, $response->error );
 						}
 
@@ -831,7 +831,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function remove_order_pay_var() {
 		global $wp;
 		if ( isset( $_GET['wc-stripe-confirmation'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			$this->order_pay_var         = $wp->query_vars['order-pay']; // @phpstan-ignore-line
+			$this->order_pay_var         = $wp->query_vars['order-pay']; // @phpstan-ignore-line (order_pay_var is defined in classes using this class)
 			$wp->query_vars['order-pay'] = null;
 		}
 	}

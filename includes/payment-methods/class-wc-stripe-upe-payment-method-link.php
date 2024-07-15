@@ -77,7 +77,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function is_available_for_account_country() {
 		// If merchant is outside US, Link payment method should not be available.
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 
 		// List of available countries for each PM:

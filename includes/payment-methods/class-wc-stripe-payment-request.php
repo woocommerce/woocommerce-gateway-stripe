@@ -1323,7 +1323,7 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		try { // @phpstan-ignore-line
+		try { // @phpstan-ignore-line (return statement is added)
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
@@ -1454,7 +1454,7 @@ class WC_Stripe_Payment_Request {
 		$data          += $this->build_display_items();
 		$data['result'] = 'success';
 
-		// @phpstan-ignore-next-line
+		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
 
@@ -2052,11 +2052,13 @@ class WC_Stripe_Payment_Request {
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
-				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index ); // @phpstan-ignore-line
+				if ( class_exists( 'WC_Subscriptions_Cart' ) ) {
+					$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
 
-				// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
-				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
-					$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
+					// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
+					if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
+						$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
+					}
 				}
 			}
 		}

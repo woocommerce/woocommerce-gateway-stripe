@@ -112,8 +112,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$main_settings     = get_option( 'woocommerce_stripe_settings' );
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line
-		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line
+		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID defined in classes using this class)
+		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID defined in classes using this class)
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->supports = [ 'products', 'refunds' ];
 	}
@@ -133,7 +133,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @param array  $arguments The method arguments.
 	 */
 	public function __call( $method, $arguments ) {
-		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( in_array( $method, get_class_methods( $upe_gateway_instance ) ) ) {
 			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
@@ -211,7 +211,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons(); // @phpstan-ignore-line
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return apply_filters( 'woocommerce_gateway_icon', isset( $icons[ $this->get_id() ] ) ? $icons[ $this->get_id() ] : '', $this->id );
 	}
 
@@ -239,7 +239,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
 		if ( $this->has_domestic_transactions_restrictions() ) {
 			if ( null === $account_domestic_currency ) {
-				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency(); // @phpstan-ignore-line
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
 			}
 
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
@@ -276,7 +276,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		$account         = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
 
 		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
@@ -337,7 +337,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
@@ -349,7 +349,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * to query to retrieve saved payment methods from Stripe.
 	 */
 	public function get_retrievable_type() {
-		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID defined in classes using this class)
 	}
 
 	/**
@@ -378,7 +378,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_supported_currencies() {
 		return apply_filters(
-			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies', // @phpstan-ignore-line
+			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies', // @phpstan-ignore-line (STRIPE_ID defined in classes using this class)
 			$this->supported_currencies
 		);
 	}
@@ -469,7 +469,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array The payment result.
 	 */
 	public function process_payment( $order_id ) {
-		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id ); // @phpstan-ignore-line
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 	}
 
 	/**
@@ -488,7 +488,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
-		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason ); // @phpstan-ignore-line
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason );
 	}
 
 	/**
@@ -499,7 +499,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array The add payment method result.
 	 */
 	public function add_payment_method() {
-		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway(); // @phpstan-ignore-line
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		return $upe_gateway_instance->add_payment_method();
 	}
 
@@ -621,7 +621,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return true;
 		}
 
-		$account_country     = WC_Stripe::get_instance()->account->get_account_country(); // @phpstan-ignore-line
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
 		$range               = null;
 		$limits_per_currency = $this->get_limits_per_currency();
 

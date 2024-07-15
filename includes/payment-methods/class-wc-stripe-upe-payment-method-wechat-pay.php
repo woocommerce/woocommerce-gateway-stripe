@@ -48,7 +48,7 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	 * @return array
 	 */
 	public function get_supported_currencies() {
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data(); // @phpstan-ignore-line
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$country             = $cached_account_data['country'] ?? null;
 
 		$currency = [];
@@ -107,6 +107,6 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
 	public function is_available_for_account_country() {
-		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true ); // @phpstan-ignore-line
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 }

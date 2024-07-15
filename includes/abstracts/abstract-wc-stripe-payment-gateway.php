@@ -265,12 +265,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// NOTE: updates to this function should be added to are_keys_set()
 		// in includes/payment-methods/class-wc-stripe-payment-request.php
 
-		if ( $this->testmode ) { // @phpstan-ignore-line
-			return preg_match( '/^pk_test_/', $this->publishable_key ) // @phpstan-ignore-line
-				&& preg_match( '/^[rs]k_test_/', $this->secret_key ); // @phpstan-ignore-line
+		if ( $this->testmode ) { // @phpstan-ignore-line (testmode is defined in the classes that use this class)
+			return preg_match( '/^pk_test_/', $this->publishable_key ) // @phpstan-ignore-line (publishable_key is defined in the classes that use this class)
+				&& preg_match( '/^[rs]k_test_/', $this->secret_key ); // @phpstan-ignore-line (secret_key is defined in the classes that use this class)
 		} else {
-			return preg_match( '/^pk_live_/', $this->publishable_key ) // @phpstan-ignore-line
-				&& preg_match( '/^[rs]k_live_/', $this->secret_key ); // @phpstan-ignore-line
+			return preg_match( '/^pk_live_/', $this->publishable_key ) // @phpstan-ignore-line (publishable_key is defined in the classes that use this class)
+				&& preg_match( '/^[rs]k_live_/', $this->secret_key ); // @phpstan-ignore-line (secret_key is defined in the classes that use this class)
 		}
 	}
 
@@ -379,7 +379,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_transaction_url( $order ) {
-		if ( $this->testmode ) { // @phpstan-ignore-line
+		if ( $this->testmode ) { // @phpstan-ignore-line (testmode is defined in the classes that use this class)
 			$this->view_transaction_url = 'https://dashboard.stripe.com/test/payments/%s';
 		} else {
 			$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
@@ -887,7 +887,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) { // @phpstan-ignore-line
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) { // @phpstan-ignore-line (saved_cards is defined in the classes that use this class)
 				$response = $customer->attach_source( $stripe_token );
 
 				if ( ! empty( $response->error ) ) {
@@ -1159,7 +1159,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line
+		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line (return statement is added)
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
 
 			return new WP_Error(
@@ -1330,7 +1330,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$payment_method_types = [ 'card' ];
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids(); // @phpstan-ignore-line
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids(); // @phpstan-ignore-line (get_upe_enabled_at_checkout_payment_method_ids is defined in the classes that use this class)
 		} elseif ( isset( $prepared_source->source_object->type ) ) {
 			$payment_method_types = [ $prepared_source->source_object->type ];
 		}
@@ -1934,7 +1934,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			&& ! $this->is_valid_pay_for_order_endpoint()
 			&& ! is_add_payment_method_page()
 			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
-			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() ) // @phpstan-ignore-line
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() ) // @phpstan-ignore-line (Class WCS_Early_Renewal_Manager is checked already)
 			|| ( is_order_received_page() )
 		) {
 			return;
@@ -2019,7 +2019,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$stripe_params = [
 			'title'                    => $this->title,
-			'key'                      => $this->publishable_key, // @phpstan-ignore-line
+			'key'                      => $this->publishable_key, // @phpstan-ignore-line (publishable_key is defined in the classes that use this class)
 			'i18n_terms'               => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
 			'i18n_required_fields'     => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
 			'updateFailedOrderNonce'   => wp_create_nonce( 'wc_stripe_update_failed_order_nonce' ),
@@ -2066,7 +2066,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params['return_url']                  = $this->get_stripe_return_url();
 		$stripe_params['ajaxurl']                     = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                = wp_create_nonce( '_wc_stripe_nonce' );
-		$stripe_params['statement_descriptor']        = $this->statement_descriptor; // @phpstan-ignore-line
+		$stripe_params['statement_descriptor']        = $this->statement_descriptor; // @phpstan-ignore-line (statement_descriptor is defined in the classes that use this class)
 		$stripe_params['elements_options']            = apply_filters( 'wc_stripe_elements_options', [] );
 		$stripe_params['sepa_elements_options']       = $sepa_elements_options;
 		$stripe_params['invalid_owner_name']          = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
@@ -2134,7 +2134,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True if SSL is needed but not set.
 	 */
 	private function needs_ssl_setup() {
-		return ! $this->testmode && ! is_ssl(); // @phpstan-ignore-line
+		return ! $this->testmode && ! is_ssl(); // @phpstan-ignore-line (testmode is defined in the classes that use this class)
 	}
 
 	/**
