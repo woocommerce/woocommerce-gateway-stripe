@@ -23,6 +23,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
+		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Affirm::class,
 		WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
@@ -143,6 +144,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( 'sofort', $enabled_payment_methods, true );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$query_params = wp_unslash( $_GET );
+
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
@@ -150,6 +154,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
 			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+				continue;
+			}
+
+			// Show giropay only on the orders page to allow refunds. It was deprecated.
+			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ( ! isset( $query_params['page'] ) || 'wc-orders' !== $query_params['page'] ) ) {
 				continue;
 			}
 
