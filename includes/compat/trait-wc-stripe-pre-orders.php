@@ -207,7 +207,6 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$this->save_source_to_order( $order, $prepared_source ); // @phpstan-ignore-line (save_source_to_order is defined in the classes that use this trait)
 
 			// Try setting up a payment intent.
-			// @phpstan-ignore-next-line
 			$intent_secret = $this->setup_intent( $order, $prepared_source ); // @phpstan-ignore-line (setup_intent is defined in the classes that use this trait)
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
