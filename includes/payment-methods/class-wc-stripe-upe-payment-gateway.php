@@ -2512,7 +2512,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function is_order_details_page() {
 		$query_params = wp_unslash( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		if ( wcs_is_custom_order_tables_usage_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
-			return isset( $query_params['page'] ) && 'wc-hpos-order-details' === $query_params['page'];
+			return isset( $query_params['page'] ) && 'wc-orders' === $query_params['page'] && isset( $query_params['id'] );
 		}
 		$is_shop_order_post_type = isset( $query_params['post'] ) && 'shop_order' === get_post_type( $query_params['post'] );
 		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_order_post_type;
