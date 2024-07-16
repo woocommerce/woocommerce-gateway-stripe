@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
+* Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
