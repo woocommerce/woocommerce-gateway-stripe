@@ -405,7 +405,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const partials = window.location.href.match(
-		/#wc-stripe-wallet-(.+):(.+):(.+):(.+)$/
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+)$/
 	);
 
 	if ( ! partials ) {
@@ -421,7 +421,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	);
 
 	const orderId = partials[ 1 ];
-	const clientSecret = partials[ 3 ];
+	const clientSecret = partials[ 4 ];
 
 	// Verify the request using the data added to the URL.
 	if (
@@ -433,7 +433,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const paymentMethodType = partials[ 2 ];
-	const returnURL = decodeURIComponent( partials[ 4 ] );
+	const returnURL = decodeURIComponent( partials[ 5 ] );
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
@@ -451,11 +451,20 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 					} );
 				break;
 			case 'cashapp':
-				confirmPayment = await api
-					.getStripe()
-					.confirmCashappPayment( clientSecret, {
-						return_url: returnURL,
-					} );
+				const intentType = partials[ 2 ];
+				if ( intentType === 'setup_intent' ) {
+					confirmPayment = await api
+						.getStripe()
+						.confirmCashappSetup( clientSecret, {
+							return_url: returnURL,
+						} );
+				} else {
+					confirmPayment = await api
+						.getStripe()
+						.confirmCashappPayment( clientSecret, {
+							return_url: returnURL,
+						} );
+				}
 				break;
 			default:
 				// eslint-disable-next-line no-console
