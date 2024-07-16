@@ -47,7 +47,7 @@ class WC_Stripe_Settings_Controller {
 	/**
 	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
 	 * This function is called when the 'woocommerce_gateway_order' option is updated.
-	 * Adding the Stripe gateway to the option is needed to display them in the block checkout page.
+	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
 	 *
 	 * @param array $ordering The current ordering of the gateways.
 	 */
