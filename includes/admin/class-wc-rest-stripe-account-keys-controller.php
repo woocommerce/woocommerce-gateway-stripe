@@ -132,12 +132,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'callback'            => [ $this, 'configure_webhooks' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'live_mode'      => [
+					'live_mode'  => [
 						'description'       => __( 'Whether the account is in live mode.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'secret_key'           => [
+					'secret_key' => [
 						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_secret_key' ],
@@ -417,7 +417,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'setup_intent.succeeded',
 				'setup_intent.setup_failed',
 			],
-			'url' => WC_Stripe_Helper::get_webhook_url(),
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
