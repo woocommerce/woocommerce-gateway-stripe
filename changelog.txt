@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.6.0 - xxxx-xx-xx =
+* Add - Show UPE payment methods in saved order on block checkout page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 
 = 8.5.0 - 2024-07-11 =
