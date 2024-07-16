@@ -451,7 +451,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 					} );
 				break;
 			case 'cashapp':
-				const intentType = partials[ 2 ];
+				const intentType = partials[ 3 ];
 				if ( intentType === 'setup_intent' ) {
 					confirmPayment = await api
 						.getStripe()
@@ -468,7 +468,11 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 				break;
 			default:
 				// eslint-disable-next-line no-console
-				console.error( 'Invalid wallet type:', paymentMethodType );
+				console.error(
+					'Invalid wallet type:',
+					paymentMethodType,
+					window.location.href
+				);
 				throw new Error( getStripeServerData()?.invalid_wallet_type );
 		}
 
