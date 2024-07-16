@@ -86,6 +86,8 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
 
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}
 }

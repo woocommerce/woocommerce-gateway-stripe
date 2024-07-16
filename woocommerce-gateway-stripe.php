@@ -337,21 +337,8 @@ function woocommerce_gateway_stripe() {
 
 					// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 					// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
-					$this->set_stripe_gateways_in_list();
+					WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 				}
-			}
-
-			/**
-			 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
-			 * This function is called when the plugin is installed or updated is updated.
-			 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
-			 */
-			public function set_stripe_gateways_in_list() {
-				$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
-
-				$ordered_payment_method_ids = $is_upe_enabled ? $stripe_settings['stripe_upe_payment_method_order'] : $stripe_settings['stripe_legacy_method_order'];
-				WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
 			}
 
 			/**

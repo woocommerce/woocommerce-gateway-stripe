@@ -52,15 +52,10 @@ class WC_Stripe_Settings_Controller {
 	 * @param array $ordering The current ordering of the gateways.
 	 */
 	public function set_stripe_gateways_in_list( $ordering ) {
-		$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
-
-		$ordered_payment_method_ids = $is_upe_enabled ? $stripe_settings['stripe_upe_payment_method_order'] : $stripe_settings['stripe_legacy_method_order'];
-
 		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
 		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}

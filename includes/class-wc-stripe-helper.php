@@ -725,7 +725,14 @@ class WC_Stripe_Helper {
 	 *
 	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
 	 */
-	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids ) {
+	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
+		if ( empty( $ordered_payment_method_ids ) ) {
+			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+
+			$ordered_payment_method_ids = $is_upe_enabled ? $stripe_settings['stripe_upe_payment_method_order'] : $stripe_settings['stripe_legacy_method_order'];
+		}
+
 		$gateway_order = get_option( 'woocommerce_gateway_order' );
 
 		$ordered_available_stripe_methods = [];
