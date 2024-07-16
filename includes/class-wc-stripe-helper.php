@@ -735,8 +735,6 @@ class WC_Stripe_Helper {
 
 			if ( 'card' === $payment_method_id ) {
 				$gateway_id = 'stripe';
-			} elseif ( 'sepa_debit' === $payment_method_id ) {
-				$gateway_id = 'stripe_sepa';
 			}
 
 			$ordered_available_stripe_methods[] = $gateway_id;
