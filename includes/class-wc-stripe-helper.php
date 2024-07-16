@@ -730,7 +730,15 @@ class WC_Stripe_Helper {
 			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 
-			$ordered_payment_method_ids = $is_upe_enabled ? $stripe_settings['stripe_upe_payment_method_order'] : $stripe_settings['stripe_legacy_method_order'];
+			if ( $is_upe_enabled ) {
+				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
+			} else {
+				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
+			}
+
+			if ( empty( $ordered_payment_method_ids ) ) {
+				return;
+			}
 		}
 
 		$gateway_order = get_option( 'woocommerce_gateway_order' );
