@@ -1,19 +1,18 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import { Button, ExternalLink, Icon } from '@wordpress/components';
-import { help, warning } from '@wordpress/icons';
+import { ExternalLink, Icon } from '@wordpress/components';
+import { help } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
-import useWebhookStateMessage from './use-webhook-state-message';
-import SectionStatus from './section-status';
+import SectionStatus from '../section-status';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useAccountKeysTestWebhookSecret,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
-import { WebhookInformation } from 'wcstripe/components/webhook-information';
+import { WebhookDescription } from 'wcstripe/components/webhook-description';
 
 const AccountDetailsContainer = styled.div`
 	display: flex;
@@ -39,34 +38,6 @@ const Label = styled.p`
 	font-weight: 500;
 	text-transform: uppercase;
 	margin: 0;
-`;
-
-const WebhookDescriptionWrapper = styled.div`
-	font-size: 12px;
-	font-style: normal;
-	color: rgb( 117, 117, 117 );
-
-	> span {
-		align-self: center;
-	}
-
-	p.warning {
-		background-color: #fcf9e8;
-		color: #674600;
-		padding: 4px 8px;
-		border-radius: 2px;
-	}
-`;
-
-const WebhookDescription = styled.div`
-	display: flex;
-	align-items: center;
-`;
-
-const WarningIcon = styled( Icon )`
-	fill: #674600;
-	padding: 5px;
-	margin: 1em 0;
 `;
 
 const AccountDetailsError = styled.p`
@@ -146,9 +117,6 @@ const WebhooksSection = () => {
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
 	);
 
-	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
-	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
-
 	return (
 		<>
 			<AccountSection>
@@ -159,29 +127,9 @@ const WebhooksSection = () => {
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
 			</AccountSection>
-			<WebhookDescriptionWrapper>
-				{ ! isWebhookSecretEntered && <WebhookInformation /> }
-				<WebhookDescription
-					className={ isWebhookSecretEntered ? 'expanded' : '' }
-				>
-					{ isWarningMessage && (
-						<span data-testid="warning">
-							<WarningIcon icon={ warning } size="16" />
-						</span>
-					) }
-					<p className={ isWarningMessage ? 'warning' : '' }>
-						{ message }{ ' ' }
-						<Button
-							disabled={ requestStatus === 'pending' }
-							onClick={ refreshMessage }
-							isBusy={ requestStatus === 'pending' }
-							isLink
-						>
-							{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-						</Button>
-					</p>
-				</WebhookDescription>
-			</WebhookDescriptionWrapper>
+			<WebhookDescription
+				isWebhookSecretEntered={ isWebhookSecretEntered }
+			/>
 		</>
 	);
 };
