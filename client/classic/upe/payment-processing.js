@@ -433,6 +433,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const paymentMethodType = partials[ 2 ];
+	const intentType = partials[ 3 ];
 	const returnURL = decodeURIComponent( partials[ 5 ] );
 
 	try {
@@ -451,7 +452,6 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 					} );
 				break;
 			case 'cashapp':
-				const intentType = partials[ 3 ];
 				if ( intentType === 'setup_intent' ) {
 					confirmPayment = await api
 						.getStripe()
@@ -468,11 +468,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 				break;
 			default:
 				// eslint-disable-next-line no-console
-				console.error(
-					'Invalid wallet type:',
-					paymentMethodType,
-					window.location.href
-				);
+				console.error( 'Invalid wallet type:', paymentMethodType );
 				throw new Error( getStripeServerData()?.invalid_wallet_type );
 		}
 
@@ -482,7 +478,11 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
-		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
+		const status =
+			intentType === 'setup_intent'
+				? confirmPayment.setupIntent.status
+				: confirmPayment.paymentIntent.status;
+		if ( status !== 'requires_action' ) {
 			window.location.href = returnURL;
 		}
 	} catch ( error ) {
