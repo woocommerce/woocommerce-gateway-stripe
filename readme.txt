@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.4.0
+Stable tag: 8.5.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,18 +128,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.5.0 - 2024-xx-xx =
-* Add - Allow changing display order of payment methods in the new checkout experience.
-* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
-* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
-* Tweak - Improve the display of warning messages related to webhook configuration.
-* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
-* Add - Allow customizing the title and description of the UPE payment methods.
-* Tweak - Add a statement descriptor preview for Cash App Payments.
-* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
-* Add - Introduce a way for store managers to automatically configure webhooks on their Stripe account with a single button in the admin settings.
-* Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
-* Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
+= 8.6.0 - xxxx-xx-xx =
+* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
+* Fix - Prevent duplicate customer creation during guest checkout.
+* Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -232,6 +232,7 @@ class WC_Stripe_Intent_Controller {
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
+					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
 			);
@@ -643,8 +644,8 @@ class WC_Stripe_Intent_Controller {
 
 				// Use the last charge within the intent to proceed.
 				$gateway = $this->get_gateway();
-				if ( isset( $intent->charges ) && ! empty( $intent->charges->data ) ) {
-					$charge = end( $intent->charges->data );
+				$charge  = $gateway->get_latest_charge_from_intent( $intent );
+				if ( ! empty( $charge ) ) {
 					$gateway->process_response( $charge, $order );
 				} else {
 					// TODO: Add implementation for setup intents.
