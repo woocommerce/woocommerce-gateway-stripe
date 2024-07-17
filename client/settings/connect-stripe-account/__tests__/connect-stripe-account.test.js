@@ -7,6 +7,7 @@ import {
 	useAccountKeysPublishableKey,
 	useAccountKeysSecretKey,
 	useAccountKeysWebhookSecret,
+	useAccountKeysWebhookURL,
 } from 'wcstripe/data/account-keys/hooks';
 import { useAccount } from 'wcstripe/data/account';
 import { recordEvent } from 'wcstripe/tracking';
@@ -133,6 +134,10 @@ describe( 'ConnectStripeAccount', () => {
 		useAccount.mockReturnValue( {
 			data: { webhook_url: 'example.com' },
 		} );
+		useAccountKeysWebhookURL.mockReturnValue( [
+			'example.com',
+			jest.fn(),
+		] );
 
 		render( <ConnectStripeAccount oauthUrl="" /> );
 		const accountKeysButton = screen.queryByText( /enter account keys/i );
