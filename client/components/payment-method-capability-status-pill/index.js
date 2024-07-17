@@ -7,10 +7,10 @@ import Tooltip from 'wcstripe/components/tooltip';
 import { useGetCapabilities } from 'wcstripe/data/account';
 
 const StyledPill = styled( Pill )`
-	border: 1px solid #f0b849;
-	background-color: #f0b849;
-	color: #1e1e1e;
-	line-height: 16px;
+	background-color: #fcf9e8;
+	border: 1px solid #fcf9e8;
+	border-radius: 2px;
+	color: #674600;
 `;
 
 const StyledLink = styled.a`
