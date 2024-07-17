@@ -16,6 +16,7 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysPublishableKey: jest.fn(),
 	useAccountKeysSecretKey: jest.fn(),
 	useAccountKeysWebhookSecret: jest.fn(),
+	useAccountKeysWebhookURL: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/data/account', () => ( {
