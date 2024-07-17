@@ -145,6 +145,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
+				'capture_method'       => 'automatic',
 			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
