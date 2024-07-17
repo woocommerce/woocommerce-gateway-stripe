@@ -569,7 +569,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				$settings
 			);
 
-			return new WP_REST_Response( [ 'result' => 'upe' ], 200 );
+			return new WP_REST_Response( [], 200 );
 		}
 
 		// Map the ids used in the frontend to the legacy gateway class ids.
@@ -596,7 +596,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$payment_gateway->update_unique_settings( $request );
 		}
 
-		return new WP_REST_Response( [ 'result' => 'legacy' ], 200 );
+		return new WP_REST_Response( [], 200 );
 	}
 
 	/**
