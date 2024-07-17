@@ -1753,6 +1753,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'off_session'          => 'true',
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
+			'capture_method'       => 'automatic',
 		];
 
 		if ( isset( $full_request['statement_descriptor'] ) ) {
