@@ -202,7 +202,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_description() {
 		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : $this->description;
+		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
 	}
 
 	/**
