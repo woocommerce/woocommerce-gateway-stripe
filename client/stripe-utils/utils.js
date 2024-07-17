@@ -540,7 +540,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
  */
 export const unblockBlockCheckout = () => {
 	// Exit early if we're not in a block context.
-	if ( ! wcSettings.wcBlocksConfig ) {
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
 		return;
 	}
 
@@ -558,7 +558,7 @@ export const unblockBlockCheckout = () => {
  */
 export const resetBlockCheckoutPaymentState = () => {
 	// Exit early if we're not in a block context.
-	if ( ! wcSettings.wcBlocksConfig ) {
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
 		return;
 	}
 
