@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { React } from 'react';
 import { Button } from '@wordpress/components';
 import ConfigureWebhookButton from './configure-webhook-button';
@@ -15,6 +16,7 @@ const StripeAuthActions = ( { testMode } ) => {
 		<div className="woocommerce-stripe-auth__actions">
 			<Button
 				variant="primary"
+				href={ wc_stripe_settings_params.stripe_oauth_url }
 				text={
 					testMode ? 'Connect a test account' : 'Connect an account'
 				}
