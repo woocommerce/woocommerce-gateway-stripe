@@ -291,7 +291,7 @@ jQuery( function ( $ ) {
 				}
 			}
 		} )
-		.on( 'change', 'input[name="payment_method"]', () => {
+		.on( 'change', '.wc_payment_methods', () => {
 			// Check to see whether we should display the Cash App limit notice.
 			if ( $( 'input#payment_method_stripe_cashapp' ).is( ':checked' ) ) {
 				maybeShowCashAppLimitNotice(
