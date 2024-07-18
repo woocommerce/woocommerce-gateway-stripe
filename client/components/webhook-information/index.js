@@ -15,7 +15,7 @@ export const WebhookInformation = () => {
 		<p data-testid="webhook-information">
 			{ interpolateComponents( {
 				mixedString: __(
-					"Add the following webhook endpoint {{webhookUrl/}} to your {{settingsLink}}Stripe account settings{{/settingsLink}} (if there isn't one already). This will enable you to receive notifications on the charge statuses.",
+					'Click the Edit account keys button to {{settingsLink}}configure a webhook{{/settingsLink}}. This will complete your Stripe account connection process.',
 					'woocommerce-gateway-stripe'
 				),
 				components: {
@@ -25,7 +25,7 @@ export const WebhookInformation = () => {
 						</WebhookEndpointText>
 					),
 					settingsLink: (
-						<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
+						<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/stripe-webhooks/" />
 					),
 				},
 			} ) }
