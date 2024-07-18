@@ -6,12 +6,13 @@ import ConfigureWebhookButton from './configure-webhook-button';
 /**
  * StripeAuthActions component.
  *
- * @param {Object} props           The component props.
- * @param {boolean} props.testMode Indicates whether the component is in test mode.
+ * @param {Object} props                          The component props.
+ * @param {boolean} props.testMode                Indicates whether the component is in test mode.
+ * @param {boolean} props.displayWebhookConfigure Indicates whether to display the webhook configuration button.
  *
  * @return {JSX.Element} The rendered StripeAuthActions component.
  */
-const StripeAuthActions = ( { testMode } ) => {
+const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
 	return (
 		<div className="woocommerce-stripe-auth__actions">
 			<Button
@@ -21,7 +22,9 @@ const StripeAuthActions = ( { testMode } ) => {
 					testMode ? 'Connect a test account' : 'Connect an account'
 				}
 			/>
-			<ConfigureWebhookButton testMode={ testMode } />
+			{ displayWebhookConfigure && (
+				<ConfigureWebhookButton testMode={ testMode } />
+			) }
 		</div>
 	);
 };

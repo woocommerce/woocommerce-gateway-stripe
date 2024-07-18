@@ -4,6 +4,10 @@ import StripeAuthDiagram from './stripe-auth-diagram';
 import StripeAuthActions from './stripe-auth-actions';
 import AccountStatusPanel from './account-status-panel';
 import WebhookHelpText from './webhook-help-text';
+import {
+	useAccountKeysSecretKey,
+	useAccountKeysTestSecretKey,
+} from 'wcstripe/data/account-keys';
 import './styles.scss';
 
 /**
@@ -62,6 +66,13 @@ const getHeading = ( testMode ) => {
  * @return {JSX.Element} The rendered StripeAuthAccount component.
  */
 const StripeAuthAccount = ( { testMode } ) => {
+	const [ testSecretKey ] = useAccountKeysTestSecretKey();
+	const [ secretKey ] = useAccountKeysSecretKey();
+
+	// Only display webhook configuration if the secret key is set.
+	const displayWebhookConfigure = Boolean(
+		testMode ? testSecretKey : secretKey
+	);
 	return (
 		<div className="woocommerce-stripe-auth">
 			<StripeAuthDiagram />
@@ -75,8 +86,13 @@ const StripeAuthAccount = ( { testMode } ) => {
 			<p className="woocommerce-stripe-auth__help">
 				{ getHelpText( testMode ) }
 			</p>
-			<StripeAuthActions testMode={ testMode } />
-			<WebhookHelpText testMode={ testMode } />
+			<StripeAuthActions
+				testMode={ testMode }
+				displayWebhookConfigure={ displayWebhookConfigure }
+			/>
+			{ displayWebhookConfigure && (
+				<WebhookHelpText testMode={ testMode } />
+			) }
 		</div>
 	);
 };
