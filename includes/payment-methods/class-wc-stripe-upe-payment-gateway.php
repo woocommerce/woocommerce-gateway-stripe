@@ -2514,6 +2514,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( function_exists( 'wcs_is_custom_order_tables_usage_enabled' ) && wcs_is_custom_order_tables_usage_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
 			return isset( $query_params['page'] ) && 'wc-orders' === $query_params['page'] && isset( $query_params['id'] );
 		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
 		$is_shop_order_post_type = isset( $query_params['post'] ) && 'shop_order' === get_post_type( $query_params['post'] );
 		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_order_post_type;
 	}
