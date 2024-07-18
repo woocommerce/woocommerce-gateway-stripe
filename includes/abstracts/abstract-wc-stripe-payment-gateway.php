@@ -1699,6 +1699,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$setup_intent = WC_Stripe_API::request(
 			[
 				'payment_method' => $prepared_source->source,
+				'return_url'     => $this->get_stripe_return_url( $order ),
 				'customer'       => $prepared_source->customer,
 				'confirm'        => 'true',
 			],
