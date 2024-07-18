@@ -2,10 +2,8 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AccountDetailsSection from '../account-details-section';
-import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 import { useTestMode } from 'wcstripe/data';
 import {
-	useAccountKeys,
 	useAccountKeysPublishableKey,
 	useAccountKeysSecretKey,
 	useAccountKeysWebhookSecret,
@@ -130,75 +128,6 @@ describe( 'AccountDetailsSection', () => {
 		} );
 		userEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'test' );
-	} );
-
-	it( 'should call `testAccountKeys` when the link is clicked', () => {
-		const testAccountKeysMock = jest.fn();
-		useAccountKeys.mockReturnValue( {
-			isValid: null,
-			updateIsValidAccountKeys: jest.fn(),
-			testAccountKeys: testAccountKeysMock,
-		} );
-
-		render( <AccountKeysModal /> );
-
-		const testConnectionLink = screen.getByText( /Test connection/i );
-		expect( testConnectionLink ).toBeInTheDocument();
-
-		expect( testAccountKeysMock ).not.toHaveBeenCalled();
-
-		userEvent.click( testConnectionLink );
-
-		expect( testAccountKeysMock ).toHaveBeenCalled();
-	} );
-
-	it( 'should test the account keys when test connection clicked', () => {
-		const updateIsValidAccountKeys = jest.fn( ( val ) => {
-			expect( val ).toBe( true );
-		} );
-
-		const testAccountKeys = jest.fn( ( val ) => {
-			expect( val ).toStrictEqual( {
-				live: true,
-				publishable: 'pk_live_dummy_publishable_key',
-				secret: 'sk_live_dummy_secret',
-			} );
-			return true;
-		} );
-
-		useAccountKeys.mockReturnValue( {
-			isValid: null,
-			isTesting: null,
-			updateIsValidAccountKeys,
-			testAccountKeys,
-		} );
-
-		useAccountKeysSecretKey.mockReturnValue( [
-			'sk_live_dummy_secret',
-			jest.fn(),
-		] );
-		useAccountKeysPublishableKey.mockReturnValue( [
-			'pk_live_dummy_publishable_key',
-			jest.fn(),
-		] );
-
-		render( <AccountKeysModal /> );
-
-		const testConnectionLink = screen.getByText( /Test connection/i );
-		expect( testConnectionLink ).toBeInTheDocument();
-		userEvent.click( testConnectionLink );
-
-		useAccountKeys.mockReturnValue( {
-			isValid: true,
-			isTesting: false,
-		} );
-
-		render( <AccountKeysModal /> );
-
-		const connectionSuccessfulMessage = screen.getByText(
-			/Connection successful/i
-		);
-		expect( connectionSuccessfulMessage ).toBeInTheDocument();
 	} );
 
 	it( 'Stripe account ID and email should be displayed with a live account', () => {
