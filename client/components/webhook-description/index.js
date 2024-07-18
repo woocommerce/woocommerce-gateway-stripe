@@ -34,6 +34,10 @@ const WebhookDescriptionInner = styled.div`
 export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
+	const isSuccessMessage =
+		message?.includes( 'The most recent ' ) && isWarningMessage === false;
+	const isSuccessMessageWithSecret =
+		isSuccessMessage && isWebhookSecretEntered;
 	const webhookDescriptionClassesAr = [];
 	if ( isWebhookSecretEntered ) {
 		webhookDescriptionClassesAr.push( 'expanded' );
@@ -49,17 +53,19 @@ export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
 				className={ webhookDescriptionClassesAr.join( ' ' ) }
 			>
 				{ isWarningMessage && <WarningIcon /> }
-				<p>
-					{ message }{ ' ' }
-					<Button
-						disabled={ requestStatus === 'pending' }
-						onClick={ refreshMessage }
-						isBusy={ requestStatus === 'pending' }
-						isLink
-					>
-						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-					</Button>
-				</p>
+				{ ( ! isSuccessMessage || isSuccessMessageWithSecret ) && (
+					<p>
+						{ message }{ ' ' }
+						<Button
+							disabled={ requestStatus === 'pending' }
+							onClick={ refreshMessage }
+							isBusy={ requestStatus === 'pending' }
+							isLink
+						>
+							{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+						</Button>
+					</p>
+				) }
 			</WebhookDescriptionInner>
 		</WebhookDescriptionWrapper>
 	);
