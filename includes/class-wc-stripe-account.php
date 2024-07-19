@@ -233,4 +233,73 @@ class WC_Stripe_Account {
 		$account = $this->get_cached_account_data();
 		return $account['country'] ?? 'US';
 	}
+
+	/**
+	 * Configures webhooks for the account.
+	 *
+	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
+	 *
+	 * @throws Exception If there was a problem setting up the webhooks.
+	 * @return object The response from the API.
+	 */
+	public function configure_webhooks( $mode = 'live' ) {
+		$request = [
+			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
+			'enabled_events' => [
+				'source.chargeable',
+				'source.canceled',
+				'charge.succeeded',
+				'charge.failed',
+				'charge.captured',
+				'charge.dispute.created',
+				'charge.dispute.closed',
+				'charge.refunded',
+				'charge.refund.updated',
+				'review.opened',
+				'review.closed',
+				'payment_intent.succeeded',
+				'payment_intent.payment_failed',
+				'payment_intent.amount_capturable_updated',
+				'payment_intent.requires_action',
+				'setup_intent.succeeded',
+				'setup_intent.setup_failed',
+			],
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+		];
+
+		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+
+		if ( isset( $response->error->message ) ) {
+			// Translators: %s is the error message from the Stripe API.
+			throw new Exception( sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
+
+		if ( ! isset( $response->secret, $response->id ) ) {
+			throw new Exception( __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
+		$configured_webhook_id  = $settings[ $webhook_data_setting ]['id'] ?? null;
+
+		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
+		if ( $configured_webhook_id ) {
+			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
+		}
+
+		$settings = get_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+
+		// Save the Webhook secret and ID.
+		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
+		$settings[ $webhook_data_setting ]   = [
+			'id'     => wc_clean( $response->id ),
+			'url'    => wc_clean( $response->url ),
+			'secret' => WC_Stripe_API::get_secret_key(),
+		];
+
+		update_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		return $response;
+	}
 }
