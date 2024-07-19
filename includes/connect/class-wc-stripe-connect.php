@@ -185,13 +185,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Determines if the store is connected to Stripe.
 		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
 		 * @return bool True if connected, false otherwise.
 		 */
-		public function is_connected() {
-
+		public function is_connected( $mode = null ) {
 			$options = get_option( self::SETTINGS_OPTION, [] );
 
-			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
+			// If the mode is not provided, we'll check the current mode.
+			if ( is_null( $mode ) ) {
+				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			}
+
+			if ( 'test' === $mode ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
