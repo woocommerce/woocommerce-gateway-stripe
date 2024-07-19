@@ -6,6 +6,8 @@ import {
 	getUpeSettings,
 	showErrorCheckout,
 	appendSetupIntentToForm,
+	unblockBlockCheckout,
+	resetBlockCheckoutPaymentState,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -467,6 +469,12 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 
+		if ( confirmPayment.paymentIntent.last_payment_error ) {
+			throw new Error(
+				confirmPayment.paymentIntent.last_payment_error.message
+			);
+		}
+
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
@@ -476,5 +484,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout( error.message );
 	} finally {
 		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
 	}
 };
