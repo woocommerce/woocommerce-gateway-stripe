@@ -117,11 +117,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Saves stripe keys after OAuth response
+		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param  array $result OAuth response result.
+		 * @param stdObject $result OAuth response result.
 		 *
-		 * @return array|WP_Error
+		 * @return stdObject|WP_Error OAuth response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result ) {
 
@@ -129,15 +129,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test                                    = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                    = false !== strpos( $publishable_key, '_test_' );
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
 			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
+			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = 'connect';
 
 			// While we are at it, let's also clear the account_id and
@@ -148,7 +150,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( self::SETTINGS_OPTION, $options );
 
 			// Automatically configure webhooks for the account now that we have the keys.
-			WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
+			WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
 
 			return $result;
 		}

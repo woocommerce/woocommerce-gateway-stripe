@@ -242,7 +242,7 @@ class WC_Stripe_Account {
 	 * @throws Exception If there was a problem setting up the webhooks.
 	 * @return object The response from the API.
 	 */
-	public function configure_webhooks( $mode = 'live' ) {
+	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
 		$request = [
 			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
 			'enabled_events' => [
@@ -267,6 +267,11 @@ class WC_Stripe_Account {
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
+
+		// If a secret key is provided, use it to configure the webhooks.
+		if ( $secret_key ) {
+			WC_Stripe_API::set_secret_key( $secret_key );
+		}
 
 		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
 
