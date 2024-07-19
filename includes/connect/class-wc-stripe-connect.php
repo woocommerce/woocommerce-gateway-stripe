@@ -182,6 +182,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			return $result;
 		}
 
+		/**
+		 * Determines if the store is connected to Stripe.
+		 *
+		 * @return bool True if connected, false otherwise.
+		 */
 		public function is_connected() {
 
 			$options = get_option( self::SETTINGS_OPTION, [] );
