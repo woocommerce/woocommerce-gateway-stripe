@@ -147,6 +147,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			update_option( self::SETTINGS_OPTION, $options );
 
+			// Automatically configure webhooks for the account now that we have the keys.
+			WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live' );
+
 			return $result;
 		}
 
