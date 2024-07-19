@@ -138,6 +138,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
 			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'oauth_connected' ]     = 'yes';
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -201,6 +202,23 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
+		}
+
+		/**
+		 * Determines if the store is connected to Stripe via OAuth.
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' (default: 'live').
+		 * @return bool True if connected via OAuth, false otherwise.
+		 */
+		public function is_connected_via_oauth( $mode = 'live' ) {
+			if ( $this->is_connected( $mode ) ) {
+				return false;
+			}
+
+			$options = get_option( self::SETTINGS_OPTION, [] );
+			$key     = 'test' === $mode ? 'test_oauth_connected' : 'oauth_connected';
+
+			return isset( $options[ $key ] ) && 'yes' === $options[ $key ];
 		}
 
 		/**
