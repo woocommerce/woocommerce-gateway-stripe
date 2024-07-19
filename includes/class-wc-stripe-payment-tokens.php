@@ -262,15 +262,19 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$stored_tokens = [];
-
+			$stored_tokens     = [];
 			$deprecated_tokens = [];
 
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 
-					// APM tokens from before Split PE was in place that will get removed.
-					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+					// Remove the following deprecated tokens:
+					// - APM tokens from before Split PE was in place.
+					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					if (
+						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						str_starts_with( $token->get_token(), 'src_' )
+					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
 					}
@@ -310,8 +314,13 @@ class WC_Stripe_Payment_Tokens {
 				// Retrieve the real APM behind SEPA PaymentMethods.
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
+				// Create a new token when:
+				// - The payment method doesn't have an associated token in WooCommerce.
+				// - The payment method is not a source.
+				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
+					! str_starts_with( $payment_method->id, 'src_' ) &&
 					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
