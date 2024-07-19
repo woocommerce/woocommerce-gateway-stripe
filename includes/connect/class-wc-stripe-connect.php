@@ -164,29 +164,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Clears keys for test or production (whichever is presently enabled).
-		 */
-		private function clear_stripe_keys() {
-
-			$options = get_option( self::SETTINGS_OPTION, [] );
-
-			if ( 'yes' === $options['testmode'] ) {
-				$options['test_publishable_key'] = '';
-				$options['test_secret_key']      = '';
-				// clear test_account_id if present
-				unset( $options['test_account_id'] );
-			} else {
-				$options['publishable_key'] = '';
-				$options['secret_key']      = '';
-				// clear account_id if present
-				unset( $options['account_id'] );
-			}
-
-			update_option( self::SETTINGS_OPTION, $options );
-
-		}
-
-		/**
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
