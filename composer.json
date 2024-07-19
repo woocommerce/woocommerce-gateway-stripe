@@ -21,5 +21,8 @@
     },
     "extra": {
       "installer-disable": true
-    }
+    },
+	"require": {
+		"ext-json": "*"
+	}
 }
