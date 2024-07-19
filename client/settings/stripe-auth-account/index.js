@@ -79,9 +79,10 @@ const StripeAuthAccount = ( { testMode } ) => {
 			<AccountStatusPanel testMode={ testMode } />
 			<h2>{ getHeading( testMode ) }</h2>
 			<p>
-				Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-				eiusmod tempor incididunt ut labore et dolore magna aliqua. Nunc
-				id cursus metus aliquam eleifend mi in nulla posuere.
+				{ __(
+					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
+					'woocommerce-gateway-stripe'
+				) }
 			</p>
 			<p className="woocommerce-stripe-auth__help">
 				{ getHelpText( testMode ) }
