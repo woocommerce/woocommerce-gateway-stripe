@@ -5,6 +5,9 @@ import './styles.scss';
 /**
  * The Chip component.
  *
+ * The Chip component is used to display a small piece of information in a colored chip.
+ * It implements the 'Chip' element described in the WooCommerce Design Library.
+ *
  * @param {Object} props              The component props.
  * @param {string} props.text         The text of the chip.
  * @param {string} props.color        The color of the chip. Can be 'gray', 'green', 'blue', 'red', 'yellow'.
