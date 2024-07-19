@@ -135,6 +135,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
 * Fix - Re-enable the "Place order" button on block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
 * Add - Added filter to enable updating Level 3 data based on order data.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
