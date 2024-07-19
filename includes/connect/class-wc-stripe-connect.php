@@ -211,7 +211,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected via OAuth, false otherwise.
 		 */
 		public function is_connected_via_oauth( $mode = 'live' ) {
-			if ( $this->is_connected( $mode ) ) {
+			if ( ! $this->is_connected( $mode ) ) {
 				return false;
 			}
 
