@@ -57,7 +57,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 						components: {
 							stripeDashboardLink: (
 								<StyledLink
-									href="https://dashboard.stripe.com/settings/payments"
+									href="https://dashboard.stripe.com/settings/payment_methods"
 									target="_blank"
 									rel="noreferrer"
 									onClick={ ( ev ) => {
