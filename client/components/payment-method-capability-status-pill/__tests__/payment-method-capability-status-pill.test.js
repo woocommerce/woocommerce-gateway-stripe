@@ -27,9 +27,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Requires activation' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( 'Pending approval' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should render for "inactive" statuses', () => {
