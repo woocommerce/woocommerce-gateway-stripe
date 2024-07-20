@@ -25,44 +25,60 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilities = useGetCapabilities();
 	const capabilityStatus = capabilities[ `${ id }_payments` ];
 
-	if ( capabilityStatus === 'pending' || capabilityStatus === 'inactive' ) {
-		return (
-			<Tooltip
-				content={ interpolateComponents( {
-					mixedString: sprintf(
-						/* translators: %s: a payment method name. */
-						__(
-							'%s requires activation in your {{stripeDashboardLink}}Stripe dashboard{{/stripeDashboardLink}}. Follow the instructions there and check back soon.',
-							'woocommerce-gateway-stripe'
-						),
-						label
-					),
-					components: {
-						stripeDashboardLink: (
-							<StyledLink
-								href="https://dashboard.stripe.com/settings/payments"
-								target="_blank"
-								rel="noreferrer"
-								onClick={ ( ev ) => {
-									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
-									ev.stopPropagation();
-								} }
-							/>
-						),
-					},
-				} ) }
-			>
-				<StyledPill>
-					{ __(
-						'Requires activation',
+	return (
+		<>
+			{ capabilityStatus === 'pending' && (
+				<Tooltip
+					content={ __(
+						'This payment method is pending approval. Once approved, you will be able to use it.',
 						'woocommerce-gateway-stripe'
 					) }
-				</StyledPill>
-			</Tooltip>
-		);
-	}
+				>
+					<StyledPill>
+						{ __(
+							'Pending approval',
+							'woocommerce-gateway-stripe'
+						) }
+					</StyledPill>
+				</Tooltip>
+			) }
 
-	return null;
+			{ capabilityStatus === 'inactive' && (
+				<Tooltip
+					content={ interpolateComponents( {
+						mixedString: sprintf(
+							/* translators: %s: a payment method name. */
+							__(
+								'%s requires activation in your {{stripeDashboardLink}}Stripe dashboard{{/stripeDashboardLink}}. Follow the instructions there and check back soon.',
+								'woocommerce-gateway-stripe'
+							),
+							label
+						),
+						components: {
+							stripeDashboardLink: (
+								<StyledLink
+									href="https://dashboard.stripe.com/settings/payments"
+									target="_blank"
+									rel="noreferrer"
+									onClick={ ( ev ) => {
+										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+										ev.stopPropagation();
+									} }
+								/>
+							),
+						},
+					} ) }
+				>
+					<StyledPill>
+						{ __(
+							'Requires activation',
+							'woocommerce-gateway-stripe'
+						) }
+					</StyledPill>
+				</Tooltip>
+			) }
+		</>
+	);
 };
 
 export default PaymentMethodCapabilityStatusPill;
