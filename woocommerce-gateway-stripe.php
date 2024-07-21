@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 8.4.0
+ * Version: 8.5.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.2
- * Tested up to: 6.5.2
+ * Tested up to: 6.5.5
  * WC requires at least: 8.5
- * WC tested up to: 8.9
+ * WC tested up to: 9.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '8.4.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.5.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -190,6 +190,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
@@ -213,6 +214,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
@@ -231,7 +233,6 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -437,6 +438,7 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_P24::class;
 					$methods[] = WC_Gateway_Stripe_Boleto::class;
 					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -446,9 +448,6 @@ function woocommerce_gateway_stripe() {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
 				}
-
-				// Multibanco will always be added to the gateway list, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -735,8 +734,8 @@ function woocommerce_gateway_stripe() {
 			 * Initializes updating subscriptions.
 			 */
 			public function initialize_subscriptions_updater() {
-				// The updater depends on WC_Subscriptions. Bail out if not active.
-				if ( ! class_exists( 'WC_Subscriptions' ) ) {
+				// The updater depends on WCS_Background_Repairer. Bail out if class does not exist.
+				if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
 					return;
 				}
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';

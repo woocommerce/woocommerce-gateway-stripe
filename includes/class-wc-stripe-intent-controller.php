@@ -232,6 +232,7 @@ class WC_Stripe_Intent_Controller {
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
+					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
 			);
@@ -643,8 +644,8 @@ class WC_Stripe_Intent_Controller {
 
 				// Use the last charge within the intent to proceed.
 				$gateway = $this->get_gateway();
-				if ( isset( $intent->charges ) && ! empty( $intent->charges->data ) ) {
-					$charge = end( $intent->charges->data );
+				$charge  = $gateway->get_latest_charge_from_intent( $intent );
+				if ( ! empty( $charge ) ) {
 					$gateway->process_response( $charge, $order );
 				} else {
 					// TODO: Add implementation for setup intents.
@@ -730,7 +731,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
@@ -1049,16 +1050,16 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
-	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto or Oxxo. False otherwise.
+	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco' ] );
 	}
 
 	/**
 	 * Determines whether the intent needs to be confirmed later.
 	 *
-	 * Some payment methods such as Boleto and Oxxo require the payment to be confirmed later when
+	 * Some payment methods such as Boleto, Oxxo and Multibanco require the payment to be confirmed later when
 	 * displaying the voucher to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
@@ -1066,7 +1067,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true );
+		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true ) || in_array( 'multibanco', $payment_methods, true );
 	}
 
 	/**

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 8.4.0
+Stable tag: 8.5.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,12 +128,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.5.0 - 2024-xx-xx =
-* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
-* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
-* Tweak - Improve the display of warning messages related to webhook configuration.
-* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
-* Add - Allow customizing the title and description of the UPE payment methods.
-* Tweak - Add a statement descriptor preview for Cash App Payments.
+= 8.6.0 - xxxx-xx-xx =
+* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
+* Fix - Prevent duplicate customer creation during guest checkout.
+* Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
+* Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
+* Fix - Re-enable the "Place order" button on block checkout after closing the WeChat or Cash App payment modal.
+* Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

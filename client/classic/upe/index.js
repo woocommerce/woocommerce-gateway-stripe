@@ -194,7 +194,11 @@ jQuery( function ( $ ) {
 			if ( error ) {
 				const upeType = formFields.wc_stripe_selected_upe_payment_type;
 
-				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+				if (
+					upeType !== 'boleto' &&
+					upeType !== 'oxxo' &&
+					upeType !== 'multibanco'
+				) {
 					await api.updateFailedOrder(
 						paymentIntentId,
 						response.order_id
@@ -287,7 +291,7 @@ jQuery( function ( $ ) {
 				}
 			}
 		} )
-		.on( 'change', 'input[name="payment_method"]', () => {
+		.on( 'change', '.wc_payment_methods', () => {
 			// Check to see whether we should display the Cash App limit notice.
 			if ( $( 'input#payment_method_stripe_cashapp' ).is( ':checked' ) ) {
 				maybeShowCashAppLimitNotice(

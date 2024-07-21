@@ -26,6 +26,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	protected $secret;
 
 	/**
+	 * The Action Scheduler service.
+	 *
+	 * @var WC_Stripe_Action_Scheduler_Service
+	 */
+	protected $action_scheduler_service;
+
+	/**
+	 * How long to wait before processing a deferred webhook.
+	 *
+	 * @var int
+	 */
+	protected $deferred_webhook_delay = 2 * MINUTE_IN_SECONDS;
+
+	/**
+	 * The Action Scheduler hook to use when retrying a webhook.
+	 *
+	 * @var string
+	 */
+	protected $deferred_webhook_action = 'wc_stripe_deferred_webhook';
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
@@ -38,12 +59,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
 
+		$this->action_scheduler_service = new WC_Stripe_Action_Scheduler_Service();
+
 		add_action( 'woocommerce_api_wc_stripe', [ $this, 'check_for_webhook' ] );
 
 		// Get/set the time we began monitoring the health of webhooks by fetching it.
 		// This should be roughly the same as the activation time of the version of the
 		// plugin when this code first appears.
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
+
+		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 2 );
 	}
 
 	/**
@@ -884,7 +909,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id           = $order->get_id();
-		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
+		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo', 'multibanco' ] );
 		$is_wallet_payment  = WC_Stripe_Helper::is_wallet_payment_method( $order );
 
 		switch ( $notification->type ) {
@@ -911,7 +936,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Voucher payments are only processed via the webhook so are excluded from the above check.
 				// Wallets are also processed via the webhook, not redirection.
 				if ( ! $is_voucher_payment && ! $is_wallet_payment && $is_awaiting_action ) {
-					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
+					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. Scheduled deferred webhook processing. The status for order $order_id might need manual adjustment." );
+
+					// Schedule a job to check on the status of this intent.
+					$this->defer_webhook_processing(
+						$notification,
+						[
+							'order_id'  => $order_id,
+							'intent_id' => $intent->id,
+						]
+					);
+
 					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;
 				}
@@ -994,6 +1029,92 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$this->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Schedules a job to run in the future to check on the status of a webhook.
+	 *
+	 * Each Webhook type which is deferred should be supported by @see process_deferred_webhook().
+	 *
+	 * @param stdClass $webhook_notification The webhook payload received from Stripe.
+	 * @param array    $additional_data      Additional data to pass to the scheduled job.
+	 */
+	protected function defer_webhook_processing( $webhook_notification, $additional_data ) {
+		$this->action_scheduler_service->schedule_job(
+			time() + $this->deferred_webhook_delay,
+			$this->deferred_webhook_action,
+			[
+				'type' => $webhook_notification->type,
+				'data' => $additional_data,
+			]
+		);
+	}
+
+	/**
+	 * Processes a deferred webhook event.
+	 *
+	 * Deferred webhooks are scheduled by @see defer_webhook_processing().
+	 *
+	 * @param string $webhook_type    The webhook event name/type.
+	 * @param array  $additional_data Additional data passed to the scheduled job.
+	 */
+	public function process_deferred_webhook( $webhook_type, $additional_data ) {
+		try {
+			switch ( $webhook_type ) {
+				case 'payment_intent.succeeded':
+				case 'payment_intent.amount_capturable_updated':
+					$order     = isset( $additional_data['order_id'] ) ? wc_get_order( $additional_data['order_id'] ) : null;
+					$intent_id = $additional_data['intent_id'] ?? '';
+
+					if ( empty( $order ) ) {
+						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
+					}
+
+					if ( empty( $intent_id ) ) {
+						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
+					}
+
+					// Check if the order is still in a valid state to process the webhook.
+					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ 'pending', 'failed' ], $order ) ) ) {
+						WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
+						return;
+					}
+
+					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					break;
+				default:
+					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
+					break;
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error processing deferred webhook: ' . $e->getMessage() );
+
+			// This will be caught by Action Scheduler and logged as an error.
+			throw $e;
+		}
+	}
+
+	/**
+	 * Handles a deferred payment_intent.succeeded event.
+	 *
+	 * @param WC_Order $order     The order object.
+	 * @param string   $intent_id The payment intent ID.
+	 */
+	protected function handle_deferred_payment_intent_succeeded( $order, $intent_id ) {
+		$intent = $this->get_intent_from_order( $order );
+
+		if ( ! $intent || $intent->id !== $intent_id ) {
+			WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - intent ID stored on order ({$intent->id}) doesn't match." );
+			return;
+		}
+
+		$charge = $this->get_latest_charge_from_intent( $intent );
+
+		WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
+
+		do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+		$this->process_response( $charge, $order );
+
 	}
 
 	/**
