@@ -1,5 +1,5 @@
 /* global wc_stripe_upe_params */
-
+import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
 import {
@@ -421,6 +421,14 @@ export const showErrorCheckout = ( errorMessage ) => {
 		}
 	}
 
+	// Use the WC Blocks API to show the error notice if we're in a block context.
+	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
+		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+			context: 'wc/checkout/payments', // Display the notice in the payments context.
+		} );
+		return;
+	}
+
 	let messageWrapper = '';
 	if ( errorMessage.includes( 'woocommerce-error' ) ) {
 		messageWrapper = errorMessage;
@@ -514,7 +522,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
 	const billingCountry =
 		document.getElementById( 'billing_country' )?.value ||
-		getStripeServerData()?.customerData.billing_country ||
+		getStripeServerData()?.customerData?.billing_country ||
 		'';
 
 	const upeContainer = document.querySelector(
@@ -525,4 +533,38 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	} else {
 		upeContainer.style.display = 'none';
 	}
+};
+
+/**
+ * Unblocks the Block Checkout form.
+ */
+export const unblockBlockCheckout = () => {
+	// Exit early if we're not in a block context.
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
+		return;
+	}
+
+	const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
+	const checkoutStore = dispatch( CHECKOUT_STORE_KEY );
+
+	// We need to unset the redirect URL otherwise WC core will redirect the the previous checkout redirectURL.
+	// For Wallet payment methods, that will include the #wc-stripe-wallet-... hash and cause the modal to show again.
+	checkoutStore.__internalSetRedirectUrl( null );
+	checkoutStore.__internalSetIdle();
+};
+
+/**
+ * Resets the payment state to idle so the selected payment method can re-setup.
+ */
+export const resetBlockCheckoutPaymentState = () => {
+	// Exit early if we're not in a block context.
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
+		return;
+	}
+
+	const { PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
+
+	// Set the payment state to idle so the selected payment method can re-setup.
+	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
+	dispatch( PAYMENT_STORE_KEY ).__internalSetPaymentIdle();
 };
