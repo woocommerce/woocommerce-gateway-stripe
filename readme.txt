@@ -128,7 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.5.1 - 2024-07-12 =
-* Fix - Fixed fatal error caused by non-existent class.
+= 8.5.2 - xxxx-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
