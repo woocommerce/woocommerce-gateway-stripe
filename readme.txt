@@ -131,6 +131,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 8.5.2 - xxxx-xx-xx =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
 * Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
+* Fix - Ensure immediate balance transaction assignment for subscription renewals by specifying capture_method => automatic in Stripe payment intents.
 * Dev - Bump L-2 versions for PHP tests.
 * Dev - Bump WordPress "tested up to" version to 6.6.
 
