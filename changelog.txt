@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 8.5.2 - xxxx-xx-xx =
+= 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
 * Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
 * Fix - Ensure immediate balance transaction assignment for subscription renewals by specifying capture_method => automatic in Stripe payment intents.
