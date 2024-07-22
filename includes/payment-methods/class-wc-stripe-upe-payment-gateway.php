@@ -2188,6 +2188,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
+		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
 		if ( isset( $payment_method_object->type ) && 'link' === $payment_method_object->type ) {
 			$payment_method_instance = $this->payment_methods['link'];
 		} else {
