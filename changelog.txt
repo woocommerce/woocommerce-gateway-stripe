@@ -9,6 +9,7 @@
 * Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
 * Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
+* Add - Added filter to enable updating Level 3 data based on order data.
 
 = 8.5.1 - 2024-07-12 =
 * Fix - Fixed fatal error caused by non-existent class.
