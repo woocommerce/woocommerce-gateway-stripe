@@ -2,7 +2,7 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 6.2
-Tested up to: 6.5.2
+Tested up to: 6.6
 Requires PHP: 7.4
 Stable tag: 8.5.1
 License: GPLv3
@@ -128,7 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.5.2 - 2024-xx-xx =
+= 8.5.2 - xxxx-xx-xx =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
+* Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
