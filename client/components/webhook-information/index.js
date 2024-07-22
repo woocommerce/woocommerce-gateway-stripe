@@ -13,7 +13,7 @@ export const WebhookInformation = () => {
 		<p data-testid="webhook-information">
 			{ interpolateComponents( {
 				mixedString: __(
-					'Click the {{webhookUrl/}} button to {{settingsLink}}configure a webhook{{/settingsLink}}. This will complete your Stripe account connection process.',
+					'Click the {{configureButtonText/}} button to {{settingsLink}}configure a webhook{{/settingsLink}}. This will complete your Stripe account connection process.',
 					'woocommerce-gateway-stripe'
 				),
 				components: {
