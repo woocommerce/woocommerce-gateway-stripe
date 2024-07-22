@@ -57,10 +57,29 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 
 					<Popover
 						BaseComponent={ IconComponent }
-						content={ __(
-							'This payment method is pending approval. Once approved, you will be able to use it.',
-							'woocommerce-gateway-stripe'
-						) }
+						content={ interpolateComponents( {
+							mixedString: sprintf(
+								/* translators: %s: a payment method name. */
+								__(
+									'%s is {{stripeDashboardLink}}pending approval{{/stripeDashboardLink}}. Once approved, you will be able to use it.',
+									'woocommerce-gateway-stripe'
+								),
+								label
+							),
+							components: {
+								stripeDashboardLink: (
+									<StyledLink
+										href="https://dashboard.stripe.com/settings/payment_methods"
+										target="_blank"
+										rel="noreferrer"
+										onClick={ ( ev ) => {
+											// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+											ev.stopPropagation();
+										} }
+									/>
+								),
+							},
+						} ) }
 					/>
 				</StyledPill>
 			) }
