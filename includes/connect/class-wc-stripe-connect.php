@@ -138,7 +138,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
 			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'oauth_connected' ]     = 'yes';
+			$options[ $prefix . 'connection_type' ]     = 'connect';
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -216,9 +216,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$options = get_option( self::SETTINGS_OPTION, [] );
-			$key     = 'test' === $mode ? 'test_oauth_connected' : 'oauth_connected';
+			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
-			return isset( $options[ $key ] ) && 'yes' === $options[ $key ];
+			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect' ], true );
 		}
 
 		/**
