@@ -103,7 +103,9 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 	await test.step( 'check Stripe payment status ', async () => {
 		const stripeClient = stripe( process.env.STRIPE_SECRET_KEY );
 
-		const charge = await stripeClient.charges.retrieve( stripeChargeId );
+		const charge = await stripeClient.charges.retrieve( stripeChargeId, {
+			expand: [ 'refunds' ],
+		} );
 
 		expect( charge.refunded ).toBeTruthy();
 		expect( charge.refunds.data[ 0 ].id ).toBe( stripeRefundId );
