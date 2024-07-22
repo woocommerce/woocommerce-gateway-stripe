@@ -1430,7 +1430,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$level3_data['shipping_from_zip'] = $store_postcode;
 		}
 
-		return $level3_data;
+		/**
+		 * Filters the Level 3 data based on order.
+		 *
+		 * Example usage: Enables updating the discount based on the products in the order,
+		 * if any of the products are gift cards.
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param array $level3_data Precalculated Level 3 data based on order.
+		 * @param WC_Order $order    The order object.
+		 */
+		return apply_filters( 'wc_stripe_payment_request_level3_data', $level3_data, $order );
 	}
 
 	/**
