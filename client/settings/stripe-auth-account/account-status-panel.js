@@ -77,8 +77,8 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 		? accountKeys.test_publishable_key
 		: accountKeys.publishable_key;
 	const oauthConnected = testMode
-		? data?.oauth_connections.test
-		: data?.oauth_connections.live;
+		? data?.oauth_connections?.test
+		: data?.oauth_connections?.live;
 
 	let accountStatus = 'disconnected';
 
