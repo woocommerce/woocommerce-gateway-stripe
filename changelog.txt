@@ -1,6 +1,7 @@
 *** Changelog ***
 
-= 8.5.2 - xxxx-xx-xx =
+= 8.5.1 - 2024-07-12 =
+* Fix - Fixed fatal error caused by non-existent class.
 
 = 8.5.0 - 2024-07-11 =
 * Tweak - Remove Giropay from the list of payment methods (for all versions) due deprecation.
