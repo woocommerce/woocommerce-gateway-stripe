@@ -44,7 +44,7 @@ const unconnectedAccountTip = () => {
 	return (
 		<Tooltip
 			content={ __(
-				'Your store has Stripe Account keys, however, it is not connected to WooCommerce.',
+				'Your store has Stripe Account keys, however, we cannot verify their origin, please re-connect.',
 				'woocommerce-gateway-stripe'
 			) }
 		>
