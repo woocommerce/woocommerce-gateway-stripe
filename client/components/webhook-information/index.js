@@ -17,7 +17,7 @@ export const WebhookInformation = () => {
 					'woocommerce-gateway-stripe'
 				),
 				components: {
-					webhookUrl: (
+					configureButtonText: (
 						<WebhookButtonText>
 							Configure connection
 						</WebhookButtonText>
