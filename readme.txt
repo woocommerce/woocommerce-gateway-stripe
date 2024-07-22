@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.6.0 - xxxx-xx-xx =
+* Fix - JS error when billing country field does not exist on the payment method page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
 * Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
@@ -138,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
 * Dev - Bump L-2 versions for PHP tests.
 * Dev - Bump WordPress "tested up to" version to 6.6.
+* Add - Added filter to enable updating Level 3 data based on order data.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
