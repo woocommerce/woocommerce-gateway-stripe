@@ -5,9 +5,10 @@ import { NAMESPACE } from 'wcstripe/data/constants';
 
 const useWebhookStateMessage = () => {
 	const { data } = useAccount();
-	const dataStatusMessage = data.webhook_status_message;
+	const { dataStatusCode, dataStatusMessage } = data;
 	const isMakingRequest = useRef( false );
 	const [ message, setMessage ] = useState( dataStatusMessage );
+	const [ code, setCode ] = useState( dataStatusCode );
 	const [ requestStatus, setRequestStatus ] = useState( 'idle' );
 
 	useEffect( () => {
@@ -38,7 +39,8 @@ const useWebhookStateMessage = () => {
 				const result = await apiFetch( {
 					path: `${ NAMESPACE }/account/webhook-status-message`,
 				} );
-				setMessage( result );
+				setMessage( result.message );
+				setCode( result.code );
 				setRequestStatus( 'fulfilled' );
 			} catch ( e ) {
 				setRequestStatus( 'rejected' );
@@ -52,7 +54,7 @@ const useWebhookStateMessage = () => {
 		callback();
 	}, [] );
 
-	return { message, requestStatus, refreshMessage };
+	return { code, message, requestStatus, refreshMessage };
 };
 
 export default useWebhookStateMessage;

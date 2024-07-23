@@ -32,10 +32,14 @@ const WebhookDescriptionInner = styled.div`
 `;
 
 export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
-	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
-	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
-	const isSuccessMessage =
-		message?.includes( 'The most recent ' ) && isWarningMessage === false;
+	const {
+		code,
+		message,
+		requestStatus,
+		refreshMessage,
+	} = useWebhookStateMessage();
+	const isWarningMessage = code === 3 || code === 4 || false;
+	const isSuccessMessage = code === 1;
 	const isSuccessMessageWithSecret =
 		isSuccessMessage && isWebhookSecretEntered;
 	const webhookDescriptionClassesAr = [];

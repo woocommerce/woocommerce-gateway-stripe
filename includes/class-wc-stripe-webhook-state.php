@@ -163,6 +163,35 @@ class WC_Stripe_Webhook_State {
 	}
 
 	/**
+	 * Gets the status code for the webhook processing.
+	 *
+	 * @since 8.6.0
+	 * @return int The status code for the webhook processing.
+	 */
+	public static function get_webhook_status_code() {
+		$last_success_at     = self::get_last_webhook_success_at();
+		$last_failure_at     = self::get_last_webhook_failure_at();
+
+		// Case 1 (Nominal case): Most recent = success
+		if ( $last_success_at > $last_failure_at ) {
+			return 1;
+		}
+
+		// Case 2: No webhooks received yet
+		if ( ( 0 == $last_success_at ) && ( 0 == $last_failure_at ) ) {
+			return 2;
+		}
+
+		// Case 3: Failure after success
+		if ( $last_success_at > 0 ) {
+			return 3;
+		}
+
+		// Case 4: Failure with no prior success
+		return 4;
+	}
+
+	/**
 	 * Gets the state of webhook processing in a human readable format.
 	 *
 	 * @since 5.0.0
@@ -174,76 +203,66 @@ class WC_Stripe_Webhook_State {
 		$last_failure_at     = self::get_last_webhook_failure_at();
 		$last_error          = self::get_last_error_reason();
 		$test_mode           = self::get_testmode();
+		$code                = self::get_webhook_status_code();
 
 		$date_format = 'Y-m-d H:i:s e';
 
-		// Case 1 (Nominal case): Most recent = success
-		if ( $last_success_at > $last_failure_at ) {
-			$message = sprintf(
-				$test_mode ?
-					/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
-					__( 'The most recent test webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ) :
-					/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
-					__( 'The most recent live webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ),
-				gmdate( $date_format, $last_success_at )
-			);
-			return $message;
+		switch ( $code ) {
+			case 1: // Case 1 (Nominal case): Most recent = success
+				return sprintf(
+					$test_mode ?
+						/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
+						__( 'The most recent test webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ) :
+						/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
+						__( 'The most recent live webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ),
+					gmdate( $date_format, $last_success_at )
+				);
+			case 2: // Case 2: No webhooks received yet
+				return sprintf(
+					$test_mode ?
+						/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
+						__( 'No test webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ) :
+						/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
+						__( 'No live webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ),
+					gmdate( $date_format, $monitoring_began_at )
+				);
+			case 3: // Case 3: Failure after success
+				return sprintf(
+					$test_mode ?
+						/*
+						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+						 * translators: 2) reason webhook failed
+						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+						 */
+						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
+						/*
+						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+						 * translators: 2) reason webhook failed
+						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+						 */
+						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
+					gmdate( $date_format, $last_failure_at ),
+					$last_error,
+					gmdate( $date_format, $last_success_at )
+				);
+			default: // Case 4: Failure with no prior success
+				return sprintf(
+					$test_mode ?
+						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+						 * translators: 2) reason webhook failed
+						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+						 */
+						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
+						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+						 * translators: 2) reason webhook failed
+						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+						 */
+						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
+					gmdate( $date_format, $last_failure_at ),
+					$last_error,
+					gmdate( $date_format, $monitoring_began_at )
+				);
 		}
-
-		// Case 2: No webhooks received yet
-		if ( ( 0 == $last_success_at ) && ( 0 == $last_failure_at ) ) {
-			$message = sprintf(
-				$test_mode ?
-					/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
-					__( 'No test webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ) :
-					/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
-					__( 'No live webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ),
-				gmdate( $date_format, $monitoring_began_at )
-			);
-			return $message;
-		}
-
-		// Case 3: Failure after success
-		if ( $last_success_at > 0 ) {
-			$message = sprintf(
-				$test_mode ?
-					/*
-					 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
-					 * translators: 2) reason webhook failed
-					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
-					 */
-					__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
-					/*
-					 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
-					 * translators: 2) reason webhook failed
-					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
-					 */
-					__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
-				gmdate( $date_format, $last_failure_at ),
-				$last_error,
-				gmdate( $date_format, $last_success_at )
-			);
-			return $message;
-		}
-
-		// Case 4: Failure with no prior success
-		$message = sprintf(
-			$test_mode ?
-				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
-				 * translators: 2) reason webhook failed
-				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
-				 */
-				__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
-				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
-				 * translators: 2) reason webhook failed
-				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
-				 */
-				__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
-			gmdate( $date_format, $last_failure_at ),
-			$last_error,
-			gmdate( $date_format, $monitoring_began_at )
-		);
-		return $message;
 	}
 
 	/**
