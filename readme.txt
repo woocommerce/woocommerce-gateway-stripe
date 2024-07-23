@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 6.2
-Tested up to: 6.5.2
+Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.5.1
+Stable tag: 8.5.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -130,12 +130,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.6.0 - xxxx-xx-xx =
 * Tweak - Minor text updates to webhook-related configuration labels and buttons.
+* Fix - JS error when billing country field does not exist on the payment method page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
 * Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
 * Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
-* Fix - Re-enable the "Place order" button on block checkout after closing the WeChat or Cash App payment modal.
+* Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
-* Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
+* Add - Added filter to enable updating Level 3 data based on order data.
+* Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
+
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
