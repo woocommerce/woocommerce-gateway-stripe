@@ -44,7 +44,7 @@ const unconnectedAccountTip = () => {
 	return (
 		<Tooltip
 			content={ __(
-				'Your store has Stripe Account keys, however, it is not connected to WooCommerce.',
+				'Your store has Stripe Account keys, however, we cannot verify their origin, please re-connect.',
 				'woocommerce-gateway-stripe'
 			) }
 		>
@@ -64,20 +64,27 @@ const unconnectedAccountTip = () => {
  *   - disconnected: The account is not set up.
  *
  * @param {Object} accountKeys The account keys.
+ * @param {Object} data        The account data.
  * @param {boolean} testMode   Whether the component is for test mode.
  *
  * @return {Object} The account status. Contains the status text (label), color, and optionally an icon.
  */
-const getAccountStatus = ( accountKeys, testMode ) => {
+const getAccountStatus = ( accountKeys, data, testMode ) => {
 	const secretKey = testMode
 		? accountKeys.test_secret_key
 		: accountKeys.secret_key;
 	const publishableKey = testMode
 		? accountKeys.test_publishable_key
 		: accountKeys.publishable_key;
+	const oauthConnected = testMode
+		? data?.oauth_connections?.test
+		: data?.oauth_connections?.live;
 
-	const accountStatus =
-		secretKey && publishableKey ? 'unconnected' : 'disconnected';
+	let accountStatus = 'disconnected';
+
+	if ( secretKey && publishableKey ) {
+		accountStatus = oauthConnected ? 'connected' : 'unconnected';
+	}
 
 	const accountStatusMap = {
 		connected: {
@@ -156,7 +163,7 @@ const AccountStatusPanel = ( { testMode } ) => {
 		? data?.configured_webhook_urls?.test || ''
 		: data?.configured_webhook_urls?.live || '';
 
-	const accountStatus = getAccountStatus( accountKeys, testMode );
+	const accountStatus = getAccountStatus( accountKeys, data, testMode );
 	const webhookStatus = getWebhookStatus(
 		webhookSecret,
 		initialWebhookURL || webhookURL
