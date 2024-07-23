@@ -119,7 +119,7 @@ export function updateIsConfiguringWebhooks( isProcessing ) {
 	};
 }
 
-export function* configureWebhooks( { live, secret, callback } ) {
+export function* configureWebhooks( { live, secret } ) {
 	let error = null;
 
 	try {
@@ -135,7 +135,17 @@ export function* configureWebhooks( { live, secret, callback } ) {
 			},
 		} );
 
-		yield callback( response.webhookSecret, response.webhookURL );
+		const webhookValues = live
+			? {
+					webhook_secret: response.webhookSecret,
+					webhook_url: response.webhookURL,
+			  }
+			: {
+					test_webhook_secret: response.webhookSecret,
+					test_webhook_url: response.webhookURL,
+			  };
+
+		yield updateAccountKeysValues( webhookValues );
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			__(
