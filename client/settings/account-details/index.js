@@ -26,6 +26,7 @@ const AccountSection = styled.div`
 	align-items: center;
 	padding: 8px 0;
 	flex: 1 0 0;
+	gap: 8px;
 
 	svg {
 		display: flex;
@@ -82,27 +83,27 @@ const PayoutsSection = () => {
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
 					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
-			</SectionStatus>
-			{ ! isEnabled && (
-				<Tooltip
-					content={ createInterpolateElement(
-						/* translators: <a> - dashboard login URL */
-						__(
-							'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
-							'woocommerce-gateway-stripe'
-						),
-						{
-							a: (
-								<ExternalLink href="https://dashboard.stripe.com/account" />
+				{ ! isEnabled && (
+					<Tooltip
+						content={ createInterpolateElement(
+							/* translators: <a> - dashboard login URL */
+							__(
+								'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
+								'woocommerce-gateway-stripe'
 							),
-						}
-					) }
-				>
-					<span data-testid="help">
-						<Icon icon={ help } size="18" />
-					</span>
-				</Tooltip>
-			) }
+							{
+								a: (
+									<ExternalLink href="https://dashboard.stripe.com/account" />
+								),
+							}
+						) }
+					>
+						<span data-testid="help">
+							<Icon icon={ help } size="18" />
+						</span>
+					</Tooltip>
+				) }
+			</SectionStatus>
 		</AccountSection>
 	);
 };
