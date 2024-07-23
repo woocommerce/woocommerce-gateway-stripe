@@ -116,3 +116,11 @@ export const useAccountKeysTestSecretKey = makeAccountKeysValueHook(
 export const useAccountKeysTestWebhookSecret = makeAccountKeysValueHook(
 	'test_webhook_secret'
 );
+
+export const useAccountKeysTestWebhookURL = makeAccountKeysValueHook(
+	'test_webhook_url'
+);
+
+export const useAccountKeysWebhookURL = makeAccountKeysValueHook(
+	'webhook_url'
+);
