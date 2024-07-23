@@ -5,7 +5,8 @@ import { NAMESPACE } from 'wcstripe/data/constants';
 
 const useWebhookStateMessage = () => {
 	const { data } = useAccount();
-	const { dataStatusCode, dataStatusMessage } = data;
+	const dataStatusMessage = data.webhook_status_message;
+	const dataStatusCode = data.webhook_status_code;
 	const isMakingRequest = useRef( false );
 	const [ message, setMessage ] = useState( dataStatusMessage );
 	const [ code, setCode ] = useState( dataStatusCode );
