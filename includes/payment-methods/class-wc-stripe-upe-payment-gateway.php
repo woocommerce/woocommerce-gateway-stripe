@@ -2049,6 +2049,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'shipping'                      => $shipping_details,
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
+			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 		];
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
