@@ -13,6 +13,7 @@ Fix - Display Stripe Link payment methods correctly in both Block Checkout and M
 Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
+* Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 
 = 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.

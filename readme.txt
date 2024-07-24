@@ -141,6 +141,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
-
+* Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
