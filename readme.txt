@@ -136,6 +136,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
 * Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
 
