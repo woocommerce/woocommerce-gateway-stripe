@@ -522,7 +522,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
 	const billingCountry =
 		document.getElementById( 'billing_country' )?.value ||
-		getStripeServerData()?.customerData.billing_country ||
+		getStripeServerData()?.customerData?.billing_country ||
 		'';
 
 	const upeContainer = document.querySelector(
