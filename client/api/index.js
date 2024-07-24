@@ -325,9 +325,14 @@ export default class WCStripeAPI {
 			orderId = orderIdPartials[ 0 ];
 		}
 
+		const confirmArgs = {
+			clientSecret,
+			redirect: 'if_required',
+		};
+
 		const confirmAction = isSetupIntent
-			? this.getStripe().confirmCardSetup( clientSecret )
-			: this.getStripe( true ).confirmCardPayment( clientSecret );
+			? this.getStripe().confirmSetup( confirmArgs )
+			: this.getStripe( true ).confirmPayment( confirmArgs );
 
 		const request = confirmAction
 			// ToDo: Switch to an async function once it works with webpack.
