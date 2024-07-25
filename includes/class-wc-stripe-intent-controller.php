@@ -539,18 +539,20 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX request after authenticating payment at checkout.
 	 *
-	 * This function is used to update the order status after the user has
+	 * This function is used to update the order status or process the subscription change payment request after the user has
 	 * been asked to authenticate their payment.
 	 *
-	 * This function is used for both:
+	 * This function is used for:
 	 * - regular checkout
-	 * - Pay for Order page (in theory).
+	 * - Pay for Order page
+	 * - Subscription change payment method flow
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_order_status_ajax() {
 		$order = false;
 		try {
+
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
