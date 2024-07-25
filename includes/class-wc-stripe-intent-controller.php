@@ -552,7 +552,6 @@ class WC_Stripe_Intent_Controller {
 	public function update_order_status_ajax() {
 		$order = false;
 		try {
-
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
