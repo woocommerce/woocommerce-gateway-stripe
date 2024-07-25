@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
-import AccountActivationNotice from '../account-activation-notice';
 import LegacyExperienceTransitionNotice from '../notices/legacy-experience-transition';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
@@ -56,7 +55,6 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 				isUpeEnabled={ isUpeEnabled }
 				setIsUpeEnabled={ setIsUpeEnabled }
 			/>
-			<AccountActivationNotice />
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
