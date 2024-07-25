@@ -562,6 +562,22 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// If the order is a subscription, then this is the change payment method flow and it should be handled differently.
+			if ( function_exists( 'wcs_is_subscription' ) && wcs_is_subscription( $order->get_id() ) ) {
+				$subscription    = $order;
+				$setup_intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+
+				$gateway = $this->get_upe_gateway();
+				$gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+
+				wp_send_json_success(
+					[
+						'return_url' => $subscription->get_view_order_url(),
+					],
+					200
+				);
+			}
+
 			$intent_id          = WC_Stripe_Helper::get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
