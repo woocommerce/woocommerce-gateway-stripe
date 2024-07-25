@@ -541,13 +541,12 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX request after authenticating payment at checkout.
 	 *
-	 * This function is used to update the order status or process the subscription change payment request after the user has
+	 * This function is used to update the order status after the user has
 	 * been asked to authenticate their payment.
 	 *
-	 * This function is used for:
+	 * This function is used for both:
 	 * - regular checkout
-	 * - Pay for Order page
-	 * - Subscription change payment method flow
+	 * - Pay for Order page (in theory).
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
