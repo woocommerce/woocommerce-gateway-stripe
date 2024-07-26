@@ -482,6 +482,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_intent = (object) wp_parse_args(
 			[
 				'status'               => 'requires_action',
+				'object'               => 'payment_intent',
 				'data'                 => [
 					(object) [
 						'id'       => $order_id,
@@ -530,7 +531,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$return_url = self::MOCK_RETURN_URL;
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertMatchesRegularExpression( "/#wc-stripe-wallet-{$order_id}:wechat_pay:{$mock_intent->client_secret}:{$return_url}/", $response['redirect'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-wallet-{$order_id}:wechat_pay:{$mock_intent->object}:{$mock_intent->client_secret}:{$return_url}/", $response['redirect'] );
 	}
 
 	/**
