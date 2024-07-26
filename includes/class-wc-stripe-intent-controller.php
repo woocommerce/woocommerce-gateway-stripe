@@ -1066,8 +1066,8 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'subscriptions_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$subscription_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
-			$subscription    = wcs_get_subscription( $subscription_id );
+			$subscription_id = absint( $_POST['order_id'] ?? false );
+			$subscription    = $subscription_id ? wcs_get_subscription( $subscription_id ) : false;
 
 			if ( ! $subscription ) {
 				throw new WC_Stripe_Exception( 'subscription_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
