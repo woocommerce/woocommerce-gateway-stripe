@@ -307,6 +307,10 @@ export default class WCStripeAPI {
 
 		const orderPayIndex = redirectUrl.indexOf( 'order-pay' );
 		const isOrderPage = orderPayIndex > -1;
+		const isChangingPayment =
+			isOrderPage &&
+			document.querySelectorAll( '#wc-stripe-change-payment-method' )
+				.length > 0;
 
 		// If we're on the Pay for Order page, get the order ID
 		// directly from the URL instead of relying on the hash.
@@ -325,6 +329,11 @@ export default class WCStripeAPI {
 			orderId = orderIdPartials[ 0 ];
 		}
 
+		// After processing the intent, trigger the appropriate AJAX action.
+		const ajaxAction = isChangingPayment
+			? 'confirm_change_payment'
+			: 'update_order_status';
+
 		const confirmAction = isSetupIntent
 			? this.getStripe().confirmCardSetup( clientSecret )
 			: this.getStripe( true ).confirmCardPayment( clientSecret );
@@ -341,17 +350,14 @@ export default class WCStripeAPI {
 					( result.error.setup_intent &&
 						result.error.setup_intent.id );
 
-				const ajaxCall = this.request(
-					this.getAjaxUrl( 'update_order_status' ),
-					{
-						order_id: orderId,
-						// Update the current order status nonce with the new one to ensure that the update
-						// order status call works when a guest user creates an account during checkout.
-						intent_id: intentId,
-						payment_method_id: paymentMethodToSave || null,
-						_ajax_nonce: nonce,
-					}
-				);
+				const ajaxCall = this.request( this.getAjaxUrl( ajaxAction ), {
+					order_id: orderId,
+					// Update the current order status nonce with the new one to ensure that the update
+					// order status call works when a guest user creates an account during checkout.
+					intent_id: intentId,
+					payment_method_id: paymentMethodToSave || null,
+					_ajax_nonce: nonce,
+				} );
 
 				return [ ajaxCall, result.error ];
 			} )
