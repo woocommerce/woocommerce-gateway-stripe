@@ -329,11 +329,11 @@ export default class WCStripeAPI {
 			orderId = orderIdPartials[ 0 ];
 		}
 
-    // After processing the intent, trigger the appropriate AJAX action.
+		// After processing the intent, trigger the appropriate AJAX action.
 		const ajaxAction = isChangingPayment
 			? 'confirm_change_payment'
 			: 'update_order_status';
-    
+
 		const confirmArgs = {
 			clientSecret,
 			redirect: 'if_required',
