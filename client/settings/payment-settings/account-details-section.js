@@ -51,7 +51,7 @@ const AccountSettingsDropdownMenu = ( {
 				controls={ [
 					{
 						title: __(
-							'Edit account keys',
+							'Configure connection',
 							'woocommerce-gateway-stripe'
 						),
 						onClick: () =>
@@ -116,7 +116,10 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						setModalType( isTestMode ? 'test' : 'live' )
 					}
 				>
-					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CardFooter>
 		</Card>
