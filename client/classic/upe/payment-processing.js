@@ -391,7 +391,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * When processing a payment for a wallet payment method on the checkout or order pay page,
  * the process_payment_with_deferred_intent() function redirects the customer to a URL
- * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<client_secret>:<redirect_url>.
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>.
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
