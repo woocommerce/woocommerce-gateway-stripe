@@ -1093,7 +1093,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $e->getLocalizedMessage(),
 					],
 				]
 			);
