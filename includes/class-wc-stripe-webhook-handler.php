@@ -427,11 +427,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Check and see if capture is partial.
 				if ( $this->is_partial_capture( $notification ) ) {
 					$partial_amount = $this->get_partial_amount_to_charge( $notification );
-					$order->set_total( $partial_amount );
+					$refunded = $order->get_total() - $partial_amount;
+					// Create the refund.
+					$refund = wc_create_refund(
+						[
+							'order_id' => $order->get_id(),
+							'amount'   => $refunded,
+							'reason'   => 'Partial capture',
+						]
+					);
+
+					if ( is_wp_error( $refund ) ) {
+						WC_Stripe_Logger::log( $refund->get_error_message() );
+					}
+
+					// If order is on "on-hold" change to processing.
+					if ( $order->has_status( 'on-hold' ) ) {
+						$order->update_status( 'processing' );
+					}
+
 					$refund_object = $this->get_refund_object( $notification );
 					$this->update_fees( $order, $refund_object->balance_transaction );
 					/* translators: partial captured amount */
-					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
+					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: $%.2f', 'woocommerce-gateway-stripe' ), $partial_amount ) );
 				} else {
 					$order->payment_complete( $notification->data->object->id );
 
