@@ -15,34 +15,26 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 
 	it( 'should render for "pending" statuses', () => {
 		useGetCapabilities.mockReturnValue( {
-			giropay_payments: 'pending',
+			ideal_payments: 'pending',
 			card_payments: 'active',
 		} );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill
-					id="giropay"
-					label="giropay"
-				/>
+				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Requires activation' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( 'Pending approval' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should render for "inactive" statuses', () => {
 		useGetCapabilities.mockReturnValue( {
-			giropay_payments: 'inactive',
+			ideal_payments: 'inactive',
 			card_payments: 'active',
 		} );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill
-					id="giropay"
-					label="giropay"
-				/>
+				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 			</UpeToggleContext.Provider>
 		);
 
@@ -53,15 +45,12 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 
 	it( 'should not render when the capability is "active"', () => {
 		useGetCapabilities.mockReturnValue( {
-			giropay_payments: 'active',
+			ideal_payments: 'active',
 			card_payments: 'pending',
 		} );
 		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill
-					id="giropay"
-					label="giropay"
-				/>
+				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 			</UpeToggleContext.Provider>
 		);
 
@@ -72,10 +61,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		useGetCapabilities.mockReturnValue( { card_payments: 'active' } );
 		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodCapabilityStatusPill
-					id="giropay"
-					label="giropay"
-				/>
+				<PaymentMethodCapabilityStatusPill id="ideal" label="ideal" />
 			</UpeToggleContext.Provider>
 		);
 

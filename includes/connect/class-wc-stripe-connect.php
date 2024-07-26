@@ -138,6 +138,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
 			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'connection_type' ]     = 'connect';
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -164,29 +165,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Clears keys for test or production (whichever is presently enabled).
-		 */
-		private function clear_stripe_keys() {
-
-			$options = get_option( self::SETTINGS_OPTION, [] );
-
-			if ( 'yes' === $options['testmode'] ) {
-				$options['test_publishable_key'] = '';
-				$options['test_secret_key']      = '';
-				// clear test_account_id if present
-				unset( $options['test_account_id'] );
-			} else {
-				$options['publishable_key'] = '';
-				$options['secret_key']      = '';
-				// clear account_id if present
-				unset( $options['account_id'] );
-			}
-
-			update_option( self::SETTINGS_OPTION, $options );
-
-		}
-
-		/**
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
@@ -205,15 +183,42 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			return $result;
 		}
 
-		public function is_connected() {
-
+		/**
+		 * Determines if the store is connected to Stripe.
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
+		 * @return bool True if connected, false otherwise.
+		 */
+		public function is_connected( $mode = null ) {
 			$options = get_option( self::SETTINGS_OPTION, [] );
 
-			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
+			// If the mode is not provided, we'll check the current mode.
+			if ( is_null( $mode ) ) {
+				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			}
+
+			if ( 'test' === $mode ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
+		}
+
+		/**
+		 * Determines if the store is connected to Stripe via OAuth.
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' (default: 'live').
+		 * @return bool True if connected via OAuth, false otherwise.
+		 */
+		public function is_connected_via_oauth( $mode = 'live' ) {
+			if ( ! $this->is_connected( $mode ) ) {
+				return false;
+			}
+
+			$options = get_option( self::SETTINGS_OPTION, [] );
+			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect' ], true );
 		}
 
 		/**

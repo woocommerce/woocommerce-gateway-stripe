@@ -145,6 +145,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
+				'capture_method'       => 'automatic',
 			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
@@ -184,7 +185,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			// Assert: the request body does not contains these keys.
 			$expected_missing_request_body_keys = [
 				'capture', // No need to capture with a payment intent.
-				'capture_method', // The default ('automatic') is what we want in this case, so we leave it off.
 				'expand[]',
 			];
 			foreach ( $expected_missing_request_body_keys as $key ) {
