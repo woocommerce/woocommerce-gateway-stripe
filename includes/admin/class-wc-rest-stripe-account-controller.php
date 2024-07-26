@@ -96,6 +96,10 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'webhook_status_message'  => WC_Stripe_Webhook_State::get_webhook_status_message(),
 				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
 				'configured_webhook_urls' => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
+				'oauth_connections'       => [
+					'test' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'test' ),
+					'live' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'live' ),
+				],
 			]
 		);
 	}

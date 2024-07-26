@@ -102,6 +102,7 @@ redirect_output cli wp option set woocommerce_store_postcode "94110"
 redirect_output cli wp option set woocommerce_currency "USD"
 redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
+redirect_output cli wp option set woocommerce_coming_soon "no"
 
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate
