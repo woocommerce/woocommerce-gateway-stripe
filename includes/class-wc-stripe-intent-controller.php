@@ -34,6 +34,8 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
+
+		add_action( 'wc_ajax_wc_stripe_confirm_change_payment', [ $this, 'confirm_change_payment_from_setup_intent_ajax' ] );
 	}
 
 	/**
@@ -1034,6 +1036,60 @@ class WC_Stripe_Intent_Controller {
 			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
 
 			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getLocalizesdMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Confirms the change payment method request for a subscription.
+	 *
+	 * This creates the payment method token from the setup intent.
+	 *
+	 * This function is used to confirm the change payment method request for a subscription after the user has been asked to authenticate their payment (eg 3D-Secure).
+	 * It is initiated from the subscription change payment method page.
+	 */
+	public function confirm_change_payment_from_setup_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! function_exists( 'wcs_is_subscription' ) ) {
+				throw new WC_Stripe_Exception( 'subscriptions_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$subscription_id = absint( $_POST['order_id'] ?? false );
+			$subscription    = $subscription_id ? wcs_get_subscription( $subscription_id ) : false;
+
+			if ( ! $subscription ) {
+				throw new WC_Stripe_Exception( 'subscription_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$setup_intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+
+			if ( empty( $setup_intent_id ) ) {
+				throw new WC_Stripe_Exception( 'intent_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$gateway = $this->get_upe_gateway();
+			$gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+
+			wp_send_json_success(
+				[
+					'return_url' => $subscription->get_view_order_url(),
+				],
+				200
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Change subscription payment method error: ' . $e->getMessage() );
 			wp_send_json_error(
 				[
 					'error' => [

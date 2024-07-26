@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.6.0 - xxxx-xx-xx =
+* Add - Indicate the activation status of each payment method individually, instead of using a general notice.
 * Fix - JS error when billing country field does not exist on the payment method page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
@@ -137,8 +138,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
 * Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
+* Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
-
+* Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
