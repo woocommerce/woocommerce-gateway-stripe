@@ -104,7 +104,6 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 					</ButtonWrapper>
 				) : (
 					<InlineNotice isDismissible={ false } status="error">
-						{ __( '', 'woocommerce-gateway-stripe' ) }
 						{ interpolateComponents( {
 							mixedString: __(
 								'An issue occurred generating a connection to Stripe. Please try again. For more assistance, refer to our {{Link}}documentation{{/Link}}.',
