@@ -2058,6 +2058,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'shipping'                      => $shipping_details,
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
+			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 		];
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -2197,8 +2198,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
+		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
+		if ( isset( $payment_method_object->type ) && 'link' === $payment_method_object->type ) {
+			$payment_method_instance = $this->payment_methods['link'];
+		} else {
+			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+		}
+
 		// Create a payment token for the user in the store.
-		$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
 
 		// Add the payment method information to the order.

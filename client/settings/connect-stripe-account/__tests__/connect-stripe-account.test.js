@@ -2,21 +2,7 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
-import {
-	useAccountKeys,
-	useAccountKeysPublishableKey,
-	useAccountKeysSecretKey,
-	useAccountKeysWebhookSecret,
-} from 'wcstripe/data/account-keys/hooks';
-import { useAccount } from 'wcstripe/data/account';
 import { recordEvent } from 'wcstripe/tracking';
-
-jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
-	useAccountKeys: jest.fn(),
-	useAccountKeysPublishableKey: jest.fn(),
-	useAccountKeysSecretKey: jest.fn(),
-	useAccountKeysWebhookSecret: jest.fn(),
-} ) );
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -94,61 +80,6 @@ describe( 'ConnectStripeAccount', () => {
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
-			{}
-		);
-	} );
-
-	it( 'should only have the "Enter account keys" button if OAuth URL is blank', () => {
-		render( <ConnectStripeAccount oauthUrl="" /> );
-
-		expect(
-			screen.queryByText( 'Terms of service.' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Create or connect an account' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.getByText( 'Enter account keys (advanced)' )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				publishable_key: 'live_pk',
-				secret_key: 'live_sk',
-				webhook_secret: 'live_whs',
-			},
-		} );
-		useAccountKeysPublishableKey.mockReturnValue( [
-			'live_pk',
-			jest.fn(),
-		] );
-		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
-		useAccountKeysWebhookSecret.mockReturnValue( [
-			'live_whs',
-			jest.fn(),
-		] );
-		useAccount.mockReturnValue( {
-			data: { webhook_url: 'example.com' },
-		} );
-
-		render( <ConnectStripeAccount oauthUrl="" /> );
-		const accountKeysButton = screen.queryByText( /enter account keys/i );
-		userEvent.click( accountKeysButton );
-		expect(
-			screen.queryByText( /edit live account keys & webhooks/i )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should record a "wcstripe_enter_account_keys_click" Track event when clicking on the Enter account keys button', () => {
-		render( <ConnectStripeAccount oauthUrl="" /> );
-
-		const accountKeysButton = screen.queryByText( /enter account keys/i );
-		userEvent.click( accountKeysButton );
-
-		expect( recordEvent ).toHaveBeenCalledWith(
-			'wcstripe_enter_account_keys_click',
 			{}
 		);
 	} );
