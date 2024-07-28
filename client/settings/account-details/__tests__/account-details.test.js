@@ -79,6 +79,7 @@ describe( 'AccountDetails', () => {
 					charges_enabled: false,
 				},
 				webhook_status_message: mockedWarningMessage,
+				webhook_status_code: 4,
 			},
 		} );
 		render( <AccountDetails /> );
