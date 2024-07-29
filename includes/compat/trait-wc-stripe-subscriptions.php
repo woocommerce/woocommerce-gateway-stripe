@@ -800,22 +800,23 @@ trait WC_Stripe_Subscriptions_Trait {
 						$card = $source;
 					}
 
-					if ( $card ) {
-						/* translators: 1) card brand 2) last 4 digits */
-						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-						break 2;
-					} elseif ( ! empty( $source->sepa_debit ) ) {
-						/* translators: 1) last 4 digits of SEPA Direct Debit */
-						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
-						break 2;
-					} elseif ( ! empty( $source->cashapp ) ) {
-						/* translators: 1) Cash App Cashtag */
-						$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
-						break 2;
-					} elseif ( ! empty( $source->link ) ) {
-						/* translators: 1) email address associated with the Stripe Link payment method */
-						$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
-						break 2;
+					switch ( true ) {
+						case $card:
+							/* translators: 1) card brand 2) last 4 digits */
+							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+							break 3;
+						case ! empty( $source->sepa_debit ):
+							/* translators: 1) last 4 digits of SEPA Direct Debit */
+							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
+							break 3;
+						case ! empty( $source->cashapp ):
+							/* translators: 1) Cash App Cashtag */
+							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
+							break 3;
+						case ! empty( $source->link ):
+							/* translators: 1) email address associated with the Stripe Link payment method */
+							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
+							break 3;
 					}
 				}
 			}
