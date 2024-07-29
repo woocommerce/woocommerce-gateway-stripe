@@ -2,10 +2,11 @@ import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
-import { Button, Card } from '@wordpress/components';
+import { Button, Card, ExternalLink } from '@wordpress/components';
 import CardBody from '../card-body';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import { recordEvent } from 'wcstripe/tracking';
+import InlineNotice from 'wcstripe/components/inline-notice';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -89,7 +90,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 						} ) }
 					</TermsOfServiceText>
 				) }
-				{ oauthUrl && (
+				{ oauthUrl ? (
 					<ButtonWrapper>
 						<Button
 							variant="primary"
@@ -101,6 +102,20 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 							) }
 						</Button>
 					</ButtonWrapper>
+				) : (
+					<InlineNotice isDismissible={ false } status="error">
+						{ interpolateComponents( {
+							mixedString: __(
+								'An issue occurred generating a connection to Stripe. Please try again. For more assistance, refer to our {{Link}}documentation{{/Link}}.',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								Link: (
+									<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
+								),
+							},
+						} ) }
+					</InlineNotice>
 				) }
 			</CardBody>
 		</CardWrapper>
