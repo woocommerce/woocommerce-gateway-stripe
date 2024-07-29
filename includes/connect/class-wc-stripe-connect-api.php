@@ -18,11 +18,12 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		/**
 		 * Send request to Connect Server to initiate Stripe OAuth
 		 *
-		 * @param  string $return_url return address.
+		 * @param string $return_url The URL to return to after the OAuth is completed.
+		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array
+		 * @return array|WP_Error The response from the server.
 		 */
-		public function get_stripe_oauth_init( $return_url ) {
+		public function get_stripe_oauth_init( $return_url, $mode = 'live' ) {
 
 			$current_user                   = wp_get_current_user();
 			$business_data                  = [];
@@ -53,6 +54,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$request = [
 				'returnUrl'    => $return_url,
 				'businessData' => $business_data,
+				'mode'         => $mode,
 			];
 
 			return $this->request( 'POST', '/stripe/oauth-init', $request );
@@ -91,6 +93,11 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			$url = trailingslashit( WOOCOMMERCE_CONNECT_SERVER_URL );
+
+			if ( isset( $body['mode'] ) && 'test' === $body['mode'] ) {
+				$url = str_replace( 'api.woocommerce.com', 'api-staging.woocommerce.com', $url ); // TODO replace this once we know the format of a test request to api.woocommerce.com.
+			}
+
 			$url = apply_filters( 'wc_connect_server_url', $url );
 			$url = trailingslashit( $url ) . ltrim( $path, '/' );
 

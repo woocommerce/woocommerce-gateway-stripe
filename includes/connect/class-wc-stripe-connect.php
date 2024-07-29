@@ -33,11 +33,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Gets the OAuth URL for Stripe onboarding flow
 		 *
-		 * @param  string $return_url url to return to after oauth flow.
+		 * @param string $return_url The URL to return to after OAuth flow.
+		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function get_oauth_url( $return_url = '' ) {
+		public function get_oauth_url( $return_url = '', $mode = 'live' ) {
 
 			if ( empty( $return_url ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
@@ -49,7 +50,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$return_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wcs_stripe_connected' ), $return_url );
 
-			$result = $this->api->get_stripe_oauth_init( $return_url );
+			$result = $this->api->get_stripe_oauth_init( $return_url, $mode );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
