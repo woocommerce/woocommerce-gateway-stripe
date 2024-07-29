@@ -17,7 +17,11 @@ const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
 		<div className="woocommerce-stripe-auth__actions">
 			<Button
 				variant="primary"
-				href={ wc_stripe_settings_params.stripe_oauth_url }
+				href={
+					testMode
+						? wc_stripe_settings_params.stripe_test_oauth_url
+						: wc_stripe_settings_params.stripe_oauth_url
+				}
 				text={
 					testMode ? 'Connect a test account' : 'Connect an account'
 				}

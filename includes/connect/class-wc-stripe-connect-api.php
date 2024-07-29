@@ -95,7 +95,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$url = trailingslashit( WOOCOMMERCE_CONNECT_SERVER_URL );
 
 			if ( isset( $body['mode'] ) && 'test' === $body['mode'] ) {
-				$url = str_replace( 'api.woocommerce.com', 'api-staging.woocommerce.com', $url ); // TODO replace this once we know the format of a test request to api.woocommerce.com.
+				$url = str_replace( 'api.woocommerce.com', 'api-staging.woocommerce.com', $url ); // TODO: replace this once we know the format of a test request to api.woocommerce.com.
 			}
 
 			$url = apply_filters( 'wc_connect_server_url', $url );
