@@ -57,6 +57,7 @@ describe( 'WebhookDescription', () => {
 	it( 'warning message, with information component', () => {
 		useWebhookStateMessage.mockImplementation( () => {
 			return {
+				code: 4,
 				message: 'Warning: Some message',
 				requestStatus: 'success',
 				refreshMessage: jest.fn(),
