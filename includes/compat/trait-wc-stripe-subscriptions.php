@@ -695,21 +695,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		// Get the first subscription associated with this order.
-		$sub = reset( $subscriptions );
-
-		if ( 1 === count( $subscriptions ) ) {
-			$mandate_options['amount_type']    = 'fixed';
-			$mandate_options['interval']       = strtolower( $sub->get_billing_period() );
-			$mandate_options['interval_count'] = $sub->get_billing_interval();
-		} else {
-			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
-			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
-			$mandate_options['amount_type'] = 'maximum';
-			$mandate_options['interval']    = 'sporadic';
-		}
-
+		$mandate_options['amount_type']     = 'maximum';
 		$mandate_options['amount']          = $sub_amount;
+		$mandate_options['interval']        = 'sporadic';
 		$mandate_options['reference']       = $order->get_id();
 		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
