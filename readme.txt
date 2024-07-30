@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.6.0 - xxxx-xx-xx =
+* Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Tweak - Minor text updates to webhook-related configuration labels and buttons.
 * Add - Indicate the activation status of each payment method individually, instead of using a general notice.
 * Fix - JS error when billing country field does not exist on the payment method page.
