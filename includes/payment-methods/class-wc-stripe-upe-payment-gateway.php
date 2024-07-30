@@ -155,7 +155,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Show giropay only on the orders page to allow refunds. It was deprecated.
-			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() ) {
+			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
 				continue;
 			}
 
@@ -2518,6 +2518,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If custom order tables are not enabled, we need to check the post type and action query params.
 		$is_shop_order_post_type = isset( $query_params['post'] ) && 'shop_order' === get_post_type( $query_params['post'] );
 		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_order_post_type;
+	}
+
+	/**
+	 * Checks if this is a refund request.
+	 *
+	 * @return bool Whether this is a refund request.
+	 */
+	private function is_refund_request() {
+		return true;
 	}
 
 	/**
