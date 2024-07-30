@@ -1,8 +1,6 @@
 import { useDispatch, useSelect } from '@wordpress/data';
 import { STORE_NAME } from '../constants';
 
-const EMPTY_OBJ = {};
-
 export const useAccount = () => {
 	const { refreshAccount } = useDispatch( STORE_NAME );
 
@@ -32,8 +30,8 @@ export const useAccount = () => {
 
 export const useGetCapabilities = () => {
 	return useSelect( ( select ) => {
-		const { getAccountData } = select( STORE_NAME );
+		const { getAccountCapabilities } = select( STORE_NAME );
 
-		return getAccountData().account?.capabilities ?? EMPTY_OBJ;
+		return getAccountCapabilities();
 	}, [] );
 };

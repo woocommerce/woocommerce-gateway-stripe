@@ -1,12 +1,12 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
-import { Button, Card } from '@wordpress/components';
+import { Button, Card, ExternalLink } from '@wordpress/components';
 import CardBody from '../card-body';
-import { AccountKeysModal } from '../payment-settings/account-keys-modal';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import { recordEvent } from 'wcstripe/tracking';
+import InlineNotice from 'wcstripe/components/inline-notice';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -48,94 +48,77 @@ const ButtonWrapper = styled.div`
 `;
 
 const ConnectStripeAccount = ( { oauthUrl } ) => {
-	// @todo - deconstruct modalType and setModalType from useModalType custom hook
-	const [ modalType, setModalType ] = useState( '' );
-	const handleModalDismiss = () => {
-		setModalType( '' );
-	};
-
 	const handleCreateOrConnectAccount = () => {
 		recordEvent( 'wcstripe_create_or_connect_account_click', {} );
 		window.location.assign( oauthUrl );
 	};
 
-	const handleEnterAccountKeys = () => {
-		recordEvent( 'wcstripe_enter_account_keys_click', {} );
-		setModalType( 'live' );
-	};
-
 	return (
-		<>
-			{ modalType && (
-				<AccountKeysModal
-					type={ modalType }
-					onClose={ handleModalDismiss }
-					redirectOnSave={ `${ window.location.pathname }?page=wc-settings&tab=checkout&section=stripe&panel=settings` }
-				/>
-			) }
-			<CardWrapper>
-				<StripeBanner />
-				<CardBody>
-					<h2>
-						{ __(
-							'Get started with Stripe',
-							'woocommerce-gateway-stripe'
-						) }
-					</h2>
-					<InformationText>
-						{ __(
-							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
-							'woocommerce-gateway-stripe'
-						) }
-					</InformationText>
-
-					{ oauthUrl && (
-						<TermsOfServiceText>
-							{ interpolateComponents( {
-								mixedString: __(
-									'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-									'woocommerce-gateway-stripe'
-								),
-								components: {
-									tosLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a
-											target="_blank"
-											rel="noreferrer"
-											href="https://wordpress.com/tos"
-										/>
-									),
-								},
-							} ) }
-						</TermsOfServiceText>
+		<CardWrapper>
+			<StripeBanner />
+			<CardBody>
+				<h2>
+					{ __(
+						'Get started with Stripe',
+						'woocommerce-gateway-stripe'
 					) }
+				</h2>
+				<InformationText>
+					{ __(
+						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
+						'woocommerce-gateway-stripe'
+					) }
+				</InformationText>
+
+				{ oauthUrl && (
+					<TermsOfServiceText>
+						{ interpolateComponents( {
+							mixedString: __(
+								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								tosLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										target="_blank"
+										rel="noreferrer"
+										href="https://wordpress.com/tos"
+									/>
+								),
+							},
+						} ) }
+					</TermsOfServiceText>
+				) }
+				{ oauthUrl ? (
 					<ButtonWrapper>
-						{ oauthUrl ? (
-							<Button
-								isPrimary
-								onClick={ handleCreateOrConnectAccount }
-							>
-								{ __(
-									'Create or connect an account',
-									'woocommerce-gateway-stripe'
-								) }
-							</Button>
-						) : (
-							<Button
-								isPrimary={ ! oauthUrl }
-								isSecondary={ !! oauthUrl }
-								onClick={ handleEnterAccountKeys }
-							>
-								{ __(
-									'Enter account keys (advanced)',
-									'woocommerce-gateway-stripe'
-								) }
-							</Button>
-						) }
+						<Button
+							variant="primary"
+							onClick={ handleCreateOrConnectAccount }
+						>
+							{ __(
+								'Create or connect an account',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
 					</ButtonWrapper>
-				</CardBody>
-			</CardWrapper>
-		</>
+				) : (
+					<InlineNotice isDismissible={ false } status="error">
+						{ interpolateComponents( {
+							mixedString: __(
+								'An issue occurred generating a connection to Stripe. Please try again. For more assistance, refer to our {{Link}}documentation{{/Link}}.',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								Link: (
+									<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/connecting-to-stripe/" />
+								),
+							},
+						} ) }
+					</InlineNotice>
+				) }
+			</CardBody>
+		</CardWrapper>
 	);
 };
 
