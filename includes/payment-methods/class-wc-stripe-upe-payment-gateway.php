@@ -2526,7 +2526,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether this is a refund request.
 	 */
 	private function is_refund_request() {
-		return true;
+		return isset( $_POST['action'] ) && 'woocommerce_refund_line_items' === $_POST['action']; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
