@@ -100,7 +100,7 @@ const PromotionalBannerSection = ( {
 	};
 
 	const ReConnectAccountBanner = () => (
-		<CardBody>
+		<CardBody data-testid="re-connect-account-banner">
 			<CardInner>
 				<CardColumn>
 					<NewPill>

@@ -3,7 +3,6 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromotionalBannerSection from '../promotional-banner-section';
-import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@wordpress/data' );
 
@@ -28,15 +27,6 @@ const setShowPromotionalBanner = jest.fn();
 
 describe( 'PromotionalBanner', () => {
 	it( 'dismiss function should be called', () => {
-		useAccount.mockReturnValue( {
-			data: {
-				testmode: false,
-				oauth_connections: {
-					live: true,
-				},
-			},
-		} );
-
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -65,5 +55,17 @@ describe( 'PromotionalBanner', () => {
 
 		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
+	} );
+
+	it( 'Display the re-connect promotional surface when OAuth connection is not set', () => {
+		render(
+			<PromotionalBannerSection
+				setShowPromotionalBanner={ setShowPromotionalBanner }
+				isConnectedViaOAuth={ false }
+			/>
+		);
+		expect(
+			screen.queryByTestId( 're-connect-account-banner' )
+		).toBeInTheDocument();
 	} );
 } );
