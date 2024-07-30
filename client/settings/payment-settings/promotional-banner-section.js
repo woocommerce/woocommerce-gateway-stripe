@@ -5,6 +5,7 @@ import { Card, Button } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
+import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 
@@ -121,7 +122,7 @@ const PromotionalBannerSection = ( {
 				</CardColumn>
 				<CardColumn>
 					<BannerIllustration
-						src={ bannerIllustration }
+						src={ bannerIllustrationReConnect }
 						alt={ __(
 							'Configure connection',
 							'woocommerce-gateway-stripe'
