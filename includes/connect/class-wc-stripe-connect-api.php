@@ -54,10 +54,10 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$request = [
 				'returnUrl'    => $return_url,
 				'businessData' => $business_data,
-				'mode'         => $mode,
 			];
 
-			return $this->request( 'POST', '/stripe/oauth-init', $request );
+			$path = 'test' === $mode ? '/stripe-sandbox/oauth-init' : '/stripe/oauth-init';
+			return $this->request( 'POST', $path, $request );
 		}
 
 		/**
@@ -67,11 +67,12 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 *
 		 * @return array
 		 */
-		public function get_stripe_oauth_keys( $code ) {
+		public function get_stripe_oauth_keys( $code, $mode = 'live' ) {
 
 			$request = [ 'code' => $code ];
 
-			return $this->request( 'POST', '/stripe/oauth-keys', $request );
+			$path = 'test' === $mode ? '/stripe-sandbox/oauth-keys' : '/stripe/oauth-keys';
+			return $this->request( 'POST', $path, $request );
 		}
 
 		/**
@@ -93,10 +94,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			$url = trailingslashit( WOOCOMMERCE_CONNECT_SERVER_URL );
-
-			if ( isset( $body['mode'] ) && 'test' === $body['mode'] ) {
-				$url = str_replace( 'api.woocommerce.com', 'api-staging.woocommerce.com', $url ); // TODO: replace this once we know the format of a test request to api.woocommerce.com.
-			}
 
 			$url = apply_filters( 'wc_connect_server_url', $url );
 			$url = trailingslashit( $url ) . ltrim( $path, '/' );

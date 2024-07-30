@@ -69,7 +69,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @return string|WP_Error
 		 */
-		public function connect_oauth( $state, $code ) {
+		public function connect_oauth( $state, $code, $mode = 'live' ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
@@ -77,7 +77,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
-			$response = $this->api->get_stripe_oauth_keys( $code );
+			$response = $this->api->get_stripe_oauth_keys( $code, $mode );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
@@ -85,7 +85,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			delete_transient( 'wcs_stripe_connect_state' );
 
-			return $this->save_stripe_keys( $response );
+			return $this->save_stripe_keys( $response, $mode );
 		}
 
 		/**
@@ -108,11 +108,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					return new WP_Error( 'Invalid nonce received from Stripe server' );
 				}
 
-				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
+				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
+				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
+
+				$response = $this->connect_oauth( $state, $code, $mode );
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
+				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_mode' ] ) ) );
 				exit;
 			}
 		}
@@ -124,13 +128,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @return array|WP_Error
 		 */
-		private function save_stripe_keys( $result ) {
+		private function save_stripe_keys( $result, $mode = 'live' ) {
 
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test                                    = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
 			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
