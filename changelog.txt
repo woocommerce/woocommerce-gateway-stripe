@@ -1,8 +1,9 @@
 *** Changelog ***
 
 = 8.6.0 - xxxx-xx-xx =
- Tweak - Minor text updates to webhook-related configuration labels and buttons.
-** Add - Indicate the activation status of each payment method individually, instead of using a general notice.
+* Fix - Subscriptions processing with mandates by forcing the amount type parameter to "maximum" and "interval" to "sporadic" for all cases.
+* Tweak - Minor text updates to webhook-related configuration labels and buttons.
+* Add - Indicate the activation status of each payment method individually, instead of using a general notice.
 * Fix - JS error when billing country field does not exist on the payment method page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
 * Fix - Prevent duplicate customer creation during guest checkout.
