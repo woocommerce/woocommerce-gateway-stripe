@@ -95,6 +95,8 @@ const PromotionalBannerSection = ( {
 		setShowPromotionalBanner( false );
 	};
 
+	const handleReConnectButtonClick = () => {};
+
 	const ReConnectAccountBanner = () => (
 		<CardBody>
 			<CardInner>
@@ -129,7 +131,7 @@ const PromotionalBannerSection = ( {
 				<MainCTALink
 					variant="secondary"
 					data-testid="re-connect-checkout"
-					onClick={ handleButtonClick }
+					onClick={ handleReConnectButtonClick }
 				>
 					{ __(
 						'Configure connection',

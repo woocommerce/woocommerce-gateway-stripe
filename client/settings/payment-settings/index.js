@@ -77,8 +77,8 @@ const PaymentSettingsPanel = () => {
 	);
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
-	const testMode = data?.test_mode;
-	const oauthConnected = testMode
+	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestModeEnabled
 		? data?.oauth_connections?.test
 		: data?.oauth_connections?.live;
 
