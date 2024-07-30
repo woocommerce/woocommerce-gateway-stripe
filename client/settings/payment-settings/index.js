@@ -13,6 +13,7 @@ import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -75,7 +76,11 @@ const PaymentSettingsPanel = () => {
 		true
 	);
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
-	const isConnectedViaOAuth = false;
+	const { data } = useAccount();
+	const testMode = data?.test_mode;
+	const oauthConnected = testMode
+		? data?.oauth_connections?.test
+		: data?.oauth_connections?.live;
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -103,7 +108,7 @@ const PaymentSettingsPanel = () => {
 								}
 								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
-								isConnectedViaOAuth={ isConnectedViaOAuth }
+								isConnectedViaOAuth={ oauthConnected }
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
