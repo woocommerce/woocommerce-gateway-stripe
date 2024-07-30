@@ -75,6 +75,7 @@ const PaymentSettingsPanel = () => {
 		true
 	);
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const isConnectedViaOAuth = false;
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -102,6 +103,7 @@ const PaymentSettingsPanel = () => {
 								}
 								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
+								isConnectedViaOAuth={ isConnectedViaOAuth }
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>

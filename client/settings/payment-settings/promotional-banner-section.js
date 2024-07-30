@@ -56,15 +56,11 @@ const PromotionalBannerSection = ( {
 	setShowPromotionalBanner,
 	isUpeEnabled,
 	setIsUpeEnabled,
+	isConnectedViaOAuth,
 } ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
 	);
-
-	// The merchant already disabled the legacy experience. Nothing to do here.
-	if ( isUpeEnabled ) {
-		return null;
-	}
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -98,6 +94,51 @@ const PromotionalBannerSection = ( {
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
 	};
+
+	const ReConnectAccountBanner = () => (
+		<CardBody>
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
+						{ __(
+							'Make your store more secure',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ __(
+							'Re-connect your Stripe account using the new authentication flow by clicking the "Configure connection" button and make your store safer.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustration }
+						alt={ __(
+							'Configure connection',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+			<ButtonsRow>
+				<MainCTALink
+					variant="secondary"
+					data-testid="re-connect-checkout"
+					onClick={ handleButtonClick }
+				>
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
+				</MainCTALink>
+			</ButtonsRow>
+		</CardBody>
+	);
 
 	const NewCheckoutExperienceBanner = () => (
 		<CardBody>
@@ -151,9 +192,16 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
+	let BannerContent = null;
+	if ( ! isConnectedViaOAuth ) {
+		BannerContent = <ReConnectAccountBanner />;
+	} else if ( ! isUpeEnabled ) {
+		BannerContent = <NewCheckoutExperienceBanner />;
+	}
+
 	return (
 		<BannerCard data-testid="promotional-banner-card">
-			<NewCheckoutExperienceBanner />
+			{ BannerContent }
 		</BannerCard>
 	);
 };
