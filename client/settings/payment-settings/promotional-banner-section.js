@@ -95,7 +95,9 @@ const PromotionalBannerSection = ( {
 		setShowPromotionalBanner( false );
 	};
 
-	const handleReConnectButtonClick = () => {};
+	const handleReConnectButtonClick = () => {
+		jQuery( '#btn-configure-connection' ).trigger( 'click' );
+	};
 
 	const ReConnectAccountBanner = () => (
 		<CardBody>
