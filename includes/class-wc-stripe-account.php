@@ -109,14 +109,12 @@ class WC_Stripe_Account {
 	private function get_transient_key( $mode = null ) {
 		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
 
-		// If the mode is not provided, we'll check the current mode.
-		if ( ! in_array( $mode, [ 'test', 'live' ] ) ) {
+		// If the mode is not provided or is invalid, we'll check the current mode.
+		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
 			$mode = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 		}
 
-		$key = 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
-
-		return $key;
+		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 	}
 
 	/**
