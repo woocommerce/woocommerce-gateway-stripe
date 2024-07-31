@@ -192,4 +192,68 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertEquals( 'US', $this->account->get_account_country() );
 	}
+
+	/**
+	 * Test for get_cached_account_data() with test mode parameter.
+	 */
+	public function test_get_cached_account_data_test_mode() {
+		$this->mock_connect->method( 'is_connected' )->with( 'test' )->willReturn( true );
+
+		// Test mode account data.
+		$account = [
+			'id'      => 'acct_1234',
+			'email'   => 'test@example.com',
+			'country' => 'US',
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+
+		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
+	}
+
+	/**
+	 * Test for get_cached_account_data() with live mode parameter.
+	 */
+	public function test_get_cached_account_data_live_mode() {
+		$this->mock_connect->method( 'is_connected' )->with( 'live' )->willReturn( true );
+
+		// Live mode account data.
+		$account = [
+			'id'      => 'acct_1234',
+			'email'   => 'live@example.com',
+			'country' => 'US',
+		];
+		set_transient( 'wcstripe_account_data_live', $account );
+
+		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
+	}
+
+	/**
+	 * Test for get_cached_account_data() with no mode parameter.
+	 */
+	public function test_get_cached_account_data_no_mode() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
+
+		$test_account = [
+			'id'      => 'acct_test-1234',
+			'email'   => 'john@example.com',
+		];
+
+		$live_account = [
+			'id'      => 'acct_live-1234',
+			'email'   => 'john@example.com',
+		];
+		set_transient( 'wcstripe_account_data_test', $test_account );
+		set_transient( 'wcstripe_account_data_live', $live_account );
+
+		// Enable test mode.
+		$stripe_settings['testmode'] = 'yes';
+		// Confirm test mode data is returned.
+		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
+
+		// Enable live mode.
+		$stripe_settings['testmode'] = 'no';
+		// Confirm live mode data is returned.
+		$this->assertSame( $this->account->get_cached_account_data(), $live_account );
+	}
 }
