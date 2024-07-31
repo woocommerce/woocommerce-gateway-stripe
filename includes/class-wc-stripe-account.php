@@ -81,10 +81,16 @@ class WC_Stripe_Account {
 	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 */
 	private function cache_account( $mode = null ) {
-		$expiration = 2 * HOUR_IN_SECONDS;
+		// If a mode is provided, we'll set the API secret key to the appropriate key to retrieve the account data.
+		if ( ! is_null( $mode ) ) {
+			WC_Stripe_API::set_secret_key_for_mode( $mode );
+		}
 
-		// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
+		// need call_user_func() as ( $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
 		$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
+
+		// Restore the secret key to the original value.
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
 			return [];
@@ -94,7 +100,7 @@ class WC_Stripe_Account {
 		$account_cache = $account;
 
 		// Create or update the account option cache.
-		set_transient( $this->get_transient_key( $mode ), $account_cache, $expiration );
+		set_transient( $this->get_transient_key( $mode ), $account_cache, 2 * HOUR_IN_SECONDS );
 
 		return json_decode( wp_json_encode( $account ), true );
 	}
