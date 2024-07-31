@@ -64,8 +64,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Initiate OAuth connection request to Connect Server
 		 *
-		 * @param  string $state State token to prevent request forgery.
-		 * @param  string $code  OAuth code.
+		 * @param string $state State token to prevent request forgery.
+		 * @param string $code  OAuth code.
+		 * @param string $mode  Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
@@ -124,7 +125,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Saves stripe keys after OAuth response
 		 *
-		 * @param  array $result OAuth response result.
+		 * @param array $result OAuth response result.
+		 * @param string $mode Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return array|WP_Error
 		 */
