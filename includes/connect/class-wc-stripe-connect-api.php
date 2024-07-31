@@ -24,8 +24,8 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 * @return array|WP_Error The response from the server.
 		 */
 		public function get_stripe_oauth_init( $return_url, $mode = 'live' ) {
-
 			$current_user                   = wp_get_current_user();
+			$account                        = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
 			$business_data                  = [];
 			$business_data['url']           = get_site_url();
 			$business_data['business_name'] = html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES );
@@ -56,19 +56,26 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				'businessData' => $business_data,
 			];
 
+			// If the store is already connected to an account and the account is connected to an Application, send the account ID so
+			// api.woocommerce.com can determine the type of connection needed.
+			if ( isset( $account['id'], $account['controller']['type'] ) && 'application' === $account['controller']['type'] ) {
+				$request['accountId'] = $account['id'];
+			}
+
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-init' : '/stripe/oauth-init';
+
 			return $this->request( 'POST', $path, $request );
 		}
 
 		/**
 		 * Send request to Connect Server for Stripe keys
 		 *
-		 * @param  string $code OAuth server code.
+		 * @param string $code OAuth server code.
+		 * @param string $mode Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return array
 		 */
 		public function get_stripe_oauth_keys( $code, $mode = 'live' ) {
-
 			$request = [ 'code' => $code ];
 
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-keys' : '/stripe/oauth-keys';
