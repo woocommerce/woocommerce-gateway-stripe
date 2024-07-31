@@ -101,7 +101,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			$url = trailingslashit( WOOCOMMERCE_CONNECT_SERVER_URL );
-
 			$url = apply_filters( 'wc_connect_server_url', $url );
 			$url = trailingslashit( $url ) . ltrim( $path, '/' );
 
