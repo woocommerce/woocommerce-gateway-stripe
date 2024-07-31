@@ -29,7 +29,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
-		$stripe_settings['test_publishable_key'] = self::LIVE_SECRET_KEY;
+		$stripe_settings['secret_key']           = self::LIVE_SECRET_KEY;
 		$stripe_settings['test_secret_key']      = self::TEST_SECRET_KEY;
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
