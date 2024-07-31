@@ -224,7 +224,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 		set_transient( 'wcstripe_account_data_live', $account );
 
-		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
+		$this->assertSame( $this->account->get_cached_account_data( 'live' ), $account );
 	}
 
 	/**
@@ -246,13 +246,17 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		set_transient( 'wcstripe_account_data_test', $test_account );
 		set_transient( 'wcstripe_account_data_live', $live_account );
 
-		// Enable test mode.
+		// Enable TEST mode.
 		$stripe_settings['testmode'] = 'yes';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		// Confirm test mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
 
-		// Enable live mode.
+		// Enable LIVE mode.
 		$stripe_settings['testmode'] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		// Confirm live mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $live_account );
 	}
