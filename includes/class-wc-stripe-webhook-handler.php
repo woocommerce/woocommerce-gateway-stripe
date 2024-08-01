@@ -87,8 +87,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$request_body = file_get_contents( 'php://input' );
-		$notification = json_decode( $request_body );
-		$event_type   = $notification->type ?? 'No event type found';
+		$event        = json_decode( $request_body );
+		$event_type   = $event->type ?? 'No event type found';
 
 		WC_Stripe_Logger::debug( 'Webhook received: ' . $event_type );
 
@@ -101,7 +101,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$this->process_webhook( $request_body );
 
-			WC_Stripe_Webhook_State::set_last_webhook_success_at( $notification->created );
+			WC_Stripe_Webhook_State::set_last_webhook_success_at( $event->created );
 
 			status_header( 200 );
 			exit;
