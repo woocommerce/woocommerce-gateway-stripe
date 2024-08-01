@@ -92,9 +92,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Validate it to make sure it is legit.
 		$validation_result = $this->validate_request( $request_headers, $request_body );
 		if ( WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED === $validation_result ) {
+			$notification = json_decode( $request_body );
+
+			WC_Stripe_Logger::debug( 'Webhook received: ' . $notification->type );
+			WC_Stripe_Logger::debug( 'Webhook body: ' . print_r( $request_body, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+
 			$this->process_webhook( $request_body );
 
-			$notification = json_decode( $request_body );
 			WC_Stripe_Webhook_State::set_last_webhook_success_at( $notification->created );
 
 			status_header( 200 );
