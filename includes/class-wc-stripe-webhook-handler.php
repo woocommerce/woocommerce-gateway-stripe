@@ -86,9 +86,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$request_body = file_get_contents( 'php://input' );
-		$event        = json_decode( $request_body );
-		$event_type   = $event->type ?? 'No event type found';
+		try {
+			$request_body = file_get_contents( 'php://input' );
+			$event        = json_decode( $request_body );
+			$event_type   = $event->type ?? 'No event type found';
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::error( 'Webhook body could not be retrieved: ' . $e->getMessage() );
+			return;
+		}
 
 		WC_Stripe_Logger::debug( 'Webhook received: ' . $event_type );
 
