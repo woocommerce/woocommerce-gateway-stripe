@@ -832,6 +832,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
+				$this->lock_order_payment( $order );
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
@@ -922,6 +923,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
+					$this->unlock_order_payment( $order );
 				}
 			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
