@@ -25,6 +25,10 @@ class WC_Stripe_Logger {
 			return;
 		}
 
+		if ( ! apply_filters( 'wc_stripe_logging', true, $message ) ) {
+			return;
+		}
+
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
@@ -91,10 +95,6 @@ class WC_Stripe_Logger {
 	 */
 	private static function can_log(): bool {
 		if ( ! class_exists( 'WC_Logger' ) ) {
-			return false;
-		}
-
-		if ( ! apply_filters( 'wc_stripe_logging', true, $message ) ) {
 			return false;
 		}
 
