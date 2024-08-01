@@ -49,6 +49,24 @@ class WC_Stripe_Logger {
 	}
 
 	/**
+	 * Creates a log entry of type error.
+	 *
+	 * @param string $message To send to the log file.
+	 * @return void
+	 */
+	public static function error( $message ) {
+		if ( ! self::can_log() ) {
+			return;
+		}
+
+		if ( empty( self::$logger ) ) {
+			self::$logger = wc_get_logger();
+		}
+
+		self::$logger->error( $message, [ 'source' => self::WC_LOG_FILENAME ] );
+	}
+
+	/**
 	 * Whether we can log based on settings and filters.
 	 *
 	 * @return boolean
