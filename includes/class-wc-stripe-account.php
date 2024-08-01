@@ -270,6 +270,7 @@ class WC_Stripe_Account {
 
 		// If a secret key is provided, use it to configure the webhooks.
 		if ( $secret_key ) {
+			$previous_secret = WC_Stripe_API::get_secret_key();
 			WC_Stripe_API::set_secret_key( $secret_key );
 		}
 
@@ -291,6 +292,11 @@ class WC_Stripe_Account {
 		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
 		if ( $configured_webhook_id ) {
 			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
+		}
+
+		// Restore the previous secret key if we changed it.
+		if ( $secret_key && isset( $previous_secret ) ) {
+			WC_Stripe_API::set_secret_key( $previous_secret );
 		}
 
 		$settings = get_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
