@@ -233,4 +233,45 @@ class WC_Stripe_Account {
 		$account = $this->get_cached_account_data();
 		return $account['country'] ?? 'US';
 	}
+
+	/**
+	 * Deletes any previously configured manual webhooks.
+	 *
+	 * @param string $exclude_webhook_id Webhook ID to exclude from deletion.
+	 */
+	public function delete_previously_configured_manual_webhooks( $exclude_webhook_id = '' ) {
+		$webhooks = $this->stripe_api::retrieve( 'webhook_endpoints' );
+
+		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) || empty( $webhooks->data ) ) {
+			return;
+		}
+
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		WC_Stripe_Logger::log(
+			$exclude_webhook_id ? "Deleting all webooks sent to {$webhook_url}" : "Deleting all webooks sent to {$webhook_url} except for {$exclude_webhook_id}"
+		);
+
+		// Delete any webhook that matches the current site's webhook URL.
+		foreach ( $webhooks->data as $webhook ) {
+			if ( ! isset( $webhook->id, $webhook->url ) ) {
+				continue;
+			}
+
+			// Skip the webhook we're excluding it from deletion.
+			if ( $exclude_webhook_id && $webhook->id === $exclude_webhook_id ) {
+				continue;
+			}
+
+			// Delete the webhook if it matches the current site's webhook URL.
+			if ( $webhook->url === $webhook_url ) {
+				self::request(
+					[],
+					"webhook_endpoints/{$webhook->id}",
+					'DELETE'
+				);
+				WC_Stripe_Logger::log( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+			}
+		}
+	}
 }

@@ -441,6 +441,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
 		}
 
+		// Delete any previously configured manual webhooks. Exclude the current webhook ID from the deletion.
+		$this->account->delete_previously_configured_manual_webhooks( $response->id );
+
 		// Save the Webhook secret and ID.
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
 		$settings[ $webhook_data_setting ]   = [
