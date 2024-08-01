@@ -258,7 +258,7 @@ class WC_Stripe_Account {
 				continue;
 			}
 
-			// Skip the webhook we're excluding it from deletion.
+			// Skip the webhook we're excluding from deletion.
 			if ( $exclude_webhook_id && $webhook->id === $exclude_webhook_id ) {
 				continue;
 			}
