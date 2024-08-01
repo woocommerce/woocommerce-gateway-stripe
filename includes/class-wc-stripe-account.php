@@ -249,7 +249,7 @@ class WC_Stripe_Account {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		WC_Stripe_Logger::log(
-			$exclude_webhook_id ? "Deleting all webooks sent to {$webhook_url}" : "Deleting all webooks sent to {$webhook_url} except for {$exclude_webhook_id}"
+			$exclude_webhook_id ? "Deleting all webooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webooks sent to {$webhook_url}"
 		);
 
 		// Delete any webhook that matches the current site's webhook URL.
