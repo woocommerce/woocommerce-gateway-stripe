@@ -236,6 +236,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 
 		$this->account->delete_previously_configured_manual_webhooks( 'wh_456' );
+
+		// Confirm that all expected request call params were called.
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
 	}
 
 	/**
@@ -274,7 +277,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that the webhooks are deleted.
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
-			[ [], 'webhook_endpoints/wh_123abc', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
 		];
