@@ -195,7 +195,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'US', $this->account->get_account_country() );
 	}
 
-	/*
+	/**
 	 * Test for get_cached_account_data() with test mode parameter.
 	 */
 	public function test_get_cached_account_data_test_mode() {
