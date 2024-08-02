@@ -202,28 +202,28 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		// Mock the API retrieve.
-		WC_Helper_Stripe_Api::$retrieve_response = [
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [
 			'data' => [
-				[
+				(object) [
 					'id' => 'wh_000', // Invalid data - no URL.
 				],
-				[
+				(object) [
 					'id'  => 'wh_123',
 					'url' => $webhook_url, // Should be deleted.
 				],
-				[
+				(object) [
 					'id'  => 'wh_456',
 					'url' => $webhook_url, // Should not be deleted - excluded.
 				],
-				[
+				(object) [
 					'id'  => 'wh_789',
 					'url' => 'https://some-other-site.com', // Should not be deleted - different URL.
 				],
-				[
+				(object) [
 					'id'  => 'wh_101112',
 					'url' => $webhook_url, // Should be deleted.
 				],
-				[
+				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
 				],
 			],
@@ -245,28 +245,28 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		// Mock the API retrieve.
-		WC_Helper_Stripe_Api::$retrieve_response = [
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [
 			'data' => [
-				[
+				(object) [
 					'id' => 'wh_000', // Invalid data - no URL.
 				],
-				[
+				(object) [
 					'id'  => 'wh_123',
 					'url' => $webhook_url, // Should be deleted.
 				],
-				[
+				(object) [
 					'id'  => 'wh_456',
 					'url' => $webhook_url, // Should be deleted.
 				],
-				[
+				(object) [
 					'id'  => 'wh_789',
 					'url' => 'https://some-other-site.com', // Should not be deleted - different URL.
 				],
-				[
+				(object) [
 					'id'  => 'wh_101112',
 					'url' => $webhook_url, // Should be deleted.
 				],
-				[
+				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
 				],
 			],
@@ -280,5 +280,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 
 		$this->account->delete_previously_configured_manual_webhooks();
+
+		// Confirm that all expected request call params were called.
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
 	}
 }
