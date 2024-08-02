@@ -39,15 +39,26 @@ class WC_Stripe_API {
 	 */
 	public static function get_secret_key() {
 		if ( ! self::$secret_key ) {
-			$options         = get_option( 'woocommerce_stripe_settings' );
-			$secret_key      = $options['secret_key'] ?? '';
-			$test_secret_key = $options['test_secret_key'] ?? '';
-
-			if ( isset( $options['testmode'] ) ) {
-				self::set_secret_key( 'yes' === $options['testmode'] ? $test_secret_key : $secret_key );
-			}
+			self::set_secret_key_for_mode();
 		}
 		return self::$secret_key;
+	}
+
+	/**
+	 * Set secret key based on mode.
+	 *
+	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
+	 */
+	public static function set_secret_key_for_mode( $mode = null ) {
+		$options         = get_option( 'woocommerce_stripe_settings' );
+		$secret_key      = $options['secret_key'] ?? '';
+		$test_secret_key = $options['test_secret_key'] ?? '';
+
+		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
+			$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+		}
+
+		self::set_secret_key( 'test' === $mode ? $test_secret_key : $secret_key );
 	}
 
 	/**
