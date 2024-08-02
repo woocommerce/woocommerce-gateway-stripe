@@ -46,41 +46,51 @@ class WC_Stripe_Account {
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public function get_cached_account_data() {
-		if ( ! $this->connect->is_connected() ) {
+	public function get_cached_account_data( $mode = null ) {
+		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache();
+		$account = $this->read_account_from_cache( $mode );
 
 		if ( ! empty( $account ) ) {
 			return $account;
 		}
 
-		return $this->cache_account();
+		return $this->cache_account( $mode );
 	}
 
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array empty when no data found in transient, otherwise returns cached data
 	 */
-	private function read_account_from_cache() {
-		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key() ) ), true );
+	private function read_account_from_cache( $mode = null ) {
+		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key( $mode ) ) ), true );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
 
 	/**
 	 * Caches account data for a period of time.
+	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 */
-	private function cache_account() {
-		$expiration = 2 * HOUR_IN_SECONDS;
+	private function cache_account( $mode = null ) {
+		// If a mode is provided, we'll set the API secret key to the appropriate key to retrieve the account data.
+		if ( ! is_null( $mode ) ) {
+			WC_Stripe_API::set_secret_key_for_mode( $mode );
+		}
 
-		// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
+		// need call_user_func() as ( $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
 		$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
+
+		// Restore the secret key to the original value.
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
 			return [];
@@ -90,21 +100,27 @@ class WC_Stripe_Account {
 		$account_cache = $account;
 
 		// Create or update the account option cache.
-		set_transient( $this->get_transient_key(), $account_cache, $expiration );
+		set_transient( $this->get_transient_key( $mode ), $account_cache, 2 * HOUR_IN_SECONDS );
 
 		return json_decode( wp_json_encode( $account ), true );
 	}
 
 	/**
-	 * Checks Stripe connection mode if it is test mode or live mode
+	 * Fetches the transient key for the account data for a given mode.
+	 * If no mode is provided, it will use the current mode.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
 	 */
-	private function get_transient_key() {
+	private function get_transient_key( $mode = null ) {
 		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
-		$key              = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 
-		return $key;
+		// If the mode is not provided or is invalid, we'll check the current mode.
+		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
+			$mode = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
+		}
+
+		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 	}
 
 	/**

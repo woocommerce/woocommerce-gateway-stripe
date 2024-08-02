@@ -47,10 +47,15 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( { oauthUrl } ) => {
+const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 	const handleCreateOrConnectAccount = () => {
 		recordEvent( 'wcstripe_create_or_connect_account_click', {} );
 		window.location.assign( oauthUrl );
+	};
+
+	const handleCreateOrConnectTestAccount = () => {
+		recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
+		window.location.assign( testOauthUrl );
 	};
 
 	return (
@@ -70,38 +75,58 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 					) }
 				</InformationText>
 
-				{ oauthUrl && (
-					<TermsOfServiceText>
-						{ interpolateComponents( {
-							mixedString: __(
-								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								tosLink: (
-									// eslint-disable-next-line jsx-a11y/anchor-has-content
-									<a
-										target="_blank"
-										rel="noreferrer"
-										href="https://wordpress.com/tos"
-									/>
+				{ oauthUrl || testOauthUrl ? (
+					<>
+						<TermsOfServiceText>
+							{ interpolateComponents( {
+								mixedString: __(
+									'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+									'woocommerce-gateway-stripe'
 								),
-							},
-						} ) }
-					</TermsOfServiceText>
-				) }
-				{ oauthUrl ? (
-					<ButtonWrapper>
-						<Button
-							variant="primary"
-							onClick={ handleCreateOrConnectAccount }
-						>
-							{ __(
-								'Create or connect an account',
-								'woocommerce-gateway-stripe'
+								components: {
+									tosLink: (
+										// eslint-disable-next-line jsx-a11y/anchor-has-content
+										<a
+											target="_blank"
+											rel="noreferrer"
+											href="https://wordpress.com/tos"
+										/>
+									),
+								},
+							} ) }
+						</TermsOfServiceText>
+						<ButtonWrapper>
+							{ oauthUrl && (
+								<Button
+									variant="primary"
+									onClick={ handleCreateOrConnectAccount }
+								>
+									{ __(
+										'Create or connect an account',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
 							) }
-						</Button>
-					</ButtonWrapper>
+							{ testOauthUrl && (
+								<Button
+									variant={
+										oauthUrl ? 'secondary' : 'primary'
+									}
+									onClick={ handleCreateOrConnectTestAccount }
+								>
+									{ oauthUrl
+										? __(
+												'Create or connect a test account instead',
+												'woocommerce-gateway-stripe'
+										  )
+										: __(
+												'Create or connect a test account',
+												'woocommerce-gateway-stripe'
+										  ) }
+								</Button>
+							) }
+						</ButtonWrapper>
+					</>
 				) : (
 					<InlineNotice isDismissible={ false } status="error">
 						{ interpolateComponents( {
