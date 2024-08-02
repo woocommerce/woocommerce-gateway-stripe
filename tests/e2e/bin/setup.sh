@@ -15,7 +15,7 @@ fi
 
 # If no --base_url received, setup the docker test environment.
 
-DEBUG=true
+DEBUG=false
 
 # Override custom user/password from local.env, if any.
 ADMIN_USER=admin
