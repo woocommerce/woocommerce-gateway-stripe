@@ -274,7 +274,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that the webhooks are deleted.
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
-			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_123abc', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
 		];
