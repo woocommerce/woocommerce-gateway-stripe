@@ -79,9 +79,18 @@ class WC_Helper_Stripe_Api {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		// If the expected request calls params are set, check if the params match the expected params.
 		if ( ! is_null( self::$expected_request_call_params ) ) {
+			$passed_params   = [ $request, $api, $method, $with_headers ];
 			$expected_params = array_shift( self::$expected_request_call_params );
 
-			if ( $expected_params !== $request ) {
+			// Fill in missing expected params with default values.
+			$expected_params = [
+				$expected_params[0],
+				$expected_params[1] ?? 'charges',
+				$expected_params[2] ?? 'POST',
+				$expected_params[3] ?? false,
+			];
+
+			if ( $expected_params !== $passed_params ) {
 				throw new Exception( 'Expected request params do not match the actual request params.' );
 			}
 		}
