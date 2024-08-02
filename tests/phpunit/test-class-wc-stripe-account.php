@@ -44,6 +44,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		delete_transient( 'wcstripe_account_data_live' );
 		delete_option( 'woocommerce_stripe_settings' );
 
+		WC_Helper_Stripe_Api::reset();
+
 		parent::tear_down();
 	}
 
@@ -197,13 +199,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests for delete_previously_configured_manual_webhooks() with an excluded webhook.
 	 */
 	public function test_delete_previously_configured_manual_webhooks_with_exclusion() {
-		// Mock the api retrieve.
-		$api_mock = $this->getMockBuilder( 'WC_Stripe_API' )
-							->setMethods( [ 'retrieve', 'request' ] )
-							->getMock();
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
-		$webhook_url    = WC_Stripe_Helper::get_webhook_url();
-		$webhook_return = [
+		// Mock the API retrieve.
+		WC_Helper_Stripe_Api::$retrieve_response = [
 			'data' => [
 				[
 					'id' => 'wh_000', // Invalid data - no URL.
@@ -230,31 +229,23 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$api_mock->method( 'retrieve' )->willReturn( $webhook_return );
-		$account = new WC_Stripe_Account( $this->mock_connect, $api_mock );
-
 		// Assert that the webhooks are deleted.
-		$api_mock->expects( $this->exactly( 2 ) )
-			->method( 'request' )
-			->withConsecutive(
-				[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
-				[ [], 'webhook_endpoints/wh_101112', 'DELETE' ]
-			);
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
+		];
 
-		$account->delete_previously_configured_manual_webhooks( 'wh_456' );
+		$this->account->delete_previously_configured_manual_webhooks( 'wh_456' );
 	}
 
 	/**
 	 * Tests for delete_previously_configured_manual_webhooks()
 	 */
 	public function test_delete_previously_configured_manual_webhooks_without_exclusion() {
-		// Mock the api retrieve.
-		$api_mock = $this->getMockBuilder( 'WC_Stripe_API' )
-							->setMethods( [ 'retrieve', 'request' ] )
-							->getMock();
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
-		$webhook_url    = WC_Stripe_Helper::get_webhook_url();
-		$webhook_return = [
+		// Mock the API retrieve.
+		WC_Helper_Stripe_Api::$retrieve_response = [
 			'data' => [
 				[
 					'id' => 'wh_000', // Invalid data - no URL.
@@ -281,18 +272,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$api_mock->method( 'retrieve' )->willReturn( $webhook_return );
-		$account = new WC_Stripe_Account( $this->mock_connect, $api_mock );
-
 		// Assert that the webhooks are deleted.
-		$api_mock->expects( $this->exactly( 3 ) )
-			->method( 'request' )
-			->withConsecutive(
-				[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
-				[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
-				[ [], 'webhook_endpoints/wh_101112', 'DELETE' ]
-			);
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
+		];
 
-		$account->delete_previously_configured_manual_webhooks();
+		$this->account->delete_previously_configured_manual_webhooks();
 	}
 }
