@@ -56,7 +56,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $result;
 			}
 
-			set_transient( 'wcs_stripe_connect_state', $result->state, 6 * HOUR_IN_SECONDS );
+			set_transient( $this->get_connect_state_transient_key( $mode ), $result->state, 6 * HOUR_IN_SECONDS );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -71,10 +71,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return string|WP_Error
 		 */
 		public function connect_oauth( $state, $code, $mode = 'live' ) {
+			$state_transient_key = $this->get_connect_state_transient_key( $mode );
+
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state' ) !== $state ) {
+			if ( get_transient( $state_transient_key ) !== $state ) {
+				error_log( "state didn't validate" );
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
@@ -84,7 +87,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $response;
 			}
 
-			delete_transient( 'wcs_stripe_connect_state' );
+			delete_transient( $state_transient_key );
 
 			return $this->save_stripe_keys( $response, $mode );
 		}
@@ -245,6 +248,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
 			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
+		}
+
+		/**
+		 * Gets the transient key used to store the connect state for a given mode.
+		 *
+		 * @param string $mode The mode to get the transient key for. 'live' or 'test'.
+		 * @return string Transient key.
+		 */
+		private function get_connect_state_transient_key( $mode ) {
+			return 'live' === $mode ? 'wcs_stripe_connect_state' : 'wcs_stripe_connect_state_test';
 		}
 	}
 }
