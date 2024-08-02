@@ -18,6 +18,7 @@
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.
 * Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
+* Fix - Resolved PHP errors related to detaching payment methods after failed 3D-Secure challenges.
 
 = 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
