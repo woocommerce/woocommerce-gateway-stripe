@@ -146,5 +146,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.
 * Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
+* Tweak - Don't process webhooks when the webhook secret isn't set in the store.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
