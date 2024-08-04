@@ -56,7 +56,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $result;
 			}
 
-			set_transient( 'wcs_stripe_connect_state', $result->state, 6 * HOUR_IN_SECONDS );
+			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -74,7 +74,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state' ) !== $state ) {
+			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
@@ -84,7 +84,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return $response;
 			}
 
-			delete_transient( 'wcs_stripe_connect_state' );
+			delete_transient( 'wcs_stripe_connect_state_' . $mode );
 
 			return $this->save_stripe_keys( $response, $mode );
 		}
