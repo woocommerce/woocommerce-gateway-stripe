@@ -8,6 +8,7 @@ import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
+import { useTestMode } from 'wcstripe/data';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -58,10 +59,12 @@ const PromotionalBannerSection = ( {
 	isUpeEnabled,
 	setIsUpeEnabled,
 	isConnectedViaOAuth,
+	setModalType,
 } ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
 	);
+	const [ isTestModeEnabled ] = useTestMode();
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -96,9 +99,8 @@ const PromotionalBannerSection = ( {
 		setShowPromotionalBanner( false );
 	};
 
-	const handleReConnectButtonClick = () => {
-		jQuery( '#btn-configure-connection' ).trigger( 'click' );
-	};
+	const handleReConnectButtonClick = () =>
+		setModalType( isTestModeEnabled ? 'test' : 'live' );
 
 	const ReConnectAccountBanner = () => (
 		<CardBody data-testid="re-connect-account-banner">

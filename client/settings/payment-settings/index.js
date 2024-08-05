@@ -109,6 +109,7 @@ const PaymentSettingsPanel = () => {
 								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 								isConnectedViaOAuth={ oauthConnected }
+								setModalType={ setModalType }
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>
