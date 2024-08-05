@@ -144,6 +144,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
 * Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
 * Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
+* Fix - After configuring webhooks automatically ensure only the latest webhook endpoint is active, deleting duplicates configured manually.
 * Tweak - Minor text updates to webhook-related configuration labels and buttons.
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.
