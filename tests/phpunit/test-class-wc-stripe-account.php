@@ -264,9 +264,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests for delete_previously_configured_manual_webhooks() with an excluded webhook.
+	 * Tests for delete_previously_configured_webhooks() with an excluded webhook.
 	 */
-	public function test_delete_previously_configured_manual_webhooks_with_exclusion() {
+	public function test_delete_previously_configured_webhooks_with_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		// Mock the API retrieve.
@@ -313,16 +313,16 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			[ [], 'webhook_endpoints/wh_161718', 'DELETE' ],
 		];
 
-		$this->account->delete_previously_configured_manual_webhooks( 'wh_456' );
+		$this->account->delete_previously_configured_webhooks( 'wh_456' );
 
 		// Confirm that all expected request call params were called.
 		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
 	}
 
 	/**
-	 * Tests for delete_previously_configured_manual_webhooks()
+	 * Tests for delete_previously_configured_webhooks()
 	 */
-	public function test_delete_previously_configured_manual_webhooks_without_exclusion() {
+	public function test_delete_previously_configured_webhooks_without_exclusion() {
 		$webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 		// Mock the API retrieve.
@@ -360,7 +360,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
 		];
 
-		$this->account->delete_previously_configured_manual_webhooks();
+		$this->account->delete_previously_configured_webhooks();
 
 		// Confirm that all expected request call params were called.
 		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );

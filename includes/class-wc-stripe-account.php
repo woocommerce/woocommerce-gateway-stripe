@@ -251,11 +251,11 @@ class WC_Stripe_Account {
 	}
 
 	/**
-	 * Deletes any previously configured manual webhooks.
+	 * Deletes any previously configured webhooks that are sent to the current site's webhook URL.
 	 *
 	 * @param string $exclude_webhook_id Webhook ID to exclude from deletion.
 	 */
-	public function delete_previously_configured_manual_webhooks( $exclude_webhook_id = '' ) {
+	public function delete_previously_configured_webhooks( $exclude_webhook_id = '' ) {
 		$webhooks = $this->stripe_api::retrieve( 'webhook_endpoints' );
 
 		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) || empty( $webhooks->data ) ) {
@@ -268,7 +268,6 @@ class WC_Stripe_Account {
 			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
 		);
 
-		// Delete any webhook that matches the current site's webhook URL.
 		foreach ( $webhooks->data as $webhook ) {
 			if ( ! isset( $webhook->id, $webhook->url ) ) {
 				continue;
