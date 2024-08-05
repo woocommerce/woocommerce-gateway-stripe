@@ -1391,4 +1391,39 @@ class WC_Stripe_Helper {
 	public static function is_wallet_payment_method( $order ) {
 		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
 	}
+
+	/**
+	 * Checks if a given URL matches the current site's Webhook URL.
+	 *
+	 * This function ignores trailing slashes and compares the host and path of the URLs.
+	 * The protocol is not compared.
+	 *
+	 * @param string $url         The URL to check.
+	 * @param string $webhook_url The webhook URL to compare against.
+	 *
+	 * @return bool Whether the URL is a webhook URL.
+	 */
+	public static function is_webhook_url( $url, $webhook_url = '' ) {
+		if ( empty( $webhook_url ) ) {
+			$webhook_url = self::get_webhook_url();
+		}
+
+		$url         = untrailingslashit( trim( strtolower( $url ) ) );
+		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+
+		// If the URLs are the exact same, no need to compare further.
+		if ( $url === $webhook_url ) {
+			return true;
+		}
+
+		$webhook_url_parts = wp_parse_url( $url );
+		$url_parts         = wp_parse_url( $webhook_url );
+
+		$url_host     = $url_parts['host'] ?? '';
+		$url_path     = $url_parts['path'] ?? '';
+		$webhook_host = $webhook_url_parts['host'] ?? '';
+		$webhook_path = $webhook_url_parts['path'] ?? '';
+
+		return $url_host === $webhook_host && $url_path === $webhook_path;
+	}
 }

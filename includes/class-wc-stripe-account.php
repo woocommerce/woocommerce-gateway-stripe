@@ -280,7 +280,7 @@ class WC_Stripe_Account {
 			}
 
 			// Delete the webhook if it matches the current site's webhook URL.
-			if ( $webhook->url === $webhook_url ) {
+			if ( WC_Stripe_Helper::is_webhook_url( $webhook->url, $webhook_url ) ) {
 				$this->stripe_api::request(
 					[],
 					"webhook_endpoints/{$webhook->id}",
