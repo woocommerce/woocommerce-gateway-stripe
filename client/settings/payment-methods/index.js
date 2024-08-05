@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
@@ -7,6 +7,10 @@ import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
+import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { useAccount } from 'wcstripe/data/account';
+import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -46,8 +50,42 @@ const PaymentRequestDescription = () => (
 );
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
+	const [ modalType, setModalType ] = useState( '' );
+	const [ , setKeepModalContent ] = useState( false );
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		true
+	);
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestModeEnabled
+		? data?.oauth_connections?.test
+		: data?.oauth_connections?.live;
+
+	const handleModalDismiss = () => {
+		setModalType( '' );
+	};
+
 	return (
 		<>
+			{ modalType && (
+				<AccountKeysModal
+					type={ modalType }
+					onClose={ handleModalDismiss }
+					setKeepModalContent={ setKeepModalContent }
+				/>
+			) }
+			{ showPromotionalBanner && (
+				<SettingsSection>
+					<PromotionalBannerSection
+						setShowPromotionalBanner={ setShowPromotionalBanner }
+						isUpeEnabled={ isUpeEnabled }
+						setIsUpeEnabled={ setIsUpeEnabled }
+						isConnectedViaOAuth={ oauthConnected }
+						setModalType={ setModalType }
+					/>
+				</SettingsSection>
+			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
