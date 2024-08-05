@@ -112,10 +112,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$main_settings     = get_option( 'woocommerce_stripe_settings' );
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
-		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
-		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
-		$this->supports = [ 'products', 'refunds' ];
+		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
+		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
+		$this->has_fields = true;
+		$this->testmode   = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->supports   = [ 'products', 'refunds' ];
 	}
 
 	/**
@@ -202,7 +203,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_description() {
 		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : $this->description;
+		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
 	}
 
 	/**
