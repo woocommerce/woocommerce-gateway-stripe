@@ -294,6 +294,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
 				],
+				(object) [
+					'id'  => 'wh_131415',
+					'url' => str_replace( 'https', 'http', $webhook_url ), // Should be deleted - different protocol.
+				],
+				(object) [
+					'id'  => 'wh_161718',
+					'url' => $webhook_url . '/', // Should be deleted - trailing slash.
+				],
 			],
 		];
 
@@ -301,6 +309,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
 			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_131415', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_161718', 'DELETE' ],
 		];
 
 		$this->account->delete_previously_configured_manual_webhooks( 'wh_456' );
