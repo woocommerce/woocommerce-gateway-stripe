@@ -434,12 +434,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
 		$webhook_data_setting   = $live_mode ? 'webhook_data' : 'test_webhook_data';
-		$configured_webhook_id  = $settings[ $webhook_data_setting ]['id'] ?? null;
 
-		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
-		if ( $configured_webhook_id ) {
-			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
-		}
+		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
+		$this->account->delete_previously_configured_webhooks( $response->id );
 
 		// Save the Webhook secret and ID.
 		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
