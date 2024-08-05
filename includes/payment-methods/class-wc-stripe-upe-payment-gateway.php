@@ -840,7 +840,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				return [
 					'result'   => 'success',
-					'redirect' => '',
+					'redirect' => $this->get_return_url( $order ),
 				];
 			} else {
 				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
