@@ -29,6 +29,8 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 	) {
 		await page.waitForTimeout( 1000 );
 	}
+	// Not ideal, but the iframe body gets repalced after load, so a waitFor does not work here.
+	await page.waitForTimeout( 2000 );
 
 	await page
 		.frame( {
@@ -37,7 +39,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 		.getByRole( 'button', { name: 'Complete' } )
 		.click();
 
-	await page.waitForNavigation();
+	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'
