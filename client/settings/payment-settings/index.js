@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { React, useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
@@ -109,7 +110,12 @@ const PaymentSettingsPanel = () => {
 								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 								isConnectedViaOAuth={ oauthConnected }
-								setModalType={ setModalType }
+								oauthUrl={
+									wc_stripe_settings_params.stripe_oauth_url
+								}
+								testOauthUrl={
+									wc_stripe_settings_params.stripe_test_oauth_url
+								}
 							/>
 						</LoadableAccountSection>
 					</LoadableSettingsSection>

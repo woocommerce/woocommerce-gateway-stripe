@@ -59,7 +59,8 @@ const PromotionalBannerSection = ( {
 	isUpeEnabled,
 	setIsUpeEnabled,
 	isConnectedViaOAuth,
-	setModalType,
+	oauthUrl,
+	testOauthUrl,
 } ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
@@ -99,8 +100,22 @@ const PromotionalBannerSection = ( {
 		setShowPromotionalBanner( false );
 	};
 
-	const handleReConnectButtonClick = () =>
-		setModalType( isTestModeEnabled ? 'test' : 'live' );
+	const handleReConnectButtonClick = () => {
+		if ( isTestModeEnabled && testOauthUrl ) {
+			recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
+			window.location.assign( testOauthUrl );
+		} else if ( ! isTestModeEnabled && oauthUrl ) {
+			recordEvent( 'wcstripe_create_or_connect_account_click', {} );
+			window.location.assign( oauthUrl );
+		} else {
+			createErrorNotice(
+				__(
+					'There was an error. Please reload the page and try again.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		}
+	};
 
 	const ReConnectAccountBanner = () => (
 		<CardBody data-testid="re-connect-account-banner">

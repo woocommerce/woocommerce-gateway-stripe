@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import React, { useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
@@ -10,7 +11,6 @@ import DisplayOrderCustomizationNotice from '../display-order-customization-noti
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
-import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -50,8 +50,6 @@ const PaymentRequestDescription = () => (
 );
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
-	const [ modalType, setModalType ] = useState( '' );
-	const [ , setKeepModalContent ] = useState( false );
 	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
 		true
 	);
@@ -62,19 +60,8 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 		? data?.oauth_connections?.test
 		: data?.oauth_connections?.live;
 
-	const handleModalDismiss = () => {
-		setModalType( '' );
-	};
-
 	return (
 		<>
-			{ modalType && (
-				<AccountKeysModal
-					type={ modalType }
-					onClose={ handleModalDismiss }
-					setKeepModalContent={ setKeepModalContent }
-				/>
-			) }
 			{ showPromotionalBanner && (
 				<SettingsSection>
 					<PromotionalBannerSection
@@ -82,7 +69,10 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 						isUpeEnabled={ isUpeEnabled }
 						setIsUpeEnabled={ setIsUpeEnabled }
 						isConnectedViaOAuth={ oauthConnected }
-						setModalType={ setModalType }
+						oauthUrl={ wc_stripe_settings_params.stripe_oauth_url }
+						testOauthUrl={
+							wc_stripe_settings_params.stripe_test_oauth_url
+						}
 					/>
 				</SettingsSection>
 			) }
