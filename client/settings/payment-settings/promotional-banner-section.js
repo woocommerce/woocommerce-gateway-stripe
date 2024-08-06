@@ -141,7 +141,7 @@ const PromotionalBannerSection = ( {
 					<BannerIllustration
 						src={ bannerIllustrationReConnect }
 						alt={ __(
-							'Configure connection',
+							'Re-authenticate',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
