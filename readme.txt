@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.6.0 - xxxx-xx-xx =
 * Fix - Subscriptions processing with mandates by forcing the amount type parameter to "maximum" and "interval" to "sporadic" for all cases.
+* Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
 * Add - Indicate the activation status of each payment method individually, instead of using a general notice.
