@@ -251,6 +251,83 @@ class WC_Stripe_Account {
 	}
 
 	/**
+	 * Configures webhooks for the account.
+	 *
+	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
+	 *
+	 * @throws Exception If there was a problem setting up the webhooks.
+	 * @return object The response from the API.
+	 */
+	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+		$request = [
+			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
+			'enabled_events' => [
+				'source.chargeable',
+				'source.canceled',
+				'charge.succeeded',
+				'charge.failed',
+				'charge.captured',
+				'charge.dispute.created',
+				'charge.dispute.closed',
+				'charge.refunded',
+				'charge.refund.updated',
+				'review.opened',
+				'review.closed',
+				'payment_intent.succeeded',
+				'payment_intent.payment_failed',
+				'payment_intent.amount_capturable_updated',
+				'payment_intent.requires_action',
+				'setup_intent.succeeded',
+				'setup_intent.setup_failed',
+			],
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+		];
+
+		// If a secret key is provided, use it to configure the webhooks.
+		if ( $secret_key ) {
+			$previous_secret = WC_Stripe_API::get_secret_key();
+			WC_Stripe_API::set_secret_key( $secret_key );
+		}
+
+		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+
+		if ( isset( $response->error->message ) ) {
+			// Translators: %s is the error message from the Stripe API.
+			throw new Exception( sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
+
+		if ( ! isset( $response->secret, $response->id ) ) {
+			throw new Exception( __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
+		$this->delete_previously_configured_webhooks( $response->id );
+
+		// Restore the previous secret key if we changed it.
+		if ( $secret_key && isset( $previous_secret ) ) {
+			WC_Stripe_API::set_secret_key( $previous_secret );
+		}
+
+		$settings = get_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+
+		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
+
+		// Save the Webhook secret and ID.
+		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
+		$settings[ $webhook_data_setting ]   = [
+			'id'     => wc_clean( $response->id ),
+			'url'    => wc_clean( $response->url ),
+			'secret' => WC_Stripe_API::get_secret_key(),
+		];
+
+		update_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		return $response;
+	}
+
+	/**
 	 * Deletes any previously configured webhooks that are sent to the current site's webhook URL.
 	 *
 	 * @param string $exclude_webhook_id Webhook ID to exclude from deletion.
