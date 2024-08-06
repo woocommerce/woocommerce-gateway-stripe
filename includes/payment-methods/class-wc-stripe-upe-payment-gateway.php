@@ -929,7 +929,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
-					$this->unlock_order_payment( $order );
 				}
 			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
@@ -951,6 +950,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->mark_order_as_pre_ordered( $order );
 				}
 			}
+
+			$this->unlock_order_payment( $order );
 
 			return array_merge(
 				[
