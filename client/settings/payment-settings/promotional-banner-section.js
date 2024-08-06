@@ -132,7 +132,7 @@ const PromotionalBannerSection = ( {
 					</h4>
 					<p>
 						{ __(
-							'Re-authenticate your Stripe account using the new flow by clicking the "Configure connection" button and make your store safer.',
+							'Re-connect your Stripe account using the new authentication flow by clicking the "Re-authenticate" button and make your store safer.',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>
