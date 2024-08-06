@@ -24,6 +24,7 @@ class WC_Stripe_Webhook_State {
 	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
 	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
 	const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
+	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
 	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
 	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
 	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
@@ -143,6 +144,11 @@ class WC_Stripe_Webhook_State {
 			return( __( 'The webhook was missing expected body', 'woocommerce-gateway-stripe' ) );
 		}
 
+		if ( self::VALIDATION_FAILED_EMPTY_SECRET === $last_error ) {
+			return( __( 'The webhook secret is not set in the store', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Legacy failure reason. Removed in 8.6.0.
 		if ( self::VALIDATION_FAILED_USER_AGENT_INVALID == $last_error ) {
 			return( __( 'The webhook received did not come from Stripe', 'woocommerce-gateway-stripe' ) );
 		}

@@ -129,7 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.6.0 - xxxx-xx-xx =
-* Tweak - Minor text updates to webhook-related configuration labels and buttons.
+* Add - Added filter to enable updating Level 3 data based on order data.
+* Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
 * Add - Indicate the activation status of each payment method individually, instead of using a general notice.
 * Fix - JS error when billing country field does not exist on the payment method page.
 * Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
@@ -141,11 +142,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
 * Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
 * Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
-* Add - Added filter to enable updating Level 3 data based on order data.
-* Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
+* Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
+* Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
+* Fix - After configuring webhooks automatically ensure only the latest webhook endpoint is active, deleting duplicates configured manually.
+* Tweak - Minor text updates to webhook-related configuration labels and buttons.
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.
-* Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
 * Fix - Prevent adding multiple copies of the same order notes.
+* Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
+* Tweak - Don't process webhooks when the webhook secret isn't set in the store.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
