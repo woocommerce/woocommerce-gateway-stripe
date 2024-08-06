@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Automattic\WooCommerce\Utilities\OrderUtil;
-
 /**
  * Provides static methods as helpers.
  *
@@ -757,7 +755,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -795,7 +793,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'transaction_id' => $charge_id,
@@ -823,7 +821,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -857,7 +855,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -895,7 +893,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -1390,5 +1388,40 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_wallet_payment_method( $order ) {
 		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
+	}
+
+	/**
+	 * Checks if a given URL matches the current site's Webhook URL.
+	 *
+	 * This function ignores trailing slashes and compares the host and path of the URLs.
+	 * The protocol is not compared.
+	 *
+	 * @param string $url         The URL to check.
+	 * @param string $webhook_url The webhook URL to compare against.
+	 *
+	 * @return bool Whether the URL is a webhook URL.
+	 */
+	public static function is_webhook_url( $url, $webhook_url = '' ) {
+		if ( empty( $webhook_url ) ) {
+			$webhook_url = self::get_webhook_url();
+		}
+
+		$url         = untrailingslashit( trim( strtolower( $url ) ) );
+		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+
+		// If the URLs are the exact same, no need to compare further.
+		if ( $url === $webhook_url ) {
+			return true;
+		}
+
+		$webhook_url_parts = wp_parse_url( $url );
+		$url_parts         = wp_parse_url( $webhook_url );
+
+		$url_host     = $url_parts['host'] ?? '';
+		$url_path     = $url_parts['path'] ?? '';
+		$webhook_host = $webhook_url_parts['host'] ?? '';
+		$webhook_path = $webhook_url_parts['path'] ?? '';
+
+		return $url_host === $webhook_host && $url_path === $webhook_path;
 	}
 }

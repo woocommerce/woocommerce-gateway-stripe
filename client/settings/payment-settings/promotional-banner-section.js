@@ -5,8 +5,10 @@ import { Card, Button } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
+import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
+import { useTestMode } from 'wcstripe/data';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -56,15 +58,14 @@ const PromotionalBannerSection = ( {
 	setShowPromotionalBanner,
 	isUpeEnabled,
 	setIsUpeEnabled,
+	isConnectedViaOAuth,
+	oauthUrl,
+	testOauthUrl,
 } ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
 		'core/notices'
 	);
-
-	// The merchant already disabled the legacy experience. Nothing to do here.
-	if ( isUpeEnabled ) {
-		return null;
-	}
+	const [ isTestModeEnabled ] = useTestMode();
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -99,57 +100,127 @@ const PromotionalBannerSection = ( {
 		setShowPromotionalBanner( false );
 	};
 
-	return (
-		<BannerCard data-testid="promotional-banner-card">
-			<CardBody>
-				<CardInner>
-					<CardColumn>
-						<NewPill>
-							{ __( 'New', 'woocommerce-gateway-stripe' ) }
-						</NewPill>
-						<h4>
-							{ __(
-								'Boost sales and checkout conversion',
-								'woocommerce-gateway-stripe'
-							) }
-						</h4>
-						<p>
-							{ __(
-								'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
-								'woocommerce-gateway-stripe'
-							) }
-						</p>
-					</CardColumn>
-					<CardColumn>
-						<BannerIllustration
-							src={ bannerIllustration }
-							alt={ __(
-								'New Checkout',
-								'woocommerce-gateway-stripe'
-							) }
-						/>
-					</CardColumn>
-				</CardInner>
-				<ButtonsRow>
-					<MainCTALink
-						variant="secondary"
-						data-testid="enable-the-new-checkout"
-						onClick={ handleButtonClick }
-					>
+	const handleReConnectButtonClick = () => {
+		if ( isTestModeEnabled && testOauthUrl ) {
+			recordEvent( 'wcstripe_create_or_connect_test_account_click', {} );
+			window.location.assign( testOauthUrl );
+		} else if ( ! isTestModeEnabled && oauthUrl ) {
+			recordEvent( 'wcstripe_create_or_connect_account_click', {} );
+			window.location.assign( oauthUrl );
+		} else {
+			createErrorNotice(
+				__(
+					'There was an error. Please reload the page and try again.',
+					'woocommerce-gateway-stripe'
+				)
+			);
+		}
+	};
+
+	const ReConnectAccountBanner = () => (
+		<CardBody data-testid="re-connect-account-banner">
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
 						{ __(
-							'Enable the new checkout',
+							'Make your store more secure',
 							'woocommerce-gateway-stripe'
 						) }
-					</MainCTALink>
-					<DismissButton
-						variant="secondary"
-						onClick={ handleBannerDismiss }
-						data-testid="dismiss"
-					>
-						{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
-					</DismissButton>
-				</ButtonsRow>
-			</CardBody>
+					</h4>
+					<p>
+						{ __(
+							'Re-connect your Stripe account using the new authentication flow by clicking the "Re-authenticate" button and make your store safer.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustrationReConnect }
+						alt={ __(
+							'Re-authenticate',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+			<ButtonsRow>
+				<MainCTALink
+					variant="secondary"
+					data-testid="re-connect-checkout"
+					onClick={ handleReConnectButtonClick }
+				>
+					{ __( 'Re-authenticate', 'woocommerce-gateway-stripe' ) }
+				</MainCTALink>
+			</ButtonsRow>
+		</CardBody>
+	);
+
+	const NewCheckoutExperienceBanner = () => (
+		<CardBody>
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
+						{ __(
+							'Boost sales and checkout conversion',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ __(
+							'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustration }
+						alt={ __(
+							'New Checkout',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+			<ButtonsRow>
+				<MainCTALink
+					variant="secondary"
+					data-testid="enable-the-new-checkout"
+					onClick={ handleButtonClick }
+				>
+					{ __(
+						'Enable the new checkout',
+						'woocommerce-gateway-stripe'
+					) }
+				</MainCTALink>
+				<DismissButton
+					variant="secondary"
+					onClick={ handleBannerDismiss }
+					data-testid="dismiss"
+				>
+					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
+				</DismissButton>
+			</ButtonsRow>
+		</CardBody>
+	);
+
+	let BannerContent = null;
+	if ( ! isConnectedViaOAuth ) {
+		BannerContent = <ReConnectAccountBanner />;
+	} else if ( ! isUpeEnabled ) {
+		BannerContent = <NewCheckoutExperienceBanner />;
+	}
+
+	return (
+		<BannerCard data-testid="promotional-banner-card">
+			{ BannerContent }
 		</BannerCard>
 	);
 };
