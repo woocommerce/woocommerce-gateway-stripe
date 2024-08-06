@@ -85,6 +85,11 @@ function woocommerce_gateway_stripe() {
 		class WC_Stripe {
 
 			/**
+			 * The option name for the Stripe gateway settings.
+			 */
+			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
+			/**
 			 * The *Singleton* instance of this class
 			 *
 			 * @var WC_Stripe
