@@ -417,6 +417,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['currency']  = $currency;
 
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+			$order_id = absint( get_query_var( 'order-pay' ) );
+			$order    = wc_get_order( $order_id );
+
+			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
+			if ( is_a( $order, 'WC_Order' ) ) {
+				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
+			}
+
 			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
@@ -429,15 +437,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return $stripe_params;
 			}
 
-			$order_id                    = absint( get_query_var( 'order-pay' ) );
 			$stripe_params['orderId']    = $order_id;
 			$stripe_params['isOrderPay'] = true;
-			$order                       = wc_get_order( $order_id );
 
+			// Additional params for order pay page, when the order was successfully loaded.
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
-				$stripe_params['customerData']   = [ 'billing_country' => $order->get_billing_country() ];
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
@@ -449,7 +455,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->get_return_url( $order )
 					)
 				);
-
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['cartTotal']    = 0;
