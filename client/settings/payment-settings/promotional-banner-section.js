@@ -153,10 +153,7 @@ const PromotionalBannerSection = ( {
 					data-testid="re-connect-checkout"
 					onClick={ handleReConnectButtonClick }
 				>
-					{ __(
-						'Configure connection',
-						'woocommerce-gateway-stripe'
-					) }
+					{ __( 'Re-authenticate', 'woocommerce-gateway-stripe' ) }
 				</MainCTALink>
 			</ButtonsRow>
 		</CardBody>
