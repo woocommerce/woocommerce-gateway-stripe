@@ -112,6 +112,7 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardFooter>
 				<Button
 					variant="secondary"
+					id="btn-configure-connection"
 					onClick={ () =>
 						setModalType( isTestMode ? 'test' : 'live' )
 					}
