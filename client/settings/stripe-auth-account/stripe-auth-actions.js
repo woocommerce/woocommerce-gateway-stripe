@@ -45,7 +45,7 @@ const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
 		<InlineNotice isDismissible={ false } status="error">
 			{ interpolateComponents( {
 				mixedString: __(
-					"The button to connect an account couldn't be rendered.{{br /}} Please ensure your site has an SSL certificate and try again. For more assistance, refer to our {{Link}}documentation{{/Link}}.",
+					"An issue occurred generating a connection to Stripe, please ensure your server has a valid SSL certificate and try again.{{br /}}For assistance, refer to our {{Link}}documentation{{/Link}}.",
 					'woocommerce-gateway-stripe'
 				),
 				components: {
