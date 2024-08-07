@@ -140,6 +140,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
 * Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Clear the saved Stripe Link payment methods when a customer cache is cleared to ensure cached methods are updated promptly.
+* Fix - Display Stripe Link payment methods correctly in both Block Checkout and My Account pages.
+* Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
 * Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
 * Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
 * Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
