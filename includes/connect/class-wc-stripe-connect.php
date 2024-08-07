@@ -126,13 +126,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Saves stripe keys after OAuth response
+		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param array $result Stripe OAuth response result.
-		 * @param string $type Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
-		 * @param string $mode Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
+		 * @param stdObject $result OAuth response result.
+		 * @param string    $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
+		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array|WP_Error
+		 * @return stdObject|WP_Error OAuth response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -143,6 +143,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
+			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
@@ -150,19 +152,28 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
+			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
+			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-			if ( 'app' === $type ) {
+
+      if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
-
+      
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
 			update_option( self::SETTINGS_OPTION, $options );
+
+			try {
+				// Automatically configure webhooks for the account now that we have the keys.
+				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
+			} catch ( Exception $e ) {
+				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
+			}
 
 			return $result;
 		}
