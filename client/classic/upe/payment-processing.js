@@ -478,19 +478,18 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 
-		if ( confirmPayment.paymentIntent.last_payment_error ) {
-			throw new Error(
-				confirmPayment.paymentIntent.last_payment_error.message
-			);
+		const intentObject =
+			intentType === 'setup_intent'
+				? confirmPayment.setupIntent
+				: confirmPayment.paymentIntent;
+
+		if ( intentObject.last_payment_error ) {
+			throw new Error( intentObject.last_payment_error.message );
 		}
 
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
-		const status =
-			intentType === 'setup_intent'
-				? confirmPayment.setupIntent.status
-				: confirmPayment.paymentIntent.status;
-		if ( status !== 'requires_action' ) {
+		if ( intentObject.status !== 'requires_action' ) {
 			window.location.href = returnURL;
 		}
 	} catch ( error ) {
