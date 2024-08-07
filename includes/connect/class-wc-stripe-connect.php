@@ -44,7 +44,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 			}
 
-			if ( substr( $return_url, 0, 8 ) !== 'https://' ) {
+			if ( 'test' !== $mode && substr( $return_url, 0, 8 ) !== 'https://' ) {
 				return new WP_Error( 'invalid_url_protocol', __( 'Your site must be served over HTTPS in order to connect your Stripe account automatically.', 'woocommerce-gateway-stripe' ) );
 			}
 
