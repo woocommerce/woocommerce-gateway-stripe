@@ -937,7 +937,7 @@ class WC_Stripe_Intent_Controller {
 			return false;
 		}
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp' ], true ) ) {
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp', 'link' ], true ) ) {
 			return true;
 		}
 
