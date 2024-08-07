@@ -35,11 +35,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @param string $return_url The URL to return to after OAuth flow.
 		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
-		 * @param string $account_id Optional. The accountId currently connected. Default is ''.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function get_oauth_url( $return_url = '', $mode = 'live', $account_id = '' ) {
+		public function get_oauth_url( $return_url = '', $mode = 'live' ) {
 
 			if ( empty( $return_url ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
@@ -128,11 +127,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param stdObject $result OAuth response result.
+		 * @param stdObject $result OAuth's response result.
 		 * @param string    $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return stdObject|WP_Error OAuth response result or WP_Error.
+		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
 		 */
 		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -152,15 +151,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
 
-      if ( 'app' === $type ) {
+			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
-      
+
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
 			unset( $options['account_id'] );
@@ -205,7 +203,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled'] = 'yes';
+			$result['upe_checkout_experience_enabled']             = 'yes';
 			$result['upe_checkout_experience_accepted_payments'][] = 'link';
 
 			return $result;
