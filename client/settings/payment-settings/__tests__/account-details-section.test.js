@@ -60,7 +60,7 @@ describe( 'AccountDetailsSection', () => {
 		jest.restoreAllMocks();
 	} );
 
-	it( 'should open live account keys modal when edit account keys clicked in live mode', () => {
+	it( 'should open live account keys modal when Configure connection clicked in live mode', () => {
 		useAccount.mockReturnValue( {
 			data: {
 				webhook_url: 'example.com',
@@ -89,13 +89,13 @@ describe( 'AccountDetailsSection', () => {
 		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
 
 		const editKeysButton = screen.getByRole( 'button', {
-			name: 'Edit account keys',
+			name: 'Configure connection',
 		} );
 		userEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'live' );
 	} );
 
-	it( 'should open test account keys modal when edit account keys clicked in test mode', () => {
+	it( 'should open test account keys modal when Configure connection clicked in test mode', () => {
 		useAccount.mockReturnValue( {
 			data: {
 				webhook_url: 'example.com',
@@ -124,7 +124,7 @@ describe( 'AccountDetailsSection', () => {
 		render( <AccountDetailsSection setModalType={ setModalTypeMock } /> );
 
 		const editKeysButton = screen.getByRole( 'button', {
-			name: /Edit account keys/i,
+			name: /Configure connection/i,
 		} );
 		userEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'test' );

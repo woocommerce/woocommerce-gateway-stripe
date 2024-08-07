@@ -46,41 +46,51 @@ class WC_Stripe_Account {
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public function get_cached_account_data() {
-		if ( ! $this->connect->is_connected() ) {
+	public function get_cached_account_data( $mode = null ) {
+		if ( ! $this->connect->is_connected( $mode ) ) {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache();
+		$account = $this->read_account_from_cache( $mode );
 
 		if ( ! empty( $account ) ) {
 			return $account;
 		}
 
-		return $this->cache_account();
+		return $this->cache_account( $mode );
 	}
 
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return array empty when no data found in transient, otherwise returns cached data
 	 */
-	private function read_account_from_cache() {
-		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key() ) ), true );
+	private function read_account_from_cache( $mode = null ) {
+		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key( $mode ) ) ), true );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
 
 	/**
 	 * Caches account data for a period of time.
+	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 */
-	private function cache_account() {
-		$expiration = 2 * HOUR_IN_SECONDS;
+	private function cache_account( $mode = null ) {
+		// If a mode is provided, we'll set the API secret key to the appropriate key to retrieve the account data.
+		if ( ! is_null( $mode ) ) {
+			WC_Stripe_API::set_secret_key_for_mode( $mode );
+		}
 
-		// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
+		// need call_user_func() as ( $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
 		$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
+
+		// Restore the secret key to the original value.
+		WC_Stripe_API::set_secret_key_for_mode();
 
 		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
 			return [];
@@ -90,21 +100,27 @@ class WC_Stripe_Account {
 		$account_cache = $account;
 
 		// Create or update the account option cache.
-		set_transient( $this->get_transient_key(), $account_cache, $expiration );
+		set_transient( $this->get_transient_key( $mode ), $account_cache, 2 * HOUR_IN_SECONDS );
 
 		return json_decode( wp_json_encode( $account ), true );
 	}
 
 	/**
-	 * Checks Stripe connection mode if it is test mode or live mode
+	 * Fetches the transient key for the account data for a given mode.
+	 * If no mode is provided, it will use the current mode.
 	 *
+	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
 	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
 	 */
-	private function get_transient_key() {
+	private function get_transient_key( $mode = null ) {
 		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
-		$key              = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 
-		return $key;
+		// If the mode is not provided or is invalid, we'll check the current mode.
+		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
+			$mode = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
+		}
+
+		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 	}
 
 	/**
@@ -232,5 +248,122 @@ class WC_Stripe_Account {
 	public function get_account_country() {
 		$account = $this->get_cached_account_data();
 		return $account['country'] ?? 'US';
+	}
+
+	/**
+	 * Configures webhooks for the account.
+	 *
+	 * @param string $mode The mode to configure webhooks for. Either 'live' or 'test'. Default is 'live'.
+	 *
+	 * @throws Exception If there was a problem setting up the webhooks.
+	 * @return object The response from the API.
+	 */
+	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
+		$request = [
+			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
+			'enabled_events' => [
+				'source.chargeable',
+				'source.canceled',
+				'charge.succeeded',
+				'charge.failed',
+				'charge.captured',
+				'charge.dispute.created',
+				'charge.dispute.closed',
+				'charge.refunded',
+				'charge.refund.updated',
+				'review.opened',
+				'review.closed',
+				'payment_intent.succeeded',
+				'payment_intent.payment_failed',
+				'payment_intent.amount_capturable_updated',
+				'payment_intent.requires_action',
+				'setup_intent.succeeded',
+				'setup_intent.setup_failed',
+			],
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
+		];
+
+		// If a secret key is provided, use it to configure the webhooks.
+		if ( $secret_key ) {
+			$previous_secret = WC_Stripe_API::get_secret_key();
+			WC_Stripe_API::set_secret_key( $secret_key );
+		}
+
+		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
+
+		if ( isset( $response->error->message ) ) {
+			// Translators: %s is the error message from the Stripe API.
+			throw new Exception( sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
+
+		if ( ! isset( $response->secret, $response->id ) ) {
+			throw new Exception( __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Delete any previously configured webhooks. Exclude the current webhook ID from the deletion.
+		$this->delete_previously_configured_webhooks( $response->id );
+
+		// Restore the previous secret key if we changed it.
+		if ( $secret_key && isset( $previous_secret ) ) {
+			WC_Stripe_API::set_secret_key( $previous_secret );
+		}
+
+		$settings = get_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+
+		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
+		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
+
+		// Save the Webhook secret and ID.
+		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
+		$settings[ $webhook_data_setting ]   = [
+			'id'     => wc_clean( $response->id ),
+			'url'    => wc_clean( $response->url ),
+			'secret' => WC_Stripe_API::get_secret_key(),
+		];
+
+		update_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		return $response;
+	}
+
+	/**
+	 * Deletes any previously configured webhooks that are sent to the current site's webhook URL.
+	 *
+	 * @param string $exclude_webhook_id Webhook ID to exclude from deletion.
+	 */
+	public function delete_previously_configured_webhooks( $exclude_webhook_id = '' ) {
+		$webhooks = $this->stripe_api::retrieve( 'webhook_endpoints' );
+
+		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) || empty( $webhooks->data ) ) {
+			return;
+		}
+
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		WC_Stripe_Logger::log(
+			$exclude_webhook_id ? "Deleting all webhooks sent to {$webhook_url} except for {$exclude_webhook_id}" : "Deleting all webhooks sent to {$webhook_url}"
+		);
+
+		foreach ( $webhooks->data as $webhook ) {
+			if ( ! isset( $webhook->id, $webhook->url ) ) {
+				continue;
+			}
+
+			// Skip the webhook we're excluding from deletion.
+			if ( $exclude_webhook_id && $webhook->id === $exclude_webhook_id ) {
+				continue;
+			}
+
+			// Delete the webhook if it matches the current site's webhook URL.
+			if ( WC_Stripe_Helper::is_webhook_url( $webhook->url, $webhook_url ) ) {
+				$this->stripe_api::request(
+					[],
+					"webhook_endpoints/{$webhook->id}",
+					'DELETE'
+				);
+				WC_Stripe_Logger::log( "Deleted webhook {$webhook->id} because it was being sent to this site's webhook URL." );
+			}
+		}
 	}
 }

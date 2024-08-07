@@ -44,6 +44,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		delete_transient( 'wcstripe_account_data_live' );
 		delete_option( 'woocommerce_stripe_settings' );
 
+		WC_Helper_Stripe_Api::reset();
+
 		parent::tear_down();
 	}
 
@@ -191,5 +193,176 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertEquals( 'US', $this->account->get_account_country() );
+	}
+
+	/**
+	 * Test for get_cached_account_data() with test mode parameter.
+	 */
+	public function test_get_cached_account_data_test_mode() {
+		$this->mock_connect->method( 'is_connected' )->with( 'test' )->willReturn( true );
+
+		// Test mode account data.
+		$account = [
+			'id'      => 'acct_1234',
+			'email'   => 'test@example.com',
+			'country' => 'US',
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+
+		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
+	}
+
+	/**
+	 * Test for get_cached_account_data() with live mode parameter.
+	 */
+	public function test_get_cached_account_data_live_mode() {
+		$this->mock_connect->method( 'is_connected' )->with( 'live' )->willReturn( true );
+
+		// Live mode account data.
+		$account = [
+			'id'      => 'acct_1234',
+			'email'   => 'live@example.com',
+			'country' => 'US',
+		];
+		set_transient( 'wcstripe_account_data_live', $account );
+
+		$this->assertSame( $this->account->get_cached_account_data( 'live' ), $account );
+	}
+
+	/**
+	 * Test for get_cached_account_data() with no mode parameter.
+	 */
+	public function test_get_cached_account_data_no_mode() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
+
+		$test_account = [
+			'id'      => 'acct_test-1234',
+			'email'   => 'john@example.com',
+		];
+
+		$live_account = [
+			'id'      => 'acct_live-1234',
+			'email'   => 'john@example.com',
+		];
+		set_transient( 'wcstripe_account_data_test', $test_account );
+		set_transient( 'wcstripe_account_data_live', $live_account );
+
+		// Enable TEST mode.
+		$stripe_settings['testmode'] = 'yes';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		// Confirm test mode data is returned.
+		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
+
+		// Enable LIVE mode.
+		$stripe_settings['testmode'] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		// Confirm live mode data is returned.
+		$this->assertSame( $this->account->get_cached_account_data(), $live_account );
+	}
+
+	/**
+	 * Tests for delete_previously_configured_webhooks() with an excluded webhook.
+	 */
+	public function test_delete_previously_configured_webhooks_with_exclusion() {
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		// Mock the API retrieve.
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [
+			'data' => [
+				(object) [
+					'id' => 'wh_000', // Invalid data - no URL.
+				],
+				(object) [
+					'id'  => 'wh_123',
+					'url' => $webhook_url, // Should be deleted.
+				],
+				(object) [
+					'id'  => 'wh_456',
+					'url' => $webhook_url, // Should not be deleted - excluded.
+				],
+				(object) [
+					'id'  => 'wh_789',
+					'url' => 'https://some-other-site.com', // Should not be deleted - different URL.
+				],
+				(object) [
+					'id'  => 'wh_101112',
+					'url' => $webhook_url, // Should be deleted.
+				],
+				(object) [
+					'url' => $webhook_url, // Invalid data - no ID.
+				],
+				(object) [
+					'id'  => 'wh_131415',
+					'url' => str_replace( 'https', 'http', $webhook_url ), // Should be deleted - different protocol.
+				],
+				(object) [
+					'id'  => 'wh_161718',
+					'url' => $webhook_url . '/', // Should be deleted - trailing slash.
+				],
+			],
+		];
+
+		// Assert that the webhooks are deleted.
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_131415', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_161718', 'DELETE' ],
+		];
+
+		$this->account->delete_previously_configured_webhooks( 'wh_456' );
+
+		// Confirm that all expected request call params were called.
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
+	}
+
+	/**
+	 * Tests for delete_previously_configured_webhooks()
+	 */
+	public function test_delete_previously_configured_webhooks_without_exclusion() {
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		// Mock the API retrieve.
+		WC_Helper_Stripe_Api::$retrieve_response = (object) [
+			'data' => [
+				(object) [
+					'id' => 'wh_000', // Invalid data - no URL.
+				],
+				(object) [
+					'id'  => 'wh_123',
+					'url' => $webhook_url, // Should be deleted.
+				],
+				(object) [
+					'id'  => 'wh_456',
+					'url' => $webhook_url, // Should be deleted.
+				],
+				(object) [
+					'id'  => 'wh_789',
+					'url' => 'https://some-other-site.com', // Should not be deleted - different URL.
+				],
+				(object) [
+					'id'  => 'wh_101112',
+					'url' => $webhook_url, // Should be deleted.
+				],
+				(object) [
+					'url' => $webhook_url, // Invalid data - no ID.
+				],
+			],
+		];
+
+		// Assert that the webhooks are deleted.
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_456', 'DELETE' ],
+			[ [], 'webhook_endpoints/wh_101112', 'DELETE' ],
+		];
+
+		$this->account->delete_previously_configured_webhooks();
+
+		// Confirm that all expected request call params were called.
+		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
 	}
 }
