@@ -20,6 +20,7 @@ class WC_Stripe_Customer {
 	 */
 	const STRIPE_PAYMENT_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_LINK::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 	];

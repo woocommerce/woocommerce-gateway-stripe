@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.6.0 - xxxx-xx-xx =
+* Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
 * Add - Indicate the activation status of each payment method individually, instead of using a general notice.
@@ -11,6 +12,9 @@
 * Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
 * Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
 * Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Clear the saved Stripe Link payment methods when a customer cache is cleared to ensure cached methods are updated promptly.
+* Fix - Display Stripe Link payment methods correctly in both Block Checkout and My Account pages.
+* Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
 * Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
 * Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
 * Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
@@ -21,6 +25,7 @@
 * Tweak - Minor text updates to webhook-related configuration labels and buttons.
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.
+* Fix - Prevent adding multiple copies of the same order notes.
 * Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
 * Tweak - Don't process webhooks when the webhook secret isn't set in the store.
 
