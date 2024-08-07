@@ -33,29 +33,30 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Gets the OAuth URL for Stripe onboarding flow
 		 *
-		 * @param  string $return_url url to return to after oauth flow.
+		 * @param string $return_url The URL to return to after OAuth flow.
+		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function get_oauth_url( $return_url = '' ) {
+		public function get_oauth_url( $return_url = '', $mode = 'live' ) {
 
 			if ( empty( $return_url ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 			}
 
-			if ( substr( $return_url, 0, 8 ) !== 'https://' ) {
+			if ( 'test' !== $mode && substr( $return_url, 0, 8 ) !== 'https://' ) {
 				return new WP_Error( 'invalid_url_protocol', __( 'Your site must be served over HTTPS in order to connect your Stripe account automatically.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$return_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wcs_stripe_connected' ), $return_url );
 
-			$result = $this->api->get_stripe_oauth_init( $return_url );
+			$result = $this->api->get_stripe_oauth_init( $return_url, $mode );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 
-			set_transient( 'wcs_stripe_connect_state', $result->state, 6 * HOUR_IN_SECONDS );
+			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -63,28 +64,29 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Initiate OAuth connection request to Connect Server
 		 *
-		 * @param  string $state State token to prevent request forgery.
-		 * @param  string $code  OAuth code.
+		 * @param string $state State token to prevent request forgery.
+		 * @param string $code  OAuth code.
+		 * @param string $mode  Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function connect_oauth( $state, $code ) {
+		public function connect_oauth( $state, $code, $mode = 'live' ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state' ) !== $state ) {
+			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
-			$response = $this->api->get_stripe_oauth_keys( $code );
+			$response = $this->api->get_stripe_oauth_keys( $code, $mode );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
 			}
 
-			delete_transient( 'wcs_stripe_connect_state' );
+			delete_transient( 'wcs_stripe_connect_state_' . $mode );
 
-			return $this->save_stripe_keys( $response );
+			return $this->save_stripe_keys( $response, $mode );
 		}
 
 		/**
@@ -107,37 +109,44 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					return new WP_Error( 'Invalid nonce received from Stripe server' );
 				}
 
-				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
+				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
+				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
+
+				$response = $this->connect_oauth( $state, $code, $mode );
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
+				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_mode' ] ) ) );
 				exit;
 			}
 		}
 
 		/**
-		 * Saves stripe keys after OAuth response
+		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param  array $result OAuth response result.
+		 * @param stdObject $result OAuth response result.
+		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array|WP_Error
+		 * @return stdObject|WP_Error OAuth response result or WP_Error.
 		 */
-		private function save_stripe_keys( $result ) {
+		private function save_stripe_keys( $result, $mode = 'live' ) {
 
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test                                    = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
 			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
+			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = 'connect';
 
 			// While we are at it, let's also clear the account_id and
@@ -146,6 +155,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['test_account_id'] );
 
 			update_option( self::SETTINGS_OPTION, $options );
+
+			try {
+				// Automatically configure webhooks for the account now that we have the keys.
+				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
+			} catch ( Exception $e ) {
+				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
+			}
 
 			return $result;
 		}
