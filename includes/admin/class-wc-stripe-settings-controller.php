@@ -130,9 +130,10 @@ class WC_Stripe_Settings_Controller {
 		);
 
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-		if ( is_wp_error( $oauth_url ) ) {
-			$oauth_url = '';
-		}
+		$oauth_url = is_wp_error( $oauth_url ) ? '' : $oauth_url;
+
+		$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
+		$test_oauth_url = is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url;
 
 		$message = sprintf(
 		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
@@ -146,6 +147,7 @@ class WC_Stripe_Settings_Controller {
 			'i18n_out_of_sync'          => $message,
 			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
+			'stripe_test_oauth_url'     => $test_oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 			'is_test_mode'              => $this->gateway->is_in_test_mode(),
 			'plugin_version'            => WC_STRIPE_VERSION,

@@ -18,7 +18,7 @@ redirect_output() {
 # https://hub.docker.com/_/wordpress#running-as-an-arbitrary-user
 cli()
 {
-	redirect_output docker run -it --env-file default.env --rm --user xfs --volumes-from $WP_CONTAINER --network container:$WP_CONTAINER wordpress:cli "$@"
+	redirect_output docker run -it --env-file default.env --rm --volumes-from $WP_CONTAINER --network container:$WP_CONTAINER wordpress:cli "$@"
 }
 
 set +e
@@ -100,6 +100,7 @@ cli wp option set woocommerce_store_postcode "94110"
 cli wp option set woocommerce_currency "USD"
 cli wp option set woocommerce_product_type "both"
 cli wp option set woocommerce_allow_tracking "no"
+cli wp option set woocommerce_coming_soon "no"
 
 echo "Importing WooCommerce shop pages..."
 cli wp wc --user=admin tool run install_pages

@@ -383,17 +383,17 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array $item Modified list item.
 	 */
 	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
-		if ( 'sepa' === strtolower( $payment_token->get_type() ) ) {
-			$item['method']['last4'] = $payment_token->get_last4();
-			$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
-		}
-
-		if ( 'cashapp' === strtolower( $payment_token->get_type() ) ) {
-			/**
-			 * WC's wc_get_credit_card_type_label() function will automatically replace underscores and dashes with spaces.
-			 * Cashtags can include `_` and `-` characters and so to keep the cashtag intact, we need to avoid that by using their HTML entity.
-			 */
-			$item['method']['brand'] = str_replace( [ '_', '-' ], [ '&#95;', '&#8211' ], $payment_token->get_display_name() );
+		switch ( strtolower( $payment_token->get_type() ) ) {
+			case 'sepa':
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
+				break;
+			case 'cashapp':
+				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
+				break;
+			case 'link':
+				$item['method']['brand'] = esc_html__( 'Stripe Link', 'woocommerce-gateway-stripe' );
+				break;
 		}
 
 		return $item;
@@ -543,6 +543,7 @@ class WC_Stripe_Payment_Tokens {
 		$label_overrides      = [];
 		$payment_method_types = [
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {
