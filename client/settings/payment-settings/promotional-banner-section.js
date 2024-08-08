@@ -219,9 +219,11 @@ const PromotionalBannerSection = ( {
 	}
 
 	return (
-		<BannerCard data-testid="promotional-banner-card">
-			{ BannerContent }
-		</BannerCard>
+		BannerContent && (
+			<BannerCard data-testid="promotional-banner-card">
+				{ BannerContent }
+			</BannerCard>
+		)
 	);
 };
 
