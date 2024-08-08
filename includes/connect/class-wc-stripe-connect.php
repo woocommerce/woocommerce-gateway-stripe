@@ -178,6 +178,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				// Stripe App OAuth access_tokens expire after 1 hour:
 				// https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
 				$this->schedule_connection_refresh();
+			} else {
+				// Make sure that all refresh actions are cancelled before scheduling it.
+				$this->unschedule_connection_refresh();
 			}
 
 			try {
