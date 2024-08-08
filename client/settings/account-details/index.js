@@ -147,7 +147,7 @@ const AccountDetails = () => {
 					{ isTestModeEnabled
 						? interpolateComponents( {
 								mixedString: __(
-									'Seems like the current connected test account is no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.',
+									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.",
 									'woocommerce-gateway-stripe'
 								),
 								components: {
@@ -159,7 +159,7 @@ const AccountDetails = () => {
 						  } )
 						: interpolateComponents( {
 								mixedString: __(
-									'Seems like the current connected live account is no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.',
+									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.",
 									'woocommerce-gateway-stripe'
 								),
 								components: {
