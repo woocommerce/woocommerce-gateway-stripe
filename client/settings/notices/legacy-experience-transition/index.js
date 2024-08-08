@@ -1,3 +1,4 @@
+import '@wordpress/notices';
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
