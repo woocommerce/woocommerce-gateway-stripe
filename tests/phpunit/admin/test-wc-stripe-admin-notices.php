@@ -251,7 +251,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'/and use the Configure Connection button to reconnect/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -289,7 +289,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'page' => 'wc-settings',
 				],
-				'/and use the Configure Connection button to reconnect/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -406,7 +406,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'/and use the Configure Connection button to reconnect/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -423,7 +423,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'/and use the Configure Connection button to reconnect/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
