@@ -1,16 +1,11 @@
 import { __ } from '@wordpress/i18n';
 import { React, useState, useContext } from 'react';
 import { Card, CheckboxControl } from '@wordpress/components';
-import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
 import { useIsStripeEnabled, useEnabledPaymentMethodIds } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-
-const StyledCard = styled( Card )`
-	margin-bottom: 12px;
-`;
 
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
@@ -59,7 +54,7 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
-			<StyledCard>
+			<Card>
 				<CardBody>
 					<CheckboxControl
 						checked={ isStripeEnabled }
@@ -75,7 +70,7 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 					/>
 					<TestModeCheckbox />
 				</CardBody>
-			</StyledCard>
+			</Card>
 		</>
 	);
 };
