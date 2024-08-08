@@ -47,14 +47,14 @@ class WC_Stripe_Webhook_State {
 	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
 	 */
 	public static function clear_state( $mode = 'all' ) {
-		if ( 'both' === $mode || 'live' === $mode ) {
+		if ( 'all' === $mode || 'live' === $mode ) {
 			delete_option( self::OPTION_LIVE_MONITORING_BEGAN_AT );
 			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
 			delete_option( self::OPTION_LIVE_LAST_FAILURE_AT );
 			delete_option( self::OPTION_LIVE_LAST_ERROR );
 		}
 
-		if ( 'both' === $mode || 'test' === $mode ) {
+		if ( 'all' === $mode || 'test' === $mode ) {
 			delete_option( self::OPTION_TEST_MONITORING_BEGAN_AT );
 			delete_option( self::OPTION_TEST_LAST_SUCCESS_AT );
 			delete_option( self::OPTION_TEST_LAST_FAILURE_AT );
