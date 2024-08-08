@@ -3,7 +3,6 @@ import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { ExternalLink, Icon } from '@wordpress/components';
 import { help } from '@wordpress/icons';
-import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import SectionStatus from '../section-status';
 import Tooltip from 'wcstripe/components/tooltip';
@@ -144,31 +143,20 @@ const AccountDetails = () => {
 		return (
 			<AccountDetailsContainer>
 				<AccountDetailsError>
-					{ isTestModeEnabled
-						? interpolateComponents( {
-								mixedString: __(
-									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.",
+					{ createInterpolateElement(
+						isTestModeEnabled
+							? __(
+									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a href="/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings" />
-									),
-								},
-						  } )
-						: interpolateComponents( {
-								mixedString: __(
-									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.",
+							  )
+							: __(
+									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a href="/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings" />
-									),
-								},
-						  } ) }
+							  ),
+						{
+							strong: <strong />,
+						}
+					) }
 				</AccountDetailsError>
 			</AccountDetailsContainer>
 		);
