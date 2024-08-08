@@ -1,6 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { store as NOTICES_STORE } from '@wordpress/notices';
+import '@wordpress/notices';
 import styled from '@emotion/styled';
 import React from 'react';
 import { Button } from '@wordpress/components';
@@ -35,7 +35,7 @@ const LegacyExperienceTransitionNotice = ( {
 	setIsUpeEnabled,
 } ) => {
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
-		NOTICES_STORE
+		'core/notices'
 	);
 
 	// The merchant already disabled the legacy experience. Nothing to do here.
