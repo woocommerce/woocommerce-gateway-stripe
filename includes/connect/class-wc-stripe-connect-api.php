@@ -89,6 +89,24 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
+		 * Send request to the Connect Server for Stripe App refreshed keys
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param string $refresh_token Stripe App OAuth refresh token.
+		 * @param string $mode          Optional. The mode to refresh keys for. 'live' or 'test'. Default is 'live'.
+		 *
+		 * @return array
+		 */
+		public function refresh_stripe_app_oauth_keys( $refresh_token, $mode = 'live' ) {
+			$request = [
+				'refreshToken' => $refresh_token,
+				'mode'         => $mode,
+			];
+			return $this->request( 'POST', '/stripe/app-oauth-keys-refresh', $request );
+		}
+
+		/**
 		 * General OAuth request method.
 		 *
 		 * @param string $method request method.

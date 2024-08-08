@@ -27,6 +27,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function __construct( WC_Stripe_Connect_API $api ) {
 			$this->api = $api;
 
+			// refresh the connection, triggered by Action Scheduler
+			add_action( 'wc_stripe_refresh_connection', [ $this, 'refresh_connection' ] );
+
 			add_action( 'admin_init', [ $this, 'maybe_handle_redirect' ] );
 		}
 
@@ -166,6 +169,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			update_option( self::SETTINGS_OPTION, $options );
 
+			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
+			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
+			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
+			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
+
+			if ( 'app' === $type ) {
+				// Stripe App OAuth access_tokens expire after 1 hour:
+				// https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
+				$this->schedule_connection_refresh();
+			}
+
 			try {
 				// Automatically configure webhooks for the account now that we have the keys.
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
@@ -248,6 +262,26 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
+		 * Determines if the store is using a Stripe App OAuth connection.
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' | 'test' | null (default: null).
+		 * @return bool True if connected via Stripe App OAuth, false otherwise.
+		 */
+		public function is_connected_via_app_oauth( $mode = null ) {
+			$options = get_option( self::SETTINGS_OPTION, [] );
+
+			// If the mode is not provided, we'll check the current mode.
+			if ( is_null( $mode ) ) {
+				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			}
+			$key = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) && 'app' === $options[ $key ];
+		}
+
+		/**
 		 * Records a track event after the user is redirected back to the store from the Stripe UX.
 		 *
 		 * @param bool $had_error Whether the Stripe connection had an error.
@@ -264,6 +298,87 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
 			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
+		}
+
+		/**
+		 * Schedules the App OAuth connection refresh.
+		 *
+		 * @since 8.6.0
+		 */
+		private function schedule_connection_refresh() {
+			if ( ! $this->is_connected_via_app_oauth() ) {
+				return;
+			}
+
+			/**
+			 * Filters the frequency with which the App OAuth connection should be refreshed.
+			 * Access tokens expire in 1 hour, and there seem to be no way to customize that from the Stripe Dashboard:
+			 * https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
+			 * We schedule the connection refresh every 50 minutues.
+			 *
+			 * @param int $interval refresh interval
+			 *
+			 * @since 8.6.0
+			 */
+			$interval = apply_filters( 'wc_stripe_connection_refresh_interval', HOUR_IN_SECONDS - 5 * MINUTE_IN_SECONDS );
+
+			// Make sure that all refresh actions are cancelled before scheduling it.
+			$this->unschedule_connection_refresh();
+
+			as_schedule_single_action( time() + $interval, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+		}
+
+		/**
+		 * Unschedules the App OAuth connection refresh.
+		 *
+		 * @since 8.6.0
+		 */
+		protected function unschedule_connection_refresh() {
+			as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+		}
+
+		/**
+		 * Refreshes the App OAuth access_token via the Woo Connect Server.
+		 *
+		 * @since 8.6.0
+		 */
+		public function refresh_connection() {
+			if ( ! $this->is_connected_via_app_oauth() ) {
+				return;
+			}
+
+			$options       = get_option( self::SETTINGS_OPTION, [] );
+			$mode          = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			$prefix        = 'test' === $mode ? 'test_' : '';
+			$refresh_token = $options[ $prefix . 'refresh_token' ];
+
+			$response = $this->api->refresh_stripe_app_oauth_keys( $refresh_token, $mode );
+			if ( is_wp_error( $response ) ) {
+				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
+				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
+
+				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				return $response;
+			}
+
+			$retries = get_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
+			try {
+				$this->save_stripe_keys( $response, 'app', $mode );
+			} catch ( Exception $e ) {
+				$retries++;
+				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
+				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
+
+				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . $e->getMessage() );
+			}
+
+			// If after 10 attempts we are unable to refresh the connection keys, we don't re-schedule anymore,
+			// in this case an error message is show in the account status indicating that the API keys are not
+			// valid and that a reconnection is necessary.
+			if ( $retries < 10 ) {
+				// Re-schedule the connection refresh
+				$this->schedule_connection_refresh();
+			}
 		}
 	}
 }
