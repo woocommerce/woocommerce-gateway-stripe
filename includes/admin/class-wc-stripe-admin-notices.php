@@ -211,7 +211,7 @@ class WC_Stripe_Admin_Notices {
 
 					$notice_message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Stripe is almost ready. To get started, go to %1$syour settings%2$s and use the Configure Connection button to connect.', 'woocommerce-gateway-stripe' ),
+						__( 'Stripe is almost ready. To get started, go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to connect.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
@@ -227,7 +227,7 @@ class WC_Stripe_Admin_Notices {
 
 						$notice_message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							__( 'Stripe is in test mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the Configure Connection button to reconnect.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in test mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to reconnect.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -242,7 +242,7 @@ class WC_Stripe_Admin_Notices {
 
 						$message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							__( 'Stripe is in live mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the Configure Connection button to reconnect.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in live mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to reconnect.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -258,7 +258,7 @@ class WC_Stripe_Admin_Notices {
 
 					$message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to %1$syour settings%2$s and use the Configure Connection button to connect.', 'woocommerce-gateway-stripe' ),
+						__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to connect.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
