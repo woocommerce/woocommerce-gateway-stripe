@@ -66,11 +66,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 *
 		 * @param string $state State token to prevent request forgery.
 		 * @param string $code  OAuth code.
+		 * @param string $type  Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string $mode  Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function connect_oauth( $state, $code, $mode = 'live' ) {
+		public function connect_oauth( $state, $code, $type = 'connect', $mode = 'live' ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
@@ -78,7 +79,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
-			$response = $this->api->get_stripe_oauth_keys( $code, $mode );
+			$response = $this->api->get_stripe_oauth_keys( $code, $type, $mode );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
@@ -86,7 +87,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			delete_transient( 'wcs_stripe_connect_state_' . $mode );
 
-			return $this->save_stripe_keys( $response, $mode );
+			return $this->save_stripe_keys( $response, $type, $mode );
 		}
 
 		/**
@@ -111,13 +112,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
 				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
+				$type  = isset( $_GET['wcs_stripe_type'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_type'] ) ) : 'connect';
 				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
 
-				$response = $this->connect_oauth( $state, $code, $mode );
+				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_mode' ] ) ) );
+				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] ) ) );
 				exit;
 			}
 		}
@@ -125,14 +127,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param stdObject $result OAuth response result.
+		 * @param stdObject $result OAuth's response result.
+		 * @param string    $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return stdObject|WP_Error OAuth response result or WP_Error.
+		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
 		 */
-		private function save_stripe_keys( $result, $mode = 'live' ) {
-
+		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+			}
+
+			if ( 'app' === $type && ! isset( $result->refreshToken ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
@@ -147,7 +153,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
-			$options[ $prefix . 'connection_type' ]     = 'connect';
+			$options[ $prefix . 'connection_type' ]     = $type;
+
+			if ( 'app' === $type ) {
+				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			}
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -193,7 +203,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled'] = 'yes';
+			$result['upe_checkout_experience_enabled']             = 'yes';
 			$result['upe_checkout_experience_accepted_payments'][] = 'link';
 
 			return $result;
@@ -234,7 +244,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options = get_option( self::SETTINGS_OPTION, [] );
 			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
-			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect' ], true );
+			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect', 'app' ], true );
 		}
 
 		/**
