@@ -244,7 +244,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options = get_option( self::SETTINGS_OPTION, [] );
 			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
-			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect' ], true );
+			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect', 'app' ], true );
 		}
 
 		/**
