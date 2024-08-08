@@ -352,24 +352,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$prefix        = 'test' === $mode ? 'test_' : '';
 			$refresh_token = $options[ $prefix . 'refresh_token' ];
 
-			$response = $this->api->refresh_stripe_app_oauth_keys( $refresh_token, $mode );
-			if ( is_wp_error( $response ) ) {
-				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
-				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
+			$retries = get_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 ) + 1;
 
-				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-				return $response;
+			$response = $this->api->refresh_stripe_app_oauth_keys( $refresh_token, $mode );
+			if ( ! is_wp_error( $response ) ) {
+				$response = $this->save_stripe_keys( $response, 'app', $mode );
 			}
 
-			$retries = get_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
-			try {
-				$this->save_stripe_keys( $response, 'app', $mode );
-			} catch ( Exception $e ) {
-				$retries++;
+			if ( is_wp_error( $response ) ) {
 				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
 				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
 
-				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . $e->getMessage() );
+				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 			}
 
 			// If after 10 attempts we are unable to refresh the connection keys, we don't re-schedule anymore,
