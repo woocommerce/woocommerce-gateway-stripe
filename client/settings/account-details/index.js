@@ -147,23 +147,25 @@ const AccountDetails = () => {
 					{ isTestModeEnabled
 						? interpolateComponents( {
 								mixedString: __(
-									"Seems like the test keys we've saved for you are no longer valid. If you recently updated them, enter the new test keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+									'Seems like the current connected test account is no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.',
 									'woocommerce-gateway-stripe'
 								),
 								components: {
 									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/test/apikeys" />
+										// eslint-disable-next-line jsx-a11y/anchor-has-content
+										<a href="/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings" />
 									),
 								},
 						  } )
 						: interpolateComponents( {
 								mixedString: __(
-									"Seems like the live keys we've saved for you are no longer valid. If you recently updated them, enter the new live keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+									'Seems like the current connected live account is no longer valid. If you recently updated them, go to {{accountLink}}your settings{{/accountLink}} and use the Configure Connection button to reconnect.',
 									'woocommerce-gateway-stripe'
 								),
 								components: {
 									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/apikeys" />
+										// eslint-disable-next-line jsx-a11y/anchor-has-content
+										<a href="/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings" />
 									),
 								},
 						  } ) }
