@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.6.0 - 2024-08-09 =
+= 8.6.1 - xxxx-xx-xx =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
 * Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
