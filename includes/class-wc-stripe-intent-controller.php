@@ -243,9 +243,9 @@ class WC_Stripe_Intent_Controller {
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
 				[
-					'customer'             => $customer->get_id(),
-					'confirm'              => 'true',
-					'payment_method'       => $source_id,
+					'customer'       => $customer->get_id(),
+					'confirm'        => 'true',
+					'payment_method' => $source_id,
 					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
