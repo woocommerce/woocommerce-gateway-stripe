@@ -60,8 +60,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Base template for Stripe Cash App Pay payment method.
 	 */
 	const MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE = [
-		'id'         => 'pm_mock_payment_method_id',
-		'type'       => 'cashapp',
+		'id'      => 'pm_mock_payment_method_id',
+		'type'    => 'cashapp',
 		'cashapp' => [
 			'cashtag'  => '$test_cashtag',
 			'buyer_id' => 'test_buyer_id',
@@ -240,7 +240,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_boleto_details     = [
 			'type' => 'boleto',
 		];
-		$mock_multibanco_details     = [
+		$mock_multibanco_details = [
 			'type' => 'multibanco',
 		];
 		$mock_oxxo_details       = [
@@ -424,7 +424,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id ) {
+			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id || 'giropay' === $id ) {
 				continue;
 			}
 
@@ -438,7 +438,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$payment_method = $this->mock_payment_methods[ $id ];
 
 			$supported_currencies = $payment_method->get_supported_currencies() ?? [];
-			$currency = end( $supported_currencies );
+			$currency             = end( $supported_currencies );
 
 			$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $currency ) );
 
@@ -469,6 +469,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
+			if ( 'giropay' === $id ) {
+				continue;
+			}
+
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
@@ -592,7 +596,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
-				$store_currency = $payment_method->get_supported_currencies()[0];
+				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
 
