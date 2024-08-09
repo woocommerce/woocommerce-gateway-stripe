@@ -89,7 +89,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
-		 * Send request to the Connect Server for Stripe App refreshed keys
+		 * Sends a request to the Connect Server for Stripe App refreshed keys.
 		 *
 		 * @since 8.6.0
 		 *
