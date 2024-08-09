@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.5.2
+Stable tag: 8.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.6.0 - xxxx-xx-xx =
+= 8.6.0 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
 * Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
