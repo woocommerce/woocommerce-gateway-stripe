@@ -58,7 +58,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			) {
 				dispatch( 'core/notices' ).createErrorNotice(
 					__(
-						'Only live account keys should be entered.',
+						'Only a live account should be connected.',
 						'woocommerce-gateway-stripe'
 					)
 				);
@@ -79,7 +79,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			) {
 				dispatch( 'core/notices' ).createErrorNotice(
 					__(
-						'Only test account keys should be entered.',
+						'Only a test account should be connected.',
 						'woocommerce-gateway-stripe'
 					)
 				);
