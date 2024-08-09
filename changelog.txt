@@ -1,5 +1,35 @@
 *** Changelog ***
 
+= 8.6.1 - 2024-08-09 =
+* Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
+* Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
+* Add - Added filter to enable updating Level 3 data based on order data.
+* Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
+* Add - Indicate the activation status of each payment method individually, instead of using a general notice.
+* Fix - JS error when billing country field does not exist on the payment method page.
+* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
+* Fix - Prevent duplicate customer creation during guest checkout.
+* Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
+* Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
+* Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
+* Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
+* Fix - Clear the saved Stripe Link payment methods when a customer cache is cleared to ensure cached methods are updated promptly.
+* Fix - Display Stripe Link payment methods correctly in both Block Checkout and My Account pages.
+* Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
+* Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
+* Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
+* Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
+* Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
+* Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
+* Fix - After configuring webhooks automatically ensure only the latest webhook endpoint is active, deleting duplicates configured manually.
+* Fix - Resolved PHP errors related to detaching payment methods after failed 3D-Secure challenges.
+* Tweak - Minor text updates to webhook-related configuration labels and buttons.
+* Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
+* Tweak - Display a notice when the Stripe connect URL is not available.
+* Fix - Prevent adding multiple copies of the same order notes.
+* Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
+* Tweak - Don't process webhooks when the webhook secret isn't set in the store.
+
 = 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
 * Fix - Prevent failures creating SetupIntents when using a non-saved payment method on the Legacy checkout experience.
@@ -26,6 +56,8 @@
 * Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
 * Tweak - Stripe API version updated to support 2024-06-20.
 * Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
+* Tweak - Limit the configure webhooks button to 1 click per minute to prevent multiple webhook creations.
+* Fix - Address Klarna currency rules to ensure correct presentment and availability based on merchant and customer locations.
 * Fix - Prevent saved SEPA Sources from being displayed as available payment methods when the Updated checkout experience is enabled.
 
 = 8.4.0 - 2024-06-13 =

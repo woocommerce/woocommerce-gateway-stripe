@@ -111,15 +111,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
-		// Title shows the count of enabled payment methods in settings page only.
-		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
-			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
-			$this->title                   = $enabled_payment_methods_count ?
-				/* translators: $1. Count of enabled payment methods. */
-				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
-				: $this->method_title;
-		}
-
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
@@ -136,6 +127,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
+	}
+
+	/**
+	 * Gets the payment gateway's Title.
+	 *
+	 * On payment settings page the default title includes the number of legacy payment methods enabled.
+	 *
+	 * @return string The payment gateway's title.
+	 */
+	public function get_title() {
+		// Change the title on the payment methods settings page to include the number of enabled payment methods.
+		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
+			$this->title                   = $enabled_payment_methods_count ?
+				/* translators: $1. Count of enabled payment methods. */
+				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
+				: $this->method_title;
+		}
+
+		return parent::get_title();
 	}
 
 	/**
@@ -1109,20 +1120,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_required_settings_keys() {
 		return [ 'publishable_key', 'secret_key' ];
-	}
-
-	/**
-	 * Get the connection URL.
-	 *
-	 * @return string Connection URL.
-	 */
-	public function get_connection_url( $return_url = '' ) {
-		$api     = new WC_Stripe_Connect_API();
-		$connect = new WC_Stripe_Connect( $api );
-
-		$url = $connect->get_oauth_url( $return_url );
-
-		return is_wp_error( $url ) ? null : $url;
 	}
 
 	/**

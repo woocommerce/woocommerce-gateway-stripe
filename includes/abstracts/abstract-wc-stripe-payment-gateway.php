@@ -845,27 +845,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->maybe_create_customer();
 
 			// Check if the customer opted to save the payment method to file.
-			$maybe_saved_card    = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-			$is_sepa_source      = isset( $source_object->type ) && 'sepa_debit' === $source_object->type;
-			$save_payment_method = $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card );
+			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
-			/**
-			 * Save the SEPA source to the customer if force save source is true or the user is logged in and the user has opted to save the payment method.
-			 *
-			 * We only need to save SEPA sources here. Saving card payment methods are handled by setup intents later in the flow. @see WC_Gateway_Stripe::process_payment().
-			 */
-			if ( $is_sepa_source && $save_payment_method ) {
-				$response = $customer->attach_source( $source_object->id );
-
-				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			if ( $force_save_source || ( $user_id && $this->saved_cards && $maybe_saved_card ) ) {
+				$was_attached = $this->maybe_attach_source_to_customer( $source_object, $customer );
+				if ( $was_attached ) {
+					// Save the payment method to the customer.
+					$this->save_payment_method( $source_object );
 				}
-				if ( is_wp_error( $response ) ) {
-					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
-				}
-
-				// Save the payment method to the customer.
-				$this->save_payment_method( $source_object );
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
@@ -1239,6 +1226,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				);
 			}
 
+			$this->maybe_attach_source_to_customer( $source_object );
+
 			// Now that we've got the source object, attach it to the user.
 			$this->save_payment_method( $source_object );
 
@@ -1441,7 +1430,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$level3_data['shipping_from_zip'] = $store_postcode;
 		}
 
-		return $level3_data;
+		/**
+		 * Filters the Level 3 data based on order.
+		 *
+		 * Example usage: Enables updating the discount based on the products in the order,
+		 * if any of the products are gift cards.
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param array $level3_data Precalculated Level 3 data based on order.
+		 * @param WC_Order $order    The order object.
+		 */
+		return apply_filters( 'wc_stripe_payment_request_level3_data', $level3_data, $order );
 	}
 
 	/**
@@ -2243,5 +2243,40 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// If updating the payment method fails, log the error message.
 			WC_Stripe_Logger::log( 'Error when updating saved payment method: ' . $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Attaches a source to the Stripe Customer object if the source type needs manual attachment.
+	 *
+	 * SEPA sources need to be manually attached to the customer object as they use legacy source objects.
+	 * Other reusable payment methods (eg cards), are attached to the customer object via the setup/payment intent.
+	 *
+	 * @param stdClass           $source   The source object to attach.
+	 * @param WC_Stripe_Customer $customer The customer object to attach the source to. Optional.
+	 *
+	 * @throws WC_Stripe_Exception If the source could not be attached to the customer.
+	 * @return bool True if the source was successfully attached to the customer.
+	 */
+	private function maybe_attach_source_to_customer( $source, $customer = null ) {
+		if ( ! isset( $source->type ) || 'sepa_debit' !== $source->type ) {
+			return false;
+		}
+
+		if ( ! $customer ) {
+			$user_id  = get_current_user_id();
+			$customer = new WC_Stripe_Customer( $user_id );
+		}
+
+		$response = $customer->attach_source( $source->id );
+
+		if ( ! empty( $response->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+		}
+
+		if ( is_wp_error( $response ) ) {
+			throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+		}
+
+		return true;
 	}
 }

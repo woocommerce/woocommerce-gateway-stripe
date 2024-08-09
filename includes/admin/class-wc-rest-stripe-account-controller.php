@@ -92,9 +92,14 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 			[
 				'account'                 => $this->account->get_cached_account_data(),
 				'testmode'                => WC_Stripe_Webhook_State::get_testmode(),
+				'webhook_status_code'     => WC_Stripe_Webhook_State::get_webhook_status_code(),
 				'webhook_status_message'  => WC_Stripe_Webhook_State::get_webhook_status_message(),
 				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
 				'configured_webhook_urls' => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
+				'oauth_connections'       => [
+					'test' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'test' ),
+					'live' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'live' ),
+				],
 			]
 		);
 	}
@@ -140,7 +145,12 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_webhook_status_message() {
-		return new WP_REST_Response( WC_Stripe_Webhook_State::get_webhook_status_message() );
+		return new WP_REST_Response(
+			[
+				'code'    => WC_Stripe_Webhook_State::get_webhook_status_code(),
+				'message' => WC_Stripe_Webhook_State::get_webhook_status_message(),
+			]
+		);
 	}
 
 	/**
