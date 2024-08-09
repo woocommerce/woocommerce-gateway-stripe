@@ -179,7 +179,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				// https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
 				$this->schedule_connection_refresh();
 			} else {
-				// Make sure that all refresh actions are cancelled before scheduling it.
+				// Make sure that all refresh actions are cancelled if they haven't connected via the app.
 				$this->unschedule_connection_refresh();
 			}
 
@@ -317,7 +317,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			 * Filters the frequency with which the App OAuth connection should be refreshed.
 			 * Access tokens expire in 1 hour, and there seem to be no way to customize that from the Stripe Dashboard:
 			 * https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
-			 * We schedule the connection refresh every 50 minutues.
+			 * We schedule the connection refresh every 55 minutues.
 			 *
 			 * @param int $interval refresh interval
 			 *
@@ -328,7 +328,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Make sure that all refresh actions are cancelled before scheduling it.
 			$this->unschedule_connection_refresh();
 
-			as_schedule_single_action( time() + $interval, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+			as_schedule_single_action( time() + $interval, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID, true, 0 );
 		}
 
 		/**
