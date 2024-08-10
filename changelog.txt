@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 8.7.0 - xxxx-xx-xx =
-
+* Add - Log incoming webhook events and their request body.
 
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
