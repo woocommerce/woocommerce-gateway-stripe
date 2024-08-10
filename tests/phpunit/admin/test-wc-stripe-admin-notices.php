@@ -251,7 +251,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'/set your Stripe account keys/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -289,7 +289,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'page' => 'wc-settings',
 				],
-				'/set your Stripe account keys/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -306,7 +306,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'/your test keys may not be valid/',
+				'/Stripe is in test mode however your API keys may not be valid/',
 			],
 			[
 				[
@@ -344,7 +344,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'/your live keys may not be valid/',
+				'/Stripe is in live mode however your API keys may not be valid/',
 			],
 			[
 				[
@@ -406,7 +406,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'/set your Stripe account keys/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
@@ -423,7 +423,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'/set your Stripe account keys/',
+				'/and use the \<strong\>Configure Connection\<\/strong\> button to reconnect/',
 			],
 			[
 				[
