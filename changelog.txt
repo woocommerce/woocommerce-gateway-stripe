@@ -1,6 +1,10 @@
 *** Changelog ***
 
-= 8.6.0 - xxxx-xx-xx =
+= 8.7.0 - xxxx-xx-xx =
+* Add - Log incoming webhook events and their request body.
+
+= 8.6.1 - 2024-08-09 =
+* Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
 * Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
