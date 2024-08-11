@@ -27,35 +27,39 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function __construct( WC_Stripe_Connect_API $api ) {
 			$this->api = $api;
 
+			// refresh the connection, triggered by Action Scheduler
+			add_action( 'wc_stripe_refresh_connection', [ $this, 'refresh_connection' ] );
+
 			add_action( 'admin_init', [ $this, 'maybe_handle_redirect' ] );
 		}
 
 		/**
 		 * Gets the OAuth URL for Stripe onboarding flow
 		 *
-		 * @param  string $return_url url to return to after oauth flow.
+		 * @param string $return_url The URL to return to after OAuth flow.
+		 * @param string $mode       Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function get_oauth_url( $return_url = '' ) {
+		public function get_oauth_url( $return_url = '', $mode = 'live' ) {
 
 			if ( empty( $return_url ) ) {
 				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 			}
 
-			if ( substr( $return_url, 0, 8 ) !== 'https://' ) {
+			if ( 'test' !== $mode && substr( $return_url, 0, 8 ) !== 'https://' ) {
 				return new WP_Error( 'invalid_url_protocol', __( 'Your site must be served over HTTPS in order to connect your Stripe account automatically.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$return_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wcs_stripe_connected' ), $return_url );
 
-			$result = $this->api->get_stripe_oauth_init( $return_url );
+			$result = $this->api->get_stripe_oauth_init( $return_url, $mode );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
 
-			set_transient( 'wcs_stripe_connect_state', $result->state, 6 * HOUR_IN_SECONDS );
+			set_transient( 'wcs_stripe_connect_state_' . $mode, $result->state, 6 * HOUR_IN_SECONDS );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -63,28 +67,30 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Initiate OAuth connection request to Connect Server
 		 *
-		 * @param  string $state State token to prevent request forgery.
-		 * @param  string $code  OAuth code.
+		 * @param string $state State token to prevent request forgery.
+		 * @param string $code  OAuth code.
+		 * @param string $type  Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
+		 * @param string $mode  Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return string|WP_Error
 		 */
-		public function connect_oauth( $state, $code ) {
+		public function connect_oauth( $state, $code, $type = 'connect', $mode = 'live' ) {
 			// The state parameter is used to protect against CSRF.
 			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
 			// authentication request and validated when processing the response.
-			if ( get_transient( 'wcs_stripe_connect_state' ) !== $state ) {
+			if ( get_transient( 'wcs_stripe_connect_state_' . $mode ) !== $state ) {
 				return new WP_Error( 'Invalid state received from Stripe server' );
 			}
 
-			$response = $this->api->get_stripe_oauth_keys( $code );
+			$response = $this->api->get_stripe_oauth_keys( $code, $type, $mode );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
 			}
 
-			delete_transient( 'wcs_stripe_connect_state' );
+			delete_transient( 'wcs_stripe_connect_state_' . $mode );
 
-			return $this->save_stripe_keys( $response );
+			return $this->save_stripe_keys( $response, $type, $mode );
 		}
 
 		/**
@@ -107,37 +113,54 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 					return new WP_Error( 'Invalid nonce received from Stripe server' );
 				}
 
-				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+				$state = wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) );
+				$code  = wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) );
+				$type  = isset( $_GET['wcs_stripe_type'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_type'] ) ) : 'connect';
+				$mode  = isset( $_GET['wcs_stripe_mode'] ) ? wc_clean( wp_unslash( $_GET['wcs_stripe_mode'] ) ) : 'live';
+
+				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
+				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] ) ) );
 				exit;
 			}
 		}
 
 		/**
-		 * Saves stripe keys after OAuth response
+		 * Saves Stripe keys after OAuth response
 		 *
-		 * @param  array $result OAuth response result.
+		 * @param stdObject $result OAuth's response result.
+		 * @param string    $type   Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
+		 * @param string    $mode   Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
-		 * @return array|WP_Error
+		 * @return stdObject|WP_Error OAuth's response result or WP_Error.
 		 */
-		private function save_stripe_keys( $result ) {
-
+		private function save_stripe_keys( $result, $type = 'connect', $mode = 'live' ) {
 			if ( ! isset( $result->publishableKey, $result->secretKey ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test                                    = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			if ( 'app' === $type && ! isset( $result->refreshToken ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
+			}
+
+			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
 			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$options[ $prefix . 'secret_key' ]          = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
+			$options[ $prefix . 'secret_key' ]          = $secret_key;
+			$options[ $prefix . 'connection_type' ]     = $type;
+
+			if ( 'app' === $type ) {
+				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			}
 
 			// While we are at it, let's also clear the account_id and
 			// test_account_id if present.
@@ -145,6 +168,27 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['test_account_id'] );
 
 			update_option( self::SETTINGS_OPTION, $options );
+
+			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
+			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
+			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
+			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
+
+			if ( 'app' === $type ) {
+				// Stripe App OAuth access_tokens expire after 1 hour:
+				// https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
+				$this->schedule_connection_refresh();
+			} else {
+				// Make sure that all refresh actions are cancelled if they haven't connected via the app.
+				$this->unschedule_connection_refresh();
+			}
+
+			try {
+				// Automatically configure webhooks for the account now that we have the keys.
+				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
+			} catch ( Exception $e ) {
+				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
+			}
 
 			return $result;
 		}
@@ -164,29 +208,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Clears keys for test or production (whichever is presently enabled).
-		 */
-		private function clear_stripe_keys() {
-
-			$options = get_option( self::SETTINGS_OPTION, [] );
-
-			if ( 'yes' === $options['testmode'] ) {
-				$options['test_publishable_key'] = '';
-				$options['test_secret_key']      = '';
-				// clear test_account_id if present
-				unset( $options['test_account_id'] );
-			} else {
-				$options['publishable_key'] = '';
-				$options['secret_key']      = '';
-				// clear account_id if present
-				unset( $options['account_id'] );
-			}
-
-			update_option( self::SETTINGS_OPTION, $options );
-
-		}
-
-		/**
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
@@ -199,21 +220,68 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled'] = 'yes';
+			$result['upe_checkout_experience_enabled']             = 'yes';
 			$result['upe_checkout_experience_accepted_payments'][] = 'link';
 
 			return $result;
 		}
 
-		public function is_connected() {
-
+		/**
+		 * Determines if the store is connected to Stripe.
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
+		 * @return bool True if connected, false otherwise.
+		 */
+		public function is_connected( $mode = null ) {
 			$options = get_option( self::SETTINGS_OPTION, [] );
 
-			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
+			// If the mode is not provided, we'll check the current mode.
+			if ( is_null( $mode ) ) {
+				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			}
+
+			if ( 'test' === $mode ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
+		}
+
+		/**
+		 * Determines if the store is connected to Stripe via OAuth.
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' or 'test' (default: 'live').
+		 * @return bool True if connected via OAuth, false otherwise.
+		 */
+		public function is_connected_via_oauth( $mode = 'live' ) {
+			if ( ! $this->is_connected( $mode ) ) {
+				return false;
+			}
+
+			$options = get_option( self::SETTINGS_OPTION, [] );
+			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect', 'app' ], true );
+		}
+
+		/**
+		 * Determines if the store is using a Stripe App OAuth connection.
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param string $mode Optional. The mode to check. 'live' | 'test' | null (default: null).
+		 * @return bool True if connected via Stripe App OAuth, false otherwise.
+		 */
+		public function is_connected_via_app_oauth( $mode = null ) {
+			$options = get_option( self::SETTINGS_OPTION, [] );
+
+			// If the mode is not provided, we'll check the current mode.
+			if ( is_null( $mode ) ) {
+				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			}
+			$key = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) && 'app' === $options[ $key ];
 		}
 
 		/**
@@ -233,6 +301,84 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
 			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
+		}
+
+		/**
+		 * Schedules the App OAuth connection refresh.
+		 *
+		 * @since 8.6.0
+		 */
+		private function schedule_connection_refresh() {
+			if ( ! $this->is_connected_via_app_oauth() ) {
+				return;
+			}
+
+			/**
+			 * Filters the frequency with which the App OAuth connection should be refreshed.
+			 * Access tokens expire in 1 hour, and there seem to be no way to customize that from the Stripe Dashboard:
+			 * https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
+			 * We schedule the connection refresh every 55 minutues.
+			 *
+			 * @param int $interval refresh interval
+			 *
+			 * @since 8.6.0
+			 */
+			$interval = apply_filters( 'wc_stripe_connection_refresh_interval', HOUR_IN_SECONDS - 5 * MINUTE_IN_SECONDS );
+
+			// Make sure that all refresh actions are cancelled before scheduling it.
+			$this->unschedule_connection_refresh();
+
+			as_schedule_single_action( time() + $interval, 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID, false, 0 );
+		}
+
+		/**
+		 * Unschedules the App OAuth connection refresh.
+		 *
+		 * @since 8.6.0
+		 */
+		protected function unschedule_connection_refresh() {
+			as_unschedule_all_actions( 'wc_stripe_refresh_connection', [], WC_Stripe_Action_Scheduler_Service::GROUP_ID );
+		}
+
+		/**
+		 * Refreshes the App OAuth access_token via the Woo Connect Server.
+		 *
+		 * @since 8.6.0
+		 */
+		public function refresh_connection() {
+			if ( ! $this->is_connected_via_app_oauth() ) {
+				return;
+			}
+
+			$options       = get_option( self::SETTINGS_OPTION, [] );
+			$mode          = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			$prefix        = 'test' === $mode ? 'test_' : '';
+			$refresh_token = $options[ $prefix . 'refresh_token' ];
+
+			$retries = get_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 ) + 1;
+
+			$response = $this->api->refresh_stripe_app_oauth_keys( $refresh_token, $mode );
+			if ( ! is_wp_error( $response ) ) {
+				$response = $this->save_stripe_keys( $response, 'app', $mode );
+			}
+
+			if ( is_wp_error( $response ) ) {
+				update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', $retries );
+				update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', time() );
+
+				WC_Stripe_Logger::log( 'OAuth connection refresh failed: ' . print_r( $response, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+
+				// If after 10 attempts we are unable to refresh the connection keys, we don't re-schedule anymore,
+				// in this case an error message is show in the account status indicating that the API keys are not
+				// valid and that a reconnection is necessary.
+				if ( $retries < 10 ) {
+					// Re-schedule the connection refresh
+					$this->schedule_connection_refresh();
+				}
+			}
+
+			// save_stripe_keys() schedules a connection_refresh after saving the keys,
+			// we don't need to do it explicitly here.
 		}
 	}
 }

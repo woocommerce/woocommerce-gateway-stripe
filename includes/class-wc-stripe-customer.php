@@ -20,6 +20,7 @@ class WC_Stripe_Customer {
 	 */
 	const STRIPE_PAYMENT_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_LINK::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 	];
@@ -539,7 +540,7 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function delete_source( $source_id ) {
-		if ( ! $this->get_id() ) {
+		if ( empty( $source_id ) || ! $this->get_id() ) {
 			return false;
 		}
 

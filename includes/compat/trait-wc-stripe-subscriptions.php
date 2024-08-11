@@ -784,36 +784,38 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
-		// Retrieve all possible payment methods for subscriptions.
 		try {
-			$sources = array_merge(
-				$stripe_customer->get_payment_methods( 'card' ),
-				$stripe_customer->get_payment_methods( 'sepa_debit' ),
-				$stripe_customer->get_payment_methods( 'cashapp' )
-			);
+			// Retrieve all possible payment methods for subscriptions.
+			foreach ( WC_Stripe_Customer::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
+				foreach ( $stripe_customer->get_payment_methods( $payment_method_type ) as $source ) {
+					if ( $source->id !== $stripe_source_id ) {
+						continue;
+					}
 
-			if ( $sources ) {
-				foreach ( $sources as $source ) {
-					if ( $source->id === $stripe_source_id ) {
-						$card = false;
-						if ( isset( $source->type ) && 'card' === $source->type ) {
-							$card = $source->card;
-						} elseif ( isset( $source->object ) && 'card' === $source->object ) {
-							$card = $source;
-						}
+					// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
+					if ( isset( $source->object ) && 'card' === $source->object ) {
+						/* translators: 1) card brand 2) last 4 digits */
+						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->brand ) ? $source->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->last4 );
+						break 2;
+					}
 
-						if ( $card ) {
+					switch ( $source->type ) {
+						case 'card':
 							/* translators: 1) card brand 2) last 4 digits */
-							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-						} elseif ( ! empty( $source->sepa_debit ) ) {
+							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->card->brand ) ? $source->card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->card->last4 );
+							break 3;
+						case 'sepa_debit':
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
-						} elseif ( ! empty( $source->cashapp ) ) {
+							break 3;
+						case 'cashapp':
 							/* translators: 1) Cash App Cashtag */
 							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
-						}
-
-						break;
+							break 3;
+						case 'link':
+							/* translators: 1) email address associated with the Stripe Link payment method */
+							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
+							break 3;
 					}
 				}
 			}
