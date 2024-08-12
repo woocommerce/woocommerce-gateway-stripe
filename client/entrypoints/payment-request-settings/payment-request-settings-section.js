@@ -164,15 +164,23 @@ const PaymentRequestsSettingsSection = () => {
 	return (
 		<Card className="express-checkout-settings">
 			<Notice status="warning" isDismissible={ false }>
-				<strong>Note:</strong> These settings may be overriden by the{ ' ' }
+				<strong>Note:</strong> These settings may be overriden in the{ ' ' }
+				<a
+					href={ `${ ADMIN_URL }post.php?post=${
+						getSetting( 'storePages' )?.cart?.id
+					}&action=edit` }
+				>
+					Cart Block
+				</a>{ ' ' }
+				and the{ ' ' }
 				<a
 					href={ `${ ADMIN_URL }post.php?post=${
 						getSetting( 'storePages' )?.checkout?.id
 					}&action=edit` }
 				>
 					Checkout Block
-				</a>{ ' ' }
-				to ensure consistency across express payment buttons.
+				</a>
+				. You may customize these in the respective block settings
 			</Notice>
 			<CardBody>
 				<h4>
