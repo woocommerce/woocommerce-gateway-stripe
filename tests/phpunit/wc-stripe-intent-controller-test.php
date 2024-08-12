@@ -134,7 +134,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$payment_information = array_merge( $payment_information, [ 'order' => $this->order ] );
 
 		if ( $expected_exception ) {
-			$this->expectException( $expected_exception );
+			if ( version_compare( phpversion(), '8.1.0', '>=' ) ) {
+				$this->expectError( $expected_exception );
+			} else {
+				$this->expectException( $expected_exception );
+			}
 		}
 
 		$test_request = function () use ( $payment_intent ) {
