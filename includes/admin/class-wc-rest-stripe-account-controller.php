@@ -80,16 +80,6 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
-
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/connection',
-			[
-				'methods'             => WP_REST_Server::READABLE,
-				'callback'            => [ $this, 'get_connection_status' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-			]
-		);
 	}
 
 	/**
@@ -207,7 +197,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 		// If the connection is an app connection, check if the keys have expired.
 		if ( 'app' === $connection['type'] ) {
-			$connection['expired'] = $this->account->get_cached_account_data( $mode ) ? false : false; // If we have the account data, it's not expired.
+			$connection['expired'] = $this->account->get_cached_account_data( $mode ) ? false : true; // If we have the account data, it's not expired.
 		}
 
 		return $connection;
