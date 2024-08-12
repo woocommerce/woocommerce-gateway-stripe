@@ -161,26 +161,24 @@ const PaymentRequestsSettingsSection = () => {
 		}
 	};
 
+	const cartPageUrl = `${ ADMIN_URL }post.php?post=${
+		getSetting( 'storePages' )?.cart?.id
+	}&action=edit`;
+
+	const checkoutPageUrl = `${ ADMIN_URL }post.php?post=${
+		getSetting( 'storePages' )?.checkout?.id
+	}&action=edit`;
+
 	return (
 		<Card className="express-checkout-settings">
 			<Notice status="warning" isDismissible={ false }>
-				<strong>Note:</strong> These settings may be overriden in the{ ' ' }
-				<a
-					href={ `${ ADMIN_URL }post.php?post=${
-						getSetting( 'storePages' )?.cart?.id
-					}&action=edit` }
-				>
-					Cart Block
-				</a>{ ' ' }
-				and the{ ' ' }
-				<a
-					href={ `${ ADMIN_URL }post.php?post=${
-						getSetting( 'storePages' )?.checkout?.id
-					}&action=edit` }
-				>
-					Checkout Block
-				</a>
-				. You may customize these in the respective block settings
+				{ __( 'These settings may be overriden in the' ) }{ ' ' }
+				<a href={ cartPageUrl }>{ __( 'Cart Block' ) }</a>{ ' ' }
+				{ __( 'and the' ) }{ ' ' }
+				<a href={ checkoutPageUrl }>{ __( 'Checkout Block' ) }</a>.{ ' ' }
+				{ __(
+					'You may customize these in the respective block settings'
+				) }
 			</Notice>
 			<CardBody>
 				<h4>
