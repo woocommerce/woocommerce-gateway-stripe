@@ -24,13 +24,6 @@ if ( PHP_VERSION_ID >= 80000 && file_exists( $_tests_dir . '/includes/phpunit7/M
 	require_once $_tests_dir . '/includes/phpunit7/MockObject/Builder/ParametersMatch.php';
 	require_once $_tests_dir . '/includes/phpunit7/MockObject/InvocationMocker.php';
 	require_once $_tests_dir . '/includes/phpunit7/MockObject/MockMethod.php';
-
-}
-
-// Disable warnings and notices, as those classes were removed from PHPUnit 10.5.
-if ( PHP_VERSION_ID >= 81000 ) {
-	\PHPUnit\Framework\Error\Notice::$enabled  = false;
-	\PHPUnit\Framework\Error\Warning::$enabled = false;
 }
 
 // Give access to tests_add_filter() function.
