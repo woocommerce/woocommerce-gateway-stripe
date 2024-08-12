@@ -724,6 +724,7 @@ class WC_Stripe_Helper {
 	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
 	 */
 	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
+		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
 			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
@@ -761,10 +762,12 @@ class WC_Stripe_Helper {
 				continue; // Skip the other stripe gateways. We'll add all Stripe methods back in the right order.
 			} elseif ( 'stripe' === $gateway ) {
 				unset( $gateway_order['stripe'] );
+				// When the main Stripe gateway is found in the option, add all the Stripe methods in the right order starting from this index.
 				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
 					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
 				}
 			} else {
+				// Add the rest of the gateways.
 				$updated_gateway_order[ $gateway ] = (string) $index++;
 			}
 		}
