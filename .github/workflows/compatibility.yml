@@ -35,9 +35,13 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage:    none
 
-      - name: If PHP >= 8.0, set up PHPUnit 9.5 for compatibility
-        if: ${{ matrix.php >= '8.0' }}
+      - name: If PHP == 8.0, set up PHPUnit 9.5 for compatibility
+        if: ${{ matrix.php == '8.0' }}
         run: wget https://phar.phpunit.de/phpunit-9.5.13.phar && mv phpunit-9.5.13.phar phpunit.phar
 
+      - name: If PHP >= 8.1, set up PHPUnit 10.5 for compatibility
+        if: ${{ matrix.php >= '8.1' }}
+        run: wget https://phar.phpunit.de/phpunit-10.5.29.phar && mv phpunit-10.5.29.phar phpunit.phar
+        
       - name: Run CI checks
         run: bash bin/run-ci-tests.bash
