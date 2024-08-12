@@ -154,24 +154,6 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	}
 
 	/**
-	 * Retrieve the Stripe account information.
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function get_connection_status() {
-		return new WP_REST_Response(
-			[
-				'test_account'            => $this->account->get_cached_account_data( 'test' ),
-				'live_account'            => $this->account->get_cached_account_data( 'live' ),
-				'test_is_connected'    => [
-					'test' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'test' ),
-					'live' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'live' ),
-				],
-			]
-		);
-	}
-
-	/**
 	 * Clears the cached account data and returns the updated one.
 	 *
 	 * @return WP_REST_Response
