@@ -80,6 +80,16 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/connection',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_connection_status' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -97,8 +107,8 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
 				'configured_webhook_urls' => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
 				'oauth_connections'       => [
-					'test' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'test' ),
-					'live' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'live' ),
+					'test' => $this->get_account_oauth_connection_data( 'test' ),
+					'live' => $this->get_account_oauth_connection_data( 'live' ),
 				],
 			]
 		);
@@ -154,6 +164,24 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	}
 
 	/**
+	 * Retrieve the Stripe account information.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_connection_status() {
+		return new WP_REST_Response(
+			[
+				'test_account'            => $this->account->get_cached_account_data( 'test' ),
+				'live_account'            => $this->account->get_cached_account_data( 'live' ),
+				'test_is_connected'    => [
+					'test' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'test' ),
+					'live' => WC_Stripe::get_instance()->connect->is_connected_via_oauth( 'live' ),
+				],
+			]
+		);
+	}
+
+	/**
 	 * Clears the cached account data and returns the updated one.
 	 *
 	 * @return WP_REST_Response
@@ -163,5 +191,25 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 		// calling the same "get" method, so that the data format is the same.
 		return $this->get_account();
+	}
+
+	/**
+	 * Generates the OAuth connection data for the given mode.
+	 *
+	 * @param string $mode The mode. Can be 'test' or 'live'.
+	 * @return array The connection data.
+	 */
+	private function get_account_oauth_connection_data( $mode ) {
+		$connection = [
+			'connected' => (bool) WC_Stripe::get_instance()->connect->is_connected_via_oauth( $mode ),
+			'type'      => WC_Stripe::get_instance()->connect->get_connection_type( $mode ),
+		];
+
+		// If the connection is an app connection, check if the keys have expired.
+		if ( 'app' === $connection['type'] ) {
+			$connection['expired'] = $this->account->get_cached_account_data( $mode ) ? false : false; // If we have the account data, it's not expired.
+		}
+
+		return $connection;
 	}
 }

@@ -258,10 +258,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return false;
 			}
 
-			$options = get_option( self::SETTINGS_OPTION, [] );
-			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
-
-			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect', 'app' ], true );
+			return in_array( $this->get_connection_type( $mode ), [ 'connect', 'app' ], true );
 		}
 
 		/**
@@ -279,9 +276,21 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( is_null( $mode ) ) {
 				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
 			}
-			$key = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
-			return isset( $options[ $key ] ) && 'app' === $options[ $key ];
+			return 'app' === $this->get_connection_type( $mode );
+		}
+
+		/**
+		 * Fetches the connection type for the account.
+		 *
+		 * @param string $mode The account mode. 'live' or 'test'.
+		 * @return string The connection type. 'connect', 'app', or ''.
+		 */
+		public function get_connection_type( $mode ) {
+			$options = get_option( self::SETTINGS_OPTION, [] );
+			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) ? $options[ $key ] : '';
 		}
 
 		/**
