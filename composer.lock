@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7527df7677da2d49310b02acb2415bb9",
+    "content-hash": "ce8e7d358061604e3feaeb46c9a8b909",
     "packages": [],
     "packages-dev": [
         {
@@ -6917,21 +6917,21 @@
         },
         {
             "name": "yoast/phpunit-polyfills",
-            "version": "1.1.1",
+            "version": "2.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Yoast/PHPUnit-Polyfills.git",
-                "reference": "a0f7d708794a738f328d7b6c94380fd1d6c40446"
+                "reference": "4a088f125c970d6d6ea52c927f96fe39b330d0f1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Yoast/PHPUnit-Polyfills/zipball/a0f7d708794a738f328d7b6c94380fd1d6c40446",
-                "reference": "a0f7d708794a738f328d7b6c94380fd1d6c40446",
+                "url": "https://api.github.com/repos/Yoast/PHPUnit-Polyfills/zipball/4a088f125c970d6d6ea52c927f96fe39b330d0f1",
+                "reference": "4a088f125c970d6d6ea52c927f96fe39b330d0f1",
                 "shasum": ""
             },
             "require": {
-                "php": ">=5.4",
-                "phpunit/phpunit": "^4.8.36 || ^5.7.21 || ^6.0 || ^7.0 || ^8.0 || ^9.0"
+                "php": ">=5.6",
+                "phpunit/phpunit": "^5.7.21 || ^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0"
             },
             "require-dev": {
                 "php-parallel-lint/php-console-highlighter": "^1.0.0",
@@ -6976,7 +6976,7 @@
                 "security": "https://github.com/Yoast/PHPUnit-Polyfills/security/policy",
                 "source": "https://github.com/Yoast/PHPUnit-Polyfills"
             },
-            "time": "2024-04-05T16:01:51+00:00"
+            "time": "2024-04-05T16:36:44+00:00"
         }
     ],
     "aliases": [],
