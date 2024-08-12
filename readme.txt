@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.7.0 - xxxx-xx-xx =
 * Add - Log incoming webhook events and their request body.
+* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
