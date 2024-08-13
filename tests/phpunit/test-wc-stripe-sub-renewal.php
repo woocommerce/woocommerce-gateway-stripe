@@ -49,19 +49,19 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		// Disable UPE.
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		// Set statement descriptor.
 		$stripe_settings['statement_descriptor'] = $this->statement_descriptor;
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		parent::tear_down();
 	}

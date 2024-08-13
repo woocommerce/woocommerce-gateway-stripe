@@ -19,12 +19,12 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings                         = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->mock_connect = $this->getMockBuilder( 'WC_Stripe_Connect' )
 									->disableOriginalConstructor()
@@ -42,7 +42,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		delete_transient( 'wcstripe_account_data_test' );
 		delete_transient( 'wcstripe_account_data_live' );
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
 
@@ -233,7 +233,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Test for get_cached_account_data() with no mode parameter.
 	 */
 	public function test_get_cached_account_data_no_mode() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
 
 		$test_account = [
@@ -250,14 +250,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Enable TEST mode.
 		$stripe_settings['testmode'] = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Confirm test mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
 
 		// Enable LIVE mode.
 		$stripe_settings['testmode'] = 'no';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Confirm live mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $live_account );

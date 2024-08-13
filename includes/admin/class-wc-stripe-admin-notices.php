@@ -122,7 +122,7 @@ class WC_Stripe_Admin_Notices {
 		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
 		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
-		$options             = get_option( 'woocommerce_stripe_settings', [] );
+		$options             = WC_Stripe_Helper::get_main_stripe_settings();
 		$testmode            = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
 		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';

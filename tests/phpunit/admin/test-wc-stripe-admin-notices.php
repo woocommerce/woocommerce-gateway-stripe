@@ -23,7 +23,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
-		update_option( 'woocommerce_stripe_settings', [ 'enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -33,7 +33,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 
 	public function test_no_notices_are_shown_when_stripe_is_not_enabled() {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		update_option( 'woocommerce_stripe_settings', [ 'enabled' => 'no' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'no' ] );
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -81,8 +81,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			}
 		);
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		update_option(
-			'woocommerce_stripe_settings',
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'enabled'                         => 'yes',
 				'testmode'                        => 'no',
@@ -93,7 +92,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		);
 
 		$stripe_settings = array_merge(
-			get_option( 'woocommerce_stripe_settings', [] ),
+			WC_Stripe_Helper::get_main_stripe_settings(),
 			[
 				'upe_checkout_experience_accepted_payments' => [
 					'giropay',
@@ -102,7 +101,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 			]
 		);
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		update_option( 'wc_stripe_show_style_notice', 'no' );
 		update_option( 'home', 'https://...' );
@@ -134,8 +133,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
 
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		update_option(
-			'woocommerce_stripe_settings',
+		WC_Stripe_Helper::update_main_stripe_settings(
 			[
 				'enabled'         => 'yes',
 				'testmode'        => 'no',

@@ -382,7 +382,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Due diligence done. Collect the metadata.
 		$is_live         = true;
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
 			$is_live = 'no' === $stripe_settings['testmode'];
 		}

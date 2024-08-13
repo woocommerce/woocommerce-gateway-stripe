@@ -42,7 +42,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * Initializes the payment method type.
 	 */
 	public function initialize() {
-		$this->settings = get_option( 'woocommerce_stripe_settings', [] );
+		$this->settings = WC_Stripe_Helper::get_main_stripe_settings();
 	}
 
 	/**

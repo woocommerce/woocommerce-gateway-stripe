@@ -122,12 +122,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 		parent::tear_down();
 	}
 
@@ -376,9 +376,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings             = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods['card'];
 		$klarna_method            = $this->mock_payment_methods['klarna'];
@@ -416,10 +416,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings             = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
@@ -460,9 +460,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings            = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['capture'] = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150, true );
@@ -503,7 +503,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
-		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 		// $this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'MXN', true );
@@ -524,7 +524,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
-		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
 
@@ -674,10 +674,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings            = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// For each method we'll test the following combinations:
 		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
@@ -697,7 +697,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
 					}
 
-					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 					// Verify that the payment method is enabled/disabled.
 					$payment_method_instance = new $payment_method();

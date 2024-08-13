@@ -41,12 +41,12 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-payment-gateway-container'
 	 */
 	public function test_admin_options_when_stripe_is_connected() {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings                         = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();
@@ -58,12 +58,12 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-new-account-container'
 	 */
 	public function test_admin_options_when_stripe_is_not_connected() {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings                         = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();
@@ -458,14 +458,14 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_needs_setup
 	 */
 	public function test_needs_setup( $is_test_mode, $test_publishable_key, $test_secret_key, $publishable_key, $secret_key, $expected ) {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings                         = WC_Stripe_Helper::get_main_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = $is_test_mode ? 'yes' : 'no';
 		$stripe_settings['test_publishable_key'] = $test_publishable_key;
 		$stripe_settings['test_secret_key']      = $test_secret_key;
 		$stripe_settings['publishable_key']      = $publishable_key;
 		$stripe_settings['secret_key']           = $secret_key;
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = new WC_Gateway_Stripe();
 		$this->assertSame( $expected, $gateway->needs_setup() );

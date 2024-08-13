@@ -72,10 +72,10 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
-		$settings = get_option( 'woocommerce_stripe_settings', [] );
+		$settings = WC_Stripe_Helper::get_main_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
 
-		update_option( 'woocommerce_stripe_settings', $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {

@@ -85,11 +85,6 @@ function woocommerce_gateway_stripe() {
 		class WC_Stripe {
 
 			/**
-			 * The option name for the Stripe gateway settings.
-			 */
-			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-			/**
 			 * The *Singleton* instance of this class
 			 *
 			 * @var WC_Stripe
@@ -357,7 +352,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.5.0
 			 */
 			public function update_prb_location_settings() {
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+				$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
 					? $stripe_settings['payment_request_button_locations']
 					: [];
@@ -383,7 +378,7 @@ function woocommerce_gateway_stripe() {
 					}
 
 					$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				}
 			}
 

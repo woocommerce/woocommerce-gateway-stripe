@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
+	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
 	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
 	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
 	const META_NAME_FEE                = '_stripe_fee';
@@ -22,6 +23,38 @@ class WC_Stripe_Helper {
 	 * @var array
 	 */
 	public static $stripe_legacy_gateways = [];
+
+	/**
+	 * Get the main Stripe settings option.
+	 *
+	 * @return array $settings The Stripe settings.
+	 */
+	public static function get_main_stripe_settings() {
+		$settings = get_option( self::SETTINGS_OPTION, [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		return $settings;
+	}
+
+	/**
+	 * Update the main Stripe settings option.
+	 *
+	 * @param $options array The Stripe settings.
+	 * @return void
+	 */
+	public static function update_main_stripe_settings( $options ) {
+		update_option( self::SETTINGS_OPTION, $options );
+	}
+
+	/**
+	 * Delete the main Stripe settings option.
+	 *
+	 * @return void
+	 */
+	public static function delete_main_stripe_settings() {
+		delete_option( self::SETTINGS_OPTION );
+	}
 
 	/**
 	 * Gets the Stripe currency for order.
@@ -357,7 +390,7 @@ class WC_Stripe_Helper {
 	 * @param string $setting The name of the setting to get.
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
-		$all_settings = null === $method ? get_option( 'woocommerce_stripe_settings', [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+		$all_settings = null === $method ? self::get_main_stripe_settings() : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 
 		if ( null === $setting ) {
 			return $all_settings;
@@ -449,7 +482,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_available_payment_method_ids() {
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings            = self::get_main_stripe_settings();
 		$payment_method_classes     = self::get_legacy_payment_method_classes();
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
 
@@ -478,7 +511,7 @@ class WC_Stripe_Helper {
 
 				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
 				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
-				update_option( 'woocommerce_stripe_settings', $stripe_settings );
+				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 			}
 		} else {
 			$payment_method_ids = array_map(
@@ -545,7 +578,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = self::get_main_stripe_settings();
 		$payment_methods = self::get_legacy_payment_methods();
 
 		$payment_method_settings = [
@@ -600,7 +633,7 @@ class WC_Stripe_Helper {
 
 		// If card settings are not set, get it from the default Stripe settings which might be set before enabling UPE.
 		if ( ! isset( $payment_method_settings['card']['title'] ) && ! isset( $payment_method_settings['card']['description'] ) ) {
-			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+			$stripe_settings = self::get_main_stripe_settings();
 			$title           = isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '';
 			$description     = isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '';
 
@@ -630,7 +663,7 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function get_upe_ordered_payment_method_ids( $gateway ) {
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings            = self::get_main_stripe_settings();
 		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
@@ -671,7 +704,7 @@ class WC_Stripe_Helper {
 		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
 
 		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		return $updated_order;
 	}
@@ -727,7 +760,7 @@ class WC_Stripe_Helper {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
 			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+			$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 
 			if ( $is_upe_enabled ) {
 				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];

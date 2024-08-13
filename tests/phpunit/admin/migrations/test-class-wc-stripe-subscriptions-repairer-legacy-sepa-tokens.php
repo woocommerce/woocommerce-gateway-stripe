@@ -76,7 +76,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	 * We can't mock the check for WC_Subscriptions, so we'll test the rest of the conditions.
 	 */
 	public function test_updater_gets_scheduled_on_right_conditions() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
 		$this->updater
@@ -97,7 +97,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_updater_doesn_not_get_scheduled_when_already_done() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated', 'yes' );
 
 		$this->updater
@@ -146,7 +146,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_logs_on_exception() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
 		// Throw an arbitrary exception to confirm the logger is called with the Exception's message.
 		WC_Subscriptions::set_wcs_get_subscription(
@@ -197,7 +197,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_subscription_is_not_found() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
 		// Mock the subscription not being found.
 		WC_Subscriptions::set_wcs_get_subscription(
@@ -227,7 +227,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_payment_method_is_not_sepa() {
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
 		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
 		$subscription_id = $ids_to_migrate[0];

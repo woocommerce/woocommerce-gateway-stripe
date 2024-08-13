@@ -442,7 +442,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings                              = get_option( 'woocommerce_stripe_settings', [] );
+		$settings                              = WC_Stripe_Helper::get_main_stripe_settings();
 		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
 		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
 		$post_data                             = [];

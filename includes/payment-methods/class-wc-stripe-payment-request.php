@@ -69,7 +69,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function __construct() {
 		self::$_this           = $this;
-		$this->stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$this->stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';

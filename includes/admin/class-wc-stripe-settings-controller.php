@@ -92,7 +92,7 @@ class WC_Stripe_Settings_Controller {
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
-		$settings = get_option( WC_Stripe_Connect::SETTINGS_OPTION, [] );
+		$settings = WC_Stripe_Helper::get_main_stripe_settings();
 
 		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
 		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';

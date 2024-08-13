@@ -88,7 +88,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings              = get_option( 'woocommerce_stripe_settings', [] );
+		$main_settings              = WC_Stripe_Helper::get_main_stripe_settings();
 		$this->title                = $this->get_option( 'title' );
 		$this->description          = $this->get_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );
