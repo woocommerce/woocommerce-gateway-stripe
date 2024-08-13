@@ -312,6 +312,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
 		}
 
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
+
 		return new WP_REST_Response( [], 200 );
 	}
 
@@ -464,6 +466,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 	}
 
 	/**
