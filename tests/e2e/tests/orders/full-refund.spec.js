@@ -34,7 +34,7 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			config.get( 'cards.basic' )
 		);
 		await userPage.locator( 'text=Place order' ).click();
-		await userPage.waitForNavigation();
+		await userPage.waitForURL( '**/checkout/order-received/**' );
 
 		await expect( userPage.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
