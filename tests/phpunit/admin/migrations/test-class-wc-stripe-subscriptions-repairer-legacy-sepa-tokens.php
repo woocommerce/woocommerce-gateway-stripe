@@ -189,7 +189,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 				],
 				[
 					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) )
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) ),
 				],
 			);
 
@@ -219,7 +219,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 				],
 				[
 					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) )
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) ),
 				],
 			);
 
@@ -254,7 +254,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 				],
 				[
 					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) )
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) ),
 				],
 			);
 
@@ -284,11 +284,11 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 			->withConsecutive(
 				[
 					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
+					$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) ),
 				],
 				[
 					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-					$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
+					$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) ),
 				],
 			);
 
