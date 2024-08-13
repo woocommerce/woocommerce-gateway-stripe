@@ -30,9 +30,9 @@ const config = {
 	outputDir: '../test-results/output',
 
 	/* Retry on CI only */
-	retries: CI ? 3 : 0,
+	retries: CI ? 2 : 0,
 
-	workers: 5,
+	workers: 4,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
@@ -87,10 +87,11 @@ const config = {
 		{
 			name: 'legacy-setup',
 			testMatch: '_legacy-experience/legacy.setup.js',
+			dependencies: [ 'default' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
-			name: 'legacy',
+			name: 'legacy-experience',
 			testMatch: '/_legacy-experience/**/*.spec.js',
 			dependencies: [ 'legacy-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
