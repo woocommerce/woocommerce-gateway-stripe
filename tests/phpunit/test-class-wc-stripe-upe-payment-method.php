@@ -376,7 +376,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' ) ?: [];
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		if ( ! $stripe_settings ) {
+			$stripe_settings = [];
+		}
 		$stripe_settings['testmode'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
@@ -416,7 +419,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' ) ?: [];
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		if ( ! $stripe_settings ) {
+			$stripe_settings = [];
+		}
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
@@ -460,7 +466,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings' ) ?: [];
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		if ( ! $stripe_settings ) {
+			$stripe_settings = [];
+		}
 		$stripe_settings['capture'] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
@@ -674,7 +683,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings' ) ?: [];
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		if ( ! $stripe_settings ) {
+			$stripe_settings = [];
+		}
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
