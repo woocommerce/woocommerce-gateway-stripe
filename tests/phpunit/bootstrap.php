@@ -26,16 +26,6 @@ if ( PHP_VERSION_ID >= 80000 && file_exists( $_tests_dir . '/includes/phpunit7/M
 	require_once $_tests_dir . '/includes/phpunit7/MockObject/MockMethod.php';
 }
 
-if ( PHP_VERSION_ID >= 80100 ) {
-	// Include classes removed in PHPUnit 10.5 to keep compatibility.
-	require_once __DIR__ . '/includes/phpunit9/TestListener.php';
-	require_once __DIR__ . '/includes/phpunit9/Error/Error.php';
-	require_once __DIR__ . '/includes/phpunit9/Error/Deprecated.php';
-	require_once __DIR__ . '/includes/phpunit9/Error/Notice.php';
-	require_once __DIR__ . '/includes/phpunit9/Error/Warning.php';
-	require_once __DIR__ . '/includes/phpunit9/Exception/Warning.php';
-}
-
 // Give access to tests_add_filter() function.
 require_once $_tests_dir . '/includes/functions.php';
 
