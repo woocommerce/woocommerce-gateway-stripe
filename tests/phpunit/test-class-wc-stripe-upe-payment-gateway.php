@@ -248,7 +248,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
 	}
 
-	public static function get_upe_available_payment_methods_provider() {
+	public function get_upe_available_payment_methods_provider() {
 		return [
 			[
 				'US',
@@ -2241,7 +2241,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public static function provide_test_filter_saved_payment_methods_list() {
+	public function provide_test_filter_saved_payment_methods_list() {
 		$item = [
 			'brand'     => 'visa',
 			'exp_month' => '7',

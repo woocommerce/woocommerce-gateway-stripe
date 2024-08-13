@@ -134,11 +134,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$payment_information = array_merge( $payment_information, [ 'order' => $this->order ] );
 
 		if ( $expected_exception ) {
-			if ( version_compare( phpversion(), '8.1.0', '>=' ) ) {
-				$this->expectError( $expected_exception );
-			} else {
-				$this->expectException( $expected_exception );
-			}
+			$this->expectException( $expected_exception );
 		}
 
 		$test_request = function () use ( $payment_intent ) {
@@ -160,7 +156,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public static function provide_test_update_and_confirm_payment_intent() {
+	public function provide_test_update_and_confirm_payment_intent() {
 		$payment_information_missing_params = [
 			'capture_method'               => 'automatic',
 			'shipping'                     => [],

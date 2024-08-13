@@ -87,7 +87,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected, WC_Stripe_Helper::clean_statement_descriptor( $original ) );
 	}
 
-	public static function statement_descriptor_sanitation_provider() {
+	public function statement_descriptor_sanitation_provider() {
 		return [
 			'removes \''             => [ 'Test\'s Store', 'Tests Store' ],
 			'removes "'              => [ 'Test " Store', 'Test  Store' ],
