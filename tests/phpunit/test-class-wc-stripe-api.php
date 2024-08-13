@@ -26,7 +26,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['secret_key']           = self::LIVE_SECRET_KEY;
@@ -63,7 +63,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Enable live mode.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['testmode'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
@@ -87,7 +87,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Set the mode to live and test the invalid parameter.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['testmode'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 

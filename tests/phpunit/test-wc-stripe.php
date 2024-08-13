@@ -139,14 +139,14 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		// Store default stripe options
 		update_option( 'woocommerce_stripe_settings', [] );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
 
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
@@ -166,7 +166,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		// Initialize default stripe settings, turn on UPE.
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
 		$this->assertNotContains( 'card', $stripe_settings['upe_checkout_experience_accepted_payments'] );
@@ -188,7 +188,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		// Check that the correct LPMs were re-enabled.
 		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );

@@ -172,7 +172,7 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		update_option(
 			'woocommerce_stripe_settings',
 			array_merge(
-				get_option( 'woocommerce_stripe_settings' ),
+				get_option( 'woocommerce_stripe_settings', [] ),
 				[
 					'upe_checkout_experience_accepted_payments' => [ 'card', 'link' ],
 				]
@@ -188,7 +188,7 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		update_option(
 			'woocommerce_stripe_settings',
 			array_merge(
-				get_option( 'woocommerce_stripe_settings' ),
+				get_option( 'woocommerce_stripe_settings', [] ),
 				[
 					'upe_checkout_experience_accepted_payments' => $payment_methods,
 				]

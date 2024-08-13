@@ -41,7 +41,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-payment-gateway-container'
 	 */
 	public function test_admin_options_when_stripe_is_connected() {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
@@ -58,7 +58,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Should print a placeholder div with id 'wc-stripe-new-account-container'
 	 */
 	public function test_admin_options_when_stripe_is_not_connected() {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
@@ -458,7 +458,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_needs_setup
 	 */
 	public function test_needs_setup( $is_test_mode, $test_publishable_key, $test_secret_key, $publishable_key, $secret_key, $expected ) {
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = $is_test_mode ? 'yes' : 'no';
 		$stripe_settings['test_publishable_key'] = $test_publishable_key;

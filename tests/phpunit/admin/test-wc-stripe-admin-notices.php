@@ -93,7 +93,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		);
 
 		$stripe_settings = array_merge(
-			get_option( 'woocommerce_stripe_settings' ),
+			get_option( 'woocommerce_stripe_settings', [] ),
 			[
 				'upe_checkout_experience_accepted_payments' => [
 					'giropay',

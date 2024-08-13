@@ -19,7 +19,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
@@ -233,7 +233,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Test for get_cached_account_data() with no mode parameter.
 	 */
 	public function test_get_cached_account_data_no_mode() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
 
 		$test_account = [

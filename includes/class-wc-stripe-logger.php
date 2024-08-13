@@ -98,7 +98,7 @@ class WC_Stripe_Logger {
 			return false;
 		}
 
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings = get_option( 'woocommerce_stripe_settings', [] );
 
 		if ( empty( $settings ) || isset( $settings['logging'] ) && 'yes' !== $settings['logging'] ) {
 			return false;
