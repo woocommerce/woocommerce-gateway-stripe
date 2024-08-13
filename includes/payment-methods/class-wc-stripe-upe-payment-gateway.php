@@ -807,6 +807,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} elseif ( ! ( $payment_information['is_using_saved_payment_method'] && 'cashapp' === $selected_payment_type ) ) {
+				// Create a setup intent, or update an existing one associated with the order.
+				// If the payment method is Cash App Pay and the order has no cost, skip this step.
 				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
 
@@ -829,7 +831,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 
 				// If the payment method is Cash App Pay and the order has no cost, mark the order as paid.
-				if ( 'cashapp' === $selected_payment_type && ! $payment_needed ) {
+				if ( ! $payment_needed && 'cashapp' === $selected_payment_type ) {
 					$order->payment_complete();
 
 					return [
