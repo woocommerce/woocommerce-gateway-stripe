@@ -158,11 +158,17 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$ids_to_migrate = $this->get_subs_ids_to_migrate();
 
 		$this->logger_mock
-			->expects( $this->at( 1 ) )
+			->expects( $this->exactly( 2 ) )
 			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( 'Mistakes were made' )
+			->withConsecutive(
+				[
+					$this->anything(),
+					$this->anything(),
+				],
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( 'Mistakes were made' ),
+				],
 			);
 
 		$this->updater->repair_item( $ids_to_migrate[0] );
@@ -174,11 +180,17 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// We didn't set upe_checkout_experience_enabled to 'yes', which means the Legacy experience is enabled.
 		$this->logger_mock
-			->expects( $this->at( 1 ) )
+			->expects( $this->exactly( 2 ) )
 			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) )
+			->withConsecutive(
+				[
+					$this->anything(),
+					$this->anything(),
+				],
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) )
+				],
 			);
 
 		$this->updater->repair_item( $subscription_id );
@@ -198,11 +210,17 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$subscription_id = $ids_to_migrate[0];
 
 		$this->logger_mock
-			->expects( $this->at( 1 ) )
+			->expects( $this->exactly( 2 ) )
 			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) )
+			->withConsecutive(
+				[
+					$this->anything(),
+					$this->anything(),
+				],
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) )
+				],
 			);
 
 		$this->updater->repair_item( $subscription_id );
@@ -227,11 +245,17 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// The payment method associated with the subscription isn't SEPA, so no migration is needed.
 		$this->logger_mock
-			->expects( $this->at( 1 ) )
+			->expects( $this->exactly( 2 ) )
 			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) )
+			->withConsecutive(
+				[
+					$this->anything(),
+					$this->anything(),
+				],
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) )
+				],
 			);
 
 		$this->updater->repair_item( $subscription_id );
@@ -255,19 +279,17 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$original_source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 
 		$this->logger_mock
-			->expects( $this->at( 0 ) )
+			->expects( $this->exactly( 2 ) )
 			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
-			);
-
-		$this->logger_mock
-			->expects( $this->at( 1 ) )
-			->method( 'add' )
-			->with(
-				$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
-				$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
+			->withConsecutive(
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( sprintf( 'Migrating subscription #%1$d.', $subscription_id ) )
+				],
+				[
+					$this->equalTo( 'woocommerce-gateway-stripe-subscriptions-legacy-sepa-tokens-repairs' ),
+					$this->equalTo( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) )
+				],
 			);
 
 		$this->updater->repair_item( $subscription_id );
