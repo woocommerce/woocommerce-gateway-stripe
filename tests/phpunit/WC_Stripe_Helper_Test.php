@@ -226,7 +226,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_order_by_intent_id(): array {
+	public static function provide_test_get_order_by_intent_id(): array {
 		return [
 			'regular table' => [
 				'custom orders table' => false,
@@ -263,7 +263,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_get_stripe_amount(): array {
+	public static function provide_test_get_stripe_amount(): array {
 		return [
 			'USD'              => [
 				'total'    => 100,
@@ -322,7 +322,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_payment_method_allows_manual_capture(): array {
+	public static function provide_payment_method_allows_manual_capture(): array {
 		return [
 			'Card'              => [
 				'payment_method' => 'stripe',
@@ -355,7 +355,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_is_wallet_payment_method
 	 */
-	public function test_is_wallet_payment_method( $payment_method, $expected ): void {
+	public static function test_is_wallet_payment_method( $payment_method, $expected ): void {
 		$order = WC_Helper_Order::create_order();
 		$order->update_meta_data( '_stripe_upe_payment_type', $payment_method );
 
@@ -363,7 +363,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$this->assertSame( $expected, $actual );
 	}
 
-	public function provide_is_wallet_payment_method(): array {
+	public static function provide_is_wallet_payment_method(): array {
 		return [
 			'Apple Pay'  => [
 				'apple_pay',

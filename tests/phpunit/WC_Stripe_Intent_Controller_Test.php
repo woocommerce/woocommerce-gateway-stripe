@@ -160,7 +160,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_update_and_confirm_payment_intent() {
+	public static function provide_test_update_and_confirm_payment_intent() {
 		$payment_information_missing_params = [
 			'capture_method'               => 'automatic',
 			'shipping'                     => [],

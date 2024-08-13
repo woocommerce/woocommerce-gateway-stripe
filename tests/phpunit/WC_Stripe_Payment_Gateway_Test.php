@@ -476,7 +476,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 *
 	 * @return array[]
 	 */
-	public function provide_test_needs_setup() {
+	public static function provide_test_needs_setup() {
 		return [
 			'test mode, missing keys' => [
 				'is test mode'         => true,
