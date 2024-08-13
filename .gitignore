@@ -38,3 +38,7 @@ docker/bin/jt
 docker/data
 docker/wordpress
 docker/logs
+
+# PHPUnit cache files
+.phpunit.cache/
+.phpunit.result.cache
