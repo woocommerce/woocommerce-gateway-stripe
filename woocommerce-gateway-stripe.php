@@ -339,6 +339,10 @@ function woocommerce_gateway_stripe() {
 					// Check for subscriptions using legacy SEPA tokens on upgrade.
 					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
 					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+					// TODO: Remove this call when all the merchants have moved to the new checkout experience.
+					// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
+					WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 				}
 			}
 

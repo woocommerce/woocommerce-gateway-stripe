@@ -718,6 +718,64 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
+	 * in the order merchants have chosen in the settings.
+	 *
+	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
+	 */
+	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
+		// If the ordered payment method ids are not passed, get them from the relevant settings.
+		if ( empty( $ordered_payment_method_ids ) ) {
+			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+
+			if ( $is_upe_enabled ) {
+				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
+			} else {
+				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
+			}
+
+			if ( empty( $ordered_payment_method_ids ) ) {
+				return;
+			}
+		}
+
+		$gateway_order = get_option( 'woocommerce_gateway_order' );
+
+		$ordered_available_stripe_methods = [];
+		// Map the Stripe payment method list to the right format to save in the 'woocommerce_gateway_order' option.
+		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
+			$gateway_id = 0 === strpos( $payment_method_id, 'stripe' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
+
+			if ( 'card' === $payment_method_id ) {
+				$gateway_id = 'stripe';
+			}
+
+			$ordered_available_stripe_methods[] = $gateway_id;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+		// Add the Stripe methods back in the right order and assign all the payment methods the updated order index.
+		foreach ( $gateway_order as $gateway => $order ) {
+			if ( 0 === strpos( $gateway, 'stripe_' ) ) {
+				continue; // Skip the other stripe gateways. We'll add all Stripe methods back in the right order.
+			} elseif ( 'stripe' === $gateway ) {
+				unset( $gateway_order['stripe'] );
+				// When the main Stripe gateway is found in the option, add all the Stripe methods in the right order starting from this index.
+				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
+					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
+				}
+			} else {
+				// Add the rest of the gateways.
+				$updated_gateway_order[ $gateway ] = (string) $index++;
+			}
+		}
+
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
