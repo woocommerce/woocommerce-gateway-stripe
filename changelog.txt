@@ -2,6 +2,7 @@
 
 = 8.7.0 - xxxx-xx-xx =
 * Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
 
 = 8.6.1 - 2024-08-09 =
