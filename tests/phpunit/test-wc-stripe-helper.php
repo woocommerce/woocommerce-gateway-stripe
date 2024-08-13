@@ -405,7 +405,6 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
 		$current_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		$this->assertSame( [ 'test' => 'test' ], $current_settings );
-		
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$current_settings = WC_Stripe_Helper::get_main_stripe_settings();
 		$this->assertSame( [], $current_settings );

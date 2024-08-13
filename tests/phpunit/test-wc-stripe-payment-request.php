@@ -194,12 +194,14 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		$this->upe_helper->enable_upe();
 
-		WC_Stripe_Helper::update_main_stripe_settings( array_merge(
-			WC_Stripe_Helper::get_main_stripe_settings(),
-			[
-				'upe_checkout_experience_accepted_payments' => [ 'link' ],
-			]
-		) );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			array_merge(
+				WC_Stripe_Helper::get_main_stripe_settings(),
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'link' ],
+				]
+			)
+		);
 
 		$this->assertTrue( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}
@@ -215,12 +217,14 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
 		// Disable Link by Stripe
-		WC_Stripe_Helper::update_main_stripe_settings( array_merge(
-			WC_Stripe_Helper::get_main_stripe_settings(),
-			[
-				'upe_checkout_experience_accepted_payments' => [ 'card' ],
-			]
-		) );
+		WC_Stripe_Helper::update_main_stripe_settings(
+			array_merge(
+				WC_Stripe_Helper::get_main_stripe_settings(),
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'card' ],
+				]
+			)
+		);
 
 		$this->assertFalse( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}

@@ -511,7 +511,7 @@ class WC_Stripe_Helper {
 
 				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
 				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
-				WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+				self::update_main_stripe_settings( $stripe_settings );
 			}
 		} else {
 			$payment_method_ids = array_map(
@@ -704,7 +704,7 @@ class WC_Stripe_Helper {
 		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
 
 		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		self::update_main_stripe_settings( $stripe_settings );
 
 		return $updated_order;
 	}
@@ -760,7 +760,7 @@ class WC_Stripe_Helper {
 		// If the ordered payment method ids are not passed, get them from the relevant settings.
 		if ( empty( $ordered_payment_method_ids ) ) {
 			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-			$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
+			$stripe_settings = self::get_main_stripe_settings();
 
 			if ( $is_upe_enabled ) {
 				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
