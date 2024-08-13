@@ -129,6 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.7.0 - xxxx-xx-xx =
+* Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
