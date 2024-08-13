@@ -173,7 +173,7 @@ const PaymentRequestsSettingsSection = () => {
 						'Some appearance settings may be overridden by the express payment section of the'
 					) }{ ' ' }
 					<a href={ checkoutPageUrl }>
-						{ __( 'Cart & Checkout blocks' ) }
+						{ __( 'Cart & Checkout blocks.' ) }
 					</a>
 				</Notice>
 				<h4>
