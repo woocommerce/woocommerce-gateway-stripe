@@ -161,26 +161,21 @@ const PaymentRequestsSettingsSection = () => {
 		}
 	};
 
-	const cartPageUrl = `${ ADMIN_URL }post.php?post=${
-		getSetting( 'storePages' )?.cart?.id
-	}&action=edit`;
-
 	const checkoutPageUrl = `${ ADMIN_URL }post.php?post=${
 		getSetting( 'storePages' )?.checkout?.id
 	}&action=edit`;
 
 	return (
 		<Card className="express-checkout-settings">
-			<Notice status="warning" isDismissible={ false }>
-				{ __( 'These settings may be overriden in the' ) }{ ' ' }
-				<a href={ cartPageUrl }>{ __( 'Cart Block' ) }</a>{ ' ' }
-				{ __( 'and the' ) }{ ' ' }
-				<a href={ checkoutPageUrl }>{ __( 'Checkout Block' ) }</a>.{ ' ' }
-				{ __(
-					'You may customize these in the respective block settings'
-				) }
-			</Notice>
 			<CardBody>
+				<Notice status="warning" isDismissible={ false }>
+					{ __(
+						'Some appearance settings may be overridden by the express payment section of the'
+					) }{ ' ' }
+					<a href={ checkoutPageUrl }>
+						{ __( 'Cart & Checkout blocks' ) }
+					</a>
+				</Notice>
 				<h4>
 					{ __(
 						'Show express checkouts on',
