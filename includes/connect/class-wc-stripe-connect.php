@@ -151,7 +151,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
 			$current_options                            = get_option( self::SETTINGS_OPTION, [] );
-			$options                                    = array_merge( $default_options, $current_options ? $current_options : [] );
+			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
