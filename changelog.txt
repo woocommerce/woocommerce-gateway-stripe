@@ -1,6 +1,12 @@
 *** Changelog ***
 
-= 8.6.0 - xxxx-xx-xx =
+= 8.7.0 - xxxx-xx-xx =
+* Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
+* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+
+= 8.6.1 - 2024-08-09 =
+* Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
 * Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
 * Add - Added filter to enable updating Level 3 data based on order data.
 * Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
@@ -21,6 +27,7 @@
 * Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
 * Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
 * Fix - After configuring webhooks automatically ensure only the latest webhook endpoint is active, deleting duplicates configured manually.
+* Fix - Resolved PHP errors related to detaching payment methods after failed 3D-Secure challenges.
 * Tweak - Minor text updates to webhook-related configuration labels and buttons.
 * Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
 * Tweak - Display a notice when the Stripe connect URL is not available.

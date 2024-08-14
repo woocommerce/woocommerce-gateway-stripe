@@ -71,15 +71,39 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 * Send request to Connect Server for Stripe keys
 		 *
 		 * @param string $code OAuth server code.
+		 * @param string $type Optional. The type of the connection. 'connect' or 'app'. Default is 'connect'.
 		 * @param string $mode Optional. The mode to connect to. 'live' or 'test'. Default is 'live'.
 		 *
 		 * @return array
 		 */
-		public function get_stripe_oauth_keys( $code, $mode = 'live' ) {
+		public function get_stripe_oauth_keys( $code, $type = 'connect', $mode = 'live' ) {
 			$request = [ 'code' => $code ];
+
+			if ( 'app' === $type ) {
+				$request['mode'] = $mode;
+				return $this->request( 'POST', '/stripe/app-oauth-keys', $request );
+			}
 
 			$path = 'test' === $mode ? '/stripe-sandbox/oauth-keys' : '/stripe/oauth-keys';
 			return $this->request( 'POST', $path, $request );
+		}
+
+		/**
+		 * Sends a request to the Connect Server for Stripe App refreshed keys.
+		 *
+		 * @since 8.6.0
+		 *
+		 * @param string $refresh_token Stripe App OAuth refresh token.
+		 * @param string $mode          Optional. The mode to refresh keys for. 'live' or 'test'. Default is 'live'.
+		 *
+		 * @return array
+		 */
+		public function refresh_stripe_app_oauth_keys( $refresh_token, $mode = 'live' ) {
+			$request = [
+				'refreshToken' => $refresh_token,
+				'mode'         => $mode,
+			];
+			return $this->request( 'POST', '/stripe/app-oauth-keys-refresh', $request );
 		}
 
 		/**

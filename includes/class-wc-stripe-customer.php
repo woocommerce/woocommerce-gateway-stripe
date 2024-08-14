@@ -540,7 +540,7 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function delete_source( $source_id ) {
-		if ( ! $this->get_id() ) {
+		if ( empty( $source_id ) || ! $this->get_id() ) {
 			return false;
 		}
 

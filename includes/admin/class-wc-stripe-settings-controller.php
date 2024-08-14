@@ -40,6 +40,24 @@ class WC_Stripe_Settings_Controller {
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+	}
+
+	/**
+	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
+	 * This function is called when the 'woocommerce_gateway_order' option is updated.
+	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
+	 *
+	 * @param array $ordering The current ordering of the gateways.
+	 */
+	public function set_stripe_gateways_in_list( $ordering ) {
+		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
+		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
