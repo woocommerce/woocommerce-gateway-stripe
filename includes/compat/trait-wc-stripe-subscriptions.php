@@ -87,6 +87,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		*/
 		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
 		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
+
+		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
+		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
 	}
 
 	/**
@@ -961,5 +964,24 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription->set_payment_method( $payment_method_type );
 			$subscription->save();
 		}
+	}
+
+	/**
+	 * Disables the ability to edit a subscription for orders with mandates.
+	 *
+	 * @param $editable boolean The current editability of the subscription.
+	 * @param $order WC_Order The order object.
+	 * @return boolean true if the subscription can be edited, false otherwise.
+	 */
+	public function disable_subscription_edit_for_india( $editable, $order ) {
+		$parent_order = wc_get_order( $order->get_parent_id() );
+		if ( $this->is_subscriptions_enabled()
+			&& $this->is_subscription( $order )
+			&& $parent_order
+			&& ! empty( $parent_order->get_meta( '_stripe_mandate_id', true ) ) ) {
+			$editable = false;
+		}
+
+		return $editable;
 	}
 }
