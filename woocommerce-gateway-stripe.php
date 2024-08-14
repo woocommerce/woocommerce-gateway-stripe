@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 8.3.0
+ * Version: 8.6.1
  * Requires Plugins: woocommerce
- * Requires at least: 6.2
- * Tested up to: 6.5.2
- * WC requires at least: 8.5
- * WC tested up to: 8.9
+ * Requires at least: 6.4
+ * Tested up to: 6.6
+ * WC requires at least: 8.9
+ * WC tested up to: 9.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '8.3.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.6.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -83,6 +83,11 @@ function woocommerce_gateway_stripe() {
 	if ( ! isset( $plugin ) ) {
 
 		class WC_Stripe {
+
+			/**
+			 * The option name for the Stripe gateway settings.
+			 */
+			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 			/**
 			 * The *Singleton* instance of this class
@@ -187,12 +192,15 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subscriptions-legacy-sepa-token-update.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-link-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-cash-app-pay-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
@@ -211,6 +219,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-multibanco.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
@@ -229,7 +238,6 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -286,6 +294,9 @@ function woocommerce_gateway_stripe() {
 				}
 
 				new WC_Stripe_UPE_Compatibility_Controller();
+
+				// Intitialize the class for updating subscriptions' Legacy SEPA payment methods.
+				add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
 			}
 
 			/**
@@ -324,6 +335,14 @@ function woocommerce_gateway_stripe() {
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
 					$this->update_prb_location_settings();
+
+					// Check for subscriptions using legacy SEPA tokens on upgrade.
+					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
+					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+					// TODO: Remove this call when all the merchants have moved to the new checkout experience.
+					// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
+					WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 				}
 			}
 
@@ -428,6 +447,7 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_P24::class;
 					$methods[] = WC_Gateway_Stripe_Boleto::class;
 					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -437,9 +457,6 @@ function woocommerce_gateway_stripe() {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
 				}
-
-				// Multibanco will always be added to the gateway list, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -579,7 +596,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function disable_upe( $settings ) {
-				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway( $this->account );
+				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
 				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
@@ -689,7 +706,7 @@ function woocommerce_gateway_stripe() {
 				}
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway( $this->account );
+					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 
 					return $this->stripe_gateway;
 				}
@@ -720,6 +737,23 @@ function woocommerce_gateway_stripe() {
 				}
 
 				return $fields;
+			}
+
+			/**
+			 * Initializes updating subscriptions.
+			 */
+			public function initialize_subscriptions_updater() {
+				// The updater depends on WCS_Background_Repairer. Bail out if class does not exist.
+				if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
+					return;
+				}
+				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
+
+				$logger  = wc_get_logger();
+				$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
+
+				$updater->init();
+				$updater->maybe_update();
 			}
 		}
 
@@ -822,6 +856,7 @@ add_action(
 	'before_woocommerce_init',
 	function() {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
 		}
 	}

@@ -1,12 +1,15 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
-import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
+import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { useAccount } from 'wcstripe/data/account';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -39,19 +42,42 @@ const PaymentRequestDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="https://woocommerce.com/document/stripe/#express-checkouts">
+		<ExternalLink href="https://woocommerce.com/document/stripe/customer-experience/express-checkouts/">
 			{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 		</ExternalLink>
 	</>
 );
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		true
+	);
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
+	const oauthConnected = isTestModeEnabled
+		? data?.oauth_connections?.test
+		: data?.oauth_connections?.live;
+
 	return (
 		<>
+			{ showPromotionalBanner && (
+				<SettingsSection>
+					<PromotionalBannerSection
+						setShowPromotionalBanner={ setShowPromotionalBanner }
+						isUpeEnabled={ isUpeEnabled }
+						setIsUpeEnabled={ setIsUpeEnabled }
+						isConnectedViaOAuth={ oauthConnected }
+						oauthUrl={ wc_stripe_settings_params.stripe_oauth_url }
+						testOauthUrl={
+							wc_stripe_settings_params.stripe_test_oauth_url
+						}
+					/>
+				</SettingsSection>
+			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
-				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>

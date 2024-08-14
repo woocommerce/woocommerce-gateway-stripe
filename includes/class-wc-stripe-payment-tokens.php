@@ -21,12 +21,13 @@ class WC_Stripe_Payment_Tokens {
 	 * The values are the related gateway ID we use for them in the extension.
 	 */
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
-		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
-		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
-		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID           => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 	];
 
 	/**
@@ -39,7 +40,7 @@ class WC_Stripe_Payment_Tokens {
 		self::$_this = $this;
 
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item_sepa' ], 10, 2 );
+		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
@@ -261,15 +262,19 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$stored_tokens = [];
-
+			$stored_tokens     = [];
 			$deprecated_tokens = [];
 
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 
-					// APM tokens from before Split PE was in place that will get removed.
-					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+					// Remove the following deprecated tokens:
+					// - APM tokens from before Split PE was in place.
+					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					if (
+						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						str_starts_with( $token->get_token(), 'src_' )
+					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
 					}
@@ -309,8 +314,13 @@ class WC_Stripe_Payment_Tokens {
 				// Retrieve the real APM behind SEPA PaymentMethods.
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
+				// Create a new token when:
+				// - The payment method doesn't have an associated token in WooCommerce.
+				// - The payment method is not a source.
+				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
+					! str_starts_with( $payment_method->id, 'src_' ) &&
 					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
@@ -364,18 +374,26 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Controls the output for SEPA on the my account page.
+	 * Controls the output for SEPA and Cash App on the my account page.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param  array            $item         Individual list item from woocommerce_saved_payment_methods_list
-	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
-	 * @return array                           Filtered item
+	 * @since 4.8.0
+	 * @param array            $item          Individual list item from woocommerce_saved_payment_methods_list.
+	 * @param WC_Payment_Token $payment_token The payment token associated with this method entry.
+	 *
+	 * @return array $item Modified list item.
 	 */
-	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		if ( 'sepa' === strtolower( $payment_token->get_type() ) ) {
-			$item['method']['last4'] = $payment_token->get_last4();
-			$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
+	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
+		switch ( strtolower( $payment_token->get_type() ) ) {
+			case 'sepa':
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
+				break;
+			case 'cashapp':
+				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
+				break;
+			case 'link':
+				$item['method']['brand'] = esc_html__( 'Stripe Link', 'woocommerce-gateway-stripe' );
+				break;
 		}
 
 		return $item;
@@ -469,7 +487,13 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
 				break;
+			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
+				$token = new WC_Payment_Token_CashApp();
 
+				if ( isset( $payment_method->cashapp->cashtag ) ) {
+					$token->set_cashtag( $payment_method->cashapp->cashtag );
+				}
+				break;
 			default:
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_last4( $payment_method->sepa_debit->last4 );
@@ -505,6 +529,89 @@ class WC_Stripe_Payment_Tokens {
 			}
 		}
 		return $payment_method->type;
+	}
+
+	/**
+	 * Returns the list of payment tokens that belong to the current user that require a label override on the block checkout page.
+	 *
+	 * The block checkout will default to a string that includes the token's payment gateway ID. This method will return a list of
+	 * payment tokens that should have a custom label displayed instead.
+	 *
+	 * @return string[] List of payment token IDs and their custom labels.
+	 */
+	public static function get_token_label_overrides_for_checkout() {
+		$label_overrides      = [];
+		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+		];
+
+		foreach ( $payment_method_types as $stripe_id ) {
+			$gateway_id = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $stripe_id ];
+
+			foreach ( WC_Payment_Tokens::get_customer_tokens( get_current_user_id(), $gateway_id ) as $token ) {
+				$label_overrides[ $token->get_id() ] = $token->get_display_name();
+			}
+		}
+
+		return $label_overrides;
+	}
+
+	/**
+	 * Updates a saved payment token from payment method details received from Stripe.
+	 *
+	 * @param int       $user_id                The user ID.
+	 * @param string    $payment_method         The Stripe payment method ID.
+	 * @param stdClass  $payment_method_details The payment method object from Stripe.
+	 */
+	public static function update_token_from_method_details( $user_id, $payment_method, $payment_method_details ) {
+		// Payment method types that we want to update from updated payment method details.
+		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		];
+
+		// Exit early if this payment method type is not one we need to update.
+		if ( ! isset( $payment_method_details->type ) || ! in_array( $payment_method_details->type, $payment_method_types ) ) {
+			return;
+		}
+
+		$tokens = WC_Payment_Tokens::get_tokens(
+			[
+				'type'       => $payment_method_details->type,
+				'gateway_id' => self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_details->type ],
+				'user_id'    => $user_id,
+			]
+		);
+
+		foreach ( $tokens as $token ) {
+			if ( $token->get_token() !== $payment_method ) {
+				continue;
+			}
+
+			switch ( $payment_method_details->type ) {
+				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
+					if ( isset( $payment_method_details->cashapp->cashtag ) ) {
+						$token->set_cashtag( $payment_method_details->cashapp->cashtag );
+						$token->save();
+					}
+					break;
+			}
+		}
+	}
+
+	/**
+	 * Controls the output for SEPA on the my account page.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @deprecated 8.4.0
+	 * @param  array            $item          Individual list item from woocommerce_saved_payment_methods_list
+	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
+	 * @return array                           Filtered item
+	 */
+	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
+		__deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
+		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
 	}
 }
 

@@ -12,7 +12,6 @@ import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
@@ -155,6 +154,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
+const CustomizeButton = styled( Button )`
+	margin-left: auto;
+`;
+
 /**
  * Formats the payment method description with the account default currency.
  *
@@ -182,7 +185,6 @@ const GeneralSettingsSection = ( {
 } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -195,13 +197,11 @@ const GeneralSettingsSection = ( {
 
 	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
 	// Show all methods in test mode.
-	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
 	const availablePaymentMethods = isUpeEnabled
-		? availablePaymentMethodIds
+		? orderedPaymentMethodIds
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||
-						method === 'multibanco' ||
 						capabilities.hasOwnProperty( `${ method }_payments` )
 				)
 				.filter( ( id ) => id !== 'link' )
@@ -244,6 +244,11 @@ const GeneralSettingsSection = ( {
 			onReorder={ onReorder }
 		>
 			{ availablePaymentMethods.map( ( method ) => {
+				// Skip giropay as it was deprecated by Jun, 30th 2024.
+				if ( method === 'giropay' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -286,6 +291,11 @@ const GeneralSettingsSection = ( {
 	) : (
 		<List>
 			{ availablePaymentMethods.map( ( method ) => {
+				// Skip giropay as it was deprecated by Jun, 30th 2024.
+				if ( method === 'giropay' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -322,25 +332,24 @@ const GeneralSettingsSection = ( {
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
-							{ ! isUpeEnabled &&
-								! customizationStatus[ method ] && (
-									<Button
-										variant="secondary"
-										onClick={ () =>
-											setCustomizationStatus( {
-												...customizationStatus,
-												[ method ]: true,
-											} )
-										}
-									>
-										{ __(
-											'Customize',
-											'woocommerce-gateway-stripe'
-										) }
-									</Button>
-								) }
+							{ ! customizationStatus[ method ] && (
+								<CustomizeButton
+									variant="secondary"
+									onClick={ () =>
+										setCustomizationStatus( {
+											...customizationStatus,
+											[ method ]: true,
+										} )
+									}
+								>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</CustomizeButton>
+							) }
 						</ListElement>
-						{ ! isUpeEnabled && customizationStatus[ method ] && (
+						{ customizationStatus[ method ] && (
 							<CustomizePaymentMethod
 								method={ method }
 								onClose={ ( customizationData ) =>

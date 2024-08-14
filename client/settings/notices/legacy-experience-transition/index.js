@@ -1,5 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import '@wordpress/notices';
 import styled from '@emotion/styled';
 import React from 'react';
 import { Button } from '@wordpress/components';
@@ -97,7 +98,7 @@ const LegacyExperienceTransitionNotice = ( {
 					) }
 				</DisableLegacyButton>
 				<LearnMoreAnchor
-					href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/"
+					href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/"
 					className="components-button is-tertiary"
 					target="_blank"
 					rel="noreferrer"

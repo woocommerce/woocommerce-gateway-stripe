@@ -37,7 +37,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 		.getByRole( 'button', { name: 'Complete' } )
 		.click();
 
-	await page.waitForNavigation();
+	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'

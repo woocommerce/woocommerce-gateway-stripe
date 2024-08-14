@@ -367,9 +367,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
 
-				$charge   = end( $response->error->payment_intent->charges->data );
-				$id       = $charge->id;
-				$order_id = $renewal_order->get_id();
+				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
+				$id     = $charge->id;
 
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
@@ -398,7 +397,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
-				$this->process_response( isset( $response->charges ) ? end( $response->charges->data ) : $response, $renewal_order );
+				$latest_charge = $this->get_latest_charge_from_intent( $response );
+				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
 
 			// TODO: Remove when SEPA is migrated to payment intents.
@@ -421,7 +421,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 5.6.0
 	 *
 	 * @param WC_Order $order              The order object.
-	 * @param string   $source_id          The source ID.
+	 * @param stdClass $source             The source object.
 	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
@@ -784,32 +784,38 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
-		// Retrieve all possible payment methods for subscriptions.
 		try {
-			$sources = array_merge(
-				$stripe_customer->get_payment_methods( 'card' ),
-				$stripe_customer->get_payment_methods( 'sepa_debit' )
-			);
+			// Retrieve all possible payment methods for subscriptions.
+			foreach ( WC_Stripe_Customer::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
+				foreach ( $stripe_customer->get_payment_methods( $payment_method_type ) as $source ) {
+					if ( $source->id !== $stripe_source_id ) {
+						continue;
+					}
 
-			if ( $sources ) {
-				foreach ( $sources as $source ) {
-					if ( $source->id === $stripe_source_id ) {
-						$card = false;
-						if ( isset( $source->type ) && 'card' === $source->type ) {
-							$card = $source->card;
-						} elseif ( isset( $source->object ) && 'card' === $source->object ) {
-							$card = $source;
-						}
+					// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
+					if ( isset( $source->object ) && 'card' === $source->object ) {
+						/* translators: 1) card brand 2) last 4 digits */
+						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->brand ) ? $source->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->last4 );
+						break 2;
+					}
 
-						if ( $card ) {
+					switch ( $source->type ) {
+						case 'card':
 							/* translators: 1) card brand 2) last 4 digits */
-							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-						} elseif ( $source->sepa_debit ) {
+							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->card->brand ) ? $source->card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->card->last4 );
+							break 3;
+						case 'sepa_debit':
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
-						}
-
-						break;
+							break 3;
+						case 'cashapp':
+							/* translators: 1) Cash App Cashtag */
+							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
+							break 3;
+						case 'link':
+							/* translators: 1) email address associated with the Stripe Link payment method */
+							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
+							break 3;
 					}
 				}
 			}
@@ -872,7 +878,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
 
 		// Fail the payment attempt (order would be currently pending because of retry rules).
-		$charge    = end( $existing_intent->charges->data );
+		$charge    = $this->get_latest_charge_from_intent( $existing_intent );
 		$charge_id = $charge->id;
 		/* translators: %s is the stripe charge Id */
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
@@ -938,5 +944,22 @@ trait WC_Stripe_Subscriptions_Trait {
 		return ! empty( $payment_intent->status )
 			&& 'processing' === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
+	}
+
+	/**
+	 * Updates the payment method for all subscriptions related to an order.
+	 *
+	 * @param WC_Order $order               The order to update the related subscriptions for.
+	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
+	 */
+	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
+		if ( ! $this->is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+			return;
+		}
+
+		foreach ( wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] ) as $subscription ) {
+			$subscription->set_payment_method( $payment_method_type );
+			$subscription->save();
+		}
 	}
 }

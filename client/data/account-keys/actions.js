@@ -55,8 +55,8 @@ export function* saveAccountKeys( accountKeys ) {
 			data: accountKeys,
 		} );
 
-		if ( ! accountData?.id ) {
-			throw 'Account not Found';
+		if ( ! isDisconnecting && ! accountData?.id ) {
+			throw 'Account not found.';
 		}
 
 		// refresh account data after keys are updated in the database
@@ -68,7 +68,7 @@ export function* saveAccountKeys( accountKeys ) {
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			isDisconnecting
 				? __( 'Account disconnected.', 'woocommerce-gateway-stripe' )
-				: __( 'Account keys saved.', 'woocommerce-gateway-stripe' )
+				: __( 'Account connected.', 'woocommerce-gateway-stripe' )
 		);
 	} catch ( e ) {
 		error = e;
@@ -79,7 +79,7 @@ export function* saveAccountKeys( accountKeys ) {
 						'woocommerce-gateway-stripe'
 				  )
 				: __(
-						'Error saving account keys.',
+						'Error connecting account.',
 						'woocommerce-gateway-stripe'
 				  )
 		);
@@ -107,6 +107,57 @@ export function* testAccountKeys( { live, publishable, secret } ) {
 		error = e;
 	} finally {
 		yield updateIsTestingAccountKeys( false );
+	}
+
+	return error === null;
+}
+
+export function updateIsConfiguringWebhooks( isProcessing ) {
+	return {
+		type: ACTION_TYPES.SET_IS_CONFIGURING_WEBHOOKS,
+		isProcessing,
+	};
+}
+
+export function* configureWebhooks( { live, secret } ) {
+	let error = null;
+
+	try {
+		yield updateIsConfiguringWebhooks( true );
+
+		// Send the request to Configure the Webhook.
+		const response = yield apiFetch( {
+			path: `${ NAMESPACE }/account_keys/configure_webhooks`,
+			method: 'POST',
+			data: {
+				live_mode: live,
+				secret,
+			},
+		} );
+
+		const webhookValues = live
+			? {
+					webhook_secret: response.webhookSecret,
+					webhook_url: response.webhookURL,
+			  }
+			: {
+					test_webhook_secret: response.webhookSecret,
+					test_webhook_url: response.webhookURL,
+			  };
+
+		yield updateAccountKeysValues( webhookValues );
+
+		yield dispatch( 'core/notices' ).createSuccessNotice(
+			__(
+				'Webhooks have been setup successfully.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+	} catch ( e ) {
+		error = e;
+		yield dispatch( 'core/notices' ).createErrorNotice( error.message );
+	} finally {
+		yield updateIsConfiguringWebhooks( false );
 	}
 
 	return error === null;

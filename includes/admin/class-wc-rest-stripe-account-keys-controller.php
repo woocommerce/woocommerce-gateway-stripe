@@ -123,6 +123,28 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/configure_webhooks',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'configure_webhooks' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'live_mode'  => [
+						'description'       => __( 'Whether the account is in live mode.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'secret_key' => [
+						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_secret_key' ],
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -243,16 +265,46 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
-			$settings['enabled'] = 'no';
+			$settings['enabled']              = 'no';
+			$settings['connection_type']      = '';
+			$settings['test_connection_type'] = '';
+			$settings['refresh_token']        = '';
+			$settings['test_refresh_token']   = '';
 			$this->record_manual_account_disconnect_track_event( 'yes' === $settings['testmode'] );
 		} else {
 			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
 		}
 
+		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
+		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
+
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+
+		// Disable all payment methods if all keys are different from the current ones
+		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
+			|| $current_account_keys['secret_key'] !== $settings['secret_key']
+			|| $current_account_keys['test_publishable_key'] !== $settings['test_publishable_key']
+			|| $current_account_keys['test_secret_key'] !== $settings['test_secret_key'] ) {
+
+			$is_upe_enabled = 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+			if ( ! $is_upe_enabled ) {
+				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+				foreach ( $payment_gateways as $gateway ) {
+					$gateway->update_option( 'enabled', 'no' );
+				}
+			} else {
+				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+				$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ 'card', 'link' ] );
+
+				// Handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
+				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
+				$multibanco->update_option( 'enabled', 'no' );
+			}
+		}
+
 		$this->account->clear_cache();
 
-		// Gives an instant reply if the connection was succesful or not + rebuild the cache for the next request
+		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();
 
 		return new WP_REST_Response( $account, 200 );
@@ -310,6 +362,94 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Configure webhooks for the Stripe Account.
+	 *
+	 * This will create a webhook endpoint in the Stripe account with the events we need to listen to at the correct URL.
+	 * The webhook secret will be stored in the settings.
+	 *
+	 * @param WP_REST_Request $request Data about the request.
+	 */
+	public function configure_webhooks( WP_REST_Request $request ) {
+		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$environment    = $live_mode ? 'live' : 'test';
+		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+
+		// Prevent users from setting up webhooks too frequently.
+		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Please wait at least 1 minute before trying to configure webhooks again.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
+
+		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
+
+		$settings     = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
+		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
+
+		// If the secret received is masked and it matches the saved secret, use the raw saved secret.
+		if ( $secret === $this->mask_key_value( $saved_secret ) ) {
+			$secret = $saved_secret;
+		}
+
+		try {
+			$response = $this->account->configure_webhooks( $environment, $secret );
+		} catch ( Exception $e ) {
+			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
+		}
+
+		return new WP_REST_Response(
+			[
+				'message'       => __( 'Webhooks have been setup successfully.', 'woocommerce-gateway-stripe' ),
+				'webhookURL'    => rawurlencode( $response->url ),
+				'webhookSecret' => $this->mask_key_value( $response->secret ),
+			]
+		);
+	}
+
+	/**
+	 * Decommissions the configured Webhook if the user is removing their secret key.
+	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
+	 *
+	 * @param array $settings             The current settings.
+	 * @param array $current_account_keys The current account keys.
+	 *
+	 * @return array The updated settings. The webhook data will be removed if the webhook was decommissioned.
+	 */
+	private function decommission_configured_webhook_after_key_update( $settings, $current_account_keys ) {
+		$key_data = [
+			'live' => [
+				'secret_key'     => $settings['secret_key'] ?? '',
+				'webhook_data'   => $settings['webhook_data'] ?? '',
+				'current_secret' => $current_account_keys['secret_key'] ?? '',
+			],
+			'test' => [
+				'secret_key'     => $settings['test_secret_key'] ?? '',
+				'webhook_data'   => $settings['test_webhook_data'] ?? '',
+				'current_secret' => $current_account_keys['test_secret_key'] ?? '',
+			],
+		];
+
+		foreach ( $key_data as $mode => $keys ) {
+			// If there's no webhook ID or secret key, we can skip.
+			if ( empty( $keys['webhook_data'] ) || empty( $keys['current_secret'] ) ) {
+				continue;
+			}
+
+			// If the user is removing or changing their secret key, we should decommission the webhook.
+			if ( empty( $keys['secret_key'] ) || $keys['secret_key'] !== $keys['webhook_data']['secret'] ) {
+				// Set the appropriate secret key to the mode (live vs test) so we can send the request.
+				WC_Stripe_API::set_secret_key( $keys['webhook_data']['secret'] );
+				WC_Stripe_API::request( [], 'webhook_endpoints/' . $keys['webhook_data']['id'], 'DELETE' );
+
+				// Update the webhook settings now that the webhook has been decommissioned.
+				$settings[ 'live' === $mode ? 'webhook_data' : 'test_webhook_data' ]     = [];
+				$settings[ 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret' ] = '';
+			}
+		}
+
+		return $settings;
 	}
 
 	/**

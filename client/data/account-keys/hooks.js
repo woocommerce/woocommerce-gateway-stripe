@@ -9,6 +9,7 @@ export const useAccountKeys = () => {
 		updateIsTestingAccountKeys,
 		updateIsValidAccountKeys,
 		testAccountKeys,
+		configureWebhooks,
 	} = useDispatch( STORE_NAME );
 
 	const accountKeys = useSelect( ( select ) => {
@@ -44,6 +45,12 @@ export const useAccountKeys = () => {
 		return isSavingAccountKeys();
 	}, [] );
 
+	const isConfiguring = useSelect( ( select ) => {
+		const { isConfiguringWebhooks } = select( STORE_NAME );
+
+		return isConfiguringWebhooks();
+	}, [] );
+
 	return {
 		accountKeys,
 		isLoading,
@@ -55,6 +62,8 @@ export const useAccountKeys = () => {
 		updateIsValidAccountKeys,
 		saveAccountKeys,
 		testAccountKeys,
+		configureWebhooks,
+		isConfiguring,
 	};
 };
 
@@ -106,4 +115,12 @@ export const useAccountKeysTestSecretKey = makeAccountKeysValueHook(
 
 export const useAccountKeysTestWebhookSecret = makeAccountKeysValueHook(
 	'test_webhook_secret'
+);
+
+export const useAccountKeysTestWebhookURL = makeAccountKeysValueHook(
+	'test_webhook_url'
+);
+
+export const useAccountKeysWebhookURL = makeAccountKeysValueHook(
+	'webhook_url'
 );

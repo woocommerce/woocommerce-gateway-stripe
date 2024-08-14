@@ -158,8 +158,8 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
 		$this->upe_helper->enable_upe_feature_flag();
 
-		// Enable giropay and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
+		// Enable Alipay and iDEAL LPM gateways.
+		update_option( 'woocommerce_stripe_alipay_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
 
@@ -170,12 +170,12 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
 		$this->assertNotContains( 'card', $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( 'giropay', $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( 'alipay', $stripe_settings['upe_checkout_experience_accepted_payments'] );
 		$this->assertContains( 'ideal', $stripe_settings['upe_checkout_experience_accepted_payments'] );
 
-		// Make sure the giropay and iDEAL LPMs were disabled.
-		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-		$this->assertEquals( 'no', $giropay_settings['enabled'] );
+		// Make sure the Alipay and iDEAL LPMs were disabled.
+		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );
+		$this->assertEquals( 'no', $alipay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
 		$this->assertEquals( 'no', $ideal_settings['enabled'] );
 
@@ -191,8 +191,8 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		// Check that the correct LPMs were re-enabled.
-		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-		$this->assertEquals( 'yes', $giropay_settings['enabled'] );
+		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );
+		$this->assertEquals( 'yes', $alipay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
 		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
 		$eps_settings = get_option( 'woocommerce_stripe_eps_settings' );

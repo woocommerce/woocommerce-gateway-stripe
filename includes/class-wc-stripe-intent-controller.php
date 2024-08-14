@@ -34,6 +34,8 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
+
+		add_action( 'wc_ajax_wc_stripe_confirm_change_payment', [ $this, 'confirm_change_payment_from_setup_intent_ajax' ] );
 	}
 
 	/**
@@ -126,11 +128,23 @@ class WC_Stripe_Intent_Controller {
 			if ( isset( $_GET['save_payment_method'] ) && ! empty( $_GET['save_payment_method'] ) ) {
 				$intent = $gateway->get_intent_from_order( $order );
 				if ( isset( $intent->last_payment_error ) ) {
+					$last_payment_error = $intent->last_payment_error;
+					$source_id          = '';
+
+					// Backwards compatibility for payment intents that use sources.
+					if ( isset( $last_payment_error->payment_method->id ) ) {
+						$source_id = $last_payment_error->payment_method->id;
+					} elseif ( isset( $last_payment_error->source->id ) ) {
+						$source_id = $last_payment_error->source->id;
+					}
+
 					// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
 					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
 					// in order to keep the sources in sync with the data in DB.
-					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-					$customer->delete_source( $intent->last_payment_error->source->id );
+					if ( ! empty( $source_id ) ) {
+						$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+						$customer->delete_source( $source_id );
+					}
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
@@ -232,6 +246,7 @@ class WC_Stripe_Intent_Controller {
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
+					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
 			);
@@ -643,8 +658,8 @@ class WC_Stripe_Intent_Controller {
 
 				// Use the last charge within the intent to proceed.
 				$gateway = $this->get_gateway();
-				if ( isset( $intent->charges ) && ! empty( $intent->charges->data ) ) {
-					$charge = end( $intent->charges->data );
+				$charge  = $gateway->get_latest_charge_from_intent( $intent );
+				if ( ! empty( $charge ) ) {
 					$gateway->process_response( $charge, $order );
 				} else {
 					// TODO: Add implementation for setup intents.
@@ -730,7 +745,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
@@ -809,16 +824,6 @@ class WC_Stripe_Intent_Controller {
 		$this->validate_payment_intent_required_params( $required_params, [], $instance_params, $payment_information );
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
-
-		// Add the updated preferred credit card brand when defined
-		$preferred_brand = $payment_information['payment_method_details']->card->networks->preferred ?? null;
-		if ( isset( $preferred_brand ) ) {
-			$request['payment_method_options'] = [
-				'card' => [
-					'brand' => $preferred_brand,
-				],
-			];
-		}
 
 		$order = $payment_information['order'];
 
@@ -902,6 +907,7 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
@@ -910,7 +916,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -929,16 +935,21 @@ class WC_Stripe_Intent_Controller {
 	 * Determines if mandate data is required for deferred intent UPE payment.
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
-	 * This applies to SEPA and Link payment methods.
+	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
-	 * @param string $selected_payment_type The name of the selected UPE payment type.
+	 * @param string $selected_payment_type         The name of the selected UPE payment type.
+	 * @param bool   $is_using_saved_payment_method Option. True if the customer is using a saved payment method, false otherwise.
 	 *
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
-	public function is_mandate_data_required( $selected_payment_type ) {
+	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort' ], true ) ) {
+		if ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
+			return false;
+		}
+
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp', 'link' ], true ) ) {
 			return true;
 		}
 
@@ -957,7 +968,7 @@ class WC_Stripe_Intent_Controller {
 	public function create_and_confirm_setup_intent( $payment_information ) {
 		$request = [
 			'payment_method'       => $payment_information['payment_method'],
-			'payment_method_types' => [ $payment_information['selected_payment_type'] ],
+			'payment_method_types' => $payment_information['payment_method_types'] ?? [ $payment_information['selected_payment_type'] ],
 			'customer'             => $payment_information['customer'],
 			'confirm'              => 'true',
 			'return_url'           => $payment_information['return_url'],
@@ -1028,6 +1039,8 @@ class WC_Stripe_Intent_Controller {
 					'id'            => $setup_intent->id,
 					'client_secret' => $setup_intent->client_secret,
 					'next_action'   => $setup_intent->next_action,
+					'payment_type'  => $payment_type,
+					'return_url'    => rawurlencode( $payment_information['return_url'] ),
 				],
 				200
 			);
@@ -1035,6 +1048,60 @@ class WC_Stripe_Intent_Controller {
 			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
 
 			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getLocalizesdMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Confirms the change payment method request for a subscription.
+	 *
+	 * This creates the payment method token from the setup intent.
+	 *
+	 * This function is used to confirm the change payment method request for a subscription after the user has been asked to authenticate their payment (eg 3D-Secure).
+	 * It is initiated from the subscription change payment method page.
+	 */
+	public function confirm_change_payment_from_setup_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! function_exists( 'wcs_is_subscription' ) ) {
+				throw new WC_Stripe_Exception( 'subscriptions_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$subscription_id = absint( $_POST['order_id'] ?? false );
+			$subscription    = $subscription_id ? wcs_get_subscription( $subscription_id ) : false;
+
+			if ( ! $subscription ) {
+				throw new WC_Stripe_Exception( 'subscription_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$setup_intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+
+			if ( empty( $setup_intent_id ) ) {
+				throw new WC_Stripe_Exception( 'intent_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$gateway = $this->get_upe_gateway();
+			$gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+
+			wp_send_json_success(
+				[
+					'return_url' => $subscription->get_view_order_url(),
+				],
+				200
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Change subscription payment method error: ' . $e->getMessage() );
 			wp_send_json_error(
 				[
 					'error' => [
@@ -1051,16 +1118,16 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
-	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto or Oxxo. False otherwise.
+	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco' ] );
 	}
 
 	/**
 	 * Determines whether the intent needs to be confirmed later.
 	 *
-	 * Some payment methods such as Boleto and Oxxo require the payment to be confirmed later when
+	 * Some payment methods such as Boleto, Oxxo and Multibanco require the payment to be confirmed later when
 	 * displaying the voucher to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
@@ -1068,7 +1135,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true );
+		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true ) || in_array( 'multibanco', $payment_methods, true );
 	}
 
 	/**

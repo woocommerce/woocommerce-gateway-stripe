@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "8.3.0",
+  "version": "8.6.1",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -39,6 +39,7 @@
     "@wordpress/i18n": "^4.2.1",
     "@wordpress/icons": "^5.0.1",
     "@wordpress/jest-preset-default": "^7.1.0",
+    "@wordpress/notices": "^1.12.0",
     "@wordpress/primitives": "^3.0.0",
     "@wordpress/scripts": "^13.0.2",
     "@wordpress/url": "^3.2.1",
@@ -127,7 +128,7 @@
     "down": "docker-compose down",
     "xdebug:start": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "xdebug:stop": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
-    "wp": "docker run -it --env-file default.env --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
+    "wp": "docker run -it --env-file default.env --rm --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
     "listen": "stripe listen --forward-to 'http://localhost:8082/?wc-api=wc_stripe'",
     "presass": "rm -f $npm_package_config_assets_styles_css",
     "sass": "node_modules/.bin/sass $npm_package_config_assets_styles_cssfolder:$npm_package_config_assets_styles_cssfolder --style compressed",
@@ -151,8 +152,10 @@
     "test:e2e-up": "./tests/e2e/bin/up.sh",
     "test:e2e-down": "./tests/e2e/bin/down.sh",
     "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
-    "test:e2e": "./tests/e2e/bin/run-tests.sh",
-    "test:e2e-debug": "npm run test:e2e -- --debug"
+    "test:e2e": "./tests/e2e/bin/run-tests.sh --project=default",
+    "test:e2e-debug": "npm run test:e2e -- --debug",
+    "test:e2e-legacy": "./tests/e2e/bin/run-tests.sh --project=legacy",
+    "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug"
   },
   "engines": {
     "node": ">=16.17.0",

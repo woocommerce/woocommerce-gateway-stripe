@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use Automattic\WooCommerce\Utilities\OrderUtil;
-
 /**
  * Provides static methods as helpers.
  *
@@ -231,6 +229,7 @@ class WC_Stripe_Helper {
 				'amount_too_small'         => __( 'The order total is too low for this payment method', 'woocommerce-gateway-stripe' ),
 				'country_code_invalid'     => __( 'Invalid country code, please try again with a valid country code', 'woocommerce-gateway-stripe' ),
 				'tax_id_invalid'           => __( 'Invalid Tax Id, please try again with a valid tax id', 'woocommerce-gateway-stripe' ),
+				'invalid_wallet_type'      => __( 'Invalid wallet payment type, please try again or use an alternative method.', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}
@@ -407,10 +406,17 @@ class WC_Stripe_Helper {
 			return self::$stripe_legacy_gateways;
 		}
 
-		$payment_method_classes = self::get_legacy_payment_method_classes();
+		$payment_gateways        = WC()->payment_gateways()->payment_gateways();
+		$payment_gateway_classes = array_map( 'get_class', $payment_gateways );
 
-		foreach ( $payment_method_classes as $payment_method_class ) {
-			$payment_method = new $payment_method_class();
+		foreach ( self::get_legacy_payment_method_classes() as $payment_method_class ) {
+			// If the payment method is already registered, use it, otherwise create a new instance.
+			if ( in_array( $payment_method_class, $payment_gateway_classes, true ) ) {
+				$gateway_id     = array_search( $payment_method_class, $payment_gateway_classes, true );
+				$payment_method = $payment_gateways[ $gateway_id ];
+			} else {
+				$payment_method = new $payment_method_class();
+			}
 
 			self::$stripe_legacy_gateways[ $payment_method->id ] = $payment_method;
 		}
@@ -534,7 +540,7 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Get settings of individual payment methods.
+	 * Get settings of individual legacy payment methods.
 	 *
 	 * @return array
 	 */
@@ -569,23 +575,138 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the list of payment methods for the settings page when UPE is enabled. The list includes
-	 * all the UPE methods and Multibanco.
+	 * Get settings of individual upe payment methods.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return array
+	 */
+	public static function get_upe_individual_payment_method_settings( $gateway ) {
+		$available_gateways = $gateway->get_upe_available_payment_methods();
+
+		foreach ( $available_gateways as $gateway ) {
+			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
+
+			$settings = [
+				'name'        => isset( $individual_gateway_settings['title'] ) ? $individual_gateway_settings['title'] : '',
+				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
+			];
+
+			if ( in_array( $gateway, [ 'boleto' ], true ) ) {
+				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
+			}
+
+			$payment_method_settings[ $gateway ] = $settings;
+		}
+
+		// If card settings are not set, get it from the default Stripe settings which might be set before enabling UPE.
+		if ( ! isset( $payment_method_settings['card']['title'] ) && ! isset( $payment_method_settings['card']['description'] ) ) {
+			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+			$title           = isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '';
+			$description     = isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '';
+
+			$payment_method_settings['card'] = [
+				'name'        => $title,
+				'description' => $description,
+			];
+			// Save the title and description to the card settings option.
+			update_option(
+				'woocommerce_stripe_card_settings',
+				[
+					'title'       => $title,
+					'description' => $description,
+				]
+			);
+		}
+
+		return $payment_method_settings;
+	}
+
+	/**
+	 * Returns the list of ordered payment methods for the settings page when UPE is enabled.
+	 * It returns the order saved in the `stripe_upe_payment_method_order` option in Stripe settings.
+	 * If the `stripe_upe_payment_method_order` option is not set, it returns the default order of available gateways.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
 	 */
-	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
-		$available_gateways = $gateway->get_upe_available_payment_methods();
-		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
-		$available_gateways[] = 'multibanco';
+	public static function get_upe_ordered_payment_method_ids( $gateway ) {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
-		return $available_gateways;
+		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
+		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
+			$ordered_payment_method_ids = array_map(
+				function( $payment_method_id ) {
+					if ( 'stripe' === $payment_method_id ) {
+						return 'card';
+					} elseif ( 'stripe_sepa' === $payment_method_id ) {
+						return 'sepa_debit';
+					}
+					return str_replace( 'stripe_', '', $payment_method_id );
+				},
+				$stripe_settings['stripe_legacy_method_order']
+			);
+
+		}
+
+		// The `stripe_upe_payment_method_order` option has the order of the UPE methods set by the user.
+		// This list is filtered on the basis of the capabilities set in the Stripe account data on the frontend before saving.
+		// If the list is empty or we have any new available payment methods, we need to update the list by including the available payment methods having capabilities.
+		$available_methods_with_capability = self::filter_payment_methods_with_capabilities( $gateway->get_upe_available_payment_methods(), $testmode );
+
+		$ordered_payment_method_ids_with_capability = array_filter(
+			$ordered_payment_method_ids,
+			function( $payment_method_id ) use ( $available_methods_with_capability ) {
+				return in_array( $payment_method_id, $available_methods_with_capability, true );
+			}
+		);
+
+		if ( count( $ordered_payment_method_ids_with_capability ) === count( $available_methods_with_capability ) ) {
+			return $ordered_payment_method_ids_with_capability;
+		}
+
+		// Update the `stripe_upe_payment_method_order` option with the new order including rest of the available methods with capabilities.
+		$additional_methods = array_diff( $available_methods_with_capability, $ordered_payment_method_ids_with_capability );
+		$updated_order      = array_merge( $ordered_payment_method_ids_with_capability, $additional_methods );
+
+		$stripe_settings['stripe_upe_payment_method_order'] = $updated_order;
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		return $updated_order;
 	}
 
 	/**
-	 * Returns the list of enabled payment methods for the settings page when UPE is enabled. The list includes
-	 * the UPE methods and Multibanco if it's enabled.
+	 * Returns the list of payment methods that have capabilities set in the Stripe account data.
+	 *
+	 * @param string[] $payment_method_ids Payment method ids to filter by capabilities.
+	 * @param bool     $testmode Whether stripe is in test mode.
+	 * @return string[]
+	 */
+	public static function filter_payment_methods_with_capabilities( $payment_method_ids, $testmode ) {
+		$account = WC_Stripe::get_instance()->account;
+		$data    = $account->get_cached_account_data();
+
+		// return empty array if capabilities are not set.
+		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
+			return [];
+		}
+
+		$payment_method_ids_with_capability = [];
+
+		foreach ( $payment_method_ids as $payment_method_id ) {
+			$key            = $payment_method_id . '_payments';
+			$has_capability = isset( $data['capabilities'][ $key ] );
+			if ( $has_capability || $testmode ) {
+				$payment_method_ids_with_capability[] = $payment_method_id;
+			}
+		}
+
+		return $payment_method_ids_with_capability;
+	}
+
+	/**
+	 * Returns the list of enabled payment methods for the settings page when UPE is enabled.
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return string[]
@@ -593,14 +714,65 @@ class WC_Stripe_Helper {
 	public static function get_upe_settings_enabled_payment_method_ids( $gateway ) {
 		$enabled_gateways = $gateway->get_upe_enabled_payment_method_ids();
 
-		// Multibanco is a non UPE method that uses Stripe sources. Adding to the list if it's enabled
-		// to show it in the Stripe settings page.
-		$multibanco = self::get_legacy_payment_method( 'stripe_multibanco' );
-		if ( $multibanco->is_enabled() ) {
-			$enabled_gateways[] = 'multibanco';
+		return $enabled_gateways;
+	}
+
+	/**
+	 * Reorders the list of available payment gateways in 'woocommerce_gateway_order' option to include the Stripe methods
+	 * in the order merchants have chosen in the settings.
+	 *
+	 * @param array $ordered_payment_method_ids Ordered Stripe payment method list.
+	 */
+	public static function add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids = [] ) {
+		// If the ordered payment method ids are not passed, get them from the relevant settings.
+		if ( empty( $ordered_payment_method_ids ) ) {
+			$is_upe_enabled  = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+			$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+
+			if ( $is_upe_enabled ) {
+				$ordered_payment_method_ids = $stripe_settings['stripe_upe_payment_method_order'] ?? [];
+			} else {
+				$ordered_payment_method_ids = $stripe_settings['stripe_legacy_method_order'] ?? [];
+			}
+
+			if ( empty( $ordered_payment_method_ids ) ) {
+				return;
+			}
 		}
 
-		return $enabled_gateways;
+		$gateway_order = get_option( 'woocommerce_gateway_order' );
+
+		$ordered_available_stripe_methods = [];
+		// Map the Stripe payment method list to the right format to save in the 'woocommerce_gateway_order' option.
+		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
+			$gateway_id = 0 === strpos( $payment_method_id, 'stripe' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
+
+			if ( 'card' === $payment_method_id ) {
+				$gateway_id = 'stripe';
+			}
+
+			$ordered_available_stripe_methods[] = $gateway_id;
+		}
+
+		$updated_gateway_order = [];
+		$index                 = 0;
+		// Add the Stripe methods back in the right order and assign all the payment methods the updated order index.
+		foreach ( $gateway_order as $gateway => $order ) {
+			if ( 0 === strpos( $gateway, 'stripe_' ) ) {
+				continue; // Skip the other stripe gateways. We'll add all Stripe methods back in the right order.
+			} elseif ( 'stripe' === $gateway ) {
+				unset( $gateway_order['stripe'] );
+				// When the main Stripe gateway is found in the option, add all the Stripe methods in the right order starting from this index.
+				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
+					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
+				}
+			} else {
+				// Add the rest of the gateways.
+				$updated_gateway_order[ $gateway ] = (string) $index++;
+			}
+		}
+
+		update_option( 'woocommerce_gateway_order', $updated_gateway_order );
 	}
 
 	/**
@@ -641,7 +813,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -679,7 +851,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'transaction_id' => $charge_id,
@@ -707,7 +879,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_refund_id( $refund_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -741,7 +913,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -779,7 +951,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -1264,5 +1436,50 @@ class WC_Stripe_Helper {
 	 */
 	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
 		return in_array( $payment_method_id, [ 'stripe', 'stripe_affirm', 'stripe_klarna', 'stripe_afterpay_clearpay' ], true );
+	}
+
+	/**
+	 * Verifies if the provided order contains the identifier for a wallet method.
+	 *
+	 * @param WC_Order $order The order.
+	 * @return bool
+	 */
+	public static function is_wallet_payment_method( $order ) {
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
+	}
+
+	/**
+	 * Checks if a given URL matches the current site's Webhook URL.
+	 *
+	 * This function ignores trailing slashes and compares the host and path of the URLs.
+	 * The protocol is not compared.
+	 *
+	 * @param string $url         The URL to check.
+	 * @param string $webhook_url The webhook URL to compare against.
+	 *
+	 * @return bool Whether the URL is a webhook URL.
+	 */
+	public static function is_webhook_url( $url, $webhook_url = '' ) {
+		if ( empty( $webhook_url ) ) {
+			$webhook_url = self::get_webhook_url();
+		}
+
+		$url         = untrailingslashit( trim( strtolower( $url ) ) );
+		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+
+		// If the URLs are the exact same, no need to compare further.
+		if ( $url === $webhook_url ) {
+			return true;
+		}
+
+		$webhook_url_parts = wp_parse_url( $url );
+		$url_parts         = wp_parse_url( $webhook_url );
+
+		$url_host     = $url_parts['host'] ?? '';
+		$url_path     = $url_parts['path'] ?? '';
+		$webhook_host = $webhook_url_parts['host'] ?? '';
+		$webhook_path = $webhook_url_parts['path'] ?? '';
+
+		return $url_host === $webhook_host && $url_path === $webhook_path;
 	}
 }
