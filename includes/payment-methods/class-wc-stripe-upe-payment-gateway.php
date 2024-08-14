@@ -801,12 +801,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
-				$this->validate_minimum_order_amount( $order );
+				$this->validate_minimum_order_amount($order);
 
-				$this->lock_order_payment( $order );
+				$this->lock_order_payment($order);
 				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( ! ( $payment_information['is_using_saved_payment_method'] && 'cashapp' === $selected_payment_type ) ) {
+				$payment_intent = $this->process_payment_intent_for_order($order, $payment_information);
+			} elseif ( $payment_information['is_using_saved_payment_method'] && 'cashapp' === $selected_payment_type ) {
+				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
+				$this->maybe_update_source_on_subscription_order(
+					$order,
+					(object) [
+						'payment_method' => $payment_information['payment_method'],
+						'customer'       => $payment_information['customer'],
+					],
+					$this->get_upe_gateway_id_for_order( $upe_payment_method )
+				);
+				$order->payment_complete();
+
+				return [
+					'result'   => 'success',
+					'redirect' => $this->get_return_url( $order ),
+				];
+			} else {
 				// Create a setup intent, or update an existing one associated with the order.
 				// If the payment method is Cash App Pay and the order has no cost, skip this step.
 				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
@@ -829,16 +845,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					],
 					$this->get_upe_gateway_id_for_order( $upe_payment_method )
 				);
-
-				// If the payment method is Cash App Pay and the order has no cost, mark the order as paid.
-				if ( ! $payment_needed && 'cashapp' === $selected_payment_type ) {
-					$order->payment_complete();
-
-					return [
-						'result'   => 'success',
-						'redirect' => $this->get_return_url( $order ),
-					];
-				}
 			}
 
 			// Set the selected UPE payment method type title in the WC order.
