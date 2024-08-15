@@ -12,10 +12,6 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
 import './styles.scss';
 
-const StyledCard = styled( Card )`
-	margin-bottom: 12px;
-`;
-
 const AccountRefreshingOverlay = styled.div`
 	position: relative;
 	&.has-overlay {
@@ -55,7 +51,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 				isUpeEnabled={ isUpeEnabled }
 				setIsUpeEnabled={ setIsUpeEnabled }
 			/>
-			<StyledCard>
+			<Card>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
 						isChangingDisplayOrder={ isChangingDisplayOrder }
@@ -81,7 +77,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
-			</StyledCard>
+			</Card>
 		</>
 	);
 };
