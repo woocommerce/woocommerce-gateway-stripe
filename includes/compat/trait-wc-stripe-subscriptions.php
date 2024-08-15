@@ -597,34 +597,40 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
-		// TODO: maybe this isn't necessary since this function should really only be called
-		//       when creating the intent? It's called in process_subscription_payment though
-		//       so it's probably needed here too?
-		// If we've already created a mandate for this order; use that.
-		$mandate = $order->get_meta( '_stripe_mandate_id', true );
-		if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
-			$request['mandate'] = $mandate;
-			unset( $request['setup_future_usage'] );
-			return $request;
-		}
-
-		$subscriptions_for_renewal_order = wcs_get_subscriptions_for_renewal_order( $order );
-
-		// Check if mandate already exists.
-		if ( 1 === count( $subscriptions_for_renewal_order ) ) {
-			$subscription_order = reset( $subscriptions_for_renewal_order );
-			$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
-
-			if ( ! empty( $mandate ) ) {
-				$request['confirm'] = 'true';
+		// Check if this is not a subscription switch. When switching we will force the creation of mandates to update the amount
+		if ( $cart_item['subscription_switch'] ) {
+			$subscriptions = []; // @todo Add the current subscription + the switch subscription.
+		} else {
+			// TODO: maybe this isn't necessary since this function should really only be called
+			//       when creating the intent? It's called in process_subscription_payment though
+			//       so it's probably needed here too?
+			// If we've already created a mandate for this order; use that.
+			$mandate = $order->get_meta( '_stripe_mandate_id', true );
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				unset( $request['setup_future_usage'] );
 				return $request;
 			}
+
+			// Get the renewal subscriptions for the order.
+			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order );
+
+			// Check if mandate already exists.
+			if ( 1 === count( $subscriptions ) ) {
+				$subscription_order = reset( $subscriptions );
+				$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
+
+				if ( ! empty( $mandate ) ) {
+					$request['confirm'] = 'true';
+					$request['mandate'] = $mandate;
+					unset( $request['setup_future_usage'] );
+					return $request;
+				}
+			}
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
-		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
 		}
@@ -665,7 +671,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Create mandate options for a subscription order to be added to the payment intent request.
 	 *
 	 * @param WC_Order $order The renewal order.
-	 * @param WC_Order $subscriptions Subscriptions for the renewal order.
+	 * @param WC_Subscription[] $subscriptions List of order subscriptions.
 	 * @return array the mandate_options for the subscription order.
 	 */
 	private function create_mandate_options_for_order( $order, $subscriptions ) {
