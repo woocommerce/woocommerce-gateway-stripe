@@ -597,6 +597,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
+		$subscriptions_for_renewal_order = [];
+
 		// Check if this is not a subscription switch. When switching we will force the creation of mandates to update the amount
 		if ( ! WC_Subscriptions_Switcher::cart_contains_switches() ) {
 			// TODO: maybe this isn't necessary since this function should really only be called
@@ -610,12 +612,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				return $request;
 			}
 
-			// Get the renewal subscriptions for the order.
-			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order );
+			$subscriptions_for_renewal_order = wcs_get_subscriptions_for_renewal_order( $order );
 
 			// Check if mandate already exists.
-			if ( 1 === count( $subscriptions ) ) {
-				$subscription_order = reset( $subscriptions );
+			if ( 1 === count( $subscriptions_for_renewal_order ) ) {
+				$subscription_order = reset( $subscriptions_for_renewal_order );
 				$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
 
 				if ( ! empty( $mandate ) ) {
@@ -628,7 +629,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
-		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions );
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
 		}
@@ -669,7 +670,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Create mandate options for a subscription order to be added to the payment intent request.
 	 *
 	 * @param WC_Order $order The renewal order.
-	 * @param WC_Subscription[] $subscriptions List of order subscriptions.
+	 * @param WC_Subscription[] $subscriptions Subscriptions for the renewal order.
 	 * @return array the mandate_options for the subscription order.
 	 */
 	private function create_mandate_options_for_order( $order, $subscriptions ) {
