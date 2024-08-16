@@ -397,7 +397,7 @@ class WC_Stripe_Helper {
 			return $all_settings;
 		}
 
-		return $all_settings[$setting] ?? '';
+		return $all_settings[ $setting ] ?? '';
 	}
 
 	/**
