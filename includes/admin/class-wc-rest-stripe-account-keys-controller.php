@@ -13,7 +13,11 @@ defined( 'ABSPATH' ) || exit;
  * @since 5.6.0
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
-	/** @var string Keeping this constant to avoid issues with custom code. Not used on the extension itself anymore. */
+	/**
+	 * The option name for the Stripe gateway settings.
+	 *
+	 * @deprecated 8.7.0
+	 */
 	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**

@@ -10,7 +10,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	 */
 	class WC_Stripe_Connect {
 
-		/** @var string Keeping this constant to avoid issues with custom code. Not used on the extension itself anymore. */
+		/**
+		 * The option name for the Stripe gateway settings.
+		 *
+		 * @deprecated 8.7.0
+		 */
 		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
 
 		/**
