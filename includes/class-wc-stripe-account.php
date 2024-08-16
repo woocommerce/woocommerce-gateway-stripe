@@ -324,6 +324,9 @@ class WC_Stripe_Account {
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		// After reconfiguring webhooks, clear the webhook state.
+		WC_Stripe_Webhook_State::clear_state();
+
 		return $response;
 	}
 
