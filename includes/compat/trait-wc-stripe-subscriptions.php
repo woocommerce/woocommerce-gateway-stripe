@@ -598,9 +598,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Check if this is not a subscription switch. When switching we will force the creation of mandates to update the amount
-		if ( $cart_item['subscription_switch'] ) {
-			$subscriptions = []; // @todo Add the current subscription + the switch subscription.
-		} else {
+		if ( ! WC_Subscriptions_Switcher::cart_contains_switches() ) {
 			// TODO: maybe this isn't necessary since this function should really only be called
 			//       when creating the intent? It's called in process_subscription_payment though
 			//       so it's probably needed here too?
@@ -683,19 +681,40 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		// If this is the first order, not a renewal, then get the subscriptions for the parent order.
-		if ( empty( $subscriptions ) ) {
-			$subscriptions = wcs_get_subscriptions_for_order( $order );
-		}
-
-		// If there are no subscriptions we just return since mandates aren't required.
-		if ( 0 === count( $subscriptions ) ) {
-			return [];
-		}
-
 		$sub_amount = 0;
-		foreach ( $subscriptions as $sub ) {
-			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
+
+		// If this is a switch order we set the mandate options based on the new subscription.
+		$cart_contain_switches = WC_Subscriptions_Switcher::cart_contains_switches();
+		if ( $cart_contain_switches ) {
+			foreach ( WC()->cart->cart_contents as $cart_item ) {
+				$sub_amount += (int) WC_Subscriptions_Product::get_price( $cart_item['data'] );
+			}
+
+			// Get the first cart item associated with this order.
+			$cart_item = reset( WC()->cart->cart_contents );
+
+			$sub_billing_period   = WC_Subscriptions_Product::get_period( $cart_item['data'] );
+			$sub_billing_interval = absint( WC_Subscriptions_Product::get_interval( $cart_item['data'] ) );
+		} else {
+			// If this is the first order, not a renewal, then get the subscriptions for the parent order.
+			if ( empty( $subscriptions ) ) {
+				$subscriptions = wcs_get_subscriptions_for_order( $order );
+			}
+
+			// If there are no subscriptions we just return since mandates aren't required.
+			if ( 0 === count( $subscriptions ) ) {
+				return [];
+			}
+
+			foreach ( $subscriptions as $sub ) {
+				$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
+			}
+
+			// Get the first subscription associated with this order.
+			$sub = reset( $subscriptions );
+
+			$sub_billing_period = strtolower( $sub->get_billing_period() );
+			$sub_billing_interval = $sub->get_billing_interval();
 		}
 
 		// If the amount is 0 we don't need to create a mandate since we won't be charging anything.
@@ -704,13 +723,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		// Get the first subscription associated with this order.
-		$sub = reset( $subscriptions );
-
-		if ( 1 === count( $subscriptions ) ) {
+		if ( 1 === count( $subscriptions ) || $cart_contain_switches ) {
 			$mandate_options['amount_type']    = 'fixed';
-			$mandate_options['interval']       = strtolower( $sub->get_billing_period() );
-			$mandate_options['interval_count'] = $sub->get_billing_interval();
+			$mandate_options['interval']       = $sub_billing_period;
+			$mandate_options['interval_count'] = $sub_billing_interval;
 		} else {
 			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
 			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
