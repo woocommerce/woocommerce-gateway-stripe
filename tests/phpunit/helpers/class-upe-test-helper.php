@@ -32,7 +32,7 @@ class UPE_Test_Helper {
 	}
 
 	public function enable_upe() {
-		$settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 	}

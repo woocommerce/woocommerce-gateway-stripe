@@ -46,7 +46,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->webhook_secret = 'whsec_123';
 
 		// Resets settings.
-		$stripe_settings                        = WC_Stripe_Helper::get_main_stripe_settings();
+		$stripe_settings                        = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
 		unset( $stripe_settings['testmode'] );
@@ -74,7 +74,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function cleanup_webhook_secret() {
-		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -104,7 +104,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function set_testmode( $testmode = 'yes' ) {
-		$stripe_settings             = WC_Stripe_Helper::get_main_stripe_settings();
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $testmode;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}

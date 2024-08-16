@@ -72,7 +72,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
-		$settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );

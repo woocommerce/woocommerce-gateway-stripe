@@ -92,7 +92,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		);
 
 		$stripe_settings = array_merge(
-			WC_Stripe_Helper::get_main_stripe_settings(),
+			WC_Stripe_Helper::get_stripe_settings(),
 			[
 				'upe_checkout_experience_accepted_payments' => [
 					'giropay',

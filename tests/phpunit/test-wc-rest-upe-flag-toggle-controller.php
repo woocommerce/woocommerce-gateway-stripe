@@ -33,7 +33,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 1 );
 
 		// Disable UPE.
-		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -61,7 +61,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( $expected, $response->get_data() );
 
-		$settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'yes', $settings['upe_checkout_experience_enabled'] );
 	}
@@ -78,7 +78,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( $expected, $response->get_data() );
 
-		$settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'disabled', $settings['upe_checkout_experience_enabled'] );
 	}

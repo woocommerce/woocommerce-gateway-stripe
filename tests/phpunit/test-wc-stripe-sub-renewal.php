@@ -49,7 +49,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
-		$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// Disable UPE.
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		// Set statement descriptor.

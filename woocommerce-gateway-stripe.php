@@ -359,7 +359,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.5.0
 			 */
 			public function update_prb_location_settings() {
-				$stripe_settings = WC_Stripe_Helper::get_main_stripe_settings();
+				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
 					? $stripe_settings['payment_request_button_locations']
 					: [];

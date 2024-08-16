@@ -454,7 +454,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$settings = WC_Stripe_Helper::get_main_stripe_settings();
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 

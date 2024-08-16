@@ -196,7 +196,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		WC_Stripe_Helper::update_main_stripe_settings(
 			array_merge(
-				WC_Stripe_Helper::get_main_stripe_settings(),
+				WC_Stripe_Helper::get_stripe_settings(),
 				[
 					'upe_checkout_experience_accepted_payments' => [ 'link' ],
 				]
@@ -219,7 +219,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		// Disable Link by Stripe
 		WC_Stripe_Helper::update_main_stripe_settings(
 			array_merge(
-				WC_Stripe_Helper::get_main_stripe_settings(),
+				WC_Stripe_Helper::get_stripe_settings(),
 				[
 					'upe_checkout_experience_accepted_payments' => [ 'card' ],
 				]
