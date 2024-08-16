@@ -9,6 +9,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	 * Stripe Connect class.
 	 */
 	class WC_Stripe_Connect {
+
+		/** @var string Keeping this constant to avoid issues with custom code. Not used on the extension itself anymore. */
+		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+
 		/**
 		 * Stripe connect api.
 		 *

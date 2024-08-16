@@ -84,6 +84,9 @@ function woocommerce_gateway_stripe() {
 
 		class WC_Stripe {
 
+			/** @var string Keeping this constant to avoid issues with custom code. Not used on the extension itself anymore. */
+			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+
 			/**
 			 * The *Singleton* instance of this class
 			 *
