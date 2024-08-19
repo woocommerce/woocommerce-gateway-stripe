@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.7.0 - xxxx-xx-xx =
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
+* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
 * Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
 * Add - Log incoming webhook events and their request body.
