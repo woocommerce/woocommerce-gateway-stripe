@@ -77,7 +77,7 @@ class WC_Stripe_Settings_Controller {
 				echo '<style>.button.refund-items { display: none; }</style>';
 				echo '<span class="button button-disabled">' . $no_refunds_button . wc_help_tip( $no_refunds_tooltip ) . '</span>';
 			}
-		} catch ( WC_Stripe_Exception $e ) {
+		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
 		}
 	}
