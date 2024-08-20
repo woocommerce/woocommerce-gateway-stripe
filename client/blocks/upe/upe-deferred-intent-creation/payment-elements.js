@@ -1,6 +1,7 @@
 /**
  * Internal dependencies
  */
+import { useState, useEffect } from '@wordpress/element';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';
 import WCStripeAPI from 'wcstripe/api';
@@ -20,6 +21,25 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
  * @return {JSX.Element} Rendered Payment elements.
  */
 const PaymentElements = ( { api, ...props } ) => {
+	// If this script is running in the customizer preview pane, wait for wc_stripe_upe_params to be defined on the window before rendering
+	const customizerIsRunning = wp.customize !== undefined;
+	const [ upeParamsReady, setUpeParamsReady ] = useState(
+		! customizerIsRunning
+	);
+	useEffect( () => {
+		if ( ! customizerIsRunning ) return;
+		const ready = new Promise( ( resolve ) => {
+			const interval = setInterval( () => {
+				if ( window.wc_stripe_upe_params !== undefined ) {
+					clearInterval( interval );
+					resolve();
+				}
+			}, 10 );
+		} );
+		ready.then( () => setUpeParamsReady( true ) );
+	}, [ customizerIsRunning ] );
+	if ( ! upeParamsReady ) return <div />;
+
 	const stripe = api.getStripe();
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
 	const currency = getBlocksConfiguration()?.currency.toLowerCase();
