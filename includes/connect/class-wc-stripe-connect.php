@@ -173,7 +173,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
-			WC_Stripe_Helper::set_stripe_settings( $options );
+			WC_Stripe_Helper::update_main_stripe_settings( $options );
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
