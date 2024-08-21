@@ -567,6 +567,10 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
+		if ( ! WC_Stripe_API::should_detach_payment_method_from_customer() ) {
+			return false;
+		}
+
 		$response = WC_Stripe_API::request( [], "payment_methods/$payment_method_id/detach", 'POST' );
 
 		$this->clear_cache();
