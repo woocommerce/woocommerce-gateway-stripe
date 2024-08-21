@@ -134,6 +134,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
 * Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
