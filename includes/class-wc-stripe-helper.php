@@ -730,7 +730,7 @@ class WC_Stripe_Helper {
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
 			$key            = $payment_method_id . '_payments';
-			$has_capability = isset( $data['capabilities'][ $key ] );
+			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] );
 			if ( $has_capability || $testmode ) {
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}

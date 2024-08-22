@@ -202,7 +202,8 @@ const GeneralSettingsSection = ( {
 				.filter(
 					( method ) =>
 						isTestModeEnabled ||
-						capabilities.hasOwnProperty( `${ method }_payments` )
+						capabilities.hasOwnProperty( `${ method }_payments` ) ||
+						capabilities.hasOwnProperty( method )
 				)
 				.filter( ( id ) => id !== 'link' )
 		: orderedPaymentMethodIds;
