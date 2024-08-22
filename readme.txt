@@ -137,5 +137,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
