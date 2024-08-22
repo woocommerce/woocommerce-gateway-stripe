@@ -1124,8 +1124,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					if ( ! empty( $result->error ) ) {
 						$response = $result;
 					} else {
-						$charge   = $this->get_charge_object( $result->latest_charge, [ 'expand[]' => 'refunds' ] );
-						$response = end( $charge->refunds->data );
+						$charge = $this->get_charge_object( $result->latest_charge, [ 'expand[]' => 'refunds' ] );
+
+						if ( isset( $charge->refunds->data ) ) {
+							$response = end( $charge->refunds->data );
+						}
 					}
 				}
 			}
