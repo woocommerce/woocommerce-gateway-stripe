@@ -129,7 +129,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
+* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
+* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
+* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
+* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
+* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -6,7 +6,6 @@ import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
-import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -79,7 +78,6 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
-				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
