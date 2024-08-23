@@ -83,6 +83,27 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns the currencies this UPE method supports for the Stripe account.
+	 *
+	 * @return array Supported currencies.
+	 */
+	public function get_supported_currencies() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = strtoupper( $account['country'] );
+
+		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
+		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
+
+		// Countries outside the EEA can only transact with customers in their own currency.
+		if ( ! in_array( $account_country, $eea_countries, true ) ) {
+			return [ $account[ 'default_currency' ] ];
+		}
+
+		// EEA currencies can only transact with countries where that currency is the standard currency.
+		return [ 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'NOK', 'PLN', 'SEK' ];
+	}
+
+	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
 	 * Klarna is available for the following countries: AU, AT, BE, CA, CZ, DK, FI, FR, GR, DE, IE, IT, NL, NZ, NO, PL, PT, ES, SE, CH, GB, US.
