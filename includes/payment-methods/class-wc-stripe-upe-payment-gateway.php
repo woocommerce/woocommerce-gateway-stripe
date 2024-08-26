@@ -801,11 +801,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
-				$this->validate_minimum_order_amount($order);
+				$this->validate_minimum_order_amount( $order );
 
-				$this->lock_order_payment($order);
+				$this->lock_order_payment( $order );
 				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order($order, $payment_information);
+				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} elseif ( $payment_information['is_using_saved_payment_method'] && 'cashapp' === $selected_payment_type ) {
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
