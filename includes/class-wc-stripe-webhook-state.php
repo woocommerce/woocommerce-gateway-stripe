@@ -188,45 +188,15 @@ class WC_Stripe_Webhook_State {
 	}
 
 	/**
-	 * Resets the last webhook success timestamp to 0.
-	 *
-	 * @since 8.7.0
-	 * @return void
-	 */
-	public static function reset_last_webhook_success_at() {
-		self::set_last_webhook_success_at( 0 );
-	}
-
-	/**
-	 * Resets the last webhook failure timestamp to 0.
-	 *
-	 * @since 8.7.0
-	 * @return void
-	 */
-	public static function reset_last_webhook_failure_at() {
-		self::set_last_webhook_failure_at( 0 );
-	}
-
-	/**
-	 * Resets the last error reason to VALIDATION_SUCCEEDED.
-	 *
-	 * @since 8.7.0
-	 * @return void
-	 */
-	public static function reset_last_error_reason() {
-		self::set_last_error_reason( self::VALIDATION_SUCCEEDED );
-	}
-
-	/**
 	 * Resets all webhook messages to their default values.
 	 *
 	 * @since 8.7.0
 	 * @return void
 	 */
 	public static function reset_last_webhook_messages() {
-		self::reset_last_webhook_success_at();
-		self::reset_last_webhook_failure_at();
-		self::reset_last_error_reason();
+		self::set_last_webhook_success_at( 0 );
+		self::set_last_webhook_failure_at( 0 );
+		self::set_last_error_reason( self::VALIDATION_SUCCEEDED );
 	}
 
 	/**
