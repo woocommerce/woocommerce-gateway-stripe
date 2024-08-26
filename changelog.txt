@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.7.0 - xxxx-xx-xx =
+* Tweak - Clears all the latest webhook messages upon reconnection to avoid confusion.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
