@@ -661,4 +661,21 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		</fieldset>
 		<?php
 	}
+
+	/**
+	 * Gets the transaction URL.
+	 * Overrides WC_Payment_Gateway::get_transaction_url().
+	 *
+	 * @param  WC_Order $order Order object.
+	 * @return string
+	 */
+	public function get_transaction_url( $order ) {
+		if ( $this->testmode ) {
+			$this->view_transaction_url = 'https://dashboard.stripe.com/test/payments/%s';
+		} else {
+			$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
+		}
+
+		return parent::get_transaction_url( $order );
+	}
 }
