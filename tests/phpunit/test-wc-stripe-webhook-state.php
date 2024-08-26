@@ -274,4 +274,21 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->process_webhook();
 		$this->assertMatchesRegularExpression( '/was not signed with the expected signing secret/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
+
+	/**
+	 * Test for `reset_last_webhook_messages`.
+	 *
+	 * @return void
+	 */
+	public function test_reset_last_webhook_messages() {
+		WC_Stripe_Webhook_State::set_last_webhook_success_at( time() );
+		WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
+		WC_Stripe_Webhook_State::set_last_error_reason( 'Some error' );
+
+		WC_Stripe_Webhook_State::reset_last_webhook_messages();
+
+		$this->assertEquals( 0, WC_Stripe_Webhook_State::get_last_webhook_success_at() );
+		$this->assertEquals( 0, WC_Stripe_Webhook_State::get_last_webhook_failure_at() );
+		$this->assertEquals( 'No error', WC_Stripe_Webhook_State::get_last_error_reason() );
+	}
 }
