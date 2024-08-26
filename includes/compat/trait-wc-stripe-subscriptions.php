@@ -688,7 +688,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$cart_contain_switches = WC_Subscriptions_Switcher::cart_contains_switches();
 		if ( $cart_contain_switches ) {
 			foreach ( WC()->cart->cart_contents as $cart_item ) {
-				$sub_amount += (int) WC_Subscriptions_Product::get_price( $cart_item['data'] );
+				$subscription_price = WC_Subscriptions_Product::get_price( $cart_item['data'] );
+				$sub_amount        += (int) WC_Stripe_Helper::get_stripe_amount( $subscription_price, $currency );
 			}
 
 			// Get the first cart item associated with this order.
@@ -708,7 +709,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			foreach ( $subscriptions as $sub ) {
-				$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
+				$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total(), $currency );
 			}
 
 			// Get the first subscription associated with this order.
