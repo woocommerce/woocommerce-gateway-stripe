@@ -404,6 +404,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
 		}
 
+		// Clear the latest webhook error messages to avoid confusion
+		WC_Stripe_Webhook_State::reset_last_webhook_messages();
+
 		return new WP_REST_Response(
 			[
 				'message'       => __( 'Webhooks have been setup successfully.', 'woocommerce-gateway-stripe' ),

@@ -79,9 +79,7 @@ class WC_Stripe_Webhook_State {
 			// Enforce database consistency. This should only be needed if the user
 			// has modified the database directly. We should not allow timestamps
 			// before monitoring began.
-			self::set_last_webhook_success_at( 0 );
-			self::set_last_webhook_failure_at( 0 );
-			self::set_last_error_reason( self::VALIDATION_SUCCEEDED );
+			self::reset_last_webhook_messages();
 		}
 		return $monitoring_began_at;
 	}
@@ -190,14 +188,56 @@ class WC_Stripe_Webhook_State {
 	}
 
 	/**
+	 * Resets the last webhook success timestamp to 0.
+	 *
+	 * @since 8.7.0
+	 * @return void
+	 */
+	public static function reset_last_webhook_success_at() {
+		self::set_last_webhook_success_at( 0 );
+	}
+
+	/**
+	 * Resets the last webhook failure timestamp to 0.
+	 *
+	 * @since 8.7.0
+	 * @return void
+	 */
+	public static function reset_last_webhook_failure_at() {
+		self::set_last_webhook_failure_at( 0 );
+	}
+
+	/**
+	 * Resets the last error reason to VALIDATION_SUCCEEDED.
+	 *
+	 * @since 8.7.0
+	 * @return void
+	 */
+	public static function reset_last_error_reason() {
+		self::set_last_error_reason( self::VALIDATION_SUCCEEDED );
+	}
+
+	/**
+	 * Resets all webhook messages to their default values.
+	 *
+	 * @since 8.7.0
+	 * @return void
+	 */
+	public static function reset_last_webhook_messages() {
+		self::reset_last_webhook_success_at();
+		self::reset_last_webhook_failure_at();
+		self::reset_last_error_reason();
+	}
+
+	/**
 	 * Gets the status code for the webhook processing.
 	 *
 	 * @since 8.6.0
 	 * @return int The status code for the webhook processing.
 	 */
 	public static function get_webhook_status_code() {
-		$last_success_at     = self::get_last_webhook_success_at();
-		$last_failure_at     = self::get_last_webhook_failure_at();
+		$last_success_at = self::get_last_webhook_success_at();
+		$last_failure_at = self::get_last_webhook_failure_at();
 
 		// Case 1 (Nominal case): Most recent = success
 		if ( $last_success_at > $last_failure_at ) {
