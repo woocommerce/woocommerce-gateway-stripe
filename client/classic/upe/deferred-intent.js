@@ -103,6 +103,11 @@ jQuery( function ( $ ) {
 	}
 
 	function maybeEnableStripeLinkPaymentMethod( elements, paymentMethodType ) {
+		const isCheckout = getStripeServerData()?.isCheckout;
+		if ( ! isCheckout ) {
+			return;
+		}
+
 		if ( paymentMethodType !== 'card' ) {
 			return;
 		}
