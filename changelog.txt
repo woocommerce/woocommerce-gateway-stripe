@@ -11,6 +11,10 @@
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Fix error in saving settings when express payment methods are disabled.
+* Fix - Catch error when getting intent from order.
+* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Fix - Address QIT Security test errors.
 
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.

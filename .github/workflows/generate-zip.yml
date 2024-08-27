@@ -1,0 +1,26 @@
+name: Generate ZIP file
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+    generate-zip-file:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup node version
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: Generate ZIP file
+              run: npm run build && rm -rf ./woocommerce-gateway-stripe && unzip woocommerce-gateway-stripe.zip -d ./woocommerce-gateway-stripe
+
+            - name: Use the Upload Artifact GitHub Action
+              uses: actions/upload-artifact@v4
+              with:
+                  name: woocommerce-gateway-stripe
+                  path: woocommerce-gateway-stripe/
