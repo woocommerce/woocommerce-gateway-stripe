@@ -155,5 +155,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent adding multiple copies of the same order notes.
 * Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
 * Tweak - Don't process webhooks when the webhook secret isn't set in the store.
+* Fix - Address QIT PHPStan test errors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
