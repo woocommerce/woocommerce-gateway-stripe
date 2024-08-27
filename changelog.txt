@@ -14,6 +14,7 @@
 * Fix - Catch error when getting intent from order.
 * Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
 * Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
 
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
@@ -44,7 +45,6 @@
 * Fix - Prevent adding multiple copies of the same order notes.
 * Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
 * Tweak - Don't process webhooks when the webhook secret isn't set in the store.
-* Fix - Address QIT PHPStan test errors.
 
 = 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
