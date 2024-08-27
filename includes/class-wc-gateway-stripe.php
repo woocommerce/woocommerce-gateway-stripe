@@ -69,6 +69,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
+	 * Order pay intent
+	 */
+	private $order_pay_intent;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
