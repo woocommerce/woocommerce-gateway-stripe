@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { Icon } from '@wordpress/components';
-import { help } from '@wordpress/icons';
+import { help, link, linkOff } from '@wordpress/icons';
 import Chip from 'wcstripe/components/chip';
 import Tooltip from 'wcstripe/components/tooltip';
 import {
@@ -56,6 +56,46 @@ const unconnectedAccountTip = () => {
 };
 
 /**
+ * Generates an tip for accounts connected via the WooCommerce Stripe App.
+ *
+ * @return {JSX.Element} The connected via app tip.
+ */
+const connectedViaAppTip = () => {
+	return (
+		<Tooltip
+			content={ __(
+				'Your store is connected to Stripe via the WooCommerce Stripe App.',
+				'woocommerce-gateway-stripe'
+			) }
+		>
+			<span>
+				<Icon icon={ link } size="16" />
+			</span>
+		</Tooltip>
+	);
+};
+
+/**
+ * Generates an tip for accounts connected via the WooCommerce Stripe App that has expired keys.
+ *
+ * @return {JSX.Element} The connected via app tip.
+ */
+const expiredAppKeysTip = () => {
+	return (
+		<Tooltip
+			content={ __(
+				'Your Stripe API keys have expired, please refresh your keys, or re-connect your account.',
+				'woocommerce-gateway-stripe'
+			) }
+		>
+			<span>
+				<Icon icon={ linkOff } size="16" />
+			</span>
+		</Tooltip>
+	);
+};
+
+/**
  * Gets the account status.
  *
  * An account can be in one of three states:
@@ -76,20 +116,23 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 	const publishableKey = testMode
 		? accountKeys.test_publishable_key
 		: accountKeys.publishable_key;
-	const oauthConnected = testMode
-		? data?.oauth_connections?.test
-		: data?.oauth_connections?.live;
 
-	let accountStatus = 'disconnected';
+	// eslint-disable-next-line camelcase
+	const { oauth_connections } = data;
+	const oauthStatus = testMode
+		? oauth_connections?.test
+		: oauth_connections?.live;
 
-	if ( secretKey && publishableKey ) {
-		accountStatus = oauthConnected ? 'connected' : 'unconnected';
-	}
+	const hasKeys = secretKey && publishableKey;
+	const isConnected = oauthStatus?.connected;
+	const isConnectedViaApp = oauthStatus?.type === 'app';
+	const isExpired = oauthStatus?.expired;
 
 	const accountStatusMap = {
 		connected: {
 			text: __( 'Connected', 'woocommerce-gateway-stripe' ),
 			color: 'green',
+			icon: isConnectedViaApp ? connectedViaAppTip() : null,
 		},
 		unconnected: {
 			text: __( 'Incomplete', 'woocommerce-gateway-stripe' ),
@@ -100,7 +143,26 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 			text: __( 'Disconnected', 'woocommerce-gateway-stripe' ),
 			color: 'red',
 		},
+		expired: {
+			text: __( 'Expired', 'woocommerce-gateway-stripe' ),
+			color: 'red',
+			icon: expiredAppKeysTip(),
+		},
 	};
+
+	if ( ! hasKeys ) {
+		return accountStatusMap.disconnected;
+	}
+
+	if ( ! isConnected ) {
+		return accountStatusMap.unconnected;
+	}
+
+	let accountStatus = 'connected';
+
+	if ( isConnectedViaApp && isExpired ) {
+		accountStatus = 'expired';
+	}
 
 	return accountStatusMap[ accountStatus ];
 };
