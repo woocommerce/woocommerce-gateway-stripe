@@ -212,16 +212,18 @@ const PromotionalBannerSection = ( {
 	);
 
 	let BannerContent = null;
-	if ( ! isConnectedViaOAuth ) {
+	if ( isConnectedViaOAuth === false ) {
 		BannerContent = <ReConnectAccountBanner />;
 	} else if ( ! isUpeEnabled ) {
 		BannerContent = <NewCheckoutExperienceBanner />;
 	}
 
 	return (
-		<BannerCard data-testid="promotional-banner-card">
-			{ BannerContent }
-		</BannerCard>
+		BannerContent && (
+			<BannerCard data-testid="promotional-banner-card">
+				{ BannerContent }
+			</BannerCard>
+		)
 	);
 };
 

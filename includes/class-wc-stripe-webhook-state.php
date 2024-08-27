@@ -37,8 +37,29 @@ class WC_Stripe_Webhook_State {
 	 * @return bool
 	 */
 	public static function get_testmode() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+	}
+
+	/**
+	 * Clears the webhook state.
+	 *
+	 * @param string $mode Optional. The mode to clear the webhook state for. Can be 'all', 'live', or 'test'. Default is 'all'.
+	 */
+	public static function clear_state( $mode = 'all' ) {
+		if ( 'all' === $mode || 'live' === $mode ) {
+			delete_option( self::OPTION_LIVE_MONITORING_BEGAN_AT );
+			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
+			delete_option( self::OPTION_LIVE_LAST_FAILURE_AT );
+			delete_option( self::OPTION_LIVE_LAST_ERROR );
+		}
+
+		if ( 'all' === $mode || 'test' === $mode ) {
+			delete_option( self::OPTION_TEST_MONITORING_BEGAN_AT );
+			delete_option( self::OPTION_TEST_LAST_SUCCESS_AT );
+			delete_option( self::OPTION_TEST_LAST_FAILURE_AT );
+			delete_option( self::OPTION_TEST_LAST_ERROR );
+		}
 	}
 
 	/**

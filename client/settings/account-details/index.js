@@ -3,7 +3,6 @@ import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { ExternalLink, Icon } from '@wordpress/components';
 import { help } from '@wordpress/icons';
-import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import SectionStatus from '../section-status';
 import Tooltip from 'wcstripe/components/tooltip';
@@ -144,29 +143,20 @@ const AccountDetails = () => {
 		return (
 			<AccountDetailsContainer>
 				<AccountDetailsError>
-					{ isTestModeEnabled
-						? interpolateComponents( {
-								mixedString: __(
-									"Seems like the test keys we've saved for you are no longer valid. If you recently updated them, enter the new test keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+					{ createInterpolateElement(
+						isTestModeEnabled
+							? __(
+									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/test/apikeys" />
-									),
-								},
-						  } )
-						: interpolateComponents( {
-								mixedString: __(
-									"Seems like the live keys we've saved for you are no longer valid. If you recently updated them, enter the new live keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+							  )
+							: __(
+									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/apikeys" />
-									),
-								},
-						  } ) }
+							  ),
+						{
+							strong: <strong />,
+						}
+					) }
 				</AccountDetailsError>
 			</AccountDetailsContainer>
 		);

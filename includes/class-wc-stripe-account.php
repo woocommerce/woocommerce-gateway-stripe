@@ -113,7 +113,7 @@ class WC_Stripe_Account {
 	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
 	 */
 	private function get_transient_key( $mode = null ) {
-		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
+		$settings_options = WC_Stripe_Helper::get_stripe_settings();
 
 		// If the mode is not provided or is invalid, we'll check the current mode.
 		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
@@ -309,7 +309,7 @@ class WC_Stripe_Account {
 			WC_Stripe_API::set_secret_key( $previous_secret );
 		}
 
-		$settings = get_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
 		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
@@ -322,7 +322,10 @@ class WC_Stripe_Account {
 			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
-		update_option( WC_Stripe::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+
+		// After reconfiguring webhooks, clear the webhook state.
+		WC_Stripe_Webhook_State::clear_state();
 
 		return $response;
 	}

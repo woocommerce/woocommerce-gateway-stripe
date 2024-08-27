@@ -68,7 +68,7 @@ export function* saveAccountKeys( accountKeys ) {
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			isDisconnecting
 				? __( 'Account disconnected.', 'woocommerce-gateway-stripe' )
-				: __( 'Account keys saved.', 'woocommerce-gateway-stripe' )
+				: __( 'Account connected.', 'woocommerce-gateway-stripe' )
 		);
 	} catch ( e ) {
 		error = e;
@@ -79,7 +79,7 @@ export function* saveAccountKeys( accountKeys ) {
 						'woocommerce-gateway-stripe'
 				  )
 				: __(
-						'Error saving account keys.',
+						'Error connecting account.',
 						'woocommerce-gateway-stripe'
 				  )
 		);

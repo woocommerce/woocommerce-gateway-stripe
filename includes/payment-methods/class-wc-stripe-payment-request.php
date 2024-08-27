@@ -69,7 +69,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function __construct() {
 		self::$_this           = $this;
-		$this->stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
@@ -81,6 +81,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+
+		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
@@ -234,8 +236,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
-
-		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 	}
 
 	/**
