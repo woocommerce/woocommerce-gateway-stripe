@@ -141,5 +141,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix error in saving settings when express payment methods are disabled.
 * Fix - Catch error when getting intent from order.
 * Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Fix - Address QIT Security test errors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
