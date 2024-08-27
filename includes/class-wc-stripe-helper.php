@@ -726,12 +726,19 @@ class WC_Stripe_Helper {
 			return [];
 		}
 
+		// Return all payment methods if in test mode.
+		if ( $testmode ) {
+			return $payment_method_ids;
+		}
+
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
 			$key            = $payment_method_id . '_payments';
 			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] );
-			if ( $has_capability || $testmode ) {
+			if ( $has_capability ) {
+				$payment_method_ids_with_capability[] = $payment_method_id;
+			} elseif ( 'card' === $payment_method_id && $data['capabilities']['legacy_payments'] ) { // `legacy_payments` is the legacy capability key for card in Stripe.
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}
 		}
