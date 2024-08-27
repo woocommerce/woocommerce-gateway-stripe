@@ -27,6 +27,7 @@
 * Fix - Prevent adding multiple copies of the same order notes.
 * Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
 * Tweak - Don't process webhooks when the webhook secret isn't set in the store.
+* Fix - Address QIT PHPStan test errors.
 
 = 8.5.2 - 2024-07-22 =
 * Fix - Fixed errors when using Link to purchase subscription products that could lead to duplicate payment attempts.
