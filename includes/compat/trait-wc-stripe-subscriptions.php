@@ -611,7 +611,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				return $request;
 			}
 
-		$subscriptions_for_renewal_order = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
+			$subscriptions_for_renewal_order = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
 
 			// Check if mandate already exists.
 			if ( 1 === count( $subscriptions_for_renewal_order ) ) {
@@ -714,7 +714,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Get the first subscription associated with this order.
 			$sub = reset( $subscriptions );
 
-			$sub_billing_period = strtolower( $sub->get_billing_period() );
+			$sub_billing_period   = strtolower( $sub->get_billing_period() );
 			$sub_billing_interval = $sub->get_billing_interval();
 		}
 
