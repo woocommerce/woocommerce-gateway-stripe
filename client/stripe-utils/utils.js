@@ -23,8 +23,8 @@ import {
 const getStripeServerData = () => {
 	// Classic checkout.
 	// eslint-disable-next-line camelcase
-	if ( ! wc_stripe_upe_params ) {
-		throw new Error( 'Stripe initialization data is not available' );
+	if ( typeof wc_stripe_upe_params === 'undefined' ) {
+		return {};
 	}
 	// eslint-disable-next-line camelcase
 	return wc_stripe_upe_params;
@@ -210,8 +210,8 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
 	return (
-		paymentMethodsConfig.link !== undefined &&
-		paymentMethodsConfig.card !== undefined
+		paymentMethodsConfig?.link !== undefined &&
+		paymentMethodsConfig?.card !== undefined
 	);
 };
 
@@ -505,16 +505,18 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
  * @return {boolean} Whether the payment method is restricted to selected billing country.
  **/
 export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
-	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
 	const paymentMethodType = upeElement.dataset.paymentMethodType;
-	return !! paymentMethodsConfig[ paymentMethodType ].countries.length;
+	return !! paymentMethodsConfig[ paymentMethodType ]?.countries.length;
 };
 
 /**
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  **/
 export const togglePaymentMethodForCountry = ( upeElement ) => {
-	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
 	const paymentMethodType = upeElement.dataset.paymentMethodType;
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
