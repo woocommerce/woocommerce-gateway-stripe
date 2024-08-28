@@ -41,7 +41,11 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 * @param WC_Order $order The order that is being paid.
 	 */
 	public function trigger( $order ) {
-		if ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order->get_id() ) || wcs_is_subscription( $order->get_id() ) || wcs_order_contains_renewal( $order->get_id() ) ) ) {
+		if ( function_exists( 'wcs_order_contains_subscription' )
+			&& function_exists( 'wcs_is_subscription' )
+			&& function_exists( 'wcs_order_contains_renewal' )
+			&& ( wcs_order_contains_subscription( $order->get_id() ) || wcs_is_subscription( $order->get_id() ) || wcs_order_contains_renewal( $order->get_id() ) )
+		) {
 			parent::trigger( $order );
 
 			// Prevent the renewal email from WooCommerce Subscriptions from being sent.
@@ -85,7 +89,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 * @return array
 	 */
 	public function prevent_retry_notification_email( $rule_array, $retry_number, $order_id ) {
-		if ( wcs_get_objects_property( $this->object, 'id' ) === $order_id ) {
+		if ( function_exists( 'wcs_get_objects_property' ) && wcs_get_objects_property( $this->object, 'id' ) === $order_id ) {
 			$rule_array['email_template_customer'] = '';
 		}
 
@@ -102,6 +106,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 */
 	public function set_store_owner_custom_email( $rule_array, $retry_number, $order_id ) {
 		if (
+			function_exists( 'wcs_get_objects_property' ) &&
 			wcs_get_objects_property( $this->object, 'id' ) === $order_id &&
 			'' !== $rule_array['email_template_admin'] // Only send our email if a retry admin email was already going to be sent.
 		) {
