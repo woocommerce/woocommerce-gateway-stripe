@@ -739,7 +739,7 @@ class WC_Stripe_Helper {
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
 			// For card, the legacy key is 'legacy_payments'.
-			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( 'card' === $payment_method_id && $data['capabilities']['legacy_payments'] );
+			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( 'card' === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
 			if ( $has_capability ) {
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}
