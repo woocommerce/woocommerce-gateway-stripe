@@ -139,9 +139,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
 * Fix - Fix error in saving settings when express payment methods are disabled.
 * Fix - Catch error when getting intent from order.
 * Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
 * Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
