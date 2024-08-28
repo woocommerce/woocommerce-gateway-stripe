@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
 * Fix - Add back support for Stripe Link autofill for shortcode checkout.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
