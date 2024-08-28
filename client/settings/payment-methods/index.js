@@ -56,8 +56,8 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 	const oauthConnected = isTestModeEnabled
-		? data?.oauth_connections?.test
-		: data?.oauth_connections?.live;
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
 
 	return (
 		<>

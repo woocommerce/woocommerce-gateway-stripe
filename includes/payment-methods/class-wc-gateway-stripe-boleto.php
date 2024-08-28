@@ -145,7 +145,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 		<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
 		<div class="stripe-source-errors" role="alert"></div>
 
-		<div id="stripe-boleto-payment-data"><?php echo wpautop( esc_html( $description ) ); ?></div>
+		<div id="stripe-boleto-payment-data"><?php echo wp_kses( wpautop( $description ), [ 'p' => [] ] ); ?></div>
 		<?php
 	}
 
