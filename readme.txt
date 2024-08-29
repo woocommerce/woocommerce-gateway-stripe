@@ -129,6 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
+* Fix - Add back support for Stripe Link autofill for shortcode checkout.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.

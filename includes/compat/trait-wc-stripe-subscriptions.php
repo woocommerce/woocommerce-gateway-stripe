@@ -87,6 +87,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		*/
 		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
 		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
+
+		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
+		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
 	}
 
 	/**
@@ -593,29 +596,34 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
-		// TODO: maybe this isn't necessary since this function should really only be called
-		//       when creating the intent? It's called in process_subscription_payment though
-		//       so it's probably needed here too?
-		// If we've already created a mandate for this order; use that.
-		$mandate = $order->get_meta( '_stripe_mandate_id', true );
-		if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
-			$request['mandate'] = $mandate;
-			unset( $request['setup_future_usage'] );
-			return $request;
-		}
+		$subscriptions_for_renewal_order = [];
 
-		$subscriptions_for_renewal_order = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
-
-		// Check if mandate already exists.
-		if ( 1 === count( $subscriptions_for_renewal_order ) ) {
-			$subscription_order = reset( $subscriptions_for_renewal_order );
-			$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
-
-			if ( ! empty( $mandate ) ) {
-				$request['confirm'] = 'true';
+		// Check if this is not a subscription switch. When switching we will force the creation of mandates to update the amount
+		if ( ! WC_Subscriptions_Switcher::cart_contains_switches() ) {
+			// TODO: maybe this isn't necessary since this function should really only be called
+			//       when creating the intent? It's called in process_subscription_payment though
+			//       so it's probably needed here too?
+			// If we've already created a mandate for this order; use that.
+			$mandate = $order->get_meta( '_stripe_mandate_id', true );
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				unset( $request['setup_future_usage'] );
 				return $request;
+			}
+
+			$subscriptions_for_renewal_order = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
+
+			// Check if mandate already exists.
+			if ( 1 === count( $subscriptions_for_renewal_order ) ) {
+				$subscription_order = reset( $subscriptions_for_renewal_order );
+				$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
+
+				if ( ! empty( $mandate ) ) {
+					$request['confirm'] = 'true';
+					$request['mandate'] = $mandate;
+					unset( $request['setup_future_usage'] );
+					return $request;
+				}
 			}
 		}
 
@@ -661,7 +669,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Create mandate options for a subscription order to be added to the payment intent request.
 	 *
 	 * @param WC_Order $order The renewal order.
-	 * @param WC_Order $subscriptions Subscriptions for the renewal order.
+	 * @param WC_Subscription[] $subscriptions Subscriptions for the renewal order.
 	 * @return array the mandate_options for the subscription order.
 	 */
 	private function create_mandate_options_for_order( $order, $subscriptions ) {
@@ -673,19 +681,41 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		// If this is the first order, not a renewal, then get the subscriptions for the parent order.
-		if ( empty( $subscriptions ) ) {
-			$subscriptions = function_exists( 'wcs_get_subscriptions_for_order' ) ? wcs_get_subscriptions_for_order( $order ) : [];
-		}
-
-		// If there are no subscriptions we just return since mandates aren't required.
-		if ( 0 === count( $subscriptions ) ) {
-			return [];
-		}
-
 		$sub_amount = 0;
-		foreach ( $subscriptions as $sub ) {
-			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
+
+		// If this is a switch order we set the mandate options based on the new subscription.
+		$cart_contain_switches = WC_Subscriptions_Switcher::cart_contains_switches();
+		if ( $cart_contain_switches ) {
+			foreach ( WC()->cart->cart_contents as $cart_item ) {
+				$subscription_price = WC_Subscriptions_Product::get_price( $cart_item['data'] );
+				$sub_amount        += (int) WC_Stripe_Helper::get_stripe_amount( $subscription_price, $currency );
+			}
+
+			// Get the first cart item associated with this order.
+			$cart_item = reset( WC()->cart->cart_contents );
+
+			$sub_billing_period   = WC_Subscriptions_Product::get_period( $cart_item['data'] );
+			$sub_billing_interval = absint( WC_Subscriptions_Product::get_interval( $cart_item['data'] ) );
+		} else {
+			// If this is the first order, not a renewal, then get the subscriptions for the parent order.
+			if ( empty( $subscriptions ) ) {
+				$subscriptions = function_exists( 'wcs_get_subscriptions_for_order' ) ? wcs_get_subscriptions_for_order( $order ) : [];
+			}
+
+			// If there are no subscriptions we just return since mandates aren't required.
+			if ( 0 === count( $subscriptions ) ) {
+				return [];
+			}
+
+			foreach ( $subscriptions as $sub ) {
+				$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total(), $currency );
+			}
+
+			// Get the first subscription associated with this order.
+			$sub = reset( $subscriptions );
+
+			$sub_billing_period   = strtolower( $sub->get_billing_period() );
+			$sub_billing_interval = $sub->get_billing_interval();
 		}
 
 		// If the amount is 0 we don't need to create a mandate since we won't be charging anything.
@@ -694,13 +724,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		// Get the first subscription associated with this order.
-		$sub = reset( $subscriptions );
-
-		if ( 1 === count( $subscriptions ) ) {
+		if ( 1 === count( $subscriptions ) || $cart_contain_switches ) {
 			$mandate_options['amount_type']    = 'fixed';
-			$mandate_options['interval']       = strtolower( $sub->get_billing_period() );
-			$mandate_options['interval_count'] = $sub->get_billing_interval();
+			$mandate_options['interval']       = $sub_billing_period;
+			$mandate_options['interval_count'] = $sub_billing_interval;
 		} else {
 			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
 			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
@@ -966,5 +993,24 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription->set_payment_method( $payment_method_type );
 			$subscription->save();
 		}
+	}
+
+	/**
+	 * Disables the ability to edit a subscription for orders with mandates.
+	 *
+	 * @param $editable boolean The current editability of the subscription.
+	 * @param $order WC_Order The order object.
+	 * @return boolean true if the subscription can be edited, false otherwise.
+	 */
+	public function disable_subscription_edit_for_india( $editable, $order ) {
+		$parent_order = wc_get_order( $order->get_parent_id() );
+		if ( $this->is_subscriptions_enabled()
+			&& $this->is_subscription( $order )
+			&& $parent_order
+			&& ! empty( $parent_order->get_meta( '_stripe_mandate_id', true ) ) ) {
+			$editable = false;
+		}
+
+		return $editable;
 	}
 }
