@@ -410,12 +410,12 @@ class WC_Stripe_Helper {
 			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
 			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_EPS::class,
+			WC_Gateway_Stripe_Eps::class,
 			WC_Gateway_Stripe_Giropay::class,
 			WC_Gateway_Stripe_Ideal::class,
 			WC_Gateway_Stripe_Multibanco::class,
 			WC_Gateway_Stripe_Oxxo::class,
-			WC_Gateway_Stripe_p24::class,
+			WC_Gateway_Stripe_P24::class,
 			WC_Gateway_Stripe_Sepa::class,
 		];
 
@@ -726,12 +726,21 @@ class WC_Stripe_Helper {
 			return [];
 		}
 
+		// Return all payment methods if in test mode.
+		if ( $testmode ) {
+			return $payment_method_ids;
+		}
+
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
 			$key            = $payment_method_id . '_payments';
-			$has_capability = isset( $data['capabilities'][ $key ] );
-			if ( $has_capability || $testmode ) {
+			// Check if the payment method has capabilities set in the account data.
+			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
+			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
+			// For card, the legacy key is 'legacy_payments'.
+			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( 'card' === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
+			if ( $has_capability ) {
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}
 		}

@@ -21,7 +21,7 @@ printf(
 	),
 	esc_html( $order->get_order_number() ),
 	esc_html( $order->get_formatted_billing_full_name() ),
-	esc_html( wcs_get_human_time_diff( $retry->get_time() ) )
+	function_exists( 'wcs_get_human_time_diff' ) ? esc_html( wcs_get_human_time_diff( $retry->get_time() ) ) : ''
 ) . "\n\n";
 printf( esc_html__( 'The renewal order is as follows:', 'woocommerce-gateway-stripe' ) ) . "\n\n";
 

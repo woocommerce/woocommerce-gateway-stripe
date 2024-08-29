@@ -238,7 +238,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		return $search_response->data[0];
+		return $search_response->data[0] ?? [];
 	}
 
 	/**

@@ -1,11 +1,10 @@
 import { __, sprintf } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
-import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import CustomizePaymentMethod from './customize-payment-method';
@@ -15,7 +14,7 @@ import {
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
-import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -183,9 +182,7 @@ const GeneralSettingsSection = ( {
 	isChangingDisplayOrder,
 	onSaveChanges,
 } ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const {
@@ -193,19 +190,8 @@ const GeneralSettingsSection = ( {
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
 
-	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
-	// Show all methods in test mode.
-	const availablePaymentMethods = isUpeEnabled
-		? orderedPaymentMethodIds
-				.filter(
-					( method ) =>
-						isTestModeEnabled ||
-						capabilities.hasOwnProperty( `${ method }_payments` )
-				)
-				.filter( ( id ) => id !== 'link' )
-		: orderedPaymentMethodIds;
+	const availablePaymentMethods = orderedPaymentMethodIds;
 
 	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.

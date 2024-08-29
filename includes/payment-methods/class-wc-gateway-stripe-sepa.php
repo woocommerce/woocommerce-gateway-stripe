@@ -183,7 +183,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @return string
 	 */
 	public function mandate_display() {
 		/* translators: statement descriptor */
@@ -250,7 +249,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		$description = trim( $description );
 
-		echo wpautop( esc_html( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
+		echo wp_kses_post( wpautop( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
