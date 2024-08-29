@@ -144,6 +144,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix error in saving settings when express payment methods are disabled.
 * Fix - Catch error when getting intent from order.
 * Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
 
