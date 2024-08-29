@@ -147,5 +147,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Update capabilities to payment methods mapping.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
+* Update - Specify the JS Stripe API version as 2024-06-20.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
