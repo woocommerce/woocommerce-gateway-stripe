@@ -227,21 +227,12 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 	if ( billingDetails ) {
 		await page
 			.getByLabel( 'Country/Region' )
-			.fill( billingDetails[ 'country' ] );
-		await page
-			.locator(
-				'.components-form-token-field__suggestions-list > li:first-child'
-			)
-			.click();
+			.selectOption( { label: billingDetails[ 'country' ] } );
 
 		await page
 			.getByLabel( 'State', { exact: true } )
-			.fill( billingDetails[ 'state' ] );
-		await page
-			.locator(
-				'.components-form-token-field__suggestions-list > li:first-child'
-			)
-			.click();
+			.selectOption( { label: billingDetails[ 'state' ] } );
+
 		// Expand the address 2 field.
 		await page
 			.locator( '.wc-block-components-address-form__address_2-toggle' )
