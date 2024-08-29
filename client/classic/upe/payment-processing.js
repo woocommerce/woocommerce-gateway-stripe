@@ -166,6 +166,7 @@ function createStripePaymentMethod(
  *
  * @param {Object} api The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  **/
 export async function mountStripePaymentElement( api, domElement ) {
 	/*
@@ -194,6 +195,8 @@ export async function mountStripePaymentElement( api, domElement ) {
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
 	upeElement.mount( domElement );
+
+	return gatewayUPEComponents[ paymentMethodType ];
 }
 
 /**
