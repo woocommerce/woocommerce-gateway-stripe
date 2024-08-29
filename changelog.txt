@@ -2,6 +2,7 @@
 
 = 8.7.0 - xxxx-xx-xx =
 * Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
 * Fix - Add back support for Stripe Link autofill for shortcode checkout.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
@@ -16,6 +17,7 @@
 * Fix - Fix error in saving settings when express payment methods are disabled.
 * Fix - Catch error when getting intent from order.
 * Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
 
