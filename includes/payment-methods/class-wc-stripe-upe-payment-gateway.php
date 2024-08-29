@@ -353,6 +353,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$version
 		);
 
+		// Enqueue some large scripts to introduce delay between upe_blocks and upe_classic.
+		// Get random number to avoid cache.
+		$random_number = rand( 1, 10000 );
+		wp_enqueue_script( 'test1', 'https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js?random=' . $random_number, [], $random_number );
+		wp_enqueue_script( 'test2', 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r135/three.min.js?random=' . $random_number, [], $random_number );
+		wp_enqueue_script( 'test3', 'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.0.0/dist/tf.min.js?random=' . $random_number, [], $random_number );
+		wp_enqueue_script( 'test4', 'https://d3js.org/d3.v6.min.js?random=' . $random_number, [], $random_number );
+
 		wp_enqueue_script( 'wc-stripe-upe-classic' );
 		wp_enqueue_style( 'wc-stripe-upe-classic' );
 
