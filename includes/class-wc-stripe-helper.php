@@ -1525,4 +1525,12 @@ class WC_Stripe_Helper {
 
 		return $url_host === $webhook_host && $url_path === $webhook_path;
 	}
+
+	public static function get_transaction_url( $is_test_mode = false ) {
+		if ( $is_test_mode ) {
+			return 'https://dashboard.stripe.com/test/payments/%s';
+		}
+
+		return 'https://dashboard.stripe.com/payments/%s';
+	}
 }

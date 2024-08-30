@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
 * Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
 * Fix - Add back support for Stripe Link autofill for shortcode checkout.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
@@ -136,6 +137,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
 * Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
