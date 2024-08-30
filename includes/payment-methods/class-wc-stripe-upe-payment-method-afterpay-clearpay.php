@@ -78,24 +78,6 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	}
 
 	/**
-	 * Return the gateway's description.
-	 *
-	 * @return string
-	 */
-	public function get_description( $payment_details = false ) {
-		if ( $this->is_gb_country() ) {
-			return __(
-				'Allow customers to pay over time with Clearpay.',
-				'woocommerce-gateway-stripe'
-			);
-		}
-		return __(
-			'Allow customers to pay over time with Afterpay.',
-			'woocommerce-gateway-stripe'
-		);
-	}
-
-	/**
 	 * Returns payment method icon.
 	 *
 	 * @return string|null
