@@ -149,5 +149,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Update capabilities to payment methods mapping.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
