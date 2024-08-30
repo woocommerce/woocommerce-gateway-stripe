@@ -379,11 +379,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_transaction_url( $order ) {
-		if ( $this->testmode ) { // @phpstan-ignore-line (testmode is defined in the classes that use this class)
-			$this->view_transaction_url = 'https://dashboard.stripe.com/test/payments/%s';
-		} else {
-			$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
-		}
+		$this->view_transaction_url = WC_Stripe_Helper::get_transaction_url( $this->testmode );
 
 		return parent::get_transaction_url( $order );
 	}
