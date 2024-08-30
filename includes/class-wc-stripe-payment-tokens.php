@@ -400,16 +400,13 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Deletes a token from Stripe.
+	 * Delete token from Stripe.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 *
-	 * @param int              $token_id The WooCommerce token ID.
-	 * @param WC_Payment_Token $token    The WC_Payment_Token object.
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
-		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
+		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 		try {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
