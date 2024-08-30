@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Support custom name and description for Afterpay.
 * Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
 * Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
 * Fix - Add back support for Stripe Link autofill for shortcode checkout.
