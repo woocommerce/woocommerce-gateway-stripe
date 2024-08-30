@@ -70,9 +70,11 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	 */
 	public function get_title( $payment_details = false ) {
 		if ( $this->is_gb_country() ) {
-			return __( 'Clearpay', 'woocommerce-gateway-stripe' );
+			$this->title = __( 'Clearpay', 'woocommerce-gateway-stripe' );
 		}
-		return __( 'Afterpay', 'woocommerce-gateway-stripe' );
+		$this->title = __( 'Afterpay', 'woocommerce-gateway-stripe' );
+
+		return parent::get_title( $payment_details );
 	}
 
 	/**
