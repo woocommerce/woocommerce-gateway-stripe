@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 8.4.0
+ * Version: 8.6.1
  * Requires Plugins: woocommerce
- * Requires at least: 6.2
- * Tested up to: 6.5.2
- * WC requires at least: 8.5
- * WC tested up to: 8.9
+ * Requires at least: 6.4
+ * Tested up to: 6.6
+ * WC requires at least: 8.9
+ * WC tested up to: 9.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '8.4.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.6.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -83,6 +83,13 @@ function woocommerce_gateway_stripe() {
 	if ( ! isset( $plugin ) ) {
 
 		class WC_Stripe {
+
+			/**
+			 * The option name for the Stripe gateway settings.
+			 *
+			 * @deprecated 8.7.0
+			 */
+			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 			/**
 			 * The *Singleton* instance of this class
@@ -334,6 +341,10 @@ function woocommerce_gateway_stripe() {
 					// Check for subscriptions using legacy SEPA tokens on upgrade.
 					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
 					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+					// TODO: Remove this call when all the merchants have moved to the new checkout experience.
+					// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
+					WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 				}
 			}
 
@@ -348,7 +359,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.5.0
 			 */
 			public function update_prb_location_settings() {
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
 					? $stripe_settings['payment_request_button_locations']
 					: [];
@@ -374,7 +385,7 @@ function woocommerce_gateway_stripe() {
 					}
 
 					$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				}
 			}
 
@@ -734,8 +745,8 @@ function woocommerce_gateway_stripe() {
 			 * Initializes updating subscriptions.
 			 */
 			public function initialize_subscriptions_updater() {
-				// The updater depends on WC_Subscriptions. Bail out if not active.
-				if ( ! class_exists( 'WC_Subscriptions' ) ) {
+				// The updater depends on WCS_Background_Repairer. Bail out if class does not exist.
+				if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
 					return;
 				}
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';

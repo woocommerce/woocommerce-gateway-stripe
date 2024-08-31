@@ -55,9 +55,7 @@ describe( 'PaymentGatewaySection', () => {
 	it( 'should render "pending" capability status pill', () => {
 		useGetCapabilities.mockReturnValue( { ideal_payments: 'pending' } );
 		render( <PaymentGatewaySection /> );
-		expect(
-			screen.queryByText( 'Requires activation' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( 'Pending approval' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should contain the webhook monitoring status', () => {

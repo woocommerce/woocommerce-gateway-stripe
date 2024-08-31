@@ -13,6 +13,11 @@ defined( 'ABSPATH' ) || exit;
  * @since 5.6.0
  */
 class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Controller {
+	/**
+	 * The option name for the Stripe gateway settings.
+	 *
+	 * @deprecated 8.7.0
+	 */
 	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
 	/**
@@ -132,12 +137,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				'callback'            => [ $this, 'configure_webhooks' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'live_mode'      => [
+					'live_mode'  => [
 						'description'       => __( 'Whether the account is in live mode.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'secret_key'           => [
+					'secret_key' => [
 						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => [ $this, 'validate_secret_key' ],
@@ -154,7 +159,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 */
 	public function get_account_keys() {
 		$allowed_params  = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
-		$stripe_settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
@@ -247,7 +252,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$settings       = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$settings       = WC_Stripe_Helper::get_stripe_settings();
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
 		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
@@ -265,7 +270,11 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 							&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
-			$settings['enabled'] = 'no';
+			$settings['enabled']              = 'no';
+			$settings['connection_type']      = '';
+			$settings['test_connection_type'] = '';
+			$settings['refresh_token']        = '';
+			$settings['test_refresh_token']   = '';
 			$this->record_manual_account_disconnect_track_event( 'yes' === $settings['testmode'] );
 		} else {
 			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
@@ -274,7 +283,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		// Disable all payment methods if all keys are different from the current ones
 		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
@@ -320,7 +329,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$publishable = wc_clean( wp_unslash( $request->get_param( 'publishable' ) ) );
 		$secret      = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 
-		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		if ( $publishable === $this->mask_key_value( $publishable ) ) {
 			$publishable = $settings[ $live_mode ? 'publishable_key' : 'test_publishable_key' ];
@@ -369,76 +378,31 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Data about the request.
 	 */
 	public function configure_webhooks( WP_REST_Request $request ) {
-		$settings     = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-		$live_mode    = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$live_mode      = wc_clean( wp_unslash( $request->get_param( 'live_mode' ) ) );
+		$environment    = $live_mode ? 'live' : 'test';
+		$rate_limit_key = "wc-stripe-configure-{$environment}-webhooks-" . get_current_user_id();
+
+		// Prevent users from setting up webhooks too frequently.
+		if ( WC_Rate_Limiter::retried_too_soon( $rate_limit_key ) ) {
+			return new WP_REST_Response( [ 'message' => __( 'Please wait at least 1 minute before trying to configure webhooks again.', 'woocommerce-gateway-stripe' ) ], 400 );
+		}
+
+		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
+
+		$settings     = WC_Stripe_Helper::get_stripe_settings();
 		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 
-		// Check if the user is configuring the opposite mode. ie if the store is in live mode and is configuring webhooks for test mode.
-		$is_test_mode_enabled    = ! empty( $settings['testmode'] ) && 'yes' === $settings['testmode'];
-		$configure_opposite_mode = ( $live_mode && $is_test_mode_enabled ) || ( ! $live_mode && ! $is_test_mode_enabled );
-
-		// If the user has changed the secret key in the UI, use that to create the webhook.
-		if ( $secret !== $this->mask_key_value( $saved_secret ) ) {
-			WC_Stripe_API::set_secret_key( $secret );
-		} elseif ( $configure_opposite_mode ) {
-			// If the request is to configure webhooks for the mode not currently active, use the saved secret key for that mode.
-			WC_Stripe_API::set_secret_key( $saved_secret );
+		// If the secret received is masked and it matches the saved secret, use the raw saved secret.
+		if ( $secret === $this->mask_key_value( $saved_secret ) ) {
+			$secret = $saved_secret;
 		}
 
-		$request = [
-			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
-			'enabled_events' => [
-				'source.chargeable',
-				'source.canceled',
-				'charge.succeeded',
-				'charge.failed',
-				'charge.captured',
-				'charge.dispute.created',
-				'charge.dispute.closed',
-				'charge.refunded',
-				'charge.refund.updated',
-				'review.opened',
-				'review.closed',
-				'payment_intent.succeeded',
-				'payment_intent.payment_failed',
-				'payment_intent.amount_capturable_updated',
-				'payment_intent.requires_action',
-				'setup_intent.succeeded',
-				'setup_intent.setup_failed',
-			],
-			'url' => WC_Stripe_Helper::get_webhook_url(),
-		];
-
-		$response = WC_Stripe_API::request( $request, 'webhook_endpoints', 'POST' );
-
-		if ( isset( $response->error->message ) ) {
-			// Translators: %s is the error message from the Stripe API.
-			return new WP_REST_Response( [ 'message' => sprintf( __( 'There was a problem setting up your webhooks. %s', 'woocommerce-gateway-stripe' ), $response->error->message ) ], 400 );
+		try {
+			$response = $this->account->configure_webhooks( $environment, $secret );
+		} catch ( Exception $e ) {
+			return new WP_REST_Response( [ 'message' => $e->getMessage() ], 400 );
 		}
-
-		if ( ! isset( $response->secret, $response->id ) ) {
-			return new WP_REST_Response( [ 'message' => __( 'There was a problem setting up your webhooks, please try again later.', 'woocommerce-gateway-stripe' ) ], 400 );
-		}
-
-		$webhook_secret_setting = $live_mode ? 'webhook_secret' : 'test_webhook_secret';
-		$webhook_data_setting   = $live_mode ? 'webhook_data' : 'test_webhook_data';
-		$configured_webhook_id  = $settings[ $webhook_data_setting ]['id'] ?? null;
-
-		// If there's an existing Webhook set up, delete it first to avoid duplicate Webhooks at Stripe.
-		if ( $configured_webhook_id ) {
-			WC_Stripe_API::request( [], "webhook_endpoints/{$configured_webhook_id}", 'DELETE' );
-		}
-
-		// Save the Webhook secret and ID.
-		$settings[ $webhook_secret_setting ] = wc_clean( $response->secret );
-		$settings[ $webhook_data_setting ]   = [
-			'id'     => wc_clean( $response->id ),
-			'url'    => wc_clean( $response->url ),
-			'secret' => WC_Stripe_API::get_secret_key(),
-		];
-
-		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 
 		return new WP_REST_Response(
 			[

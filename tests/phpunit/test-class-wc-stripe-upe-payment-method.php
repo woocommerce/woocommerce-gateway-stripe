@@ -60,8 +60,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Base template for Stripe Cash App Pay payment method.
 	 */
 	const MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE = [
-		'id'         => 'pm_mock_payment_method_id',
-		'type'       => 'cashapp',
+		'id'      => 'pm_mock_payment_method_id',
+		'type'    => 'cashapp',
 		'cashapp' => [
 			'cashtag'  => '$test_cashtag',
 			'buyer_id' => 'test_buyer_id',
@@ -122,12 +122,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 		parent::tear_down();
 	}
 
@@ -219,9 +219,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_alipay_details     = [
 			'type' => 'alipay',
 		];
-		$mock_giropay_details    = [
-			'type' => 'giropay',
-		];
 		$mock_p24_details        = [
 			'type' => 'p24',
 		];
@@ -243,7 +240,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_boleto_details     = [
 			'type' => 'boleto',
 		];
-		$mock_multibanco_details     = [
+		$mock_multibanco_details = [
 			'type' => 'multibanco',
 		];
 		$mock_oxxo_details       = [
@@ -255,7 +252,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$alipay_method     = $this->mock_payment_methods['alipay'];
-		$giropay_method    = $this->mock_payment_methods['giropay'];
 		$p24_method        = $this->mock_payment_methods['p24'];
 		$eps_method        = $this->mock_payment_methods['eps'];
 		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
@@ -285,14 +281,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Alipay', $alipay_method->get_title( $mock_alipay_details ) );
 		$this->assertFalse( $alipay_method->is_reusable() );
 		$this->assertEquals( 'alipay', $alipay_method->get_retrievable_type() );
-
-		$this->assertEquals( 'giropay', $giropay_method->get_id() );
-		$this->assertEquals( 'giropay', $giropay_method->get_label() );
-		$this->assertEquals( 'giropay', $giropay_method->get_title() );
-		$this->assertEquals( 'giropay', $giropay_method->get_title( $mock_giropay_details ) );
-		$this->assertFalse( $giropay_method->is_reusable() );
-		$this->assertEquals( 'giropay', $giropay_method->get_retrievable_type() );
-		$this->assertEquals( '', $giropay_method->get_testing_instructions() );
 
 		$this->assertEquals( 'p24', $p24_method->get_id() );
 		$this->assertEquals( 'Przelewy24', $p24_method->get_label() );
@@ -388,12 +376,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods['card'];
-		$giropay_method           = $this->mock_payment_methods['giropay'];
 		$klarna_method            = $this->mock_payment_methods['klarna'];
 		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
 		$affirm_method            = $this->mock_payment_methods['affirm'];
@@ -409,7 +396,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
-		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
 		$this->assertFalse( $afterpay_clearpay_method->is_enabled_at_checkout() );
@@ -430,15 +416,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		// Disable testmode.
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id ) {
+			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id || 'giropay' === $id ) {
 				continue;
 			}
 
@@ -452,7 +438,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$payment_method = $this->mock_payment_methods[ $id ];
 
 			$supported_currencies = $payment_method->get_supported_currencies() ?? [];
-			$currency = end( $supported_currencies );
+			$currency             = end( $supported_currencies );
 
 			$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $currency ) );
 
@@ -474,15 +460,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['capture'] = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150, true );
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
+			if ( 'giropay' === $id ) {
+				continue;
+			}
+
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
@@ -513,7 +503,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
-		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 		// $this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'MXN', true );
@@ -534,7 +524,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
-		update_option( 'woocommerce_stripe_settings', [ 'test_mode' => 'true' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
 
@@ -606,7 +596,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
-				$store_currency = $payment_method->get_supported_currencies()[0];
+				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
 
@@ -684,10 +674,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_upe_method_enabled() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// For each method we'll test the following combinations:
 		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
@@ -707,7 +697,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
 					}
 
-					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 					// Verify that the payment method is enabled/disabled.
 					$payment_method_instance = new $payment_method();

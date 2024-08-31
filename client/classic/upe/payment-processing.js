@@ -6,6 +6,8 @@ import {
 	getUpeSettings,
 	showErrorCheckout,
 	appendSetupIntentToForm,
+	unblockBlockCheckout,
+	resetBlockCheckoutPaymentState,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -164,6 +166,7 @@ function createStripePaymentMethod(
  *
  * @param {Object} api The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  **/
 export async function mountStripePaymentElement( api, domElement ) {
 	/*
@@ -192,6 +195,8 @@ export async function mountStripePaymentElement( api, domElement ) {
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
 	upeElement.mount( domElement );
+
+	return gatewayUPEComponents[ paymentMethodType ];
 }
 
 /**
@@ -467,6 +472,12 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 
+		if ( confirmPayment.paymentIntent.last_payment_error ) {
+			throw new Error(
+				confirmPayment.paymentIntent.last_payment_error.message
+			);
+		}
+
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
@@ -476,5 +487,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout( error.message );
 	} finally {
 		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
 	}
 };

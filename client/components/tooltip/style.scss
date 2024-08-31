@@ -4,6 +4,13 @@
 	&__content-wrapper {
 		// ensures that the element needed for position calculations isn't included in the DOM layout
 		display: contents;
+
+		// Ensure the TooltipBase content is centered within the button. The structure is button > div > TooltipBase content.
+		div.wcstripe-tooltip__content-wrapper > * {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
 	}
 
 	&__tooltip-wrapper {
@@ -27,6 +34,7 @@
 		background-color: $gray-900;
 		padding: 10px;
 		text-align: center;
+		text-wrap: balance;
 
 		&::after {
 			content: ' ';

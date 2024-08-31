@@ -262,15 +262,19 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$stored_tokens = [];
-
+			$stored_tokens     = [];
 			$deprecated_tokens = [];
 
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 
-					// APM tokens from before Split PE was in place that will get removed.
-					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+					// Remove the following deprecated tokens:
+					// - APM tokens from before Split PE was in place.
+					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					if (
+						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						str_starts_with( $token->get_token(), 'src_' )
+					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
 					}
@@ -310,8 +314,13 @@ class WC_Stripe_Payment_Tokens {
 				// Retrieve the real APM behind SEPA PaymentMethods.
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
+				// Create a new token when:
+				// - The payment method doesn't have an associated token in WooCommerce.
+				// - The payment method is not a source.
+				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
+					! str_starts_with( $payment_method->id, 'src_' ) &&
 					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
@@ -374,30 +383,33 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array $item Modified list item.
 	 */
 	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
-		if ( 'sepa' === strtolower( $payment_token->get_type() ) ) {
-			$item['method']['last4'] = $payment_token->get_last4();
-			$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
-		}
-
-		if ( 'cashapp' === strtolower( $payment_token->get_type() ) ) {
-			/**
-			 * WC's wc_get_credit_card_type_label() function will automatically replace underscores and dashes with spaces.
-			 * Cashtags can include `_` and `-` characters and so to keep the cashtag intact, we need to avoid that by using their HTML entity.
-			 */
-			$item['method']['brand'] = str_replace( [ '_', '-' ], [ '&#95;', '&#8211' ], $payment_token->get_display_name() );
+		switch ( strtolower( $payment_token->get_type() ) ) {
+			case 'sepa':
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
+				break;
+			case 'cashapp':
+				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
+				break;
+			case 'link':
+				$item['method']['brand'] = esc_html__( 'Stripe Link', 'woocommerce-gateway-stripe' );
+				break;
 		}
 
 		return $item;
 	}
 
 	/**
-	 * Delete token from Stripe.
+	 * Deletes a token from Stripe.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
+	 *
+	 * @param int              $token_id The WooCommerce token ID.
+	 * @param WC_Payment_Token $token    The WC_Payment_Token object.
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
 		try {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
@@ -534,6 +546,7 @@ class WC_Stripe_Payment_Tokens {
 		$label_overrides      = [];
 		$payment_method_types = [
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {
@@ -600,7 +613,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array                           Filtered item
 	 */
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		__deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
+		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
 		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
 	}
 }

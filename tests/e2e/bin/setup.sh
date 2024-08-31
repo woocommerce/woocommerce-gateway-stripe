@@ -34,7 +34,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 step "Starting E2E docker containers"
-CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker-compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
+CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
 
 step "Configuring Wordpress"
 # Wait for containers to be started up before setup.
@@ -102,6 +102,7 @@ redirect_output cli wp option set woocommerce_store_postcode "94110"
 redirect_output cli wp option set woocommerce_currency "USD"
 redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
+redirect_output cli wp option set woocommerce_coming_soon "no"
 
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate

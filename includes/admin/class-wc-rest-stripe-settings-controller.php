@@ -312,6 +312,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
 		}
 
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
+
 		return new WP_REST_Response( [], 200 );
 	}
 
@@ -452,9 +454,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$settings = get_option( 'woocommerce_stripe_settings', [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
-		update_option( 'woocommerce_stripe_settings', $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
@@ -464,6 +466,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 	}
 
 	/**
@@ -547,9 +551,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$description       = sanitize_text_field( $request->get_param( 'description' ) );
 		$is_upe_enabled    = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 
-		// Multibanco is currently the only non-UPE payment method that is part of the UPE settings page.
-		// It is handled below like legacy methods.
-		if ( $is_upe_enabled && 'multibanco' !== $payment_method_id ) {
+		if ( $is_upe_enabled ) {
 			$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
 			if ( ! in_array( $payment_method_id, $available_payment_methods, true ) ) {
 				return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
@@ -569,7 +571,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				$settings
 			);
 
-			return new WP_REST_Response( [ 'result' => 'upe' ], 200 );
+			return new WP_REST_Response( [], 200 );
 		}
 
 		// Map the ids used in the frontend to the legacy gateway class ids.
@@ -596,7 +598,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$payment_gateway->update_unique_settings( $request );
 		}
 
-		return new WP_REST_Response( [ 'result' => 'legacy' ], 200 );
+		return new WP_REST_Response( [], 200 );
 	}
 
 	/**

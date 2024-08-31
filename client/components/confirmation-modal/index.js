@@ -11,8 +11,14 @@ const ConfirmationModal = ( { children, actions, className, ...props } ) => (
 		{ ...props }
 	>
 		{ children }
-		<HorizontalRule className="wcstripe-confirmation-modal__separator" />
-		<div className="wcstripe-confirmation-modal__footer">{ actions }</div>
+		{ actions && (
+			<>
+				<HorizontalRule className="wcstripe-confirmation-modal__separator" />
+				<div className="wcstripe-confirmation-modal__footer">
+					{ actions }
+				</div>
+			</>
+		) }
 	</Modal>
 );
 

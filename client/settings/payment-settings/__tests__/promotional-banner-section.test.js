@@ -6,6 +6,10 @@ import PromotionalBannerSection from '../promotional-banner-section';
 
 jest.mock( '@wordpress/data' );
 
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+} ) );
+
 const noticesDispatch = {
 	createErrorNotice: jest.fn(),
 	createSuccessNotice: jest.fn(),
@@ -26,6 +30,7 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				isConnectedViaOAuth={ true }
 			/>
 		);
 
@@ -44,10 +49,23 @@ describe( 'PromotionalBanner', () => {
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				isUpeEnabled={ false }
 				setIsUpeEnabled={ setIsUpeEnabledMock }
+				isConnectedViaOAuth={ true }
 			/>
 		);
 
 		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
+	} );
+
+	it( 'Display the re-connect promotional surface when OAuth connection is not set', () => {
+		render(
+			<PromotionalBannerSection
+				setShowPromotionalBanner={ setShowPromotionalBanner }
+				isConnectedViaOAuth={ false }
+			/>
+		);
+		expect(
+			screen.queryByTestId( 're-connect-account-banner' )
+		).toBeInTheDocument();
 	} );
 } );

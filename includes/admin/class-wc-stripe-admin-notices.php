@@ -93,11 +93,11 @@ class WC_Stripe_Admin_Notices {
 		return [
 			'alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'eps'        => 'WC_Gateway_Stripe_EPS',
+			'eps'        => 'WC_Gateway_Stripe_Eps',
 			'giropay'    => 'WC_Gateway_Stripe_Giropay',
 			'ideal'      => 'WC_Gateway_Stripe_Ideal',
 			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'p24'        => 'WC_Gateway_Stripe_p24',
+			'p24'        => 'WC_Gateway_Stripe_P24',
 			'sepa'       => 'WC_Gateway_Stripe_Sepa',
 			'sofort'     => 'WC_Gateway_Stripe_Sofort',
 			'boleto'     => 'WC_Gateway_Stripe_Boleto',
@@ -122,7 +122,7 @@ class WC_Stripe_Admin_Notices {
 		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
 		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
-		$options             = get_option( 'woocommerce_stripe_settings' );
+		$options             = WC_Stripe_Helper::get_stripe_settings();
 		$testmode            = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
 		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
@@ -211,7 +211,7 @@ class WC_Stripe_Admin_Notices {
 
 					$notice_message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Stripe is almost ready. To get started, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+						__( 'Stripe is almost ready. To get started, go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to connect.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
@@ -227,7 +227,7 @@ class WC_Stripe_Admin_Notices {
 
 						$notice_message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							__( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in test mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to reconnect.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -242,7 +242,7 @@ class WC_Stripe_Admin_Notices {
 
 						$message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							__( 'Stripe is in live mode however your live keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in live mode however your API keys may not be valid. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to reconnect.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -258,7 +258,7 @@ class WC_Stripe_Admin_Notices {
 
 					$message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+						__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to %1$syour settings%2$s and use the <strong>Configure Connection</strong> button to connect.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
@@ -295,7 +295,7 @@ class WC_Stripe_Admin_Notices {
 			if ( 'yes' === $changed_keys_notice ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					__( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. %1$sClick here to learn more%2$s.', 'woocommerce-gateway-stripe' ),
+					__( 'Credentials used for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. %1$sClick here to learn more%2$s.', 'woocommerce-gateway-stripe' ),
 					'<a href="https://woocommerce.com/document/stripe/customization/database-cleanup/" target="_blank">',
 					'</a>'
 				);

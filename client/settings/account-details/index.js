@@ -1,19 +1,17 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import { Button, ExternalLink, Icon } from '@wordpress/components';
-import { help, warning } from '@wordpress/icons';
-import interpolateComponents from 'interpolate-components';
+import { ExternalLink, Icon } from '@wordpress/components';
+import { help } from '@wordpress/icons';
 import styled from '@emotion/styled';
 import SectionStatus from '../section-status';
-import useWebhookStateMessage from './use-webhook-state-message';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
 import {
 	useAccountKeysTestWebhookSecret,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
-import { WebhookInformation } from 'wcstripe/components/webhook-information';
+import { WebhookDescription } from 'wcstripe/components/webhook-description';
 
 const AccountDetailsContainer = styled.div`
 	display: flex;
@@ -27,6 +25,7 @@ const AccountSection = styled.div`
 	align-items: center;
 	padding: 8px 0;
 	flex: 1 0 0;
+	gap: 8px;
 
 	svg {
 		display: flex;
@@ -39,34 +38,6 @@ const Label = styled.p`
 	font-weight: 500;
 	text-transform: uppercase;
 	margin: 0;
-`;
-
-const WebhookDescriptionWrapper = styled.div`
-	font-size: 12px;
-	font-style: normal;
-	color: rgb( 117, 117, 117 );
-
-	> span {
-		align-self: center;
-	}
-
-	p.warning {
-		background-color: #fcf9e8;
-		color: #674600;
-		padding: 4px 8px;
-		border-radius: 2px;
-	}
-`;
-
-const WebhookDescription = styled.div`
-	display: flex;
-	align-items: center;
-`;
-
-const WarningIcon = styled( Icon )`
-	fill: #674600;
-	padding: 5px;
-	margin: 1em 0;
 `;
 
 const AccountDetailsError = styled.p`
@@ -111,27 +82,27 @@ const PayoutsSection = () => {
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
 					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
-			</SectionStatus>
-			{ ! isEnabled && (
-				<Tooltip
-					content={ createInterpolateElement(
-						/* translators: <a> - dashboard login URL */
-						__(
-							'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
-							'woocommerce-gateway-stripe'
-						),
-						{
-							a: (
-								<ExternalLink href="https://dashboard.stripe.com/account" />
+				{ ! isEnabled && (
+					<Tooltip
+						content={ createInterpolateElement(
+							/* translators: <a> - dashboard login URL */
+							__(
+								'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
+								'woocommerce-gateway-stripe'
 							),
-						}
-					) }
-				>
-					<span data-testid="help">
-						<Icon icon={ help } size="18" />
-					</span>
-				</Tooltip>
-			) }
+							{
+								a: (
+									<ExternalLink href="https://dashboard.stripe.com/account" />
+								),
+							}
+						) }
+					>
+						<span data-testid="help">
+							<Icon icon={ help } size="18" />
+						</span>
+					</Tooltip>
+				) }
+			</SectionStatus>
 		</AccountSection>
 	);
 };
@@ -146,9 +117,6 @@ const WebhooksSection = () => {
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
 	);
 
-	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
-	const isWarningMessage = message?.includes( 'Warning: ' ) || false;
-
 	return (
 		<>
 			<AccountSection>
@@ -159,29 +127,9 @@ const WebhooksSection = () => {
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
 			</AccountSection>
-			<WebhookDescriptionWrapper>
-				{ ! isWebhookSecretEntered && <WebhookInformation /> }
-				<WebhookDescription
-					className={ isWebhookSecretEntered ? 'expanded' : '' }
-				>
-					{ isWarningMessage && (
-						<span data-testid="warning">
-							<WarningIcon icon={ warning } size="16" />
-						</span>
-					) }
-					<p className={ isWarningMessage ? 'warning' : '' }>
-						{ message }{ ' ' }
-						<Button
-							disabled={ requestStatus === 'pending' }
-							onClick={ refreshMessage }
-							isBusy={ requestStatus === 'pending' }
-							isLink
-						>
-							{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-						</Button>
-					</p>
-				</WebhookDescription>
-			</WebhookDescriptionWrapper>
+			<WebhookDescription
+				isWebhookSecretEntered={ isWebhookSecretEntered }
+			/>
 		</>
 	);
 };
@@ -195,29 +143,20 @@ const AccountDetails = () => {
 		return (
 			<AccountDetailsContainer>
 				<AccountDetailsError>
-					{ isTestModeEnabled
-						? interpolateComponents( {
-								mixedString: __(
-									"Seems like the test keys we've saved for you are no longer valid. If you recently updated them, enter the new test keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+					{ createInterpolateElement(
+						isTestModeEnabled
+							? __(
+									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/test/apikeys" />
-									),
-								},
-						  } )
-						: interpolateComponents( {
-								mixedString: __(
-									"Seems like the live keys we've saved for you are no longer valid. If you recently updated them, enter the new live keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+							  )
+							: __(
+									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
-								),
-								components: {
-									accountLink: (
-										<ExternalLink href="https://dashboard.stripe.com/apikeys" />
-									),
-								},
-						  } ) }
+							  ),
+						{
+							strong: <strong />,
+						}
+					) }
 				</AccountDetailsError>
 			</AccountDetailsContainer>
 		);

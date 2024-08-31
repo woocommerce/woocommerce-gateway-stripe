@@ -79,13 +79,14 @@ describe( 'AccountDetails', () => {
 					charges_enabled: false,
 				},
 				webhook_status_message: mockedWarningMessage,
+				webhook_status_code: 4,
 			},
 		} );
 		render( <AccountDetails /> );
 
-		expect( screen.queryByTestId( 'warning' ) ).toBeInTheDocument();
-		expect( screen.queryByText( mockedWarningMessage ) ).toHaveClass(
-			'warning'
-		);
+		expect( screen.queryByTestId( 'warning-icon' ) ).toBeInTheDocument();
+		expect(
+			screen.queryByText( mockedWarningMessage )
+		).toBeInTheDocument();
 	} );
 } );

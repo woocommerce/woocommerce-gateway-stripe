@@ -154,6 +154,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				continue;
 			}
 
+			// Show giropay only on the orders page to allow refunds. It was deprecated.
+			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
+				continue;
+			}
+
 			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
@@ -173,7 +178,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings              = get_option( 'woocommerce_stripe_settings' );
+		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                = $this->payment_methods['card']->get_title();
 		$this->description          = $this->payment_methods['card']->get_description();
 		$this->enabled              = $this->get_option( 'enabled' );
@@ -213,9 +218,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
-		// Reorder the available payment gateways on the checkout page.
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'reorder_available_payment_gateways' ] );
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 	}
@@ -546,43 +548,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Reorders the list of available payment gateways to include the Stripe methods in the order merchants have chosen in the settings.
-	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
-	 */
-	public function reorder_available_payment_gateways( $gateways ) {
-		if ( ! is_array( $gateways ) ) {
-			return $gateways;
-		}
-
-		$ordered_available_stripe_methods = [];
-
-		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.
-		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
-
-		// Generate a list of all available Stripe payment methods in the order they should be displayed.
-		foreach ( WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this ) as $payment_method ) {
-			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
-
-			if ( isset( $gateways[ $gateway_id ] ) ) {
-				$ordered_available_stripe_methods[ $gateway_id ] = $gateways[ $gateway_id ];
-				unset( $gateways[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
-			}
-		}
-
-		// Add the ordered list of available Stripe payment methods back into the list of available gateways.
-		if ( $stripe_index ) {
-			$gateways = array_slice( $gateways, 0, $stripe_index, true ) + $ordered_available_stripe_methods + array_slice( $gateways, $stripe_index, null, true );
-		} else {
-			// In cases where Stripe is not found in the list of available gateways but there were other legacy methods available, add the Stripe methods to the front of the list.
-			$gateways = array_merge( $ordered_available_stripe_methods, $gateways );
-		}
-
-		return $gateways;
-	}
-
-	/**
 	 * Renders the UPE input fields needed to get the user's payment information on the checkout page
 	 */
 	public function payment_fields() {
@@ -833,6 +798,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
+				$this->lock_order_payment( $order );
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
@@ -918,7 +884,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$charge = end( $payment_intent->charges->data );
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
 
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
@@ -944,6 +910,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->mark_order_as_pre_ordered( $order );
 				}
 			}
+
+			$this->unlock_order_payment( $order );
 
 			return array_merge(
 				[
@@ -1115,7 +1083,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $intent->charges->data ), $order );
+				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -1380,7 +1348,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! $is_pre_order ) {
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $intent->charges->data ), $order );
+				$this->process_response( $this->get_latest_charge_from_intent( $intent ), $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -1726,8 +1694,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method_details = false;
 
 		if ( 'payment_intent' === $intent->object ) {
-			if ( ! empty( $intent->charges ) && 0 < $intent->charges->total_count ) {
-				$charge                 = end( $intent->charges->data );
+			$charge = $this->get_latest_charge_from_intent( $intent );
+			if ( ! empty( $charge ) ) {
 				$payment_method_details = (array) $charge->payment_method_details;
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
@@ -2050,6 +2018,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'shipping'                      => $shipping_details,
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
+			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 		];
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -2189,8 +2158,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
+		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
+		if ( isset( $payment_method_object->type ) && 'link' === $payment_method_object->type ) {
+			$payment_method_instance = $this->payment_methods['link'];
+		} else {
+			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+		}
+
 		// Create a payment token for the user in the store.
-		$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
 
 		// Add the payment method information to the order.
@@ -2497,6 +2472,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function get_appearance_transient_key( $is_block_checkout = false ) {
 		return ( $is_block_checkout ? self::BLOCKS_APPEARANCE_TRANSIENT : self::APPEARANCE_TRANSIENT ) . '_' . get_option( 'stylesheet' );
+	}
+
+	/**
+	 * Checks if the current page is the order details page.
+	 *
+	 * @return bool Whether the current page is the order details page.
+	 */
+	private function is_order_details_page() {
+		$query_params = wp_unslash( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
+			return isset( $query_params['page'] ) && 'wc-orders' === $query_params['page'] && isset( $query_params['id'] );
+		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
+		$is_shop_order_post_type = isset( $query_params['post'] ) && 'shop_order' === get_post_type( $query_params['post'] );
+		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_order_post_type;
+	}
+
+	/**
+	 * Checks if this is a refund request.
+	 *
+	 * @return bool Whether this is a refund request.
+	 */
+	private function is_refund_request() {
+		return isset( $_POST['action'] ) && 'woocommerce_refund_line_items' === $_POST['action']; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 	}
 
 	/**

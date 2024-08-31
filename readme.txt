@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.2
-Tested up to: 6.5.2
+Requires at least: 6.4
+Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.4.0
+Stable tag: 8.6.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,17 +128,27 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.5.0 - 2024-xx-xx =
-* Add - Allow changing display order of payment methods in the new checkout experience.
-* Fix - Prevent subscriptions using Legacy SEPA from switching to Manual Renewal when disabling the Legacy experience.
-* Tweak - Add a notice in checkout for Cash App transactions above 2000 USD to inform customers about the decline risk.
-* Tweak - Improve the display of warning messages related to webhook configuration.
-* Fix - When using a saved payment method, update the payment method's address immediately upon checkout. Fixes issues where Stripe may throw address validation errors.
-* Add - Allow customizing the title and description of the UPE payment methods.
-* Tweak - Add a statement descriptor preview for Cash App Payments.
-* Fix - Ensure payments via redirect are processed through the webhook if the redirect never occurs. Resolves issues of orders being left as pending payment.
-* Add - Introduce a way for store managers to automatically configure webhooks on their Stripe account with a single button in the admin settings.
-* Fix - Ensure subscriptions purchased with iDEAL or Bancontact are correctly set to SEPA debit prior to processing the intitial payment.
-* Fix - Ensure SEPA tokens are attached to customers in the legacy checkout experience when the payment method is saved. This addresses subscription recurring payment "off-session" errors with SEPA.
+= 8.7.0 - xxxx-xx-xx =
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
+* Fix - Add back support for Stripe Link autofill for shortcode checkout.
+* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
+* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
+* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
+* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
+* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
+* Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
+* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
+* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
+* Fix - Fix error in saving settings when express payment methods are disabled.
+* Fix - Catch error when getting intent from order.
+* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
+* Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

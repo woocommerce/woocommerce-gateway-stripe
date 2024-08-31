@@ -19,15 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * WooCommerce detects that the stripe_sepa payment gateway as no longer available.
  * This causes the Subscription to change to Manual renewal, and automatic renewals to fail.
  *
- * This class fixes failing automatic renewals by:
- *   - Retrieving all the subscriptions that are using the stripe_sepa payment gateway.
- *   - Iterating over each subscription.
- *   - Retrieving an Updated (Payment Methods API) token based on the Legacy (Sources API) token associated with the subscription.
- *       - If none is found, we create a new Updated (Payment Methods API) token based on the Legacy (Sources API) token.
- *       - If it can't be created, we skip the migration.
- *   - Associating this replacement token to the subscription.
- *
- * This class extends the WCS_Background_Repairer for scheduling and running the individual migration actions.
+ * This class updates the following for the given subscription:
+ *   - The associated gateway ID to the one used for the updated checkout experience `stripe_sepa_debit`, so it doesn't switch to Manual Renewal.
+ *   - The payment method used for renewals to the migrated pm_, if any.
  */
 class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
@@ -60,16 +54,30 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 */
 	public function maybe_update_subscription_legacy_payment_method( $subscription_id ) {
 		$subscription = $this->get_subscription_to_migrate( $subscription_id );
-		$source_id    = $subscription->get_meta( self::SOURCE_ID_META_KEY );
-		$user_id      = $subscription->get_user_id();
-
-		// Try to create an updated SEPA gateway token if none exists.
-		// We don't need this to update the subscription, but creating one for consistency.
-		// It could be confusing for a merchant to see the subscription renewing but no saved token in the store.
-		$this->maybe_create_updated_sepa_token_by_source_id( $source_id, $user_id );
 
 		// Update the subscription with the updated SEPA gateway ID.
-		$this->set_subscription_updated_payment_method( $subscription );
+		$this->set_subscription_updated_payment_gateway_id( $subscription );
+
+		// Update the payment method to the migrated pm_.
+		$this->maybe_update_subscription_source( $subscription );
+	}
+
+	/**
+	 * Attempts to update the payment method for renewals from Sources to PaymentMethods.
+	 *
+	 * @param WC_Subscription $subscription The subscription for which the payment method must be updated.
+	 */
+	public function maybe_update_subscription_source( WC_Subscription $subscription ) {
+		try {
+			$this->set_subscription_updated_payment_method( $subscription );
+
+			$order_note = __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' );
+		} catch ( \Exception $e ) {
+			/* translators: Reason why the subscription payment method wasn't updated */
+			$order_note = sprintf( __( 'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+		}
+
+		$subscription->add_order_note( $order_note );
 	}
 
 	/**
@@ -79,11 +87,10 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 * - The Legacy experience is disabled
 	 * - The WooCommerce Subscription extension is active
 	 * - The subscription ID is a valid subscription
-	 * - The payment method associated with the subscription is the legacy SEPA gateway, `stripe_sepa`
 	 *
 	 * @param int $subscription_id The ID of the subscription to update.
 	 * @return WC_Subscription An instance of the subscription to be updated.
-	 * @throws \Exception When the subscription can't or doesn't need to be updated.
+	 * @throws \Exception When the subscription can't be updated.
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
@@ -100,77 +107,41 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) );
 		}
 
-		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
-			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription_id ) );
-		}
-
 		return $subscription;
 	}
 
 	/**
-	 * Returns an updated token to be used for the subscription, given the source ID.
+	 * Updates the payment method used for renewals to the migrated pm_, if any.
 	 *
-	 * If no updated token is found, we create a new one based on the legacy one.
+	 * The subscription is using a source for renewals at this point.
+	 * When the migration runs on the Stripe account, there will be a payment method (pm_) migrated from the source (src_).
+	 * This method updates the subscription to use the migrated payment method (pm_) for renewals, if it exists.
 	 *
-	 * @param string  $source_id The Source or Payment Method ID associated with the subscription.
-	 * @param integer $user_id   The WordPress User ID to whom the subscription belongs.
+	 * @param WC_Subscription $subscription The subscription to update.
+	 * @throws \Exception When the subscription is already using a pm_ or its src_ hasn't been migrated to a pm_.
 	 */
-	private function maybe_create_updated_sepa_token_by_source_id( string $source_id, int $user_id ) {
+	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
+		$source_id = $subscription->get_meta( self::SOURCE_ID_META_KEY );
 
-		// Retrieve the updated SEPA tokens for the user.
-		$replacement_token = $this->get_customer_token_by_source_id( $source_id, $user_id, $this->updated_sepa_gateway_id );
-
-		// If no updated SEPA token was found, create a new one based on the source ID.
-		if ( ! $replacement_token ) {
-			$replacement_token = $this->create_updated_sepa_token( $source_id, $user_id );
-		}
-	}
-
-	/**
-	 * Get the token for the user by its source ID and gateway ID. s
-	 *
-	 * @param string  $source_id  The ID of the source we're looking for.
-	 * @param integer $user_id    The ID of the user we're retrieving tokens for.
-	 * @param string  $gateway_id The ID of the gateway of the tokens we want to check.
-	 *
-	 * @return WC_Payment_Token|false
-	 */
-	private function get_customer_token_by_source_id( string $source_id, int $user_id, string $gateway_id ) {
-		$customer_tokens = WC_Payment_Tokens::get_customer_tokens( $user_id, $gateway_id );
-
-		foreach ( $customer_tokens as $token ) {
-			if ( $source_id === $token->get_token() ) {
-				return $token;
-			}
+		// Bail out if the subscription is already using a pm_.
+		if ( 0 !== strpos( $source_id, 'src_' ) ) {
+			throw new \Exception( sprintf( 'The subscription is not using a Stripe Source for renewals.', $subscription->get_id() ) );
 		}
 
-		return false;
-	}
+		// Retrieve the source object from the API.
+		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
-	/**
-	 * Creates an updated SEPA token given the source ID.
-	 *
-	 * @param string  $source_id Source ID from which to create the new token.
-	 * @param integer $user_id
-	 * @return WC_Payment_Token_SEPA|bool The new SEPA token, or false if no legacy token was found.
-	 */
-	private function create_updated_sepa_token( string $source_id, int $user_id ) {
-		$legacy_token = $this->get_customer_token_by_source_id( $source_id, $user_id, WC_Gateway_Stripe_Sepa::ID );
-
-		// Bail out if we don't have a token from which to create an updated one.
-		if ( ! $legacy_token ) {
-			return false;
+		// Bail out if the src_ hasn't been migrated to pm_ yet.
+		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
+			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
 		}
 
-		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $legacy_token->get_last4() );
-		$token->set_payment_method_type( $legacy_token->get_payment_method_type() );
-		$token->set_gateway_id( $this->updated_sepa_gateway_id );
-		$token->set_token( $source_id );
-		$token->set_user_id( $user_id );
-		$token->save();
+		// Get the payment method ID that was migrated from the source.
+		$migrated_payment_method_id = $source_object->metadata->migrated_payment_method;
 
-		return $token;
+		// And set it as the payment method for the subscription.
+		$subscription->update_meta_data( self::SOURCE_ID_META_KEY, $migrated_payment_method_id );
+		$subscription->save();
 	}
 
 	/**
@@ -178,7 +149,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @param WC_Subscription $subscription Subscription for which the payment method must be updated.
 	 */
-	private function set_subscription_updated_payment_method( WC_Subscription $subscription ) {
+	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
+		// The subscription is not using the legacy SEPA gateway ID.
+		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
+			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription->get_id() ) );
+		}
+
 		// Add a meta to the subscription to flag that its token got updated.
 		$subscription->update_meta_data( self::LEGACY_TOKEN_PAYMENT_METHOD_META_KEY, WC_Gateway_Stripe_Sepa::ID );
 		$subscription->set_payment_method( $this->updated_sepa_gateway_id );

@@ -49,19 +49,19 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// Disable UPE.
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		// Set statement descriptor.
 		$stripe_settings['statement_descriptor'] = $this->statement_descriptor;
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		delete_option( 'woocommerce_stripe_settings' );
+		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		parent::tear_down();
 	}
@@ -145,6 +145,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
+				'capture_method'       => 'automatic',
 			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
@@ -184,7 +185,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			// Assert: the request body does not contains these keys.
 			$expected_missing_request_body_keys = [
 				'capture', // No need to capture with a payment intent.
-				'capture_method', // The default ('automatic') is what we want in this case, so we leave it off.
 				'expand[]',
 			];
 			foreach ( $expected_missing_request_body_keys as $key ) {
