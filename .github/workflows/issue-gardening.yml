@@ -31,7 +31,7 @@ jobs:
 
           - name: 'Issues without activity for 6 months'
             message: 'This issue has gone 180 days (6 months) without any activity.'
-            days-before-stale: 180
+            days-before-stale: 30
             days-before-close: -1
             only-labels: 'status: needs confirmation'
             remove-stale-when-updated: true
