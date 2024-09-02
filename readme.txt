@@ -137,6 +137,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
 * Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
 * Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
@@ -148,5 +149,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Update capabilities to payment methods mapping.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
+* Update - Specify the JS Stripe API version as 2024-06-20.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
