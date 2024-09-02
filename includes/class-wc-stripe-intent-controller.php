@@ -716,6 +716,7 @@ class WC_Stripe_Intent_Controller {
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
@@ -745,9 +746,10 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// Using a saved token will also be confirmed immediately. For voucher and wallet payment methods type like Boleto, Oxxo, Multibanco, and Cash App we shouldn't confirm
+		// the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
-		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
+		if ( ! $is_using_saved_token && $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
 		}
 
@@ -907,7 +909,6 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
-		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
