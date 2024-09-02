@@ -1124,7 +1124,7 @@ class WC_Stripe_Intent_Controller {
 	 * Determines whether the intent needs to be confirmed later.
 	 *
 	 * Some payment methods such as CashApp, Boleto, Oxxo and Multibanco require the payment to be confirmed later when
-	 * displaying the voucher to the customer on the checkout or pay for order page.
+	 * displaying the voucher or QR code to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
