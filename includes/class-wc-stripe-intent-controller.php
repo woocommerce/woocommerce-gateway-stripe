@@ -979,6 +979,16 @@ class WC_Stripe_Intent_Controller {
 			$request = $this->add_mandate_data( $request );
 		}
 
+		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
+		if ( $this->is_delayed_confirmation_required( $request['payment_method_types'] ) ) {
+			$request['confirm'] = 'false';
+		}
+
+		if ( ! $this->request_needs_redirection( $request['payment_method_types'] ) ) {
+			unset( $request['return_url'] );
+		}
+
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
@@ -1025,7 +1035,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 
