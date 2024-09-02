@@ -916,7 +916,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -945,11 +945,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
-			return false;
-		}
-
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp', 'link' ], true ) ) {
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'link' ], true ) ) {
 			return true;
 		}
 
@@ -1121,13 +1117,13 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco', 'cashapp' ] );
 	}
 
 	/**
 	 * Determines whether the intent needs to be confirmed later.
 	 *
-	 * Some payment methods such as Boleto, Oxxo and Multibanco require the payment to be confirmed later when
+	 * Some payment methods such as CashApp, Boleto, Oxxo and Multibanco require the payment to be confirmed later when
 	 * displaying the voucher to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
@@ -1135,7 +1131,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true ) || in_array( 'multibanco', $payment_methods, true );
+		return ! empty( array_intersect( $payment_methods, [ 'boleto', 'oxxo', 'multibanco', 'cashapp' ] ) );
 	}
 
 	/**
