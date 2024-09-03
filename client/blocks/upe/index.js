@@ -8,6 +8,7 @@ import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creati
 import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
+import expressCheckoutElementsPaymentMethod from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import './styles.scss';
@@ -89,6 +90,9 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 
 // Register Stripe Payment Request.
 registerExpressPaymentMethod( paymentRequestPaymentMethod );
+
+// Register Express Checkout Element.
+registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
