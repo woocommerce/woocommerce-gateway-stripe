@@ -616,21 +616,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	public function test_payment_methods_support_custom_name_and_description() {
-		$card_method              = $this->mock_payment_methods['card'];
-		$klarna_method            = $this->mock_payment_methods['klarna'];
-		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
-		$affirm_method            = $this->mock_payment_methods['affirm'];
-		$p24_method               = $this->mock_payment_methods['p24'];
-		$eps_method               = $this->mock_payment_methods['eps'];
-		$sepa_method              = $this->mock_payment_methods['sepa_debit'];
-		$sofort_method            = $this->mock_payment_methods['sofort'];
-		$bancontact_method        = $this->mock_payment_methods['bancontact'];
-		$ideal_method             = $this->mock_payment_methods['ideal'];
-		$boleto_method            = $this->mock_payment_methods['boleto'];
-		$multibanco_method        = $this->mock_payment_methods['multibanco'];
-		$oxxo_method              = $this->mock_payment_methods['oxxo'];
-		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
-
 		$payment_method_ids = [
 			'card',
 			'klarna',
