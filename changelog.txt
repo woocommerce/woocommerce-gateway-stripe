@@ -1,14 +1,28 @@
 *** Changelog ***
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
+* Fix - Add back support for Stripe Link autofill for shortcode checkout.
 * Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
 * Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
 * Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
 * Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
 * Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
 * Add - Log incoming webhook events and their request body.
 * Add - Show UPE payment methods in saved order on block checkout page.
+* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
 * Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
+* Fix - Fix error in saving settings when express payment methods are disabled.
+* Fix - Catch error when getting intent from order.
+* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
+* Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
+* Update - Specify the JS Stripe API version as 2024-06-20.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.

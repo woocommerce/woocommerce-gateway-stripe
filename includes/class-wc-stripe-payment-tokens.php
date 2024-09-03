@@ -400,13 +400,16 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Delete token from Stripe.
+	 * Deletes a token from Stripe.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
+	 *
+	 * @param int              $token_id The WooCommerce token ID.
+	 * @param WC_Payment_Token $token    The WC_Payment_Token object.
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
 		try {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
@@ -610,7 +613,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array                           Filtered item
 	 */
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
-		__deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
+		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
 		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
 	}
 }
