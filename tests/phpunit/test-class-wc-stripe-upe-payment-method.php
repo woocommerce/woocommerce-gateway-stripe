@@ -536,7 +536,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
 				'country' => 'US',
-				'default_currency' => 'USD'
+				'default_currency' => 'USD',
 			]
 		);
 
