@@ -100,14 +100,14 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_supported_currencies() {
 		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country = strtoupper( $account['country'] );
+		$account_country = strtoupper( $account['country'] ?? '' );
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
 		$eea_countries = array_merge( WC_Stripe_Helper::get_european_economic_area_countries(), [ 'CH', 'GB' ] );
 
 		// Countries outside the EEA can only transact with customers in their own currency.
 		if ( ! in_array( $account_country, $eea_countries, true ) ) {
-			return [ $account['default_currency'] ];
+			return [ strtoupper( $account['default_currency'] ?? '' ) ];
 		}
 
 		// Stripe account in EEA + UK and Switzerland can present the following as store currencies.
