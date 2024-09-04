@@ -525,6 +525,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+				->disableOriginalConstructor()
+				->setMethods(
+					[
+						'get_cached_account_data',
+					]
+				)
+				->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country' => 'US',
+				'default_currency' => 'USD',
+			]
+		);
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
 
