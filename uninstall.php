@@ -24,13 +24,13 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	$settings = get_option( 'woocommerce_stripe_settings', [] );
 	if ( is_array( $settings ) ) {
 		// Live keys
-		$options['publishable_key'] = '';
-		$options['secret_key']      = '';
-		$options['refresh_token']   = '';
+		unset( $settings['publishable_key'], $settings['secret_key'] );
+		unset( $settings['connection_type'], $settings['refresh_token'] );
+		unset( $settings['webhook_data'] );
 		// Test keys
-		$options['test_publishable_key'] = '';
-		$options['test_secret_key']      = '';
-		$options['test_refresh_token']   = '';
+		unset( $settings['test_publishable_key'], $settings['test_secret_key'] );
+		unset( $settings['test_connection_type'], $settings['test_refresh_token'] );
+		unset( $settings['test_webhook_data'] );
 	}
 	update_option( 'woocommerce_stripe_settings', $settings );
 
