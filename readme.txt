@@ -151,6 +151,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Address QIT Security test errors.
 * Fix - Address QIT PHPStan test errors.
 * Update - Specify the JS Stripe API version as 2024-06-20.
+* Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
 * Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 * Fix - Address Klarna availability based on correct presentment currency rules.
 
