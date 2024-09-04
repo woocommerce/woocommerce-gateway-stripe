@@ -1142,18 +1142,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Check if setting an order to failed will trigger a failed order email.
 	 *
 	 * @param string $status The status of the order prior to setting it to failed.
+	 * @return bool
 	 */
 	private function has_failed_order_email_hooks( $status ) {
 		$callback = [ 'WC_Failed_Order_Email', 'trigger' ];
 
-		if ( 'pending' == $status ) {
+		if ( 'pending' === $status ) {
 			return has_action(
 				'woocommerce_order_status_pending_to_failed_notification',
 				$callback
 			);
 		}
 
-		if ( 'on-hold' == $status ) {
+		if ( 'on-hold' === $status ) {
 			return has_action(
 				'woocommerce_order_status_on-hold_to_failed_notification',
 				$callback
