@@ -168,7 +168,7 @@ describe( 'Getting styles for automated theming', () => {
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
 				'.Text--redirect': {
-					color: 'rgb(109, 109, 109)',
+					color: 'rgb(0,0,0)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
