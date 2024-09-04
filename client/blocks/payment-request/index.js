@@ -17,7 +17,8 @@ const paymentRequestPaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	title: 'Stripe',
 	description: __(
-		'This will show users the ApplePay, GooglePay, or Stripe Link button depending on their browser and logged in status.'
+		'This will show users the ApplePay, GooglePay, or Stripe Link button depending on their browser and logged in status.',
+		'woocommerce-gateway-stripe'
 	),
 	gatewayId: 'stripe',
 	content: <PaymentRequestExpress stripe={ componentStripePromise } />,
