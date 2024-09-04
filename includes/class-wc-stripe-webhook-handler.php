@@ -69,17 +69,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
 
 		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 2 );
-
-		// For testing only
-		// TODO Remove before merging!
-		add_action(
-			'woocommerce_email_sent',
-			function( $result, $id, $email ) {
-				error_log( 'Email sent: ' . $email->get_heading() );
-			},
-			10,
-			3
-		);
 	}
 
 	/**
