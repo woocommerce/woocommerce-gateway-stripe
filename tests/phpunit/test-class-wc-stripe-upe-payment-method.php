@@ -629,6 +629,44 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_payment_methods_support_custom_name_and_description() {
+		$payment_method_ids = [
+			'card',
+			'klarna',
+			'afterpay_clearpay',
+			'affirm',
+			'p24',
+			'eps',
+			'sepa_debit',
+			'sofort',
+			'bancontact',
+			'ideal',
+			'boleto',
+			'multibanco',
+			'oxxo',
+			'wechat_pay',
+		];
+
+		foreach ( $payment_method_ids as $payment_method_id ) {
+			$payment_method = $this->mock_payment_methods[ $payment_method_id ];
+
+			// Update the payment method settings to have a custom name and description.
+			$original_payment_settings = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
+			$updated_payment_settings = $original_payment_settings;
+			$custom_name = 'Custom Name for ' . $payment_method_id;
+			$custom_description = 'Custom description for ' . $payment_method_id;
+			$updated_payment_settings['title'] = $custom_name;
+			$updated_payment_settings['description'] = $custom_description;
+			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
+
+			$this->assertEquals( $custom_name, $payment_method->get_title() );
+			$this->assertEquals( $custom_description, $payment_method->get_description() );
+
+			// Restore original settings.
+			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
+		}
+	}
+
 	/**
 	 * Test the type of payment token created for the user.
 	 */
