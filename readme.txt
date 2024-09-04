@@ -154,5 +154,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
 * Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 * Fix - Address Klarna availability based on correct presentment currency rules.
+* Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
