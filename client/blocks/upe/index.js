@@ -1,3 +1,4 @@
+/* global wc_stripe_payment_request_params */
 import {
 	registerPaymentMethod,
 	registerExpressPaymentMethod,
@@ -88,11 +89,13 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 		} );
 	} );
 
-// Register Stripe Payment Request.
-registerExpressPaymentMethod( paymentRequestPaymentMethod );
-
-// Register Express Checkout Element.
-registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
+if ( wc_stripe_payment_request_params.stripe.is_ece_enabled ) {
+	// Register Express Checkout Element.
+	registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
+} else {
+	// Register Stripe Payment Request.
+	registerExpressPaymentMethod( paymentRequestPaymentMethod );
+}
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
