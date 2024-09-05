@@ -1730,7 +1730,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'customer_name'  => $name,
 			'customer_email' => $email,
 			'site_url'       => esc_url( get_site_url() ),
-			'order_id'       => $order->get_id(),
+			'order_id'       => $order->get_order_number(),
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
 		];
