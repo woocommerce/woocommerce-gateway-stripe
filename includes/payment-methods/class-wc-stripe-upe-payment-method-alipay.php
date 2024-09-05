@@ -59,7 +59,7 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 			case 'CA':
 				$currency = [ 'CAD', 'CNY' ];
 				break;
-			case 'UK':
+			case 'GB':
 				$currency = [ 'GBP', 'CNY' ];
 				break;
 			case 'HK':
