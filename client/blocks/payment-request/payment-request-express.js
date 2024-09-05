@@ -44,6 +44,7 @@ const PaymentRequestExpressComponent = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	buttonAttributes,
 } ) => {
 	const stripe = useStripe();
 	const { needsShipping } = shippingData;
@@ -71,11 +72,16 @@ const PaymentRequestExpressComponent = ( {
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
-	const {
+	let {
 		type = 'default',
 		theme = 'dark',
 		height = '48',
 	} = getBlocksConfiguration()?.button;
+
+	// If we are on the checkout block, we receive button attributes which overwrite the extension specific settings
+	if ( typeof buttonAttributes !== 'undefined' ) {
+		height = buttonAttributes.height || height;
+	}
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
@@ -84,7 +90,6 @@ const PaymentRequestExpressComponent = ( {
 			height: `${ height }px`,
 		},
 	};
-
 	const isBranded = getBlocksConfiguration()?.button?.is_branded;
 	const brandedType = getBlocksConfiguration()?.button?.branded_type;
 	const isCustom = getBlocksConfiguration()?.button?.is_custom;

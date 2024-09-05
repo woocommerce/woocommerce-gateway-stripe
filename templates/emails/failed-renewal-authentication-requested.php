@@ -27,7 +27,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 			),
 			$order->get_order_number(),
 			$order->get_formatted_billing_full_name(),
-			wcs_get_human_time_diff( $retry->get_time() )
+			function_exists( 'wcs_get_human_time_diff' ) ? wcs_get_human_time_diff( $retry->get_time() ) : ''
 		)
 	);
 	?>
