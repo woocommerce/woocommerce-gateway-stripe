@@ -1134,7 +1134,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	private function has_failed_order_email_hooks( $status ) {
-		$callback = [ 'WC_Failed_Order_Email', 'trigger' ];
+		$callback = [ 'WC_Email_Failed_Order', 'trigger' ];
 
 		if ( 'pending' === $status ) {
 			return has_action(
