@@ -32,7 +32,7 @@ const getAliPayCurrencies = ( isUpeEnabled ) => {
 		case 'CA':
 			upeCurrencies = [ 'CAD', 'CNY' ];
 			break;
-		case 'UK':
+		case 'GB':
 			upeCurrencies = [ 'GBP', 'CNY' ];
 			break;
 		case 'HK':
@@ -124,7 +124,7 @@ const getWechatPayCurrencies = () => {
 		case 'SG':
 			upeCurrencies = [ 'SGD', 'CNY' ];
 			break;
-		case 'UK':
+		case 'GB':
 			upeCurrencies = [ 'GBP', 'CNY' ];
 			break;
 		case 'US':
