@@ -13,6 +13,13 @@ defined( 'ABSPATH' ) || exit;
 class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background_Repairer {
 
 	/**
+	 * The transient key used to store the progress of the repair.
+	 *
+	 * @var string
+	 */
+	private $action_progress_transient = 'wc_stripe_legacy_sepa_tokens_repair_progress';
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Logger_Interface $logger The WC_Logger instance.
@@ -26,6 +33,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 
 		// Repair subscriptions prior to renewal as a backstop. Hooked onto 0 to run before the actual renewal.
 		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_migrate_before_renewal' ], 0 );
+
+		add_action( 'admin_notices', [ $this, 'display_admin_notice' ] );
 	}
 
 	/**
@@ -67,6 +76,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			$token_updater->maybe_update_subscription_legacy_payment_method( $subscription_id );
 
 			$this->log( sprintf( 'Successful migration of subscription #%1$d.', $subscription_id ) );
+
+			delete_transient( $this->action_progress_transient );
 		} catch ( \Exception $e ) {
 			$this->log( $e->getMessage() );
 		}
@@ -139,5 +150,169 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			$token_updater = new WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update();
 			$token_updater->maybe_update_subscription_source( $subscription );
 		}
+	}
+
+	/**
+	 * Displays an admin notice to inform the user that the repair is in progress.
+	 *
+	 * This notice is displayed on the Subscriptions list table page and includes information about the progress of the repair.
+	 * What % of the repair is complete, or when the next scheduled action is expected to run.
+	 */
+	public function display_admin_notice() {
+
+		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
+		// Only display this on the subscriptions list table page.
+		if ( ! $this->is_admin_subscriptions_list_table_screen() ) {
+			return;
+		}
+
+		// Check if there are subscriptions to be migrated.
+		$subscriptions = wc_get_orders(
+			[
+				'return'         => 'ids',
+				'type'           => 'shop_subscription',
+				'limit'          => 1,
+				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
+			]
+		);
+
+		if ( empty( $subscriptions ) ) {
+			return;
+		}
+
+		$is_scheduling_jobs = is_numeric( as_next_scheduled_action( $this->scheduled_hook ) );
+		$next_scheduled_job = $this->get_next_scheduled_update_time();
+		$progress           = '';
+
+		if ( $next_scheduled_job ) {
+			// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: human-readable time diff or date.
+			$progress = sprintf( __( '%1$sNext progress update expected: %2$s %3$s', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', $next_scheduled_job );
+		}
+
+		// If we're done scheduling the jobs, calculate and display the progress.
+		if ( ! $is_scheduling_jobs ) {
+			$action_progress = $this->get_scheduled_action_counts();
+
+			if ( ! $action_progress ) {
+				return;
+			}
+
+			// All scheduled actions have run, so we're done.
+			if ( 0 === absint( $action_progress['pending'] ) ) {
+				return;
+			}
+
+			// Calculate the percentage of completed actions. Otherwise, fallback to the next scheduled action time.
+			if ( 0 < absint( $action_progress['complete'] ) ) {
+				$compete_percentage = floor( ( $action_progress['complete'] / ( $action_progress['pending'] + $action_progress['complete'] ) ) * 100 );
+				// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: percentage complete.
+				$progress = sprintf( __( '%1$sProgress: %2$s %3$s%% complete', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', $compete_percentage );
+			}
+		}
+
+		// Note: We're using a Subscriptions class to generate the admin notice, however, it's safe to use given the context of this class.
+		$notice = new WCS_Admin_Notice( 'notice notice-warning is-dismissible' );
+		$notice->set_html_content(
+			'<h4>' . esc_html__( 'SEPA subscription update in progress', 'woocommerce-gateway-stripe' ) . '</h4>' .
+			'<p>' . __( "We are currently updating customer subscriptions that use the legacy Stripe SEPA Direct Debit payment method. During this update, you may notice that some subscriptions appear as manual renewals. Don't worry—renewals should continue to process as normal. Please be aware this process may take some time.", 'woocommerce-gateway-stripe' ) . '</p>' .
+			'<p>' . $progress . '</p>'
+		);
+
+		$notice->display();
+	}
+
+	/**
+	 * Checks if the current screen is the subscriptions list table.
+	 *
+	 * @return bool True if the current screen is the subscriptions list table, false otherwise.
+	 */
+	private function is_admin_subscriptions_list_table_screen() {
+		if ( ! is_admin() || ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+
+		$screen = get_current_screen();
+
+		if ( ! is_object( $screen ) ) {
+			return false;
+		}
+
+		// Check if we are on the subscriptions list table page in a HPOS or WP_Post context.
+		return in_array( $screen->id, [ 'woocommerce_page_wc-orders--shop_subscription', 'edit-shop_subscription' ], true );
+	}
+
+	/**
+	 * Fetches the number of pending and completed migration scheduled actions.
+	 *
+	 * @return array|bool The counts of pending and completed actions. False if the Action Scheduler store is not available.
+	 */
+	private function get_scheduled_action_counts() {
+		$action_counts = get_transient( $this->action_progress_transient );
+
+		// If the transient is not set, calculate the action counts.
+		if ( false === $action_counts ) {
+			$store = ActionScheduler::store();
+
+			if ( ! $store ) {
+				return false;
+			}
+
+			$action_counts = [
+				'pending' => (int) $store->query_actions(
+					[
+						'hook'   => $this->repair_hook,
+						'status' => ActionScheduler_Store::STATUS_PENDING,
+					],
+					'count'
+				),
+				'complete' => (int) $store->query_actions(
+					[
+						'hook'   => $this->repair_hook,
+						'status' => ActionScheduler_Store::STATUS_COMPLETE,
+					],
+					'count'
+				),
+			];
+
+			set_transient( $this->action_progress_transient, $action_counts, 10 * MINUTE_IN_SECONDS );
+		}
+
+		return $action_counts;
+	}
+
+	/**
+	 * Generates a human-readable string for the next scheduled action time.
+	 *
+	 * If the next scheduled action is within the next 3 hours, display the time diff (eg "in 2 hours").
+	 * Otherwise, display the date and time of the next scheduled action.
+	 *
+	 * @return string|bool The human-readable string for the next scheduled action time. False if there is no next scheduled action set.
+	 */
+	private function get_next_scheduled_update_time() {
+		$next_scheduled_time = as_next_scheduled_action( $this->repair_hook );
+
+		if ( ! is_numeric( $next_scheduled_time ) ) {
+			return false;
+		}
+
+		$current_time = time();
+
+		if ( $current_time > $next_scheduled_time ) {
+			return '-';
+		}
+
+		// If the next scheduled action is within the next 3 hours, display the time diff.
+		if ( $next_scheduled_time <= $current_time + ( 3 * HOUR_IN_SECONDS ) ) {
+			// translators: %s: human-readable time diff (eg "in 2 hours").
+			return sprintf( _x( 'in %s', 'next scheduled action time', 'woocommerce-gateway-stripe' ), human_time_diff( $current_time, $next_scheduled_time ) );
+		}
+
+		$datetime = new WC_DateTime( "@{$next_scheduled_time}" );
+		$datetime->set_utc_offset( wc_timezone_offset() );
+
+		return $datetime->date_i18n( wc_date_format() . ' ' . wc_time_format() );
 	}
 }
