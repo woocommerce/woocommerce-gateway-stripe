@@ -966,11 +966,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				/* translators: 1) The error message that was received from Stripe. */
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
-				$send_email = true;
+				$status_update = [];
 				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
-					// To prevent duplicate failed order emails, check if the status update
-					// we are about to make will trigger its own failed order email.
-					$send_email = ! $this->has_failed_order_email_hooks( $order->get_status() );
+					$status_update['from'] = $order->get_status();
+					$status_update['to']   = 'failed';
 					$order->update_status( 'failed', $message );
 				} else {
 					$order->add_order_note( $message );
@@ -978,9 +977,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-				if ( $send_email ) {
-					$this->send_failed_order_email( $order_id );
-				}
+				$this->send_failed_order_email( $order_id, $status_update );
 				break;
 		}
 
@@ -1023,19 +1020,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			/* translators: 1) The error message that was received from Stripe. */
 			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
-			$send_email = true;
+			$status_update = [];
 			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
-				// To prevent duplicate failed order emails, check if the status update
-				// we are about to make will trigger its own failed order email.
-				$send_email = ! $this->has_failed_order_email_hooks( $order->get_status() );
+				$status_update['from'] = $order->get_status();
+				$status_update['to']   = 'failed';
 				$order->update_status( 'failed', $message );
 			} else {
 				$order->add_order_note( $message );
 			}
 
-			if ( $send_email ) {
-				$this->send_failed_order_email( $order_id );
-			}
+			$this->send_failed_order_email( $order_id, $status_update );
 		}
 
 		$this->unlock_order_payment( $order );
@@ -1127,31 +1121,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	}
 
-	/**
-	 * Check if setting an order to failed will trigger a failed order email.
-	 *
-	 * @param string $status The status of the order prior to setting it to failed.
-	 * @return bool
-	 */
-	private function has_failed_order_email_hooks( $status ) {
-		$callback = [ 'WC_Email_Failed_Order', 'trigger' ];
-
-		if ( 'pending' === $status ) {
-			return has_action(
-				'woocommerce_order_status_pending_to_failed_notification',
-				$callback
-			);
-		}
-
-		if ( 'on-hold' === $status ) {
-			return has_action(
-				'woocommerce_order_status_on-hold_to_failed_notification',
-				$callback
-			);
-		}
-
-		return false;
-	}
 	/**
 	 * Processes the incoming webhook.
 	 *
