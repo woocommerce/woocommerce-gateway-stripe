@@ -154,5 +154,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
 * Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 * Fix - Address Klarna availability based on correct presentment currency rules.
+* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
