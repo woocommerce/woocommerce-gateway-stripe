@@ -1,4 +1,4 @@
-/* global wc_stripe_upe_params */
+/* global wc_stripe_upe_params, wc */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
@@ -21,13 +21,24 @@ import {
  * @return  {StripeServerData} Stripe server data.
  */
 const getStripeServerData = () => {
-	// Classic checkout.
+	let data = null;
+
 	// eslint-disable-next-line camelcase
-	if ( typeof wc_stripe_upe_params === 'undefined' ) {
-		return {};
+	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
+		data = wc_stripe_upe_params; // eslint-disable-line camelcase
+	} else if (
+		typeof wc === 'object' &&
+		typeof wc.wcSettings !== 'undefined'
+	) {
+		// 'getSetting' has this data value on block checkout only.
+		data = wc.wcSettings?.getSetting( 'getSetting' ) || null;
 	}
-	// eslint-disable-next-line camelcase
-	return wc_stripe_upe_params;
+
+	if ( ! data ) {
+		throw new Error( 'Stripe initialization data is not available' );
+	}
+
+	return data;
 };
 
 const isNonFriendlyError = ( type ) =>
