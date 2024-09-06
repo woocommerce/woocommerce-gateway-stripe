@@ -174,7 +174,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			[
 				'return'         => 'ids',
 				'type'           => 'shop_subscription',
-				'limit'          => 1,
+				'status'         => 'any',
+				'posts_per_page' => 1,
 				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
 			]
 		);
