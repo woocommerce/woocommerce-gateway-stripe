@@ -622,13 +622,32 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param int $order_id
-	 * @return null
+	 * @param array $status_update Optional. Use fields 'to' and 'from' to provide context
+	 *    when a status change has occurred for the order.
+	 * @return void
 	 */
-	public function send_failed_order_email( $order_id ) {
+	public function send_failed_order_email( $order_id, $status_update = [] ) {
 		$emails = WC()->mailer()->get_emails();
-		if ( ! empty( $emails ) && ! empty( $order_id ) && isset( $emails['WC_Email_Failed_Order'] ) ) {
-			$emails['WC_Email_Failed_Order']->trigger( $order_id );
+
+		if ( empty( $emails ) || empty( $order_id ) || ! isset( $emails['WC_Email_Failed_Order'] ) ) {
+			return;
 		}
+
+		// To prevent duplicate failed order emails, check if a status update
+		// will trigger its own failed order email.
+		if (
+			isset( $status_update['to'], $status_update['from'] ) &&
+			'failed' === $status_update['to'] &&
+			in_array( $status_update['from'], [ 'on-hold', 'pending' ], true )
+		) {
+			$callback  = [ $emails['WC_Email_Failed_Order'], 'trigger' ];
+			$hook_name = "woocommerce_order_status_{$status_update['from']}_to_failed_notification";
+			if ( has_action( $hook_name, $callback ) ) {
+				return;
+			}
+		}
+
+		$emails['WC_Email_Failed_Order']->trigger( $order_id );
 	}
 
 	/**
