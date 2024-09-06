@@ -624,7 +624,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param int $order_id
 	 * @param array $status_update Optional. Use fields 'to' and 'from' to provide context
 	 *    when a status change has occurred for the order.
-	 * @return null
+	 * @return void
 	 */
 	public function send_failed_order_email( $order_id, $status_update = [] ) {
 		$emails = WC()->mailer()->get_emails();
