@@ -305,15 +305,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			return '-';
 		}
 
-		// If the next scheduled action is within the next 3 hours, display the time diff.
-		if ( $next_scheduled_time <= $current_time + ( 3 * HOUR_IN_SECONDS ) ) {
-			// translators: %s: human-readable time diff (eg "in 2 hours").
-			return sprintf( _x( 'in %s', 'next scheduled action time', 'woocommerce-gateway-stripe' ), human_time_diff( $current_time, $next_scheduled_time ) );
-		}
-
-		$datetime = new WC_DateTime( "@{$next_scheduled_time}" );
-		$datetime->set_utc_offset( wc_timezone_offset() );
-
-		return $datetime->date_i18n( wc_date_format() . ' ' . wc_time_format() );
+		// translators: %s: human-readable time diff (eg "in 2 hours").
+		return sprintf( _x( 'in %s', 'next scheduled action time', 'woocommerce-gateway-stripe' ), human_time_diff( $current_time, $next_scheduled_time ) );
 	}
 }
