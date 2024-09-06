@@ -157,5 +157,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Address Klarna availability based on correct presentment currency rules.
 * Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
 * Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
+* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
