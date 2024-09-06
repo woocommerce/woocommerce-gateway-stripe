@@ -198,6 +198,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		);
 
 		if ( empty( $subscriptions ) ) {
+			delete_transient( $this->display_notice_transient );
 			return;
 		}
 
