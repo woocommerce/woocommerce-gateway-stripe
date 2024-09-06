@@ -144,14 +144,23 @@ class WC_Stripe_Webhook_State {
 	}
 
 	/**
+	 * Gets the last webhook failure type.
+	 *
+	 * @return string|bool Reason the last webhook failed. False if no error.
+	 */
+	public static function get_last_error_type() {
+		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
+		return get_option( $option, false );
+	}
+
+	/**
 	 * Returns the localized reason the last webhook failed.
 	 *
 	 * @since 5.0.0
 	 * @return string Reason the last webhook failed.
 	 */
 	public static function get_last_error_reason() {
-		$option     = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
-		$last_error = get_option( $option, false );
+		$last_error = self::get_last_error_type();
 
 		if ( self::VALIDATION_SUCCEEDED == $last_error ) {
 			return( __( 'No error', 'woocommerce-gateway-stripe' ) );
@@ -209,8 +218,13 @@ class WC_Stripe_Webhook_State {
 			return 2;
 		}
 
-		// Case 3: Failure after success
 		if ( $last_success_at > 0 ) {
+			// Case 5: Signature mismatch with a valid webhook.
+			if ( self::VALIDATION_FAILED_SIGNATURE_MISMATCH === self::get_last_error_type() && self::has_valid_webhook( self::get_testmode() ) ) {
+				return 5;
+			}
+
+			// Case 3: Failure after success
 			return 3;
 		}
 
@@ -261,16 +275,35 @@ class WC_Stripe_Webhook_State {
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
 						 */
-						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
+						__( 'Warning: The latest test webhook received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
 						/*
 						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
 						 */
-						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
+						__( 'Warning: The latest live webhook received at %1$s, could not be processed. Reason: %2$s. Your current webhook configuration is correct -- you may have duplicate webhooks set up. The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
 					gmdate( $date_format, $last_success_at )
+				);
+			case 5: // Case 5: Failure with a valid webhook.
+				return sprintf(
+					$test_mode ?
+						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+							* translators: 2) reason webhook failed
+							* translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+							* translators: 4) opening anchor tag
+							* translators: 5) closing anchor tag
+							*/
+						__( 'A test webhook received at %1$s could not be processed. Reason: %2$s. Your current webhook configuration is correct, so you can safely ignore this message, and Stripe will eventually stop sending the duplicate webhook. If you prefer, you can reconfigure your webhooks to remove any duplicates.', 'woocommerce-gateway-stripe' ) :
+						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+							* translators: 2) reason webhook failed
+							* translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+							*/
+						__( 'A webhook received at %1$s could not be processed. Reason: %2$s. Your current webhook configuration is correct, so you can safely ignore this message, and Stripe will eventually stop sending the duplicate webhook. If you prefer, you can reconfigure your webhooks to remove any duplicates.', 'woocommerce-gateway-stripe' ),
+					gmdate( $date_format, $last_failure_at ),
+					$last_error,
+					gmdate( $date_format, $monitoring_began_at )
 				);
 			default: // Case 4: Failure with no prior success
 				return sprintf(
@@ -279,12 +312,12 @@ class WC_Stripe_Webhook_State {
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
 						 */
-						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
+						__( 'Warning: The latest test webhook received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
 						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
 						 */
-						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
+						__( 'Warning: The latest live webhook received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
 					gmdate( $date_format, $monitoring_began_at )
@@ -305,5 +338,56 @@ class WC_Stripe_Webhook_State {
 			'live' => empty( $live_webhook['url'] ) ? null : rawurlencode( $live_webhook['url'] ),
 			'test' => empty( $test_webhook['url'] ) ? null : rawurlencode( $test_webhook['url'] ),
 		];
+	}
+
+	/**
+	 * Checks if the currently configured webhook is valid.
+	 *
+	 * @param bool $test_mode Whether to check the test webhook or the live webhook.
+	 * @return bool
+	 */
+	public static function has_valid_webhook( $test_mode ) {
+		$webhook_secret = WC_Stripe_Helper::get_settings( null, $test_mode ? 'test_webhook_secret' : 'webhook_secret' );
+
+		if ( empty( $webhook_secret ) ) {
+			return false;
+		}
+
+		// Get the configured webhook URLs.
+		$webhook_data = WC_Stripe_Helper::get_settings( null, $test_mode ? 'test_webhook_data' : 'webhook_data' );
+
+		// If the webhook ID is not set, we're unable to validate it. This should never happen - unless the settings have been tampered with.
+		if ( empty( $webhook_data['id'] ) ) {
+			return false;
+		}
+
+		// If the webhook URL is not set, or doesn't match the current site return false.
+		if ( empty( $webhook_data['url'] ) || ! WC_Stripe_Helper::is_webhook_url( $webhook_data['url'] ) ) {
+			return false;
+		}
+
+		// Cache the webhook response to avoid multiple requests.
+		// Cache it against the webhook ID and secret key to invalidate the cache if the account is changed.
+		// We cannot use the account ID here because that causes an infinite loop.
+		$secret_key    = WC_Stripe_Helper::get_settings( null, $test_mode ? 'test_secret_key' : 'secret_key' );
+		$transient_key = 'wc-stripe-webhook-cache-' . md5( $webhook_data['id'] . $secret_key );
+		$webhook       = get_transient( $transient_key );
+
+		if ( false === $webhook ) {
+			$webhook = WC_Stripe_API::request(
+				[],
+				"webhook_endpoints/{$webhook_data['id']}",
+				'GET'
+			);
+
+			set_transient( $transient_key, $webhook, DAY_IN_SECONDS );
+		}
+
+		// Finally check the at the webhook is valid.
+		if ( ! isset( $webhook->url ) || ! WC_Stripe_Helper::is_webhook_url( $webhook->url ) ) {
+			return false;
+		}
+
+		return true;
 	}
 };
