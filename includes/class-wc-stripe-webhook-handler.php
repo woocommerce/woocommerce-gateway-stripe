@@ -142,6 +142,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_BODY;
 		}
 
+		$this->secret = apply_filters('wc_stripe_wehbook_validate_secret', $this->secret, $request_body );
 		if ( empty( $this->secret ) ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_SECRET;
 		}

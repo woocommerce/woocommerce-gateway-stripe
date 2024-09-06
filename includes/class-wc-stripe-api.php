@@ -125,7 +125,7 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
 
-		$headers         = self::get_headers();
+		$headers         = apply_filters('wc_stripe_api_request_get_headers', self::get_headers(), $request, $api, $method );
 		$idempotency_key = '';
 
 		if ( 'charges' === $api && 'POST' === $method ) {
