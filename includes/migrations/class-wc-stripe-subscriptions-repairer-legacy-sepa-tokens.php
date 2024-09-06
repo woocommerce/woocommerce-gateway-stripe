@@ -20,6 +20,13 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	private $action_progress_transient = 'wc_stripe_legacy_sepa_tokens_repair_progress';
 
 	/**
+	 * The transient key used to store whether we should display the notice to the user.
+	 *
+	 * @var string
+	 */
+	private $display_notice_transient = 'wc_stripe_legacy_sepa_tokens_repair_notice';
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Logger_Interface $logger The WC_Logger instance.
@@ -56,6 +63,9 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		// Schedule the repair without checking if there are subscriptions to be migrated.
 		// This will be handled in the scheduled action.
 		$this->schedule_repair();
+
+		// Display the admin notice to inform the user that the repair is in progress. Limited to 3 days.
+		set_transient( $this->display_notice_transient, 'yes', 3 * DAY_IN_SECONDS );
 
 		// Prevent the repair from being scheduled again.
 		update_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated', 'yes' );
@@ -169,6 +179,13 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			return;
 		}
 
+		// The notice is only displayed for up to 3 days after disabling the setting.
+		$display_notice = get_transient( $this->display_notice_transient ) === 'yes';
+
+		if ( ! $display_notice ) {
+			return;
+		}
+
 		// Check if there are subscriptions to be migrated.
 		$subscriptions = wc_get_orders(
 			[
@@ -203,7 +220,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 
 			// All scheduled actions have run, so we're done.
 			if ( 0 === absint( $action_progress['pending'] ) ) {
-				return;
+				// Remove the transient to prevent it from showing again.
+				delete_transient( $this->display_notice_transient );
 			}
 
 			// Calculate the percentage of completed actions. Otherwise, fallback to the next scheduled action time.
