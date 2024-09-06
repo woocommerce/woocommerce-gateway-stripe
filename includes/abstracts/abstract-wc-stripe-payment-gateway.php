@@ -636,8 +636,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// To prevent duplicate failed order emails, check if a status update
 		// will trigger its own failed order email.
 		if (
-			isset( $status_update['to'] ) &&
-			isset( $status_update['from'] ) &&
+			isset( $status_update['to'], $status_update['from'] ) &&
 			'failed' === $status_update['to'] &&
 			in_array( $status_update['from'], [ 'on-hold', 'pending' ], true )
 		) {
