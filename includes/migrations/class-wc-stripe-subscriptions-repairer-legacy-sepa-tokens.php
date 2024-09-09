@@ -105,7 +105,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	 */
 	protected function update_item( $item ) {
 		if ( ! as_next_scheduled_action( $this->repair_hook, [ 'repair_object' => $item ] ) ) {
-			as_schedule_single_action( gmdate( 'U' ) + MINUTE_IN_SECONDS, $this->repair_hook, [ 'repair_object' => $item ] );
+			as_schedule_single_action( gmdate( 'U' ) + ( 2 * MINUTE_IN_SECONDS ), $this->repair_hook, [ 'repair_object' => $item ] );
 		}
 
 		unset( $this->items_to_repair[ $item ] );
