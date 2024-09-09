@@ -216,40 +216,36 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			]
 		);
 
+		// If there are no subscriptions to be migrated, remove the transient so we don't show the notice.
+		// Don't return early so we can show the notice at least once.
 		if ( empty( $subscriptions ) ) {
 			delete_transient( $this->display_notice_transient );
+		}
+
+		$is_still_scheduling_jobs = is_numeric( as_next_scheduled_action( $this->scheduled_hook ) );
+		$action_progress          = $this->get_scheduled_action_counts();
+
+		if ( ! $action_progress ) {
 			return;
 		}
 
-		$is_scheduling_jobs = is_numeric( as_next_scheduled_action( $this->scheduled_hook ) );
-		$next_scheduled_job = $this->get_next_scheduled_update_time();
-		$progress           = '';
-
-		if ( $next_scheduled_job ) {
-			// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: human-readable time diff or date.
-			$progress = sprintf( __( '%1$sNext progress update expected: %2$s %3$s', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', $next_scheduled_job );
-		}
-
-		// If we're done scheduling the jobs, calculate and display the progress.
-		if ( ! $is_scheduling_jobs ) {
-			$action_progress = $this->get_scheduled_action_counts();
-
-			if ( ! $action_progress ) {
-				return;
-			}
-
+		// If we're still in the process of scheduling jobs, show a note to the user.
+		if ( $is_still_scheduling_jobs ) {
+			// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: <i> tag. %4$s: </i> tag.
+			$progress = sprintf( __( '%1$sProgress: %2$s %3$sWe are still identifying all subscriptions that require updating.%4$s', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', '<i>', '</i>' );
+		} else {
 			// All scheduled actions have run, so we're done.
 			if ( 0 === absint( $action_progress['pending'] ) ) {
-				// Remove the transient to prevent it from showing again.
+				// Remove the transient to prevent the notice from showing again.
 				delete_transient( $this->display_notice_transient );
 			}
 
-			// Calculate the percentage of completed actions. Otherwise, fallback to the next scheduled action time.
-			if ( 0 < absint( $action_progress['complete'] ) ) {
-				$compete_percentage = floor( ( $action_progress['complete'] / ( $action_progress['pending'] + $action_progress['complete'] ) ) * 100 );
-				// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: percentage complete.
-				$progress = sprintf( __( '%1$sProgress: %2$s %3$s%% complete', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', $compete_percentage );
-			}
+			// Calculate the percentage of completed actions.
+			$total_action_count = $action_progress['pending'] + $action_progress['complete'];
+			$compete_percentage = $total_action_count ? floor( ( $action_progress['complete'] / $total_action_count ) * 100 ) : 0;
+
+			// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: percentage complete.
+			$progress = sprintf( __( '%1$sProgress: %2$s %3$s%% complete', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', $compete_percentage );
 		}
 
 		// Note: We're using a Subscriptions class to generate the admin notice, however, it's safe to use given the context of this class.
@@ -320,30 +316,5 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		}
 
 		return $action_counts;
-	}
-
-	/**
-	 * Generates a human-readable string for the next scheduled action time.
-	 *
-	 * If the next scheduled action is within the next 3 hours, display the time diff (eg "in 2 hours").
-	 * Otherwise, display the date and time of the next scheduled action.
-	 *
-	 * @return string|bool The human-readable string for the next scheduled action time. False if there is no next scheduled action set.
-	 */
-	private function get_next_scheduled_update_time() {
-		$next_scheduled_time = as_next_scheduled_action( $this->repair_hook );
-
-		if ( ! is_numeric( $next_scheduled_time ) ) {
-			return false;
-		}
-
-		$current_time = time();
-
-		if ( $current_time > $next_scheduled_time ) {
-			return '-';
-		}
-
-		// translators: %s: human-readable time diff (eg "in 2 hours").
-		return sprintf( _x( 'in %s', 'next scheduled action time', 'woocommerce-gateway-stripe' ), human_time_diff( $current_time, $next_scheduled_time ) );
 	}
 }
