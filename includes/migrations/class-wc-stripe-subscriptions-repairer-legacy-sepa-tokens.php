@@ -212,15 +212,14 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			delete_transient( $this->display_notice_transient );
 		}
 
-		$is_still_scheduling_jobs = (bool) as_next_scheduled_action( $this->scheduled_hook );
-		$action_progress          = $this->get_scheduled_action_counts();
+		$action_progress = $this->get_scheduled_action_counts();
 
 		if ( ! $action_progress ) {
 			return;
 		}
 
 		// If we're still in the process of scheduling jobs, show a note to the user.
-		if ( $is_still_scheduling_jobs ) {
+		if ( (bool) as_next_scheduled_action( $this->scheduled_hook ) ) {
 			// translators: %1$s: <strong> tag, %2$s: </strong> tag, %3$s: <i> tag. %4$s: </i> tag.
 			$progress = sprintf( __( '%1$sProgress: %2$s %3$sWe are still identifying all subscriptions that require updating.%4$s', 'woocommerce-gateway-stripe' ), '<strong>', '</strong>', '<i>', '</i>' );
 		} else {
