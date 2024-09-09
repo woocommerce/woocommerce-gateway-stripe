@@ -330,7 +330,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			'name'     => __( 'Stripe Legacy SEPA Token Update', 'woocommerce-gateway-stripe' ),
 			'desc'     => __( 'This will restart the legacy Stripe SEPA update process.', 'woocommerce-gateway-stripe' ),
 			'button'   => __( 'Restart SEPA token update', 'woocommerce-gateway-stripe' ),
-			'callback' => [ $this, 'restart_migration' ],
+			'callback' => [ $this, 'restart_update' ],
 		];
 
 		return $tools;
@@ -356,9 +356,10 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	}
 
 	/**
-	 * Restarts the migration process.
+	 * Restarts the legacy token update process.
 	 */
-	public function restart_migration() {
+	public function restart_update() {
+		// Clear the option to allow the update to be scheduled again.
 		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
 		$this->maybe_update();
