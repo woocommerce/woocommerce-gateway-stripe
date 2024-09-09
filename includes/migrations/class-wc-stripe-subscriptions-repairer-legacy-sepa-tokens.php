@@ -237,7 +237,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		$notice = new WCS_Admin_Notice( 'notice notice-warning is-dismissible' );
 		$notice->set_html_content(
 			'<h4>' . esc_html__( 'SEPA subscription update in progress', 'woocommerce-gateway-stripe' ) . '</h4>' .
-			'<p>' . __( "We are currently updating customer subscriptions that use the legacy Stripe SEPA Direct Debit payment method. During this update, you may notice that some subscriptions appear as manual renewals. Don't worry—renewals should continue to process as normal. Please be aware this process may take some time.", 'woocommerce-gateway-stripe' ) . '</p>' .
+			'<p>' . __( "We are currently updating customer subscriptions that use the legacy Stripe SEPA Direct Debit payment method. During this update, you may notice that some subscriptions appear as manual renewals. Don't worry—renewals will continue to process as normal. Please be aware this process may take some time.", 'woocommerce-gateway-stripe' ) . '</p>' .
 			'<p>' . $progress . '</p>'
 		);
 
