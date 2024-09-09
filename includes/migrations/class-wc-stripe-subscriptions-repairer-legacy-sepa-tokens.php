@@ -42,6 +42,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		add_action( 'woocommerce_scheduled_subscription_payment', [ $this, 'maybe_migrate_before_renewal' ], 0 );
 
 		add_action( 'admin_notices', [ $this, 'display_admin_notice' ] );
+
+		add_filter( 'woocommerce_debug_tools', [ $this, 'add_debug_tool' ] );
 	}
 
 	/**
@@ -204,20 +206,9 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			return;
 		}
 
-		// Check if there are subscriptions to be migrated.
-		$subscriptions = wc_get_orders(
-			[
-				'return'         => 'ids',
-				'type'           => 'shop_subscription',
-				'status'         => 'any',
-				'posts_per_page' => 1,
-				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
-			]
-		);
-
 		// If there are no subscriptions to be migrated, remove the transient so we don't show the notice.
 		// Don't return early so we can show the notice at least once.
-		if ( empty( $subscriptions ) ) {
+		if ( ! $this->has_legacy_sepa_subscriptions() ) {
 			delete_transient( $this->display_notice_transient );
 		}
 
@@ -315,5 +306,61 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 		}
 
 		return $action_counts;
+	}
+
+	/**
+	 * Registers the repair tool for the Legacy SEPA token migration.
+	 *
+	 * @param array $tools The existing repair tools.
+	 *
+	 * @return array The updated repair tools.
+	 */
+	public function add_debug_tool( $tools ) {
+		// We don't need to show the tool if the WooCommerce Subscriptions extension isn't active or the UPE checkout isn't enabled
+		if ( ! class_exists( 'WC_Subscriptions' ) || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return $tools;
+		}
+
+		// Don't show the tool if the repair is already in progress or there are no subscriptions to migrate.
+		if ( (bool) as_next_scheduled_action( $this->scheduled_hook ) || (bool) as_next_scheduled_action( $this->repair_hook ) || ! $this->has_legacy_sepa_subscriptions() ) {
+			return $tools;
+		}
+
+		$tools['stripe_legacy_sepa_tokens'] = [
+			'name'     => __( 'Stripe Legacy SEPA Token Update', 'woocommerce-gateway-stripe' ),
+			'desc'     => __( 'This will restart the legacy Stripe SEPA update process.', 'woocommerce-gateway-stripe' ),
+			'button'   => __( 'Restart SEPA token update', 'woocommerce-gateway-stripe' ),
+			'callback' => [ $this, 'restart_migration' ],
+		];
+
+		return $tools;
+	}
+
+	/**
+	 * Checks if there are subscriptions using the Legacy SEPA payment method.
+	 *
+	 * @return bool True if there are subscriptions using the Legacy SEPA payment method, false otherwise.
+	 */
+	private function has_legacy_sepa_subscriptions() {
+		$subscriptions = wc_get_orders(
+			[
+				'return'         => 'ids',
+				'type'           => 'shop_subscription',
+				'status'         => 'any',
+				'posts_per_page' => 1,
+				'payment_method' => WC_Gateway_Stripe_Sepa::ID,
+			]
+		);
+
+		return ! empty( $subscriptions );
+	}
+
+	/**
+	 * Restarts the migration process.
+	 */
+	public function restart_migration() {
+		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+		$this->maybe_update();
 	}
 }
