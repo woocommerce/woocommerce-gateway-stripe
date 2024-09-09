@@ -1,4 +1,3 @@
-/* global wc_stripe_payment_request_params */
 import {
 	registerPaymentMethod,
 	registerExpressPaymentMethod,
@@ -89,7 +88,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 		} );
 	} );
 
-if ( wc_stripe_payment_request_params.stripe.is_ece_enabled ) {
+if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
 	registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
 } else {
