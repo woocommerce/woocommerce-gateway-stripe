@@ -94,6 +94,25 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	}
 
 	/**
+	 * Schedules an individual action to migrate a subscription.
+	 *
+	 * Overrides the parent class function to make two changes:
+	 * 1. Don't schedule an action if one already exists.
+	 * 2. Schedules the migration to happen in one minute instead of in one hour.
+	 * 3. Delete the transient which stores the progress of the repair.
+	 *
+	 * @param int $item The ID of the subscription to migrate.
+	 */
+	protected function update_item( $item ) {
+		if ( ! as_next_scheduled_action( $this->repair_hook, [ 'repair_object' => $item ] ) ) {
+			as_schedule_single_action( gmdate( 'U' ) + MINUTE_IN_SECONDS, $this->repair_hook, [ 'repair_object' => $item ] );
+		}
+
+		unset( $this->items_to_repair[ $item ] );
+		delete_transient( $this->action_progress_transient );
+	}
+
+	/**
 	 * Gets the batch of subscriptions using the Legacy SEPA payment method to be updated.
 	 *
 	 * @param int $page The page of results to fetch.
