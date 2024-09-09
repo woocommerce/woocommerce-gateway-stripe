@@ -3,7 +3,8 @@
 import React from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 
-export const ExpressCheckout = ( { stripe } ) => {
+export const ExpressCheckout = ( props ) => {
+	const { stripe } = props;
 	const options = {
 		mode: 'payment',
 		amount: 1099,
@@ -18,11 +19,13 @@ export const ExpressCheckout = ( { stripe } ) => {
 	};
 
 	return (
-		<Elements stripe={ stripe } options={ options }>
-			<ExpressCheckoutElement
-				options={ buttonOptions }
-				onClick={ () => console.log( 'confirmed' ) }
-			/>
-		</Elements>
+		<div style={ { minHeight: '40px' } }>
+			<Elements stripe={ stripe } options={ options }>
+				<ExpressCheckoutElement
+					options={ buttonOptions }
+					onClick={ () => console.log( 'clicked' ) }
+				/>
+			</Elements>
+		</div>
 	);
 };
