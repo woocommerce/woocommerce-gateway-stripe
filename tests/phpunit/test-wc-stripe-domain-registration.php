@@ -1,26 +1,26 @@
 <?php
 /**
- * These teste make assertions against class WC_Stripe_Apple_Pay_Registration.
+ * These teste make assertions against class WC_Stripe_Domain_Registration.
  *
- * @package WooCommerce_Stripe/Tests/Apple_Pay_Registration
+ * @package WooCommerce_Stripe/Tests/Domain_Registration
  */
 
 /**
- * WC_Stripe_Apple_Pay_Registration unit tests.
+ * WC_Stripe_Domain_Registration unit tests.
  */
-class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
+class WC_Stripe_Domain_Registration_Test extends WP_UnitTestCase {
 
 	/**
 	 * System under test.
 	 *
-	 * @var WC_Stripe_Apple_Pay_Registration
+	 * @var WC_Stripe_Domain_Registration
 	 */
 	private $wc_apple_pay_registration;
 
 	/**
 	 * Mocked system under test.
 	 *
-	 * @var WC_Stripe_Apple_Pay_Registration
+	 * @var WC_Stripe_Domain_Registration
 	 */
 	private $mock_wc_apple_pay_registration;
 
@@ -44,9 +44,9 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->wc_apple_pay_registration = new WC_Stripe_Apple_Pay_Registration();
+		$this->wc_apple_pay_registration = new WC_Stripe_Domain_Registration();
 
-		$this->mock_wc_apple_pay_registration = $this->getMockBuilder( 'WC_Stripe_Apple_Pay_Registration' )
+		$this->mock_wc_apple_pay_registration = $this->getMockBuilder( 'WC_Stripe_Domain_Registration' )
 		->disableOriginalConstructor()
 		->setMethods(
 			[
