@@ -222,7 +222,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			delete_transient( $this->display_notice_transient );
 		}
 
-		$is_still_scheduling_jobs = is_numeric( as_next_scheduled_action( $this->scheduled_hook ) );
+		$is_still_scheduling_jobs = (bool) as_next_scheduled_action( $this->scheduled_hook );
 		$action_progress          = $this->get_scheduled_action_counts();
 
 		if ( ! $action_progress ) {
