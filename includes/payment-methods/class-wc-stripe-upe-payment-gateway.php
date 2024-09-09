@@ -375,6 +375,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
 			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
 		$enabled_billing_fields = [];
@@ -794,11 +795,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
 
+			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
+			$this->lock_order_payment( $order );
+
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				$this->lock_order_payment( $order );
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
@@ -1729,7 +1732,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'customer_name'  => $name,
 			'customer_email' => $email,
 			'site_url'       => esc_url( get_site_url() ),
-			'order_id'       => $order->get_id(),
+			'order_id'       => $order->get_order_number(),
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
 		];
