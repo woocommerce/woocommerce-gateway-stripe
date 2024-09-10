@@ -132,6 +132,13 @@ function woocommerce_gateway_stripe() {
 			public $payment_request_configuration;
 
 			/**
+			 * Stripe Express Checkout configurations.
+			 *
+			 * @var WC_Stripe_Express_Checkout
+			 */
+			public $express_checkout_configuration;
+
+			/**
 			 * Stripe Account.
 			 *
 			 * @var WC_Stripe_Account
@@ -237,6 +244,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-boleto.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-oxxo.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
@@ -250,10 +258,11 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
 
-				$this->api                           = new WC_Stripe_Connect_API();
-				$this->connect                       = new WC_Stripe_Connect( $this->api );
-				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
-				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+				$this->api                            = new WC_Stripe_Connect_API();
+				$this->connect                        = new WC_Stripe_Connect( $this->api );
+				$this->payment_request_configuration  = new WC_Stripe_Payment_Request();
+				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element();
+				$this->account                        = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				$intent_controller = new WC_Stripe_Intent_Controller();
 				$intent_controller->init_hooks();
@@ -829,7 +838,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 			'woocommerce_blocks_payment_method_type_registration',
 			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
 				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
-				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) ) {
+				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) || ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
 					return;
 				}
 
