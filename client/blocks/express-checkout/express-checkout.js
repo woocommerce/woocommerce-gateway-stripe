@@ -23,7 +23,7 @@ export const ExpressCheckout = ( props ) => {
 			<Elements stripe={ stripe } options={ options }>
 				<ExpressCheckoutElement
 					options={ buttonOptions }
-					onClick={ () => console.log( 'clicked' ) }
+					onClick={ () => {} }
 				/>
 			</Elements>
 		</div>
