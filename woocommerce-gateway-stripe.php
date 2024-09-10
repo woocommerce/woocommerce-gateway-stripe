@@ -134,7 +134,7 @@ function woocommerce_gateway_stripe() {
 			/**
 			 * Stripe Express Checkout configurations.
 			 *
-			 * @var WC_Stripe_Express_Checkout
+			 * @var WC_Stripe_Express_Checkout_Element
 			 */
 			public $express_checkout_configuration;
 
@@ -245,6 +245,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-oxxo.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-express-checkout-element.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-express-checkout-helper.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-express-checkout-ajax-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
@@ -261,8 +263,14 @@ function woocommerce_gateway_stripe() {
 				$this->api                            = new WC_Stripe_Connect_API();
 				$this->connect                        = new WC_Stripe_Connect( $this->api );
 				$this->payment_request_configuration  = new WC_Stripe_Payment_Request();
-				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element();
 				$this->account                        = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+				// Express checkout configurations.
+				$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+				$express_checkout_ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
+				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper);
+				$this->express_checkout_configuration->init();
+		
 
 				$intent_controller = new WC_Stripe_Intent_Controller();
 				$intent_controller->init_hooks();
