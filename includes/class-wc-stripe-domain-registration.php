@@ -101,7 +101,7 @@ class WC_Stripe_Domain_Registration {
 	 */
 	private function get_secret_key() {
 		if ( 'yes' === $this->get_option( 'testmode', 'no' ) ) {
-			return $this->get_option('test_secret_key');
+			return $this->get_option( 'test_secret_key' );
 		}
 
 		return $this->get_option( 'secret_key' );
