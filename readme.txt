@@ -132,6 +132,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Prevent duplicate failed-order emails from being sent.
 * Fix - Support custom name and description for Afterpay.
 * Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
