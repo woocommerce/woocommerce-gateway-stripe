@@ -661,10 +661,34 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express_checkout.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'wc_stripe_express_checkout', plugins_url( 'assets/js/stripe-express_checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
+		wp_register_script(
+			'wc_stripe_express_checkout',
+			WC_STRIPE_PLUGIN_URL . '/build/express_checkout.js',
+			array_merge( [ 'jquery', 'stripe' ], $dependencies ),
+			$version,
+			true
+		);
+
+		wp_enqueue_style(
+			'wc_stripe_express_checkout_style',
+			WC_STRIPE_PLUGIN_URL . '/build/express_checkout.css',
+			[],
+			$version
+		);
 
 		wp_localize_script(
 			'wc_stripe_express_checkout',
