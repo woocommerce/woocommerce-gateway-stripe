@@ -128,7 +128,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 8.8.0 - xxxx-xx-xx =
+* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
+
 = 8.7.0 - xxxx-xx-xx =
+* Fix - Fix empty error message for Express Payments when order creation fails.
+* Fix - Prevent duplicate failed-order emails from being sent.
 * Fix - Support custom name and description for Afterpay.
 * Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
 * Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
@@ -155,5 +160,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
 * Fix - Address Klarna availability based on correct presentment currency rules.
 * Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
+* Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
+* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
+* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
