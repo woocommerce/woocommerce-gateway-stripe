@@ -86,7 +86,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		add_action( 'template_redirect', [ $this, 'set_session' ] );
-		add_action( 'template_redirect', [ $this, 'handle_payment_request_redirect' ] );
+		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 
@@ -589,7 +589,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return string Redirect URL.
 	 */
 	public function get_login_redirect_url( $redirect ) {
-		$url = esc_url_raw( wp_unslash( isset( $_COOKIE['wc_stripe_express_checkout_redirect_url'] ) ? $_COOKIE['wc_stripe_payment_request_redirect_url'] : '' ) );
+		$url = esc_url_raw( wp_unslash( isset( $_COOKIE['wc_stripe_express_checkout_redirect_url'] ) ? $_COOKIE['wc_stripe_express_checkout_redirect_url'] : '' ) );
 
 		if ( empty( $url ) ) {
 			return $redirect;
