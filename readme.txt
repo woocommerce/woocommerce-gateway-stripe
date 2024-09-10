@@ -160,5 +160,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Address Klarna availability based on correct presentment currency rules.
 * Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
 * Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
+* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
+* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
