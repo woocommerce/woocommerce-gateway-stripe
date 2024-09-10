@@ -176,7 +176,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return void
 	 */
 	public function set_session() {
-		if ( ! $this->express_checkout_helper->is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
+		if ( ! $this->is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
 			return;
 		}
 
