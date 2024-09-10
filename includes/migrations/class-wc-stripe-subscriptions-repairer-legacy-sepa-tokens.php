@@ -100,7 +100,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	 *
 	 * Overrides the parent class function to make two changes:
 	 * 1. Don't schedule an action if one already exists.
-	 * 2. Schedules the migration to happen in one minute instead of in one hour.
+	 * 2. Schedules the migration to happen in two minutes instead of in one hour.
 	 * 3. Delete the transient which stores the progress of the repair.
 	 *
 	 * @param int $item The ID of the subscription to migrate.
