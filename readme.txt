@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint. 
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 = 8.7.0 - xxxx-xx-xx =
