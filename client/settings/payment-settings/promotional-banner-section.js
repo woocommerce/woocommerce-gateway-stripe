@@ -8,7 +8,7 @@ import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
-import { useTestMode } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -66,7 +66,12 @@ const PromotionalBannerSection = ( {
 		'core/notices'
 	);
 	const [ isTestModeEnabled ] = useTestMode();
-	const [ hasAPMEnabled, hasAPMOrder ] = [ false, false ];
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const hasAPMEnabled =
+		[ ...enabledPaymentMethodIds ].splice(
+			[ ...enabledPaymentMethodIds ].indexOf( 'card' ),
+			1
+		).length > 0;
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -268,7 +273,7 @@ const PromotionalBannerSection = ( {
 	if ( isConnectedViaOAuth === false ) {
 		BannerContent = <ReConnectAccountBanner />;
 	} else if ( ! isUpeEnabled ) {
-		if ( hasAPMEnabled && hasAPMOrder ) {
+		if ( hasAPMEnabled ) {
 			BannerContent = <NewCheckoutExperienceAPMsBanner />;
 		} else {
 			BannerContent = <NewCheckoutExperienceBanner />;
