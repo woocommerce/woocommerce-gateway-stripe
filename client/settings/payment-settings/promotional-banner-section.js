@@ -66,6 +66,7 @@ const PromotionalBannerSection = ( {
 		'core/notices'
 	);
 	const [ isTestModeEnabled ] = useTestMode();
+	const [ hasAPMEnabled, hasAPMOrder ] = [ false, false ];
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -159,6 +160,58 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
+	const NewCheckoutExperienceAPMsBanner = () => (
+		<CardBody>
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
+						{ __(
+							'Boost sales and checkout conversion',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ __(
+							'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustration }
+						alt={ __(
+							'New Checkout',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+			<ButtonsRow>
+				<MainCTALink
+					variant="secondary"
+					data-testid="enable-the-new-checkout"
+					onClick={ handleButtonClick }
+				>
+					{ __(
+						'Enable the new checkout',
+						'woocommerce-gateway-stripe'
+					) }
+				</MainCTALink>
+				<DismissButton
+					variant="secondary"
+					onClick={ handleBannerDismiss }
+					data-testid="dismiss"
+				>
+					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
+				</DismissButton>
+			</ButtonsRow>
+		</CardBody>
+	);
+
 	const NewCheckoutExperienceBanner = () => (
 		<CardBody>
 			<CardInner>
@@ -215,7 +268,11 @@ const PromotionalBannerSection = ( {
 	if ( isConnectedViaOAuth === false ) {
 		BannerContent = <ReConnectAccountBanner />;
 	} else if ( ! isUpeEnabled ) {
-		BannerContent = <NewCheckoutExperienceBanner />;
+		if ( hasAPMEnabled && hasAPMOrder ) {
+			BannerContent = <NewCheckoutExperienceAPMsBanner />;
+		} else {
+			BannerContent = <NewCheckoutExperienceBanner />;
+		}
 	}
 
 	return (
