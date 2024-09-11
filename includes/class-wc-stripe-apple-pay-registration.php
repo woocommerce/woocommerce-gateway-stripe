@@ -441,4 +441,4 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 }
 
-new WC_Stripe_Domain_Registration();
+new WC_Stripe_Apple_Pay_Registration();
