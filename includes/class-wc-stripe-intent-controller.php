@@ -716,6 +716,7 @@ class WC_Stripe_Intent_Controller {
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
+		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
@@ -745,9 +746,10 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// Using a saved token will also be confirmed immediately. For voucher and wallet payment methods type like Boleto, Oxxo, Multibanco, and Cash App we shouldn't confirm
+		// the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
-		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
+		if ( ! $is_using_saved_token && $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
 		}
 
@@ -907,7 +909,6 @@ class WC_Stripe_Intent_Controller {
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
-		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
@@ -916,7 +917,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type, $is_using_saved_token ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -945,11 +946,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
-			return false;
-		}
-
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'cashapp', 'link' ], true ) ) {
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'link' ], true ) ) {
 			return true;
 		}
 
@@ -981,6 +978,16 @@ class WC_Stripe_Intent_Controller {
 		// SEPA setup intents require mandate data.
 		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
 			$request = $this->add_mandate_data( $request );
+		}
+
+		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
+		if ( $this->is_delayed_confirmation_required( $request['payment_method_types'] ) ) {
+			$request['confirm'] = 'false';
+		}
+
+		if ( ! $this->request_needs_redirection( $request['payment_method_types'] ) ) {
+			unset( $request['return_url'] );
 		}
 
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
@@ -1029,7 +1036,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -1051,7 +1058,7 @@ class WC_Stripe_Intent_Controller {
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getLocalizesdMessage(),
+						'message' => $e->getLocalizedMessage(),
 					],
 				]
 			);
@@ -1121,21 +1128,21 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco', 'cashapp' ] );
 	}
 
 	/**
 	 * Determines whether the intent needs to be confirmed later.
 	 *
-	 * Some payment methods such as Boleto, Oxxo and Multibanco require the payment to be confirmed later when
-	 * displaying the voucher to the customer on the checkout or pay for order page.
+	 * Some payment methods such as CashApp, Boleto, Oxxo and Multibanco require the payment to be confirmed later when
+	 * displaying the voucher or QR code to the customer on the checkout or pay for order page.
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return in_array( 'boleto', $payment_methods, true ) || in_array( 'oxxo', $payment_methods, true ) || in_array( 'multibanco', $payment_methods, true );
+		return ! empty( array_intersect( $payment_methods, [ 'boleto', 'oxxo', 'multibanco', 'cashapp' ] ) );
 	}
 
 	/**
