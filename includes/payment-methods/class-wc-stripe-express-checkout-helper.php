@@ -435,7 +435,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
-	private function is_page_supported() {
+	public function is_page_supported() {
 		return $this->is_product()
 			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			|| is_wc_endpoint_url( 'order-pay' );
@@ -559,7 +559,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean  True if the provided product is supported, false otherwise.
 	 */
-	private function is_product_supported( $product ) {
+	public function is_product_supported( $product ) {
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
 			return false;
 		}
@@ -1141,7 +1141,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @return boolean
 	 */
-	private function is_express_checkout_enabled() {
+	public function is_express_checkout_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
 	}
 
@@ -1160,7 +1160,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 *
 	 * @param array $previous_chosen_methods The previously chosen shipping methods.
 	 */
-	private function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
+	public function maybe_restore_recurring_chosen_shipping_methods( $previous_chosen_methods = [] ) {
 		if ( empty( WC()->cart->recurring_carts ) || ! method_exists( 'WC_Subscriptions_Cart', 'get_recurring_shipping_package_key' ) ) {
 			return;
 		}
