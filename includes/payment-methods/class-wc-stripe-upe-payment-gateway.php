@@ -830,7 +830,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 			} else {
 				// Create a setup intent, or update an existing one associated with the order.
-				// If the payment method is Cash App Pay and the order has no cost, skip this step.
 				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
 
