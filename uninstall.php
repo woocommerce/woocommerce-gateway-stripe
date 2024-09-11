@@ -23,14 +23,18 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	// Remove OAuth keys from the settings
 	$settings = get_option( 'woocommerce_stripe_settings', [] );
 	if ( is_array( $settings ) ) {
+		// Disable the gateway before removing the plugin, to avoid an invalid API keys notice when reinstalling.
+		$settings['enabled'] = 'no';
 		// Live keys
 		unset( $settings['publishable_key'], $settings['secret_key'] );
 		unset( $settings['connection_type'], $settings['refresh_token'] );
 		unset( $settings['webhook_data'] );
+		unset( $settings['webhook_secret'] );
 		// Test keys
 		unset( $settings['test_publishable_key'], $settings['test_secret_key'] );
 		unset( $settings['test_connection_type'], $settings['test_refresh_token'] );
 		unset( $settings['test_webhook_data'] );
+		unset( $settings['test_webhook_secret'] );
 	}
 	update_option( 'woocommerce_stripe_settings', $settings );
 
