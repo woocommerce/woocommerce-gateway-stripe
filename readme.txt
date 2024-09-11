@@ -163,5 +163,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
 * Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
 * Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
