@@ -1,4 +1,4 @@
-/* global wc_stripe_payment_request_params */
+/* global wc_stripe_express_checkout_params */
 
 import React from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
@@ -13,8 +13,8 @@ export const ExpressCheckout = ( props ) => {
 
 	const buttonOptions = {
 		buttonType: {
-			googlePay: wc_stripe_payment_request_params.button.type,
-			applePay: wc_stripe_payment_request_params.button.type,
+			googlePay: wc_stripe_express_checkout_params.button.type,
+			applePay: wc_stripe_express_checkout_params.button.type,
 		},
 	};
 
