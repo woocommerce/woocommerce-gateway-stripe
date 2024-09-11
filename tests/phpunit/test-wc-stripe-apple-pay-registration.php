@@ -1,14 +1,14 @@
 <?php
 /**
- * These teste make assertions against class WC_Stripe_Domain_Registration.
+ * These teste make assertions against class WC_Stripe_Apple_Pay_Registration.
  *
- * @package WooCommerce_Stripe/Tests/Domain_Registration
+ * @package WooCommerce_Stripe/Tests/Apple_Pay_Registration
  */
 
 /**
- * WC_Stripe_Domain_Registration unit tests.
+ * WC_Stripe_Apple_Pay_Registration unit tests.
  */
-class WC_Stripe_Domain_Registration_Test extends WP_UnitTestCase {
+class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 
 	/**
 	 * System under test.

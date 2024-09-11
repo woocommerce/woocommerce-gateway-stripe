@@ -1,6 +1,6 @@
 <?php
 /**
- * Stripe Domain Registration Class.
+ * Stripe Apple Pay Registration Class.
  *
  * @since 4.0.6
  */
@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WC_Stripe_Domain_Registration {
+class WC_Stripe_Apple_Pay_Registration {
 
 	const DOMAIN_ASSOCIATION_FILE_NAME = 'apple-developer-merchantid-domain-association';
 	const DOMAIN_ASSOCIATION_FILE_DIR  = '.well-known';
