@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint. 
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 = 8.7.0 - xxxx-xx-xx =
@@ -163,5 +164,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
 * Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
 * Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
