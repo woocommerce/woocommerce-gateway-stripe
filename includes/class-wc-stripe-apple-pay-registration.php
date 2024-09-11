@@ -262,13 +262,13 @@ class WC_Stripe_Apple_Pay_Registration {
 			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 
-		if ( 200 !== $response['response']['code'] ) {
-			$parsed_response = json_decode( $response['body'] );
-
-			$this->apple_pay_verify_notice = $parsed_response->apple_pay->status_details->error_message ?? '';
+		$parsed_response         = json_decode( $response['body'] );
+		$apple_pay_verify_notice = $parsed_response->apple_pay->status_details->error_message ?? '';
+		if ( ! empty( $apple_pay_verify_notice ) ) {
+			$this->apple_pay_verify_notice = $apple_pay_verify_notice;
 
 			/* translators: error message */
-			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $parsed_response->error->message ) );
+			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $apple_pay_verify_notice ) );
 		}
 	}
 
