@@ -109,11 +109,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Create instance of payment method
 	 */
 	public function __construct() {
-		$main_settings     = get_option( 'woocommerce_stripe_settings' );
+		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
-		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
+		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields = true;
 		$this->testmode   = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->supports   = [ 'products', 'refunds' ];
@@ -316,7 +316,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_capability_active() {
 		// Treat all capabilities as active when in test mode.
-		$plugin_settings   = get_option( 'woocommerce_stripe_settings' );
+		$plugin_settings   = WC_Stripe_Helper::get_stripe_settings();
 		$test_mode_setting = ! empty( $plugin_settings['testmode'] ) ? $plugin_settings['testmode'] : 'no';
 
 		if ( 'yes' === $test_mode_setting ) {
@@ -350,7 +350,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * to query to retrieve saved payment methods from Stripe.
 	 */
 	public function get_retrievable_type() {
-		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID;
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 	}
 
 	/**
@@ -379,7 +379,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_supported_currencies() {
 		return apply_filters(
-			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
+			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies', // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 			$this->supported_currencies
 		);
 	}
@@ -660,5 +660,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</p>
 		</fieldset>
 		<?php
+	}
+
+	/**
+	 * Gets the transaction URL.
+	 * Overrides WC_Payment_Gateway::get_transaction_url().
+	 *
+	 * @param  WC_Order $order Order object.
+	 * @return string
+	 */
+	public function get_transaction_url( $order ) {
+		$this->view_transaction_url = WC_Stripe_Helper::get_transaction_url( $this->testmode );
+
+		return parent::get_transaction_url( $order );
 	}
 }

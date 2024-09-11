@@ -69,7 +69,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function __construct() {
 		self::$_this           = $this;
-		$this->stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
@@ -81,6 +81,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+
+		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
@@ -234,8 +236,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
-
-		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 	}
 
 	/**
@@ -1319,12 +1319,12 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return  array $data
+	 * @return  array $data The selected product data.
 	 */
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		try {
+		try { // @phpstan-ignore-line (return statement is added)
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
@@ -1417,7 +1417,7 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return  array $data
+	 * @return  array $data Results of adding the product to the cart.
 	 */
 	public function ajax_add_to_cart() {
 		check_ajax_referer( 'wc-stripe-add-to-cart', 'security' );
@@ -1455,6 +1455,7 @@ class WC_Stripe_Payment_Request {
 		$data          += $this->build_display_items();
 		$data['result'] = 'success';
 
+		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
 
@@ -2052,11 +2053,13 @@ class WC_Stripe_Payment_Request {
 
 		foreach ( WC()->cart->recurring_carts as $recurring_cart_key => $recurring_cart ) {
 			foreach ( $recurring_cart->get_shipping_packages() as $recurring_cart_package_index => $recurring_cart_package ) {
-				$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
+				if ( class_exists( 'WC_Subscriptions_Cart' ) ) {
+					$package_key = WC_Subscriptions_Cart::get_recurring_shipping_package_key( $recurring_cart_key, $recurring_cart_package_index );
 
-				// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
-				if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
-					$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
+					// If the recurring cart package key is found in the previous chosen methods, but not in the current chosen methods, restore it.
+					if ( isset( $previous_chosen_methods[ $package_key ] ) && ! isset( $chosen_shipping_methods[ $package_key ] ) ) {
+						$chosen_shipping_methods[ $package_key ] = $previous_chosen_methods[ $package_key ];
+					}
 				}
 			}
 		}

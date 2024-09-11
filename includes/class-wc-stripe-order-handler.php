@@ -342,7 +342,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$captured = $order->get_meta( '_stripe_charge_captured', true );
+
 			if ( 'no' === $captured ) {
+				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
 
@@ -382,7 +384,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Due diligence done. Collect the metadata.
 		$is_live         = true;
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
 			$is_live = 'no' === $stripe_settings['testmode'];
 		}

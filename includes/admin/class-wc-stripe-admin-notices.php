@@ -93,11 +93,11 @@ class WC_Stripe_Admin_Notices {
 		return [
 			'alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'eps'        => 'WC_Gateway_Stripe_EPS',
+			'eps'        => 'WC_Gateway_Stripe_Eps',
 			'giropay'    => 'WC_Gateway_Stripe_Giropay',
 			'ideal'      => 'WC_Gateway_Stripe_Ideal',
 			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'p24'        => 'WC_Gateway_Stripe_p24',
+			'p24'        => 'WC_Gateway_Stripe_P24',
 			'sepa'       => 'WC_Gateway_Stripe_Sepa',
 			'sofort'     => 'WC_Gateway_Stripe_Sofort',
 			'boleto'     => 'WC_Gateway_Stripe_Boleto',
@@ -122,7 +122,7 @@ class WC_Stripe_Admin_Notices {
 		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
 		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
-		$options             = get_option( 'woocommerce_stripe_settings' );
+		$options             = WC_Stripe_Helper::get_stripe_settings();
 		$testmode            = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
 		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';

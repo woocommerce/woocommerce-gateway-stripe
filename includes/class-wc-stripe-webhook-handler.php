@@ -54,7 +54,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
-		$stripe_settings      = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings      = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
@@ -966,7 +966,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				/* translators: 1) The error message that was received from Stripe. */
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
+				$status_update = [];
 				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+					$status_update['from'] = $order->get_status();
+					$status_update['to']   = 'failed';
 					$order->update_status( 'failed', $message );
 				} else {
 					$order->add_order_note( $message );
@@ -974,7 +977,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-				$this->send_failed_order_email( $order_id );
+				$this->send_failed_order_email( $order_id, $status_update );
 				break;
 		}
 
@@ -1017,13 +1020,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			/* translators: 1) The error message that was received from Stripe. */
 			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
+			$status_update = [];
 			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+				$status_update['from'] = $order->get_status();
+				$status_update['to']   = 'failed';
 				$order->update_status( 'failed', $message );
 			} else {
 				$order->add_order_note( $message );
 			}
 
-			$this->send_failed_order_email( $order_id );
+			$this->send_failed_order_email( $order_id, $status_update );
 		}
 
 		$this->unlock_order_payment( $order );
