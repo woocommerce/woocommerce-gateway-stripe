@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * class WC_Stripe_Express_Checkout_Ajax_Handler class.
+ * WC_Stripe_Express_Checkout_Ajax_Handler class.
  */
 class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**

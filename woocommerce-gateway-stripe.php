@@ -268,9 +268,8 @@ function woocommerce_gateway_stripe() {
 				// Express checkout configurations.
 				$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 				$express_checkout_ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
-				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper);
+				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
 				$this->express_checkout_configuration->init();
-		
 
 				$intent_controller = new WC_Stripe_Intent_Controller();
 				$intent_controller->init_hooks();
