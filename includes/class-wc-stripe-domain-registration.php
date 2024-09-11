@@ -364,7 +364,7 @@ class WC_Stripe_Domain_Registration {
 		$prev_is_enabled       = $this->is_enabled();
 		$this->stripe_settings = $settings;
 
-		// If Stripe or Express Checkout Buttons wasn't enabled (or secret key was different) then might need to verify now.
+		// If Stripe or Express Checkout Buttons weren't enabled (or secret key was different) then might need to verify now.
 		if ( ! $prev_is_enabled || ( $this->get_secret_key() !== $prev_secret_key ) ) {
 			$this->verify_domain_if_configured();
 		}
