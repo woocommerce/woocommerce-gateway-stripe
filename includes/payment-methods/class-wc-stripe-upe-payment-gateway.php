@@ -776,12 +776,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
-			$payment_needed         = $this->is_payment_needed( $order->get_id() );
-			$payment_method_id      = $payment_information['payment_method'];
-			$payment_method_details = $payment_information['payment_method_details'];
-			$selected_payment_type  = $payment_information['selected_payment_type'];
-			$upe_payment_method     = $this->payment_methods[ $selected_payment_type ] ?? null;
-			$response_args          = [];
+			$payment_needed                = $this->is_payment_needed( $order->get_id() );
+			$payment_method_id             = $payment_information['payment_method'];
+			$payment_method_details        = $payment_information['payment_method_details'];
+			$selected_payment_type         = $payment_information['selected_payment_type'];
+			$is_using_saved_payment_method = $payment_information['is_using_saved_payment_method'];
+			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
+			$response_args                 = [];
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
@@ -799,7 +800,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->maybe_disallow_prepaid_card( $payment_method );
 
 			// Update saved payment method to include billing details.
-			if ( $payment_information['is_using_saved_payment_method'] ) {
+			if ( $is_using_saved_payment_method ) {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
 
@@ -812,7 +813,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( $payment_information['is_using_saved_payment_method'] && 'cashapp' === $selected_payment_type ) {
+			} elseif ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
 					$order,
@@ -841,7 +842,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$payment_method_details,
 					$selected_payment_type
 				);
-			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
+			} elseif ( $is_using_saved_payment_method ) {
 				$this->maybe_update_source_on_subscription_order(
 					$order,
 					(object) [
