@@ -5,6 +5,7 @@
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 = 8.7.0 - xxxx-xx-xx =
+* Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Prevent duplicate failed-order emails from being sent.
 * Fix - Support custom name and description for Afterpay.
