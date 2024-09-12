@@ -180,7 +180,7 @@ const PromotionalBannerSection = ( {
 					</h4>
 					<p>
 						{ __(
-							'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
+							'Disable the legacy checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm, Link and many others APMs, a one-click checkout.',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>
@@ -198,11 +198,11 @@ const PromotionalBannerSection = ( {
 			<ButtonsRow>
 				<MainCTALink
 					variant="secondary"
-					data-testid="enable-the-new-checkout"
+					data-testid="disable-the-legacy-checkout"
 					onClick={ handleButtonClick }
 				>
 					{ __(
-						'Enable the new checkout',
+						'Disable the legacy checkout',
 						'woocommerce-gateway-stripe'
 					) }
 				</MainCTALink>
