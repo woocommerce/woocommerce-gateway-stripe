@@ -767,35 +767,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$order = wc_get_order( $order_id );
 
 		try {
-			$payment_information = $this->prepare_payment_information_from_request( $order );
+			$payment_information_data = $this->prepare_payment_information_from_request( $order );
 
-			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
+			$this->validate_selected_payment_method_type( $payment_information_data, $order->get_billing_country() );
 
+			$payment_information    = new WC_Stripe_Payment_Information( $payment_information_data );
 			$payment_needed         = $this->is_payment_needed( $order->get_id() );
-			$payment_method_id      = $payment_information['payment_method'];
-			$payment_method_details = $payment_information['payment_method_details'];
-			$selected_payment_type  = $payment_information['selected_payment_type'];
-			$upe_payment_method     = $this->payment_methods[ $selected_payment_type ] ?? null;
+			$upe_payment_method     = $this->payment_methods[ $payment_information->get_selected_payment_type() ] ?? null;
 			$response_args          = [];
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
-			$this->set_payment_method_id_for_order( $order, $payment_method_id );
-			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
+			$this->set_payment_method_id_for_order( $order, $payment_information->get_payment_method() );
+			$this->set_customer_id_for_order( $order, $payment_information->get_customer() );
 
 			// Only update the payment_type if we have a reference to the payment type the customer selected.
-			if ( '' !== $selected_payment_type ) {
-				$this->set_selected_payment_type_for_order( $order, $selected_payment_type );
+			if ( '' !== $payment_information->get_selected_payment_type() ) {
+				$this->set_selected_payment_type_for_order( $order, $payment_information->get_selected_payment_type() );
 			}
 
 			// Retrieve the payment method object from Stripe.
-			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_information->get_payment_method() );
 
 			// Throw an exception when the payment method is a prepaid card and it's disallowed.
 			$this->maybe_disallow_prepaid_card( $payment_method );
 
 			// Update saved payment method to include billing details.
 			if ( $payment_information['is_using_saved_payment_method'] ) {
-				$this->update_saved_payment_method( $payment_method_id, $order );
+				$this->update_saved_payment_method( $payment_information->get_payment_method(), $order );
 			}
 
 			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
@@ -806,44 +804,47 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->validate_minimum_order_amount( $order );
 
 				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
-				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
+
+			// Create a payment intent object from the received data.
+			$payment_intent = new WC_Stripe_Payment_Intent( $payment_intent_response );
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
 			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
-					$payment_method_details,
-					$selected_payment_type
+					$payment_information->get_payment_method_details(),
+					$payment_information->get_selected_payment_type()
 				);
 			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
 				$this->maybe_update_source_on_subscription_order(
 					$order,
 					(object) [
-						'payment_method' => $payment_information['payment_method'],
-						'customer'       => $payment_information['customer'],
+						'payment_method' => $payment_information->get_payment_method(),
+						'customer'       => $payment_information->get_customer(),
 					],
 					$this->get_upe_gateway_id_for_order( $upe_payment_method )
 				);
 			}
 
 			// Set the selected UPE payment method type title in the WC order.
-			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+			$this->set_payment_method_title_for_order( $order, $payment_information->get_selected_payment_type() );
 
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
 			// Set the correct redirect URL.
-			$redirect = $this->get_redirect_url( $order, $payment_intent, $payment_information['selected_payment_type'], $payment_needed );
+			$redirect = $this->get_redirect_url( $order, $payment_intent, $payment_information->get_selected_payment_type(), $payment_needed );
 
-			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				if ( ! $this->contains_voucher_or_wallet_payment( $payment_intent )
-					&& ! $this->contains_next_action_type_url( $payment_intent ) ) {
+			if ( in_array( $payment_intent->get_status(), [ 'requires_confirmation', 'requires_action' ], true ) ) {
+				if ( ! $payment_intent->contains_voucher_or_wallet_payment()
+					&& empty( $payment_intent->get_next_action_type_url() ) ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
-					$response_args['payment_method'] = $payment_information['payment_method'];
+					$response_args['payment_method'] = $payment_information->get_payment_method();
 				}
 
 				// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
@@ -856,7 +857,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+				$charge = $payment_intent->get_latest_charge();
 
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
@@ -866,16 +867,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
 					'wc_stripe_change_subs_payment_method_success',
-					$payment_information['payment_method'],
+					$payment_information->get_payment_method(),
 					(object) [
-						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
-						'customer'       => $payment_information['customer'],
+						'token_id'       => $payment_information->get_token(),
+						'customer'       => $payment_information->get_customer(),
 						'source'         => null,
 						'source_object'  => $payment_method,
-						'payment_method' => $payment_information['payment_method'],
+						'payment_method' => $payment_information->get_payment_method(),
 					]
 				);
-			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+			} elseif ( in_array( $payment_intent->get_status(), self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				if ( ! $this->has_pre_order( $order ) ) {
 					$order->payment_complete();
 				} elseif ( $this->maybe_process_pre_orders( $order ) ) {
@@ -2373,80 +2374,48 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
 	 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
 	 *
-	 * @param WC_Order $order               The WC Order to be paid for.
-	 * @param object   $payment_intent       The payment intent object.
-	 * @param string   $selected_payment_type The payment type the shopper selected, if any.
-	 * @param bool     $payment_needed        Whether the payment is needed or not.
+	 * @param WC_Order                 $order               The WC Order to be paid for.
+	 * @param WC_Stripe_Payment_Intent $payment_intent       The payment intent object.
+	 * @param string                   $selected_payment_type The payment type the shopper selected, if any.
+	 * @param bool                     $payment_needed        Whether the payment is needed or not.
 	 * @return string
 	 */
 	private function get_redirect_url( $order, $payment_intent, $selected_payment_type, $payment_needed ) {
 		$redirect = $this->get_return_url( $order );
 
-		if ( ! in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+		if ( ! in_array( $payment_intent->get_status(), [ 'requires_confirmation', 'requires_action' ], true ) ) {
 			return $redirect;
 		}
 
-		if ( $this->contains_voucher_payment( $payment_intent->payment_method_types ) ) {
+		if ( $payment_intent->contains_voucher_payment() ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
 				$order->get_id(),
 				$selected_payment_type,
-				$payment_intent->client_secret,
+				$payment_intent->get_client_secret(),
 				rawurlencode( $redirect )
 			);
-		} elseif ( $this->contains_wallet_payment( $payment_intent->payment_method_types ) ) {
+		} elseif ( $payment_intent->contains_wallet_payment() ) {
 			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s',
 				$order->get_id(),
 				$selected_payment_type,
-				$payment_intent->client_secret,
+				$payment_intent->get_client_secret(),
 				rawurlencode( $redirect )
 			);
-		} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
-			return $payment_intent->next_action->{$payment_intent->next_action->type}->url;
+		} elseif ( ! empty( $payment_intent->get_next_action_type_url() ) ) {
+			return $payment_intent->get_next_action_type_url();
 		}
 
 		return sprintf(
 			'#wc-stripe-confirm-%s:%s:%s:%s',
 			$payment_needed ? 'pi' : 'si',
 			$order->get_id(),
-			$payment_intent->client_secret,
+			$payment_intent->get_client_secret(),
 			wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 		);
-	}
-
-	/**
-	 * @param $payment_methods array The payment methods to check.
-	 * @return bool Whether the payment methods contain a voucher payment method.
-	 */
-	private function contains_voucher_payment( $payment_methods ) {
-		return count( array_intersect( [ 'boleto', 'oxxo', 'multibanco' ], $payment_methods ) ) !== 0;
-	}
-
-	/**
-	 * @param $payment_methods array The payment methods to check.
-	 * @return bool Whether the payment methods contain a wallet payment method.
-	 */
-	private function contains_wallet_payment( $payment_methods ) {
-		return count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_methods ) ) !== 0;
-	}
-
-	/**
-	 * @param $payment_intent object The payment intent to check.
-	 * @return bool Whether the payment methods contain a voucher or wallet payment method.
-	 */
-	private function contains_voucher_or_wallet_payment( $payment_intent ) {
-		return isset( $payment_intent->payment_method_types ) && ( $this->contains_voucher_payment( $payment_intent->payment_method_types ) || $this->contains_wallet_payment( $payment_intent->payment_method_types ) );
-	}
-
-	/**
-	 * @param $payment_intent object The payment intent to check.
-	 * @return bool Whether the payment intent contains a next action type URL.
-	 */
-	private function contains_next_action_type_url( $payment_intent ) {
-		return isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
 	}
 
 	/**
