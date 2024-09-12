@@ -68,10 +68,7 @@ const PromotionalBannerSection = ( {
 	const [ isTestModeEnabled ] = useTestMode();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const hasAPMEnabled =
-		[ ...enabledPaymentMethodIds ].splice(
-			[ ...enabledPaymentMethodIds ].indexOf( 'card' ),
-			1
-		).length > 0;
+		enabledPaymentMethodIds.filter( ( e ) => e !== 'card' ).length > 0;
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -166,7 +163,7 @@ const PromotionalBannerSection = ( {
 	);
 
 	const NewCheckoutExperienceAPMsBanner = () => (
-		<CardBody>
+		<CardBody data-testid="new-checkout-apms-banner">
 			<CardInner>
 				<CardColumn>
 					<NewPill>
