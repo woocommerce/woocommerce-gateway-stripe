@@ -130,9 +130,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.8.0 - xxxx-xx-xx =
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
-* Fix - Fix empty error message for Express Payments when order creation fails.
+* Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
+* Fix - Fix empty error message for Express Payments when order creation fails.
 
 = 8.7.0 - xxxx-xx-xx =
 * Fix - Prevent duplicate failed-order emails from being sent.
