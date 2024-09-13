@@ -976,6 +976,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Checks if this is the Pay for Order page.
+	 *
+	 * @return boolean
+	 */
+	public function is_pay_for_order_page() {
+		return is_checkout() && isset( $_GET['pay_for_order'] ); // phpcs:ignore WordPress.Security.NonceVerification
+	}
+
+	/**
+	 * Checks if this is the checkout page or content contains a cart block.
+	 *
+	 * @return boolean
+	 */
+	public function is_checkout() {
+		return is_checkout() || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
 	 * Builds the shippings methods to pass to express checkout elements.
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
