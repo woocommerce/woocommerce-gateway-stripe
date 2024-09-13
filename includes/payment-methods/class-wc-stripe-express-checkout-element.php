@@ -795,7 +795,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		?>
-		<div id="wc-stripe-express-checkout-wrapper" style="margin-top: 1em;clear:both;display:none;">
+		<div id="wc-stripe-express-checkout-wrapper" style="margin-top: 1em;clear:both;">
 			<div id="wc-stripe-express-checkout-button">
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
@@ -817,7 +817,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		?>
-		<p id="wc-stripe-express-checkout-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
+		<p id="wc-stripe-express-checkout-button-separator" style="margin-top:1.5em;text-align:center;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
 		<?php
 	}
 
