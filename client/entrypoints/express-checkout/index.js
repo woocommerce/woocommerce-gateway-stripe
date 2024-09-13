@@ -5,6 +5,21 @@ import WCStripeAPI from '../../api';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 
 jQuery( function () {
+	// Don't load if blocks checkout is being loaded.
+	if (
+		wc_stripe_express_checkout_params.has_block &&
+		! wc_stripe_express_checkout_params.is_pay_for_order
+	) {
+		return;
+	}
+
+	const publishableKey =
+		wc_stripe_express_checkout_params.stripe.publishable_key;
+	if ( ! publishableKey ) {
+		// If no configuration is present, probably this is not the checkout page.
+		return;
+	}
+
 	const api = new WCStripeAPI(
 		getStripeServerData(),
 		// A promise-based interface to jQuery.post.

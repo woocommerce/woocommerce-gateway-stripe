@@ -162,6 +162,7 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
+				'publishable_key'             => 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
@@ -191,8 +192,11 @@ class WC_Stripe_Express_Checkout_Element {
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
 			'button'             => $this->express_checkout_helper->get_button_settings(),
+			'is_pay_for_order'   => $this->express_checkout_helper->is_pay_for_order_page(),
+			'has_block'          => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation' => $this->express_checkout_helper->get_login_confirmation_settings(),
 			'is_product_page'    => $this->express_checkout_helper->is_product(),
+			'is_checkout_page'   => $this->express_checkout_helper->is_checkout(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
 		];
 	}
