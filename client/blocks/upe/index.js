@@ -8,7 +8,10 @@ import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creati
 import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
-import expressCheckoutElementsPaymentMethod from 'wcstripe/blocks/express-checkout';
+import {
+	expressCheckoutElementsGooglePay,
+	expressCheckoutElementsApplePay,
+} from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import './styles.scss';
@@ -90,7 +93,8 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
+	registerExpressPaymentMethod( expressCheckoutElementsGooglePay );
+	registerExpressPaymentMethod( expressCheckoutElementsApplePay );
 } else {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );

@@ -1,14 +1,36 @@
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
-import { ExpressCheckout } from './express-checkout';
+import { ExpressCheckoutContainer } from './express-checkout-container';
 import ApplePayPreview from './apple-pay-preview';
+import GooglePayPreview from './google-pay-preview';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const stripePromise = loadStripe();
 
-const expressCheckoutElementsPaymentMethod = {
-	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	content: <ExpressCheckout stripe={ stripePromise } />,
+const expressCheckoutElementsGooglePay = {
+	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_googlePay',
+	content: (
+		<ExpressCheckoutContainer
+			stripe={ stripePromise }
+			expressPaymentMethod="googlePay"
+		/>
+	),
+	edit: <GooglePayPreview />,
+	canMakePayment: () => true,
+	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+	supports: {
+		features: getBlocksConfiguration()?.supports ?? [],
+	},
+};
+
+const expressCheckoutElementsApplePay = {
+	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_applePay',
+	content: (
+		<ExpressCheckoutContainer
+			stripe={ stripePromise }
+			expressPaymentMethod="applelePay"
+		/>
+	),
 	edit: <ApplePayPreview />,
 	canMakePayment: () => true,
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
@@ -17,4 +39,4 @@ const expressCheckoutElementsPaymentMethod = {
 	},
 };
 
-export default expressCheckoutElementsPaymentMethod;
+export { expressCheckoutElementsGooglePay, expressCheckoutElementsApplePay };
