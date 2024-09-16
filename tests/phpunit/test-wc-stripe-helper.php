@@ -409,4 +409,49 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $current_settings );
 	}
+
+	/**
+	 * Test for `get_klarna_preferred_locale`.
+	 * @return void
+	 */
+	public function test_get_klarna_preferred_locale() {
+		// Language is supported for the region (same region)
+		$store_locale    = 'en_US';
+		$billing_country = 'US';
+		$expected        = 'en-US';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertSame( $expected, $actual );
+
+		// Language is supported for the region (different region)
+		$store_locale    = 'en_US';
+		$billing_country = 'DE';
+		$expected        = 'en-DE';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertSame( $expected, $actual );
+
+		// Language is supported for the region (different region)
+		$store_locale    = 'es_ES';
+		$billing_country = 'US';
+		$expected        = 'es-US';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertSame( $expected, $actual );
+
+		// Language is not supported for the region
+		$store_locale    = 'fr_FR';
+		$billing_country = 'US';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertNull( $actual );
+
+		// Region is not supported, with supported locale
+		$store_locale    = 'pt_PT';
+		$billing_country = 'BR';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertNull( $actual );
+
+		// Region is not supported, with non-supported locale
+		$store_locale    = 'tl';
+		$billing_country = 'PH';
+		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
+		$this->assertNull( $actual );
+	}
 }

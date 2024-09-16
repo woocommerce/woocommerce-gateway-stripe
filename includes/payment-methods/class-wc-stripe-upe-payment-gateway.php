@@ -2063,6 +2063,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'client' => 'web',
 				],
 			];
+		} elseif ( 'klarna' === $selected_payment_type ) {
+			$preferred_locale = WC_Stripe_Helper::get_klarna_preferred_locale(
+				get_locale(),
+				$order->get_billing_country()
+			);
+
+			if ( ! empty( $preferred_locale ) ) {
+				$payment_method_options = [
+					'klarna' => [
+						'preferred_locale' => $preferred_locale,
+					],
+				];
+			}
 		}
 
 		// Add the updated preferred credit card brand when defined
