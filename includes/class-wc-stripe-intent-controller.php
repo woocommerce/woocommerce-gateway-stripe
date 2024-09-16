@@ -925,7 +925,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		if ( $payment_information['save_payment_method_to_store'] ) {
+		if ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
