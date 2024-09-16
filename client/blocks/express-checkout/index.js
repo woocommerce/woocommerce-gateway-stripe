@@ -7,10 +7,11 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const stripePromise = loadStripe();
 
-const expressCheckoutElementsGooglePay = {
+const expressCheckoutElementsGooglePay = ( api ) => ( {
 	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_googlePay',
 	content: (
 		<ExpressCheckoutContainer
+			api={ api }
 			stripe={ stripePromise }
 			expressPaymentMethod="googlePay"
 		/>
@@ -21,12 +22,13 @@ const expressCheckoutElementsGooglePay = {
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
 	},
-};
+} );
 
-const expressCheckoutElementsApplePay = {
+const expressCheckoutElementsApplePay = ( api ) => ( {
 	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_applePay',
 	content: (
 		<ExpressCheckoutContainer
+			api={ api }
 			stripe={ stripePromise }
 			expressPaymentMethod="applelePay"
 		/>
@@ -37,6 +39,6 @@ const expressCheckoutElementsApplePay = {
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
 	},
-};
+} );
 
 export { expressCheckoutElementsGooglePay, expressCheckoutElementsApplePay };

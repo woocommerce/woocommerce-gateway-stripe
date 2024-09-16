@@ -93,8 +93,8 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementsGooglePay );
-	registerExpressPaymentMethod( expressCheckoutElementsApplePay );
+	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
 } else {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
