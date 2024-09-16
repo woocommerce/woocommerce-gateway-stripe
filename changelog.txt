@@ -3,11 +3,10 @@
 = 8.8.0 - xxxx-xx-xx =
 * Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
-* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 
-= 8.7.0 - xxxx-xx-xx =
+= 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
 * Fix - Prevent duplicate failed-order emails from being sent.
 * Fix - Support custom name and description for Afterpay.
@@ -34,12 +33,13 @@
 * Update - Specify the JS Stripe API version as 2024-06-20.
 * Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
 * Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
-* Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
 * Fix - Address Klarna availability based on correct presentment currency rules.
 * Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
 * Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
 * Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
 * Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
+* Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
+* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 = 8.6.1 - 2024-08-09 =
