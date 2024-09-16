@@ -1533,4 +1533,63 @@ class WC_Stripe_Helper {
 
 		return 'https://dashboard.stripe.com/payments/%s';
 	}
+
+	/**
+	 * Returns a supported locale for setting Klarna's "preferred_locale".
+	 * While Stripe allows for localization of Klarna's payments page, it still
+	 * limits the locale to the billing country's set of supported locales. For example,
+	 * we cannot set the locale to "fr-FR" or "fr-US" if the billing country is "US".
+	 *
+	 * We compute our desired locale by combining the language tag from the store locale
+	 * and the billing country. We return that if it is supported.
+	 *
+	 * @param string $store_locale The WooCommerce store locale.
+	 *   Expected format: WordPress locale format, e.g. "en" or "en_US".
+	 * @param string $billing_country The billing country code.
+	 * @return string|null The Klarna locale or null if not supported.
+	 */
+	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
+		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
+		$supported_locales = [
+			'AU' => [ 'en-AU' ],
+			'AT' => [ 'de-AT', 'en-AT' ],
+			'BE' => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			'CA' => [ 'en-CA', 'fr-CA' ],
+			'CZ' => [ 'en-CZ', 'cs-CZ' ],
+			'DK' => [ 'da-DK', 'en-DK' ],
+			'FI' => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			'FR' => [ 'fr-FR', 'en-FR' ],
+			'DE' => [ 'de-DE', 'en-DE' ],
+			'GR' => [ 'en-GR', 'el-GR' ],
+			'IE' => [ 'en-IE' ],
+			'IT' => [ 'it-IT', 'en-IT' ],
+			'NL' => [ 'nl-NL', 'en-NL' ],
+			'NZ' => [ 'en-NZ' ],
+			'NO' => [ 'nb-NO', 'en-NO' ],
+			'PL' => [ 'pl-PL', 'en-PL' ],
+			'PT' => [ 'pt-PT', 'en-PT' ],
+			'RO' => [ 'ro-RO', 'en-RO' ],
+			'ES' => [ 'es-ES', 'en-ES' ],
+			'SE' => [ 'sv-SE', 'en-SE' ],
+			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			'GB' => [ 'en-GB' ],
+			'US' => [ 'en-US', 'es-US' ],
+		];
+
+		$region = strtoupper( $billing_country );
+		if ( ! isset( $supported_locales[ $region ] ) ) {
+			return null;
+		}
+
+		// Get the language tag e.g. "en" for "en_US".
+		$lang          = strtolower( explode( '_', $store_locale )[0] );
+		$target_locale = $lang . '-' . $region;
+
+		// Check if the target locale is supported.
+		if ( ! in_array( $target_locale, $supported_locales[ $region ], true ) ) {
+			return null;
+		}
+
+		return $target_locale;
+	}
 }

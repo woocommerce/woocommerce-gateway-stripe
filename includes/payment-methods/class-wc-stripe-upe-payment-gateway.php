@@ -418,6 +418,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['currency']  = $currency;
 
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+			$order_id = absint( get_query_var( 'order-pay' ) );
+			$order    = wc_get_order( $order_id );
+
+			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
+			if ( is_a( $order, 'WC_Order' ) ) {
+				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
+			}
+
 			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
@@ -430,15 +438,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return $stripe_params;
 			}
 
-			$order_id                    = absint( get_query_var( 'order-pay' ) );
 			$stripe_params['orderId']    = $order_id;
 			$stripe_params['isOrderPay'] = true;
-			$order                       = wc_get_order( $order_id );
 
+			// Additional params for order pay page, when the order was successfully loaded.
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$order_currency                  = $order->get_currency();
 				$stripe_params['currency']       = $order_currency;
-				$stripe_params['customerData']   = [ 'billing_country' => $order->get_billing_country() ];
 				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
@@ -450,7 +456,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->get_return_url( $order )
 					)
 				);
-
 			}
 		} elseif ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$stripe_params['cartTotal']    = 0;
@@ -771,12 +776,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
-			$payment_needed         = $this->is_payment_needed( $order->get_id() );
-			$payment_method_id      = $payment_information['payment_method'];
-			$payment_method_details = $payment_information['payment_method_details'];
-			$selected_payment_type  = $payment_information['selected_payment_type'];
-			$upe_payment_method     = $this->payment_methods[ $selected_payment_type ] ?? null;
-			$response_args          = [];
+			$payment_needed                = $this->is_payment_needed( $order->get_id() );
+			$payment_method_id             = $payment_information['payment_method'];
+			$payment_method_details        = $payment_information['payment_method_details'];
+			$selected_payment_type         = $payment_information['selected_payment_type'];
+			$is_using_saved_payment_method = $payment_information['is_using_saved_payment_method'];
+			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
+			$response_args                 = [];
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
@@ -794,7 +800,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->maybe_disallow_prepaid_card( $payment_method );
 
 			// Update saved payment method to include billing details.
-			if ( $payment_information['is_using_saved_payment_method'] ) {
+			if ( $is_using_saved_payment_method ) {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
 
@@ -807,7 +813,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+			} elseif ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
+				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
+				$this->maybe_update_source_on_subscription_order(
+					$order,
+					(object) [
+						'payment_method' => $payment_information['payment_method'],
+						'customer'       => $payment_information['customer'],
+					],
+					$this->get_upe_gateway_id_for_order( $upe_payment_method )
+				);
+				$order->payment_complete();
+
+				return [
+					'result'   => 'success',
+					'redirect' => $this->get_return_url( $order ),
+				];
 			} else {
+				// Create a setup intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
 
@@ -819,7 +842,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$payment_method_details,
 					$selected_payment_type
 				);
-			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
+			} elseif ( $is_using_saved_payment_method ) {
 				$this->maybe_update_source_on_subscription_order(
 					$order,
 					(object) [
@@ -857,11 +880,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						rawurlencode( $redirect )
 					);
 				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
-					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
+					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 					$redirect = sprintf(
-						'#wc-stripe-wallet-%s:%s:%s:%s',
+						'#wc-stripe-wallet-%s:%s:%s:%s:%s',
 						$order_id,
 						$payment_information['selected_payment_type'],
+						$payment_intent->object,
 						$payment_intent->client_secret,
 						rawurlencode( $redirect )
 					);
@@ -1613,10 +1637,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$order->save();
 
 		// Update the subscription's purchased in this order with the payment method ID.
-		if ( isset( $this->payment_methods[ $payment_method_type ] ) ) {
-			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
-			$this->update_subscription_payment_method_from_order( $order, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
-		}
+		$this->update_subscription_payment_method_from_order( $order, $this->get_upe_gateway_id_for_order( $payment_method ) );
 	}
 
 	/**
@@ -2042,6 +2063,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'client' => 'web',
 				],
 			];
+		} elseif ( 'klarna' === $selected_payment_type ) {
+			$preferred_locale = WC_Stripe_Helper::get_klarna_preferred_locale(
+				get_locale(),
+				$order->get_billing_country()
+			);
+
+			if ( ! empty( $preferred_locale ) ) {
+				$payment_method_options = [
+					'klarna' => [
+						'preferred_locale' => $preferred_locale,
+					],
+				];
+			}
 		}
 
 		// Add the updated preferred credit card brand when defined
