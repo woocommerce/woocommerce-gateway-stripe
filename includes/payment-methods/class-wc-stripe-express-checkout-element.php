@@ -34,7 +34,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @var WC_Stripe_Express_Checkout_Helper
 	 */
-	private $express_checkout_helper;
+	public $express_checkout_helper;
 
 	/**
 	 * Constructor.
