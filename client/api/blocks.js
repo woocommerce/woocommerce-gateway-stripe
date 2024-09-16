@@ -109,3 +109,85 @@ const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 
 	return data;
 };
+
+/**
+ * Update shipping options for express checkout.
+ *
+ * @param {Object} address Shipping address.
+ * @param {string} expressCheckoutType google_pay/apple_pay.
+ */
+export const updateECEShippingOptions = ( address, expressCheckoutType ) => {
+	const data = {
+		security: getBlocksConfiguration()?.nonce?.shipping,
+		express_checkout_type: expressCheckoutType,
+		is_product_page: getBlocksConfiguration()?.is_product_page,
+		...normalizeAddress( address ),
+	};
+
+	return $.ajax( {
+		type: 'POST',
+		data,
+		url: getAjaxUrl( 'get_shipping_options' ),
+	} );
+};
+
+/**
+ * Updates cart with selected shipping option.
+ *
+ * @param {Object} shippingOption Shipping option.
+ * @return {Promise} Promise for the request to the server.
+ */
+export const updateECEShippingDetails = ( shippingOption ) => {
+	const data = {
+		security: getBlocksConfiguration()?.nonce?.update_shipping,
+		shipping_method: [ shippingOption.id ],
+		is_product_page: getBlocksConfiguration()?.is_product_page,
+	};
+
+	return $.ajax( {
+		type: 'POST',
+		data,
+		url: getAjaxUrl( 'update_shipping_method' ),
+	} );
+};
+
+/**
+ * Creates order based on Express Checkout ECE payment method.
+ *
+ * @param {Object} paymentData Order data.
+ * @return {Promise} Promise for the request to the server.
+ */
+export const expressCheckoutCreateOrder = ( paymentData ) => {
+	const data = {
+		...getRequiredFieldDataFromCheckoutForm( paymentData ),
+		_wpnonce: getBlocksConfiguration()?.nonce?.checkout,
+		'wc-stripe-is-deferred-intent': true,
+	};
+
+	return $.ajax( {
+		type: 'POST',
+		data,
+		url: getAjaxUrl( 'create_order' ),
+	} );
+};
+
+/**
+ * Pays for an order based on the Express Checkout payment method.
+ *
+ * @param {string} order The order ID.
+ * @param {Object} paymentData Order data.
+ * @return {Promise} Promise for the request to the server.
+ */
+export const expressCheckoutPayForOrder = ( order, paymentData ) => {
+	const data = {
+		order,
+		...paymentData,
+		_wpnonce: getBlocksConfiguration()?.nonce?.pay_for_order,
+	};
+
+	return $.ajax( {
+		type: 'POST',
+		data,
+		url: getAjaxUrl( 'pay_for_order' ),
+	} );
+};
