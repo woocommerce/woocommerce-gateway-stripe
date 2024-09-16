@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
-import { Card, Button } from '@wordpress/components';
+import { Card, Button, ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
+import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
@@ -171,15 +172,22 @@ const PromotionalBannerSection = ( {
 					</NewPill>
 					<h4>
 						{ __(
-							'Boost sales and checkout conversion',
+							'Enable new Stripe checkout to continue accepting non-card payments',
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
 					<p>
-						{ __(
-							'Disable the legacy checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm, Link and many others APMs, a one-click checkout.',
-							'woocommerce-gateway-stripe'
-						) }
+						{ interpolateComponents( {
+							mixedString: __(
+								'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								StripeLegacyLink: (
+									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />
+								),
+							},
+						} ) }
 					</p>
 				</CardColumn>
 				<CardColumn>
@@ -199,7 +207,7 @@ const PromotionalBannerSection = ( {
 					onClick={ handleButtonClick }
 				>
 					{ __(
-						'Disable the legacy checkout',
+						'Enable the new checkout',
 						'woocommerce-gateway-stripe'
 					) }
 				</MainCTALink>
