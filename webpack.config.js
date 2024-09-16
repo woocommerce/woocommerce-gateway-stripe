@@ -63,5 +63,6 @@ module.exports = {
 		upe_blocks: './client/blocks/upe/index.js',
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
+		express_checkout: './client/entrypoints/express-checkout/index.js',
 	},
 };
