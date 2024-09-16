@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.6.1
+Stable tag: 8.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.7.0 - xxxx-xx-xx =
+= 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
 * Fix - Prevent duplicate failed-order emails from being sent.
 * Fix - Support custom name and description for Afterpay.
