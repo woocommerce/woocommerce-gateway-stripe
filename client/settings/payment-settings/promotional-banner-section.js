@@ -172,7 +172,7 @@ const PromotionalBannerSection = ( {
 					</NewPill>
 					<h4>
 						{ __(
-							'Enable new Stripe checkout to continue accepting non-card payments',
+							'Enable the new Stripe checkout to continue accepting non-card payments',
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
