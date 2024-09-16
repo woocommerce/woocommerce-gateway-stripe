@@ -238,7 +238,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		return $search_response->data[0];
+		return $search_response->data[0] ?? [];
 	}
 
 	/**
@@ -567,7 +567,7 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], "payment_methods/$payment_method_id/detach", 'POST' );
+		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
 
 		$this->clear_cache();
 

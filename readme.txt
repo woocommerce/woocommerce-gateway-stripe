@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.6.1
+Stable tag: 8.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,34 +128,39 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.6.1 - 2024-08-09 =
-* Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
-* Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.
-* Add - Added filter to enable updating Level 3 data based on order data.
-* Add - Replace account key sharing and replace it with an OAuth connect flow allowing users to connect their Stripe account automatically without the need to find keys.
-* Add - Indicate the activation status of each payment method individually, instead of using a general notice.
-* Fix - JS error when billing country field does not exist on the payment method page.
-* Fix - Prevent multiple instances of the "Update the Payment Method" checkbox from displaying on the My Account > Payment Methods page when using the legacy checkout experience.
-* Fix - Prevent duplicate customer creation during guest checkout.
-* Fix - Hiding Multibanco payment method when the Stripe account country is not supported.
-* Fix - Display the payment decline reason on the checkout when using Cash App or WeChat.
-* Fix - Re-enable the "Place order" button on the block checkout after closing the WeChat or Cash App payment modal.
-* Fix - When SEPA tokens are added via the My Account > Payment methods page, ensure they are attached to the Stripe customer.
-* Fix - Clear the saved Stripe Link payment methods when a customer cache is cleared to ensure cached methods are updated promptly.
-* Fix - Display Stripe Link payment methods correctly in both Block Checkout and My Account pages.
-* Fix - Resolve an error when adding a saved card payment method in My Account when Stripe Link is enabled.
-* Fix - Resolved an error when using 3D Secure-enabled cards with Stripe Link enabled.
-* Fix - Corrected setup intent payment method types to include 'link' when Stripe Link is enabled, resolving errors during subscription signups.
-* Fix - Resolved an issue where changing the payment method for subscriptions failed after 3D-Secure authentication.
-* Fix - Prevent displaying the default admin description on the checkout page when a payment method description is empty.
-* Fix - Adds back the ability to perform direct refunds for giropay orders via the order details page.
-* Fix - After configuring webhooks automatically ensure only the latest webhook endpoint is active, deleting duplicates configured manually.
-* Fix - Resolved PHP errors related to detaching payment methods after failed 3D-Secure challenges.
-* Tweak - Minor text updates to webhook-related configuration labels and buttons.
-* Tweak - Improve UX by using the 3DS verification modal to confirm setup intents for subscription sign-ups, ensuring customers stay on the checkout page.
-* Tweak - Display a notice when the Stripe connect URL is not available.
-* Fix - Prevent adding multiple copies of the same order notes.
-* Tweak - Automatically configure webhooks after completing the OAuth Stripe flow.
-* Tweak - Don't process webhooks when the webhook secret isn't set in the store.
+= 8.7.0 - 2024-09-16 =
+* Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
+* Fix - Prevent duplicate failed-order emails from being sent.
+* Fix - Support custom name and description for Afterpay.
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
+* Fix - Add back support for Stripe Link autofill for shortcode checkout.
+* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
+* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
+* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
+* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
+* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
+* Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
+* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
+* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
+* Fix - Fix error in saving settings when express payment methods are disabled.
+* Fix - Catch error when getting intent from order.
+* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
+* Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
+* Update - Specify the JS Stripe API version as 2024-06-20.
+* Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
+* Fix - Address Klarna availability based on correct presentment currency rules.
+* Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
+* Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
+* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
+* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
+* Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
+* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

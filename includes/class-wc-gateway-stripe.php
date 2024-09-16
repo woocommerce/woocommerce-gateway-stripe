@@ -69,6 +69,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
+	 * Order pay intent
+	 */
+	private $order_pay_intent;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -117,7 +122,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'reorder_available_payment_gateways' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -246,7 +250,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$description = trim( $description );
 
-		echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id ); // wpcs: xss ok.
+		echo wp_kses_post( apply_filters( 'wc_stripe_description', wpautop( $description ), $this->id ) );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
@@ -561,7 +565,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -598,7 +602,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</td>
 		</tr>
 
@@ -663,43 +667,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_pay_order_after_submit', [ $this, 'render_payment_intent_inputs' ] );
 
 		return [];
-	}
-
-	/**
-	 * Reorders the list of available payment gateways to include the Stripe methods in the order merchants have chosen in the settings.
-	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
-	 */
-	public function reorder_available_payment_gateways( $gateways ) {
-		if ( ! is_array( $gateways ) ) {
-			return $gateways;
-		}
-
-		$ordered_available_stripe_methods = [];
-
-		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.
-		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
-
-		// Generate a list of all available Stripe payment methods in the order they should be displayed.
-		foreach ( WC_Stripe_Helper::get_legacy_available_payment_method_ids() as $payment_method ) {
-			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
-
-			if ( isset( $gateways[ $gateway_id ] ) ) {
-				$ordered_available_stripe_methods[ $gateway_id ] = $gateways[ $gateway_id ];
-				unset( $gateways[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
-			}
-		}
-
-		// Add the ordered list of available Stripe payment methods back into the list of available gateways.
-		if ( $stripe_index ) {
-			$gateways = array_slice( $gateways, 0, $stripe_index, true ) + $ordered_available_stripe_methods + array_slice( $gateways, $stripe_index, null, true );
-		} else {
-			// In cases where Stripe is not found in the list of available gateways but there were other legacy methods available, add the Stripe methods to the front of the list.
-			$gateways = array_merge( $ordered_available_stripe_methods, $gateways );
-		}
-
-		return $gateways;
 	}
 
 	/**
@@ -1154,11 +1121,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function update_onboarding_settings( $settings ) {
-		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) {
+		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			return;
 		}
 
-		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries ); // phpcs:ignore sanitization ok.
+		parse_str( wp_parse_url( wp_unslash( $_SERVER['HTTP_REFERER'] ), PHP_URL_QUERY ), $queries ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		// Determine if merchant is onboarding (page='wc-admin' and task='payments').
 		if (

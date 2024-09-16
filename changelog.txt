@@ -1,5 +1,40 @@
 *** Changelog ***
 
+= 8.7.0 - 2024-09-16 =
+* Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
+* Fix - Prevent duplicate failed-order emails from being sent.
+* Fix - Support custom name and description for Afterpay.
+* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
+* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
+* Fix - Add back support for Stripe Link autofill for shortcode checkout.
+* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
+* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
+* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
+* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
+* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
+* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
+* Add - Log incoming webhook events and their request body.
+* Add - Show UPE payment methods in saved order on block checkout page.
+* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
+* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
+* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
+* Fix - Fix error in saving settings when express payment methods are disabled.
+* Fix - Catch error when getting intent from order.
+* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
+* Tweak - Update capabilities to payment methods mapping.
+* Fix - Address QIT Security test errors.
+* Fix - Address QIT PHPStan test errors.
+* Update - Specify the JS Stripe API version as 2024-06-20.
+* Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
+* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
+* Fix - Address Klarna availability based on correct presentment currency rules.
+* Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
+* Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
+* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
+* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
+* Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
+* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
+
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
 * Add - Includes a new promotional surface to encourage merchants to re-connect their Stripe account using the new flow.

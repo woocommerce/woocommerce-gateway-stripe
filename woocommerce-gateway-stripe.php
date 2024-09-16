@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 8.6.1
+ * Version: 8.7.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.4
  * Tested up to: 6.6
  * WC requires at least: 8.9
- * WC tested up to: 9.1
+ * WC tested up to: 9.3
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '8.6.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.7.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -86,6 +86,8 @@ function woocommerce_gateway_stripe() {
 
 			/**
 			 * The option name for the Stripe gateway settings.
+			 *
+			 * @deprecated 8.7.0
 			 */
 			const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
@@ -339,6 +341,10 @@ function woocommerce_gateway_stripe() {
 					// Check for subscriptions using legacy SEPA tokens on upgrade.
 					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
 					delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+
+					// TODO: Remove this call when all the merchants have moved to the new checkout experience.
+					// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
+					WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 				}
 			}
 
@@ -353,7 +359,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.5.0
 			 */
 			public function update_prb_location_settings() {
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
 					? $stripe_settings['payment_request_button_locations']
 					: [];
@@ -379,7 +385,7 @@ function woocommerce_gateway_stripe() {
 					}
 
 					$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				}
 			}
 

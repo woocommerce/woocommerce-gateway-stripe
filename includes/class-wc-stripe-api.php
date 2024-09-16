@@ -50,7 +50,7 @@ class WC_Stripe_API {
 	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
 	 */
 	public static function set_secret_key_for_mode( $mode = null ) {
-		$options         = get_option( 'woocommerce_stripe_settings' );
+		$options         = WC_Stripe_Helper::get_stripe_settings();
 		$secret_key      = $options['secret_key'] ?? '';
 		$test_secret_key = $options['test_secret_key'] ?? '';
 
@@ -389,7 +389,7 @@ class WC_Stripe_API {
 	 * @return bool True if the payment should be detached, false otherwise.
 	 */
 	public static function should_detach_payment_method_from_customer() {
-		$options   = get_option( 'woocommerce_stripe_settings' );
+		$options   = WC_Stripe_Helper::get_stripe_settings();
 		$test_mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
 
 		// If we are in test mode, we can always detach the payment method.

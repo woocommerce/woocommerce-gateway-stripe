@@ -312,6 +312,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
 		}
 
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $ordered_payment_method_ids );
+
 		return new WP_REST_Response( [], 200 );
 	}
 
@@ -452,9 +454,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$settings = get_option( 'woocommerce_stripe_settings', [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// If the new UPE is enabled, we need to remove the flag to ensure legacy SEPA tokens are updated flag.
+		if ( $is_upe_enabled && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
+		}
+
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
-		update_option( 'woocommerce_stripe_settings', $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
@@ -464,6 +472,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
 			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 	}
 
 	/**

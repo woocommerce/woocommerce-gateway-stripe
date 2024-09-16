@@ -178,7 +178,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings              = get_option( 'woocommerce_stripe_settings' );
+		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                = $this->payment_methods['card']->get_title();
 		$this->description          = $this->payment_methods['card']->get_description();
 		$this->enabled              = $this->get_option( 'enabled' );
@@ -218,9 +218,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
-
-		// Reorder the available payment gateways on the checkout page.
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'reorder_available_payment_gateways' ] );
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
 	}
@@ -378,6 +375,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
 			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
 		$enabled_billing_fields = [];
@@ -548,43 +546,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $available_payment_methods;
-	}
-
-	/**
-	 * Reorders the list of available payment gateways to include the Stripe methods in the order merchants have chosen in the settings.
-	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[] The same list of gateways, but with the Stripe methods in the right order.
-	 */
-	public function reorder_available_payment_gateways( $gateways ) {
-		if ( ! is_array( $gateways ) ) {
-			return $gateways;
-		}
-
-		$ordered_available_stripe_methods = [];
-
-		// Keep a record of where Stripe was found in the $gateways array so we can insert the Stripe methods in the right place.
-		$stripe_index = array_search( 'stripe', array_keys( $gateways ), true );
-
-		// Generate a list of all available Stripe payment methods in the order they should be displayed.
-		foreach ( WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this ) as $payment_method ) {
-			$gateway_id = 'card' === $payment_method ? 'stripe' : 'stripe_' . $payment_method;
-
-			if ( isset( $gateways[ $gateway_id ] ) ) {
-				$ordered_available_stripe_methods[ $gateway_id ] = $gateways[ $gateway_id ];
-				unset( $gateways[ $gateway_id ] ); // Remove it from the list of available gateways. We'll add all Stripe methods back in the right order.
-			}
-		}
-
-		// Add the ordered list of available Stripe payment methods back into the list of available gateways.
-		if ( $stripe_index ) {
-			$gateways = array_slice( $gateways, 0, $stripe_index, true ) + $ordered_available_stripe_methods + array_slice( $gateways, $stripe_index, null, true );
-		} else {
-			// In cases where Stripe is not found in the list of available gateways but there were other legacy methods available, add the Stripe methods to the front of the list.
-			$gateways = array_merge( $ordered_available_stripe_methods, $gateways );
-		}
-
-		return $gateways;
 	}
 
 	/**
@@ -834,11 +795,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->update_saved_payment_method( $payment_method_id, $order );
 			}
 
+			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
+			$this->lock_order_payment( $order );
+
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				$this->lock_order_payment( $order );
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
@@ -1769,7 +1732,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'customer_name'  => $name,
 			'customer_email' => $email,
 			'site_url'       => esc_url( get_site_url() ),
-			'order_id'       => $order->get_id(),
+			'order_id'       => $order->get_order_number(),
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
 		];

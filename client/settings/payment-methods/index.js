@@ -6,7 +6,6 @@ import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
-import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -57,8 +56,8 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 	const oauthConnected = isTestModeEnabled
-		? data?.oauth_connections?.test
-		: data?.oauth_connections?.live;
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
 
 	return (
 		<>
@@ -79,7 +78,6 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
 				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
-				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>

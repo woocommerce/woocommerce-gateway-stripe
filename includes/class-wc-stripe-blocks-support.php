@@ -1,7 +1,7 @@
 <?php
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
-use Automattic\WooCommerce\Blocks\Payments\PaymentResult;
-use Automattic\WooCommerce\Blocks\Payments\PaymentContext;
+use Automattic\WooCommerce\StoreApi\Payments\PaymentResult;
+use Automattic\WooCommerce\StoreApi\Payments\PaymentContext;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -42,7 +42,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * Initializes the payment method type.
 	 */
 	public function initialize() {
-		$this->settings = get_option( 'woocommerce_stripe_settings', [] );
+		$this->settings = WC_Stripe_Helper::get_stripe_settings();
 	}
 
 	/**
@@ -412,7 +412,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
 					'redirect_to' => rawurlencode( $result->redirect_url ),
 				],
-				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
+				home_url() . \WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
 			);
 
 			if ( ! empty( $payment_details['save_payment_method'] ) ) {

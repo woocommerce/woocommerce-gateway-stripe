@@ -10,6 +10,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 	 */
 	class WC_Stripe_Connect {
 
+		/**
+		 * The option name for the Stripe gateway settings.
+		 *
+		 * @deprecated 8.7.0
+		 */
 		const SETTINGS_OPTION = 'woocommerce_stripe_settings';
 
 		/**
@@ -150,7 +155,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
-			$options                                    = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
+			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
+			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
 			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
@@ -167,7 +173,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			unset( $options['account_id'] );
 			unset( $options['test_account_id'] );
 
-			update_option( self::SETTINGS_OPTION, $options );
+			WC_Stripe_Helper::update_main_stripe_settings( $options );
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
@@ -198,7 +204,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
 		 */
 		private function get_upe_checkout_experience_enabled() {
-			$existing_stripe_settings = get_option( self::SETTINGS_OPTION, [] );
+			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
 				return $existing_stripe_settings['upe_checkout_experience_enabled'];
@@ -233,7 +239,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected, false otherwise.
 		 */
 		public function is_connected( $mode = null ) {
-			$options = get_option( self::SETTINGS_OPTION, [] );
+			$options = WC_Stripe_Helper::get_stripe_settings();
 
 			// If the mode is not provided, we'll check the current mode.
 			if ( is_null( $mode ) ) {
@@ -258,10 +264,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return false;
 			}
 
-			$options = get_option( self::SETTINGS_OPTION, [] );
-			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
-
-			return isset( $options[ $key ] ) && in_array( $options[ $key ], [ 'connect', 'app' ], true );
+			return in_array( $this->get_connection_type( $mode ), [ 'connect', 'app' ], true );
 		}
 
 		/**
@@ -273,15 +276,27 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected via Stripe App OAuth, false otherwise.
 		 */
 		public function is_connected_via_app_oauth( $mode = null ) {
-			$options = get_option( self::SETTINGS_OPTION, [] );
+			$options = WC_Stripe_Helper::get_stripe_settings();
 
 			// If the mode is not provided, we'll check the current mode.
 			if ( is_null( $mode ) ) {
 				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
 			}
-			$key = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
-			return isset( $options[ $key ] ) && 'app' === $options[ $key ];
+			return 'app' === $this->get_connection_type( $mode );
+		}
+
+		/**
+		 * Fetches the connection type for the account.
+		 *
+		 * @param string $mode The account mode. 'live' or 'test'.
+		 * @return string The connection type. 'connect', 'app', or ''.
+		 */
+		public function get_connection_type( $mode ) {
+			$options = WC_Stripe_Helper::get_stripe_settings();
+			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
+
+			return isset( $options[ $key ] ) ? $options[ $key ] : '';
 		}
 
 		/**
@@ -294,7 +309,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$options    = get_option( self::SETTINGS_OPTION, [] );
+			$options    = WC_Stripe_Helper::get_stripe_settings();
 			$is_test    = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
 			$event_name = ! $had_error ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
@@ -350,7 +365,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$options       = get_option( self::SETTINGS_OPTION, [] );
+			$options       = WC_Stripe_Helper::get_stripe_settings();
 			$mode          = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
 			$prefix        = 'test' === $mode ? 'test_' : '';
 			$refresh_token = $options[ $prefix . 'refresh_token' ];

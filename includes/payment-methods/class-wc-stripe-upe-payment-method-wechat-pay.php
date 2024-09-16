@@ -18,7 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
-		$this->supported_countries  = [ 'AT', 'AU', 'BE', 'CA', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'HK', 'IE', 'IT', 'JP', 'LU', 'NL', 'NO', 'PT', 'SE', 'SG', 'UK', 'US' ];
+		$this->supported_countries  = [ 'AT', 'AU', 'BE', 'CA', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'HK', 'IE', 'IT', 'JP', 'LU', 'NL', 'NO', 'PT', 'SE', 'SG', 'GB', 'US' ];
 		$this->supported_currencies = [
 			'AUD',
 			'CAD',
@@ -81,7 +81,7 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 			case 'SG':
 				$currency = [ 'SGD', 'CNY' ];
 				break;
-			case 'UK':
+			case 'GB':
 				$currency = [ 'GBP', 'CNY' ];
 				break;
 			case 'US':

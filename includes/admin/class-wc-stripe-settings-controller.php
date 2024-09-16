@@ -40,6 +40,24 @@ class WC_Stripe_Settings_Controller {
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+	}
+
+	/**
+	 * Sets the Stripe gateways in the 'woocommerce_gateway_order' option which contains the list of all the gateways.
+	 * This function is called when the 'woocommerce_gateway_order' option is updated.
+	 * Adding the Stripe gateway to the option is needed to display them in the checkout page.
+	 *
+	 * @param array $ordering The current ordering of the gateways.
+	 */
+	public function set_stripe_gateways_in_list( $ordering ) {
+		// Prevent unnecessary recursion, 'add_stripe_methods_in_woocommerce_gateway_order' saves the same option that triggers this callback.
+		remove_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 	}
 
 	/**
@@ -50,13 +68,17 @@ class WC_Stripe_Settings_Controller {
 	* @param WC_Order $order The order that is being viewed.
 	*/
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
-		$intent = $this->gateway->get_intent_from_order( $order );
+		try {
+			$intent = $this->gateway->get_intent_from_order( $order );
 
-		if ( $intent && 'requires_capture' === $intent->status ) {
-			$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
-			$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
-			echo '<style>.button.refund-items { display: none; }</style>';
-			echo '<span class="button button-disabled">' . $no_refunds_button . wc_help_tip( $no_refunds_tooltip ) . '</span>';
+			if ( $intent && 'requires_capture' === $intent->status ) {
+				$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
+				$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
+				echo '<style>.button.refund-items { display: none; }</style>';
+				echo '<span class="button button-disabled">' . esc_html( $no_refunds_button ) . wc_help_tip( $no_refunds_tooltip ) . '</span>';
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
 		}
 	}
 
@@ -74,7 +96,7 @@ class WC_Stripe_Settings_Controller {
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
-		$settings = get_option( WC_Stripe_Connect::SETTINGS_OPTION, [] );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
 		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';

@@ -53,7 +53,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_new_settings' ], 10, 2 );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_updated_settings' ], 10, 2 );
 
-		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', [] );
+		$this->stripe_settings         = WC_Stripe_Helper::get_stripe_settings();
 		$this->domain_name             = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_verify_notice = '';
@@ -286,7 +286,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			$this->stripe_settings['apple_pay_domain_set']      = 'yes';
 			$this->apple_pay_domain_set                         = true;
 
-			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
+			WC_Stripe_Helper::update_main_stripe_settings( $this->stripe_settings );
 
 			WC_Stripe_Logger::log( 'Your domain has been verified with Apple Pay!' );
 
@@ -297,7 +297,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			$this->stripe_settings['apple_pay_domain_set']      = 'no';
 			$this->apple_pay_domain_set                         = false;
 
-			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
+			WC_Stripe_Helper::update_main_stripe_settings( $this->stripe_settings );
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 

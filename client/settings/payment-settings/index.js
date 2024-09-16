@@ -5,7 +5,6 @@ import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
-import CustomizationOptionsNotice from '../customization-options-notice';
 import AccountDetailsSection from './account-details-section';
 import GeneralSettingsSection from './general-settings-section';
 import { AccountKeysModal } from './account-keys-modal';
@@ -132,7 +131,6 @@ const PaymentSettingsPanel = () => {
 						/>
 					</LoadableAccountSection>
 				</LoadableSettingsSection>
-				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
 				<LoadableAccountSection
