@@ -114,6 +114,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Gets the button radius.
+	 *
+	 * @return string
+	 */
+	public function get_button_radius() {
+		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
+		if ( 'small' === $height ) {
+			return '2';
+		}
+
+		if ( 'large' === $height ) {
+			return '6';
+		}
+
+		return '4';
+	}
+
+	/**
 	 * Gets total label.
 	 *
 	 * @return string
@@ -970,6 +988,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			'type'         => $button_type,
 			'theme'        => $this->get_button_theme(),
 			'height'       => $this->get_button_height(),
+			'radius'       => $this->get_button_radius(),
 			// Default format is en_US.
 			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
