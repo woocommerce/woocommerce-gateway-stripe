@@ -69,10 +69,10 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		shipping_postcode: shipping?.address?.postal_code ?? '',
 		shipping_method: [ event?.shippingRate?.id ?? null ],
 		order_comments: '',
-		payment_method: 'woocommerce_payments',
+		payment_method: 'stripe',
 		ship_to_different_address: 1,
 		terms: 1,
-		'w-stripe-payment-method': paymentMethodId,
+		'wc-stripe-payment-method': paymentMethodId,
 		payment_request_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-fraud-prevention-token': fraudPreventionTokenValue,
@@ -89,10 +89,11 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
  */
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
 	return {
-		payment_method: 'woocommerce_payments',
+		payment_method: 'stripe',
 		'wc-stripe-payment-method': paymentMethodId,
 		express_payment_type: event?.expressPaymentType,
-		'wc-stripe-fraud-prevention-token': window.wcStripeFraudPreventionToken ?? '',
+		'wc-stripe-fraud-prevention-token':
+			window.wcStripeFraudPreventionToken ?? '',
 	};
 };
 
