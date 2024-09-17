@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { debounce } from 'lodash';
-import { recordUserEvent } from 'tracks';
+import { recordEvent } from 'wcstripe/tracking';
 
 // Track the button click event.
 export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
@@ -14,7 +14,7 @@ export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
 	const event = expressPaymentTypeEvents[ paymentMethod ];
 	if ( ! event ) return;
 
-	recordUserEvent( event, { source } );
+	recordEvent( event, { source } );
 };
 
 // Track the button load event.
@@ -29,7 +29,7 @@ export const trackExpressCheckoutButtonLoad = debounce(
 			const event = expressPaymentTypeEvents[ paymentMethod ];
 			if ( ! event ) continue;
 
-			recordUserEvent( event, { source } );
+			recordEvent( event, { source } );
 		}
 	},
 	1000
