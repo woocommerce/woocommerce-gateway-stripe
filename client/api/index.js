@@ -476,14 +476,11 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
-		return this.request(
-			this.getAjaxUrl( 'get_shipping_options' ),
-			{
-				security: this.options?.nonce?.shipping,
-				is_product_page: this.options?.is_product_page,
-				...shippingAddress,
-			}
-		);
+		return this.request( this.getAjaxUrl( 'get_shipping_options' ), {
+			security: this.options?.nonce?.shipping,
+			is_product_page: this.options?.is_product_page,
+			...shippingAddress,
+		} );
 	}
 
 	/**
@@ -493,14 +490,11 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutUpdateShippingDetails( shippingOption ) {
-		return this.request(
-			this.getAjaxUrl( 'update_shipping_method' ),
-			{
-				security: this.options?.nonce?.update_shipping,
-				shipping_method: [ shippingOption.id ],
-				is_product_page: this.options?.is_product_page,
-			}
-		);
+		return this.request( this.getAjaxUrl( 'update_shipping_method' ), {
+			security: this.options?.nonce?.update_shipping,
+			shipping_method: [ shippingOption.id ],
+			is_product_page: this.options?.is_product_page,
+		} );
 	}
 
 	/**
@@ -510,13 +504,10 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		return this.request(
-			this.getAjaxUrl( 'create_order' ),
-			{
-				_wpnonce: this.options?.nonce?.checkout,
-				...paymentData,
-			}
-		);
+		return this.request( this.getAjaxUrl( 'create_order' ), {
+			_wpnonce: this.options?.nonce?.checkout,
+			...paymentData,
+		} );
 	}
 
 	/**
@@ -527,12 +518,10 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
-		return this.request(
-			this.getAjaxUrl( 'pay_for_order' ),
-			{
-				_wpnonce: this.options?.nonce?.pay_for_order,
-				order,
-				...paymentData,
-			} );
+		return this.request( this.getAjaxUrl( 'pay_for_order' ), {
+			_wpnonce: this.options?.nonce?.pay_for_order,
+			order,
+			...paymentData,
+		} );
 	}
 }
