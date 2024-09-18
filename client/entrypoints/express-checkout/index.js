@@ -75,6 +75,12 @@ jQuery( function ( $ ) {
 			}
 		},
 
+		productHasDepositOption() {
+			return !! $( 'form' ).has(
+				'input[name=wc_deposit_option],input[name=wc_deposit_payment_plan]'
+			).length;
+		},
+
 		/**
 		 * Starts the Express Checkout Element
 		 *
@@ -416,6 +422,36 @@ jQuery( function ( $ ) {
 							} );
 					}, 250 )
 				);
+		},
+
+		reInitExpressCheckoutElement: ( response ) => {
+			getExpressCheckoutData( 'product' ).needs_shipping =
+				response.needs_shipping;
+			getExpressCheckoutData( 'product' ).total = response.total;
+			getExpressCheckoutData( 'product' ).displayItems =
+				response.displayItems;
+			wcStripeECE.init();
+		},
+
+		blockExpressCheckoutButton: () => {
+			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
+			// blockUI.isBlocked is either undefined or 0 when element is not blocked
+			if (
+				$( '#wc-stripe-express-checkout-element' ).data(
+					'blockUI.isBlocked'
+				)
+			) {
+				return;
+			}
+
+			$( '#wc-stripe-express-checkout-element' ).block( {
+				message: null,
+			} );
+		},
+
+		unblockExpressCheckoutButton: () => {
+			wcStripeECE.show();
+			$( '#wc-stripe-express-checkout-element' ).unblock();
 		},
 	};
 
