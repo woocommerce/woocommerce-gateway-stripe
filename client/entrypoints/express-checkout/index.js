@@ -54,6 +54,8 @@ jQuery( function ( $ ) {
 
 		show: () => wcStripeECE.getElements().show(),
 
+		hide: () => wcStripeECE.getElements().hide(),
+
 		showButton: ( eceButton ) => {
 			if ( $( '#wc-stripe-express-checkout-button' ).length ) {
 				wcStripeECE.show();
