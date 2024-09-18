@@ -370,17 +370,12 @@ jQuery( function ( $ ) {
 			} );
 		}
 	);
-	const elements = api.getStripe().elements( {
+
+	wcStripeECE.startExpressCheckoutElement( {
 		mode: 'payment',
-		amount: 1099,
+		total: 1223,
 		currency: 'usd',
 		appearance: getExpressCheckoutButtonAppearance(),
+		displayItems: [ { label: 'Shipping', amount: 100 } ],
 	} );
-
-	const eceButton = wcStripeECE.createButton(
-		elements,
-		getExpressCheckoutButtonStyleSettings()
-	);
-
-	wcStripeECE.showButton( eceButton );
 } );
