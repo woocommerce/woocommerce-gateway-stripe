@@ -268,6 +268,11 @@ jQuery( function ( $ ) {
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {
+				let requestPhone = false;
+				if ( getExpressCheckoutData( 'checkout' ).needs_payer_phone ) {
+					requestPhone = getExpressCheckoutData( 'checkout' )
+						.needs_payer_phone;
+				}
 				// Cart and Checkout page specific initialization.
 				// TODO: Use real cart data.
 				wcStripeECE.startExpressCheckoutElement( {
@@ -275,6 +280,7 @@ jQuery( function ( $ ) {
 					total: 1223,
 					currency: 'usd',
 					appearance: getExpressCheckoutButtonAppearance(),
+					requestPhone,
 					displayItems: [ { label: 'Shipping', amount: 100 } ],
 				} );
 			}
