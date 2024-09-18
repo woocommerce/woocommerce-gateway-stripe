@@ -57,18 +57,20 @@ jQuery( function ( $ ) {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
 
-		getElements: () =>
-			$(
-				'.wc-stripe-payment-request-wrapper,#wc-stripe-express-checkout-button-separator'
-			),
+		getElements: () => $( '#wc-stripe-express-checkout-element' ),
+
+		getButtonSeparator: () =>
+			$( '#wc-stripe-express-checkout-button-separator' ),
 
 		show: () => wcStripeECE.getElements().show(),
 
-		hide: () => wcStripeECE.getElements().hide(),
+		hide: () => {
+			wcStripeECE.getElements().hide();
+			wcStripeECE.getButtonSeparator().hide();
+		},
 
 		showButton: ( eceButton ) => {
 			if ( $( '#wc-stripe-express-checkout-button' ).length ) {
-				wcStripeECE.show();
 				eceButton.mount( '#wc-stripe-express-checkout-button' );
 			}
 		},
@@ -135,7 +137,17 @@ jQuery( function ( $ ) {
 				getExpressCheckoutButtonStyleSettings()
 			);
 
-			wcStripeECE.showButton( eceButton );
+			wcStripeECE.renderButton( eceButton );
+
+			eceButton.on( 'loaderror', () => {
+				wcStripeECEError = __(
+					'The cart is incompatible with express checkout.',
+					'woocommerce-payments'
+				);
+				if ( ! document.getElementById( 'wc-stripe-woopay-button' ) ) {
+					wcStripeECE.getButtonSeparator().hide();
+				}
+			} );
 
 			eceButton.on( 'click', function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -221,7 +233,19 @@ jQuery( function ( $ ) {
 				onCancelHandler();
 			} );
 
-			eceButton.on( 'ready', onReadyHandler );
+			eceButton.on( 'ready', ( onReadyParams ) => {
+				onReadyHandler( onReadyParams );
+
+				if (
+					onReadyParams.availablePaymentMethods &&
+					Object.values(
+						onReadyParams.availablePaymentMethods
+					).filter( Boolean ).length
+				) {
+					wcStripeECE.show();
+					wcStripeECE.getButtonSeparator().show();
+				}
+			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.attachProductPageEventListeners( elements );
