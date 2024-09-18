@@ -1,4 +1,4 @@
-/*global wc_add_to_cart_variation_params */
+/*global wc_add_to_cart_variation_params, wc_stripe_express_checkout_pay_for_order_params */
 
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
@@ -233,7 +233,20 @@ jQuery( function ( $ ) {
 		 */
 		init: () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
-				// Pay for order page specific initialization.
+				const {
+					total: { amount: total },
+					displayItems,
+					// eslint-disable-next-line camelcase
+				} = wc_stripe_express_checkout_pay_for_order_params;
+
+				wcStripeECE.startExpressCheckoutElement( {
+					mode: 'payment',
+					total,
+					currency: getExpressCheckoutData( 'checkout' )
+						.currency_code,
+					appearance: getExpressCheckoutButtonAppearance(),
+					displayItems,
+				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {
