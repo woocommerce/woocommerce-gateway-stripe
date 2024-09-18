@@ -1037,7 +1037,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Builds the line items to pass to express checkout elements.
 	 */
-	protected function build_display_items( $itemized_display_items = false ) {
+	public function build_display_items( $itemized_display_items = false ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
