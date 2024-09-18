@@ -42,7 +42,7 @@ export const shippingAddressChangeHandler = async ( api, event, elements ) => {
 
 export const shippingRateChangeHandler = async ( api, event, elements ) => {
 	try {
-		const response = await api.paymentRequestUpdateShippingDetails(
+		const response = await api.expressCheckoutUpdateShippingDetails(
 			event.shippingRate
 		);
 
