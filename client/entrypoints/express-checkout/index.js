@@ -69,7 +69,7 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		showButton: ( eceButton ) => {
+		renderButton: ( eceButton ) => {
 			if ( $( '#wc-stripe-express-checkout-button' ).length ) {
 				eceButton.mount( '#wc-stripe-express-checkout-button' );
 			}
