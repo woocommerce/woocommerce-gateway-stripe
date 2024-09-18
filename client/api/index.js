@@ -1,6 +1,10 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import {
+	getExpressCheckoutData,
+	getExpressCheckoutAjaxURL,
+} from 'entrypoints/express-checkout/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -476,11 +480,14 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
-		return this.request( this.getAjaxUrl( 'get_shipping_options' ), {
-			security: this.options?.nonce?.shipping,
-			is_product_page: this.options?.is_product_page,
-			...shippingAddress,
-		} );
+		return this.request(
+			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )?.shipping,
+				is_product_page: getExpressCheckoutData( 'is_product_page' ),
+				...shippingAddress,
+			}
+		);
 	}
 
 	/**
@@ -490,11 +497,14 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutUpdateShippingDetails( shippingOption ) {
-		return this.request( this.getAjaxUrl( 'update_shipping_method' ), {
-			security: this.options?.nonce?.update_shipping,
-			shipping_method: [ shippingOption.id ],
-			is_product_page: this.options?.is_product_page,
-		} );
+		return this.request(
+			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )?.update_shipping,
+				shipping_method: [ shippingOption.id ],
+				is_product_page: getExpressCheckoutData( 'is_product_page' ),
+			}
+		);
 	}
 
 	/**
@@ -504,8 +514,8 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		return this.request( this.getAjaxUrl( 'create_order' ), {
-			_wpnonce: this.options?.nonce?.checkout,
+		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
 			...paymentData,
 		} );
 	}
@@ -518,8 +528,8 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
-		return this.request( this.getAjaxUrl( 'pay_for_order' ), {
-			_wpnonce: this.options?.nonce?.pay_for_order,
+		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
 			order,
 			...paymentData,
 		} );
