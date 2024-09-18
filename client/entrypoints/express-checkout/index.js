@@ -237,7 +237,7 @@ jQuery( function ( $ ) {
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {
-				// If this is the cart or checkout page, we need to request the
+				// Cart and Checkout page specific initialization.
 				// TODO: Use real cart data.
 				wcStripeECE.startExpressCheckoutElement( {
 					mode: 'payment',
