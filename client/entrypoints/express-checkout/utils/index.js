@@ -35,6 +35,22 @@ export const getExpressCheckoutData = ( key ) => {
 };
 
 /**
+ * Construct Express Checkout AJAX endpoint URL.
+ *
+ * @param {string} endpoint Request endpoint URL.
+ * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+ * @return {string} URL with interpolated endpoint.
+ */
+export const getExpressCheckoutAjaxURL = (
+	endpoint,
+	prefix = 'wc_stripe_'
+) => {
+	return getExpressCheckoutData( 'ajax_url' )
+		?.toString()
+		?.replace( '%%endpoint%%', prefix + endpoint );
+};
+
+/**
  * Displays a `confirm` dialog which leads to a redirect.
  *
  * @param {string} expressPaymentType Can be either 'apple_pay', 'google_pay', 'amazon_pay', 'paypal' or 'link'.
