@@ -113,15 +113,16 @@ export const onConfirmHandler = async (
 			completePayment( redirectUrl );
 		}
 	} catch ( e ) {
-		return abortPayment(
-			event,
-			e.message
-				? e.message
-				: __(
-						'There was a problem processing the order.',
-						'woocommerce-payments'
-				  )
-		);
+		let errorMessage;
+		if ( e.message ) {
+			errorMessage = e.message;
+		} else {
+			errorMessage = __(
+				'There was a problem processing the order.',
+				'woocommerce-payments'
+			);
+		}
+		return abortPayment( event, errorMessage );
 	}
 };
 
