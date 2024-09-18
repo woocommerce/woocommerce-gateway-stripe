@@ -38,6 +38,16 @@ jQuery( function ( $ ) {
 		return;
 	}
 
+	const api = new WCStripeAPI(
+		getStripeServerData(),
+		// A promise-based interface to jQuery.post.
+		( url, args ) => {
+			return new Promise( ( resolve, reject ) => {
+				jQuery.post( url, args ).then( resolve ).fail( reject );
+			} );
+		}
+	);
+
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
@@ -219,6 +229,30 @@ jQuery( function ( $ ) {
 		},
 
 		/**
+		 * Initialize event handlers and UI state
+		 */
+		init: () => {
+			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
+				// Pay for order page specific initialization.
+			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
+				// Product page specific initialization.
+			} else {
+				// If this is the cart or checkout page, we need to request the
+				// TODO: Use real cart data.
+				wcStripeECE.startExpressCheckoutElement( {
+					mode: 'payment',
+					total: 1223,
+					currency: 'usd',
+					appearance: getExpressCheckoutButtonAppearance(),
+					displayItems: [ { label: 'Shipping', amount: 100 } ],
+				} );
+			}
+
+			// After initializing a new express checkout button, we need to reset the paymentAborted flag.
+			wcStripeECE.paymentAborted = false;
+		},
+
+		/**
 		 * Complete payment.
 		 *
 		 * @param {string} url Order thank you page URL.
@@ -361,21 +395,5 @@ jQuery( function ( $ ) {
 		},
 	};
 
-	const api = new WCStripeAPI(
-		getStripeServerData(),
-		// A promise-based interface to jQuery.post.
-		( url, args ) => {
-			return new Promise( ( resolve, reject ) => {
-				jQuery.post( url, args ).then( resolve ).fail( reject );
-			} );
-		}
-	);
-
-	wcStripeECE.startExpressCheckoutElement( {
-		mode: 'payment',
-		total: 1223,
-		currency: 'usd',
-		appearance: getExpressCheckoutButtonAppearance(),
-		displayItems: [ { label: 'Shipping', amount: 100 } ],
-	} );
+	wcStripeECE.init();
 } );
