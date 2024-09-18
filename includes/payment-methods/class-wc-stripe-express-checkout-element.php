@@ -328,10 +328,8 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		?>
-		<div id="wc-stripe-express-checkout-wrapper" style="margin-top: 1em;clear:both;display:none;">
-			<div id="wc-stripe-express-checkout-button">
-				<!-- A Stripe Element will be inserted here. -->
-			</div>
+		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">
+			<!-- A Stripe Element will be inserted here. -->
 		</div>
 		<?php
 		$this->display_express_checkout_button_separator_html();

@@ -70,8 +70,8 @@ jQuery( function ( $ ) {
 		},
 
 		renderButton: ( eceButton ) => {
-			if ( $( '#wc-stripe-express-checkout-button' ).length ) {
-				eceButton.mount( '#wc-stripe-express-checkout-button' );
+			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
+				eceButton.mount( '#wc-stripe-express-checkout-element' );
 			}
 		},
 
