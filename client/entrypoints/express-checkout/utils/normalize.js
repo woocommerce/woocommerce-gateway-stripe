@@ -76,6 +76,7 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		payment_request_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-fraud-prevention-token': fraudPreventionTokenValue,
+		'wc-stripe-is-deferred-intent': true,
 	};
 };
 
