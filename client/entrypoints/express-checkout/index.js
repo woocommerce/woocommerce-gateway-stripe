@@ -432,8 +432,8 @@ jQuery( function ( $ ) {
 		},
 
 		reInitExpressCheckoutElement: ( response ) => {
-			getExpressCheckoutData( 'product' ).needs_shipping =
-				response.needs_shipping;
+			getExpressCheckoutData( 'product' ).requestShipping =
+				response.requestShipping;
 			getExpressCheckoutData( 'product' ).total = response.total;
 			getExpressCheckoutData( 'product' ).displayItems =
 				response.displayItems;
