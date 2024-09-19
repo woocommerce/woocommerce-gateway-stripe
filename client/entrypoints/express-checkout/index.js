@@ -1,4 +1,4 @@
-/*global wc_add_to_cart_variation_params, wc_stripe_express_checkout_pay_for_order_params */
+/*global wc_add_to_cart_variation_params, wcStripeExpressCheckoutPayForOrderParams */
 
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
@@ -238,7 +238,7 @@ jQuery( function ( $ ) {
 					displayItems,
 					order,
 					// eslint-disable-next-line camelcase
-				} = wc_stripe_express_checkout_pay_for_order_params;
+				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				wcStripeECE.startExpressCheckoutElement( {
 					mode: 'payment',

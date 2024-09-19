@@ -260,7 +260,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'pending' => true,
 		];
 
-		wp_localize_script( 'wc_stripe_express_checkout', 'wc_stripe_express_checkout_pay_for_order_params', $data );
+		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
 	}
 
 	/**
