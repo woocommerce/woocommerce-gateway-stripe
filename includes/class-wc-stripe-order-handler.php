@@ -82,6 +82,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
+			// Lock the order.
+			$this->lock_order_payment( $order );
+
 			/**
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
@@ -191,6 +194,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}
+
+		// Unlock the order.
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
