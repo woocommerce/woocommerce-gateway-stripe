@@ -346,9 +346,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( __( 'This order does not require payment!', 'woocommerce-gateway-stripe' ) );
 			}
 
-			// Set the deferred intent flag, so process_payment_with_deferred_intent() is used.
-			$_POST['wc-stripe-is-deferred-intent'] = true; // This should be removed once the deferred intent flow is the default.
-
 			// Process the payment.
 			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 
