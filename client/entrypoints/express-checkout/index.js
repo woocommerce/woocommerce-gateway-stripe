@@ -237,7 +237,6 @@ jQuery( function ( $ ) {
 					total: { amount: total },
 					displayItems,
 					order,
-					// eslint-disable-next-line camelcase
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
 				wcStripeECE.startExpressCheckoutElement( {
