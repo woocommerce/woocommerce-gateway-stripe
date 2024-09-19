@@ -236,6 +236,7 @@ jQuery( function ( $ ) {
 				const {
 					total: { amount: total },
 					displayItems,
+					order,
 					// eslint-disable-next-line camelcase
 				} = wc_stripe_express_checkout_pay_for_order_params;
 
@@ -246,6 +247,7 @@ jQuery( function ( $ ) {
 						.currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					displayItems,
+					order,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
