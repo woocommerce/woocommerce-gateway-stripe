@@ -534,4 +534,17 @@ export default class WCStripeAPI {
 			...paymentData,
 		} );
 	}
+
+	/**
+	 * Add product to cart from product page.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCart( productData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			...productData,
+		} );
+	}
 }

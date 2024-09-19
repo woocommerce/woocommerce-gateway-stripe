@@ -33,6 +33,8 @@ jQuery( function ( $ ) {
 	}
 
 	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
+	const quantityInputSelector = '.quantity .qty[type=number]';
+
 	if ( ! publishableKey ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -287,6 +289,83 @@ jQuery( function ( $ ) {
 
 			// After initializing a new express checkout button, we need to reset the paymentAborted flag.
 			wcStripeECE.paymentAborted = false;
+		},
+
+		getAttributes: () => {
+			const select = $( '.variations_form' ).find( '.variations select' );
+			const data = {};
+			let count = 0;
+			let chosen = 0;
+
+			select.each( function () {
+				const attributeName =
+					$( this ).data( 'attribute_name' ) ||
+					$( this ).attr( 'name' );
+				const value = $( this ).val() || '';
+
+				if ( value.length > 0 ) {
+					chosen++;
+				}
+
+				count++;
+				data[ attributeName ] = value;
+			} );
+
+			return {
+				count,
+				chosenCount: chosen,
+				data,
+			};
+		},
+
+		/**
+		 * Adds the item to the cart and return cart details.
+		 *
+		 * @return {Promise} Promise for the request to the server.
+		 */
+		addToCart: () => {
+			let productId = $( '.single_add_to_cart_button' ).val();
+
+			// Check if product is a variable product.
+			if ( $( '.single_variation_wrap' ).length ) {
+				productId = $( '.single_variation_wrap' )
+					.find( 'input[name="product_id"]' )
+					.val();
+			}
+
+			if ( $( '.wc-bookings-booking-form' ).length ) {
+				productId = $( '.wc-booking-product-id' ).val();
+			}
+
+			const data = {
+				product_id: productId,
+				qty: $( quantityInputSelector ).val(),
+				attributes: $( '.variations_form' ).length
+					? wcStripeECE.getAttributes().data
+					: [],
+			};
+
+			// Add extension data to the POST body
+			const formData = $( 'form.cart' ).serializeArray();
+			$.each( formData, ( i, field ) => {
+				if ( /^(addon-|wc_)/.test( field.name ) ) {
+					if ( /\[\]$/.test( field.name ) ) {
+						const fieldName = field.name.substring(
+							0,
+							field.name.length - 2
+						);
+						if ( data[ fieldName ] ) {
+							data[ fieldName ].push( field.value );
+						} else {
+							data[ fieldName ] = [ field.value ];
+						}
+					} else {
+						data[ field.name ] = field.value;
+					}
+				}
+			} );
+
+			return api.expressCheckoutAddToCart( data );
 		},
 
 		/**
