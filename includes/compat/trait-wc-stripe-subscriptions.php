@@ -724,7 +724,13 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		if ( 1 === count( $subscriptions ) || $cart_contain_switches ) {
+		// When the order total is less than actual subscription amount, e.g. due to coupons,
+		// we set the amount type to 'maximum' so we can charge less.
+		if ( $order->get_total() < $sub_amount ) {
+			$mandate_options['amount_type']    = 'maximum';
+			$mandate_options['interval']       = $sub_billing_period;
+			$mandate_options['interval_count'] = $sub_billing_interval;
+		} elseif ( 1 === count( $subscriptions ) || $cart_contain_switches ) {
 			$mandate_options['amount_type']    = 'fixed';
 			$mandate_options['interval']       = $sub_billing_period;
 			$mandate_options['interval_count'] = $sub_billing_interval;
