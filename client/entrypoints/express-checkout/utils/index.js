@@ -24,14 +24,17 @@ export const getErrorMessageFromNotice = ( notice ) => {
  * @return {*|null} Value of the object prop or null.
  */
 export const getExpressCheckoutData = ( key ) => {
+	// eslint-disable-next-line camelcase
+	const wcStripeExpressCheckoutParams = wc_stripe_express_checkout_params;
+
 	if (
-		// eslint-disable-next-line camelcase
-		! wc_stripe_express_checkout_params ||
-		! wc_stripe_express_checkout_params[ key ]
+		! wcStripeExpressCheckoutParams ||
+		! wcStripeExpressCheckoutParams[ key ]
 	) {
 		return null;
 	}
-	return wc_stripe_express_checkout_params[ key ];
+
+	return wcStripeExpressCheckoutParams[ key ];
 };
 
 /**
@@ -116,7 +119,8 @@ export const getExpressCheckoutButtonAppearance = () => {
 export const getExpressCheckoutButtonStyleSettings = () => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
-	const mapWooPaymentsThemeToButtonTheme = ( buttonType, theme ) => {
+	// Maps the WC Stripe theme from settings to the button theme.
+	const mapButtonSettingToStripeButtonTheme = ( buttonType, theme ) => {
 		switch ( theme ) {
 			case 'dark':
 				return 'black';
@@ -156,11 +160,11 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		},
 		layout: { overflow: 'never' },
 		buttonTheme: {
-			googlePay: mapWooPaymentsThemeToButtonTheme(
+			googlePay: mapButtonSettingToStripeButtonTheme(
 				'googlePay',
 				buttonSettings.theme ? buttonSettings.theme : 'black'
 			),
-			applePay: mapWooPaymentsThemeToButtonTheme(
+			applePay: mapButtonSettingToStripeButtonTheme(
 				'applePay',
 				buttonSettings.theme ? buttonSettings.theme : 'black'
 			),
