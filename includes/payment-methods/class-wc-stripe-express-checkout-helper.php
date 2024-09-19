@@ -143,10 +143,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the product total price.
 	 *
-	 * @param object $product WC_Product_* object.
+	 * @param object    $product         WC_Product_* object.
+	 * @param bool|null $is_deposit      Whether this is a deposit.
+	 * @param int       $deposit_plan_id Deposit plan ID.
+	 *
 	 * @return integer Total price.
 	 */
-	public function get_product_price( $product ) {
+	public function get_product_price( $product, $is_deposit = null, $deposit_plan_id = 0 ) {
 		// If prices should include tax, using tax inclusive price.
 		if ( $this->cart_prices_include_tax() ) {
 			$product_price = wc_get_price_including_tax( $product );
@@ -154,9 +157,30 @@ class WC_Stripe_Express_Checkout_Helper {
 			$product_price = wc_get_price_excluding_tax( $product );
 		}
 
+		// If WooCommerce Deposits is active, we need to get the correct price for the product.
+		if ( class_exists( 'WC_Deposits_Product_Manager' ) && class_exists( 'WC_Deposits_Plans_Manager' ) && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) {
+			// If is_deposit is null, we use the default deposit type for the product.
+			if ( is_null( $is_deposit ) ) {
+				$is_deposit = 'deposit' === WC_Deposits_Product_Manager::get_deposit_selected_type( $product->get_id() );
+			}
+			if ( $is_deposit ) {
+				$deposit_type       = WC_Deposits_Product_Manager::get_deposit_type( $product->get_id() );
+				$available_plan_ids = WC_Deposits_Plans_Manager::get_plan_ids_for_product( $product->get_id() );
+				// Default to first (default) plan if no plan is specified.
+				if ( 'plan' === $deposit_type && 0 === $deposit_plan_id && ! empty( $available_plan_ids ) ) {
+					$deposit_plan_id = $available_plan_ids[0];
+				}
+
+				// Ensure the selected plan is available for the product.
+				if ( 0 === $deposit_plan_id || in_array( $deposit_plan_id, $available_plan_ids, true ) ) {
+					$product_price = WC_Deposits_Product_Manager::get_deposit_amount( $product, $deposit_plan_id, 'display', $product_price );
+				}
+			}
+		}
+
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price = $product_price + WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
 		return $product_price;

@@ -185,11 +185,14 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
 		try { // @phpstan-ignore-line (return statement is added)
-			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
-			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
-			$product      = wc_get_product( $product_id );
-			$variation_id = null;
+			$product_id      = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$qty             = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$addon_value     = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
+			$product         = wc_get_product( $product_id );
+			$variation_id    = null;
+			$currency        = get_woocommerce_currency();
+			$is_deposit      = isset( $_POST['wc_deposit_option'] ) ? 'yes' === sanitize_text_field( wp_unslash( $_POST['wc_deposit_option'] ) ) : null;
+			$deposit_plan_id = isset( $_POST['wc_deposit_payment_plan'] ) ? absint( $_POST['wc_deposit_payment_plan'] ) : 0;
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
@@ -221,27 +224,35 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$total = $qty * $this->express_checkout_helper->get_product_price( $product ) + $addon_value;
+			$price = $this->express_checkout_helper->get_product_price( $product, $is_deposit, $deposit_plan_id );
+			$total = $qty * $price + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
-			$data  = [];
 			$items = [];
+			$data  = [
+				'currency'        => strtolower( $currency ),
+				'country_code'    => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+				'requestShipping' => wc_shipping_enabled() && 0 !== wc_get_shipping_method_count( true ) && $product->needs_shipping(),
+			];
 
 			$items[] = [
 				'label'  => $product->get_name() . $quantity_label,
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			];
 
-			if ( wc_tax_enabled() ) {
+			$total_tax = 0;
+			foreach ( $this->express_checkout_helper->get_taxes_like_cart( $product, $price ) as $tax ) {
+				$total_tax += $tax;
+
 				$items[] = [
 					'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-					'amount'  => 0,
-					'pending' => true,
+					'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
+					'pending' => 0 === $tax,
 				];
 			}
 
-			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+			if ( true === $data['requestShipping'] ) {
 				$items[] = [
 					'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
 					'amount'  => 0,
@@ -261,10 +272,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				'label'  => $this->express_checkout_helper->get_total_label(),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			];
-
-			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
-			$data['currency']        = strtolower( get_woocommerce_currency() );
-			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {

@@ -547,4 +547,21 @@ export default class WCStripeAPI {
 			...productData,
 		} );
 	}
+
+	/**
+	 * Get selected product data from variable product page.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetSelectedProductData( productData ) {
+		return this.request(
+			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )
+					?.get_selected_product_data,
+				...productData,
+			}
+		);
+	}
 }

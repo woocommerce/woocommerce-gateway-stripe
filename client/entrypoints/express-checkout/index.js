@@ -330,6 +330,54 @@ jQuery( function ( $ ) {
 			};
 		},
 
+		getSelectedProductData: () => {
+			let productId = $( '.single_add_to_cart_button' ).val();
+
+			// Check if product is a variable product.
+			if ( $( '.single_variation_wrap' ).length ) {
+				productId = $( '.single_variation_wrap' )
+					.find( 'input[name="product_id"]' )
+					.val();
+			}
+
+			// WC Bookings Support.
+			if ( $( '.wc-bookings-booking-form' ).length ) {
+				productId = $( '.wc-booking-product-id' ).val();
+			}
+
+			const addons =
+				$( '#product-addons-total' ).data( 'price_data' ) || [];
+			const addonValue = addons.reduce(
+				( sum, addon ) => sum + addon.cost,
+				0
+			);
+
+			// WC Deposits Support.
+			const depositObject = {};
+			if ( $( 'input[name=wc_deposit_option]' ).length ) {
+				depositObject.wc_deposit_option = $(
+					'input[name=wc_deposit_option]:checked'
+				).val();
+			}
+			if ( $( 'input[name=wc_deposit_payment_plan]' ).length ) {
+				depositObject.wc_deposit_payment_plan = $(
+					'input[name=wc_deposit_payment_plan]:checked'
+				).val();
+			}
+
+			const data = {
+				product_id: productId,
+				qty: $( quantityInputSelector ).val(),
+				attributes: $( '.variations_form' ).length
+					? wcStripeECE.getAttributes().data
+					: [],
+				addon_value: addonValue,
+				...depositObject,
+			};
+
+			return api.expressCheckoutGetSelectedProductData( data );
+		},
+
 		/**
 		 * Adds the item to the cart and return cart details.
 		 *
