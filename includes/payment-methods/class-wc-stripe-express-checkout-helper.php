@@ -147,7 +147,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return integer Total price.
 	 */
 	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
+		// If prices should include tax, using tax inclusive price.
+		if ( $this->cart_prices_include_tax() ) {
+			$product_price = wc_get_price_including_tax( $product );
+		} else {
+			$product_price = wc_get_price_excluding_tax( $product );
+		}
+
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
 			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
@@ -194,19 +200,24 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$data  = [];
-		$items = [];
+		$data     = [];
+		$items    = [];
+		$price    = $this->get_product_price( $product );
+		$currency = get_woocommerce_currency();
+		$total_tax = 0;
 
 		$items[] = [
 			'label'  => $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $price ),
 		];
 
-		if ( wc_tax_enabled() ) {
+		foreach ( $this->get_taxes_like_cart( $product, $price ) as $tax ) {
+			$total_tax += $tax;
+
 			$items[] = [
 				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
-				'pending' => true,
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
+				'pending' => 0 === $tax,
 			];
 		}
 
@@ -228,11 +239,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data['displayItems'] = $items;
 		$data['total']        = [
 			'label'  => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'pending' => true,
 		];
 
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
-		$data['currency']        = strtolower( get_woocommerce_currency() );
+		$data['currency']        = strtolower( $currency );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
 		// On product page load, if there's a variation already selected, check if it's supported.
@@ -1217,5 +1229,37 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+	}
+
+	/**
+	 * Calculates taxes as displayed on cart, based on a product and a particular price.
+	 *
+	 * @param WC_Product $product The product, for retrieval of tax classes.
+	 * @param float      $price   The price, which to calculate taxes for.
+	 * @return array              An array of final taxes.
+	 */
+	public function get_taxes_like_cart( $product, $price ) {
+		if ( ! wc_tax_enabled() || $this->cart_prices_include_tax() ) {
+			// Only proceed when taxes are enabled, but not included.
+			return [];
+		}
+
+		// Follows the way `WC_Cart_Totals::get_item_tax_rates()` works.
+		$tax_class = $product->get_tax_class();
+		$rates     = WC_Tax::get_rates( $tax_class );
+		// No cart item, `woocommerce_cart_totals_get_item_tax_rates` can't be applied here.
+
+		// Normally there should be a single tax, but `calc_tax` returns an array, let's use it.
+		return WC_Tax::calc_tax( $price, $rates, false );
+	}
+
+	/**
+	 * Whether tax should be displayed on separate line in cart.
+	 * returns true if tax is disabled or display of tax in checkout is set to inclusive.
+	 *
+	 * @return boolean
+	 */
+	public function cart_prices_include_tax() {
+		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
 	}
 }
