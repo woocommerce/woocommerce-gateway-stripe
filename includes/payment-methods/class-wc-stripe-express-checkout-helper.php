@@ -221,7 +221,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			];
 		}
 
-		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+		if ( wc_shipping_enabled() && 0 !== wc_get_shipping_method_count( true ) && $product->needs_shipping() ) {
 			$items[] = [
 				'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
 				'amount'  => 0,
