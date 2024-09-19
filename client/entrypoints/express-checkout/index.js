@@ -268,7 +268,19 @@ jQuery( function ( $ ) {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
 				// Pay for order page specific initialization.
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				// Product page specific initialization.
+				wcStripeECE.startExpressCheckoutElement( {
+					mode: 'payment',
+					total: getExpressCheckoutData( 'product' )?.total.amount,
+					currency: getExpressCheckoutData( 'product' )?.currency,
+					requestShipping:
+						getExpressCheckoutData( 'product' )?.requestShipping ??
+						false,
+					requestPhone:
+						getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone ?? false,
+					displayItems: getExpressCheckoutData( 'product' )
+						.displayItems,
+				} );
 			} else {
 				let requestPhone = false;
 				if ( getExpressCheckoutData( 'checkout' ).needs_payer_phone ) {
