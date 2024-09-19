@@ -633,23 +633,22 @@ class WC_Stripe_Express_Checkout_Helper {
 			$shipping_rate_ids = [];
 
 			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
-				foreach ( $packages as $package_key => $package ) {
+				foreach ( $packages as $package ) {
 					if ( empty( $package['rates'] ) ) {
 						throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 					}
 
-					foreach ( $package['rates'] as $key => $rate ) {
+					foreach ( $package['rates'] as $rate ) {
 						if ( in_array( $rate->id, $shipping_rate_ids, true ) ) {
-							// The express checkout will try to load indefinitely if there are duplicate shipping
-							// option IDs.
-							throw new Exception( __( 'Unable to provide shipping options for express checkout.', 'woocommerce-gateway-stripe' ) );
+							// The Payment Requests will try to load indefinitely if there are duplicate shipping option IDs.
+							throw new Exception( __( 'Unable to provide shipping options for Payment Requests.', 'woocommerce-gateway-stripe' ) );
 						}
+
 						$shipping_rate_ids[]        = $rate->id;
 						$data['shipping_options'][] = [
-							'id'     => $rate->id,
-							'label'  => $rate->label,
-							'detail' => '',
-							'amount' => WC_Stripe_Helper::get_stripe_amount( $rate->cost ),
+							'id'          => $rate->id,
+							'displayName' => $rate->label,
+							'amount'      => WC_Stripe_Helper::get_stripe_amount( $rate->cost, get_woocommerce_currency() ),
 						];
 					}
 				}
