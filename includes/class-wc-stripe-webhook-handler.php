@@ -385,7 +385,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_status_final', true );
 
 			// Mark the dispute status.
-			$order->update_meta_data( 'dispute_status', $status );
+			$order->update_meta_data( '_dispute_closed_status', $status );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
