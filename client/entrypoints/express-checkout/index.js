@@ -1,5 +1,3 @@
-/*global wc_add_to_cart_variation_params */
-
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -22,6 +20,7 @@ import {
 	shippingRateChangeHandler,
 } from './event-handlers';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getAddToCartVariationParams } from 'wcstripe/utils';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -173,7 +172,9 @@ jQuery( function ( $ ) {
 							// eslint-disable-next-line no-alert
 							window.alert(
 								// eslint-disable-next-line camelcase
-								wc_add_to_cart_variation_params.i18n_unavailable_text ||
+								getAddToCartVariationParams(
+									'i18n_unavailable_text'
+								) ||
 									__(
 										'Sorry, this product is unavailable. Please choose a different combination.',
 										'woocommerce-payments'
