@@ -1083,7 +1083,7 @@ class WC_Stripe_Payment_Request_Button_States {
 		// United States Minor Outlying Islands.
 		'UM' => [],
 		// United States.
-		'US' => [
+		WC_Stripe_Country_Codes::US => [
 			'AL' => [ 'AL', 'Alabama', NULL ],
 			'AK' => [ 'AK', 'Alaska', NULL ],
 			'AZ' => [ 'AZ', 'Arizona', NULL ],

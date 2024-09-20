@@ -1573,7 +1573,7 @@ class WC_Stripe_Helper {
 			'SE' => [ 'sv-SE', 'en-SE' ],
 			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
 			'GB' => [ 'en-GB' ],
-			'US' => [ 'en-US', 'es-US' ],
+			WC_Stripe_Country_Codes::US => [ 'en-US', 'es-US' ],
 		];
 
 		$region = strtoupper( $billing_country );

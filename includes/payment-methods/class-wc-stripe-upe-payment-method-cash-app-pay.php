@@ -28,7 +28,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ 'USD' ];
-		$this->supported_countries          = [ 'US' ];
+		$this->supported_countries          = [ WC_Stripe_Country_Codes::US ];
 		$this->accept_only_domestic_payment = true;
 		$this->supports[]                   = 'tokenization';
 		$this->label                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );

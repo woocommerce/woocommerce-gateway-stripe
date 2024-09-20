@@ -535,7 +535,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country' => 'US',
+				'country'          => WC_Stripe_Country_Codes::US,
 				'default_currency' => 'USD',
 			]
 		);
@@ -651,11 +651,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$payment_method = $this->mock_payment_methods[ $payment_method_id ];
 
 			// Update the payment method settings to have a custom name and description.
-			$original_payment_settings = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
-			$updated_payment_settings = $original_payment_settings;
-			$custom_name = 'Custom Name for ' . $payment_method_id;
-			$custom_description = 'Custom description for ' . $payment_method_id;
-			$updated_payment_settings['title'] = $custom_name;
+			$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
+			$updated_payment_settings                = $original_payment_settings;
+			$custom_name                             = 'Custom Name for ' . $payment_method_id;
+			$custom_description                      = 'Custom description for ' . $payment_method_id;
+			$updated_payment_settings['title']       = $custom_name;
 			$updated_payment_settings['description'] = $custom_description;
 			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
 

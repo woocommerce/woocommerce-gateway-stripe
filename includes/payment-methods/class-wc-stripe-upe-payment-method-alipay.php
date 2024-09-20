@@ -77,7 +77,7 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 			case 'SG':
 				$currency = [ 'SGD', 'CNY' ];
 				break;
-			case 'US':
+			case WC_Stripe_Country_Codes::US:
 				$currency = [ 'USD', 'CNY' ];
 				break;
 			default:

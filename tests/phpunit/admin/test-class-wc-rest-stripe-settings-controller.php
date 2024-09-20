@@ -122,13 +122,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 					'bancontact_payments' => 'active',
 					'card_payments'       => 'active',
 					'eps_payments'        => 'active',
-					'alipay_payments'            => 'active',
-					'ideal_payments'             => 'active',
-					'p24_payments'               => 'active',
-					'sepa_debit_payments'        => 'active',
-					'boleto_payments'            => 'active',
-					'oxxo_payments'              => 'active',
-					'link_payments'              => 'active',
+					'alipay_payments'     => 'active',
+					'ideal_payments'      => 'active',
+					'p24_payments'        => 'active',
+					'sepa_debit_payments' => 'active',
+					'boleto_payments'     => 'active',
+					'oxxo_payments'       => 'active',
+					'link_payments'       => 'active',
 				],
 			]
 		);
@@ -228,18 +228,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country'      => 'US',
+				'country'      => WC_Stripe_Country_Codes::US,
 				'capabilities' => [
-					'bancontact_payments'        => 'active',
-					'card_payments'              => 'active',
-					'eps_payments'               => 'active',
-					'giropay_payments'           => 'active',
-					'ideal_payments'             => 'active',
-					'p24_payments'               => 'active',
-					'sepa_debit_payments'        => 'active',
-					'boleto_payments'            => 'active',
-					'oxxo_payments'              => 'active',
-					'link_payments'              => 'active',
+					'bancontact_payments' => 'active',
+					'card_payments'       => 'active',
+					'eps_payments'        => 'active',
+					'giropay_payments'    => 'active',
+					'ideal_payments'      => 'active',
+					'p24_payments'        => 'active',
+					'sepa_debit_payments' => 'active',
+					'boleto_payments'     => 'active',
+					'oxxo_payments'       => 'active',
+					'link_payments'       => 'active',
 				],
 			]
 		);
@@ -266,18 +266,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country' => 'US',
+				'country'      => WC_Stripe_Country_Codes::US,
 				'capabilities' => [
-					'bancontact_payments'        => 'active',
-					'card_payments'              => 'active',
-					'eps_payments'               => 'active',
-					'giropay_payments'           => 'active',
-					'ideal_payments'             => 'active',
-					'p24_payments'               => 'active',
-					'sepa_debit_payments'        => 'active',
-					'boleto_payments'            => 'active',
-					'oxxo_payments'              => 'active',
-					'link_payments'              => 'active',
+					'bancontact_payments' => 'active',
+					'card_payments'       => 'active',
+					'eps_payments'        => 'active',
+					'giropay_payments'    => 'active',
+					'ideal_payments'      => 'active',
+					'p24_payments'        => 'active',
+					'sepa_debit_payments' => 'active',
+					'boleto_payments'     => 'active',
+					'oxxo_payments'       => 'active',
+					'link_payments'       => 'active',
 				],
 			]
 		);

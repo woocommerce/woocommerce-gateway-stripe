@@ -38,7 +38,7 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 			[
 				'line1'       => '1 Example St.',
 				'city'        => 'Example City',
-				'country'     => 'US',
+				'country'     => WC_Stripe_Country_Codes::US,
 				'state'       => 'CA',
 				'postal_code' => '12345',
 			]
@@ -77,7 +77,7 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 			[
 				'line1'       => '1 Example St.',
 				'city'        => 'Example City',
-				'country'     => 'US',
+				'country'     => WC_Stripe_Country_Codes::US,
 				'state'       => 'CA',
 				'postal_code' => '12345',
 			]
@@ -163,7 +163,7 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 									'display_name' => 'Unused Test Store',
 									'address'      => [
 										'city'        => 'Example City',
-										'country'     => 'US',
+										'country'     => WC_Stripe_Country_Codes::US,
 										'line1'       => '2 Example St.',
 										'postal_code' => '12345',
 										'state'       => 'CA',
@@ -174,7 +174,7 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 									'display_name' => 'Test Store',
 									'address'      => [
 										'city'        => 'Example City',
-										'country'     => 'US',
+										'country'     => WC_Stripe_Country_Codes::US,
 										'line1'       => '1 Example St.',
 										'postal_code' => '12345',
 										'state'       => 'CA',
@@ -195,7 +195,7 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 							'display_name' => 'New Test Store',
 							'address'      => [
 								'city'        => 'Example City',
-								'country'     => 'US',
+								'country'     => WC_Stripe_Country_Codes::US,
 								'line1'       => '3 Example St.',
 								'postal_code' => '12345',
 								'state'       => 'CA',

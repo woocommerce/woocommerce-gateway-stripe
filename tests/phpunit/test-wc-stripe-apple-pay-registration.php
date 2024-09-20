@@ -125,7 +125,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account
 			->expects( $this->any() )
 			->method( 'get_cached_account_data' )
-			->willReturn( [ 'country' => 'US' ] );
+			->willReturn( [ 'country' => WC_Stripe_Country_Codes::US ] );
 
 		$this->mock_wc_apple_pay_registration
 			->expects( $this->once() )

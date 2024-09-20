@@ -63,7 +63,7 @@ class WC_Helper_Shipping {
 	 * @return string
 	 */
 	public static function force_customer_us_country( $country ) {
-		return 'US';
+		return WC_Stripe_Country_Codes::US;
 	}
 
 	/**

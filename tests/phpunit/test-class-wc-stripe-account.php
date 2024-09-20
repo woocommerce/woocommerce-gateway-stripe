@@ -189,10 +189,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$account = [
 			'id'      => '1234',
 			'email'   => 'test@example.com',
-			'country' => 'US',
+			'country' => WC_Stripe_Country_Codes::US,
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
-		$this->assertEquals( 'US', $this->account->get_account_country() );
+		$this->assertEquals( WC_Stripe_Country_Codes::US, $this->account->get_account_country() );
 	}
 
 	/**
@@ -205,7 +205,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$account = [
 			'id'      => 'acct_1234',
 			'email'   => 'test@example.com',
-			'country' => 'US',
+			'country' => WC_Stripe_Country_Codes::US,
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 
@@ -222,7 +222,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$account = [
 			'id'      => 'acct_1234',
 			'email'   => 'live@example.com',
-			'country' => 'US',
+			'country' => WC_Stripe_Country_Codes::US,
 		];
 		set_transient( 'wcstripe_account_data_live', $account );
 

@@ -10,7 +10,7 @@
  */
 class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	const SHIPPING_ADDRESS = [
-		'country'   => 'US',
+		'country'   => WC_Stripe_Country_Codes::US,
 		'state'     => 'CA',
 		'postcode'  => '94110',
 		'city'      => 'San Francisco',

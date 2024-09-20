@@ -247,7 +247,7 @@ class WC_Stripe_Account {
 	 */
 	public function get_account_country() {
 		$account = $this->get_cached_account_data();
-		return $account['country'] ?? 'US';
+		return $account['country'] ?? WC_Stripe_Country_Codes::US;
 	}
 
 	/**

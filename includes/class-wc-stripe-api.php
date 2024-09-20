@@ -230,7 +230,7 @@ class WC_Stripe_API {
 		if (
 			empty( $level3_data ) ||
 			get_transient( 'wc_stripe_level3_not_allowed' ) ||
-			'US' !== WC()->countries->get_base_country()
+			WC_Stripe_Country_Codes::US !== WC()->countries->get_base_country()
 		) {
 			return self::request(
 				$request,

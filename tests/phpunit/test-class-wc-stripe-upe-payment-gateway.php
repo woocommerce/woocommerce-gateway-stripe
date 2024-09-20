@@ -251,7 +251,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function get_upe_available_payment_methods_provider() {
 		return [
 			[
-				'US',
+				WC_Stripe_Country_Codes::US,
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,

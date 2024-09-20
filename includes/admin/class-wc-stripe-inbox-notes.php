@@ -106,7 +106,7 @@ class WC_Stripe_Inbox_Notes {
 	public static function should_show_marketing_note() {
 		// Display to US merchants only.
 		$base_location = wc_get_base_location();
-		if ( ! $base_location || 'US' !== $base_location['country'] ) {
+		if ( ! $base_location || WC_Stripe_Country_Codes::US !== $base_location['country'] ) {
 			return false;
 		}
 

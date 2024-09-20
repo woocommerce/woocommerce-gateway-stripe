@@ -417,7 +417,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	public function test_get_klarna_preferred_locale() {
 		// Language is supported for the region (same region)
 		$store_locale    = 'en_US';
-		$billing_country = 'US';
+		$billing_country = WC_Stripe_Country_Codes::US;
 		$expected        = 'en-US';
 		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
 		$this->assertSame( $expected, $actual );
@@ -431,14 +431,14 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		// Language is supported for the region (different region)
 		$store_locale    = 'es_ES';
-		$billing_country = 'US';
+		$billing_country = WC_Stripe_Country_Codes::US;
 		$expected        = 'es-US';
 		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
 		$this->assertSame( $expected, $actual );
 
 		// Language is not supported for the region
 		$store_locale    = 'fr_FR';
-		$billing_country = 'US';
+		$billing_country = WC_Stripe_Country_Codes::US;
 		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
 		$this->assertNull( $actual );
 
