@@ -28,6 +28,7 @@ module.exports = {
 	globals: {
 		__PAYMENT_METHOD_FEES_ENABLED: false,
 		wc_stripe_express_checkout_params: {},
+		wcStripeFraudPreventionToken: '',
 	},
 	setupFilesAfterEnv: [
 		require.resolve(
