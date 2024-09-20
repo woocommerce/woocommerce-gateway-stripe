@@ -9,10 +9,7 @@
  */
 export const normalizeLineItems = ( displayItems ) => {
 	return displayItems.map( ( displayItem ) => {
-		let amount = displayItem.value;
-		if ( displayItem.amount ) {
-			amount = displayItem.amount;
-		}
+		let amount = displayItem?.amount ?? displayItem?.value;
 		if ( displayItem.key === 'total_discount' ) {
 			amount = -amount;
 		}
