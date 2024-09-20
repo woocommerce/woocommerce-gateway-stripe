@@ -1128,7 +1128,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco', 'cashapp' ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo', 'multibanco', WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 	}
 
 	/**
@@ -1142,7 +1142,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean
 	 */
 	private function is_delayed_confirmation_required( $payment_methods ) {
-		return ! empty( array_intersect( $payment_methods, [ 'boleto', 'oxxo', 'multibanco', 'cashapp' ] ) );
+		return ! empty( array_intersect( $payment_methods, [ 'boleto', 'oxxo', 'multibanco', WC_Stripe_Payment_Methods::CASHAPP_PAY ] ) );
 	}
 
 	/**
