@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.6.1
+Stable tag: 8.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -129,41 +129,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
-* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint. 
+* Fix - Fix mandate creation for subscriptions and saved payment methods.
+* Fix - Fix Google Pay address fields mapping for UAE addresses.
+* Tweak - Render the Klarna payment page in the store locale.
+* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
-
-= 8.7.0 - xxxx-xx-xx =
 * Fix - Fix empty error message for Express Payments when order creation fails.
-* Fix - Prevent duplicate failed-order emails from being sent.
-* Fix - Support custom name and description for Afterpay.
-* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
-* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
-* Fix - Add back support for Stripe Link autofill for shortcode checkout.
-* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
-* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
-* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
-* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
-* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
-* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
-* Add - Log incoming webhook events and their request body.
-* Add - Show UPE payment methods in saved order on block checkout page.
-* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
-* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
-* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
-* Fix - Fix error in saving settings when express payment methods are disabled.
-* Fix - Catch error when getting intent from order.
-* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
-* Tweak - Update capabilities to payment methods mapping.
-* Fix - Address QIT Security test errors.
-* Fix - Address QIT PHPStan test errors.
-* Update - Specify the JS Stripe API version as 2024-06-20.
-* Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
-* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
-* Fix - Address Klarna availability based on correct presentment currency rules.
-* Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
-* Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
-* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
-* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
-* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
+* Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

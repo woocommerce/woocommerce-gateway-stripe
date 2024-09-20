@@ -394,7 +394,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  *
  * When processing a payment for a wallet payment method on the checkout or order pay page,
  * the process_payment_with_deferred_intent() function redirects the customer to a URL
- * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<client_secret>:<redirect_url>.
+ * formatted with: #wc-stripe-wallet-<order_id>:<payment_method_type>:<payment_intent_type>:<client_secret>:<redirect_url>.
  *
  * This function, which is hooked onto the hashchanged event, checks if the URL contains the data we need to process the wallet payment.
  *
@@ -410,7 +410,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const partials = window.location.href.match(
-		/#wc-stripe-wallet-(.+):(.+):(.+):(.+)$/
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+)$/
 	);
 
 	if ( ! partials ) {
@@ -426,7 +426,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	);
 
 	const orderId = partials[ 1 ];
-	const clientSecret = partials[ 3 ];
+	const clientSecret = partials[ 4 ];
 
 	// Verify the request using the data added to the URL.
 	if (
@@ -438,7 +438,8 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const paymentMethodType = partials[ 2 ];
-	const returnURL = decodeURIComponent( partials[ 4 ] );
+	const intentType = partials[ 3 ];
+	const returnURL = decodeURIComponent( partials[ 5 ] );
 
 	try {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
@@ -456,11 +457,19 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 					} );
 				break;
 			case 'cashapp':
-				confirmPayment = await api
-					.getStripe()
-					.confirmCashappPayment( clientSecret, {
-						return_url: returnURL,
-					} );
+				if ( intentType === 'setup_intent' ) {
+					confirmPayment = await api
+						.getStripe()
+						.confirmCashappSetup( clientSecret, {
+							return_url: returnURL,
+						} );
+				} else {
+					confirmPayment = await api
+						.getStripe()
+						.confirmCashappPayment( clientSecret, {
+							return_url: returnURL,
+						} );
+				}
 				break;
 			default:
 				// eslint-disable-next-line no-console
@@ -472,15 +481,18 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 			throw confirmPayment.error;
 		}
 
-		if ( confirmPayment.paymentIntent.last_payment_error ) {
-			throw new Error(
-				confirmPayment.paymentIntent.last_payment_error.message
-			);
+		const intentObject =
+			intentType === 'setup_intent'
+				? confirmPayment.setupIntent
+				: confirmPayment.paymentIntent;
+
+		if ( intentObject.last_payment_error ) {
+			throw new Error( intentObject.last_payment_error.message );
 		}
 
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
-		if ( confirmPayment.paymentIntent.status !== 'requires_action' ) {
+		if ( intentObject.status !== 'requires_action' ) {
 			window.location.href = returnURL;
 		}
 	} catch ( error ) {

@@ -925,7 +925,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		if ( $payment_information['save_payment_method_to_store'] ) {
+		if ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
@@ -960,7 +960,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @throws WC_Stripe_Exception If the create intent call returns with an error.
 	 *
-	 * @return array
+	 * @return stdClass
 	 */
 	public function create_and_confirm_setup_intent( $payment_information ) {
 		$request = [
@@ -980,7 +980,7 @@ class WC_Stripe_Intent_Controller {
 			$request = $this->add_mandate_data( $request );
 		}
 
-		// For voucher payment methods type like Boleto, Oxxo & Multibanco, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
+		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $request['payment_method_types'] ) ) {
 			$request['confirm'] = 'false';

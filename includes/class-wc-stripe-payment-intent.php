@@ -10,29 +10,46 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Payment_Intent {
 	/**
+	 * The client secret.
+	 *
 	 * @var string The client secret.
 	 */
-	private string $client_secret;
+	private $client_secret;
 
 	/**
+	 * The payment intent status.
+	 *
 	 * @var string The payment intent status.
 	 */
-	private string $status;
+	private $status;
 
 	/**
+	 * The payment method types.
+	 *
 	 * @var array The payment method types.
 	 */
-	private array $payment_method_types;
+	private $payment_method_types;
 
 	/**
+	 * The next action object.
+	 *
 	 * @var object The next action object.
 	 */
-	private object $next_action;
+	private $next_action;
 
 	/**
+	 * The latest charge object.
+	 *
 	 * @var object The charges object.
 	 */
-	private object $latest_charge;
+	private $latest_charge;
+
+	/**
+	 * The payment intent type.
+	 *
+	 * @var string The payment intent type.
+	 */
+	private $type;
 
 	/**
 	 * Constructor
@@ -43,6 +60,7 @@ class WC_Stripe_Payment_Intent {
 		$this->client_secret        = $payment_intent_response->client_secret;
 		$this->status               = $payment_intent_response->status;
 		$this->payment_method_types = $payment_intent_response->payment_method_types;
+		$this->type                 = $payment_intent_response->object;
 
 		if ( isset( $payment_intent_response->next_action ) ) {
 			$this->next_action = $payment_intent_response->next_action;
@@ -56,6 +74,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The client secret.
+	 *
 	 * @return string The client secret.
 	 */
 	public function get_client_secret() {
@@ -63,6 +83,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The payment intent status.
+	 *
 	 * @return string The payment intent status.
 	 */
 	public function get_status() {
@@ -70,6 +92,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The payment method types.
+	 *
 	 * @return string The next action type.
 	 */
 	public function get_next_action_type_url() {
@@ -79,6 +103,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The payment method types.
+	 *
 	 * @return bool Whether the payment methods contain a voucher or wallet payment method.
 	 */
 	public function contains_voucher_or_wallet_payment() {
@@ -86,6 +112,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The payment method types.
+	 *
 	 * @return bool Whether the payment methods contain a voucher payment method.
 	 */
 	public function contains_voucher_payment() {
@@ -93,6 +121,8 @@ class WC_Stripe_Payment_Intent {
 	}
 
 	/**
+	 * The payment method types.
+	 *
 	 * @return bool Whether the payment methods contain a wallet payment method.
 	 */
 	public function contains_wallet_payment() {
@@ -135,5 +165,14 @@ class WC_Stripe_Payment_Intent {
 		}
 
 		return $charge_object;
+	}
+
+	/**
+	 * Get the payment intent type.
+	 *
+	 * @return string The payment intent type.
+	 */
+	public function get_type() {
+		return $this->type;
 	}
 }

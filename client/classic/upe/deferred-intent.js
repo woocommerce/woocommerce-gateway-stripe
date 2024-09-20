@@ -170,7 +170,8 @@ jQuery( function ( $ ) {
 	function maybeConfirmVoucherOrWalletPayment() {
 		if (
 			getStripeServerData()?.isOrderPay ||
-			getStripeServerData()?.isCheckout
+			getStripeServerData()?.isCheckout ||
+			getStripeServerData()?.isChangingPayment
 		) {
 			if ( window.location.hash.startsWith( '#wc-stripe-voucher-' ) ) {
 				confirmVoucherPayment(
@@ -184,7 +185,8 @@ jQuery( function ( $ ) {
 			) {
 				confirmWalletPayment(
 					api,
-					getStripeServerData()?.isOrderPay
+					getStripeServerData()?.isOrderPay ||
+						getStripeServerData()?.isChangingPayment
 						? $( '#order_review' )
 						: $( 'form.checkout' )
 				);
