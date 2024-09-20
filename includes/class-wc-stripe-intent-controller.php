@@ -946,11 +946,11 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', 'link' ], true ) ) {
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort', WC_Stripe_Payment_Methods::LINK ], true ) ) {
 			return true;
 		}
 
-		return 'card' === $selected_payment_type && in_array( 'link', $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
+		return 'card' === $selected_payment_type && in_array( WC_Stripe_Payment_Methods::LINK, $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
 	}
 
 	/**

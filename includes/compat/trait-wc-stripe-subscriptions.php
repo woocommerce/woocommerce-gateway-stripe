@@ -838,7 +838,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) Cash App Cashtag */
 							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
 							break 3;
-						case 'link':
+						case WC_Stripe_Payment_Methods::LINK:
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;
