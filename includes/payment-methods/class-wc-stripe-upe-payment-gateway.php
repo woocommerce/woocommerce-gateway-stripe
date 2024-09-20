@@ -870,7 +870,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
 			 */
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+				if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO ], $payment_intent->payment_method_types ) ) !== 0 ) {
 					// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 					$redirect = sprintf(
 						'#wc-stripe-voucher-%s:%s:%s:%s',
@@ -879,7 +879,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$payment_intent->client_secret,
 						rawurlencode( $redirect )
 					);
-				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ WC_Stripe_Payment_Methods::WECHAT_PAY, WC_Stripe_Payment_Methods::CASHAPP_PAY ], $payment_intent->payment_method_types ) ) !== 0 ) {
 					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 					$redirect = sprintf(
 						'#wc-stripe-wallet-%s:%s:%s:%s:%s',
@@ -2058,9 +2058,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method_options = [];
 
 		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
-		if ( 'wechat_pay' === $selected_payment_type ) {
+		if ( WC_Stripe_Payment_Methods::WECHAT_PAY === $selected_payment_type ) {
 			$payment_method_options = [
-				'wechat_pay' => [
+				WC_Stripe_Payment_Methods::WECHAT_PAY => [
 					'client' => 'web',
 				],
 			];
