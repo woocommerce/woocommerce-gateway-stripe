@@ -22,4 +22,25 @@ class WC_Stripe_Payment_Methods {
 	const SEPA              = 'sepa';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
+
+	/**
+	 * Payment methods that are considered as voucher payment methods.
+	 *
+	 * @var array
+	 */
+	const VOUCHER_PAYMENT_METHODS = [
+		self::BOLETO,
+		self::MULTIBANCO,
+		self::OXXO,
+	];
+
+	/**
+	 * Payment methods that are considered as wallet payment methods.
+	 *
+	 * @var array
+	 */
+	const WALLET_PAYMENT_METHODS = [
+		self::CASHAPP_PAY,
+		self::WECHAT_PAY,
+	];
 }

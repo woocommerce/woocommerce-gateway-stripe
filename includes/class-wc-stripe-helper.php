@@ -1488,7 +1488,7 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function is_wallet_payment_method( $order ) {
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ WC_Stripe_Payment_Methods::WECHAT_PAY, WC_Stripe_Payment_Methods::CASHAPP_PAY ], true );
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
