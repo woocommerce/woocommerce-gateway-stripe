@@ -861,10 +861,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$return_url = $this->get_return_url( $order );
 
+			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				$redirect = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
-
-				if ( false ) { // @todo
+				$redirect                      = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
+				$is_wallet_or_voucher_method   = isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco', 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0;
+				$contains_redirect_next_action = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
+				if ( ! $is_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
 				}
