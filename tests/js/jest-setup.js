@@ -18,7 +18,6 @@ beforeEach( () => {
 
 afterEach( () => {
 	global.__PAYMENT_METHOD_FEES_ENABLED = false;
-	global.wc_stripe_express_checkout_params = {};
 	function cleanup() {
 		jest.clearAllTimers();
 		nock.cleanAll();
