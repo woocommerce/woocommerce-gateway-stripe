@@ -31,9 +31,7 @@ const getStripeServerData = () => {
 		typeof wc.wcSettings !== 'undefined'
 	) {
 		// 'getSetting' has this data value on block checkout only.
-		if ( wc.wcSettings.getSetting( 'getSetting' ) ) {
-			data = wc.wcSettings.getSetting( 'getSetting' );
-		}
+		data = wc.wcSettings?.getSetting( 'getSetting' ) || null;
 	}
 
 	if ( ! data ) {
@@ -145,7 +143,7 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
  * @return {Object} Terms parameter fit for UPE.
  */
 export const getUPETerms = ( value = 'always' ) => {
-	const config = getStripeServerData().paymentMethodsConfig;
+	const config = getStripeServerData()?.paymentMethodsConfig;
 	const reusablePaymentMethods = Object.keys( config ).filter(
 		( method ) => config[ method ].isReusable
 	);
@@ -223,8 +221,8 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
 	return (
-		paymentMethodsConfig.link !== undefined &&
-		paymentMethodsConfig.card !== undefined
+		paymentMethodsConfig?.link !== undefined &&
+		paymentMethodsConfig?.card !== undefined
 	);
 };
 
@@ -237,12 +235,12 @@ export const isLinkEnabled = ( paymentMethodsConfig ) => {
  * @return {Array} Array of payment method types to use with intent.
  */
 export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
-	const paymentMethodsConfig = getStripeServerData().paymentMethodsConfig;
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( paymentMethodType === null ) {
 		if (
-			getStripeServerData().isCheckout ||
-			getStripeServerData().isOrderPay
+			getStripeServerData()?.isCheckout ||
+			getStripeServerData()?.isOrderPay
 		) {
 			return Object.keys( paymentMethodsConfig || {} );
 		}
@@ -262,7 +260,7 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 };
 
 function shouldIncludeTerms() {
-	if ( getStripeServerData().cartContainsSubscription ) {
+	if ( getStripeServerData()?.cartContainsSubscription ) {
 		return true;
 	}
 
@@ -326,8 +324,8 @@ export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
  * @return {string} Stripe payment method type
  */
 export const getSelectedUPEGatewayPaymentMethod = () => {
-	const paymentMethodsConfig = getStripeServerData().paymentMethodsConfig;
-	const gatewayCardId = getStripeServerData().gatewayId;
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const gatewayCardId = getStripeServerData()?.gatewayId;
 	let selectedGatewayId = null;
 
 	// Handle payment method selection on the Checkout page or Add Payment Method page where class names differ.
@@ -400,15 +398,15 @@ export const getUpeSettings = () => {
 	upeSettings.terms = getUPETerms( showTerms );
 
 	if (
-		getStripeServerData().isCheckout &&
+		getStripeServerData()?.isCheckout &&
 		! (
-			getStripeServerData().isOrderPay ||
-			getStripeServerData().isChangingPayment
+			getStripeServerData()?.isOrderPay ||
+			getStripeServerData()?.isChangingPayment
 		)
 	) {
 		upeSettings.fields = {
 			billingDetails: getHiddenBillingFields(
-				getStripeServerData().enabledBillingFields
+				getStripeServerData()?.enabledBillingFields
 			),
 		};
 	}
@@ -485,8 +483,8 @@ export const showErrorCheckout = ( errorMessage ) => {
 export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 	let appearance =
 		isBlockCheckout === 'true'
-			? getStripeServerData().blocksAppearance
-			: getStripeServerData().appearance;
+			? getStripeServerData()?.blocksAppearance
+			: getStripeServerData()?.appearance;
 
 	// If appearance is empty, get a fresh copy and save it in a transient.
 	if ( ! appearance ) {
@@ -519,9 +517,9 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
  **/
 export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
 	const paymentMethodsConfig =
-		getStripeServerData().paymentMethodsConfig || {};
+		getStripeServerData()?.paymentMethodsConfig || {};
 	const paymentMethodType = upeElement.dataset.paymentMethodType;
-	return !! paymentMethodsConfig[ paymentMethodType ].countries.length;
+	return !! paymentMethodsConfig[ paymentMethodType ]?.countries.length;
 };
 
 /**
@@ -529,15 +527,15 @@ export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
  **/
 export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const paymentMethodsConfig =
-		getStripeServerData().paymentMethodsConfig || {};
+		getStripeServerData()?.paymentMethodsConfig || {};
 	const paymentMethodType = upeElement.dataset.paymentMethodType;
 	const supportedCountries =
 		paymentMethodsConfig[ paymentMethodType ].countries;
 
 	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
 	const billingCountry =
-		document.getElementById( 'billing_country' ).value ||
-		getStripeServerData().customerData.billing_country ||
+		document.getElementById( 'billing_country' )?.value ||
+		getStripeServerData()?.customerData?.billing_country ||
 		'';
 
 	const upeContainer = document.querySelector(
