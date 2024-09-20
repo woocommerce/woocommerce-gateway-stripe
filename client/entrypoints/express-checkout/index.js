@@ -213,18 +213,22 @@ jQuery( function ( $ ) {
 				event.resolve( clickOptions );
 			} );
 
-			eceButton.on( 'shippingaddresschange', async ( event ) =>
-				shippingAddressChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingaddresschange',
+				async ( event ) =>
+					await shippingAddressChangeHandler( api, event, elements )
 			);
 
-			eceButton.on( 'shippingratechange', async ( event ) =>
-				shippingRateChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingratechange',
+				async ( event ) =>
+					await shippingRateChangeHandler( api, event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
 
-				return onConfirmHandler(
+				return await onConfirmHandler(
 					api,
 					api.getStripe(),
 					elements,
@@ -235,7 +239,7 @@ jQuery( function ( $ ) {
 				);
 			} );
 
-			eceButton.on( 'cancel', async () => {
+			eceButton.on( 'cancel', () => {
 				wcStripeECE.paymentAborted = true;
 				onCancelHandler();
 			} );
