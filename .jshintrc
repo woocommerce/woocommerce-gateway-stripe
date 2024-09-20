@@ -13,6 +13,9 @@
 
 	"browser": true,
 
+	"mocha": true,
+	"jasmine": true,
+
 	"globals": {
 		"_": false,
 		"Backbone": false,
