@@ -22,7 +22,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 *
 	 * @var string
 	 */
-	protected $type = 'sepa';
+	protected $type = WC_Stripe_Payment_Methods::SEPA;
 
 	/**
 	 * Stores SEPA payment token data.

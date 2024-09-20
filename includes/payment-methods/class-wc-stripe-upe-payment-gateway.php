@@ -142,7 +142,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
-		$is_sofort_enabled       = in_array( 'sofort', $enabled_payment_methods, true );
+		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
@@ -2064,7 +2064,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'client' => 'web',
 				],
 			];
-		} elseif ( 'klarna' === $selected_payment_type ) {
+		} elseif ( WC_Stripe_Payment_Methods::KLARNA === $selected_payment_type ) {
 			$preferred_locale = WC_Stripe_Helper::get_klarna_preferred_locale(
 				get_locale(),
 				$order->get_billing_country()
@@ -2072,7 +2072,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( ! empty( $preferred_locale ) ) {
 				$payment_method_options = [
-					'klarna' => [
+					WC_Stripe_Payment_Methods::KLARNA => [
 						'preferred_locale' => $preferred_locale,
 					],
 				];

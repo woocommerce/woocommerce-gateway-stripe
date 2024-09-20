@@ -272,7 +272,7 @@ class WC_Stripe_Payment_Tokens {
 					// - APM tokens from before Split PE was in place.
 					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
 					if (
-						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
 						str_starts_with( $token->get_token(), 'src_' )
 					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
@@ -366,7 +366,7 @@ class WC_Stripe_Payment_Tokens {
 		$type = $payment_token->get_type();
 		if ( 'CC' === $type ) {
 			return WC_Stripe_Payment_Methods::CARD;
-		} elseif ( 'sepa' === $type ) {
+		} elseif ( WC_Stripe_Payment_Methods::SEPA === $type ) {
 			return $payment_token->get_payment_method_type();
 		} else {
 			return $type;
@@ -384,7 +384,7 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
 		switch ( strtolower( $payment_token->get_type() ) ) {
-			case 'sepa':
+			case WC_Stripe_Payment_Methods::SEPA:
 				$item['method']['last4'] = $payment_token->get_last4();
 				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 				break;

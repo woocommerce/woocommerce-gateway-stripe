@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'sofort';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::SOFORT;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Sofort::class;
 

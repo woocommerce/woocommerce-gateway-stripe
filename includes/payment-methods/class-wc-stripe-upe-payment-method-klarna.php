@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'klarna';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
 	 * Constructor for giropay payment method

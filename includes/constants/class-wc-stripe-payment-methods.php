@@ -14,6 +14,7 @@ class WC_Stripe_Payment_Methods {
 	const EPS               = 'eps';
 	const GIROPAY           = 'giropay';
 	const IDEAL             = 'ideal';
+	const KLARNA            = 'klarna';
 	const LINK              = 'link';
 	const MULTIBANCO        = 'multibanco';
 	const OXXO              = 'oxxo';
