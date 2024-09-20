@@ -71,7 +71,7 @@ class WC_Stripe_Admin_Notices {
 			echo wp_kses(
 				$notice['message'],
 				[
-					'a' => [
+					'a'      => [
 						'href'   => [],
 						'target' => [],
 					],
@@ -91,17 +91,17 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function get_payment_methods() {
 		return [
-			'alipay'     => 'WC_Gateway_Stripe_Alipay',
-			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'eps'        => 'WC_Gateway_Stripe_Eps',
-			'giropay'    => 'WC_Gateway_Stripe_Giropay',
-			'ideal'      => 'WC_Gateway_Stripe_Ideal',
-			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'p24'        => 'WC_Gateway_Stripe_P24',
-			'sepa'       => 'WC_Gateway_Stripe_Sepa',
-			'sofort'     => 'WC_Gateway_Stripe_Sofort',
-			'boleto'     => 'WC_Gateway_Stripe_Boleto',
-			'oxxo'       => 'WC_Gateway_Stripe_Oxxo',
+			'alipay'                              => 'WC_Gateway_Stripe_Alipay',
+			'bancontact'                          => 'WC_Gateway_Stripe_Bancontact',
+			'eps'                                 => 'WC_Gateway_Stripe_Eps',
+			'giropay'                             => 'WC_Gateway_Stripe_Giropay',
+			'ideal'                               => 'WC_Gateway_Stripe_Ideal',
+			WC_Stripe_Payment_Methods::MULTIBANCO => 'WC_Gateway_Stripe_Multibanco',
+			'p24'                                 => 'WC_Gateway_Stripe_P24',
+			'sepa'                                => 'WC_Gateway_Stripe_Sepa',
+			'sofort'                              => 'WC_Gateway_Stripe_Sofort',
+			WC_Stripe_Payment_Methods::BOLETO     => 'WC_Gateway_Stripe_Boleto',
+			WC_Stripe_Payment_Methods::OXXO       => 'WC_Gateway_Stripe_Oxxo',
 		];
 	}
 

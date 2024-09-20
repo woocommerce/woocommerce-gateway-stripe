@@ -5,6 +5,7 @@
  */
 class WC_Stripe_Payment_Methods {
 	const BOLETO      = 'boleto';
+	const CARD        = 'card';
 	const CASHAPP_PAY = 'cashapp';
 	const LINK        = 'link';
 	const MULTIBANCO  = 'multibanco';
