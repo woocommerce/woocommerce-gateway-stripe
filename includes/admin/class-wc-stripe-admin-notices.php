@@ -91,17 +91,17 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function get_payment_methods() {
 		return [
-			WC_Stripe_Payment_Methods::ALIPAY                              => 'WC_Gateway_Stripe_Alipay',
-			WC_Stripe_Payment_Methods::BANCONTACT                          => 'WC_Gateway_Stripe_Bancontact',
-			WC_Stripe_Payment_Methods::EPS                                 => 'WC_Gateway_Stripe_Eps',
-			WC_Stripe_Payment_Methods::GIROPAY                             => 'WC_Gateway_Stripe_Giropay',
-			WC_Stripe_Payment_Methods::IDEAL                               => 'WC_Gateway_Stripe_Ideal',
-			WC_Stripe_Payment_Methods::MULTIBANCO => 'WC_Gateway_Stripe_Multibanco',
-			WC_Stripe_Payment_Methods::P24                                 => 'WC_Gateway_Stripe_P24',
-			WC_Stripe_Payment_Methods::SEPA                                => 'WC_Gateway_Stripe_Sepa',
-			WC_Stripe_Payment_Methods::SOFORT                              => 'WC_Gateway_Stripe_Sofort',
-			WC_Stripe_Payment_Methods::BOLETO     => 'WC_Gateway_Stripe_Boleto',
-			WC_Stripe_Payment_Methods::OXXO       => 'WC_Gateway_Stripe_Oxxo',
+			WC_Stripe_Payment_Methods::ALIPAY     => WC_Gateway_Stripe_Alipay::class,
+			WC_Stripe_Payment_Methods::BANCONTACT => WC_Gateway_Stripe_Bancontact::class,
+			WC_Stripe_Payment_Methods::EPS        => WC_Gateway_Stripe_Eps::class,
+			WC_Stripe_Payment_Methods::GIROPAY    => WC_Gateway_Stripe_Giropay::class,
+			WC_Stripe_Payment_Methods::IDEAL      => WC_Gateway_Stripe_Ideal::class,
+			WC_Stripe_Payment_Methods::MULTIBANCO => WC_Gateway_Stripe_Multibanco::class,
+			WC_Stripe_Payment_Methods::P24        => WC_Gateway_Stripe_P24::class,
+			WC_Stripe_Payment_Methods::SEPA       => WC_Gateway_Stripe_Sepa::class,
+			WC_Stripe_Payment_Methods::SOFORT     => WC_Gateway_Stripe_Sofort::class,
+			WC_Stripe_Payment_Methods::BOLETO     => WC_Gateway_Stripe_Boleto::class,
+			WC_Stripe_Payment_Methods::OXXO       => WC_Gateway_Stripe_Oxxo::class,
 		];
 	}
 
