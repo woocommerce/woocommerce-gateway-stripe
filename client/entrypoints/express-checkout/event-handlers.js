@@ -126,7 +126,7 @@ export const onConfirmHandler = async (
 	}
 };
 
-export const onReadyHandler = async function ( { availablePaymentMethods } ) {
+export const onReadyHandler = function ( { availablePaymentMethods } ) {
 	if ( availablePaymentMethods ) {
 		const enabledMethods = Object.entries( availablePaymentMethods )
 			// eslint-disable-next-line no-unused-vars,@typescript-eslint/no-unused-vars
@@ -155,7 +155,7 @@ const unblockUI = () => {
 	jQuery.unblockUI();
 };
 
-export const onClickHandler = async function ( { expressPaymentType } ) {
+export const onClickHandler = function ( { expressPaymentType } ) {
 	blockUI();
 	trackExpressCheckoutButtonClick(
 		expressPaymentType,

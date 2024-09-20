@@ -12,7 +12,9 @@ export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
 	};
 
 	const event = expressPaymentTypeEvents[ paymentMethod ];
-	if ( ! event ) return;
+	if ( ! event ) {
+		return;
+	}
 
 	recordEvent( event, { source } );
 };
@@ -27,7 +29,9 @@ export const trackExpressCheckoutButtonLoad = debounce(
 
 		for ( const paymentMethod of paymentMethods ) {
 			const event = expressPaymentTypeEvents[ paymentMethod ];
-			if ( ! event ) continue;
+			if ( ! event ) {
+				continue;
+			}
 
 			recordEvent( event, { source } );
 		}
