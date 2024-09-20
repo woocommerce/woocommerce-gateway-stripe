@@ -419,7 +419,10 @@ class WC_Stripe_Admin_Notices {
 				case '3ds':
 					update_option( 'wc_stripe_show_3ds_notice', 'no' );
 					break;
-				case WC_Stripe_Payment_Methods::SOFORT:
+				case 'sofort':
+					update_option( 'wc_stripe_show_sofort_notice', 'no' );
+					break;
+				case 'sofort':
 					update_option( 'wc_stripe_show_sofort_upe_notice', 'no' );
 					break;
 				case 'sca':
