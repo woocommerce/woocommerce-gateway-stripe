@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'afterpay_clearpay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
 
 	/**
 	 * Constructor for afterpay / clearpay payment method

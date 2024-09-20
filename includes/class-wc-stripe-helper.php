@@ -492,7 +492,7 @@ class WC_Stripe_Helper {
 			$payment_method_ids = array_map(
 				function( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
-						return 'card';
+						return WC_Stripe_Payment_Methods::CARD;
 					} else {
 						return str_replace( 'stripe_', '', $payment_method_id );
 					}
@@ -521,7 +521,7 @@ class WC_Stripe_Helper {
 				},
 				$payment_method_classes
 			);
-			$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
+			$payment_method_ids = array_merge( [ WC_Stripe_Payment_Methods::CARD ], $payment_method_ids );
 		}
 
 		return $payment_method_ids;
@@ -556,7 +556,7 @@ class WC_Stripe_Helper {
 		$is_stripe_enabled = self::get_settings( null, 'enabled' );
 
 		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ 'card' ] : [];
+		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ WC_Stripe_Payment_Methods::CARD ] : [];
 
 		$payment_methods                   = self::get_legacy_payment_methods();
 		$mapped_enabled_payment_method_ids = [];
@@ -583,7 +583,7 @@ class WC_Stripe_Helper {
 		$payment_methods = self::get_legacy_payment_methods();
 
 		$payment_method_settings = [
-			'card' => [
+			WC_Stripe_Payment_Methods::CARD => [
 				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
 				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
 			],
@@ -673,7 +673,7 @@ class WC_Stripe_Helper {
 			$ordered_payment_method_ids = array_map(
 				function( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
-						return 'card';
+						return WC_Stripe_Payment_Methods::CARD;
 					} elseif ( 'stripe_sepa' === $payment_method_id ) {
 						return 'sepa_debit';
 					}
@@ -739,7 +739,7 @@ class WC_Stripe_Helper {
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
 			// For card, the legacy key is 'legacy_payments'.
-			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( 'card' === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
+			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( WC_Stripe_Payment_Methods::CARD === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
 			if ( $has_capability ) {
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}
@@ -790,7 +790,7 @@ class WC_Stripe_Helper {
 		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
 			$gateway_id = 0 === strpos( $payment_method_id, 'stripe' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
 
-			if ( 'card' === $payment_method_id ) {
+			if ( WC_Stripe_Payment_Methods::CARD === $payment_method_id ) {
 				$gateway_id = 'stripe';
 			}
 
@@ -1338,7 +1338,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		return 'card' === $payment_method->type;
+		return WC_Stripe_Payment_Methods::CARD === $payment_method->type;
 	}
 
 	/**

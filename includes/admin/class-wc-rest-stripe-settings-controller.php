@@ -301,7 +301,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		} else {
 			$ordered_payment_method_ids = array_map(
 				function ( $id ) {
-					if ( 'card' === $id ) {
+					if ( WC_Stripe_Payment_Methods::CARD === $id ) {
 						return 'stripe';
 					}
 					return 'stripe_' . $id;
@@ -584,7 +584,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
 
 		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
-		if ( 'card' === $payment_method_id ) {
+		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_id ) {
 			$this->gateway->update_option( 'title', $title );
 			$this->gateway->update_option( 'description', $description );
 			return new WP_REST_Response( [], 200 );

@@ -171,7 +171,7 @@ class WC_Stripe_Payment_Tokens {
 					$stripe_sources  = $stripe_customer->get_sources();
 
 					foreach ( $stripe_sources as $source ) {
-						if ( isset( $source->type ) && 'card' === $source->type ) {
+						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::CARD === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Payment_Token_CC();
 								$token->set_token( $source->id );
@@ -191,7 +191,7 @@ class WC_Stripe_Payment_Tokens {
 								unset( $stored_tokens[ $source->id ] );
 							}
 						} else {
-							if ( ! isset( $stored_tokens[ $source->id ] ) && 'card' === $source->object ) {
+							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
 								$token = new WC_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( 'stripe' );
@@ -365,7 +365,7 @@ class WC_Stripe_Payment_Tokens {
 	private function get_payment_method_type_from_token( $payment_token ) {
 		$type = $payment_token->get_type();
 		if ( 'CC' === $type ) {
-			return 'card';
+			return WC_Stripe_Payment_Methods::CARD;
 		} elseif ( 'sepa' === $type ) {
 			return $payment_token->get_payment_method_type();
 		} else {

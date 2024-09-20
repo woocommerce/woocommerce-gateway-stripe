@@ -950,7 +950,7 @@ class WC_Stripe_Intent_Controller {
 			return true;
 		}
 
-		return 'card' === $selected_payment_type && in_array( WC_Stripe_Payment_Methods::LINK, $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
+		return WC_Stripe_Payment_Methods::CARD === $selected_payment_type && in_array( WC_Stripe_Payment_Methods::LINK, $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
 	}
 
 	/**
@@ -1015,7 +1015,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
-			$payment_type   = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-type'] ?? 'card' ) );
+			$payment_type   = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-type'] ?? WC_Stripe_Payment_Methods::CARD ) );
 
 			if ( ! $payment_method ) {
 				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );

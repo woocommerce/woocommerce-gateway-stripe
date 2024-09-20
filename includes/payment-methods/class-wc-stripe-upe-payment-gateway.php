@@ -504,7 +504,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
+		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] );
 	}
 
 	/**
@@ -666,7 +666,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 
 				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
-				if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
+				if ( WC_Stripe_Payment_Methods::CARD === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
 					$request['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 				}
 
@@ -1518,7 +1518,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function is_prepaid_card( $payment_method ) {
 		return (
 			$payment_method
-			&& ( 'card' === $payment_method->type )
+			&& ( WC_Stripe_Payment_Methods::CARD === $payment_method->type )
 			&& 'prepaid' === $payment_method->card->funding
 		);
 	}
@@ -2051,7 +2051,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
-		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
+		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
@@ -2150,7 +2150,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// For card/stripe, the request arg is `wc-stripe-new-payment-method` and for our reusable APMs (i.e. bancontact) it's `wc-stripe_bancontact-new-payment-method`.
-		$save_payment_method_request_arg = sprintf( 'wc-stripe%s-new-payment-method', 'card' !== $payment_method_type ? '_' . $payment_method_type : '' );
+		$save_payment_method_request_arg = sprintf( 'wc-stripe%s-new-payment-method', WC_Stripe_Payment_Methods::CARD !== $payment_method_type ? '_' . $payment_method_type : '' );
 
 		// Don't save it if we don't have the data from the checkout checkbox for saving a payment method.
 		if ( ! isset( $_POST[ $save_payment_method_request_arg ] ) ) {
@@ -2494,7 +2494,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_upe_gateway_id_for_order( $payment_method ) {
 		$token_gateway_type = $payment_method->get_retrievable_type();
 
-		if ( 'card' !== $token_gateway_type ) {
+		if ( WC_Stripe_Payment_Methods::CARD !== $token_gateway_type ) {
 			return $this->payment_methods[ $token_gateway_type ]->id;
 		}
 

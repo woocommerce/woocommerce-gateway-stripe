@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'affirm';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::AFFIRM;
 
 	/**
 	 * Constructor for Affirm payment method
