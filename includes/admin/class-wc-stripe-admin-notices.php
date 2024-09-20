@@ -91,11 +91,11 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function get_payment_methods() {
 		return [
-			'alipay'                              => 'WC_Gateway_Stripe_Alipay',
-			'bancontact'                          => 'WC_Gateway_Stripe_Bancontact',
-			'eps'                                 => 'WC_Gateway_Stripe_Eps',
-			'giropay'                             => 'WC_Gateway_Stripe_Giropay',
-			'ideal'                               => 'WC_Gateway_Stripe_Ideal',
+			WC_Stripe_Payment_Methods::ALIPAY                              => 'WC_Gateway_Stripe_Alipay',
+			WC_Stripe_Payment_Methods::BANCONTACT                          => 'WC_Gateway_Stripe_Bancontact',
+			WC_Stripe_Payment_Methods::EPS                                 => 'WC_Gateway_Stripe_Eps',
+			WC_Stripe_Payment_Methods::GIROPAY                             => 'WC_Gateway_Stripe_Giropay',
+			WC_Stripe_Payment_Methods::IDEAL                               => 'WC_Gateway_Stripe_Ideal',
 			WC_Stripe_Payment_Methods::MULTIBANCO => 'WC_Gateway_Stripe_Multibanco',
 			'p24'                                 => 'WC_Gateway_Stripe_P24',
 			'sepa'                                => 'WC_Gateway_Stripe_Sepa',

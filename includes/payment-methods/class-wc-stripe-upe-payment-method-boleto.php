@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'boleto';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::BOLETO;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Boleto::class;
 
@@ -44,7 +44,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( 'boleto' === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses ) ) {
+		if ( WC_Stripe_Payment_Methods::BOLETO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses ) ) {
 			$allowed_statuses[] = 'on-hold';
 		}
 

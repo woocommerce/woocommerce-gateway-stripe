@@ -313,7 +313,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		$post_data             = [];
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
-		$post_data['type']     = 'multibanco';
+		$post_data['type']     = WC_Stripe_Payment_Methods::MULTIBANCO;
 		$post_data['owner']    = $this->get_owner_details( $order );
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 

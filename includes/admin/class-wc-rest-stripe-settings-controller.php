@@ -568,7 +568,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description' => $description,
 			];
 
-			if ( in_array( $payment_method_id, [ 'boleto' ], true ) ) {
+			if ( in_array( $payment_method_id, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
 				$settings['expiration'] = sanitize_text_field( $request->get_param( 'expiration' ) );
 			}
 

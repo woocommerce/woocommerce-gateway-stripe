@@ -625,7 +625,7 @@ class WC_Stripe_Helper {
 				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
 			];
 
-			if ( in_array( $gateway, [ 'boleto' ], true ) ) {
+			if ( in_array( $gateway, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
 				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
 			}
 
