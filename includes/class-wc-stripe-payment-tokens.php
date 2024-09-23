@@ -214,7 +214,7 @@ class WC_Stripe_Payment_Tokens {
 					$stripe_sources  = $stripe_customer->get_sources();
 
 					foreach ( $stripe_sources as $source ) {
-						if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {
+						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::SEPA_DEBIT === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Payment_Token_SEPA();
 								$token->set_token( $source->id );

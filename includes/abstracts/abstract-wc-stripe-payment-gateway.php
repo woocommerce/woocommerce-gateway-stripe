@@ -1720,7 +1720,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function setup_intent( $order, $prepared_source ) {
 		// SEPA Direct Debit payments do not require any customer action after the source has been created.
 		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
-		if ( 'sepa_debit' === $prepared_source->source_object->type ) {
+		if ( WC_Stripe_Payment_Methods::SEPA_DEBIT === $prepared_source->source_object->type ) {
 			return;
 		}
 
@@ -2276,7 +2276,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True if the source was successfully attached to the customer.
 	 */
 	private function maybe_attach_source_to_customer( $source, $customer = null ) {
-		if ( ! isset( $source->type ) || 'sepa_debit' !== $source->type ) {
+		if ( ! isset( $source->type ) || WC_Stripe_Payment_Methods::SEPA_DEBIT !== $source->type ) {
 			return false;
 		}
 

@@ -232,7 +232,7 @@ class WC_Stripe_Intent_Controller {
 
 			// SEPA Direct Debit payments do not require any customer action after the source has been created.
 			// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
-			if ( 'sepa_debit' === $source_object->type ) {
+			if ( WC_Stripe_Payment_Methods::SEPA_DEBIT === $source_object->type ) {
 				$response = [
 					'status' => 'success',
 				];
@@ -946,7 +946,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
+		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
 			return true;
 		}
 

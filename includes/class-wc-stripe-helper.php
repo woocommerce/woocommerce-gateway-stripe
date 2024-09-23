@@ -675,7 +675,7 @@ class WC_Stripe_Helper {
 					if ( 'stripe' === $payment_method_id ) {
 						return WC_Stripe_Payment_Methods::CARD;
 					} elseif ( 'stripe_sepa' === $payment_method_id ) {
-						return 'sepa_debit';
+						return WC_Stripe_Payment_Methods::SEPA_DEBIT;
 					}
 					return str_replace( 'stripe_', '', $payment_method_id );
 				},

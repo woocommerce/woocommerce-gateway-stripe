@@ -20,6 +20,7 @@ class WC_Stripe_Payment_Methods {
 	const OXXO              = 'oxxo';
 	const P24               = 'p24';
 	const SEPA              = 'sepa';
+	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
 
