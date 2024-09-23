@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Fix mandate creation for subscriptions and saved payment methods.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
 * Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.

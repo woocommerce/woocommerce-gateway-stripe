@@ -23,16 +23,9 @@ export const getErrorMessageFromNotice = ( notice ) => {
  * @param {string} key The object property key.
  * @return {*|null} Value of the object prop or null.
  */
-export const getExpressCheckoutData = ( key ) => {
-	if (
-		// eslint-disable-next-line camelcase
-		! wc_stripe_express_checkout_params ||
-		! wc_stripe_express_checkout_params[ key ]
-	) {
-		return null;
-	}
-	return wc_stripe_express_checkout_params[ key ];
-};
+export const getExpressCheckoutData = ( key ) =>
+	// eslint-disable-next-line camelcase
+	wc_stripe_express_checkout_params[ key ] ?? null;
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
@@ -96,15 +89,12 @@ export const getDefaultBorderRadius = () => {
  * Currently only configures border radius for the buttons.
  */
 export const getExpressCheckoutButtonAppearance = () => {
-	const buttonSettings = getExpressCheckoutData( 'button' );
-	let borderRadiusPx = getDefaultBorderRadius();
-	if ( buttonSettings.radius ) {
-		borderRadiusPx = buttonSettings.radius;
-	}
-
 	return {
 		variables: {
-			borderRadius: `${ borderRadiusPx }px`,
+			borderRadius: `${
+				getExpressCheckoutData( 'button' )?.radius ||
+				getDefaultBorderRadius()
+			}px`,
 			spacingUnit: '6px',
 		},
 	};
@@ -116,7 +106,8 @@ export const getExpressCheckoutButtonAppearance = () => {
 export const getExpressCheckoutButtonStyleSettings = () => {
 	const buttonSettings = getExpressCheckoutData( 'button' );
 
-	const mapWooPaymentsThemeToButtonTheme = ( buttonType, theme ) => {
+	// Maps the WC Stripe theme from settings to the button theme.
+	const mapButtonSettingToStripeButtonTheme = ( buttonType, theme ) => {
 		switch ( theme ) {
 			case 'dark':
 				return 'black';
@@ -133,18 +124,10 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		}
 	};
 
-	let googlePayType;
-	let applePayType;
-	if ( buttonSettings.type === 'default' ) {
-		googlePayType = 'plain';
-		applePayType = 'plain';
-	} else if ( buttonSettings.type ) {
-		googlePayType = buttonSettings.type;
-		applePayType = buttonSettings.type;
-	} else {
-		googlePayType = 'buy';
-		applePayType = 'buy';
-	}
+	const buttonMethodType =
+		buttonSettings?.type === 'default'
+			? 'plain'
+			: buttonSettings?.type ?? 'buy';
 
 	return {
 		paymentMethods: {
@@ -156,28 +139,22 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		},
 		layout: { overflow: 'never' },
 		buttonTheme: {
-			googlePay: mapWooPaymentsThemeToButtonTheme(
+			googlePay: mapButtonSettingToStripeButtonTheme(
 				'googlePay',
-				buttonSettings.theme ? buttonSettings.theme : 'black'
+				buttonSettings?.theme ?? 'black'
 			),
-			applePay: mapWooPaymentsThemeToButtonTheme(
+			applePay: mapButtonSettingToStripeButtonTheme(
 				'applePay',
-				buttonSettings.theme ? buttonSettings.theme : 'black'
+				buttonSettings?.theme ?? 'black'
 			),
 		},
 		buttonType: {
-			googlePay: googlePayType,
-			applePay: applePayType,
+			googlePay: buttonMethodType,
+			applePay: buttonMethodType,
 		},
 		// Allowed height must be 40px to 55px.
 		buttonHeight: Math.min(
-			Math.max(
-				parseInt(
-					buttonSettings.height ? buttonSettings.height : '48',
-					10
-				),
-				40
-			),
+			Math.max( parseInt( buttonSettings?.height ?? '48', 10 ), 40 ),
 			55
 		),
 	};

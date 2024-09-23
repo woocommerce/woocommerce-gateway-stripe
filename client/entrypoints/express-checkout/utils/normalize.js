@@ -1,3 +1,5 @@
+/* global wcStripeFraudPreventionToken */
+
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
  *
@@ -7,10 +9,7 @@
  */
 export const normalizeLineItems = ( displayItems ) => {
 	return displayItems.map( ( displayItem ) => {
-		let amount = displayItem.value;
-		if ( displayItem.amount ) {
-			amount = displayItem.amount;
-		}
+		let amount = displayItem?.amount ?? displayItem?.value;
 		if ( displayItem.key === 'total_discount' ) {
 			amount = -amount;
 		}
@@ -35,7 +34,6 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
 	const shipping = event?.shippingAddress ?? {};
-	const fraudPreventionTokenValue = window.wcStripeFraudPreventionToken ?? '';
 
 	const phone =
 		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
@@ -75,7 +73,8 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		'wc-stripe-payment-method': paymentMethodId,
 		payment_request_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
-		'wc-stripe-fraud-prevention-token': fraudPreventionTokenValue,
+		'wc-stripe-fraud-prevention-token': wcStripeFraudPreventionToken ?? '',
+		'wc-stripe-is-deferred-intent': true,
 	};
 };
 
@@ -93,8 +92,7 @@ export const normalizePayForOrderData = ( event, paymentMethodId ) => {
 		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
 		'wc-stripe-payment-method': paymentMethodId,
 		express_payment_type: event?.expressPaymentType,
-		'wc-stripe-fraud-prevention-token':
-			window.wcStripeFraudPreventionToken ?? '',
+		'wc-stripe-fraud-prevention-token': wcStripeFraudPreventionToken ?? '',
 	};
 };
 

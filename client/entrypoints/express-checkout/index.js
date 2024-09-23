@@ -1,5 +1,4 @@
-/*global wc_add_to_cart_variation_params, wcStripeExpressCheckoutPayForOrderParams */
-
+/*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -22,6 +21,7 @@ import {
 	shippingRateChangeHandler,
 } from './event-handlers';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getAddToCartVariationParams } from 'wcstripe/utils';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -51,26 +51,34 @@ jQuery( function ( $ ) {
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
-		'woocommerce-payments'
+		'woocommerce-gateway-stripe'
 	);
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
 
-		getElements: () =>
-			$(
-				'.wc-stripe-payment-request-wrapper,#wc-stripe-express-checkout-button-separator'
-			),
+		getElements: () => $( '#wc-stripe-express-checkout-element' ),
+
+		getButtonSeparator: () =>
+			$( '#wc-stripe-express-checkout-button-separator' ),
 
 		show: () => wcStripeECE.getElements().show(),
 
-		hide: () => wcStripeECE.getElements().hide(),
+		hide: () => {
+			wcStripeECE.getElements().hide();
+			wcStripeECE.getButtonSeparator().hide();
+		},
 
-		showButton: ( eceButton ) => {
-			if ( $( '#wc-stripe-express-checkout-button' ).length ) {
-				wcStripeECE.show();
-				eceButton.mount( '#wc-stripe-express-checkout-button' );
+		renderButton: ( eceButton ) => {
+			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
+				eceButton.mount( '#wc-stripe-express-checkout-element' );
 			}
+		},
+
+		productHasDepositOption() {
+			return !! $( 'form' ).has(
+				'input[name=wc_deposit_option],input[name=wc_deposit_payment_plan]'
+			).length;
 		},
 
 		/**
@@ -102,7 +110,8 @@ jQuery( function ( $ ) {
 				return options.displayItems
 					.filter(
 						( i ) =>
-							i.label === __( 'Shipping', 'woocommerce-payments' )
+							i.label ===
+							__( 'Shipping', 'woocommerce-gateway-stripe' )
 					)
 					.map( ( i ) => ( {
 						id: `rate-${ i.label }`,
@@ -135,7 +144,17 @@ jQuery( function ( $ ) {
 				getExpressCheckoutButtonStyleSettings()
 			);
 
-			wcStripeECE.showButton( eceButton );
+			wcStripeECE.renderButton( eceButton );
+
+			eceButton.on( 'loaderror', () => {
+				wcStripeECEError = __(
+					'The cart is incompatible with express checkout.',
+					'woocommerce-gateway-stripe'
+				);
+				if ( ! document.getElementById( 'wc-stripe-woopay-button' ) ) {
+					wcStripeECE.getButtonSeparator().hide();
+				}
+			} );
 
 			eceButton.on( 'click', function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -154,10 +173,13 @@ jQuery( function ( $ ) {
 						) {
 							// eslint-disable-next-line no-alert
 							window.alert(
-								wc_add_to_cart_variation_params.i18n_unavailable_text ||
+								// eslint-disable-next-line camelcase
+								getAddToCartVariationParams(
+									'i18n_unavailable_text'
+								) ||
 									__(
 										'Sorry, this product is unavailable. Please choose a different combination.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									)
 							);
 						} else {
@@ -165,7 +187,7 @@ jQuery( function ( $ ) {
 							window.alert(
 								__(
 									'Please select your product options before proceeding.',
-									'woocommerce-payments'
+									'woocommerce-gateway-stripe'
 								)
 							);
 						}
@@ -194,18 +216,22 @@ jQuery( function ( $ ) {
 				event.resolve( clickOptions );
 			} );
 
-			eceButton.on( 'shippingaddresschange', async ( event ) =>
-				shippingAddressChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingaddresschange',
+				async ( event ) =>
+					await shippingAddressChangeHandler( api, event, elements )
 			);
 
-			eceButton.on( 'shippingratechange', async ( event ) =>
-				shippingRateChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingratechange',
+				async ( event ) =>
+					await shippingRateChangeHandler( api, event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
 
-				return onConfirmHandler(
+				return await onConfirmHandler(
 					api,
 					api.getStripe(),
 					elements,
@@ -216,12 +242,24 @@ jQuery( function ( $ ) {
 				);
 			} );
 
-			eceButton.on( 'cancel', async () => {
+			eceButton.on( 'cancel', () => {
 				wcStripeECE.paymentAborted = true;
 				onCancelHandler();
 			} );
 
-			eceButton.on( 'ready', onReadyHandler );
+			eceButton.on( 'ready', ( onReadyParams ) => {
+				onReadyHandler( onReadyParams );
+
+				if (
+					onReadyParams.availablePaymentMethods &&
+					Object.values(
+						onReadyParams.availablePaymentMethods
+					).filter( Boolean ).length
+				) {
+					wcStripeECE.show();
+					wcStripeECE.getButtonSeparator().show();
+				}
+			} );
 
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.attachProductPageEventListeners( elements );
@@ -251,6 +289,11 @@ jQuery( function ( $ ) {
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {
+				let requestPhone = false;
+				if ( getExpressCheckoutData( 'checkout' ).needs_payer_phone ) {
+					requestPhone = getExpressCheckoutData( 'checkout' )
+						.needs_payer_phone;
+				}
 				// Cart and Checkout page specific initialization.
 				// TODO: Use real cart data.
 				wcStripeECE.startExpressCheckoutElement( {
@@ -258,6 +301,7 @@ jQuery( function ( $ ) {
 					total: 1223,
 					currency: 'usd',
 					appearance: getExpressCheckoutButtonAppearance(),
+					requestPhone,
 					displayItems: [ { label: 'Shipping', amount: 100 } ],
 				} );
 			}
@@ -406,6 +450,36 @@ jQuery( function ( $ ) {
 							} );
 					}, 250 )
 				);
+		},
+
+		reInitExpressCheckoutElement: ( response ) => {
+			getExpressCheckoutData( 'product' ).requestShipping =
+				response.requestShipping;
+			getExpressCheckoutData( 'product' ).total = response.total;
+			getExpressCheckoutData( 'product' ).displayItems =
+				response.displayItems;
+			wcStripeECE.init();
+		},
+
+		blockExpressCheckoutButton: () => {
+			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
+			// blockUI.isBlocked is either undefined or 0 when element is not blocked
+			if (
+				$( '#wc-stripe-express-checkout-element' ).data(
+					'blockUI.isBlocked'
+				)
+			) {
+				return;
+			}
+
+			$( '#wc-stripe-express-checkout-element' ).block( {
+				message: null,
+			} );
+		},
+
+		unblockExpressCheckoutButton: () => {
+			wcStripeECE.show();
+			$( '#wc-stripe-express-checkout-element' ).unblock();
 		},
 	};
 
