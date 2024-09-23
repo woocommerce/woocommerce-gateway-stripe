@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Dev - Improves the readability of the redirect URL generation code (UPE).
 * Add - Introduce a new meta data that persists the status of a dispute.
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
