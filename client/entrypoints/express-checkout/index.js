@@ -50,7 +50,7 @@ jQuery( function ( $ ) {
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
-		'woocommerce-payments'
+		'woocommerce-gateway-stripe'
 	);
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
@@ -109,7 +109,8 @@ jQuery( function ( $ ) {
 				return options.displayItems
 					.filter(
 						( i ) =>
-							i.label === __( 'Shipping', 'woocommerce-payments' )
+							i.label ===
+							__( 'Shipping', 'woocommerce-gateway-stripe' )
 					)
 					.map( ( i ) => ( {
 						id: `rate-${ i.label }`,
@@ -147,7 +148,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'loaderror', () => {
 				wcStripeECEError = __(
 					'The cart is incompatible with express checkout.',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				);
 				if ( ! document.getElementById( 'wc-stripe-woopay-button' ) ) {
 					wcStripeECE.getButtonSeparator().hide();
@@ -177,7 +178,7 @@ jQuery( function ( $ ) {
 								) ||
 									__(
 										'Sorry, this product is unavailable. Please choose a different combination.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									)
 							);
 						} else {
@@ -185,7 +186,7 @@ jQuery( function ( $ ) {
 							window.alert(
 								__(
 									'Please select your product options before proceeding.',
-									'woocommerce-payments'
+									'woocommerce-gateway-stripe'
 								)
 							);
 						}

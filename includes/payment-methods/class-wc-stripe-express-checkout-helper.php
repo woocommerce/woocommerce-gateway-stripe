@@ -1003,7 +1003,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Checks if this is the checkout page or content contains a cart block.
+	 * Checks if this is the checkout page or content contains a checkout block.
 	 *
 	 * @return boolean
 	 */

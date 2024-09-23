@@ -119,7 +119,7 @@ export const onConfirmHandler = async (
 		} else {
 			errorMessage = __(
 				'There was a problem processing the order.',
-				'woocommerce-payments'
+				'woocommerce-gateway-stripe'
 			);
 		}
 		return abortPayment( event, errorMessage );
