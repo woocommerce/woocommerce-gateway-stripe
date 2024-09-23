@@ -4,7 +4,7 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-} from 'entrypoints/express-checkout/utils';
+} from 'wcstripe/express-checkout/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
