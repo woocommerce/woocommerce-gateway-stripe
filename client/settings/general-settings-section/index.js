@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
-import LegacyExperienceTransitionNotice from '../notices/legacy-experience-transition';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
@@ -34,7 +33,7 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
 		false
 	);
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
 	const onChangeDisplayOrder = ( isChanging, data = null ) => {
@@ -47,10 +46,6 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 
 	return (
 		<>
-			<LegacyExperienceTransitionNotice
-				isUpeEnabled={ isUpeEnabled }
-				setIsUpeEnabled={ setIsUpeEnabled }
-			/>
 			<Card>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading

@@ -1,5 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
+import '@wordpress/notices';
 import { React } from 'react';
 import { Card, Button, ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
@@ -15,10 +16,6 @@ const NewPill = styled( Pill )`
 	border-color: #674399;
 	color: #674399;
 	margin-bottom: 13px;
-`;
-
-const BannerCard = styled( Card )`
-	margin-bottom: 12px;
 `;
 
 const CardInner = styled.div`
@@ -287,9 +284,7 @@ const PromotionalBannerSection = ( {
 
 	return (
 		BannerContent && (
-			<BannerCard data-testid="promotional-banner-card">
-				{ BannerContent }
-			</BannerCard>
+			<Card data-testid="promotional-banner-card">{ BannerContent }</Card>
 		)
 	);
 };
