@@ -109,17 +109,17 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 		return apply_filters(
 			'wc_stripe_alipay_supported_currencies',
 			[
-				'EUR',
-				'AUD',
-				'CAD',
-				'CNY',
-				'GBP',
-				'HKD',
-				'JPY',
-				'NZD',
-				'SGD',
-				'USD',
-				'MYR',
+				WC_Stripe_Currency_Code::EURO,
+				WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+				WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+				WC_Stripe_Currency_Code::CHINESE_YUAN,
+				WC_Stripe_Currency_Code::POUND_STERLING,
+				WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
+				WC_Stripe_Currency_Code::JAPANESE_YEN,
+				WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+				WC_Stripe_Currency_Code::SINGAPORE_DOLLAR,
+				WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+				WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT,
 			]
 		);
 	}

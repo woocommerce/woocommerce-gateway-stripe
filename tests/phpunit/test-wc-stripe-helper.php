@@ -265,9 +265,9 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_stripe_amount(): array {
 		return [
-			'USD'              => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR              => [
 				'total'    => 100,
-				'currency' => 'USD',
+				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected' => 10000,
 			],
 			'JPY'              => [

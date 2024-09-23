@@ -509,7 +509,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'MXN', true );
 
 		// This is a currency supported by all of the BNPLs.
-		$stripe_account_currency = 'USD';
+		$stripe_account_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$affirm_method   = $this->mock_payment_methods['affirm'];
 		$afterpay_method = $this->mock_payment_methods['afterpay_clearpay'];
@@ -536,14 +536,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
 				'country' => 'US',
-				'default_currency' => 'USD',
+				'default_currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			]
 		);
 
-		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'USD', true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, true );
 
 		// This is a currency supported by all of the BNPLs.
-		$stripe_account_currency = 'USD';
+		$stripe_account_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		// Bypass the currency limits check while we're testing domestic restrictions.
 		$this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
@@ -558,7 +558,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	public function test_bnpl_is_unavailable_when_not_within_currency_limits() {
-		$store_currency = 'USD';
+		$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 0.3 );
 
@@ -570,7 +570,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	public function test_bnpl_is_available_when_within_currency_limits() {
-		$store_currency = 'USD';
+		$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		// We're testing the is_inside_currency_limits() function so don't want to mock it.
 		$this->reset_payment_method_mocks( [ 'is_inside_currency_limits' ] );
@@ -584,7 +584,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	public function test_bnpl_is_available_when_order_is_anmount_is_zero() {
-		$store_currency = 'USD';
+		$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		// We're testing the is_inside_currency_limits() function so don't want to mock it.
 		$this->reset_payment_method_mocks( [ 'is_inside_currency_limits' ] );
@@ -606,7 +606,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR';
+			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
