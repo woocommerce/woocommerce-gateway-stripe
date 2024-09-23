@@ -8,7 +8,7 @@ import {
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
-} from './utils';
+} from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
 	onCancelHandler,
