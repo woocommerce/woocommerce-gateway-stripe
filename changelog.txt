@@ -2,12 +2,14 @@
 
 = 8.8.0 - xxxx-xx-xx =
 * Dev - Improves the readability of the redirect URL generation code (UPE).
+* Add - Introduce a new meta data that persists the status of a dispute.
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
 * Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
+* Fix - Corrected translation text domain in UPE checkout integration.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
