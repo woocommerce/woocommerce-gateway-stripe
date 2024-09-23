@@ -543,16 +543,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
+
 			if ( $this->should_show_save_option() ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
+
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
 				$this->saved_payment_methods();
 			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

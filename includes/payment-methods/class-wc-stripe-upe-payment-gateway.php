@@ -606,6 +606,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
