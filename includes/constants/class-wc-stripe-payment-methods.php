@@ -36,6 +36,17 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
+	 * Payment methods that are considered as BNPL (Buy Now, Pay Later) payment methods.
+	 *
+	 * @var array
+	 */
+	const BNPL_PAYMENT_METHODS = [
+		self::AFFIRM,
+		self::AFTERPAY_CLEARPAY,
+		self::KLARNA,
+	];
+
+	/**
 	 * Payment methods that are considered as wallet payment methods.
 	 *
 	 * @var array
