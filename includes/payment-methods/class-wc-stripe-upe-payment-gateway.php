@@ -859,47 +859,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
-			$redirect = $this->get_return_url( $order );
+			$return_url = $this->get_return_url( $order );
 
-			/**
-			 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
-			 *
-			 * - Voucher payments (Boleto or Oxxo or Multibanco) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
-			 * - Wallet payments (CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
-			 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
-			 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
-			 */
+			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco' ], $payment_intent->payment_method_types ) ) !== 0 ) {
-					// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
-					$redirect = sprintf(
-						'#wc-stripe-voucher-%s:%s:%s:%s',
-						$order_id,
-						$payment_information['selected_payment_type'],
-						$payment_intent->client_secret,
-						rawurlencode( $redirect )
-					);
-				} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
-					// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
-					$redirect = sprintf(
-						'#wc-stripe-wallet-%s:%s:%s:%s:%s',
-						$order_id,
-						$payment_information['selected_payment_type'],
-						$payment_intent->object,
-						$payment_intent->client_secret,
-						rawurlencode( $redirect )
-					);
-				} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
-					$redirect = $payment_intent->next_action->{$payment_intent->next_action->type}->url;
-				} else {
-					$redirect = sprintf(
-						'#wc-stripe-confirm-%s:%s:%s:%s',
-						$payment_needed ? 'pi' : 'si',
-						$order_id,
-						$payment_intent->client_secret,
-						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
-					);
-
+				$redirect                      = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
+				$is_wallet_or_voucher_method   = isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco', 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0;
+				$contains_redirect_next_action = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
+				if ( ! $is_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
 				}
@@ -910,6 +877,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
 				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 				$order->save();
+			} else {
+				$redirect = $return_url;
 			}
 
 			if ( $payment_needed ) {
@@ -2046,6 +2015,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
+			'has_subscription'              => $this->has_subscription( $order->get_id() ),
 		];
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -2537,6 +2507,54 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function is_refund_request() {
 		return isset( $_POST['action'] ) && 'woocommerce_refund_line_items' === $_POST['action']; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+	}
+
+	/**
+	 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
+	 *
+	 * - Voucher payments (Boleto or Oxxo or Multibanco) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
+	 * - Wallet payments (CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
+	 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
+	 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
+	 *
+	 * @param $return_url string The return URL.
+	 * @param $payment_intent object The payment intent object.
+	 * @param $payment_information array The payment information.
+	 * @param $order WC_Order The order.
+	 * @param $payment_needed bool Whether payment is needed.
+	 * @return string The redirect URL.
+	 */
+	private function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
+		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
+			return sprintf(
+				'#wc-stripe-voucher-%s:%s:%s:%s',
+				$order->get_id(),
+				$payment_information['selected_payment_type'],
+				$payment_intent->client_secret,
+				rawurlencode( $return_url )
+			);
+		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
+			return sprintf(
+				'#wc-stripe-wallet-%s:%s:%s:%s:%s',
+				$order->get_id(),
+				$payment_information['selected_payment_type'],
+				$payment_intent->object,
+				$payment_intent->client_secret,
+				rawurlencode( $return_url )
+			);
+		} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
+			return $payment_intent->next_action->{$payment_intent->next_action->type}->url;
+		}
+
+		return sprintf(
+			'#wc-stripe-confirm-%s:%s:%s:%s',
+			$payment_needed ? 'pi' : 'si',
+			$order->get_id(),
+			$payment_intent->client_secret,
+			wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+		);
 	}
 
 	/**

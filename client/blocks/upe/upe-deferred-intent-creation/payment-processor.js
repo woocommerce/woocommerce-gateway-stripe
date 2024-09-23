@@ -139,7 +139,7 @@ const PaymentProcessor = ( {
 							type: 'error',
 							message: __(
 								'Your payment information is incomplete.',
-								'woocommerce-payments'
+								'woocommerce-gateway-stripe'
 							),
 						};
 					}
