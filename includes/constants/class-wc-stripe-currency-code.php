@@ -18,6 +18,7 @@ class WC_Stripe_Currency_Code {
 	const BARBADOS_DOLLAR                         = 'BBD'; // Barbados dollar.
 	const BANGLADESHI_TAKA                        = 'BDT'; // Bangladeshi taka.
 	const BULGARIAN_LEV                           = 'BGN'; // Bulgarian lev.
+	const BAHRAINI_DINAR                          = 'BHD'; // Bahraini dinar.
 	const BURUNDIAN_FRANC                         = 'BIF'; // Burundian franc.
 	const BERMUDIAN_DOLLAR                        = 'BMD'; // Bermudian dollar.
 	const BRUNEI_DOLLAR                           = 'BND'; // Brunei dollar.
@@ -61,6 +62,7 @@ class WC_Stripe_Currency_Code {
 	const INDIAN_RUPEE                            = 'INR'; // Indian rupee.
 	const ICELANDIC_KRONA                         = 'ISK'; // Icelandic króna.
 	const JAMAICAN_DOLLAR                         = 'JMD'; // Jamaican dollar.
+	const JORDANIAN_DINAR                         = 'JOD'; // Jordanian dinar.
 	const JAPANESE_YEN                            = 'JPY'; // Japanese yen.
 	const KENYAN_SHILLING                         = 'KES'; // Kenyan shilling.
 	const KYRGYZSTANI_SOM                         = 'KGS'; // Kyrgyzstani som.

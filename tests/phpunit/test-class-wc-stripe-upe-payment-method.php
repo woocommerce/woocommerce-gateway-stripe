@@ -506,7 +506,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
 		// $this->set_mock_payment_method_return_value( 'is_inside_currency_limits', true );
 
-		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'MXN', true );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::MEXICAN_PESO, true );
 
 		// This is a currency supported by all of the BNPLs.
 		$stripe_account_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
