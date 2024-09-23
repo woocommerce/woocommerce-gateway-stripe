@@ -9,7 +9,7 @@
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 * Fix - Corrected translation text domain in UPE checkout integration.
-* Fix - Resolve an error leading to Stripe Payment Method API calls passing the token ID rather than the Stripe ID.
+* Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
