@@ -125,7 +125,16 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// Stripe account in EEA + UK and Switzerland can present the following as store currencies.
 		// EEA currencies can only transact with countries where that currency is the standard currency.
-		return [ WC_Stripe_Currency_Code::SWISS_FRANC, WC_Stripe_Currency_Code::CZECH_KORUNA, WC_Stripe_Currency_Code::DANISH_KRONE, WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::NORWEGIAN_KRONE, WC_Stripe_Currency_Code::POLISH_ZLOTY, WC_Stripe_Currency_Code::SWEDISH_KRONA ];
+		return [
+			WC_Stripe_Currency_Code::SWISS_FRANC,
+			WC_Stripe_Currency_Code::CZECH_KORUNA,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::SWEDISH_KRONA,
+		];
 	}
 
 	/**

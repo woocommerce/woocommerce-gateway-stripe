@@ -19,7 +19,13 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		$this->stripe_id                    = self::STRIPE_ID;
 		$this->title                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
-		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR, WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR ];
+		$this->supported_currencies         = [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+		];
 		$this->supported_countries          = [ 'AU', 'CA', 'GB', 'NZ', 'US' ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
