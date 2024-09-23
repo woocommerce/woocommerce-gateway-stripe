@@ -36,7 +36,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 *
 	 * @var array
 	 */
-	protected $supported_currencies = [ 'BRL' ];
+	protected $supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
 
 	/**
 	 * List of accepted countries

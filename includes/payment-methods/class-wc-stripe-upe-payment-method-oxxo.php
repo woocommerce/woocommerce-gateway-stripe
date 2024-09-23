@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->can_refund           = false;
 		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'MXN' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
 		$this->supported_countries  = [ 'MX' ];
 		$this->supports             = [ 'products' ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
