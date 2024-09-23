@@ -374,6 +374,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
+			return;
 		}
 
 		try {
