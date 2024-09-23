@@ -210,4 +210,61 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for setting the `setup_future_usage` parameter in the
+	 *  create_and_confirm_payment_intent intent creation request.
+	 */
+	public function test_intent_creation_request_setup_future_usage() {
+		$payment_information = [
+			'amount'                        => 100,
+			'capture_method'                => 'automattic',
+			'currency'                      => 'USD',
+			'customer'                      => 'cus_mock',
+			'level3'                        => [
+				'line_items' => [
+					[
+						'product_code'        => 'ABC123',
+						'product_description' => 'Test Product',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'payment_method'                => 'pm_mock',
+			'shipping'                      => [],
+			'selected_payment_type'         => 'card',
+			'payment_method_types'          => [ 'card' ],
+			'is_using_saved_payment_method' => false,
+		];
+
+		$payment_information['save_payment_method_to_store'] = true;
+		$payment_information['has_subscription']             = false;
+		$this->check_setup_future_usage_off_session( $payment_information );
+
+		// If order has subscription, setup_future_usage should be off_session,
+		// regardless of save_payment_method_to_store, which may be false
+		// if using an already saved payment method.
+		$payment_information['save_payment_method_to_store'] = false;
+		$payment_information['has_subscription']             = true;
+		$this->check_setup_future_usage_off_session( $payment_information );
+	}
+
+	private function check_setup_future_usage_off_session( $payment_information ) {
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			$this->assertEquals( 'off_session', $parsed_args['body']['setup_future_usage'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
 }
