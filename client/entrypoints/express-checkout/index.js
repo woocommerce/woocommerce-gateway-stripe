@@ -18,7 +18,7 @@ import {
 	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
-} from './event-handlers';
+} from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 
