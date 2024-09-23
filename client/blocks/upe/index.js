@@ -96,8 +96,5 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
-// Register Express Checkout Element.
-registerExpressPaymentMethod( expressCheckoutElementsPaymentMethod );
-
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
