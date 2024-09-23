@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->supported_countries  = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US' ];
 		$this->label                = __( 'Multibanco', 'woocommerce-gateway-stripe' );
 		$this->description          = __(

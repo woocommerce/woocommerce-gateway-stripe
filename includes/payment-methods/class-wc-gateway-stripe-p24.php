@@ -109,8 +109,8 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 		return apply_filters(
 			'wc_stripe_p24_supported_currencies',
 			[
-				'EUR',
-				'PLN',
+				WC_Stripe_Currency_Code::EURO,
+				WC_Stripe_Currency_Code::POLISH_ZLOTY,
 			]
 		);
 	}

@@ -323,7 +323,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			],
 		];
 
-		if ( 'USD' === get_woocommerce_currency() ) {
+		if ( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR === get_woocommerce_currency() ) {
 			$icons_src['discover'] = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/discover.svg',
 				'alt' => _x( 'Discover', 'Name of credit card', 'woocommerce-gateway-stripe' ),

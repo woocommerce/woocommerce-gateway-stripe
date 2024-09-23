@@ -109,7 +109,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 		return apply_filters(
 			'wc_stripe_eps_supported_currencies',
 			[
-				'EUR',
+				WC_Stripe_Currency_Code::EURO,
 			]
 		);
 	}

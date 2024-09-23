@@ -265,40 +265,40 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_stripe_amount(): array {
 		return [
-			'USD'              => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
 				'total'    => 100,
-				'currency' => 'USD',
+				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected' => 10000,
 			],
-			'JPY'              => [
+			WC_Stripe_Currency_Code::JAPANESE_YEN         => [
 				'total'    => 100,
-				'currency' => 'JPY',
+				'currency' => WC_Stripe_Currency_Code::JAPANESE_YEN,
 				'expected' => 100,
 			],
-			'EUR'              => [
+			WC_Stripe_Currency_Code::EURO                 => [
 				'total'    => 100,
-				'currency' => 'EUR',
+				'currency' => WC_Stripe_Currency_Code::EURO,
 				'expected' => 10000,
 			],
-			'BHD'              => [
+			WC_Stripe_Currency_Code::BAHRAINI_DINAR       => [
 				'total'    => 100,
-				'currency' => 'BHD',
+				'currency' => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected' => 100000,
 			],
-			'BHD (3 decimals)' => [
+			WC_Stripe_Currency_Code::BAHRAINI_DINAR . ' (3 decimals)' => [
 				'total'                  => 100,
-				'currency'               => 'BHD',
+				'currency'               => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected'               => 100000,
 				'price_decimals_setting' => 3,
 			],
-			'JOD'              => [
+			WC_Stripe_Currency_Code::JORDANIAN_DINAR      => [
 				'total'    => 100,
-				'currency' => 'JOD',
+				'currency' => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
 				'expected' => 100000,
 			],
-			'BIF'              => [
+			WC_Stripe_Currency_Code::BURUNDIAN_FRANC      => [
 				'total'    => 100,
-				'currency' => 'BIF',
+				'currency' => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
 				'expected' => 100,
 			],
 		];

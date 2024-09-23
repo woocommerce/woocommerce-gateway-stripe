@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'iDEAL', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'iDEAL', 'woocommerce-gateway-stripe' );
 		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'multiple_subscriptions';

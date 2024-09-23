@@ -219,7 +219,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$payment_information = [
 			'amount'                        => 100,
 			'capture_method'                => 'automattic',
-			'currency'                      => 'USD',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			'customer'                      => 'cus_mock',
 			'level3'                        => [
 				'line_items' => [

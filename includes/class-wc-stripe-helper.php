@@ -346,31 +346,31 @@ class WC_Stripe_Helper {
 	public static function get_minimum_amount() {
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
-			case 'USD':
-			case 'CAD':
-			case 'EUR':
-			case 'CHF':
-			case 'AUD':
-			case 'SGD':
+			case WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR:
+			case WC_Stripe_Currency_Code::CANADIAN_DOLLAR:
+			case WC_Stripe_Currency_Code::EURO:
+			case WC_Stripe_Currency_Code::SWISS_FRANC:
+			case WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR:
+			case WC_Stripe_Currency_Code::SINGAPORE_DOLLAR:
 				$minimum_amount = 50;
 				break;
-			case 'GBP':
+			case WC_Stripe_Currency_Code::POUND_STERLING:
 				$minimum_amount = 30;
 				break;
-			case 'DKK':
+			case WC_Stripe_Currency_Code::DANISH_KRONE:
 				$minimum_amount = 250;
 				break;
-			case 'NOK':
-			case 'SEK':
+			case WC_Stripe_Currency_Code::NORWEGIAN_KRONE:
+			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				$minimum_amount = 300;
 				break;
-			case 'JPY':
+			case WC_Stripe_Currency_Code::JAPANESE_YEN:
 				$minimum_amount = 5000;
 				break;
-			case 'MXN':
+			case WC_Stripe_Currency_Code::MEXICAN_PESO:
 				$minimum_amount = 1000;
 				break;
-			case 'HKD':
+			case WC_Stripe_Currency_Code::HONG_KONG_DOLLAR:
 				$minimum_amount = 400;
 				break;
 			default:
