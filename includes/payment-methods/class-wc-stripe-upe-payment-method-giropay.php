@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'giropay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::GIROPAY;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Giropay::class;
 
@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method 
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'giropay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'giropay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Expand your business with giropay — Germany’s second most popular payment system.',
