@@ -150,15 +150,16 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $payment_method_object The newly added payment method object.
 	 */
 	public function handle_upe_add_payment_method_success( $user_id, $payment_method_object ) {
-		if ( ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
+		// To avoid errors, exit early if there is no WC_Subscriptions_Change_Payment_Gateway class or the payment method object is not complete.
+		if ( ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) || ! isset( $payment_method_object->id ) ) {
 			return;
 		}
 
 		// Check if the customer has requested to update all subscriptions via a direct request or after returning from the UPE redirect.
-		$should_update_all = isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] );
-		$should_update_all = $should_update_all || isset( $this->stripe_id, $_GET[ "wc-stripe-{$this->stripe_id}-update-all-subscription-payment-methods" ] );
+		$should_update_subscriptions = isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] );
+		$should_update_subscriptions = $should_update_subscriptions || isset( $this->stripe_id, $_GET[ "wc-stripe-{$this->stripe_id}-update-all-subscription-payment-methods" ] );
 
-		if ( $should_update_all ) {
+		if ( ! $should_update_subscriptions ) {
 			return;
 		}
 
