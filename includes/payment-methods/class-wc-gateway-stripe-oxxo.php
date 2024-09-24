@@ -29,14 +29,14 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway_Voucher {
 	/**
 	 * ID used by stripe
 	 */
-	protected $stripe_id = 'oxxo';
+	protected $stripe_id = WC_Stripe_Payment_Methods::OXXO;
 
 	/**
 	 * List of accepted currencies
 	 *
 	 * @var array
 	 */
-	protected $supported_currencies = [ 'MXN' ];
+	protected $supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
 
 	/**
 	 * List of accepted countries

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'link';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::LINK;
 
 	/**
 	 * Constructor for Link payment method
