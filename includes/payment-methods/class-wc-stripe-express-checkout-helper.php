@@ -628,9 +628,8 @@ class WC_Stripe_Express_Checkout_Helper {
 						}
 						$shipping_rate_ids[]        = $rate->id;
 						$data['shipping_options'][] = [
-							'id'     => $rate->id,
-							'label'  => $rate->label,
-							'detail' => '',
+							'id'          => $rate->id,
+							'displayName' => $rate->label,
 							'amount' => WC_Stripe_Helper::get_stripe_amount( $rate->cost ),
 						];
 					}
