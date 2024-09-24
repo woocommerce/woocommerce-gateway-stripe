@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 * Fix - Corrected translation text domain in UPE checkout integration.
+* Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
