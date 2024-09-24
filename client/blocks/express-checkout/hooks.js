@@ -6,10 +6,12 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
-} from './event-handlers';
-import { getExpressCheckoutButtonStyleSettings } from './utils';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { normalizeLineItems } from 'wcstripe/blocks/normalize';
+} from 'wcstripe/express-checkout/event-handler';
+import {
+	getExpressCheckoutButtonStyleSettings,
+	getExpressCheckoutData,
+	normalizeLineItems,
+} from 'wcstripe/express-checkout/utils';
 
 export const useExpressCheckout = ( {
 	api,
@@ -47,7 +49,7 @@ export const useExpressCheckout = ( {
 				emailRequired: true,
 				shippingAddressRequired: shippingData?.needsShipping,
 				phoneNumberRequired:
-					getBlocksConfiguration()?.checkout?.needs_payer_phone ??
+					getExpressCheckoutData( 'checkout' )?.needs_payer_phone ??
 					false,
 				shippingRates: shippingData?.shippingRates[ 0 ]?.shipping_rates?.map(
 					( r ) => {

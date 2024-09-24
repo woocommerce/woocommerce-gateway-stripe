@@ -1,10 +1,10 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
+import { useExpressCheckout } from './hooks';
+import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
-} from './event-handlers';
-import { useExpressCheckout } from './hooks';
-import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
+} from 'wcstripe/express-checkout/event-handler';
 
 const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	const allDisabled = {
