@@ -71,40 +71,13 @@ class WC_Stripe_Payment_Intent {
 	const NEXT_ACTION_TYPE_ALIPAY_HANDLE_REDIRECT = 'alipay_handle_redirect';
 
 	/**
-	 * The status of the payment intent.
-	 *
-	 * @var string
-	 */
-	private $status;
-
-	/**
-	 * The payment method types of the payment intent.
-	 *
-	 * @var array
-	 */
-	private $payment_method_types;
-
-	/**
-	 * The next action of the payment intent.
-	 *
-	 * @var object
-	 */
-	private $next_action;
-
-	/**
 	 * Class constructor.
 	 *
 	 * @param $data array The payment intent data.
 	 */
 	public function __construct( $data ) {
-		$this->status = $data['status'];
-
-		if ( isset( $data['payment_method_types'] ) ) {
-			$this->payment_method_types = $data['payment_method_types'];
-		}
-
-		if ( isset( $data['next_action'] ) ) {
-			$this->next_action = $data['next_action'];
+		foreach ( $data as $key => $value ) {
+			$this->{$key} = $value;
 		}
 	}
 
@@ -139,7 +112,7 @@ class WC_Stripe_Payment_Intent {
 	 * @return bool Whether the payment intent requires a confirmation or action.
 	 */
 	public function requires_confirmation_or_action() {
-		return in_array( $this->status, [ self::STATUS_REQUIRES_CONFIRMATION, self::STATUS_REQUIRES_ACTION ], true );
+		return isset( $this->status ) && in_array( $this->status, [ self::STATUS_REQUIRES_CONFIRMATION, self::STATUS_REQUIRES_ACTION ], true );
 	}
 
 	/**
@@ -169,7 +142,7 @@ class WC_Stripe_Payment_Intent {
 	 * @return bool Whether the payment intent is successful.
 	 */
 	public function is_successful() {
-		return in_array(
+		return isset( $this->status ) && in_array(
 			$this->status,
 			[
 				self::STATUS_SUCCEEDED,
@@ -178,5 +151,23 @@ class WC_Stripe_Payment_Intent {
 			],
 			true
 		);
+	}
+
+	/**
+	 * Returns the latest charge.
+	 *
+	 * @return object|null The latest charge.
+	 * @throws WC_Stripe_Exception If the charge object cannot be created.
+	 */
+	public function get_latest_charge() {
+		if ( ! empty( $this->charges->data ) ) {
+			return end( $this->charges->data );
+		}
+
+		if ( ! empty( $this->latest_charge ) ) {
+			return WC_Stripe_Payment_Gateway::get_charge_object( $this->latest_charge );
+		}
+
+		return null;
 	}
 }

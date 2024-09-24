@@ -858,7 +858,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( $payment_intent->requires_confirmation_or_action() ) {
-				$redirect = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
+				$redirect = $this->get_redirect_url( $return_url, $payment_intent->to_object(), $payment_information, $order, $payment_needed );
 				if ( ! $payment_intent->contains_wallet_or_voucher_method() && ! $payment_intent->contains_redirect_next_action() ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
@@ -876,7 +876,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$charge = $this->get_latest_charge_from_intent( $payment_intent->to_object() );
+				$charge = $payment_intent->get_latest_charge();
 
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
