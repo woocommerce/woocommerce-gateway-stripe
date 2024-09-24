@@ -172,6 +172,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				continue;
 			}
 
+			if ( ! current_user_can( 'edit_shop_subscription_payment_method', $subscription->get_id() ) ) {
+				continue;
+			}
+
 			WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
 				$subscription,
 				$this->id,
