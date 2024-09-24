@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
