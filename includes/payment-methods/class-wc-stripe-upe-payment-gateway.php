@@ -1457,11 +1457,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether a payment is necessary.
 	 */
 	public function is_payment_needed( $order_id = null ) {
-		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
-			$pre_order_product = ( ! empty( $order_id ) ) ? $this->get_pre_order_product_from_order( $order_id ) : $this->get_pre_order_product_from_cart();
+		$is_pay_for_order_page = parent::is_valid_pay_for_order_endpoint();
+
+		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
+		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
+			$pre_order_product  = $this->get_pre_order_product_from_cart();
+
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
 			return $this->is_pre_order_product_charged_upfront( $pre_order_product );
+		}
+
+		if ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) {
+			$pre_order_product  = $this->get_pre_order_product_from_order( $order_id );
+			$is_charged_upfront = $this->is_pre_order_product_charged_upfront( $pre_order_product );
+
+			// If the pre-order is set to charge upon release and we're on the pay for order page and the pre-order has completed status, payment is needed.
+			if ( ! $is_charged_upfront && $is_pay_for_order_page && $this->is_pre_order_completed( $order_id ) ) {
+				return true;
+			}
+
+			return $is_charged_upfront;
 		}
 
 		// Free trial subscriptions without a sign up fee, or any other type
