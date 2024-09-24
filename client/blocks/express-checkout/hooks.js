@@ -65,7 +65,7 @@ export const useExpressCheckout = ( {
 			// Click event from WC Blocks.
 			onClick();
 			// Global click event handler to ECE.
-			onClickHandler();
+			onClickHandler( event );
 			event.resolve( options );
 		},
 		[
