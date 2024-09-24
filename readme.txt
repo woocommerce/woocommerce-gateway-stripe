@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
