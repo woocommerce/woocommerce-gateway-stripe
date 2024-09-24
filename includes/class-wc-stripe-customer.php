@@ -384,9 +384,9 @@ class WC_Stripe_Customer {
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			if ( ! empty( $response->type ) ) {
 				switch ( $response->type ) {
-					case 'alipay':
+					case WC_Stripe_Payment_Methods::ALIPAY:
 						break;
-					case 'sepa_debit':
+					case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 						$wc_token = new WC_Payment_Token_SEPA();
 						$wc_token->set_token( $response->id );
 						$wc_token->set_gateway_id( 'stripe_sepa' );

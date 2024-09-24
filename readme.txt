@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Dev - Introduces a new class with payment methods constants.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
 * Fix - Fix mandate creation for subscriptions and saved payment methods.

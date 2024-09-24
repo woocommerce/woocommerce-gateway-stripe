@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	/**
 	 * The Stripe ID for the payment method.
 	 */
-	const STRIPE_ID = 'cashapp';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::CASHAPP_PAY;
 
 	/**
 	 * Constructor for Cash App payment method.
