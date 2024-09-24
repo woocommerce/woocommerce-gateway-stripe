@@ -164,7 +164,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		$statuses        = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
-		$subscriptions   = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions() : [];
+		$subscriptions   = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions( $user_id ) : [];
 		$stripe_customer = new WC_Stripe_Customer( $user_id );
 
 		foreach ( $subscriptions as $subscription ) {
