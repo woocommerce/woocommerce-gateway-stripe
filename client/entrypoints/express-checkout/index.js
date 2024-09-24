@@ -150,9 +150,6 @@ jQuery( function ( $ ) {
 					'The cart is incompatible with express checkout.',
 					'woocommerce-gateway-stripe'
 				);
-				if ( ! document.getElementById( 'wc-stripe-woopay-button' ) ) {
-					wcStripeECE.getButtonSeparator().hide();
-				}
 			} );
 
 			eceButton.on( 'click', function ( event ) {
@@ -274,20 +271,18 @@ jQuery( function ( $ ) {
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {
-				let requestPhone = false;
-				if ( getExpressCheckoutData( 'checkout' ).needs_payer_phone ) {
-					requestPhone = getExpressCheckoutData( 'checkout' )
-						.needs_payer_phone;
-				}
 				// Cart and Checkout page specific initialization.
-				// TODO: Use real cart data.
-				wcStripeECE.startExpressCheckoutElement( {
-					mode: 'payment',
-					total: 1223,
-					currency: 'usd',
-					appearance: getExpressCheckoutButtonAppearance(),
-					requestPhone,
-					displayItems: [ { label: 'Shipping', amount: 100 } ],
+				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+					wcStripeECE.startExpressCheckoutElement( {
+						mode: 'payment',
+						total: cart.order_data.total.amount,
+						currency: getExpressCheckoutData( 'checkout' )
+							?.currency_code,
+						requestShipping: cart.shipping_required === true,
+						requestPhone: getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone,
+						displayItems: cart.order_data.displayItems,
+					} );
 				} );
 			}
 
