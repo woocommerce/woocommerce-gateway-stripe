@@ -42,13 +42,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	];
 
 	/**
-	 * Stripe intents that are treated as successfully created.
-	 *
-	 * @type array
-	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
-
-	/**
 	 * Transient name for appearance settings.
 	 *
 	 * @type string
@@ -812,7 +805,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->validate_minimum_order_amount( $order );
 
 				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_payment_intent_for_order( $order, $payment_information );
 			} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
@@ -831,8 +824,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 			} else {
 				// Create a setup intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
+
+			$payment_intent = WC_Stripe_Payment_Intent::from_response( $payment_intent_response );
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
@@ -862,13 +857,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$return_url = $this->get_return_url( $order );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
-				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
-				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
-				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
-					&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
-				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
+			if ( $payment_intent->requires_confirmation_or_action() ) {
+				$redirect = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
+				if ( ! $payment_intent->contains_wallet_or_voucher_method() && ! $payment_intent->contains_redirect_next_action() ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
 				}
@@ -885,7 +876,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
-				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+				$charge = $this->get_latest_charge_from_intent( $payment_intent->to_object() );
 
 				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
@@ -904,7 +895,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'payment_method' => $payment_information['payment_method'],
 					]
 				);
-			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+			} elseif ( $payment_intent->is_successful() ) {
 				if ( ! $this->has_pre_order( $order ) ) {
 					$order->payment_complete();
 				} elseif ( $this->maybe_process_pre_orders( $order ) ) {
@@ -1463,7 +1454,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
-			$pre_order_product  = $this->get_pre_order_product_from_cart();
+			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
