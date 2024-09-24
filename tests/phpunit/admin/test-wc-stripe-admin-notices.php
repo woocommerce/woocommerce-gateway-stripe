@@ -95,9 +95,9 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			WC_Stripe_Helper::get_stripe_settings(),
 			[
 				'upe_checkout_experience_accepted_payments' => [
-					'giropay',
-					'bancontact',
-					'eps',
+					WC_Stripe_Payment_Methods::GIROPAY,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::EPS,
 				],
 			]
 		);

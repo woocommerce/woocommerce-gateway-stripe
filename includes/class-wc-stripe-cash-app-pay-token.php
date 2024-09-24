@@ -20,7 +20,7 @@ class WC_Payment_Token_CashApp extends WC_Payment_Token {
 	 *
 	 * @var string
 	 */
-	protected $type = 'cashapp';
+	protected $type = WC_Stripe_Payment_Methods::CASHAPP_PAY;
 
 	/**
 	 * Extra data.

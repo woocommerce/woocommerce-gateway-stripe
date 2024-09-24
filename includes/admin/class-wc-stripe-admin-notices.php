@@ -71,7 +71,7 @@ class WC_Stripe_Admin_Notices {
 			echo wp_kses(
 				$notice['message'],
 				[
-					'a' => [
+					'a'      => [
 						'href'   => [],
 						'target' => [],
 					],
@@ -91,17 +91,17 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function get_payment_methods() {
 		return [
-			'alipay'     => 'WC_Gateway_Stripe_Alipay',
-			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'eps'        => 'WC_Gateway_Stripe_Eps',
-			'giropay'    => 'WC_Gateway_Stripe_Giropay',
-			'ideal'      => 'WC_Gateway_Stripe_Ideal',
-			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'p24'        => 'WC_Gateway_Stripe_P24',
-			'sepa'       => 'WC_Gateway_Stripe_Sepa',
-			'sofort'     => 'WC_Gateway_Stripe_Sofort',
-			'boleto'     => 'WC_Gateway_Stripe_Boleto',
-			'oxxo'       => 'WC_Gateway_Stripe_Oxxo',
+			WC_Stripe_Payment_Methods::ALIPAY     => WC_Gateway_Stripe_Alipay::class,
+			WC_Stripe_Payment_Methods::BANCONTACT => WC_Gateway_Stripe_Bancontact::class,
+			WC_Stripe_Payment_Methods::EPS        => WC_Gateway_Stripe_Eps::class,
+			WC_Stripe_Payment_Methods::GIROPAY    => WC_Gateway_Stripe_Giropay::class,
+			WC_Stripe_Payment_Methods::IDEAL      => WC_Gateway_Stripe_Ideal::class,
+			WC_Stripe_Payment_Methods::MULTIBANCO => WC_Gateway_Stripe_Multibanco::class,
+			WC_Stripe_Payment_Methods::P24        => WC_Gateway_Stripe_P24::class,
+			WC_Stripe_Payment_Methods::SEPA       => WC_Gateway_Stripe_Sepa::class,
+			WC_Stripe_Payment_Methods::SOFORT     => WC_Gateway_Stripe_Sofort::class,
+			WC_Stripe_Payment_Methods::BOLETO     => WC_Gateway_Stripe_Boleto::class,
+			WC_Stripe_Payment_Methods::OXXO       => WC_Gateway_Stripe_Oxxo::class,
 		];
 	}
 
@@ -332,7 +332,7 @@ class WC_Stripe_Admin_Notices {
 					'</a>'
 				);
 
-				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
+				$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
 			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: 1) Payment method, 2) List of supported currencies */
 				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) );
@@ -358,7 +358,7 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( 'sofort' === $upe_method->get_id() ) {
+			if ( WC_Stripe_Payment_Methods::SOFORT === $upe_method->get_id() ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 					__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
@@ -366,7 +366,7 @@ class WC_Stripe_Admin_Notices {
 					'</a>'
 				);
 
-				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
+				$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
 			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
