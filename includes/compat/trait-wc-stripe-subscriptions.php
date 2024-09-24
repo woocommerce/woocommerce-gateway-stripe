@@ -116,9 +116,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			woocommerce_form_field(
 				$id,
 				[
-					'type'    => 'checkbox',
-					'label'   => $label,
-					'default' => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
+					'type'        => 'checkbox',
+					'label'       => $label,
+					'default'     => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
+					'input_class' => [ 'wc-stripe-update-all-subscriptions-payment-method' ],
 				]
 			);
 		}
@@ -137,10 +138,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param object $source_object
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
-		if ( ! isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
-			return;
-		}
-
 		$this->handle_upe_add_payment_method_success( get_current_user_id(), $source_object );
 	}
 
@@ -153,11 +150,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $payment_method_object The newly added payment method object.
 	 */
 	public function handle_upe_add_payment_method_success( $user_id, $payment_method_object ) {
-		if ( ! isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
+		if ( ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
 			return;
 		}
 
-		if ( ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
+		// Check if the customer has requested to update all subscriptions via a direct request or after returning from the UPE redirect.
+		$should_update_all = isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] );
+		$should_update_all = $should_update_all || isset( $this->stripe_id, $_GET[ "wc-stripe-{$this->stripe_id}-update-all-subscription-payment-methods" ] );
+
+		if ( $should_update_all ) {
 			return;
 		}
 

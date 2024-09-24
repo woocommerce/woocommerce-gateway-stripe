@@ -1034,6 +1034,11 @@ class WC_Stripe_Intent_Controller {
 				'use_stripe_sdk'        => 'true', // We want the user to complete the next steps via the JS elements. ref https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			];
 
+			// If the user has requested to update all their subscription payment methods, we need to add a query arg to the return URL so we can handle that request upon return.
+			if ( ! empty( $_POST['update_all_subscription_payment_methods'] ) ) {
+				$payment_information['return_url'] = add_query_arg( "wc-stripe-{$payment_type}-update-all-subscription-payment-methods", 'true', $payment_information['return_url'] );
+			}
+
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
 			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
