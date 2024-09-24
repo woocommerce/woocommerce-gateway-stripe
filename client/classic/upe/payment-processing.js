@@ -8,6 +8,7 @@ import {
 	appendSetupIntentToForm,
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
+	getAdditionalSetupIntentData,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -290,21 +291,7 @@ export const createAndConfirmSetupIntent = (
 	api,
 	setStopFormSubmission
 ) => {
-	const additionalData = {};
-
-	// Check if the "update all subscriptions" checkbox exists and is checked.
-	const updateAllSubscriptionsCheckbox = jQueryForm.find(
-		'.wc-stripe-update-all-subscriptions-payment-method'
-	);
-
-	// Add additional data passed to the setup intent request to server if the checkbox is checked.
-	if (
-		updateAllSubscriptionsCheckbox.length &&
-		updateAllSubscriptionsCheckbox.is( ':checked' )
-	) {
-		additionalData.update_all_subscription_payment_methods = true;
-	}
-
+	const additionalData = getAdditionalSetupIntentData( jQueryForm );
 	return api
 		.setupIntent( paymentMethod, additionalData )
 		.then( function ( confirmedSetupIntent ) {
