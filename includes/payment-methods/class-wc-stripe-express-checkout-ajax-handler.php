@@ -43,7 +43,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 * Get cart details.
 	 */
 	public function ajax_get_cart_details() {
-		check_ajax_referer( 'wc-stripe-express-checkout', 'security' );
+		check_ajax_referer( 'wc-stripe-get-cart-details', 'security' );
 
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
