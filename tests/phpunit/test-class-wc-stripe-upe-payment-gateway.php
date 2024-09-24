@@ -193,13 +193,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Convert response array to object.
-	 */
-	private function array_to_object( $array ) {
-		return json_decode( wp_json_encode( $array ) );
-	}
-
-	/**
 	 * Helper function to get amount, description, and metadata for Stripe requests.
 	 *
 	 * @param WC_Order $order Test WC Order.
@@ -758,7 +751,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $payment_intent_mock )
+					WC_Stripe_Utils::array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -771,7 +764,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 3 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
@@ -821,7 +814,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $payment_intent_mock )
+					WC_Stripe_Utils::array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -834,7 +827,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 3 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
@@ -901,7 +894,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $setup_intent_mock )
+					WC_Stripe_Utils::array_to_object( $setup_intent_mock )
 				)
 			);
 
@@ -952,7 +945,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $payment_intent_mock )
+					WC_Stripe_Utils::array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -965,7 +958,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 3 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
 
@@ -1015,8 +1008,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				$this->array_to_object( $payment_intent_mock ),
-				$this->array_to_object( $generated_payment_method_mock )
+				WC_Stripe_Utils::array_to_object( $payment_intent_mock ),
+				WC_Stripe_Utils::array_to_object( $generated_payment_method_mock )
 			);
 
 		$charge = [
@@ -1033,7 +1026,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 3 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
 
@@ -1090,8 +1083,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				$this->array_to_object( $setup_intent_mock ),
-				$this->array_to_object( $generated_payment_method_mock )
+				WC_Stripe_Utils::array_to_object( $setup_intent_mock ),
+				WC_Stripe_Utils::array_to_object( $generated_payment_method_mock )
 			);
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
@@ -1128,8 +1121,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				$this->array_to_object( $payment_intent_mock ),
-				$this->array_to_object( $setup_intent_mock )
+				WC_Stripe_Utils::array_to_object( $payment_intent_mock ),
+				WC_Stripe_Utils::array_to_object( $setup_intent_mock )
 			);
 
 		$exception = null;
@@ -1173,7 +1166,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test no charge captured.
 		$charge_mock['captured'] = false;
 		$charge_mock['id']       = 'ch_mock_1';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( WC_Stripe_Utils::array_to_object( $charge_mock ), wc_get_order( $order_id ) );
 		$test_order = wc_get_order( $order_id );
 
 		$this->assertEquals( 'no', $test_order->get_meta( '_stripe_charge_captured', true ) );
@@ -1183,7 +1176,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test charge succeeds.
 		$charge_mock['captured'] = true;
 		$charge_mock['id']       = 'ch_mock_2';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( WC_Stripe_Utils::array_to_object( $charge_mock ), wc_get_order( $order_id ) );
 		$test_order = wc_get_order( $order_id );
 
 		$this->assertEquals( 'yes', $test_order->get_meta( '_stripe_charge_captured', true ) );
@@ -1192,7 +1185,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test charge pending.
 		$charge_mock['status'] = 'pending';
 		$charge_mock['id']     = 'ch_mock_3';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( WC_Stripe_Utils::array_to_object( $charge_mock ), wc_get_order( $order_id ) );
 		$test_order = wc_get_order( $order_id );
 
 		$this->assertEquals( 'yes', $test_order->get_meta( '_stripe_charge_captured', true ) );
@@ -1204,7 +1197,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge_mock['id']     = 'ch_mock_4';
 		$exception             = null;
 		try {
-			$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+			$this->mock_gateway->process_response( WC_Stripe_Utils::array_to_object( $charge_mock ), wc_get_order( $order_id ) );
 		} catch ( WC_Stripe_Exception $e ) {
 			// Test that exception is thrown.
 			$exception = $e;
@@ -1292,7 +1285,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 2 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
@@ -1380,7 +1373,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 2 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$response      = $this->mock_gateway->process_payment( $order_id );
 		$final_order   = wc_get_order( $order_id );
@@ -1538,7 +1531,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 4 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
@@ -1805,7 +1798,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			)
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $payment_intent_mock )
+					WC_Stripe_Utils::array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -1818,7 +1811,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->once() )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_subscription_payment( $amount, wc_get_order( $order_id ), false, false );
 
@@ -1904,7 +1897,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			)
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $error_response )
+					WC_Stripe_Utils::array_to_object( $error_response )
 				)
 			);
 
@@ -1917,7 +1910,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->once() )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_subscription_payment( $amount, wc_get_order( $order_id ), false, false );
 
@@ -1987,7 +1980,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $payment_intent_mock )
+					WC_Stripe_Utils::array_to_object( $payment_intent_mock )
 				)
 			);
 		$this->mock_gateway->expects( $this->any() )
@@ -2014,7 +2007,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 2 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
@@ -2076,7 +2069,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
 			->will(
 				$this->returnValue(
-					$this->array_to_object( $setup_intent_mock )
+					WC_Stripe_Utils::array_to_object( $setup_intent_mock )
 				)
 			);
 
@@ -2230,7 +2223,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway
 			->expects( $this->exactly( 2 ) )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( $this->array_to_object( $charge ) );
+			->willReturn( WC_Stripe_Utils::array_to_object( $charge ) );
 
 		$this->mock_gateway
 			->expects( $this->once() )
@@ -2252,7 +2245,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			)
 			->will(
 				$this->returnValue(
-					$this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE )
+					WC_Stripe_Utils::array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE )
 				)
 			);
 

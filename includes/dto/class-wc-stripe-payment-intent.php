@@ -97,13 +97,7 @@ class WC_Stripe_Payment_Intent {
 	 * @return object The payment intent data as an object.
 	 */
 	public function to_object() {
-		$reflection_class = new ReflectionClass( $this );
-		$properties       = $reflection_class->getProperties( ReflectionProperty::IS_PRIVATE );
-		$data             = [];
-		foreach ( $properties as $property ) {
-			$data[ $property->getName() ] = $property->getValue( $this );
-		}
-		return (object) $data;
+		return WC_Stripe_Utils::array_to_object( (array) $this );
 	}
 
 	/**

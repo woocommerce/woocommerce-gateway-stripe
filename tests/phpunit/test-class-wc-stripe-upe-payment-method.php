@@ -180,13 +180,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Convert response array to object.
-	 */
-	private function array_to_object( $array ) {
-		return json_decode( wp_json_encode( $array ) );
-	}
-
-	/**
 	 * Function to be used with array_map
 	 * to return array of payment method IDs.
 	 */
@@ -200,7 +193,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function test_payment_methods_show_correct_default_outputs() {
 		$mock_visa_details       = [
 			'type'                          => WC_Stripe_Payment_Methods::CARD,
-			WC_Stripe_Payment_Methods::CARD => $this->array_to_object(
+			WC_Stripe_Payment_Methods::CARD => WC_Stripe_Utils::array_to_object(
 				[
 					'network' => 'visa',
 					'funding' => 'debit',
@@ -209,7 +202,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		];
 		$mock_mastercard_details = [
 			'type'                          => WC_Stripe_Payment_Methods::CARD,
-			WC_Stripe_Payment_Methods::CARD => $this->array_to_object(
+			WC_Stripe_Payment_Methods::CARD => WC_Stripe_Utils::array_to_object(
 				[
 					'network' => 'mastercard',
 					'funding' => 'credit',
@@ -673,7 +666,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			switch ( $payment_method_id ) {
 				case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-					$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
+					$card_payment_method_mock = WC_Stripe_Utils::array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
 					$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $card_payment_method_mock->card->last4 );
@@ -692,19 +685,19 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					unset( $card_payment_method_mock->card->networks->preferred );
 					break;
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
-					$link_payment_method_mock = $this->array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );
+					$link_payment_method_mock = WC_Stripe_Utils::array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $link_payment_method_mock );
 					$this->assertTrue( 'WC_Payment_Token_Link' === get_class( $token ) );
 					$this->assertSame( $token->get_email(), $link_payment_method_mock->link->email );
 					break;
 				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
-					$cash_app_payment_method_mock = $this->array_to_object( self::MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE );
+					$cash_app_payment_method_mock = WC_Stripe_Utils::array_to_object( self::MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE );
 					$token                        = $payment_method->create_payment_token_for_user( $user_id, $cash_app_payment_method_mock );
 					$this->assertTrue( 'WC_Payment_Token_CashApp' === get_class( $token ) );
 					$this->assertSame( $token->get_cashtag(), $cash_app_payment_method_mock->cashapp->cashtag );
 					break;
 				default:
-					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
+					$sepa_payment_method_mock = WC_Stripe_Utils::array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
 					$this->assertTrue( 'WC_Payment_Token_SEPA' === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $sepa_payment_method_mock->sepa_debit->last4 );
