@@ -175,6 +175,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
