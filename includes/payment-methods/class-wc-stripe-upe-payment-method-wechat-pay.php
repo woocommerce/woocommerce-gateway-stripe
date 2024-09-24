@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'wechat_pay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::WECHAT_PAY;
 
 	/**
 	 * Constructor for WeChat Pay payment method

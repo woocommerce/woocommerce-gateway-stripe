@@ -192,7 +192,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->arrayHasKey( 'eps', $individual_payment_method_settings_data );
+		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $individual_payment_method_settings_data );
 		$this->assertEquals(
 			[
 				'name'        => 'EPS',
@@ -202,7 +202,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
-		$request->set_param( 'payment_method_id', 'giropay' );
+		$request->set_param( 'payment_method_id', WC_Stripe_Payment_Methods::GIROPAY );
 		$request->set_param( 'is_enabled', true );
 		$request->set_param( 'title', 'Giropay' );
 		$request->set_param( 'description', 'Pay with Giropay' );
@@ -356,8 +356,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'enabled_payment_method_ids'       => [
 				'enabled_payment_method_ids',
 				'upe_checkout_experience_accepted_payments',
-				[ 'card' ],
-				[ 'card', 'alipay' ],
+				[ WC_Stripe_Payment_Methods::CARD ],
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY ],
 				[ 'foo' ],
 				true,
 			],

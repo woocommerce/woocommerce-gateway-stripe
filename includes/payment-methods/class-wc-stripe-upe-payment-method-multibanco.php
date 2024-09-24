@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'multibanco';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::MULTIBANCO;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Multibanco::class;
 
@@ -40,7 +40,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( 'multibanco' === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses, true ) ) {
 			$allowed_statuses[] = 'on-hold';
 		}
 

@@ -171,7 +171,7 @@ class WC_Stripe_Payment_Tokens {
 					$stripe_sources  = $stripe_customer->get_sources();
 
 					foreach ( $stripe_sources as $source ) {
-						if ( isset( $source->type ) && 'card' === $source->type ) {
+						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::CARD === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Payment_Token_CC();
 								$token->set_token( $source->id );
@@ -191,7 +191,7 @@ class WC_Stripe_Payment_Tokens {
 								unset( $stored_tokens[ $source->id ] );
 							}
 						} else {
-							if ( ! isset( $stored_tokens[ $source->id ] ) && 'card' === $source->object ) {
+							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
 								$token = new WC_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( 'stripe' );
@@ -214,7 +214,7 @@ class WC_Stripe_Payment_Tokens {
 					$stripe_sources  = $stripe_customer->get_sources();
 
 					foreach ( $stripe_sources as $source ) {
-						if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {
+						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::SEPA_DEBIT === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 								$token = new WC_Payment_Token_SEPA();
 								$token->set_token( $source->id );
@@ -272,7 +272,7 @@ class WC_Stripe_Payment_Tokens {
 					// - APM tokens from before Split PE was in place.
 					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
 					if (
-						( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) ||
+						( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
 						str_starts_with( $token->get_token(), 'src_' )
 					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
@@ -365,8 +365,8 @@ class WC_Stripe_Payment_Tokens {
 	private function get_payment_method_type_from_token( $payment_token ) {
 		$type = $payment_token->get_type();
 		if ( 'CC' === $type ) {
-			return 'card';
-		} elseif ( 'sepa' === $type ) {
+			return WC_Stripe_Payment_Methods::CARD;
+		} elseif ( WC_Stripe_Payment_Methods::SEPA === $type ) {
 			return $payment_token->get_payment_method_type();
 		} else {
 			return $type;
@@ -384,14 +384,14 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function get_account_saved_payment_methods_list_item( $item, $payment_token ) {
 		switch ( strtolower( $payment_token->get_type() ) ) {
-			case 'sepa':
+			case WC_Stripe_Payment_Methods::SEPA:
 				$item['method']['last4'] = $payment_token->get_last4();
 				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 				break;
-			case 'cashapp':
+			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
-			case 'link':
+			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = esc_html__( 'Stripe Link', 'woocommerce-gateway-stripe' );
 				break;
 		}
