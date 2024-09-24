@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		$this->can_refund           = false;
 		$this->title                = 'Boleto';
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'BRL' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
 		$this->supported_countries  = [ 'BR' ];
 		$this->supports             = [ 'products' ];
 		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );

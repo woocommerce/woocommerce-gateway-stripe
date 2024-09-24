@@ -131,6 +131,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 8.8.0 - xxxx-xx-xx =
 * Add - Introduce a new meta data that persists the status of a dispute.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
+* Dev - Introduces a new class with currency codes constants.
+* Dev - Improves the readability of the redirect URL generation code (UPE).
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
 * Tweak - Render the Klarna payment page in the store locale.
@@ -138,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
+* Fix - Corrected translation text domain in UPE checkout integration.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

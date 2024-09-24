@@ -26,11 +26,11 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * This test will see if we're indeed converting the price correctly.
 	 */
 	public function test_price_conversion_before_send_to_stripe() {
-		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
-		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 10050, 'JPY' ) );
-		$this->assertEquals( 100, WC_Stripe_Helper::get_stripe_amount( 100.50, 'JPY' ) );
+		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ) );
+		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 10050, WC_Stripe_Currency_Code::JAPANESE_YEN ) );
+		$this->assertEquals( 100, WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::JAPANESE_YEN ) );
 		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50 ) );
-		$this->assertIsInt( WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
+		$this->assertIsInt( WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ) );
 	}
 
 	/**
@@ -42,35 +42,35 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$balance_fee1           = new stdClass();
 		$balance_fee1->fee      = 10500;
 		$balance_fee1->net      = 10000;
-		$balance_fee1->currency = 'USD';
+		$balance_fee1->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee1, 'fee' ) );
 
 		$balance_fee2           = new stdClass();
 		$balance_fee2->fee      = 10500;
 		$balance_fee2->net      = 10000;
-		$balance_fee2->currency = 'JPY';
+		$balance_fee2->currency = WC_Stripe_Currency_Code::JAPANESE_YEN;
 
 		$this->assertEquals( 10500, WC_Stripe_Helper::format_balance_fee( $balance_fee2, 'fee' ) );
 
 		$balance_fee3           = new stdClass();
 		$balance_fee3->fee      = 10500;
 		$balance_fee3->net      = 10000;
-		$balance_fee3->currency = 'USD';
+		$balance_fee3->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 100.00, WC_Stripe_Helper::format_balance_fee( $balance_fee3, 'net' ) );
 
 		$balance_fee4           = new stdClass();
 		$balance_fee4->fee      = 10500;
 		$balance_fee4->net      = 10000;
-		$balance_fee4->currency = 'JPY';
+		$balance_fee4->currency = WC_Stripe_Currency_Code::JAPANESE_YEN;
 
 		$this->assertEquals( 10000, WC_Stripe_Helper::format_balance_fee( $balance_fee4, 'net' ) );
 
 		$balance_fee5           = new stdClass();
 		$balance_fee5->fee      = 10500;
 		$balance_fee5->net      = 10000;
-		$balance_fee5->currency = 'USD';
+		$balance_fee5->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
 

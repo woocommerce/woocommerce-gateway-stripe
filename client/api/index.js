@@ -1,6 +1,10 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import {
+	getExpressCheckoutData,
+	getExpressCheckoutAjaxURL,
+} from 'wcstripe/express-checkout/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -468,5 +472,68 @@ export default class WCStripeAPI {
 					);
 				}
 			} );
+	}
+
+	/**
+	 * Submits shipping address to get available shipping options
+	 * from Express Checkout ECE payment method.
+	 *
+	 * @param {Object} shippingAddress Shipping details.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECalculateShippingOptions( shippingAddress ) {
+		return this.request(
+			getExpressCheckoutAjaxURL( 'get_shipping_options' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )?.shipping,
+				is_product_page: getExpressCheckoutData( 'is_product_page' ),
+				...shippingAddress,
+			}
+		);
+	}
+
+	/**
+	 * Updates cart with selected shipping option.
+	 *
+	 * @param {Object} shippingOption Shipping option.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutUpdateShippingDetails( shippingOption ) {
+		return this.request(
+			getExpressCheckoutAjaxURL( 'update_shipping_method' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )?.update_shipping,
+				shipping_method: [ shippingOption.id ],
+				is_product_page: getExpressCheckoutData( 'is_product_page' ),
+			}
+		);
+	}
+
+	/**
+	 * Creates order based on Express Checkout ECE payment method.
+	 *
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECreateOrder( paymentData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
+			...paymentData,
+		} );
+	}
+
+	/**
+	 * Pays for an order based on the Express Checkout payment method.
+	 *
+	 * @param {number} order The order ID.
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECEPayForOrder( order, paymentData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
+			order,
+			...paymentData,
+		} );
 	}
 }
