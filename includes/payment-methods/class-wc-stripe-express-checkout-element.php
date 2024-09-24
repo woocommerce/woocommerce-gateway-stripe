@@ -191,6 +191,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
 			'button'             => $this->express_checkout_helper->get_button_settings(),
+			'has_block'          => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation' => $this->express_checkout_helper->get_login_confirmation_settings(),
 			'is_product_page'    => $this->express_checkout_helper->is_product(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
