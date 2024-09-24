@@ -84,7 +84,7 @@ const ExpressCheckoutComponent = ( {
 			onConfirm={ onConfirm }
 			onReady={ onElementsReady }
 			onCancel={ onCancel }
-			// onShippingAddressChange={ onShippingAddressChange }
+			onShippingAddressChange={ onShippingAddressChange }
 			onShippingRateChange={ onShippingRateChange }
 		/>
 	);
