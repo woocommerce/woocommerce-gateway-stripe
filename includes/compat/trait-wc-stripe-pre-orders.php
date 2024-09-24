@@ -68,6 +68,18 @@ trait WC_Stripe_Pre_Orders_Trait {
 	}
 
 	/**
+	 * Returns true if the pre-order completed.
+	 *
+	 * @since 8.8.0
+	 *
+	 * @param  int $order_id
+	 * @return bool
+	 */
+	public function is_pre_order_completed( $order_id ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && 'completed' === WC_Pre_Orders_Order::get_pre_order_status( $order_id );
+	}
+
+	/**
 	 * Returns boolean on whether current cart contains a pre-order item.
 	 *
 	 * @since 5.8.0
