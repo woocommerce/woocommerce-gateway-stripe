@@ -129,7 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
-* Add - Introduce a new meta data that persists the status of a dispute.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
