@@ -16,8 +16,8 @@ import InlineNotice from 'wcstripe/components/inline-notice';
  * @return {JSX.Element} The rendered StripeAuthActions component.
  */
 const StripeAuthActions = ( { testMode, displayWebhookConfigure } ) => {
-	const oauthUrl = testMode
-		? wc_stripe_settings_params.stripe_test_oauth_url
+	const oauthUrl = testMode // eslint-disable-next-line camelcase
+		? wc_stripe_settings_params.stripe_test_oauth_url // eslint-disable-next-line camelcase
 		: wc_stripe_settings_params.stripe_oauth_url;
 
 	return oauthUrl ? (
