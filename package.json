@@ -62,7 +62,7 @@
     "dotenv": "^16.0.3",
     "eslint": "^8.57.1",
     "eslint-import-resolver-webpack": "0.13.1",
-    "eslint-plugin-react-hooks": "4.2.0",
+    "eslint-plugin-react-hooks": "4.3",
     "husky": "^7.0.1",
     "is-ci": "^3.0.0",
     "jest": "^27.4.5",
