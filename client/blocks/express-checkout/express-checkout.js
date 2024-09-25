@@ -13,7 +13,9 @@ export const ExpressCheckout = ( props ) => {
 
 	const buttonOptions = {
 		buttonType: {
+			// eslint-disable-next-line camelcase
 			googlePay: wc_stripe_express_checkout_params.button.type,
+			// eslint-disable-next-line camelcase
 			applePay: wc_stripe_express_checkout_params.button.type,
 		},
 	};
