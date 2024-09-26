@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.8.0 - xxxx-xx-xx =
+* Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
 * Add - Add support for the new Stripe Checkout Element on the shortcode checkout page.
 * Add - Add support for the new Stripe Checkout Element on the pay for order page.
 * Dev - Introduces a new class with payment methods constants.
