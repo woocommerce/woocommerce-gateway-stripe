@@ -30,7 +30,7 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 		<ExpressCheckoutContainer
 			api={ api }
 			stripe={ stripePromise }
-			expressPaymentMethod="applelePay"
+			expressPaymentMethod="applePay"
 		/>
 	),
 	edit: <ApplePayPreview />,
