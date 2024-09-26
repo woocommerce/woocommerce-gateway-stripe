@@ -40,7 +40,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @var WC_Stripe_Express_Checkout_Helper
 	 */
-	private $express_checkout_helper;
+	public $express_checkout_helper;
 
 	/**
 	 * Constructor.
@@ -175,9 +175,9 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
+				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
+				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
 				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
 				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
 				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
