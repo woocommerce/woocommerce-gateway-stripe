@@ -4,7 +4,7 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-} from 'entrypoints/express-checkout/utils';
+} from 'wcstripe/express-checkout/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -508,6 +508,20 @@ export default class WCStripeAPI {
 	}
 
 	/**
+<<<<<<< HEAD
+=======
+	 * Get cart items and total amount.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetails() {
+		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
+			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+		} );
+	}
+
+	/**
+>>>>>>> develop
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} paymentData Order data.

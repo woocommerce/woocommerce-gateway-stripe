@@ -108,12 +108,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	public function test_is_card_payment_method() {
 		$card_payment_method         = new stdClass();
 		$card_payment_method->object = 'payment_method';
-		$card_payment_method->type   = 'card';
+		$card_payment_method->type   = WC_Stripe_Payment_Methods::CARD;
 		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_payment_method ) );
 
 		$card_source         = new stdClass();
 		$card_source->object = 'source';
-		$card_source->type   = 'card';
+		$card_source->type   = WC_Stripe_Payment_Methods::CARD;
 		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_source ) );
 
 		$non_card_payment_method         = new stdClass();
@@ -154,7 +154,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 	public function test_get_legacy_available_payment_method_ids() {
 		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ 'card', 'alipay', 'bancontact', 'boleto', 'eps', 'giropay', 'ideal', 'multibanco', 'oxxo', 'p24', 'sepa' ], $result );
+		$this->assertEquals( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::P24, WC_Stripe_Payment_Methods::SEPA ], $result );
 	}
 
 	public function test_get_legacy_enabled_payment_methods() {
@@ -176,7 +176,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$gateways['stripe_p24']->enable();
 
 		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-		$this->assertEquals( [ 'eps', 'giropay', 'p24' ], $result );
+		$this->assertEquals( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
 	}
 
 	public function test_get_legacy_individual_payment_method_settings() {
@@ -185,7 +185,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
 
 		$result = WC_Stripe_Helper::get_legacy_individual_payment_method_settings();
-		$this->arrayHasKey( 'eps', $result );
+		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $result );
 		$this->assertEquals(
 			[
 				'name'        => 'EPS',
@@ -265,40 +265,40 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_stripe_amount(): array {
 		return [
-			'USD'              => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
 				'total'    => 100,
-				'currency' => 'USD',
+				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 				'expected' => 10000,
 			],
-			'JPY'              => [
+			WC_Stripe_Currency_Code::JAPANESE_YEN         => [
 				'total'    => 100,
-				'currency' => 'JPY',
+				'currency' => WC_Stripe_Currency_Code::JAPANESE_YEN,
 				'expected' => 100,
 			],
-			'EUR'              => [
+			WC_Stripe_Currency_Code::EURO                 => [
 				'total'    => 100,
-				'currency' => 'EUR',
+				'currency' => WC_Stripe_Currency_Code::EURO,
 				'expected' => 10000,
 			],
-			'BHD'              => [
+			WC_Stripe_Currency_Code::BAHRAINI_DINAR       => [
 				'total'    => 100,
-				'currency' => 'BHD',
+				'currency' => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected' => 100000,
 			],
-			'BHD (3 decimals)' => [
+			WC_Stripe_Currency_Code::BAHRAINI_DINAR . ' (3 decimals)' => [
 				'total'                  => 100,
-				'currency'               => 'BHD',
+				'currency'               => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
 				'expected'               => 100000,
 				'price_decimals_setting' => 3,
 			],
-			'JOD'              => [
+			WC_Stripe_Currency_Code::JORDANIAN_DINAR      => [
 				'total'    => 100,
-				'currency' => 'JOD',
+				'currency' => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
 				'expected' => 100000,
 			],
-			'BIF'              => [
+			WC_Stripe_Currency_Code::BURUNDIAN_FRANC      => [
 				'total'    => 100,
-				'currency' => 'BIF',
+				'currency' => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
 				'expected' => 100,
 			],
 		];
@@ -374,23 +374,23 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 				false,
 			],
 			'Alipay'     => [
-				'alipay',
+				WC_Stripe_Payment_Methods::ALIPAY,
 				false,
 			],
 			'Klarna'     => [
-				'klarna',
+				WC_Stripe_Payment_Methods::KLARNA,
 				false,
 			],
 			'EPS'        => [
-				'eps',
+				WC_Stripe_Payment_Methods::EPS,
 				false,
 			],
 			'WeChat'     => [
-				'wechat_pay',
+				WC_Stripe_Payment_Methods::WECHAT_PAY,
 				true,
 			],
 			'Cash App'   => [
-				'cashapp',
+				WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				true,
 			],
 		];

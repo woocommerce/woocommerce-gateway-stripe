@@ -1,4 +1,10 @@
 <?php
+/**
+ * Class that handles checkout with Stripe Express Checkout Element.
+ * Utilizes the Stripe Express Checkout Element to support checkout with Google Pay and Apple pay from the product detail, cart and checkout pages.
+ *
+ * @since 8.8.0
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -172,6 +178,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),

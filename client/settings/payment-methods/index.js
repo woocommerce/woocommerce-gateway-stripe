@@ -68,8 +68,12 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 						isUpeEnabled={ isUpeEnabled }
 						setIsUpeEnabled={ setIsUpeEnabled }
 						isConnectedViaOAuth={ oauthConnected }
-						oauthUrl={ wc_stripe_settings_params.stripe_oauth_url }
+						oauthUrl={
+							// eslint-disable-next-line camelcase
+							wc_stripe_settings_params.stripe_oauth_url
+						}
 						testOauthUrl={
+							// eslint-disable-next-line camelcase
 							wc_stripe_settings_params.stripe_test_oauth_url
 						}
 					/>

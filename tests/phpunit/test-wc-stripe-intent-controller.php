@@ -160,8 +160,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$payment_information_missing_params = [
 			'capture_method'               => 'automatic',
 			'shipping'                     => [],
-			'selected_payment_type'        => 'card',
-			'payment_method_types'         => [ 'card' ],
+			'selected_payment_type'        => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types'         => [ WC_Stripe_Payment_Methods::CARD ],
 			'level3'                       => [
 				'line_items' => [
 					[
@@ -219,7 +219,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$payment_information = [
 			'amount'                        => 100,
 			'capture_method'                => 'automattic',
-			'currency'                      => 'USD',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			'customer'                      => 'cus_mock',
 			'level3'                        => [
 				'line_items' => [
@@ -235,8 +235,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'order'                         => $this->order,
 			'payment_method'                => 'pm_mock',
 			'shipping'                      => [],
-			'selected_payment_type'         => 'card',
-			'payment_method_types'          => [ 'card' ],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
 			'is_using_saved_payment_method' => false,
 		];
 

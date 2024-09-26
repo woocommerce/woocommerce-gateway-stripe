@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'klarna';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::KLARNA;
 
 	/**
 	 * Constructor for giropay payment method
@@ -18,7 +18,20 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'AUD', 'CAD', 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'NOK', 'NZD', 'PLN', 'SEK', 'USD' ];
+		$this->supported_currencies = [
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			WC_Stripe_Currency_Code::SWISS_FRANC,
+			WC_Stripe_Currency_Code::CZECH_KORUNA,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::SWEDISH_KRONA,
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+		];
 		$this->supported_countries  = [ 'AU', 'AT', 'BE', 'CA', 'CZ', 'DK', 'FI', 'FR', 'GR', 'DE', 'IE', 'IT', 'NL', 'NZ', 'NO', 'PL', 'PT', 'ES', 'SE', 'CH', 'GB', 'US' ];
 		$this->label                = __( 'Klarna', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -60,21 +73,21 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// EEA currencies can only transact with countries where that currency is the standard currency.
 		switch ( get_woocommerce_currency() ) {
-			case 'CHF':
+			case WC_Stripe_Currency_Code::SWISS_FRANC:
 				return [ 'CH' ];
-			case 'CZK':
+			case WC_Stripe_Currency_Code::CZECH_KORUNA:
 				return [ 'CZ' ];
-			case 'DKK':
+			case WC_Stripe_Currency_Code::DANISH_KRONE:
 				return [ 'DK' ];
-			case 'NOK':
+			case WC_Stripe_Currency_Code::NORWEGIAN_KRONE:
 				return [ 'NO' ];
-			case 'PLN':
+			case WC_Stripe_Currency_Code::POLISH_ZLOTY:
 				return [ 'PL' ];
-			case 'SEK':
+			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				return [ 'SE' ];
-			case 'GBP':
+			case WC_Stripe_Currency_Code::POUND_STERLING:
 				return [ 'GB' ];
-			case 'EUR':
+			case WC_Stripe_Currency_Code::EURO:
 				// EEA countries that use Euro.
 				return [ 'AT', 'BE', 'FI', 'FR', 'GR', 'DE', 'IE', 'IT', 'NL', 'PT', 'ES' ];
 		}
@@ -112,7 +125,16 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 
 		// Stripe account in EEA + UK and Switzerland can present the following as store currencies.
 		// EEA currencies can only transact with countries where that currency is the standard currency.
-		return [ 'CHF', 'CZK', 'DKK', 'EUR', 'GBP', 'NOK', 'PLN', 'SEK' ];
+		return [
+			WC_Stripe_Currency_Code::SWISS_FRANC,
+			WC_Stripe_Currency_Code::CZECH_KORUNA,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+			WC_Stripe_Currency_Code::POLISH_ZLOTY,
+			WC_Stripe_Currency_Code::SWEDISH_KRONA,
+		];
 	}
 
 	/**
