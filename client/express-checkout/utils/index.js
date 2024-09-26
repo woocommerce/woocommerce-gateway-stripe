@@ -130,7 +130,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		paymentMethods: {
 			applePay: 'always',
 			googlePay: 'always',
-			link: 'never',
+			link: 'auto',
 			paypal: 'never',
 			amazonPay: 'never',
 		},
