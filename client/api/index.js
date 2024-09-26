@@ -172,13 +172,15 @@ export default class WCStripeAPI {
 	 * Creates and confirms a setup intent.
 	 *
 	 * @param {Object} paymentMethod Payment method data.
+	 * @param {Object} additionalData Additional data to send with the request.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
-	setupIntent( paymentMethod ) {
+	setupIntent( paymentMethod, additionalData = {} ) {
 		return this.request(
 			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
 			{
+				...additionalData,
 				action: 'create_and_confirm_setup_intent',
 				'wc-stripe-payment-method': paymentMethod.id,
 				'wc-stripe-payment-type': paymentMethod.type,
@@ -505,6 +507,17 @@ export default class WCStripeAPI {
 				is_product_page: getExpressCheckoutData( 'is_product_page' ),
 			}
 		);
+	}
+
+	/**
+	 * Get cart items and total amount.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetails() {
+		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
+			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+		} );
 	}
 
 	/**
