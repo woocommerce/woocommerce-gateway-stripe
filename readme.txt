@@ -130,6 +130,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.8.0 - xxxx-xx-xx =
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
+* Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
+* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page. 
 * Dev - Introduces a new class with payment methods constants.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
@@ -141,6 +143,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 * Fix - Corrected translation text domain in UPE checkout integration.
+* Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

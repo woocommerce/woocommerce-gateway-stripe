@@ -119,8 +119,8 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 
 	// eslint-disable-next-line camelcase
 	const { oauth_connections } = data;
-	const oauthStatus = testMode
-		? oauth_connections?.test
+	const oauthStatus = testMode // eslint-disable-next-line camelcase
+		? oauth_connections?.test // eslint-disable-next-line camelcase
 		: oauth_connections?.live;
 
 	const hasKeys = secretKey && publishableKey;
