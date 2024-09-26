@@ -86,6 +86,7 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
 	return {
 		payment_method: 'stripe',
+		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
 		'wc-stripe-payment-method': paymentMethodId,
 		express_payment_type: event?.expressPaymentType,
 	};
