@@ -599,6 +599,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -1132,7 +1134,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
 						$payment_method_object = $this->stripe_request(
-							'payment_methods/' . $token->get_id(),
+							'payment_methods/' . $token->get_token(),
 							[
 								'billing_details' => [
 									'name'    => $customer_data['name'],
