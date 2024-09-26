@@ -508,8 +508,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-<<<<<<< HEAD
-=======
 	 * Get cart items and total amount.
 	 *
 	 * @return {Promise} Promise for the request to the server.
@@ -521,7 +519,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
->>>>>>> develop
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} paymentData Order data.
