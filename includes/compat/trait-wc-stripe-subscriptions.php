@@ -857,26 +857,26 @@ trait WC_Stripe_Subscriptions_Trait {
 					}
 
 					// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
-					if ( isset( $source->object ) && 'card' === $source->object ) {
+					if ( isset( $source->object ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->brand ) ? $source->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->last4 );
 						break 2;
 					}
 
 					switch ( $source->type ) {
-						case 'card':
+						case WC_Stripe_Payment_Methods::CARD:
 							/* translators: 1) card brand 2) last 4 digits */
 							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->card->brand ) ? $source->card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->card->last4 );
 							break 3;
-						case 'sepa_debit':
+						case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
 							break 3;
-						case 'cashapp':
+						case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 							/* translators: 1) Cash App Cashtag */
 							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
 							break 3;
-						case 'link':
+						case WC_Stripe_Payment_Methods::LINK:
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;

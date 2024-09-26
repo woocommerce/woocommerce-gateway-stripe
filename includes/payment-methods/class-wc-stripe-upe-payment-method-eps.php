@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Eps extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'eps';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::EPS;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Eps::class;
 

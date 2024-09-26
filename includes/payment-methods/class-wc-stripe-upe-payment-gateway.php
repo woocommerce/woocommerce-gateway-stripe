@@ -142,7 +142,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
-		$is_sofort_enabled       = in_array( 'sofort', $enabled_payment_methods, true );
+		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
@@ -504,7 +504,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
+		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] );
 	}
 
 	/**
@@ -668,7 +668,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 
 				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
-				if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
+				if ( WC_Stripe_Payment_Methods::CARD === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
 					$request['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 				}
 
@@ -815,7 +815,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( $is_using_saved_payment_method && 'cashapp' === $selected_payment_type ) {
+			} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
 					$order,
@@ -865,10 +865,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
-				$redirect                      = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
-				$is_wallet_or_voucher_method   = isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco', 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0;
-				$contains_redirect_next_action = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
-				if ( ! $is_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
+				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
+				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
+				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
+				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
+					&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
+				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
 				}
@@ -1030,7 +1032,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( false === $intent ) {
 					$request['confirm'] = 'true';
 					// SEPA setup intents require mandate data.
-					if ( in_array( 'sepa_debit', array_values( $enabled_payment_methods ), true ) ) {
+					if ( in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, array_values( $enabled_payment_methods ), true ) ) {
 						$request['mandate_data'] = [
 							'customer_acceptance' => [
 								'type'   => 'online',
@@ -1141,7 +1143,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
 						$payment_method_object = $this->stripe_request(
-							'payment_methods/' . $token->get_id(),
+							'payment_methods/' . $token->get_token(),
 							[
 								'billing_details' => [
 									'name'    => $customer_data['name'],
@@ -1459,11 +1461,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether a payment is necessary.
 	 */
 	public function is_payment_needed( $order_id = null ) {
-		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
-			$pre_order_product = ( ! empty( $order_id ) ) ? $this->get_pre_order_product_from_order( $order_id ) : $this->get_pre_order_product_from_cart();
+		$is_pay_for_order_page = parent::is_valid_pay_for_order_endpoint();
+
+		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
+		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
+			$pre_order_product  = $this->get_pre_order_product_from_cart();
+
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
 			return $this->is_pre_order_product_charged_upfront( $pre_order_product );
+		}
+
+		if ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) {
+			$pre_order_product  = $this->get_pre_order_product_from_order( $order_id );
+			$is_charged_upfront = $this->is_pre_order_product_charged_upfront( $pre_order_product );
+
+			// If the pre-order is set to charge upon release and we're on the pay for order page and the pre-order has completed status, payment is needed.
+			if ( ! $is_charged_upfront && $is_pay_for_order_page && $this->is_pre_order_completed( $order_id ) ) {
+				return true;
+			}
+
+			return $is_charged_upfront;
 		}
 
 		// Free trial subscriptions without a sign up fee, or any other type
@@ -1489,7 +1507,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function is_prepaid_card( $payment_method ) {
 		return (
 			$payment_method
-			&& ( 'card' === $payment_method->type )
+			&& ( WC_Stripe_Payment_Methods::CARD === $payment_method->type )
 			&& 'prepaid' === $payment_method->card->funding
 		);
 	}
@@ -2022,20 +2040,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
-		if ( 'card' === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
+		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
 		$payment_method_options = [];
 
 		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
-		if ( 'wechat_pay' === $selected_payment_type ) {
+		if ( WC_Stripe_Payment_Methods::WECHAT_PAY === $selected_payment_type ) {
 			$payment_method_options = [
-				'wechat_pay' => [
+				WC_Stripe_Payment_Methods::WECHAT_PAY => [
 					'client' => 'web',
 				],
 			];
-		} elseif ( 'klarna' === $selected_payment_type ) {
+		} elseif ( WC_Stripe_Payment_Methods::KLARNA === $selected_payment_type ) {
 			$preferred_locale = WC_Stripe_Helper::get_klarna_preferred_locale(
 				get_locale(),
 				$order->get_billing_country()
@@ -2043,7 +2061,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( ! empty( $preferred_locale ) ) {
 				$payment_method_options = [
-					'klarna' => [
+					WC_Stripe_Payment_Methods::KLARNA => [
 						'preferred_locale' => $preferred_locale,
 					],
 				];
@@ -2121,7 +2139,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// For card/stripe, the request arg is `wc-stripe-new-payment-method` and for our reusable APMs (i.e. bancontact) it's `wc-stripe_bancontact-new-payment-method`.
-		$save_payment_method_request_arg = sprintf( 'wc-stripe%s-new-payment-method', 'card' !== $payment_method_type ? '_' . $payment_method_type : '' );
+		$save_payment_method_request_arg = sprintf( 'wc-stripe%s-new-payment-method', WC_Stripe_Payment_Methods::CARD !== $payment_method_type ? '_' . $payment_method_type : '' );
 
 		// Don't save it if we don't have the data from the checkout checkbox for saving a payment method.
 		if ( ! isset( $_POST[ $save_payment_method_request_arg ] ) ) {
@@ -2171,7 +2189,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer->clear_cache();
 
 		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
-		if ( isset( $payment_method_object->type ) && 'link' === $payment_method_object->type ) {
+		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_instance = $this->payment_methods['link'];
 		} else {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
@@ -2398,7 +2416,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Cash App Pay intents with a "requires payment method" status cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
-		if ( in_array( 'cashapp', $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
+		if ( in_array( WC_Stripe_Payment_Methods::CASHAPP_PAY, $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
 			return null;
 		}
 
@@ -2465,7 +2483,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_upe_gateway_id_for_order( $payment_method ) {
 		$token_gateway_type = $payment_method->get_retrievable_type();
 
-		if ( 'card' !== $token_gateway_type ) {
+		if ( WC_Stripe_Payment_Methods::CARD !== $token_gateway_type ) {
 			return $this->payment_methods[ $token_gateway_type ]->id;
 		}
 
@@ -2527,7 +2545,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string The redirect URL.
 	 */
 	private function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
-		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo', 'multibanco' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
@@ -2536,7 +2554,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_intent->client_secret,
 				rawurlencode( $return_url )
 			);
-		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'wechat_pay', 'cashapp' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s:%s',

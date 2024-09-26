@@ -510,6 +510,17 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Get cart items and total amount.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetails() {
+		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
+			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+		} );
+	}
+
+	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} paymentData Order data.
