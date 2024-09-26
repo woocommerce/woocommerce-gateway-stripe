@@ -284,6 +284,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
+		$this->express_checkout_helper->fix_address_fields_mapping();
+
 		// Normalizes billing and shipping state values.
 		$this->express_checkout_helper->normalize_state();
 
