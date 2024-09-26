@@ -22,6 +22,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import './styles.scss';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
