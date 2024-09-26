@@ -8,6 +8,7 @@ import {
 	appendSetupIntentToForm,
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
+	getAdditionalSetupIntentData,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -290,8 +291,9 @@ export const createAndConfirmSetupIntent = (
 	api,
 	setStopFormSubmission
 ) => {
+	const additionalData = getAdditionalSetupIntentData( jQueryForm );
 	return api
-		.setupIntent( paymentMethod )
+		.setupIntent( paymentMethod, additionalData )
 		.then( function ( confirmedSetupIntent ) {
 			switch ( confirmedSetupIntent ) {
 				case 'incomplete':
