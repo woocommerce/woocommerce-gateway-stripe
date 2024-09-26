@@ -306,7 +306,7 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
  *
  * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
  *
- * @return {boolean} Boolean indicating whether or not a saved payment method is being used.
+ * @return {boolean} Boolean indicating whether a saved payment method is being used.
  */
 export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
 	const paymentMethod = getPaymentMethodName( paymentMethodType );

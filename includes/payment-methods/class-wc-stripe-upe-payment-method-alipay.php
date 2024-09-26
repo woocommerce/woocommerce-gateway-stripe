@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'alipay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::ALIPAY;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Alipay::class;
 
@@ -21,17 +21,17 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = __( 'Alipay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
 		$this->supported_currencies = [
-			'EUR',
-			'AUD',
-			'CAD',
-			'CNY',
-			'GBP',
-			'HKD',
-			'JPY',
-			'NZD',
-			'SGD',
-			'USD',
-			'MYR',
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			WC_Stripe_Currency_Code::CHINESE_YUAN,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
+			WC_Stripe_Currency_Code::JAPANESE_YEN,
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+			WC_Stripe_Currency_Code::SINGAPORE_DOLLAR,
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT,
 		];
 		$this->label                = __( 'Alipay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -54,39 +54,39 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
 		switch ( $country ) {
 			case 'AU':
-				$currency = [ 'AUD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'CA':
-				$currency = [ 'CAD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'GB':
-				$currency = [ 'GBP', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'HK':
-				$currency = [ 'HKD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::HONG_KONG_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'JP':
-				$currency = [ 'JPY', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::JAPANESE_YEN, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'MY':
-				$currency = [ 'MYR', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::MALAYSIAN_RINGGIT, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'NZ':
-				$currency = [ 'NZD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'SG':
-				$currency = [ 'SGD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::SINGAPORE_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'US':
-				$currency = [ 'USD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			default:
-				$currency = [ 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
 		$euro_supported_countries = [ 'AT', 'BE', 'BG', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'NO', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH' ];
 		if ( in_array( $country, $euro_supported_countries, true ) ) {
-			$currency = [ 'EUR', 'CNY' ];
+			$currency = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
 		return $currency;

@@ -1,4 +1,10 @@
 <?php
+/**
+ * Class that handles checkout with Stripe Express Checkout Element.
+ * Utilizes the Stripe Express Checkout Element to support checkout with Google Pay and Apple pay from the product detail, cart and checkout pages.
+ *
+ * @since 8.8.0
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -162,12 +168,14 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
+				'publishable_key'             => 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
@@ -191,8 +199,11 @@ class WC_Stripe_Express_Checkout_Element {
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
 			'button'             => $this->express_checkout_helper->get_button_settings(),
+			'is_pay_for_order'   => $this->express_checkout_helper->is_pay_for_order_page(),
+			'has_block'          => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation' => $this->express_checkout_helper->get_login_confirmation_settings(),
 			'is_product_page'    => $this->express_checkout_helper->is_product(),
+			'is_checkout_page'   => $this->express_checkout_helper->is_checkout(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
 		];
 	}
@@ -324,10 +335,8 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		?>
-		<div id="wc-stripe-express-checkout-wrapper" style="margin-top: 1em;clear:both;display:none;">
-			<div id="wc-stripe-express-checkout-button">
-				<!-- A Stripe Element will be inserted here. -->
-			</div>
+		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">
+			<!-- A Stripe Element will be inserted here. -->
 		</div>
 		<?php
 		$this->display_express_checkout_button_separator_html();
