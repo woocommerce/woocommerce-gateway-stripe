@@ -40,7 +40,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @var WC_Stripe_Express_Checkout_Helper
 	 */
-	private $express_checkout_helper;
+	public $express_checkout_helper;
 
 	/**
 	 * Constructor.
@@ -88,11 +88,14 @@ class WC_Stripe_Express_Checkout_Element {
 		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_express_checkout_button_html' ], 1 );
 		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_express_checkout_button_html' ], 25 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
+		add_action( 'woocommerce_pay_order_before_payment', [ $this, 'display_express_checkout_button_html' ], 1 );
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
+
+		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
 	}
 
 	/**
@@ -175,15 +178,16 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
+				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
+				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
 				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
 				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
 				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
 				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 			],
 			'i18n'               => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -206,6 +210,64 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_checkout_page'   => $this->express_checkout_helper->is_checkout(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
 		];
+	}
+
+	/**
+	 * Localizes additional parameters necessary for the Pay for Order page.
+	 *
+	 * @param WC_Order $order The order that needs payment.
+	 */
+	public function localize_pay_for_order_page_scripts( $order ) {
+		$currency = get_woocommerce_currency();
+		$data     = [];
+		$items    = [];
+
+		foreach ( $order->get_items() as $item ) {
+			if ( method_exists( $item, 'get_total' ) ) {
+				$items[] = [
+					'label'  => $item->get_name(),
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
+				];
+			}
+		}
+
+		if ( $order->get_total_tax() ) {
+			$items[] = [
+				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), $currency ),
+			];
+		}
+
+		if ( $order->get_shipping_total() ) {
+			$shipping_label = sprintf(
+			// Translators: %s is the name of the shipping method.
+				__( 'Shipping (%s)', 'woocommerce-gateway-stripe' ),
+				$order->get_shipping_method()
+			);
+
+			$items[] = [
+				'label'  => $shipping_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total(), $currency ),
+			];
+		}
+
+		foreach ( $order->get_fees() as $fee ) {
+			$items[] = [
+				'label'  => $fee->get_name(),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
+			];
+		}
+
+		$data['order']          = $order->get_id();
+		$data['displayItems']   = $items;
+		$data['needs_shipping'] = false; // This should be already entered/prepared.
+		$data['total']          = [
+			'label'   => $this->express_checkout_helper->get_total_label(),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+			'pending' => true,
+		];
+
+		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
 	}
 
 	/**

@@ -129,8 +129,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
+* Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
-* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page. 
+* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page.
+* Add - Add support for the new Stripe Checkout Element on the pay for order page.
 * Dev - Introduces a new class with payment methods constants.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).

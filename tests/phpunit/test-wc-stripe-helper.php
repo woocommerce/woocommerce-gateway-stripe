@@ -454,4 +454,64 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
 		$this->assertNull( $actual );
 	}
+
+	/**
+	 * Test for `add_stripe_methods_in_woocommerce_gateway_order`.
+	 * @return void
+	 */
+	public function test_add_stripe_methods_in_woocommerce_gateway_order() {
+		// When the option is empty, i.e. fresh install, gateway ordering should still work.
+		$stripe_payment_methods = [
+			'stripe_klarna',
+			'card',
+			'stripe_alipay',
+		];
+		delete_option( 'woocommerce_gateway_order' );
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		$this->assertArrayHasKey( 'stripe_klarna', $gateway_order );
+		$this->assertArrayHasKey( 'stripe', $gateway_order );
+		$this->assertArrayHasKey( 'stripe_alipay', $gateway_order );
+		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
+		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_alipay'] );
+
+		// Further updates to gateway ordering should work.
+		$stripe_payment_methods = [
+			'stripe_klarna',
+			'stripe_alipay',
+			'card',
+		];
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		$this->assertArrayHasKey( 'stripe_klarna', $gateway_order );
+		$this->assertArrayHasKey( 'stripe', $gateway_order );
+		$this->assertArrayHasKey( 'stripe_alipay', $gateway_order );
+		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe_alipay'] );
+		$this->assertTrue( $gateway_order['stripe_alipay'] < $gateway_order['stripe'] );
+
+		// Order with respect to other gateways is retained.
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'cod'           => 1,
+				'stripe_klarna' => 2,
+				'stripe'        => 3,
+				'stripe_alipay' => 4,
+				'cheque'        => 5,
+			]
+		);
+		$stripe_payment_methods = [
+			'stripe_alipay',
+			'stripe_klarna',
+			'card',
+			'stripe_affirm',
+		];
+		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		$this->assertTrue( $gateway_order['cod'] < $gateway_order['stripe_alipay'] );
+		$this->assertTrue( $gateway_order['stripe_alipay'] < $gateway_order['stripe_klarna'] );
+		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
+		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
+		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
+	}
 }
