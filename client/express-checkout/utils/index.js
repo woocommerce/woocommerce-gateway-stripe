@@ -156,3 +156,94 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		),
 	};
 };
+
+export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
+	return getExpressCheckoutData( 'has_block' )
+		? getRequiredFieldDataFromBlockCheckoutForm( data )
+		: getRequiredFieldDataFromShortcodeCheckoutForm( data );
+};
+
+const getRequiredFieldDataFromBlockCheckoutForm = ( data ) => {
+	const checkoutForm = document.querySelector( '.wc-block-checkout' );
+	// Return if cart page.
+	if ( ! checkoutForm ) {
+		return data;
+	}
+
+	const requiredFields = checkoutForm.querySelectorAll( '[required]' );
+
+	if ( requiredFields.length ) {
+		requiredFields.forEach( ( field ) => {
+			const value = field.value;
+			const id = field.id?.replace( '-', '_' );
+			if ( value && ! data[ id ] ) {
+				data[ id ] = value;
+			}
+
+			// if billing same as shipping is selected, copy the shipping field to billing field.
+			const useSameBillingAddress = checkoutForm
+				.querySelector( '.wc-block-checkout__use-address-for-billing' )
+				?.querySelector( 'input' )?.checked;
+			if ( useSameBillingAddress ) {
+				const billingFieldName = id.replace( 'shipping_', 'billing_' );
+				if ( ! data[ billingFieldName ] && data[ id ] ) {
+					data[ billingFieldName ] = data[ id ];
+				}
+			}
+		} );
+	}
+
+	return data;
+};
+
+const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
+	const checkoutForm = document.querySelector( 'form.checkout' );
+	// Return if cart page.
+	if ( ! checkoutForm ) {
+		return data;
+	}
+
+	const requiredfields = checkoutForm.querySelectorAll(
+		'.validate-required'
+	);
+
+	if ( requiredfields.length ) {
+		requiredfields.forEach( ( element ) => {
+			const field = element.querySelector( 'input' );
+			if ( ! field ) {
+				return;
+			}
+
+			const name = field.name;
+
+			let value = '';
+			if ( field.getAttribute( 'type' ) === 'checkbox' ) {
+				value = field.checked;
+			} else {
+				value = field.value;
+			}
+
+			if ( value && name ) {
+				if ( ! data[ name ] ) {
+					data[ name ] = value;
+				}
+
+				// if shipping same as billing is selected, copy the billing field to shipping field.
+				const shipToDiffAddress = document
+					.getElementById( 'ship-to-different-address' )
+					.querySelector( 'input' ).checked;
+				if ( ! shipToDiffAddress ) {
+					const shippingFieldName = name.replace(
+						'billing_',
+						'shipping_'
+					);
+					if ( ! data[ shippingFieldName ] && data[ name ] ) {
+						data[ shippingFieldName ] = data[ name ];
+					}
+				}
+			}
+		} );
+	}
+
+	return data;
+};

@@ -77,20 +77,6 @@ export const createOrder = ( sourceEvent, paymentRequestType ) => {
 	} );
 };
 
-export const expressCheckoutCreateOrder = ( paymentData ) => {
-	const data = {
-		...getRequiredFieldDataFromCheckoutForm( paymentData ),
-		_wpnonce: getBlocksConfiguration()?.nonce?.checkout,
-		'wc-stripe-is-deferred-intent': true,
-	};
-
-	return $.ajax( {
-		type: 'POST',
-		data,
-		url: getAjaxUrl( 'create_order' ),
-	} );
-};
-
 const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 	const checkoutForm = document.querySelector( '.wc-block-checkout' );
 	// Return if cart page.

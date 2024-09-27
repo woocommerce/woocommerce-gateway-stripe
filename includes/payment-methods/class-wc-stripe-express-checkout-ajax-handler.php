@@ -132,7 +132,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	 * @see WC_Shipping::get_packages().
 	 */
 	public function ajax_get_shipping_options() {
-		check_ajax_referer( 'wc-stripe-express-checkout-element-shipping', 'security' );
+		check_ajax_referer( 'wc-stripe-express-checkout-shipping', 'security' );
 
 		$shipping_address          = filter_input_array(
 			INPUT_POST,
@@ -284,6 +284,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+
+		$this->express_checkout_helper->fix_address_fields_mapping();
 
 		// Normalizes billing and shipping state values.
 		$this->express_checkout_helper->normalize_state();

@@ -4,6 +4,7 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
+	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
 
 /**
@@ -529,7 +530,7 @@ export default class WCStripeAPI {
 	expressCheckoutECECreateOrder( paymentData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
-			...paymentData,
+			...getRequiredFieldDataFromCheckoutForm( paymentData ),
 		} );
 	}
 
