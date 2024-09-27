@@ -1,5 +1,4 @@
-/*global wc_add_to_cart_variation_params */
-
+/*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -10,7 +9,7 @@ import {
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
-} from './utils';
+} from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
 	onCancelHandler,
@@ -20,8 +19,10 @@ import {
 	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
-} from './event-handlers';
+} from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getAddToCartVariationParams } from 'wcstripe/utils';
+import './styles.scss';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -53,7 +54,7 @@ jQuery( function ( $ ) {
 	let wcStripeECEError = '';
 	const defaultErrorMessage = __(
 		'There was an error getting the product information.',
-		'woocommerce-payments'
+		'woocommerce-gateway-stripe'
 	);
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
@@ -112,7 +113,8 @@ jQuery( function ( $ ) {
 				return options.displayItems
 					.filter(
 						( i ) =>
-							i.label === __( 'Shipping', 'woocommerce-payments' )
+							i.label ===
+							__( 'Shipping', 'woocommerce-gateway-stripe' )
 					)
 					.map( ( i ) => ( {
 						id: `rate-${ i.label }`,
@@ -150,11 +152,8 @@ jQuery( function ( $ ) {
 			eceButton.on( 'loaderror', () => {
 				wcStripeECEError = __(
 					'The cart is incompatible with express checkout.',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				);
-				if ( ! document.getElementById( 'wc-stripe-woopay-button' ) ) {
-					wcStripeECE.getButtonSeparator().hide();
-				}
 			} );
 
 			eceButton.on( 'click', function ( event ) {
@@ -175,10 +174,12 @@ jQuery( function ( $ ) {
 							// eslint-disable-next-line no-alert
 							window.alert(
 								// eslint-disable-next-line camelcase
-								wc_add_to_cart_variation_params.i18n_unavailable_text ||
+								getAddToCartVariationParams(
+									'i18n_unavailable_text'
+								) ||
 									__(
 										'Sorry, this product is unavailable. Please choose a different combination.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									)
 							);
 						} else {
@@ -186,7 +187,7 @@ jQuery( function ( $ ) {
 							window.alert(
 								__(
 									'Please select your product options before proceeding.',
-									'woocommerce-payments'
+									'woocommerce-gateway-stripe'
 								)
 							);
 						}
@@ -215,18 +216,22 @@ jQuery( function ( $ ) {
 				event.resolve( clickOptions );
 			} );
 
-			eceButton.on( 'shippingaddresschange', async ( event ) =>
-				shippingAddressChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingaddresschange',
+				async ( event ) =>
+					await shippingAddressChangeHandler( api, event, elements )
 			);
 
-			eceButton.on( 'shippingratechange', async ( event ) =>
-				shippingRateChangeHandler( api, event, elements )
+			eceButton.on(
+				'shippingratechange',
+				async ( event ) =>
+					await shippingRateChangeHandler( api, event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
 
-				return onConfirmHandler(
+				return await onConfirmHandler(
 					api,
 					api.getStripe(),
 					elements,
@@ -237,7 +242,7 @@ jQuery( function ( $ ) {
 				);
 			} );
 
-			eceButton.on( 'cancel', async () => {
+			eceButton.on( 'cancel', () => {
 				wcStripeECE.paymentAborted = true;
 				onCancelHandler();
 			} );
@@ -266,7 +271,21 @@ jQuery( function ( $ ) {
 		 */
 		init: () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
-				// Pay for order page specific initialization.
+				const {
+					total: { amount: total },
+					displayItems,
+					order,
+				} = wcStripeExpressCheckoutPayForOrderParams;
+
+				wcStripeECE.startExpressCheckoutElement( {
+					mode: 'payment',
+					total,
+					currency: getExpressCheckoutData( 'checkout' )
+						.currency_code,
+					appearance: getExpressCheckoutButtonAppearance(),
+					displayItems,
+					order,
+				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.startExpressCheckoutElement( {
 					mode: 'payment',
@@ -282,20 +301,18 @@ jQuery( function ( $ ) {
 						.displayItems,
 				} );
 			} else {
-				let requestPhone = false;
-				if ( getExpressCheckoutData( 'checkout' ).needs_payer_phone ) {
-					requestPhone = getExpressCheckoutData( 'checkout' )
-						.needs_payer_phone;
-				}
 				// Cart and Checkout page specific initialization.
-				// TODO: Use real cart data.
-				wcStripeECE.startExpressCheckoutElement( {
-					mode: 'payment',
-					total: 1223,
-					currency: 'usd',
-					appearance: getExpressCheckoutButtonAppearance(),
-					requestPhone,
-					displayItems: [ { label: 'Shipping', amount: 100 } ],
+				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+					wcStripeECE.startExpressCheckoutElement( {
+						mode: 'payment',
+						total: cart.order_data.total.amount,
+						currency: getExpressCheckoutData( 'checkout' )
+							?.currency_code,
+						requestShipping: cart.shipping_required === true,
+						requestPhone: getExpressCheckoutData( 'checkout' )
+							?.needs_payer_phone,
+						displayItems: cart.order_data.displayItems,
+					} );
 				} );
 			}
 

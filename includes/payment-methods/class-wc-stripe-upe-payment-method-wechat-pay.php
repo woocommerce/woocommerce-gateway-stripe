@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'wechat_pay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::WECHAT_PAY;
 
 	/**
 	 * Constructor for WeChat Pay payment method
@@ -20,19 +20,19 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 		$this->is_reusable          = false;
 		$this->supported_countries  = [ 'AT', 'AU', 'BE', 'CA', 'CH', 'DE', 'DK', 'ES', 'FI', 'FR', 'HK', 'IE', 'IT', 'JP', 'LU', 'NL', 'NO', 'PT', 'SE', 'SG', 'GB', 'US' ];
 		$this->supported_currencies = [
-			'AUD',
-			'CAD',
-			'CHF',
-			'CNY',
-			'DKK',
-			'EUR',
-			'GBP',
-			'HKD',
-			'JPY',
-			'NOK',
-			'SEK',
-			'SGD',
-			'USD',
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			WC_Stripe_Currency_Code::SWISS_FRANC,
+			WC_Stripe_Currency_Code::CHINESE_YUAN,
+			WC_Stripe_Currency_Code::DANISH_KRONE,
+			WC_Stripe_Currency_Code::EURO,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::HONG_KONG_DOLLAR,
+			WC_Stripe_Currency_Code::JAPANESE_YEN,
+			WC_Stripe_Currency_Code::NORWEGIAN_KRONE,
+			WC_Stripe_Currency_Code::SWEDISH_KRONA,
+			WC_Stripe_Currency_Code::SINGAPORE_DOLLAR,
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 		];
 		$this->label                = __( 'WeChat Pay', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
@@ -55,45 +55,45 @@ class WC_Stripe_UPE_Payment_Method_Wechat_Pay extends WC_Stripe_UPE_Payment_Meth
 
 		switch ( $country ) {
 			case 'AU':
-				$currency = [ 'AUD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'CA':
-				$currency = [ 'CAD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'CH':
-				$currency = [ 'CHF', 'CNY', 'EUR' ];
+				$currency = [ WC_Stripe_Currency_Code::SWISS_FRANC, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
 			case 'DK':
-				$currency = [ 'DKK', 'CNY', 'EUR' ];
+				$currency = [ WC_Stripe_Currency_Code::DANISH_KRONE, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
 			case 'HK':
-				$currency = [ 'HKD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::HONG_KONG_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'JP':
-				$currency = [ 'JPY', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::JAPANESE_YEN, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'NO':
-				$currency = [ 'NOK', 'CNY', 'EUR' ];
+				$currency = [ WC_Stripe_Currency_Code::NORWEGIAN_KRONE, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
 			case 'SE':
-				$currency = [ 'SEK', 'CNY', 'EUR' ];
+				$currency = [ WC_Stripe_Currency_Code::SWEDISH_KRONA, WC_Stripe_Currency_Code::CHINESE_YUAN, WC_Stripe_Currency_Code::EURO ];
 				break;
 			case 'SG':
-				$currency = [ 'SGD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::SINGAPORE_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'GB':
-				$currency = [ 'GBP', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::POUND_STERLING, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			case 'US':
-				$currency = [ 'USD', 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 				break;
 			default:
-				$currency = [ 'CNY' ];
+				$currency = [ WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
 		$euro_supported_countries = [ 'AT', 'BE', 'FI', 'FR', 'DE', 'IE', 'IT', 'LU', 'NL', 'PT', 'ES' ];
 		if ( in_array( $country, $euro_supported_countries, true ) ) {
-			$currency = [ 'EUR', 'CNY' ];
+			$currency = [ WC_Stripe_Currency_Code::EURO, WC_Stripe_Currency_Code::CHINESE_YUAN ];
 		}
 
 		return $currency;

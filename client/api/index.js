@@ -4,7 +4,8 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-} from 'entrypoints/express-checkout/utils';
+	getRequiredFieldDataFromCheckoutForm,
+} from 'wcstripe/express-checkout/utils';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -172,13 +173,15 @@ export default class WCStripeAPI {
 	 * Creates and confirms a setup intent.
 	 *
 	 * @param {Object} paymentMethod Payment method data.
+	 * @param {Object} additionalData Additional data to send with the request.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
-	setupIntent( paymentMethod ) {
+	setupIntent( paymentMethod, additionalData = {} ) {
 		return this.request(
 			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
 			{
+				...additionalData,
 				action: 'create_and_confirm_setup_intent',
 				'wc-stripe-payment-method': paymentMethod.id,
 				'wc-stripe-payment-type': paymentMethod.type,
@@ -508,6 +511,17 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Get cart items and total amount.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetails() {
+		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
+			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+		} );
+	}
+
+	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} paymentData Order data.
@@ -516,7 +530,7 @@ export default class WCStripeAPI {
 	expressCheckoutECECreateOrder( paymentData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
-			...paymentData,
+			...getRequiredFieldDataFromCheckoutForm( paymentData ),
 		} );
 	}
 

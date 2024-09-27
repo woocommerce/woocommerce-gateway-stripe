@@ -160,13 +160,13 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->set_enabled_payment_methods( [ 'card', 'link' ] );
+		$this->set_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
 		WC_Stripe_Helper::update_main_stripe_settings(
 			array_merge(
 				WC_Stripe_Helper::get_stripe_settings(),
 				[
-					'upe_checkout_experience_accepted_payments' => [ 'card', 'link' ],
+					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
 				]
 			)
 		);

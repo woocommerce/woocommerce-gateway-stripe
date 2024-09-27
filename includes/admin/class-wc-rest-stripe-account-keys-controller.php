@@ -299,7 +299,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 				}
 			} else {
 				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-				$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ 'card', 'link' ] );
+				$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
 				// Handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
 				$multibanco = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
