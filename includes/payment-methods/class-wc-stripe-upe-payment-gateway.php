@@ -378,13 +378,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
-		$enabled_billing_fields = [];
-		foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
-			if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
-				$enabled_billing_fields[] = $billing_field;
-			}
-		}
-
 		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
@@ -399,7 +392,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['genericErrorMessage']              = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
-		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
+		$stripe_params['enabledBillingFields']             = $this->get_enabled_billing_fields();
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
 
@@ -2608,5 +2601,63 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Fetches the billing fields that are enabled on the checkout, or that we've already collected for this customer.
+	 * This is used to determine which fields that Stripe will collect via the payment form.
+	 *
+	 * @return array The enabled/already-collected billing fields.
+	 */
+	private function get_enabled_billing_fields() {
+		$enabled_billing_fields     = [];
+		$is_add_payment_method_page = is_add_payment_method_page();
+
+		// On the add payment method page, change subscription method or order payment page, we need to use the current user's or order/subscription billing address.
+		if ( is_user_logged_in() && ( $is_add_payment_method_page || parent::is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) ) {
+
+			// If we're on the add payment method page, we need to use the current user's billing fields.
+			if ( $is_add_payment_method_page ) {
+				$address_source = WC()->customer;
+			} else {
+				$order_id = absint( get_query_var( 'order-pay' ) );
+				$order    = wc_get_order( $order_id );
+
+				// Bail if the order is not valid.
+				if ( ! is_a( $order, 'WC_Order' ) ) {
+					return $enabled_billing_fields;
+				}
+
+				// If we're paying for an order or changing the payment method for a subscription, we need to use the order/subscription's billing fields.
+				$address_source = $order;
+			}
+
+			// Get the customer's billing address
+			$customer_billing_address = [
+				'billing_email'      => $address_source->get_billing_email(),
+				'billing_first_name' => $address_source->get_billing_first_name(),
+				'billing_last_name'  => $address_source->get_billing_last_name(),
+				'billing_company'    => $address_source->get_billing_company(),
+				'billing_country'    => $address_source->get_billing_country(),
+				'billing_address_1'  => $address_source->get_billing_address_1(),
+				'billing_address_2'  => $address_source->get_billing_address_2(),
+				'billing_city'       => $address_source->get_billing_city(),
+				'billing_state'      => $address_source->get_billing_state(),
+				'billing_postcode'   => $address_source->get_billing_postcode(),
+				'billing_phone'      => $address_source->get_billing_phone(),
+			];
+
+			// Convert the customer's billing address to an array of enabled billing fields.
+			$enabled_billing_fields = array_keys( array_filter( $customer_billing_address ) );
+		} else {
+			// Get the enabled billing fields from the checkout.
+			foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
+				if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
+					$enabled_billing_fields[] = $billing_field;
+				}
+			}
+		}
+
+		return $enabled_billing_fields;
 	}
 }

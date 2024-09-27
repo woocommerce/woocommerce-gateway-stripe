@@ -398,11 +398,9 @@ export const getUpeSettings = () => {
 	upeSettings.terms = getUPETerms( showTerms );
 
 	if (
-		getStripeServerData()?.isCheckout &&
-		! (
-			getStripeServerData()?.isOrderPay ||
-			getStripeServerData()?.isChangingPayment
-		)
+		getStripeServerData()?.isCheckout ||
+		getStripeServerData()?.isOrderPay ||
+		getStripeServerData()?.isChangingPayment
 	) {
 		upeSettings.fields = {
 			billingDetails: getHiddenBillingFields(
