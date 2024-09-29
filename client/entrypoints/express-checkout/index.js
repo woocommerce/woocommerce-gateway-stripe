@@ -1,3 +1,4 @@
+/*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -21,6 +22,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import './styles.scss';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -267,7 +269,21 @@ jQuery( function ( $ ) {
 		 */
 		init: () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
-				// Pay for order page specific initialization.
+				const {
+					total: { amount: total },
+					displayItems,
+					order,
+				} = wcStripeExpressCheckoutPayForOrderParams;
+
+				wcStripeECE.startExpressCheckoutElement( {
+					mode: 'payment',
+					total,
+					currency: getExpressCheckoutData( 'checkout' )
+						.currency_code,
+					appearance: getExpressCheckoutButtonAppearance(),
+					displayItems,
+					order,
+				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				// Product page specific initialization.
 			} else {

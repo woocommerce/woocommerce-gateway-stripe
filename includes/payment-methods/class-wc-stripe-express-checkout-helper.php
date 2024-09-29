@@ -915,6 +915,38 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Performs special mapping for address fields for specific contexts.
+	 */
+	public function fix_address_fields_mapping() {
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
+
+		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
+		// but WooCommerce expects it in the "city" field.
+		if ( 'AE' === $billing_country ) {
+			$billing_state = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
+			$billing_city  = ! empty( $_POST['billing_city'] ) ? wc_clean( wp_unslash( $_POST['billing_city'] ) ) : '';
+
+			// Move the state (emirate) to the city field.
+			if ( empty( $billing_city ) && ! empty( $billing_state ) ) {
+				$_POST['billing_city']  = $billing_state;
+				$_POST['billing_state'] = '';
+			}
+		}
+
+		if ( 'AE' === $shipping_country ) {
+			$shipping_state = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
+			$shipping_city  = ! empty( $_POST['shipping_city'] ) ? wc_clean( wp_unslash( $_POST['shipping_city'] ) ) : '';
+
+			// Move the state (emirate) to the city field.
+			if ( empty( $shipping_city ) && ! empty( $shipping_state ) ) {
+				$_POST['shipping_city']  = $shipping_state;
+				$_POST['shipping_state'] = '';
+			}
+		}
+	}
+
+	/**
 	 * Calculate and set shipping method.
 	 *
 	 * @param array $address Shipping address.
@@ -1217,5 +1249,35 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+	}
+
+	/**
+	 * Adds the express checkout payment method title to the order.
+	 *
+	 * @param WC_Order $order The order.
+	 */
+	public function add_order_payment_method_title( $order ) {
+		if ( empty( $_POST['express_payment_type'] ) || ! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return;
+		}
+
+		$express_payment_type   = wc_clean( wp_unslash( $_POST['express_payment_type'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		$express_payment_titles = [
+			'apple_pay'  => 'Apple Pay',
+			'google_pay' => 'Google Pay',
+		];
+		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
+
+		if ( ! $payment_method_title ) {
+			return;
+		}
+
+		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
+		if ( ! empty( $suffix ) ) {
+			$suffix = " ($suffix)";
+		}
+
+		$order->set_payment_method_title( $payment_method_title . $suffix );
+		$order->save();
 	}
 }
