@@ -209,7 +209,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
 
-		$this->sdk = new \Stripe\StripeClient( $this->secret_key );
+		$this->sdk = new \Stripe\StripeClient(
+			[
+				'api_key'        => $this->secret_key,
+				'stripe_version' => \Stripe\Util\ApiVersion::CURRENT,
+			]
+		);
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 
@@ -2022,7 +2027,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
-		$payment_method_details = WC_Stripe_API::get_payment_method( $payment_method_id );
+		$payment_method_details = $this->sdk->paymentMethods->retrieve( $payment_method_id );
 
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
