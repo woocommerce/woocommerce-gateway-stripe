@@ -235,7 +235,7 @@ export const isLinkEnabled = ( paymentMethodsConfig ) => {
  * @return {Array} Array of payment method types to use with intent.
  */
 export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
-	const paymentMethodsConfig = getStripeServerData().paymentMethodsConfig;
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( paymentMethodType === null ) {
 		if (
