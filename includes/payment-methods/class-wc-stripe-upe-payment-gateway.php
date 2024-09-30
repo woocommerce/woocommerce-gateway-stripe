@@ -836,7 +836,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_intent_response = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
 
-			$payment_intent = new \Stripe\PaymentIntent( $payment_intent_response->id );
+			$payment_intent = \Stripe\PaymentIntent::retrieve( $payment_intent_response->id );
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.

@@ -555,7 +555,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * that are asynchronous may take couple days to clear. Webhook will
 			 * take care of the status changes.
 			 */
-			if ( 'pending' === $response->status ) {
+			if ( \Stripe\Charge::STATUS_PENDING === $response->status ) {
 				$order_stock_reduced = $order->get_meta( '_order_stock_reduced', true );
 
 				if ( ! $order_stock_reduced ) {
@@ -567,7 +567,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
 
-			if ( \Stripe\PaymentIntent::STATUS_SUCCEEDED === $response->status ) {
+			if ( \Stripe\Charge::STATUS_SUCCEEDED === $response->status ) {
 				/**
 				 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
 				 * processing/completed. This will be handled by the incoming review.open webhook.
@@ -591,7 +591,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			if ( 'failed' === $response->status ) {
+			if ( \Stripe\Charge::STATUS_FAILED === $response->status ) {
 				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				$order->add_order_note( $localized_message );
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
