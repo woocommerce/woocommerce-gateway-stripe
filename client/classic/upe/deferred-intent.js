@@ -122,7 +122,7 @@ jQuery( function ( $ ) {
 		enableStripeLinkPaymentMethod( {
 			api,
 			elements,
-			emailId: 'billing_email_field',
+			emailId: 'billing_email',
 			complete_billing: () => {
 				return document.getElementById( 'billing_address_1' ) !== null;
 			},
