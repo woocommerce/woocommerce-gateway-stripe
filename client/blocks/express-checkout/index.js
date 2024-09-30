@@ -6,6 +6,7 @@ import ApplePayPreview from './apple-pay-preview';
 import GooglePayPreview from './google-pay-preview';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
 
 const stripePromise = loadStripe();
 
@@ -19,13 +20,15 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 		/>
 	),
 	edit: <GooglePayPreview />,
-	canMakePayment: () => {
+	canMakePayment: ( { cart } ) => {
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
 		}
 
-		return true;
+		return new Promise( ( resolve ) => {
+			checkPaymentMethodIsAvailable( 'googlePay', api, cart, resolve );
+		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	supports: {
@@ -43,13 +46,15 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 		/>
 	),
 	edit: <ApplePayPreview />,
-	canMakePayment: () => {
+	canMakePayment: ( { cart } ) => {
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
 		}
 
-		return true;
+		return new Promise( ( resolve ) => {
+			checkPaymentMethodIsAvailable( 'applePay', api, cart, resolve );
+		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	supports: {
