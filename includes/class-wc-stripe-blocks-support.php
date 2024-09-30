@@ -27,15 +27,24 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private $payment_request_configuration;
 
 	/**
+	 * The Express Checkout configuration class used for Shortcode PRBs. We use it here to retrieve
+	 * the same configurations.
+	 *
+	 * @var WC_Stripe_Express_Checkout_Element
+	 */
+	private $express_checkout_configuration;
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Payment_Request  The Stripe Payment Request configuration used for Payment
 	 *                                   Request buttons.
 	 */
-	public function __construct( $payment_request_configuration = null ) {
+	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
 		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
+		$this->express_checkout_configuration = null !== $express_checkout_configuration ? $express_checkout_configuration : new WC_Stripe_Express_Checkout_Element();
 	}
 
 	/**
@@ -169,11 +178,14 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
+		$js_params = WC_Stripe_Feature_Flags::is_stripe_ece_enabled()
+			? $this->get_express_checkout_javascript_params()
+			: $this->get_payment_request_javascript_params();
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
 		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
-			$this->get_payment_request_javascript_params(),
+			$js_params,
 			// Blocks-specific options
 			[
 				'icons'                          => $this->get_icons(),
@@ -238,6 +250,39 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
+	 * Returns true if the ECE should be shown on the current page, false otherwise.
+	 *
+	 * @return boolean True if ECEs should be displayed, false otherwise.
+	 */
+	private function should_show_express_checkout_button() {
+		// Don't show if ECEs are supposed to be hidden on the cart page.
+		if (
+			has_block( 'woocommerce/cart' )
+			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_cart_page()()
+		) {
+			return false;
+		}
+
+		// Don't show if ECEs are supposed to be hidden on the checkout page.
+		if (
+			has_block( 'woocommerce/checkout' )
+			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_checkout_page()
+		) {
+			return false;
+		}
+
+		// Don't show ECEs if there are unsupported products in the cart.
+		if (
+			( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
+			&& ! $this->express_checkout_configuration->express_checkout_helper->allowed_items_in_cart()
+		) {
+			return false;
+		}
+
+		return $this->express_checkout_configuration->express_checkout_helper->should_show_express_checkout_button();
+	}
+
+	/**
 	 * Returns the Stripe Payment Gateway JavaScript configuration object.
 	 *
 	 * @return array  the JS configuration from the Stripe Payment Gateway.
@@ -267,6 +312,18 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		return apply_filters(
 			'wc_stripe_payment_request_params',
 			$this->payment_request_configuration->javascript_params()
+		);
+	}
+
+	/**
+	 * Returns the Stripe Express Checkout JavaScript configuration object.
+	 *
+	 * @return array  the JS configuration for Stripe Express Checkout.
+	 */
+	private function get_express_checkout_javascript_params() {
+		return apply_filters(
+			'wc_stripe_express_checkout_params',
+			$this->express_checkout_configuration->javascript_params()
 		);
 	}
 
@@ -323,7 +380,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			],
 		];
 
-		if ( 'USD' === get_woocommerce_currency() ) {
+		if ( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR === get_woocommerce_currency() ) {
 			$icons_src['discover'] = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/discover.svg',
 				'alt' => _x( 'Discover', 'Name of credit card', 'woocommerce-gateway-stripe' ),
@@ -351,6 +408,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$data = $context->payment_data;
 		if ( ! empty( $data['payment_request_type'] ) && 'stripe' === $context->payment_method ) {
 			$this->add_order_meta( $context->order, $data['payment_request_type'] );
+		} elseif ( ! empty( $data['express_checkout_type'] ) && 'stripe' === $context->payment_method ) {
+			$this->add_order_meta( $context->order, $data['express_checkout_type'] );
 		}
 
 		$is_stripe_payment_method = $this->name === $context->payment_method;

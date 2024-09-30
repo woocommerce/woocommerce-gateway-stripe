@@ -35,8 +35,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe card payment method.
 	 */
 	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
-		'type' => 'card',
-		'card' => [
+		'type' => WC_Stripe_Payment_Methods::CARD,
+		WC_Stripe_Payment_Methods::CARD => [
 			'brand'     => 'visa',
 			'networks'  => [ 'preferred' => 'visa' ],
 			'exp_month' => '7',
@@ -49,9 +49,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for SEPA Direct Debit payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
-		'type'       => 'sepa_debit',
+		'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
 		'object'     => 'payment_method',
-		'sepa_debit' => [
+		WC_Stripe_Payment_Methods::SEPA_DEBIT => [
 			'last4' => '7061',
 		],
 	];
@@ -241,8 +241,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->update_option(
 			'upe_checkout_experience_accepted_payments',
 			[
-				'card',
-				'link',
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::LINK,
 			]
 		);
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
@@ -526,7 +526,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
-		$create_and_confirm_setup_intent_num_calls = $free_order && ! ( $saved_token && 'cashapp' === $payment_method ) ? 1 : 0;
+		$create_and_confirm_setup_intent_num_calls = $free_order && ! ( $saved_token && WC_Stripe_Payment_Methods::CASHAPP_PAY === $payment_method ) ? 1 : 0;
 		$this->mock_gateway->intent_controller
 			->expects( $this->exactly( $create_and_confirm_setup_intent_num_calls ) )
 			->method( 'create_and_confirm_setup_intent' )
@@ -568,17 +568,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function provide_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response() {
 		return [
 			'wechat pay / default amount'  => [
-				'payment method' => 'wechat_pay',
+				'payment method' => WC_Stripe_Payment_Methods::WECHAT_PAY,
 			],
 			'cashapp / default amount'     => [
-				'payment method' => 'cashapp',
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 			],
 			'cashapp / free'               => [
-				'payment method' => 'cashapp',
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				'free order'     => true,
 			],
 			'cashapp / free / saved token' => [
-				'payment method' => 'cashapp',
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				'free order'     => true,
 				'saved token'    => true,
 			],
@@ -1024,8 +1024,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => [
-				'type'       => 'bancontact',
-				'bancontact' => [
+				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
 			],
@@ -1074,8 +1074,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$setup_intent_mock['latest_charge']  = [];
 		$setup_intent_mock['latest_attempt'] = [
 			'payment_method_details' => [
-				'type'       => 'bancontact',
-				'bancontact' => [
+				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
 			],
@@ -2125,7 +2125,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_intent = (object) wp_parse_args(
 			[
 				'payment_method'       => 'pm_mock',
-				'payment_method_types' => [ 'card' ],
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
 				'charges'              => (object) [
 					'data' => [
 						(object) [

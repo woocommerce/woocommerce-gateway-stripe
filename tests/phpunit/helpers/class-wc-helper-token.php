@@ -36,7 +36,7 @@ class WC_Helper_Token {
 	 */
 	public static function create_sepa_token( $payment_method, $user_id = null, $gateway = WC_Gateway_Stripe_Sepa::ID ) {
 		$token = new WC_Payment_Token_SEPA();
-		$token->set_payment_method_type( 'sepa_debit' );
+		$token->set_payment_method_type( WC_Stripe_Payment_Methods::SEPA_DEBIT );
 		$token->set_token( $payment_method );
 		$token->set_gateway_id( $gateway );
 		$token->set_user_id( is_null( $user_id ) ? get_current_user_id() : $user_id );

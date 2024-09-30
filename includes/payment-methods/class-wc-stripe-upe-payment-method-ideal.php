@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'ideal';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::IDEAL;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Ideal::class;
 
@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'iDEAL', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'iDEAL', 'woocommerce-gateway-stripe' );
 		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'multiple_subscriptions';

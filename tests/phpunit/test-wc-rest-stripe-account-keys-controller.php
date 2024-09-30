@@ -163,7 +163,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		// Set initial payment methods
 		$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ 'card', 'link', 'sepa', 'ideal' ] );
+		$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ] );
 
 		$this->controller->set_account_keys( $request );
 
@@ -191,7 +191,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		// Set initial payment methods
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 		foreach ( $payment_gateways as $gateway ) {
-			if ( in_array( $gateway->id, [ 'card', 'link', 'sepa', 'ideal' ], true ) ) {
+			if ( in_array( $gateway->id, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], true ) ) {
 				$gateway->update_option( 'enabled', 'yes' );
 			}
 		}
