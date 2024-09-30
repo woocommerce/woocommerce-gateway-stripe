@@ -36,12 +36,21 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns payment method title
 	 *
-	 * @param array|bool $payment_details Optional payment details from charge object.
+	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
 	 *
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
 		if ( ! $payment_details ) {
+			return parent::get_title();
+		}
+
+		if ( WC_Stripe_Feature_Flags::is_stripe_ece_enabled() && isset( $payment_details->card->wallet->type ) ) {
+			return $this->get_card_wallet_type_title( $payment_details->card->wallet->type );
+		}
+
+		// Backwards compatibility for generating title from card payment details.
+		if ( ! is_array( $payment_details ) || ! isset( $payment_details[ $this->stripe_id ] ) ) {
 			return parent::get_title();
 		}
 
@@ -126,5 +135,34 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			'<a href="https://stripe.com/docs/testing" target="_blank">',
 			'</a>'
 		);
+	}
+
+	/**
+	 * Returns the title for the card wallet type.
+	 * This is used to display the title for Apple Pay and Google Pay.
+	 *
+	 * @param $express_payment_type The type of express payment method.
+	 *
+	 * @return string The title for the card wallet type.
+	 */
+	private function get_card_wallet_type_title( $express_payment_type ) {
+		$express_payment_titles = [
+			'apple_pay'  => 'Apple Pay',
+			'google_pay' => 'Google Pay',
+		];
+
+		$payment_method_title = $express_payment_titles[ $express_payment_type ] ?? false;
+
+		if ( ! $payment_method_title ) {
+			return parent::get_title();
+		}
+
+		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
+
+		if ( ! empty( $suffix ) ) {
+			$suffix = " ($suffix)";
+		}
+
+		return $payment_method_title . $suffix;
 	}
 }

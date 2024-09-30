@@ -178,7 +178,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns payment method title
 	 *
-	 * @param array|bool $payment_details Optional payment details from charge object.
+	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
 	 *
 	 * @return string
 	 */

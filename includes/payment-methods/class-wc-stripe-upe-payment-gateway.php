@@ -856,7 +856,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Set the selected UPE payment method type title in the WC order.
-			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
 
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
@@ -1607,18 +1607,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Set formatted readable payment method title for order,
 	 * using payment method details from accompanying charge.
 	 *
-	 * @param WC_Order   $order WC Order being processed.
-	 * @param string     $payment_method_type Stripe payment method key.
+	 * @param WC_Order      $order WC Order being processed.
+	 * @param string        $payment_method_type Stripe payment method key.
+	 * @param stdClass|bool $stripe_payment_method Stripe payment method object.
 	 *
 	 * @since 5.5.0
 	 * @version 5.5.0
 	 */
-	public function set_payment_method_title_for_order( $order, $payment_method_type ) {
+	public function set_payment_method_title_for_order( $order, $payment_method_type, $stripe_payment_method = false ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
 			return;
 		}
 		$payment_method       = $this->payment_methods[ $payment_method_type ];
-		$payment_method_title = $payment_method->get_title();
+		$payment_method_title = $payment_method->get_title( $stripe_payment_method );
 		$payment_method_id    = $payment_method instanceof WC_Stripe_UPE_Payment_Method_CC ? $this->id : $payment_method->id;
 
 		$order->set_payment_method( $payment_method_id );
