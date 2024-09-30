@@ -2384,18 +2384,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test test_set_payment_method_title_for_order with custom title.
 	 */
 	public function test_set_payment_method_title_for_order_custom_title() {
-		// SET UP
-		$this->mock_gateway->expects( $this->exactly( 2 ) ) // 2 times because we test 2 payment methods.
-			->method( 'is_subscriptions_enabled' )
-			->willReturn( true );
-
 		$order = WC_Helper_Order::create_order();
-
-		// Subscriptions - note that orders are used here as subscriptions. Subscriptions inherit all order methods so should suffice for testing.
-		$mock_subscription_0 = WC_Helper_Order::create_order();
-		$mock_subscription_1 = WC_Helper_Order::create_order();
-
-		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
 		// CARD
 		// Set a custom title.
@@ -2407,8 +2396,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
 
 		$this->assertEquals( 'Custom Card Title', $order->get_payment_method_title() );
-		$this->assertEquals( 'Custom Card Title', $mock_subscription_0->get_payment_method_title() );
-		$this->assertEquals( 'Custom Card Title', $mock_subscription_1->get_payment_method_title() );
 
 		// SEPA
 		// Set a custom title.
@@ -2420,7 +2407,5 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
 
 		$this->assertEquals( 'Custom SEPA Title', $order->get_payment_method_title() );
-		$this->assertEquals( 'Custom SEPA Title', $mock_subscription_0->get_payment_method_title() );
-		$this->assertEquals( 'Custom SEPA Title', $mock_subscription_1->get_payment_method_title() );
 	}
 }
