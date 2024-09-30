@@ -148,5 +148,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Set order payment method title to the customizable title setting rather than the default label.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

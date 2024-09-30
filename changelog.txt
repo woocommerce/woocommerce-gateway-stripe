@@ -19,6 +19,7 @@
 * Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Set order payment method title to the customizable title setting rather than the default label.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
