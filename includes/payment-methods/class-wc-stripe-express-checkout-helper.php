@@ -1114,8 +1114,15 @@ class WC_Stripe_Express_Checkout_Helper {
 		$subtotal      = 0;
 		$discounts     = 0;
 		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
+		$has_deposits  = false;
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
+			if ( ! empty( $cart_item['is_deposit'] ) ) {
+				$has_deposits = true;
+				continue;
+			}
+
 			$subtotal      += $cart_item['line_subtotal'];
 			$amount         = $cart_item['line_subtotal'];
 			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
@@ -1127,11 +1134,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			];
 		}
 
-		if ( $display_items ) {
+		if ( $display_items && ! $has_deposits ) {
 			$items = array_merge( $items, $lines );
-		} else {
-			// Default show only subtotal instead of itemization.
-
+		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
 			$items[] = [
 				'label'  => 'Subtotal',
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
