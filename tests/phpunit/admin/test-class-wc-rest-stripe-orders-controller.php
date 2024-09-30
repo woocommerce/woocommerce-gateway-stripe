@@ -116,8 +116,8 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 				'body'     => wp_json_encode(
 					[
 						'id'      => 'pi_12345',
-						'object'  => 'payment_intent',
-						'status'  => 'requires_capture',
+						'object'  => \Stripe\PaymentIntent::OBJECT_NAME,
+						'status'  => \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE,
 						'charges' => [
 							'data' => [
 								[
@@ -125,7 +125,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 									'balance_transaction' => [
 										'id' => 'txn_12345',
 									],
-									'status'              => 'succeeded',
+									'status'              => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 								],
 							],
 						],
@@ -141,7 +141,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'succeeded', $response->get_data()['status'] );
+		$this->assertEquals( \Stripe\PaymentIntent::STATUS_SUCCEEDED, $response->get_data()['status'] );
 		$this->assertEquals( 'ch_12345', $response->get_data()['id'] );
 		$this->assertEquals( 'pi_12345', $order->get_meta( '_stripe_intent_id', true ) );
 
@@ -172,8 +172,8 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 				'body'     => wp_json_encode(
 					[
 						'id'     => 'pi_12345',
-						'object' => 'payment_intent',
-						'status' => 'succeeded',
+						'object' => \Stripe\PaymentIntent::OBJECT_NAME,
+						'status' => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 					]
 				),
 			];
@@ -222,8 +222,8 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 				'body'     => wp_json_encode(
 					[
 						'id'      => 'pi_12345',
-						'object'  => 'payment_intent',
-						'status'  => 'requires_capture',
+						'object'  => \Stripe\PaymentIntent::OBJECT_NAME,
+						'status'  => \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE,
 						'charges' => [
 							'data' => [
 								[

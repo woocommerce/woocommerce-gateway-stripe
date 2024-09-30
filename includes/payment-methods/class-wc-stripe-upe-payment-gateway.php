@@ -46,7 +46,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @type array
 	 */
-	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
+	const SUCCESSFUL_INTENT_STATUS = [ \Stripe\PaymentIntent::STATUS_SUCCEEDED, \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE, \Stripe\PaymentIntent::STATUS_PROCESSING ];
 
 	/**
 	 * Transient name for appearance settings.
@@ -703,7 +703,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				if ( $save_payment_method ) {
-					$request['setup_future_usage'] = 'off_session';
+					$request['setup_future_usage'] = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 				}
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
@@ -814,7 +814,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->validate_minimum_order_amount( $order );
 
 				// Create a payment intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_payment_intent_for_order( $order, $payment_information );
 			} elseif ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) {
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
@@ -833,8 +833,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 			} else {
 				// Create a setup intent, or update an existing one associated with the order.
-				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
+				$payment_intent_response = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
+
+			$payment_intent = new \Stripe\PaymentIntent( $payment_intent_response->id );
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
@@ -864,7 +866,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$return_url = $this->get_return_url( $order );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+			if ( in_array( $payment_intent->status, [ \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION, \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION ], true ) ) {
 				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
@@ -996,7 +998,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'customer'             => $payment_method->customer,
 				];
 				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? \Stripe\PaymentIntent::CAPTURE_METHOD_AUTOMATIC : \Stripe\PaymentIntent::CAPTURE_METHOD_MANUAL;
 					$request['confirm']        = 'true';
 				}
 
@@ -1006,7 +1008,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				if ( $this->has_subscription( $order_id ) ) {
-					$request['setup_future_usage'] = 'off_session';
+					$request['setup_future_usage'] = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
@@ -1060,7 +1062,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( 'requires_action' === $intent->status || 'requires_confirmation' === $intent->status ) {
+			if ( \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION === $intent->status || \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION === $intent->status ) {
 				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
 					return [
 						'result'   => 'success',
@@ -1128,7 +1130,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function maybe_process_upe_redirect() {
 		if ( $this->is_payment_methods_page() || $this->is_changing_payment_method_for_subscription() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
-				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
+				if ( isset( $_GET['redirect_status'] ) && \Stripe\PaymentIntent::STATUS_SUCCEEDED === $_GET['redirect_status'] ) {
 					$user_id  = wp_get_current_user()->ID;
 					$customer = new WC_Stripe_Customer( $user_id );
 					$customer->clear_cache();
@@ -1465,7 +1467,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
-			$pre_order_product  = $this->get_pre_order_product_from_cart();
+			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
@@ -1709,13 +1711,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method_type    = '';
 		$payment_method_details = false;
 
-		if ( 'payment_intent' === $intent->object ) {
+		if ( \Stripe\PaymentIntent::OBJECT_NAME === $intent->object ) {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 			if ( ! empty( $charge ) ) {
 				$payment_method_details = (array) $charge->payment_method_details;
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
-		} elseif ( 'setup_intent' === $intent->object ) {
+		} elseif ( \Stripe\SetupIntent::OBJECT_NAME === $intent->object ) {
 			if ( ! empty( $intent->latest_attempt ) && ! empty( $intent->latest_attempt->payment_method_details ) ) {
 				$payment_method_details = (array) $intent->latest_attempt->payment_method_details;
 				$payment_method_type    = $payment_method_details['type'];
@@ -1976,7 +1978,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
-		$capture_method        = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
+		$capture_method        = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? \Stripe\PaymentIntent::CAPTURE_METHOD_AUTOMATIC : \Stripe\PaymentIntent::CAPTURE_METHOD_MANUAL; // automatic | manual.
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$shipping_details      = null;
@@ -2406,17 +2408,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Check if the status of the intent still allows update.
-		if ( in_array( $intent->status, [ 'canceled', 'succeeded' ], true ) ) {
+		if ( in_array( $intent->status, [ \Stripe\PaymentIntent::STATUS_CANCELED, \Stripe\PaymentIntent::STATUS_SUCCEEDED ], true ) ) {
 			return null;
 		}
 
 		// If the intent requires confirmation to show voucher on checkout (i.e. Boleto or oxxo or multibanco ) or requires action (i.e. need to show a 3DS confirmation card or handle the UPE redirect), don't reuse the intent
-		if ( in_array( $intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+		if ( in_array( $intent->status, [ \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION, \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION ], true ) ) {
 			return null;
 		}
 
 		// Cash App Pay intents with a "requires payment method" status cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
-		if ( in_array( WC_Stripe_Payment_Methods::CASHAPP_PAY, $intent->payment_method_types ) && 'requires_payment_method' === $intent->status ) {
+		if ( in_array( WC_Stripe_Payment_Methods::CASHAPP_PAY, $intent->payment_method_types ) && \Stripe\PaymentIntent::STATUS_REQUIRES_PAYMENT_METHOD === $intent->status ) {
 			return null;
 		}
 

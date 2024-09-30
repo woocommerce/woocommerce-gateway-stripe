@@ -924,7 +924,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		if (
 			! $existing_intent
-			|| 'requires_payment_method' !== $existing_intent->status
+			|| \Stripe\PaymentIntent::STATUS_REQUIRES_PAYMENT_METHOD !== $existing_intent->status
 			|| empty( $existing_intent->last_payment_error )
 			|| 'authentication_required' !== $existing_intent->last_payment_error->code
 		) {
@@ -1012,7 +1012,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	protected function must_authorize_off_session( $payment_intent ) {
 		return ! empty( $payment_intent->status )
-			&& 'processing' === $payment_intent->status
+			&& \Stripe\PaymentIntent::STATUS_PROCESSING === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
 	}
 
