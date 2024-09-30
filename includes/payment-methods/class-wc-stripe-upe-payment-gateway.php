@@ -126,6 +126,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $payment_methods = [];
 
 	/**
+	 * Stripe SDK instance.
+	 *
+	 * @var \Stripe\StripeClient
+	 */
+	private $sdk;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -201,6 +208,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
+
+		$this->sdk = new \Stripe\StripeClient( $this->secret_key );
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 
@@ -836,7 +845,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_intent_response = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
 
-			$payment_intent = \Stripe\PaymentIntent::retrieve( $payment_intent_response->id );
+			$payment_intent = $this->sdk->paymentIntents->retrieve( $payment_intent_response->id );
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
