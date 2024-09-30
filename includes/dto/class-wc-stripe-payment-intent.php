@@ -53,8 +53,25 @@ class WC_Stripe_Payment_Intent extends \Stripe\PaymentIntent {
 	 * @return bool Whether the payment intent contains a wallet or voucher payment method.
 	 */
 	public function contains_wallet_or_voucher_method() {
-		$wallet_and_voucher_methods = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
-		return isset( $this->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $this->payment_method_types ) ) !== 0;
+		return $this->contains_wallet_method() || $this->contains_voucher_method();
+	}
+
+	/**
+	 * Checks whether the payment intent contains a wallet payment method.
+	 *
+	 * @return bool Whether the payment intent contains a wallet payment method.
+	 */
+	public function contains_wallet_method() {
+		return isset( $this->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $this->payment_method_types ) ) !== 0;
+	}
+
+	/**
+	 * Checks whether the payment intent contains a voucher payment method.
+	 *
+	 * @return bool Whether the payment intent contains a voucher payment method.
+	 */
+	public function contains_voucher_method() {
+		return isset( $this->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $this->payment_method_types ) ) !== 0;
 	}
 
 	/**
