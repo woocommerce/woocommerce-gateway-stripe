@@ -15,6 +15,7 @@
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
+* Fix - Move charge related code to separate try-catch to prevent renewal failure.
 * Fix - Corrected translation text domain in UPE checkout integration.
 * Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
