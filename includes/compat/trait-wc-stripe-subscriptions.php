@@ -401,6 +401,22 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' !== $this->id ) {
+				$this->unlock_order_payment( $renewal_order );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
+
+			/* translators: error message */
+			$renewal_order->update_status( 'failed' );
+			return;
+		}
+
+		try {
+
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
@@ -441,18 +457,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
-
-			// TODO: Remove when SEPA is migrated to payment intents.
-			if ( 'stripe_sepa' !== $this->id ) {
-				$this->unlock_order_payment( $renewal_order );
-			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
-
-			/* translators: error message */
-			$renewal_order->update_status( 'failed' );
 		}
 	}
 
