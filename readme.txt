@@ -149,5 +149,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 * Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Resolved an issue where some orders were incorrectly marked as 'on-hold' with an order note indicating manual payment capture was required.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
