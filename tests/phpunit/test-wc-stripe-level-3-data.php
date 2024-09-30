@@ -88,7 +88,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		$mock_order
 			->method( 'get_currency' )
-			->will( $this->returnValue( 'USD' ) );
+			->will( $this->returnValue( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ) );
 
 		$mock_order
 			->method( 'get_shipping_total' )

@@ -276,7 +276,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
 			'title'   => __( 'Payments accepted on checkout (Early access)', 'woocommerce-gateway-stripe' ),
 			'type'    => 'upe_checkout_experience_accepted_payments',
-			'default' => [ 'card', 'link' ],
+			'default' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
 		];
 	}
 	// Insert UPE options below the 'logging' setting.

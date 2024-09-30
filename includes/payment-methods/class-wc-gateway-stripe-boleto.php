@@ -29,14 +29,14 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	/**
 	 * ID used by stripe
 	 */
-	protected $stripe_id = 'boleto';
+	protected $stripe_id = WC_Stripe_Payment_Methods::BOLETO;
 
 	/**
 	 * List of accepted currencies
 	 *
 	 * @var array
 	 */
-	protected $supported_currencies = [ 'BRL' ];
+	protected $supported_currencies = [ WC_Stripe_Currency_Code::BRAZILIAN_REAL ];
 
 	/**
 	 * List of accepted countries
@@ -63,7 +63,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 */
 	protected function update_request_body_on_create_or_update_payment_intent( $body ) {
 		$body['payment_method_options'] = [
-			'boleto' => [
+			WC_Stripe_Payment_Methods::BOLETO => [
 				'expires_after_days' => $this->get_option( 'expiration' ),
 			],
 		];
@@ -180,7 +180,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	protected function get_confirm_payment_data( $order ) {
 		return [
 			'payment_method' => [
-				'boleto'          => [
+				WC_Stripe_Payment_Methods::BOLETO => [
 					'tax_id' => isset( $_POST['stripe_boleto_tax_id'] ) ? wc_clean( wp_unslash( $_POST['stripe_boleto_tax_id'] ) ) : null,
 				],
 				'billing_details' => [

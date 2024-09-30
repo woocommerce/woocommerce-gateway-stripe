@@ -1,5 +1,5 @@
 {
-	"esversion": 6,
+	"esversion": 11,
 	"boss": true,
 	"curly": true,
 	"eqeqeq": true,
@@ -12,6 +12,9 @@
 	"unused": true,
 
 	"browser": true,
+
+	"mocha": true,
+	"jasmine": true,
 
 	"globals": {
 		"_": false,

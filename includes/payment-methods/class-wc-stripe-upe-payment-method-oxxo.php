@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'oxxo';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::OXXO;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Oxxo::class;
 
@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->can_refund           = false;
 		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'MXN' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::MEXICAN_PESO ];
 		$this->supported_countries  = [ 'MX' ];
 		$this->supports             = [ 'products' ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
@@ -44,7 +44,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( 'oxxo' === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses ) ) {
+		if ( WC_Stripe_Payment_Methods::OXXO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses ) ) {
 			$allowed_statuses[] = 'on-hold';
 		}
 

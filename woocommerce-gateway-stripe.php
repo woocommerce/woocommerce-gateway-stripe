@@ -212,6 +212,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-cash-app-pay-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
+				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-currency-code.php';
+				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-payment-methods.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -266,8 +268,8 @@ function woocommerce_gateway_stripe() {
 				$this->account                        = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				// Express checkout configurations.
-				$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
-				$express_checkout_ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
+				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper();
+				$express_checkout_ajax_handler        = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
 				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
 				$this->express_checkout_configuration->init();
 
@@ -855,7 +857,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 					WC_Stripe_Blocks_Support::class,
 					function() {
 						if ( class_exists( 'WC_Stripe' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration );
+							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}

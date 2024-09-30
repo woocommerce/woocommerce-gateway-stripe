@@ -1,4 +1,10 @@
 <?php
+/**
+ * Class that handles checkout with Stripe Express Checkout Element.
+ * Utilizes the Stripe Express Checkout Element to support checkout with Google Pay and Apple pay from the product detail, cart and checkout pages.
+ *
+ * @since 8.8.0
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -34,7 +40,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @var WC_Stripe_Express_Checkout_Helper
 	 */
-	private $express_checkout_helper;
+	public $express_checkout_helper;
 
 	/**
 	 * Constructor.
@@ -82,11 +88,14 @@ class WC_Stripe_Express_Checkout_Element {
 		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_express_checkout_button_html' ], 1 );
 		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_express_checkout_button_html' ], 25 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
+		add_action( 'woocommerce_pay_order_before_payment', [ $this, 'display_express_checkout_button_html' ], 1 );
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
+
+		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
 	}
 
 	/**
@@ -162,20 +171,23 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
+				'publishable_key'             => 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
 			],
 			'nonce'              => [
-				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout-element' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-element-shipping' ),
+				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
+				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
 				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
 				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
 				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 			],
 			'i18n'               => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -191,10 +203,71 @@ class WC_Stripe_Express_Checkout_Element {
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
 			'button'             => $this->express_checkout_helper->get_button_settings(),
+			'is_pay_for_order'   => $this->express_checkout_helper->is_pay_for_order_page(),
+			'has_block'          => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation' => $this->express_checkout_helper->get_login_confirmation_settings(),
 			'is_product_page'    => $this->express_checkout_helper->is_product(),
+			'is_checkout_page'   => $this->express_checkout_helper->is_checkout(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
 		];
+	}
+
+	/**
+	 * Localizes additional parameters necessary for the Pay for Order page.
+	 *
+	 * @param WC_Order $order The order that needs payment.
+	 */
+	public function localize_pay_for_order_page_scripts( $order ) {
+		$currency = get_woocommerce_currency();
+		$data     = [];
+		$items    = [];
+
+		foreach ( $order->get_items() as $item ) {
+			if ( method_exists( $item, 'get_total' ) ) {
+				$items[] = [
+					'label'  => $item->get_name(),
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
+				];
+			}
+		}
+
+		if ( $order->get_total_tax() ) {
+			$items[] = [
+				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), $currency ),
+			];
+		}
+
+		if ( $order->get_shipping_total() ) {
+			$shipping_label = sprintf(
+			// Translators: %s is the name of the shipping method.
+				__( 'Shipping (%s)', 'woocommerce-gateway-stripe' ),
+				$order->get_shipping_method()
+			);
+
+			$items[] = [
+				'label'  => $shipping_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total(), $currency ),
+			];
+		}
+
+		foreach ( $order->get_fees() as $fee ) {
+			$items[] = [
+				'label'  => $fee->get_name(),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $fee->get_amount(), $currency ),
+			];
+		}
+
+		$data['order']          = $order->get_id();
+		$data['displayItems']   = $items;
+		$data['needs_shipping'] = false; // This should be already entered/prepared.
+		$data['total']          = [
+			'label'   => $this->express_checkout_helper->get_total_label(),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+			'pending' => true,
+		];
+
+		wp_localize_script( 'wc_stripe_express_checkout', 'wcStripeExpressCheckoutPayForOrderParams', $data );
 	}
 
 	/**
@@ -324,10 +397,8 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		?>
-		<div id="wc-stripe-express-checkout-wrapper" style="margin-top: 1em;clear:both;display:none;">
-			<div id="wc-stripe-express-checkout-button">
-				<!-- A Stripe Element will be inserted here. -->
-			</div>
+		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">
+			<!-- A Stripe Element will be inserted here. -->
 		</div>
 		<?php
 		$this->display_express_checkout_button_separator_html();

@@ -306,7 +306,7 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
  *
  * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
  *
- * @return {boolean} Boolean indicating whether or not a saved payment method is being used.
+ * @return {boolean} Boolean indicating whether a saved payment method is being used.
  */
 export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
 	const paymentMethod = getPaymentMethodName( paymentMethodType );
@@ -580,4 +580,45 @@ export const resetBlockCheckoutPaymentState = () => {
 	// Set the payment state to idle so the selected payment method can re-setup.
 	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
 	dispatch( PAYMENT_STORE_KEY ).__internalSetPaymentIdle();
+};
+
+/**
+ * Generates additional data to be passed to the setup intent request.
+ *
+ * @param {*} jQueryForm The jQuery form object.
+ * @return {Object} Additional data to be passed to the setup intent request.
+ */
+export const getAdditionalSetupIntentData = ( jQueryForm ) => {
+	const additionalData = {};
+
+	// Find the payment method that is selected.
+	const selectedPaymentMethod = jQueryForm.find(
+		'.woocommerce-PaymentMethods input.input-radio:checked'
+	);
+
+	if ( ! selectedPaymentMethod.length ) {
+		return additionalData;
+	}
+
+	// Find the parent list item (`li`) of the selected payment method.
+	const selectedPaymentMethodListItem = selectedPaymentMethod.closest( 'li' );
+
+	if ( ! selectedPaymentMethodListItem.length ) {
+		return additionalData;
+	}
+
+	// Check if the "update all subscriptions" checkbox exists within the selected list item.
+	const updateAllSubscriptionsCheckbox = selectedPaymentMethodListItem.find(
+		'.wc-stripe-update-all-subscriptions-payment-method'
+	);
+
+	// Add additional data passed to the setup intent request to server if the checkbox is checked.
+	if (
+		updateAllSubscriptionsCheckbox.length &&
+		updateAllSubscriptionsCheckbox.is( ':checked' )
+	) {
+		additionalData.update_all_subscription_payment_methods = true;
+	}
+
+	return additionalData;
 };

@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	use WC_Stripe_Subscriptions_Trait;
 
-	const STRIPE_ID = 'sepa_debit';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::SEPA_DEBIT;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Sepa::class;
 
@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
