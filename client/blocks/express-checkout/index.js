@@ -1,3 +1,5 @@
+/* global wc_stripe_express_checkout_params */
+
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { ExpressCheckoutContainer } from './express-checkout-container';
 import ApplePayPreview from './apple-pay-preview';
@@ -17,7 +19,14 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 		/>
 	),
 	edit: <GooglePayPreview />,
-	canMakePayment: () => true,
+	canMakePayment: () => {
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
+		return true;
+	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
@@ -34,7 +43,14 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 		/>
 	),
 	edit: <ApplePayPreview />,
-	canMakePayment: () => true,
+	canMakePayment: () => {
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
+		return true;
+	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
