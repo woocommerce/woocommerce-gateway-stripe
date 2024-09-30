@@ -351,8 +351,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			// Process the payment.
 			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 
-			$this->express_checkout_helper->add_order_payment_method_title( $order );
-
 			// process_payment() should only return `success` or throw an exception.
 			if ( ! is_array( $result ) || ! isset( $result['result'] ) || 'success' !== $result['result'] || ! isset( $result['redirect'] ) ) {
 				throw new Exception( __( 'Unable to determine payment success.', 'woocommerce-gateway-stripe' ) );
