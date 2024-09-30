@@ -289,7 +289,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			$data['displayItems'] = $items;
 			$data['total']        = [
 				'label'  => $this->express_checkout_helper->get_total_label(),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $total + $total_tax ),
 			];
 
 			wp_send_json( $data );
