@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
 * Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
