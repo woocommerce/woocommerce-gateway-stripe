@@ -578,4 +578,17 @@ export default class WCStripeAPI {
 			}
 		);
 	}
+
+	/**
+	 * Empty the cart.
+	 *
+	 * @param {number} bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutEmptyCart( bookingId ) {
+		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			booking_id: bookingId,
+		} );
+	}
 }

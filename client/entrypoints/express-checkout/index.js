@@ -619,4 +619,42 @@ jQuery( function ( $ ) {
 	};
 
 	wcStripeECE.init();
+
+	// Handle bookable products on the product page.
+	let wcBookingFormChanged = false;
+
+	$( document.body )
+		.off( 'wc_booking_form_changed' )
+		.on( 'wc_booking_form_changed', () => {
+			wcBookingFormChanged = true;
+		} );
+
+	// Listen for the WC Bookings wc_bookings_calculate_costs event to complete
+	// and add the bookable product to the cart, using the response to update the
+	// payment request request params with correct totals.
+	$( document ).ajaxComplete( function ( event, xhr, settings ) {
+		if ( wcBookingFormChanged ) {
+			if (
+				settings.url === window.booking_form_params.ajax_url &&
+				settings.data.includes( 'wc_bookings_calculate_costs' ) &&
+				xhr.responseText.includes( 'SUCCESS' )
+			) {
+				wcStripeECE.blockExpressCheckoutButton();
+				wcBookingFormChanged = false;
+
+				return wcStripeECE.addToCart().then( ( response ) => {
+					getExpressCheckoutData( 'product' ).total = response.total;
+					getExpressCheckoutData( 'product' ).displayItems =
+						response.displayItems;
+
+					// Empty the cart to avoid having 2 products in the cart when payment request is not used.
+					api.expressCheckoutEmptyCart( response.bookingId );
+
+					wcStripeECE.init();
+
+					wcStripeECE.unblockExpressCheckoutButton();
+				} );
+			}
+		}
+	} );
 } );

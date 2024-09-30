@@ -110,6 +110,14 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$data          += $this->express_checkout_helper->build_display_items();
 		$data['result'] = 'success';
 
+		if ( 'booking' === $product_type ) {
+			$booking_id = $this->express_checkout_helper->get_booking_id_from_cart();
+
+			if ( ! empty( $booking_id ) ) {
+				$data['bookingId'] = $booking_id;
+			}
+		}
+
 		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
@@ -120,7 +128,17 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function ajax_clear_cart() {
 		check_ajax_referer( 'wc-stripe-clear-cart', 'security' );
 
+		$booking_id = isset( $_POST['booking_id'] ) ? absint( $_POST['booking_id'] ) : null;
+
 		WC()->cart->empty_cart();
+
+		if ( $booking_id ) {
+			// When a bookable product is added to the cart, a 'booking' is create with status 'in-cart'.
+			// This status is used to prevent the booking from being booked by another customer
+			// and should be removed when the cart is emptied for PRB purposes.
+			do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+		}
+
 		exit;
 	}
 

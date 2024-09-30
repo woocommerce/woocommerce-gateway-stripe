@@ -1348,4 +1348,23 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function cart_prices_include_tax() {
 		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
 	}
+
+	/**
+	 * Gets the booking id from the cart.
+	 *
+	 * It's expected that the cart only contains one item which was added via ajax_add_to_cart.
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return int|false
+	 */
+	public function get_booking_id_from_cart() {
+		$cart      = WC()->cart->get_cart();
+		$cart_item = reset( $cart );
+
+		if ( $cart_item && isset( $cart_item['booking']['_booking_id'] ) ) {
+			return $cart_item['booking']['_booking_id'];
+		}
+
+		return false;
+	}
 }
