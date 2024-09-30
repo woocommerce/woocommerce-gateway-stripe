@@ -147,6 +147,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Corrected translation text domain in UPE checkout integration.
 * Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
+* Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
