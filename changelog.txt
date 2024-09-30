@@ -1,9 +1,6 @@
 *** Changelog ***
 
 = 8.8.0 - xxxx-xx-xx =
-<<<<<<< HEAD
-* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page. 
-=======
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
 * Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
@@ -13,7 +10,6 @@
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
 * Fix - Fix mandate creation for subscriptions and saved payment methods.
->>>>>>> develop
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
 * Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
