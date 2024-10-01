@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
 * Fix - Remove unexpected HTML in error message for shortcode checkout.
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
 * Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
