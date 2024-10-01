@@ -722,7 +722,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
-				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+				$order->update_status( WC_Stripe_Order_Status::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
@@ -937,7 +937,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			$order->update_status(
-				'failed',
+				WC_Stripe_Order_Status::FAILED,
 				/* translators: localized exception message */
 				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
 			);
@@ -1110,7 +1110,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			/* translators: error message */
-			$order->update_status( 'failed' );
+			$order->update_status( WC_Stripe_Order_Status::FAILED );
 
 			return [
 				'result'   => 'fail',
@@ -1262,7 +1262,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+		if ( $order->has_status( [ WC_Stripe_Order_Status::PROCESSING, WC_Stripe_Order_Status::COMPLETED, WC_Stripe_Order_Status::ON_HOLD ] ) ) {
 			return;
 		}
 
@@ -1278,7 +1278,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			/* translators: localized exception message */
-			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status( WC_Stripe_Order_Status::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			wc_add_notice( $e->getMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );

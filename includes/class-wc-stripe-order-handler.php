@@ -70,7 +70,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+			if ( $order->has_status( [ WC_Stripe_Order_Status::PROCESSING, WC_Stripe_Order_Status::COMPLETED, WC_Stripe_Order_Status::ON_HOLD ] ) ) {
 				return;
 			}
 
@@ -92,7 +92,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );
 			}
 
-			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
+			if ( WC_Stripe_Order_Status::FAILED === $source_info->status || 'canceled' === $source_info->status ) {
 				throw new WC_Stripe_Exception( print_r( $source_info, true ), __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -185,7 +185,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
 			/* translators: error message */
-			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
+			$order->update_status( WC_Stripe_Order_Status::FAILED, sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
@@ -268,7 +268,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 						if ( ! empty( $result->error ) ) {
 							/* translators: error message */
-							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+							$order->update_status( WC_Stripe_Order_Status::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
 							$is_stripe_captured = true;
 							$result             = $this->get_latest_charge_from_intent( $result );
@@ -299,7 +299,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 						if ( ! empty( $result->error ) ) {
 							/* translators: error message */
-							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+							$order->update_status( WC_Stripe_Order_Status::FAILED, sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
 							$is_stripe_captured = true;
 						}
