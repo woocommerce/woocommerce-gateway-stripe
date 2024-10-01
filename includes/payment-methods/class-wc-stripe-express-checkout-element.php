@@ -408,11 +408,15 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! is_checkout() && ! is_cart() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
 		if ( is_checkout() && ! in_array( 'checkout', $this->express_checkout_helper->get_button_locations(), true ) ) {
+			return;
+		}
+
+		if ( is_cart() && ! in_array( 'cart', $this->express_checkout_helper->get_button_locations(), true ) ) {
 			return;
 		}
 
