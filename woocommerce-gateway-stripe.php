@@ -750,10 +750,6 @@ function woocommerce_gateway_stripe() {
 
 					// Add extra `stripe-gateway-checkout-email-field` class.
 					$fields['billing_email']['class'][] = 'stripe-gateway-checkout-email-field';
-
-					// Append StripeLink modal trigger button for logged in users.
-					$fields['billing_email']['label'] = $fields['billing_email']['label']
-						. ' <button class="stripe-gateway-stripelink-modal-trigger"></button>';
 				}
 
 				return $fields;
