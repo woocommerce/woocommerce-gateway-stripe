@@ -452,6 +452,27 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Checks whether cart contains a virtual product, or this is a virtual product page.
+	 *
+	 * @return boolean
+	 */
+	public function has_virtual_product() {
+		if ( $this->is_product() ) {
+			$product = $this->get_product();
+			return $product->is_virtual();
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				$product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+				if ( $product->is_virtual() ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Checks if this is a product page or content contains a product_page shortcode.
 	 *
 	 * @return boolean
@@ -551,7 +572,28 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
+		// Hide if cart contains virtual product and tax is based on billing or shipping address.
+		if ( $this->has_virtual_product() &&
+			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true ) ) {
+			return false;
+		}
+
 		return true;
+	}
+
+	/**
+	 * Check if the passed product needs to be shipped.
+	 *
+	 * @param WC_Product $product The product to check.
+	 *
+	 * @return bool Returns true if the product requires shipping; otherwise, returns false.
+	 */
+	public function product_needs_shipping( WC_Product $product ) {
+		if ( ! $product ) {
+			return false;
+		}
+
+		return wc_shipping_enabled() && 0 !== wc_get_shipping_method_count( true ) && $product->needs_shipping();
 	}
 
 	/**
