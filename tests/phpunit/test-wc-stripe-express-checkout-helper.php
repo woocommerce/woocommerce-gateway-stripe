@@ -32,20 +32,24 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-				'has_virtual_product',
 			]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'has_virtual_product' )->willReturn(
-			true,
-			true,
-			false,
-			true,
-		);
 		$wc_stripe_ece_helper_mock->testmode = true;
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+
+		// Create virtual product and add to cart.
+		$virtual_product = WC_Helper_Product::create_simple_product();
+		$virtual_product->set_virtual( true );
+		$virtual_product->save();
+
+		WC()->session->init();
+		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
 
 		// Hide if cart has virtual product and tax is based on shipping or billing address.
 		update_option( 'woocommerce_tax_based_on', 'billing' );
@@ -54,36 +58,13 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_tax_based_on', 'shipping' );
 		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Do not hide if there are no virtual products.
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'has_virtual_product' )->willReturn( false );
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
 		// Do not hide if taxes are not based on customer billing or shipping address.
 		update_option( 'woocommerce_tax_based_on', 'base' );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-	}
 
-	/**
-	 * Test has_virtual_product.
-	 */
-	public function test_has_virtual_product_checkout() {
-		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
-			define( 'WOOCOMMERCE_CHECKOUT', true );
-		}
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
-		$this->assertFalse( $wc_stripe_ece_helper->has_virtual_product() );
-
-		$product = WC_Helper_Product::create_simple_product();
-
-		WC()->session->init();
-		WC()->cart->add_to_cart( $product->get_id(), 1 );
-		$this->assertFalse( $wc_stripe_ece_helper->has_virtual_product() );
-
-		$virtual_product = WC_Helper_Product::create_simple_product();
-		$virtual_product->set_virtual( true );
-		$virtual_product->save();
-
-		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
-		$this->assertTrue( $wc_stripe_ece_helper->has_virtual_product() );
+		// Do not hide if cart requires shipping.
+		$shippable_product = WC_Helper_Product::create_simple_product();
+		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 	}
 }
