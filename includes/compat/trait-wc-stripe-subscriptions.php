@@ -454,8 +454,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
-				$latest_charge = $this->get_latest_charge_from_intent( $response );
-				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
+				$latest_charge = 'stripe_sepa' === $this->id ? $response : $this->get_latest_charge_from_intent( $response );
+
+				if ( ! empty( $latest_charge ) ) {
+					$this->process_response( $latest_charge, $renewal_order );
+				}
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
