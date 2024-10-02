@@ -21,6 +21,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->connect = $wc_stripe_connect_mock;
 	}
 
+	/**
+	 * Test should_show_express_checkout_button, tax logic.
+	 */
 	public function test_hides_ece_if_cannot_compute_taxes() {
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
@@ -58,5 +61,29 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Do not hide if taxes are not based on customer billing or shipping address.
 		update_option( 'woocommerce_tax_based_on', 'base' );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+	}
+
+	/**
+	 * Test has_virtual_product.
+	 */
+	public function test_has_virtual_product_checkout() {
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertFalse( $wc_stripe_ece_helper->has_virtual_product() );
+
+		$product = WC_Helper_Product::create_simple_product();
+
+		WC()->session->init();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+		$this->assertFalse( $wc_stripe_ece_helper->has_virtual_product() );
+
+		$virtual_product = WC_Helper_Product::create_simple_product();
+		$virtual_product->set_virtual( true );
+		$virtual_product->save();
+
+		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
+		$this->assertTrue( $wc_stripe_ece_helper->has_virtual_product() );
 	}
 }
