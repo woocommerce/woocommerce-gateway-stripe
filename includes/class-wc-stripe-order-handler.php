@@ -82,7 +82,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-			// Return if the order is already locked.
+			// Lock the order or return if the order is already locked.
 			if ( $this->lock_order_payment( $order ) ) {
 				return;
 			}
@@ -147,6 +147,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
+					// Unlock the order before retrying.
+					$this->unlock_order_payment( $order );
+
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
