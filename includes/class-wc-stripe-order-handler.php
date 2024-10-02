@@ -82,8 +82,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-			// Lock the order.
-			$this->lock_order_payment( $order );
+			// Return if the order is already locked.
+			if ( $this->lock_order_payment( $order ) ) {
+				return;
+			}
 
 			/**
 			 * First check if the source is chargeable at this time. If not,
@@ -189,6 +191,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			/* translators: error message */
 			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
+
+			// Unlock the order.
+			$this->unlock_order_payment( $order );
 
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
