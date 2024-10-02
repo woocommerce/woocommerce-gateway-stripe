@@ -13,12 +13,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$wc_stripe_connect_mock = $this->getMockBuilder( 'WC_Stripe_Connect' )
-			->disableOriginalConstructor()
-			->setMethods( [ 'is_connected' ] )
-			->getMock();
-		$wc_stripe_connect_mock->method( 'is_connected' )->willReturn( true );
-		WC_Stripe::get_instance()->connect = $wc_stripe_connect_mock;
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_key';
+		$stripe_settings['test_secret_key']      = 'sk_test_key';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
