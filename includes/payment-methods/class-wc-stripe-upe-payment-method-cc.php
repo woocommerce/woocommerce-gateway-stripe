@@ -41,33 +41,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		if ( ! $payment_details ) {
-			return parent::get_title();
-		}
-
-		if ( WC_Stripe_Feature_Flags::is_stripe_ece_enabled() && isset( $payment_details->card->wallet->type ) ) {
+		if ( $payment_details && WC_Stripe_Feature_Flags::is_stripe_ece_enabled() && isset( $payment_details->card->wallet->type ) ) {
 			return $this->get_card_wallet_type_title( $payment_details->card->wallet->type );
 		}
 
-		// Backwards compatibility for generating title from card payment details.
-		if ( ! is_array( $payment_details ) || ! isset( $payment_details[ $this->stripe_id ] ) ) {
-			return parent::get_title();
-		}
-
-		$details       = $payment_details[ $this->stripe_id ];
-		$funding_types = [
-			'credit'  => __( 'credit', 'woocommerce-gateway-stripe' ),
-			'debit'   => __( 'debit', 'woocommerce-gateway-stripe' ),
-			'prepaid' => __( 'prepaid', 'woocommerce-gateway-stripe' ),
-			'unknown' => __( 'unknown', 'woocommerce-gateway-stripe' ),
-		];
-
-		return sprintf(
-			// Translators: %1$s card brand, %2$s card funding (prepaid, credit, etc.).
-			__( '%1$s %2$s card', 'woocommerce-gateway-stripe' ),
-			ucfirst( $details->network ),
-			$funding_types[ $details->funding ]
-		);
+		return parent::get_title();
 	}
 
 	/**
