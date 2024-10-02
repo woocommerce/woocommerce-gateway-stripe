@@ -143,14 +143,44 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Gets the product total price.
 	 *
-	 * @param object $product WC_Product_* object.
+	 * @param object    $product         WC_Product_* object.
+	 * @param bool|null $is_deposit      Whether this is a deposit.
+	 * @param int       $deposit_plan_id Deposit plan ID.
+	 *
 	 * @return integer Total price.
 	 */
-	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
+	public function get_product_price( $product, $is_deposit = null, $deposit_plan_id = 0 ) {
+		// If prices should include tax, using tax inclusive price.
+		if ( $this->cart_prices_include_tax() ) {
+			$product_price = wc_get_price_including_tax( $product );
+		} else {
+			$product_price = wc_get_price_excluding_tax( $product );
+		}
+
+		// If WooCommerce Deposits is active, we need to get the correct price for the product.
+		if ( class_exists( 'WC_Deposits_Product_Manager' ) && class_exists( 'WC_Deposits_Plans_Manager' ) && WC_Deposits_Product_Manager::deposits_enabled( $product->get_id() ) ) {
+			// If is_deposit is null, we use the default deposit type for the product.
+			if ( is_null( $is_deposit ) ) {
+				$is_deposit = 'deposit' === WC_Deposits_Product_Manager::get_deposit_selected_type( $product->get_id() );
+			}
+			if ( $is_deposit ) {
+				$deposit_type       = WC_Deposits_Product_Manager::get_deposit_type( $product->get_id() );
+				$available_plan_ids = WC_Deposits_Plans_Manager::get_plan_ids_for_product( $product->get_id() );
+				// Default to first (default) plan if no plan is specified.
+				if ( 'plan' === $deposit_type && 0 === $deposit_plan_id && ! empty( $available_plan_ids ) ) {
+					$deposit_plan_id = $available_plan_ids[0];
+				}
+
+				// Ensure the selected plan is available for the product.
+				if ( 0 === $deposit_plan_id || in_array( $deposit_plan_id, $available_plan_ids, true ) ) {
+					$product_price = WC_Deposits_Product_Manager::get_deposit_amount( $product, $deposit_plan_id, 'display', $product_price );
+				}
+			}
+		}
+
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price = $product_price + WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
 		return $product_price;
@@ -194,23 +224,28 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$data  = [];
-		$items = [];
+		$data     = [];
+		$items    = [];
+		$price    = $this->get_product_price( $product );
+		$currency = get_woocommerce_currency();
+		$total_tax = 0;
 
 		$items[] = [
 			'label'  => $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $price ),
 		];
 
-		if ( wc_tax_enabled() ) {
+		foreach ( $this->get_taxes_like_cart( $product, $price ) as $tax ) {
+			$total_tax += $tax;
+
 			$items[] = [
 				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
-				'pending' => true,
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax, $currency ),
+				'pending' => 0 === $tax,
 			];
 		}
 
-		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+		if ( wc_shipping_enabled() && 0 !== wc_get_shipping_method_count( true ) && $product->needs_shipping() ) {
 			$items[] = [
 				'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
 				'amount'  => 0,
@@ -228,11 +263,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data['displayItems'] = $items;
 		$data['total']        = [
 			'label'  => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'pending' => true,
 		];
 
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
-		$data['currency']        = strtolower( get_woocommerce_currency() );
+		$data['currency']        = strtolower( $currency );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
 		// On product page load, if there's a variation already selected, check if it's supported.
@@ -348,7 +384,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_invalid      = true;
+		$is_invalid = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
 			$products = $product->get_available_variations( 'object' );
@@ -1078,8 +1114,15 @@ class WC_Stripe_Express_Checkout_Helper {
 		$subtotal      = 0;
 		$discounts     = 0;
 		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
+		$has_deposits  = false;
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
+			if ( ! empty( $cart_item['is_deposit'] ) ) {
+				$has_deposits = true;
+				continue;
+			}
+
 			$subtotal      += $cart_item['line_subtotal'];
 			$amount         = $cart_item['line_subtotal'];
 			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
@@ -1091,11 +1134,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			];
 		}
 
-		if ( $display_items ) {
+		if ( $display_items && ! $has_deposits ) {
 			$items = array_merge( $items, $lines );
-		} else {
-			// Default show only subtotal instead of itemization.
-
+		} elseif ( ! $has_deposits ) { // If the cart contains a deposit, the subtotal will be different to the cart total and will throw an error.
 			$items[] = [
 				'label'  => 'Subtotal',
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
@@ -1281,5 +1322,56 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$order->set_payment_method_title( $payment_method_title . $suffix );
 		$order->save();
+	}
+
+	/**
+	 * Calculates taxes as displayed on cart, based on a product and a particular price.
+	 *
+	 * @param WC_Product $product The product, for retrieval of tax classes.
+	 * @param float      $price   The price, which to calculate taxes for.
+	 * @return array              An array of final taxes.
+	 */
+	public function get_taxes_like_cart( $product, $price ) {
+		if ( ! wc_tax_enabled() || $this->cart_prices_include_tax() ) {
+			// Only proceed when taxes are enabled, but not included.
+			return [];
+		}
+
+		// Follows the way `WC_Cart_Totals::get_item_tax_rates()` works.
+		$tax_class = $product->get_tax_class();
+		$rates     = WC_Tax::get_rates( $tax_class );
+		// No cart item, `woocommerce_cart_totals_get_item_tax_rates` can't be applied here.
+
+		// Normally there should be a single tax, but `calc_tax` returns an array, let's use it.
+		return WC_Tax::calc_tax( $price, $rates, false );
+	}
+
+	/**
+	* Whether tax should be displayed on separate line in cart.
+	* returns true if tax is disabled or display of tax in checkout is set to inclusive.
+	*
+	* @return boolean
+	*/
+	public function cart_prices_include_tax() {
+		return ! wc_tax_enabled() || 'incl' === get_option( 'woocommerce_tax_display_cart' );
+	}
+
+	/**
+	 * Gets the booking id from the cart.
+	 *
+	 * It's expected that the cart only contains one item which was added via ajax_add_to_cart.
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return int|false
+	 */
+	public function get_booking_id_from_cart() {
+		$cart      = WC()->cart->get_cart();
+		$cart_item = reset( $cart );
+
+		if ( $cart_item && isset( $cart_item['booking']['_booking_id'] ) ) {
+			return $cart_item['booking']['_booking_id'];
+		}
+
+		return false;
 	}
 }

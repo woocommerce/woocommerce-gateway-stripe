@@ -548,4 +548,47 @@ export default class WCStripeAPI {
 			...paymentData,
 		} );
 	}
+
+	/**
+	 * Add product to cart from product page.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCart( productData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			...productData,
+		} );
+	}
+
+	/**
+	 * Get selected product data from variable product page.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetSelectedProductData( productData ) {
+		return this.request(
+			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
+			{
+				security: getExpressCheckoutData( 'nonce' )
+					?.get_selected_product_data,
+				...productData,
+			}
+		);
+	}
+
+	/**
+	 * Empty the cart.
+	 *
+	 * @param {number} bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutEmptyCart( bookingId ) {
+		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			booking_id: bookingId,
+		} );
+	}
 }
