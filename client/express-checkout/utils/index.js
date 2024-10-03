@@ -229,9 +229,12 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 				}
 
 				// if shipping same as billing is selected, copy the billing field to shipping field.
-				const shipToDiffAddress = document
-					.getElementById( 'ship-to-different-address' )
-					.querySelector( 'input' ).checked;
+				const shipToDiffAddressField = document.getElementById(
+					'ship-to-different-address'
+				);
+				const shipToDiffAddress =
+					shipToDiffAddressField &&
+					shipToDiffAddressField.querySelector( 'input' ).checked;
 				if ( ! shipToDiffAddress ) {
 					const shippingFieldName = name.replace(
 						'billing_',
