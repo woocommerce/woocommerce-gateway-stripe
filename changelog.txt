@@ -28,6 +28,7 @@
 * Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
@@ -63,7 +64,6 @@
 * Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
 * Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
 * Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
-* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 = 8.6.1 - 2024-08-09 =
 * Tweak - Improves the wording of the invalid Stripe keys errors, instructing merchants to click the "Configure connection" button instead of manually setting the keys.
