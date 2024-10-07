@@ -129,6 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
+* Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
+* Fix - Fixes some JS console errors when making a purchase with the Stripe Express Checkout Element on the shortcode checkout.
 * Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
 * Fix - Remove unexpected HTML in error message for shortcode checkout.
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
@@ -153,5 +156,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
