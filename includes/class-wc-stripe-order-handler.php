@@ -320,7 +320,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 
-					$this->update_fees( $order, $result->balance_transaction->id );
+					$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $result );
+
+					if ( ! empty( $balance_transaction_id ) ) {
+						$this->update_fees( $order, $balance_transaction_id );
+					}
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.
