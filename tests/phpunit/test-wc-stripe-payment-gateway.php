@@ -525,4 +525,47 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			->setMethods( $methods )
 			->getMock();
 	}
+
+	public function test_get_balance_transaction_id_from_charge() {
+		$expected_balance_transaction_id = 'txn_test123';
+		$balance_transaction_object      = (object) [
+			'id' => $expected_balance_transaction_id,
+		];
+
+		$charge_expanded = (object) [
+			'id'                  => 'ch_test123',
+			'balance_transaction' => $balance_transaction_object,
+		];
+		$this->assertEquals( $expected_balance_transaction_id, $this->gateway->get_balance_transaction_id_from_charge( $charge_expanded ) );
+
+		$charge_non_expanded             = (object) [
+			'id' => 'ch_test123',
+			'balance_transaction' => $expected_balance_transaction_id,
+		];
+		$this->assertEquals( $expected_balance_transaction_id, $this->gateway->get_balance_transaction_id_from_charge( $charge_non_expanded ) );
+
+		/**
+		 * ------------------------------------
+		 * Test invalid cases.
+		 * ------------------------------------
+		 */
+		$charge_no_balance_transaction_id = (object) [
+			'id' => 'ch_test123',
+		];
+		$this->assertEquals( null, $this->gateway->get_balance_transaction_id_from_charge( $charge_no_balance_transaction_id ) );
+
+		$charge_no_balance_transaction = (object) [
+			'id'                  => 'ch_test123',
+			'balance_transaction' => null,
+		];
+		$this->assertEquals( null, $this->gateway->get_balance_transaction_id_from_charge( $charge_no_balance_transaction ) );
+
+		$charge_no_balance_transaction_object = (object) [
+			'id'                  => 'ch_test123',
+			'balance_transaction' => (object) [],
+		];
+		$this->assertEquals( null, $this->gateway->get_balance_transaction_id_from_charge( $charge_no_balance_transaction_object ) );
+
+		$this->assertEquals( null, $this->gateway->get_balance_transaction_id_from_charge( null ) );
+	}
 }
