@@ -551,7 +551,33 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
+		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
+		if (
+			(
+				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
+				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )
+			) &&
+			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
+		) {
+			return false;
+		}
+
 		return true;
+	}
+
+	/**
+	 * Check if the passed product needs to be shipped.
+	 *
+	 * @param WC_Product $product The product to check.
+	 *
+	 * @return bool Returns true if the product requires shipping; otherwise, returns false.
+	 */
+	public function product_needs_shipping( WC_Product $product ) {
+		if ( ! $product ) {
+			return false;
+		}
+
+		return wc_shipping_enabled() && 0 !== wc_get_shipping_method_count( true ) && $product->needs_shipping();
 	}
 
 	/**
@@ -1164,6 +1190,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		if ( WC()->cart->needs_shipping() ) {
 			$items[] = [
+				'key'    => 'total_shipping',
 				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
 			];
@@ -1171,6 +1198,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
+				'key'    => 'total_discount',
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $discounts ),
 			];
