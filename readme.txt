@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Fix - Update URL and path constants to support use of symlinked plugin.
 * Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
 * Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
 * Fix - Fixes some JS console errors when making a purchase with the Stripe Express Checkout Element on the shortcode checkout.
