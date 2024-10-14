@@ -11,6 +11,7 @@ describe( 'Account keys reducer tests', () => {
 			isValid: null,
 			data: {},
 			savingError: null,
+			isConfiguringWebhooks: false,
 		} );
 	} );
 

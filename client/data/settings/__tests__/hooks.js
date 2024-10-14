@@ -15,9 +15,7 @@ import {
 	useTestMode,
 	useSavedCards,
 	useSeparateCardForm,
-	useAccountStatementDescriptor,
 	useIsShortAccountStatementEnabled,
-	useShortAccountStatementDescriptor,
 	useDebugLog,
 	useManualCapture,
 } from '../hooks';
@@ -278,23 +276,11 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		useAccountStatementDescriptor: {
-			hook: useAccountStatementDescriptor,
-			storeKey: 'statement_descriptor',
-			testedValue: 'foo',
-			fallbackValue: '',
-		},
 		useIsShortAccountStatementEnabled: {
 			hook: useIsShortAccountStatementEnabled,
 			storeKey: 'is_short_statement_descriptor_enabled',
 			testedValue: true,
 			fallbackValue: false,
-		},
-		useShortAccountStatementDescriptor: {
-			hook: useShortAccountStatementDescriptor,
-			storeKey: 'short_statement_descriptor',
-			testedValue: 'bar',
-			fallbackValue: '',
 		},
 		useDebugLog: {
 			hook: useDebugLog,

@@ -22,6 +22,12 @@ const HeaderDetails = styled.div`
 	}
 `;
 
+const StripeAccountId = styled.span`
+	font-size: 12px;
+	color: #757575;
+	margin-left: auto;
+`;
+
 // @todo - remove setModalType as prop
 const AccountSettingsDropdownMenu = ( {
 	setModalType,
@@ -45,7 +51,7 @@ const AccountSettingsDropdownMenu = ( {
 				controls={ [
 					{
 						title: __(
-							'Edit account keys',
+							'Configure connection',
 							'woocommerce-gateway-stripe'
 						),
 						onClick: () =>
@@ -78,8 +84,8 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardHeader>
 				<HeaderDetails>
 					<h4>
-						{ data.account?.email && data.account?.id
-							? data.account.email + ' (' + data.account.id + ')'
+						{ data.account?.email
+							? data.account.email
 							: __(
 									'Account status',
 									'woocommerce-gateway-stripe'
@@ -92,6 +98,9 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 						</Pill>
 					) }
 				</HeaderDetails>
+				{ data.account?.id && (
+					<StripeAccountId>{ data.account.id }</StripeAccountId>
+				) }
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
 					setKeepModalContent={ setKeepModalContent }
@@ -103,11 +112,15 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardFooter>
 				<Button
 					variant="secondary"
+					id="btn-configure-connection"
 					onClick={ () =>
 						setModalType( isTestMode ? 'test' : 'live' )
 					}
 				>
-					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
+					{ __(
+						'Configure connection',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CardFooter>
 		</Card>

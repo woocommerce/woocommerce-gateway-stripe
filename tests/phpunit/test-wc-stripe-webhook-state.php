@@ -46,11 +46,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->webhook_secret = 'whsec_123';
 
 		// Resets settings.
-		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings                        = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
 		unset( $stripe_settings['testmode'] );
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
@@ -74,10 +74,10 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function cleanup_webhook_secret() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
@@ -104,9 +104,9 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function set_testmode( $testmode = 'yes' ) {
-		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $testmode;
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
@@ -227,21 +227,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/missing expected body/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
-	// Test custom user agent validator
-	public function test_get_error_custom_user_agent_validator() {
-		$this->cleanup_webhook_secret();
-		add_filter(
-			'wc_stripe_webhook_is_user_agent_valid',
-			function() {
-				return false;
-			}
-		);
-
-		$this->set_valid_request_data();
-		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
-	}
-
 	// Test user agent validation ignored
 	public function test_skip_user_agent_validation() {
 		// Run test without cleaning up webhook secret.
@@ -257,14 +242,13 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'No error', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
-	// Test failure reason: invalid user agent.
-	public function test_get_error_reason_invalid_user_agent() {
+	// Test failure reason: empty secret.
+	public function test_get_error_reason_empty_secret() {
 		$this->cleanup_webhook_secret();
 
 		$this->set_valid_request_data();
-		$this->request_headers['USER-AGENT'] = 'Other';
 		$this->process_webhook();
-		$this->assertMatchesRegularExpression( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertEquals( 'The webhook secret is not set in the store', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test failure reason: invalid signature.

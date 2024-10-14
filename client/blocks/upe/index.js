@@ -6,7 +6,12 @@ import { getPaymentMethodsConstants } from '../../stripe-utils/constants';
 import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
 import { SavedTokenHandler } from './saved-token-handler';
+import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
+import {
+	expressCheckoutElementsGooglePay,
+	expressCheckoutElementsApplePay,
+} from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import './styles.scss';
@@ -22,16 +27,31 @@ const api = new WCStripeAPI(
 );
 
 const upeMethods = getPaymentMethodsConstants();
-Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
+const paymentMethodsConfig =
+	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
+Object.entries( paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
+	.filter( ( [ upeName ] ) => upeName !== 'giropay' ) // Skip giropay as it was deprecated by Jun, 30th 2024.
 	.forEach( ( [ upeName, upeConfig ] ) => {
-		const icon = Icons[ upeName ];
+		let iconName = upeName;
+
+		// Afterpay/Clearpay have different icons for UK merchants.
+		if ( upeName === 'afterpay_clearpay' ) {
+			iconName =
+				getBlocksConfiguration()?.accountCountry === 'GB'
+					? 'clearpay'
+					: 'afterpay';
+		}
+
+		const Icon = Icons[ iconName ];
+
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
 			content: getDeferredIntentCreationUPEFields(
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
@@ -39,17 +59,26 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
+				upeConfig.description,
 				upeConfig.testingInstructions,
 				upeConfig.showSaveOption ?? false
 			),
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
-			canMakePayment: () => !! api.getStripe(),
+			canMakePayment: ( cartData ) => {
+				const billingCountry = cartData.billingAddress.country;
+				const isRestrictedInAnyCountry = !! upeConfig.countries.length;
+				const isAvailableInTheCountry =
+					! isRestrictedInAnyCountry ||
+					upeConfig.countries.includes( billingCountry );
+
+				return isAvailableInTheCountry && !! api.getStripe();
+			},
 			// see .wc-block-checkout__payment-method styles in blocks/style.scss
 			label: (
 				<>
 					<span>
 						{ upeConfig.title }
-						{ icon }
+						<Icon alt={ upeConfig.title } />
 					</span>
 				</>
 			),
@@ -64,5 +93,14 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 		} );
 	} );
 
-// Register Stripe Payment Request.
-registerExpressPaymentMethod( paymentRequestPaymentMethod );
+if ( getBlocksConfiguration()?.isECEEnabled ) {
+	// Register Express Checkout Element.
+	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
+} else {
+	// Register Stripe Payment Request.
+	registerExpressPaymentMethod( paymentRequestPaymentMethod );
+}
+
+// Update token labels when the checkout form is loaded.
+updateTokenLabelsWhenLoaded();

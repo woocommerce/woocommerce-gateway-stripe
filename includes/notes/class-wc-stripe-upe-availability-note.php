@@ -39,7 +39,7 @@ class WC_Stripe_UPE_Availability_Note {
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			__( 'Get early access to an improved checkout experience, now available to select merchants. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
-			'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">',
+			'<a href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/" target="_blank">',
 			'</a>'
 		);
 		$note->set_content( $message );
@@ -94,7 +94,7 @@ class WC_Stripe_UPE_Availability_Note {
 			return;
 		}
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		if ( ! $stripe_enabled ) {
 			return;

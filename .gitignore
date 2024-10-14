@@ -30,6 +30,7 @@ deploy-to-wp-org.sh
 # Test configs
 tests/e2e/env/docker
 tests/e2e/report
+tests/e2e/test-results
 tests/e2e/e2e-setup.log
 
 # Volumes mounted by Docker containers
@@ -37,3 +38,7 @@ docker/bin/jt
 docker/data
 docker/wordpress
 docker/logs
+
+# PHPUnit cache files
+.phpunit.cache/
+.phpunit.result.cache

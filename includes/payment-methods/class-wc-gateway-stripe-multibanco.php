@@ -79,7 +79,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		// Load the settings.
 		$this->init_settings();
 
-		$main_settings              = get_option( 'woocommerce_stripe_settings' );
+		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                = $this->get_option( 'title' );
 		$this->description          = $this->get_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );
@@ -113,7 +113,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		return apply_filters(
 			'wc_stripe_multibanco_supported_currencies',
 			[
-				'EUR',
+				WC_Stripe_Currency_Code::EURO,
 			]
 		);
 	}
@@ -197,7 +197,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo wpautop( esc_html( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
+			echo wp_kses( wpautop( apply_filters( 'wc_stripe_description', $description, $this->id ) ), [ 'p' => [] ] );
 		}
 
 		echo '</div>';
@@ -313,7 +313,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		$post_data             = [];
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
-		$post_data['type']     = 'multibanco';
+		$post_data['type']     = WC_Stripe_Payment_Methods::MULTIBANCO;
 		$post_data['owner']    = $this->get_owner_details( $order );
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 

@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 const StatementPreviews = styled.div`
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: 1fr 1fr ${ ( props ) =>
+			props.withTreeColumns ? ' 1fr' : '' };
 	grid-column-gap: 15px;
 	padding-bottom: 8px;
 
@@ -21,8 +22,8 @@ const StatementPreviews = styled.div`
 	}
 `;
 
-const StatementPreviewsWrapper = ( { children } ) => (
-	<StatementPreviews>
+const StatementPreviewsWrapper = ( { withTreeColumns, children } ) => (
+	<StatementPreviews withTreeColumns={ withTreeColumns }>
 		<p>Preview</p>
 		{ children }
 	</StatementPreviews>

@@ -111,7 +111,7 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		// Make sure Apple Pay is enabled and setup is successful.
-		$stripe_settings       = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings       = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		$button_enabled        = isset( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'];
 		$verification_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
@@ -174,7 +174,7 @@ class WC_Stripe_Inbox_Notes {
 			$note->add_action(
 				'learn-more',
 				__( 'Learn more', 'woocommerce-gateway-stripe' ),
-				'https://woocommerce.com/document/stripe/#apple-pay'
+				'https://woocommerce.com/document/stripe/troubleshooting/apple-pay-private-window/'
 			);
 			$note->save();
 		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine.

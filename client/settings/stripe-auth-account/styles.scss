@@ -1,0 +1,74 @@
+@import '../../styles/abstracts/styles.scss';
+
+.woocommerce-stripe-auth {
+	> p {
+		text-wrap: pretty;
+	}
+	&__diagram {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		gap: $grid-unit-20;
+		margin: $grid-unit-40 0;
+
+		&__dotted-line {
+			position: relative;
+			border-top: 1px dashed $gray-600;
+			margin: 1px;
+			width: 50px;
+
+			&::before,
+			&::after {
+				content: '';
+				position: absolute;
+				top: -2.5px;
+				width: 4px;
+				height: 4px;
+				background-color: $gray-600;
+				border-radius: 50%;
+			}
+			&::before {
+				left: -4px;
+			}
+			&::after {
+				right: -4px;
+			}
+		}
+		img {
+			border-radius: 6px;
+		}
+		.woocommerce-stripe-woo-white-logo {
+			background-color: $studio-black;
+		}
+	}
+	&__actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: $grid-unit-20;
+	}
+	&__status-panel {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: $grid-unit-20;
+
+		.wcstripe-status {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			gap: $grid-unit;
+		}
+		.wcstripe-status-text {
+			font-size: 11px;
+			font-weight: 500;
+			text-transform: uppercase;
+		}
+	}
+	&__help {
+		color: $gray-700;
+		font-size: $helptext-font-size;
+		font-style: normal;
+	}
+}

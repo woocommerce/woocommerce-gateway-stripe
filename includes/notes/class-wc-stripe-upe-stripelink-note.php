@@ -25,7 +25,7 @@ class WC_Stripe_UPE_StripeLink_Note {
 	/**
 	 * Link to Stripe Link documentation.
 	 */
-	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/#stripe-link';
+	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/';
 
 	/**
 	 * Get the note.
@@ -89,7 +89,7 @@ class WC_Stripe_UPE_StripeLink_Note {
 		}
 
 		// If store currency is not USD, skip
-		if ( 'USD' !== get_woocommerce_currency() ) {
+		if ( WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR !== get_woocommerce_currency() ) {
 			return;
 		}
 

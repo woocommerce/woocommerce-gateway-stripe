@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -75,11 +76,27 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $enabled;
 
 	/**
-	 * List of supported countries
+	 * Supported customer locations for which charges for a payment method can be processed.
+	 * Empty if all customer locations are supported.
 	 *
-	 * @var array
+	 * @var string[]
 	 */
-	protected $supported_countries;
+	protected $supported_countries = [];
+
+	/**
+	 * Should payment method be restricted to only domestic payments.
+	 * E.g. only to Stripe's connected account currency.
+	 *
+	 * @var boolean
+	 */
+	protected $accept_only_domestic_payment = false;
+
+	/**
+	 * Represent payment total limitations for the payment method (per-currency).
+	 *
+	 * @var array<string,array<string,array<string,int>>>
+	 */
+	protected $limits_per_currency = [];
 
 	/**
 	 * Wether this UPE method is in testmode.
@@ -92,13 +109,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Create instance of payment method
 	 */
 	public function __construct() {
-		$main_settings     = get_option( 'woocommerce_stripe_settings' );
+		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
-		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
-		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
-		$this->supports = [ 'products', 'refunds' ];
+		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->has_fields = true;
+		$this->testmode   = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->supports   = [ 'products', 'refunds' ];
 	}
 
 	/**
@@ -165,7 +183,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		return $this->title;
+		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
+		return ! empty( $payment_method_settings['title'] ) ? $payment_method_settings['title'] : $this->title;
 	}
 
 	/**
@@ -183,7 +202,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		return $this->description;
+		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
+		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
 	}
 
 	/**
@@ -200,18 +220,36 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
-	 * @param int|null $order_id
+	 * @param int|null    $order_id
+	 * @param string|null $account_domestic_currency The account's default currency.
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout( $order_id = null ) {
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
 		// Check capabilities first.
 		if ( ! $this->is_capability_active() ) {
 			return false;
 		}
 
 		// Check currency compatibility.
-		$currencies = $this->get_supported_currencies();
-		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
+		$current_store_currency = $this->get_woocommerce_currency();
+		$currencies             = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( $current_store_currency, $currencies, true ) ) {
+			return false;
+		}
+
+		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
+		if ( $this->has_domestic_transactions_restrictions() ) {
+			if ( null === $account_domestic_currency ) {
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
+			}
+
+			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
+				return false;
+			}
+		}
+
+		// This part ensures that when payment limits for the currency declared, those will be respected (e.g. BNPLs).
+		if ( [] !== $this->get_limits_per_currency() && ! $this->is_inside_currency_limits( $current_store_currency ) ) {
 			return false;
 		}
 
@@ -231,6 +269,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for a payment method can be processed.
+	 *
+	 * @return array Supported customer locations.
+	 */
+	public function get_available_billing_countries() {
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
+
+		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
 	}
 
 	/**
@@ -266,7 +316,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_capability_active() {
 		// Treat all capabilities as active when in test mode.
-		$plugin_settings   = get_option( 'woocommerce_stripe_settings' );
+		$plugin_settings   = WC_Stripe_Helper::get_stripe_settings();
 		$test_mode_setting = ! empty( $plugin_settings['testmode'] ) ? $plugin_settings['testmode'] : 'no';
 
 		if ( 'yes' === $test_mode_setting ) {
@@ -288,8 +338,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$account = WC_Stripe::get_instance()->account;
-		$data    = $account->get_cached_account_data();
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
@@ -301,7 +350,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * to query to retrieve saved payment methods from Stripe.
 	 */
 	public function get_retrievable_type() {
-		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID;
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 	}
 
 	/**
@@ -330,9 +379,19 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_supported_currencies() {
 		return apply_filters(
-			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
+			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies', // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Determines whether the payment method is restricted to the Stripe account's currency.
+	 * E.g.: Afterpay/Clearpay and Affirm only supports domestic payments; Klarna also implements a simplified version of these market restrictions.
+	 *
+	 * @return bool
+	 */
+	public function has_domestic_transactions_restrictions(): bool {
+		return $this->accept_only_domestic_payment;
 	}
 
 	/**
@@ -475,22 +534,29 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
 				<p class="testmode-info"><?php echo wp_kses_post( $this->get_testing_instructions() ); ?></p>
 			<?php endif; ?>
+			<?php if ( ! empty( $this->get_description() ) ) : ?>
+				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
+			<?php endif; ?>
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
 				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
+
 			if ( $this->should_show_save_option() ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
+
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
 				$this->saved_payment_methods();
 			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -521,6 +587,67 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the payment method's limits per currency.
+	 *
+	 * @return int[][][]
+	 */
+	public function get_limits_per_currency(): array {
+		return $this->limits_per_currency;
+	}
+
+	/**
+	 * Returns the current order amount (from the "pay for order" page or from the current cart).
+	 *
+	 * @return float|int|string
+	 */
+	public function get_current_order_amount() {
+		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			return $order->get_total( '' );
+		} elseif ( WC()->cart ) {
+			return WC()->cart->get_total( '' );
+		}
+		return 0;
+	}
+
+	/**
+	 * Determines if the payment method is inside the currency limits.
+	 *
+	 * @param  string $current_store_currency The store's currency.
+	 * @return bool True if the payment method is inside the currency limits, false otherwise.
+	 */
+	public function is_inside_currency_limits( $current_store_currency ): bool {
+		// Pay for order page will check for the current order total instead of the cart's.
+		$order_amount = $this->get_current_order_amount();
+		$amount       = WC_Stripe_Helper::get_stripe_amount( $order_amount, strtolower( $current_store_currency ) );
+
+		// Don't engage in limits verification in non-checkout context (cart is not available or empty).
+		if ( $amount <= 0 ) {
+			return true;
+		}
+
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
+		$range               = null;
+		$limits_per_currency = $this->get_limits_per_currency();
+
+		if ( isset( $limits_per_currency[ $current_store_currency ][ $account_country ] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ][ $account_country ];
+		} elseif ( isset( $limits_per_currency[ $current_store_currency ]['default'] ) ) {
+			$range = $limits_per_currency[ $current_store_currency ]['default'];
+		}
+
+		// If there is no range specified for the currency-country pair we don't support it and return false.
+		if ( null === $range ) {
+			return false;
+		}
+
+		$is_valid_minimum = null === $range['min'] || $amount >= $range['min'];
+		$is_valid_maximum = null === $range['max'] || $amount <= $range['max'];
+
+		return $is_valid_minimum && $is_valid_maximum;
+	}
+
+	/**
 	 * Displays the save to account checkbox.
 	 *
 	 * @param bool $force_checked Whether the checkbox should be checked by default.
@@ -537,5 +664,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</p>
 		</fieldset>
 		<?php
+	}
+
+	/**
+	 * Gets the transaction URL.
+	 * Overrides WC_Payment_Gateway::get_transaction_url().
+	 *
+	 * @param  WC_Order $order Order object.
+	 * @return string
+	 */
+	public function get_transaction_url( $order ) {
+		$this->view_transaction_url = WC_Stripe_Helper::get_transaction_url( $this->testmode );
+
+		return parent::get_transaction_url( $order );
 	}
 }

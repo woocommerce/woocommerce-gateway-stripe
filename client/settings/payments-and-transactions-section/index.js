@@ -1,41 +1,40 @@
 import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
+import styled from '@emotion/styled';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
 	ExternalLink,
 } from '@wordpress/components';
-import { Icon, help } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
-import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
 import ManualCaptureControl from './manual-capture-control';
 import { useAccount } from 'wcstripe/data/account';
-import Tooltip from 'wcstripe/components/tooltip';
 import {
 	useSavedCards,
 	useSeparateCardForm,
+	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
-	useGetSavingError,
 } from 'wcstripe/data';
-import InlineNotice from 'wcstripe/components/inline-notice';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
-const TooltipBankStatementHelp = () => (
-	<Tooltip
-		content={ __(
-			'The bank statement must contain only Latin characters, be between 5 and 22 characters, and not contain any of the special characters: \' " * < >',
-			'woocommerce-gateway-stripe'
-		) }
-	>
-		<span>
-			<Icon style={ { fill: '#949494' } } icon={ help } />
-		</span>
-	</Tooltip>
-);
+const StatementDescriptorInputWrapper = styled.div`
+	position: relative;
+
+	.components-base-control__field {
+		@media ( min-width: 783px ) {
+			width: ${ ( props ) => ( props.isCashAppEnabled ? 30 : 50 ) }%;
+		}
+
+		.components-text-control__input {
+			// to make room for the help text, so that the input's text and the help text don't overlap
+			padding-right: 55px;
+		}
+	}
+`;
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -47,13 +46,11 @@ const PaymentsAndTransactionsSection = () => {
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
 	] = useIsShortAccountStatementEnabled();
+	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
+
+	const isCashAppEnabled = enabledPaymentMethods.includes( 'cashapp' );
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	const statementDescriptorErrorMessage = useGetSavingError()?.data?.details
-		?.statement_descriptor?.message;
-	const shortStatementDescriptorErrorMessage = useGetSavingError()?.data
-		?.details?.short_statement_descriptor?.message;
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
 		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
@@ -66,6 +63,8 @@ const PaymentsAndTransactionsSection = () => {
 	const stripeAccountShortStatementDescriptor =
 		data?.account?.settings?.card_payments?.statement_descriptor_prefix ||
 		'';
+
+	const stripeAccountCompanyName = data?.account?.company_name || '';
 
 	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
 	// To meet this requirement, we use the first character of the full statement descriptor.
@@ -118,20 +117,7 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h4>
-				{ statementDescriptorErrorMessage && (
-					<InlineNotice status="error" isDismissible={ false }>
-						<span
-							dangerouslySetInnerHTML={ {
-								__html: statementDescriptorErrorMessage,
-							} }
-						/>
-					</InlineNotice>
-				) }
-				<TextLengthHelpInputWrapper
-					textLength={ stripeAccountStatementDescriptor.length }
-					maxLength={ 22 }
-					iconSlot={ <TooltipBankStatementHelp /> }
-				>
+				<StatementDescriptorInputWrapper>
 					<TextControl
 						help={ interpolateComponents( {
 							mixedString: __(
@@ -149,10 +135,9 @@ const PaymentsAndTransactionsSection = () => {
 							'woocommerce-gateway-stripe'
 						) }
 						value={ stripeAccountStatementDescriptor }
-						maxLength={ 22 }
 						disabled={ true } // This field is read only. It is set in the Stripe account.
 					/>
-				</TextLengthHelpInputWrapper>
+				</StatementDescriptorInputWrapper>
 
 				<CheckboxControl
 					checked={ isShortAccountStatementEnabled }
@@ -167,49 +152,29 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 				/>
 				{ isShortAccountStatementEnabled && (
-					<>
-						{ shortStatementDescriptorErrorMessage && (
-							<InlineNotice
-								status="error"
-								isDismissible={ false }
-							>
-								<span
-									dangerouslySetInnerHTML={ {
-										__html: shortStatementDescriptorErrorMessage,
-									} }
-								/>
-							</InlineNotice>
-						) }
-						<TextLengthHelpInputWrapper
-							textLength={
-								stripeAccountShortStatementDescriptor.length
-							}
-							maxLength={ 10 }
-						>
-							<TextControl
-								help={ interpolateComponents( {
-									mixedString: __(
-										"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description in your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
-										'woocommerce-gateway-stripe'
-									),
-									components: {
-										settingsLink: (
-											<ExternalLink href="https://dashboard.stripe.com/settings/public" />
-										),
-									},
-								} ) }
-								label={ __(
-									'Shortened customer bank statement',
+					<StatementDescriptorInputWrapper>
+						<TextControl
+							help={ interpolateComponents( {
+								mixedString: __(
+									"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description in your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
 									'woocommerce-gateway-stripe'
-								) }
-								value={ stripeAccountShortStatementDescriptor }
-								maxLength={ 10 }
-								disabled={ true } // This field is read only. It is set in the Stripe account.
-							/>
-						</TextLengthHelpInputWrapper>
-					</>
+								),
+								components: {
+									settingsLink: (
+										<ExternalLink href="https://dashboard.stripe.com/settings/public" />
+									),
+								},
+							} ) }
+							label={ __(
+								'Shortened customer bank statement',
+								'woocommerce-gateway-stripe'
+							) }
+							value={ stripeAccountShortStatementDescriptor }
+							disabled={ true } // This field is read only. It is set in the Stripe account.
+						/>
+					</StatementDescriptorInputWrapper>
 				) }
-				<StatementPreviewsWrapper>
+				<StatementPreviewsWrapper withTreeColumns={ isCashAppEnabled }>
 					{ isShortAccountStatementEnabled && (
 						<StatementPreview
 							icon="creditCard"
@@ -218,7 +183,20 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							text={ `${ stripeAccountShortStatementDescriptor }* ${ shortStatementDescriptorSuffix } #123456` }
-							className="shortened-bank-statement"
+							className={ `shortened-bank-statement ${
+								isCashAppEnabled ? 'with-tree-columns' : ''
+							}` }
+						/>
+					) }
+					{ isCashAppEnabled && (
+						<StatementPreview
+							icon="cashApp"
+							title={ __(
+								'Cash App Payments',
+								'woocommerce-gateway-stripe'
+							) }
+							text={ `CashApp*${ stripeAccountCompanyName }` }
+							className="full-bank-statement with-tree-columns"
 						/>
 					) }
 					<StatementPreview
@@ -228,7 +206,9 @@ const PaymentsAndTransactionsSection = () => {
 							stripeAccountStatementDescriptor ||
 							stripeAccountShortStatementDescriptor
 						}
-						className="full-bank-statement"
+						className={ `full-bank-statement ${
+							isCashAppEnabled ? 'with-tree-columns' : ''
+						}` }
 					/>
 				</StatementPreviewsWrapper>
 			</CardBody>

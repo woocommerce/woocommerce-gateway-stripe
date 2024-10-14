@@ -13,7 +13,10 @@ const PaymentMethodIcon = ( { name, showName } ) => {
 
 	return (
 		<span className="woocommerce-gateway-stripe__payment-method-icon">
-			<Icon className="woocommerce-gateway-stripe__payment-method-icon__icon" />
+			<Icon
+				className="woocommerce-gateway-stripe__payment-method-icon__icon"
+				alt={ label }
+			/>
 			{ showName && (
 				<span className="woocommerce-gateway-stripe__payment-method-icon__label">
 					{ label }

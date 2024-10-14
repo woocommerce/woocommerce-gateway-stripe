@@ -93,7 +93,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			esc_html__( 'By using this extension, you may be storing personal data or sharing data with an external service. %1$sLearn more about how this works, including what you may want to include in your privacy policy%2$s.', 'woocommerce-gateway-stripe' ),
-			'<a href="https://woocommerce.com/document/privacy-payments/#section-3" target="_blank">',
+			'<a href="https://woocommerce.com/document/privacy-payments/#how-payment-providers-use-data" target="_blank">',
 			'</a>'
 		);
 
@@ -177,7 +177,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			'meta_query'     => $meta_query,
 		];
 
-		$subscriptions = wcs_get_subscriptions( $subscription_query );
+		$subscriptions = function_exists( 'wcs_get_subscriptions' ) ? wcs_get_subscriptions( $subscription_query ) : [];
 
 		$done = true;
 
@@ -332,7 +332,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, false, [] ];
 		}
 
-		if ( ! wcs_order_contains_subscription( $order ) ) {
+		if ( function_exists( 'wcs_order_contains_subscription' ) && ! wcs_order_contains_subscription( $order ) ) {
+			return [ false, false, [] ];
+		}
+
+		if ( ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
 			return [ false, false, [] ];
 		}
 
@@ -354,7 +358,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, true, [ sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ] ];
 		}
 
-		$renewal_orders = WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id(), 'WC_Order' );
+		$renewal_orders = class_exists( 'WC_Subscriptions_Renewal_Order' ) ? WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id(), 'WC_Order' ) : [];
 
 		foreach ( $renewal_orders as $renewal_order ) {
 			$renewal_order->delete_meta_data( '_stripe_source_id' );

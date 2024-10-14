@@ -2,21 +2,7 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
-import {
-	useAccountKeys,
-	useAccountKeysPublishableKey,
-	useAccountKeysSecretKey,
-	useAccountKeysWebhookSecret,
-} from 'wcstripe/data/account-keys/hooks';
-import { useAccount } from 'wcstripe/data/account';
 import { recordEvent } from 'wcstripe/tracking';
-
-jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
-	useAccountKeys: jest.fn(),
-	useAccountKeysPublishableKey: jest.fn(),
-	useAccountKeysSecretKey: jest.fn(),
-	useAccountKeysWebhookSecret: jest.fn(),
-} ) );
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -40,7 +26,26 @@ describe( 'ConnectStripeAccount', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should render both the Connect Account and Enter keys buttons when the Stripe OAuth link is provided', () => {
+	it( 'should render both the "Create or connect an account" and "Create or connect a test account" buttons when both Stripe OAuth links are provided', () => {
+		render(
+			<ConnectStripeAccount
+				oauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234"
+				testOauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_5678&scope=read_write&state=5678"
+			/>
+		);
+
+		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
+
+		expect(
+			screen.getByText( 'Create or connect an account' )
+		).toBeInTheDocument();
+
+		expect(
+			screen.getByText( 'Create or connect a test account instead' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'should render only the "Create or connect an account" button when only the Stripe OAuth link is provided', () => {
 		render(
 			<ConnectStripeAccount oauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234" />
 		);
@@ -52,7 +57,32 @@ describe( 'ConnectStripeAccount', () => {
 		).toBeInTheDocument();
 
 		expect(
-			screen.queryByText( 'Enter account keys (advanced)' )
+			screen.queryByText( 'Create or connect a test account' )
+		).not.toBeInTheDocument();
+
+		expect(
+			screen.queryByText( 'Create or connect a test account instead' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should render only the "Create or connect a test account" button when only the Stripe Test OAuth link is provided', () => {
+		render(
+			<ConnectStripeAccount testOauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_5678&scope=read_write&state=5678" />
+		);
+
+		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
+
+		expect(
+			screen.getByText( 'Create or connect a test account' )
+		).toBeInTheDocument();
+
+		// It should not have the "instead" word at the end
+		expect(
+			screen.queryByText( 'Create or connect a test account instead' )
+		).not.toBeInTheDocument();
+
+		expect(
+			screen.queryByText( 'Create or connect an account' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -74,6 +104,11 @@ describe( 'ConnectStripeAccount', () => {
 		);
 		userEvent.click( connectAccountButton );
 
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_create_or_connect_account_click',
+			{}
+		);
+
 		expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
 
 		// Set the original function back to keep further tests working as expected.
@@ -82,74 +117,42 @@ describe( 'ConnectStripeAccount', () => {
 		} );
 	} );
 
-	it( 'should record a "wcstripe_create_or_connect_account_click" Track event when clicking on the Connect account button', () => {
+	it( 'should redirect to the Stripe Test OAuth link when clicking on the "Create or connect a test account" button', () => {
+		// Keep the original function at hand.
+		const assign = window.location.assign;
+
+		Object.defineProperty( window, 'location', {
+			value: { assign: jest.fn() },
+		} );
+
+		const oauthUrl =
+			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234';
+
+		const testOauthUrl =
+			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_5678&scope=read_write&state=5678';
+
 		render(
-			<ConnectStripeAccount oauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234" />
+			<ConnectStripeAccount
+				oauthUrl={ oauthUrl }
+				testOauthUrl={ testOauthUrl }
+			/>
 		);
 
-		const connectAccountButton = screen.getByText(
-			'Create or connect an account'
+		const connectTestAccountButton = screen.getByText(
+			'Create or connect a test account instead'
 		);
-		userEvent.click( connectAccountButton );
+		userEvent.click( connectTestAccountButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
-			'wcstripe_create_or_connect_account_click',
+			'wcstripe_create_or_connect_test_account_click',
 			{}
 		);
-	} );
 
-	it( 'should only have the "Enter account keys" button if OAuth URL is blank', () => {
-		render( <ConnectStripeAccount oauthUrl="" /> );
+		expect( window.location.assign ).toHaveBeenCalledWith( testOauthUrl );
 
-		expect(
-			screen.queryByText( 'Terms of service.' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Create or connect an account' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.getByText( 'Enter account keys (advanced)' )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				publishable_key: 'live_pk',
-				secret_key: 'live_sk',
-				webhook_secret: 'live_whs',
-			},
+		// Set the original function back to keep further tests working as expected.
+		Object.defineProperty( window, 'location', {
+			value: { assign },
 		} );
-		useAccountKeysPublishableKey.mockReturnValue( [
-			'live_pk',
-			jest.fn(),
-		] );
-		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
-		useAccountKeysWebhookSecret.mockReturnValue( [
-			'live_whs',
-			jest.fn(),
-		] );
-		useAccount.mockReturnValue( {
-			data: { webhook_url: 'example.com' },
-		} );
-
-		render( <ConnectStripeAccount oauthUrl="" /> );
-		const accountKeysButton = screen.queryByText( /enter account keys/i );
-		userEvent.click( accountKeysButton );
-		expect(
-			screen.queryByText( /edit live account keys & webhooks/i )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should record a "wcstripe_enter_account_keys_click" Track event when clicking on the Enter account keys button', () => {
-		render( <ConnectStripeAccount oauthUrl="" /> );
-
-		const accountKeysButton = screen.queryByText( /enter account keys/i );
-		userEvent.click( accountKeysButton );
-
-		expect( recordEvent ).toHaveBeenCalledWith(
-			'wcstripe_enter_account_keys_click',
-			{}
-		);
 	} );
 } );

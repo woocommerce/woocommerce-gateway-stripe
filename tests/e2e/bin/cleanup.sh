@@ -9,4 +9,4 @@ step "Removing E2E docker folder"
 rm -rf $E2E_ROOT/env/docker
 
 step "Removing result folders"
-rm -rf $E2E_ROOT/report
+rm -rf $E2E_ROOT/test-results

@@ -1,5 +1,5 @@
-/* global wc_stripe_upe_params */
-
+/* global wc_stripe_upe_params, wc */
+import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
 import {
@@ -21,13 +21,24 @@ import {
  * @return  {StripeServerData} Stripe server data.
  */
 const getStripeServerData = () => {
-	// Classic checkout.
+	let data = null;
+
 	// eslint-disable-next-line camelcase
-	if ( ! wc_stripe_upe_params ) {
+	if ( typeof wc_stripe_upe_params !== 'undefined' ) {
+		data = wc_stripe_upe_params; // eslint-disable-line camelcase
+	} else if (
+		typeof wc === 'object' &&
+		typeof wc.wcSettings !== 'undefined'
+	) {
+		// 'getSetting' has this data value on block checkout only.
+		data = wc.wcSettings?.getSetting( 'getSetting' ) || null;
+	}
+
+	if ( ! data ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}
-	// eslint-disable-next-line camelcase
-	return wc_stripe_upe_params;
+
+	return data;
 };
 
 const isNonFriendlyError = ( type ) =>
@@ -210,8 +221,8 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
 	return (
-		paymentMethodsConfig.link !== undefined &&
-		paymentMethodsConfig.card !== undefined
+		paymentMethodsConfig?.link !== undefined &&
+		paymentMethodsConfig?.card !== undefined
 	);
 };
 
@@ -295,7 +306,7 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
  *
  * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
  *
- * @return {boolean} Boolean indicating whether or not a saved payment method is being used.
+ * @return {boolean} Boolean indicating whether a saved payment method is being used.
  */
 export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
 	const paymentMethod = getPaymentMethodName( paymentMethodType );
@@ -421,6 +432,14 @@ export const showErrorCheckout = ( errorMessage ) => {
 		}
 	}
 
+	// Use the WC Blocks API to show the error notice if we're in a block context.
+	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
+		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
+			context: 'wc/checkout/payments', // Display the notice in the payments context.
+		} );
+		return;
+	}
+
 	let messageWrapper = '';
 	if ( errorMessage.includes( 'woocommerce-error' ) ) {
 		messageWrapper = errorMessage;
@@ -452,20 +471,25 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 /**
  * Initializes the appearance of the payment element by retrieving the UPE configuration
- * from the API and saving the appearance if it doesn't exist. If the appearance already exists,
- * it is simply returned.
+ * from the API and saving the appearance if it doesn't exist.
+ *
+ * If the appearance already exists, it is simply returned.
+ *
+ * @param {Object} api             The API object used to save the appearance.
+ * @param {string} isBlockCheckout Whether the checkout is being used in a block context.
  *
  * @return {Object} The appearance object for the UPE.
  */
-export const initializeUPEAppearance = () => {
-	const themeName = getStripeServerData()?.theme_name;
-	const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
-	let appearance = getStorageWithExpiration( storageKey );
+export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
+	let appearance =
+		isBlockCheckout === 'true'
+			? getStripeServerData()?.blocksAppearance
+			: getStripeServerData()?.appearance;
 
+	// If appearance is empty, get a fresh copy and save it in a transient.
 	if ( ! appearance ) {
 		appearance = getAppearance();
-		const oneDayDuration = 24 * 60 * 60 * 1000;
-		setStorageWithExpiration( storageKey, appearance, oneDayDuration );
+		api.saveAppearance( appearance, isBlockCheckout );
 	}
 
 	return appearance;
@@ -483,4 +507,118 @@ export const initializeUPEAppearance = () => {
  */
 export const getPaymentMethodName = ( paymentMethodType ) => {
 	return getPaymentMethodsConstants()[ paymentMethodType ] || 'stripe';
+};
+
+/**
+ * Determines if the payment method is restricted to specific countries.
+ *
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ * @return {boolean} Whether the payment method is restricted to selected billing country.
+ **/
+export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	return !! paymentMethodsConfig[ paymentMethodType ]?.countries.length;
+};
+
+/**
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ **/
+export const togglePaymentMethodForCountry = ( upeElement ) => {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	const supportedCountries =
+		paymentMethodsConfig[ paymentMethodType ].countries;
+
+	// in the case of "pay for order", there is no "billing country" input, so we need to rely on backend data.
+	const billingCountry =
+		document.getElementById( 'billing_country' )?.value ||
+		getStripeServerData()?.customerData?.billing_country ||
+		'';
+
+	const upeContainer = document.querySelector(
+		'.payment_method_stripe_' + paymentMethodType
+	);
+	if ( supportedCountries.includes( billingCountry ) ) {
+		upeContainer.style.display = 'block';
+	} else {
+		upeContainer.style.display = 'none';
+	}
+};
+
+/**
+ * Unblocks the Block Checkout form.
+ */
+export const unblockBlockCheckout = () => {
+	// Exit early if we're not in a block context.
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
+		return;
+	}
+
+	const { CHECKOUT_STORE_KEY } = window.wc.wcBlocksData;
+	const checkoutStore = dispatch( CHECKOUT_STORE_KEY );
+
+	// We need to unset the redirect URL otherwise WC core will redirect the the previous checkout redirectURL.
+	// For Wallet payment methods, that will include the #wc-stripe-wallet-... hash and cause the modal to show again.
+	checkoutStore.__internalSetRedirectUrl( null );
+	checkoutStore.__internalSetIdle();
+};
+
+/**
+ * Resets the payment state to idle so the selected payment method can re-setup.
+ */
+export const resetBlockCheckoutPaymentState = () => {
+	// Exit early if we're not in a block context.
+	if ( typeof wcSettings === 'undefined' || ! wcSettings.wcBlocksConfig ) {
+		return;
+	}
+
+	const { PAYMENT_STORE_KEY } = window.wc.wcBlocksData;
+
+	// Set the payment state to idle so the selected payment method can re-setup.
+	// If we don't set this the same Stripe payment method ID will be used for the next attempt.
+	dispatch( PAYMENT_STORE_KEY ).__internalSetPaymentIdle();
+};
+
+/**
+ * Generates additional data to be passed to the setup intent request.
+ *
+ * @param {*} jQueryForm The jQuery form object.
+ * @return {Object} Additional data to be passed to the setup intent request.
+ */
+export const getAdditionalSetupIntentData = ( jQueryForm ) => {
+	const additionalData = {};
+
+	// Find the payment method that is selected.
+	const selectedPaymentMethod = jQueryForm.find(
+		'.woocommerce-PaymentMethods input.input-radio:checked'
+	);
+
+	if ( ! selectedPaymentMethod.length ) {
+		return additionalData;
+	}
+
+	// Find the parent list item (`li`) of the selected payment method.
+	const selectedPaymentMethodListItem = selectedPaymentMethod.closest( 'li' );
+
+	if ( ! selectedPaymentMethodListItem.length ) {
+		return additionalData;
+	}
+
+	// Check if the "update all subscriptions" checkbox exists within the selected list item.
+	const updateAllSubscriptionsCheckbox = selectedPaymentMethodListItem.find(
+		'.wc-stripe-update-all-subscriptions-payment-method'
+	);
+
+	// Add additional data passed to the setup intent request to server if the checkbox is checked.
+	if (
+		updateAllSubscriptionsCheckbox.length &&
+		updateAllSubscriptionsCheckbox.is( ':checked' )
+	) {
+		additionalData.update_all_subscription_payment_methods = true;
+	}
+
+	return additionalData;
 };

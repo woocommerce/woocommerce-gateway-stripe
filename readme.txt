@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.1
-Tested up to: 6.4.2
+Requires at least: 6.4
+Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.1.0
+Stable tag: 8.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -121,29 +121,41 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
-2. Offer a range of payment methods such as local and alternative payment methods.
-3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
-4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
+1. The Stripe payment gateway settings page used to configure the plugin.
+2. Offer a range of payment options such as local methods and express checkouts.
+3. Allow customers to save payment methods and add new ones for their future purchases.
+4. Apple Pay and other express methods can be added to product pages, cart, and checkout.
 
 == Changelog ==
 
-= 8.1.0 - xxxx-xx-xx =
-* Add - Include Stripe account details to the settings page.
-* Add - Include Stripe API version in logs.
-* Add - Enable the updated checkout experience (UPE) by default for new accounts.
-* Add - Banner encouraging the transition to the updated checkout experience.
-* Fix - Hiding the refund button and replacing it with a disabled "Refunding unavailable" button when the order is not captured.
-* Fix - Incorrect payment amount sent to Stripe when using three-decimal currencies.
-* Fix - PHP 8.2 deprecation warnings within the WC_Stripe_UPE_Payment_Method class.
-* Fix - Resolved an issue with saving plugin settings when bank descriptor value is invalid.
-* Fix - Issue with rendering Sepa on checkout page when card is disabled in non-UPE mode.
-* Fix - Resolved an issue in processing subscription payments with currencies not supported for mandate data.
-* Fix - Resolved an issue with subscription when attaching customers directly without 3DS due to Indian payment regulations.
-* Tweak - Update the Stripe JS library to 1.36.0.
-* Tweak - Removed the "Early Access" pill and "Disable" option from the Stripe payment methods dropdown menu.
-* Tweak - Remove unused UPE title field.
-* Tweak - Add WooCommerce as a plugin dependency.
-* Tweak - Update the interface for the setting to toggle the New checkout experience to make it relative to the Legacy one instead.
+= 8.8.0 - xxxx-xx-xx =
+* Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
+* Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
+* Fix - Fixes some JS console errors when making a purchase with the Stripe Express Checkout Element on the shortcode checkout.
+* Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
+* Fix - Remove unexpected HTML in error message for shortcode checkout.
+* Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
+* Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
+* Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
+* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page.
+* Add - Add support for the new Stripe Checkout Element on the pay for order page.
+* Add - Add support for the new Stripe Checkout Element on the product page.
+* Dev - Introduces a new class with payment methods constants.
+* Dev - Introduces a new class with currency codes constants.
+* Dev - Improves the readability of the redirect URL generation code (UPE).
+* Fix - Fix mandate creation for subscriptions and saved payment methods.
+* Fix - Fix Google Pay address fields mapping for UAE addresses.
+* Tweak - Render the Klarna payment page in the store locale.
+* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
+* Fix - Fix empty error message for Express Payments when order creation fails.
+* Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
+* Fix - Move charge related code to separate try-catch to prevent renewal failure.
+* Fix - Corrected translation text domain in UPE checkout integration.
+* Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
+* Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
+* Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
+* Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Set order payment method title to the customizable title setting rather than the default label.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

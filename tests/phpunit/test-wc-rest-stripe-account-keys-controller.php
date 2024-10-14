@@ -31,10 +31,10 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 1 );
 
 		// Setup existing keys
-		$settings                         = get_option( 'woocommerce_stripe_settings' );
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
-		update_option( 'woocommerce_stripe_settings', $settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
 							 ->disableOriginalConstructor()
@@ -73,7 +73,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		$this->assertEquals( 'sk_live_secret-key-12345', $settings['secret_key'] );
@@ -96,7 +96,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_test-live-key-12345', $settings['test_publishable_key'] );
 		$this->assertEquals( 'sk_test-secret-key-12345', $settings['test_secret_key'] );
@@ -117,7 +117,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
@@ -135,11 +135,77 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		$this->assertEquals( '', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
 		$this->assertEquals( 'original-test-key-9999', $settings['test_publishable_key'] );
+	}
+
+	/**
+	 * Test for `set_account_keys` checking if payment methods are reset
+	 * @return void
+	 */
+	public function test_changing_keys_resets_payment_methods() {
+		// Default options
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'publishable_key' => 'pk_live-key',
+				'secret_key'      => 'sk_live-key',
+				'testmode'        => false,
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
+			]
+		);
+
+		// Build request params
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'publishable_key', '' );
+
+		// Set initial payment methods
+		$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ] );
+
+		$this->controller->set_account_keys( $request );
+
+		// Retrieve the current enabled payment methods
+		$upe_gateway     = new WC_Stripe_UPE_Payment_Gateway();
+		$enabled_methods = count( $upe_gateway->get_option( 'upe_checkout_experience_accepted_payments' ) );
+
+		$this->assertEquals( 2, $enabled_methods ); // card and link are default payments
+	}
+
+	/**
+	 * Test for `set_account_keys` checking if payment methods are reset (legacy payments)
+	 * @return void
+	 */
+	public function test_changing_keys_resets_legacy_payment_methods() {
+		// Build request params
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'publishable_key', '' );
+
+		// Disable UPE
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Set initial payment methods
+		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		foreach ( $payment_gateways as $gateway ) {
+			if ( in_array( $gateway->id, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], true ) ) {
+				$gateway->update_option( 'enabled', 'yes' );
+			}
+		}
+		$this->controller->set_account_keys( $request );
+
+		// Retrieve the current enabled payment methods
+		$enabled_methods = 0;
+		foreach ( WC_Stripe_Helper::get_legacy_payment_methods() as $method ) {
+			if ( $method->is_enabled() ) {
+				$enabled_methods++;
+			}
+		}
+
+		$this->assertEquals( 0, $enabled_methods ); // card is a default payment, but it is not returned from the method above
 	}
 
 	public function test_validate_publishable_key() {

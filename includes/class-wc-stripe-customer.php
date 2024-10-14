@@ -20,7 +20,9 @@ class WC_Stripe_Customer {
 	 */
 	const STRIPE_PAYMENT_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_LINK::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 	];
 
 	/**
@@ -160,8 +162,8 @@ class WC_Stripe_Customer {
 				$defaults['name'] = $billing_full_name;
 			}
 		} else {
-			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
-			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
@@ -186,7 +188,7 @@ class WC_Stripe_Customer {
 			if ( $user ) {
 				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
 			} else {
-				$defaults['address'][ $key ] = isset( $_POST[ $field ] ) ? filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+				$defaults['address'][ $key ] = isset( $_POST[ $field ] ) ? filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 			}
 		}
 
@@ -222,14 +224,42 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Search for an existing customer in Stripe account by email and name.
+	 *
+	 * @param string $email Customer email.
+	 * @param string $name  Customer name.
+	 * @return array
+	 */
+	public function get_existing_customer( $email, $name ) {
+		$search_query    = [ 'query' => 'name:\'' . $name . '\' AND email:\'' . $email . '\'' ];
+		$search_response = WC_Stripe_API::request( $search_query, 'customers/search', 'GET' );
+
+		if ( ! empty( $search_response->error ) ) {
+			return [];
+		}
+
+		return $search_response->data[0] ?? [];
+	}
+
+	/**
 	 * Create a customer via API.
 	 *
 	 * @param array $args
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args = [] ) {
-		$args     = $this->generate_customer_request( $args );
-		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+		$args = $this->generate_customer_request( $args );
+
+		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
+		if ( ! $this->get_id() && 0 === $this->get_user_id() ) {
+			$response = $this->get_existing_customer( $args['email'], $args['name'] );
+		}
+
+		if ( empty( $response ) ) {
+			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+		} else {
+			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_update_customer_args', $args ), 'customers/' . $response->id );
+		}
 
 		if ( ! empty( $response->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
@@ -354,9 +384,9 @@ class WC_Stripe_Customer {
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			if ( ! empty( $response->type ) ) {
 				switch ( $response->type ) {
-					case 'alipay':
+					case WC_Stripe_Payment_Methods::ALIPAY:
 						break;
-					case 'sepa_debit':
+					case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 						$wc_token = new WC_Payment_Token_SEPA();
 						$wc_token->set_token( $response->id );
 						$wc_token->set_gateway_id( 'stripe_sepa' );
@@ -510,7 +540,7 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function delete_source( $source_id ) {
-		if ( ! $this->get_id() ) {
+		if ( empty( $source_id ) || ! $this->get_id() ) {
 			return false;
 		}
 
@@ -537,7 +567,7 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], "payment_methods/$payment_method_id/detach", 'POST' );
+		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
 
 		$this->clear_cache();
 

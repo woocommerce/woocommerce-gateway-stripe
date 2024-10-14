@@ -1,5 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import '@wordpress/notices';
 import styled from '@emotion/styled';
 import React from 'react';
 import { Button } from '@wordpress/components';
@@ -74,14 +75,14 @@ const LegacyExperienceTransitionNotice = ( {
 	return (
 		<NoticeWrapper>
 			<Message>
-				<h3>
+				<h3 data-testid="legacy-exp-title">
 					{ __(
-						'Ensure payments continue to work on your store',
+						'Enable the new checkout',
 						'woocommerce-gateway-stripe'
 					) }
 				</h3>
 				{ __(
-					"You're using the legacy experience of the Stripe Payment Gateway extension. Soon, this experience will be deprecated by Stripe and replaced with the new checkout.",
+					"You're using the legacy version of the Stripe extension which supports limited payment methods. Enable the new checkout to access over 40 popular payment methods and optimizations to increase conversion.",
 					'woocommerce-gateway-stripe'
 				) }
 			</Message>
@@ -89,6 +90,7 @@ const LegacyExperienceTransitionNotice = ( {
 				<DisableLegacyButton
 					variant="secondary"
 					onClick={ handleDisableButtonClick }
+					data-testid="disable-legacy-button"
 				>
 					{ __(
 						'Enable the new checkout',
@@ -96,7 +98,7 @@ const LegacyExperienceTransitionNotice = ( {
 					) }
 				</DisableLegacyButton>
 				<LearnMoreAnchor
-					href="https://woo.com/document/stripe/admin-experience/new-checkout-experience/"
+					href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/"
 					className="components-button is-tertiary"
 					target="_blank"
 					rel="noreferrer"

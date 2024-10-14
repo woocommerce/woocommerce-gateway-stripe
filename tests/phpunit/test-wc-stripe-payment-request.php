@@ -106,6 +106,9 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$method          = WC_Shipping_Zones::get_shipping_method( $instance_id );
 		$option_key      = $method->get_instance_option_key();
 		$options         = get_option( $option_key );
+		if ( ! is_array( $options ) ) {
+			$options = [];
+		}
 		$options['cost'] = $cost;
 		update_option( $option_key, $options );
 	}
@@ -191,10 +194,9 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		$this->upe_helper->enable_upe();
 
-		update_option(
-			'woocommerce_stripe_settings',
+		WC_Stripe_Helper::update_main_stripe_settings(
 			array_merge(
-				get_option( 'woocommerce_stripe_settings', [] ),
+				WC_Stripe_Helper::get_stripe_settings(),
 				[
 					'upe_checkout_experience_accepted_payments' => [ 'link' ],
 				]
@@ -215,12 +217,11 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
 		// Disable Link by Stripe
-		update_option(
-			'woocommerce_stripe_settings',
+		WC_Stripe_Helper::update_main_stripe_settings(
 			array_merge(
-				get_option( 'woocommerce_stripe_settings', [] ),
+				WC_Stripe_Helper::get_stripe_settings(),
 				[
-					'upe_checkout_experience_accepted_payments' => [ 'card' ],
+					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				]
 			)
 		);

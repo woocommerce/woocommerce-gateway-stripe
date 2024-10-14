@@ -23,6 +23,7 @@ if ( settingsContainer ) {
 	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
+				// eslint-disable-next-line camelcase
 				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
@@ -36,6 +37,7 @@ if ( paymentGatewayContainer ) {
 	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
+				// eslint-disable-next-line camelcase
 				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
@@ -48,7 +50,14 @@ if ( paymentGatewayContainer ) {
 if ( newAccountContainer ) {
 	ReactDOM.render(
 		<ConnectStripeAccount
-			oauthUrl={ wc_stripe_settings_params.stripe_oauth_url }
+			oauthUrl={
+				// eslint-disable-next-line camelcase
+				wc_stripe_settings_params.stripe_oauth_url
+			}
+			testOauthUrl={
+				// eslint-disable-next-line camelcase
+				wc_stripe_settings_params.stripe_test_oauth_url
+			}
 		/>,
 		newAccountContainer
 	);

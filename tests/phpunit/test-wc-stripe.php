@@ -26,11 +26,11 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * This test will see if we're indeed converting the price correctly.
 	 */
 	public function test_price_conversion_before_send_to_stripe() {
-		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
-		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 10050, 'JPY' ) );
-		$this->assertEquals( 100, WC_Stripe_Helper::get_stripe_amount( 100.50, 'JPY' ) );
+		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ) );
+		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 10050, WC_Stripe_Currency_Code::JAPANESE_YEN ) );
+		$this->assertEquals( 100, WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::JAPANESE_YEN ) );
 		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50 ) );
-		$this->assertIsInt( WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
+		$this->assertIsInt( WC_Stripe_Helper::get_stripe_amount( 100.50, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ) );
 	}
 
 	/**
@@ -42,35 +42,35 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$balance_fee1           = new stdClass();
 		$balance_fee1->fee      = 10500;
 		$balance_fee1->net      = 10000;
-		$balance_fee1->currency = 'USD';
+		$balance_fee1->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee1, 'fee' ) );
 
 		$balance_fee2           = new stdClass();
 		$balance_fee2->fee      = 10500;
 		$balance_fee2->net      = 10000;
-		$balance_fee2->currency = 'JPY';
+		$balance_fee2->currency = WC_Stripe_Currency_Code::JAPANESE_YEN;
 
 		$this->assertEquals( 10500, WC_Stripe_Helper::format_balance_fee( $balance_fee2, 'fee' ) );
 
 		$balance_fee3           = new stdClass();
 		$balance_fee3->fee      = 10500;
 		$balance_fee3->net      = 10000;
-		$balance_fee3->currency = 'USD';
+		$balance_fee3->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 100.00, WC_Stripe_Helper::format_balance_fee( $balance_fee3, 'net' ) );
 
 		$balance_fee4           = new stdClass();
 		$balance_fee4->fee      = 10500;
 		$balance_fee4->net      = 10000;
-		$balance_fee4->currency = 'JPY';
+		$balance_fee4->currency = WC_Stripe_Currency_Code::JAPANESE_YEN;
 
 		$this->assertEquals( 10000, WC_Stripe_Helper::format_balance_fee( $balance_fee4, 'net' ) );
 
 		$balance_fee5           = new stdClass();
 		$balance_fee5->fee      = 10500;
 		$balance_fee5->net      = 10000;
-		$balance_fee5->currency = 'USD';
+		$balance_fee5->currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
 
@@ -112,7 +112,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_preview_enabled() );
 
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
@@ -137,62 +137,62 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
 		$this->upe_helper->enable_upe_feature_flag();
 		// Store default stripe options
-		update_option( 'woocommerce_stripe_settings', [] );
+		WC_Stripe_Helper::update_main_stripe_settings( [] );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
 
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-		$this->assertContains( 'card', $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( 'link', $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( WC_Stripe_Payment_Methods::CARD, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( WC_Stripe_Payment_Methods::LINK, $stripe_settings['upe_checkout_experience_accepted_payments'] );
 		$this->assertCount( 2, $stripe_settings['upe_checkout_experience_accepted_payments'] );
 	}
 
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
 		$this->upe_helper->enable_upe_feature_flag();
 
-		// Enable giropay and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
+		// Enable Alipay and iDEAL LPM gateways.
+		update_option( 'woocommerce_stripe_alipay_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.
-		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-		$this->assertNotContains( 'card', $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( 'giropay', $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( 'ideal', $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertNotContains( WC_Stripe_Payment_Methods::CARD, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( WC_Stripe_Payment_Methods::ALIPAY, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->assertContains( WC_Stripe_Payment_Methods::IDEAL, $stripe_settings['upe_checkout_experience_accepted_payments'] );
 
-		// Make sure the giropay and iDEAL LPMs were disabled.
-		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-		$this->assertEquals( 'no', $giropay_settings['enabled'] );
+		// Make sure the Alipay and iDEAL LPMs were disabled.
+		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );
+		$this->assertEquals( 'no', $alipay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
 		$this->assertEquals( 'no', $ideal_settings['enabled'] );
 
 		// Enable the EPS UPE method. Now when UPE is disabled, the EPS LPM should be enabled.
-		$stripe_settings['upe_checkout_experience_accepted_payments'][] = 'eps';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		$stripe_settings['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::EPS;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Turn UPE off.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		// Check that the correct LPMs were re-enabled.
-		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-		$this->assertEquals( 'yes', $giropay_settings['enabled'] );
+		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );
+		$this->assertEquals( 'yes', $alipay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
 		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
 		$eps_settings = get_option( 'woocommerce_stripe_eps_settings' );

@@ -57,13 +57,12 @@ module.exports = {
 	},
 	entry: {
 		index: './client/blocks/index.js',
-		old_settings_upe_toggle:
-			'./client/entrypoints/old-settings-upe-toggle/index.js',
 		payment_requests_settings:
 			'./client/entrypoints/payment-request-settings/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_blocks: './client/blocks/upe/index.js',
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
+		express_checkout: './client/entrypoints/express-checkout/index.js',
 	},
 };

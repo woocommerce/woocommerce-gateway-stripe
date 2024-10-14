@@ -263,7 +263,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 				__( 'Try the new payment experience (Early access) %1$sGet early access to a new, smarter payment experience on checkout and let us know what you think by %2$s. We recommend this feature for experienced merchants as the functionality is currently limited. %3$s', 'woocommerce-gateway-stripe' ),
 				'<br />',
 				'<a href="https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey" target="_blank">submitting your feedback</a>',
-				'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">Learn more</a>'
+				'<a href="https://woocommerce.com/document/stripe/admin-experience/new-checkout-experience/" target="_blank">Learn more</a>'
 			),
 			'type'        => 'checkbox',
 			'description' => __( 'New checkout experience allows you to manage all payment methods on one screen and display them to customers based on their currency and location.', 'woocommerce-gateway-stripe' ),
@@ -276,7 +276,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
 			'title'   => __( 'Payments accepted on checkout (Early access)', 'woocommerce-gateway-stripe' ),
 			'type'    => 'upe_checkout_experience_accepted_payments',
-			'default' => [ 'card', 'link' ],
+			'default' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
 		];
 	}
 	// Insert UPE options below the 'logging' setting.

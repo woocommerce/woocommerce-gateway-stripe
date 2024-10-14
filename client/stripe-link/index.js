@@ -1,9 +1,16 @@
-const showLinkButton = ( linkAutofill ) => {
-	// Display StripeLink button if email field is prefilled.
-	if ( jQuery( '#billing_email' ).val() !== '' ) {
+const showLinkButton = ( emailId, linkAutofill ) => {
+	const emailSelector = '#' + emailId;
+	jQuery( emailSelector )
+		.parent()
+		.append(
+			'<button class="stripe-gateway-stripelink-modal-trigger"></button>'
+		);
+	if ( jQuery( emailSelector ).val() !== '' ) {
+		jQuery( '.stripe-gateway-stripelink-modal-trigger' ).show();
+
 		const linkButtonTop =
-			jQuery( '#billing_email' ).position().top +
-			( jQuery( '#billing_email' ).outerHeight() - 40 ) / 2;
+			jQuery( emailSelector ).position().top +
+			( jQuery( emailSelector ).outerHeight() - 40 ) / 2;
 		jQuery( '.stripe-gateway-stripelink-modal-trigger' ).show();
 		jQuery( '.stripe-gateway-stripelink-modal-trigger' ).css(
 			'top',
@@ -11,13 +18,15 @@ const showLinkButton = ( linkAutofill ) => {
 		);
 	}
 
-	// Handle StripeLink button click.
+	//Handle StripeLink button click.
 	jQuery( '.stripe-gateway-stripelink-modal-trigger' ).on(
 		'click',
 		( event ) => {
 			event.preventDefault();
 			// Trigger modal.
-			linkAutofill.launch( { email: jQuery( '#billing_email' ).val() } );
+			linkAutofill.launch( {
+				email: jQuery( emailSelector ).val(),
+			} );
 		}
 	);
 };
@@ -35,10 +44,7 @@ const enableStripeLinkPaymentMethod = ( options ) => {
 			linkAutofill.launch( { email: event.target.value } );
 		} );
 
-	const showButton = options.show_button
-		? options.show_button
-		: showLinkButton;
-	showButton( linkAutofill );
+	showLinkButton( options.emailId, linkAutofill );
 
 	linkAutofill.on( 'autofill', ( event ) => {
 		const { billingAddress, shippingAddress } = event.value;

@@ -108,6 +108,30 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider enum_field_provider
 	 */
 	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'capabilities' => [
+					'bancontact_payments' => 'active',
+					'card_payments'       => 'active',
+					'eps_payments'        => 'active',
+					'alipay_payments'            => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
+			]
+		);
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 		$response = $this->rest_get_settings();
@@ -149,17 +173,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
-	/**
-	 * @dataProvider statement_descriptor_field_provider
-	 */
-	public function test_statement_descriptor_fields( $option_name, $max_allowed_length ) {
-		// It returns option value under expected key with HTTP code 200.
-		$this->get_gateway()->update_option( $option_name, 'foobar' );
-		$response = $this->rest_get_settings();
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'foobar', $response->get_data()[ $option_name ] );
-	}
-
 	public function test_individual_payment_method_settings() {
 		// Disable UPE and set up EPS gateway.
 		update_option(
@@ -179,7 +192,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->arrayHasKey( 'eps', $individual_payment_method_settings_data );
+		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $individual_payment_method_settings_data );
 		$this->assertEquals(
 			[
 				'name'        => 'EPS',
@@ -189,7 +202,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
-		$request->set_param( 'payment_method_id', 'giropay' );
+		$request->set_param( 'payment_method_id', WC_Stripe_Payment_Methods::GIROPAY );
 		$request->set_param( 'is_enabled', true );
 		$request->set_param( 'title', 'Giropay' );
 		$request->set_param( 'description', 'Pay with Giropay' );
@@ -215,14 +228,24 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country' => 'US',
+				'country'      => 'US',
+				'capabilities' => [
+					'bancontact_payments'        => 'active',
+					'card_payments'              => 'active',
+					'eps_payments'               => 'active',
+					'giropay_payments'           => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
 			]
 		);
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = array_keys( $this->get_gateway()->payment_methods );
-		$expected_method_ids[] = 'multibanco';
-
+		$expected_method_ids  = array_keys( $this->get_gateway()->payment_methods );
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
 		$this->assertEquals(
@@ -244,6 +267,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
 				'country' => 'US',
+				'capabilities' => [
+					'bancontact_payments'        => 'active',
+					'card_payments'              => 'active',
+					'eps_payments'               => 'active',
+					'giropay_payments'           => 'active',
+					'ideal_payments'             => 'active',
+					'p24_payments'               => 'active',
+					'sepa_debit_payments'        => 'active',
+					'boleto_payments'            => 'active',
+					'oxxo_payments'              => 'active',
+					'link_payments'              => 'active',
+				],
 			]
 		);
 		$response = $this->rest_get_settings();
@@ -253,9 +288,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		unset( $expected_methods['link'] );
 
 		$expected_method_ids = array_keys( $expected_methods );
-		$expected_method_ids[] = 'multibanco';
-
-		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
+		$ordered_method_ids  = $response->get_data()['ordered_payment_method_ids'];
 
 		$this->assertEquals(
 			$expected_method_ids,
@@ -323,8 +356,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'enabled_payment_method_ids'       => [
 				'enabled_payment_method_ids',
 				'upe_checkout_experience_accepted_payments',
-				[ 'card' ],
-				[ 'card', 'giropay' ],
+				[ WC_Stripe_Payment_Methods::CARD ],
+				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY ],
 				[ 'foo' ],
 				true,
 			],
@@ -356,13 +389,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],
 			],
-		];
-	}
-
-	public function statement_descriptor_field_provider() {
-		return [
-			'statement_descriptor'       => [ 'statement_descriptor', 22 ],
-			'short_statement_descriptor' => [ 'short_statement_descriptor', 10 ],
 		];
 	}
 

@@ -212,10 +212,10 @@ const hiddenElementsForUPE = {
 		);
 
 		// Remove transitions & focus on hidden element.
-		const wcpayHiddenInput = document.querySelector(
+		const wcstripeHiddenInput = document.querySelector(
 			selectors.hiddenInput
 		);
-		wcpayHiddenInput.style.transition = 'none';
+		wcstripeHiddenInput.style.transition = 'none';
 	},
 
 	/**

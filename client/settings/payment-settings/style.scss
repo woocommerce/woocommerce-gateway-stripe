@@ -1,7 +1,8 @@
 @import '../../styles/abstracts/styles.scss';
 
-.ml-unit-20 {
-	margin-left: $grid-unit-20;
+.wcstripe-modal-button-group-container {
+	display: flex;
+	gap: $grid-unit-20;
 }
 
 .account-details {
@@ -49,4 +50,11 @@
 	// This value should be lower than .woocommerce-transient-notices's z-index
 	// to be able to see snackbar's messages
 	z-index: 99998;
+}
+
+.woocommerce-stripe-connection__actions-wrapper {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: $grid-unit-20;
 }

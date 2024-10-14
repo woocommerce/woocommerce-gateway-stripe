@@ -34,7 +34,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 step "Starting E2E docker containers"
-CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker-compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
+CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
 
 step "Configuring Wordpress"
 # Wait for containers to be started up before setup.
@@ -102,6 +102,7 @@ redirect_output cli wp option set woocommerce_store_postcode "94110"
 redirect_output cli wp option set woocommerce_currency "USD"
 redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
+redirect_output cli wp option set woocommerce_coming_soon "no"
 
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate
@@ -130,7 +131,7 @@ echo " - Activating plugin"
 redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
-redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"no\"}"
+redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\"}"
 
 step "Installing Woo Subscriptions"
 echo " - Fetching latest version"

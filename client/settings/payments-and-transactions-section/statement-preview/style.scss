@@ -1,6 +1,6 @@
 .statement-preview {
 	display: grid;
-	grid-template-columns: 2.5fr 1fr;
+	grid-template-columns: 2.5fr 1fr 1fr;
 	border: thin solid #ddd;
 	padding: 12px 11px;
 	font-size: 11px;
@@ -61,6 +61,31 @@
 
 		p {
 			margin: 0;
+		}
+	}
+}
+
+.statement-preview.with-tree-columns {
+	.statement-icon-and-title {
+		align-items: normal;
+		min-height: 36px;
+	}
+
+	svg {
+		margin-top: -2px;
+	}
+
+	hr {
+		height: 0;
+	}
+
+	> span:nth-of-type( 1 ), > span:nth-of-type( 2 ) {
+		height: 16px;
+	}
+
+	.transaction-detail {
+		&.description {
+			min-height: 36px;
 		}
 	}
 }

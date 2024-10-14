@@ -6,6 +6,7 @@ const defaultState = {
 	isSaving: false,
 	savingError: null,
 	data: {},
+	isConfiguringWebhooks: false,
 };
 
 export const accountKeysReducer = (
@@ -46,6 +47,12 @@ export const accountKeysReducer = (
 			return {
 				...state,
 				isValid: action.isValid,
+			};
+
+		case ACTION_TYPES.SET_IS_CONFIGURING_WEBHOOKS:
+			return {
+				...state,
+				isConfiguringWebhooks: action.isProcessing,
 			};
 	}
 

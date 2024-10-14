@@ -48,3 +48,5 @@ Please follow the following guidelines when writing testing instructions:
 **Post merge**
 
 -   [ ] Added testing instructions to the [Release Testing Instructions wiki page](https://github.com/woocommerce/woocommerce-gateway-stripe/wiki/Release-Testing-Instructions) (or does not apply)
+-   [ ] Added the [needs docs label](https://github.com/woocommerce/woocommerce-gateway-stripe/labels?q=docs) (or does not apply)
+-   [ ] Included this PR in the Release Thread scope (or does not apply)

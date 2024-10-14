@@ -270,7 +270,9 @@ export const installWooSubscriptionsFromRepo = ( page ) =>
 
 			// Assert that the plugin is listed and active
 			await expect(
-				page.locator( '#deactivate-woo-subscriptions' )
+				page.locator(
+					`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
+				)
 			).toBeVisible();
 
 			console.log(
@@ -357,6 +359,7 @@ export const setupWoo = async () => {
 		'wp option set woocommerce_currency "USD"',
 		'wp option set woocommerce_product_type "both"',
 		'wp option set woocommerce_allow_tracking "no"',
+		'wp option set woocommerce_coming_soon "no"',
 		`wp wc --user=${ ADMIN_USER } tool run install_pages`,
 		'wp plugin install wordpress-importer --activate',
 		'wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip',
@@ -439,7 +442,7 @@ export const setupStripe = ( page, baseUrl ) =>
 					payment_request_button_size: 'default',
 					saved_cards: 'yes',
 					logging: 'no',
-					upe_checkout_experience_enabled: 'no',
+					upe_checkout_experience_enabled: 'yes',
 				};
 
 				await sshExecCommands( [

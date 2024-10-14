@@ -6,10 +6,13 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
-jest.mock( 'wcstripe/settings/customization-options-notice', () => () => null );
-
 jest.mock( 'wcstripe/settings/notices/legacy-experience-transition', () => () =>
 	null
+);
+
+jest.mock(
+	'wcstripe/settings/payment-settings/promotional-banner-section',
+	() => () => null
 );
 
 describe( 'SettingsManager', () => {

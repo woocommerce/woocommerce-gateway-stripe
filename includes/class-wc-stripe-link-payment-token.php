@@ -20,7 +20,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token {
 	 *
 	 * @var string
 	 */
-	protected $type = 'link';
+	protected $type = WC_Stripe_Payment_Methods::LINK;
 
 	/**
 	 * Stores Link payment token data.

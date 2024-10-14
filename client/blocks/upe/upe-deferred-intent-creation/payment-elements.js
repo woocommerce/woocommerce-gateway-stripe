@@ -23,7 +23,7 @@ const PaymentElements = ( { api, ...props } ) => {
 	const stripe = api.getStripe();
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
 	const currency = getBlocksConfiguration()?.currency.toLowerCase();
-	const appearance = initializeUPEAppearance();
+	const appearance = initializeUPEAppearance( api, 'true' );
 	const options = {
 		mode: amount < 1 ? 'setup' : 'payment',
 		amount,
@@ -54,6 +54,7 @@ const PaymentElements = ( { api, ...props } ) => {
  * @param {string}      paymentMethodId
  * @param {Array}       upeMethods
  * @param {WCStripeAPI} api
+ * @param {string}      description
  * @param {string}      testingInstructions
  * @param {boolean}     showSaveOption
  *
@@ -63,6 +64,7 @@ export const getDeferredIntentCreationUPEFields = (
 	paymentMethodId,
 	upeMethods,
 	api,
+	description,
 	testingInstructions,
 	showSaveOption
 ) => {
@@ -71,6 +73,7 @@ export const getDeferredIntentCreationUPEFields = (
 			paymentMethodId={ paymentMethodId }
 			upeMethods={ upeMethods }
 			api={ api }
+			description={ description }
 			testingInstructions={ testingInstructions }
 			showSaveOption={ showSaveOption }
 		/>

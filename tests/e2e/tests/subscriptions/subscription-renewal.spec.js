@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api, user } from '../../utils';
 
-const { setupCheckout, fillCardDetails } = payments;
+const { setupShortcodeCheckout, fillCreditCardDetailsShortcode } = payments;
 
 let productId;
 let username, userEmail;
@@ -59,8 +59,11 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await page.goto( `?p=${ productId }` );
 		await page.locator( 'button[name="add-to-cart"]' ).click();
 
-		await setupCheckout( page );
-		await fillCardDetails( page, config.get( 'cards.basic' ) );
+		await setupShortcodeCheckout( page );
+		await fillCreditCardDetailsShortcode(
+			page,
+			config.get( 'cards.basic' )
+		);
 
 		await page.locator( 'text=Sign up now' ).click();
 
@@ -83,7 +86,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		await page.click(
 			'input[id^="radio-control-wc-payment-method-saved-tokens-"]'
 		);
-		await page.click( 'text=Place Order' );
+		await page.click( 'text=Renew subscription' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
 		);

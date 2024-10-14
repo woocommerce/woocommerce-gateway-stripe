@@ -26,6 +26,7 @@ export const InlineCard = ( {
 	const [ isEmpty, setIsEmpty ] = useState( true );
 	const { options, onActive, error, setError } = useElementOptions( {
 		hidePostalCode: true,
+		hideIcon: true,
 	} );
 	const errorCallback = ( event ) => {
 		if ( event.error ) {

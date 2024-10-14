@@ -30,13 +30,13 @@ class WC_Helper_Token {
 	/**
 	 * Create a SEPA token.
 	 *
-	 * @param string $payment_method      Token payment method.
-	 * @param string $payment_method_type Original Stripe payment method type, defaults to sepa_debit.
-	 * @param int    $user_id             ID of the token's user, defaults to get_current_user_id().
-	 * @param string $gateway             Token's Gateway ID, default to WC_Gateway_Stripe::ID
+	 * @param string $payment_method Token payment method.
+	 * @param int    $user_id        ID of the token's user, defaults to get_current_user_id().
+	 * @param string $gateway        Token's Gateway ID, default to WC_Gateway_Stripe_Sepa::ID
 	 */
-	public static function create_sepa_token( $payment_method, $payment_method_type = 'sepa_debit', $user_id = null, $gateway = WC_Gateway_Stripe::ID ) {
+	public static function create_sepa_token( $payment_method, $user_id = null, $gateway = WC_Gateway_Stripe_Sepa::ID ) {
 		$token = new WC_Payment_Token_SEPA();
+		$token->set_payment_method_type( WC_Stripe_Payment_Methods::SEPA_DEBIT );
 		$token->set_token( $payment_method );
 		$token->set_gateway_id( $gateway );
 		$token->set_user_id( is_null( $user_id ) ? get_current_user_id() : $user_id );

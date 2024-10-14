@@ -8,6 +8,7 @@ use Automattic\WooCommerce\Admin\Notes\Note;
 use Automattic\WooCommerce\Admin\Notes\Notes;
 use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
 use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
+use Automattic\WooCommerce\Utilities\OrderUtil;
 
 /**
  * Util class for handling compatibilities with different versions of WooCommerce core.
@@ -37,5 +38,14 @@ class WC_Stripe_Woo_Compat_Utils {
 		}
 
 		return WC_Admin_Notes::class;
+	}
+
+	/**
+	 * Checks if the custom orders table is enabled.
+	 *
+	 * @return bool Whether the custom orders table is enabled.
+	 */
+	public static function is_custom_orders_table_enabled() {
+		return class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled();
 	}
 }

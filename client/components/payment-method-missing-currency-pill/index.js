@@ -1,19 +1,51 @@
-import { __, _n, sprintf } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import PaymentMethodsMap from '../../payment-methods-map';
-import Pill from 'wcstripe/components/pill';
-import Tooltip from 'wcstripe/components/tooltip';
+import interpolateComponents from 'interpolate-components';
+import { Icon, info } from '@wordpress/icons';
+import Popover from 'wcstripe/components/popover';
+import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 
-const StyledPill = styled( Pill )`
-	border: 1px solid #f0b849;
-	background-color: #f0b849;
-	color: #1e1e1e;
+const StyledPill = styled.span`
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border: 1px solid #fcf9e8;
+	border-radius: 2px;
+	background-color: #fcf9e8;
+	color: #674600;
+	font-size: 12px;
+	font-weight: 400;
 	line-height: 16px;
+	width: fit-content;
 `;
 
+const StyledLink = styled.a`
+	&:focus,
+	&:visited {
+		box-shadow: none;
+	}
+`;
+
+const IconWrapper = styled.span`
+	height: 16px;
+	cursor: pointer;
+`;
+
+const AlertIcon = styled( Icon )`
+	fill: #674600;
+`;
+
+const IconComponent = ( { children, ...props } ) => (
+	<IconWrapper { ...props }>
+		<AlertIcon icon={ info } size="16" />
+		{ children }
+	</IconWrapper>
+);
+
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
-	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
+	const paymentMethodCurrencies = usePaymentMethodCurrencies( id );
 	const storeCurrency = window?.wcSettings?.currency?.code;
 
 	if (
@@ -21,23 +53,36 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		! paymentMethodCurrencies.includes( storeCurrency )
 	) {
 		return (
-			<Tooltip
-				content={ sprintf(
-					/* translators: $1: a payment method name. %2: Currency(ies). */
-					_n(
-						"%1$s won't be visible to your customers until you add %2$s to your store.",
-						"%1$s won't be visible to your customers until you add one of these currencies to your store: %2$s.",
-						paymentMethodCurrencies.length,
-						'woocommerce-gateway-stripe'
-					),
-					label,
-					paymentMethodCurrencies.join( ', ' )
-				) }
-			>
-				<StyledPill>
-					{ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
-				</StyledPill>
-			</Tooltip>
+			<StyledPill>
+				{ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
+				<Popover
+					BaseComponent={ IconComponent }
+					content={ interpolateComponents( {
+						mixedString: sprintf(
+							/* translators: $1: a payment method name. %2: Currency(ies). */
+							__(
+								'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							label,
+							paymentMethodCurrencies.join( ', ' )
+						),
+						components: {
+							currencySettingsLink: (
+								<StyledLink
+									href="/wp-admin/admin.php?page=wc-settings&tab=general"
+									target="_blank"
+									rel="noreferrer"
+									onClick={ ( ev ) => {
+										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+										ev.stopPropagation();
+									} }
+								/>
+							),
+						},
+					} ) }
+				/>
+			</StyledPill>
 		);
 	}
 

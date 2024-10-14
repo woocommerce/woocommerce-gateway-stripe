@@ -1,6 +1,12 @@
+import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
-import { Card, RadioControl, CheckboxControl } from '@wordpress/components';
+import {
+	Card,
+	RadioControl,
+	CheckboxControl,
+	Notice,
+} from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -155,9 +161,21 @@ const PaymentRequestsSettingsSection = () => {
 		}
 	};
 
+	const checkoutPageUrl = `${ ADMIN_URL }post.php?post=${
+		getSetting( 'storePages' )?.checkout?.id
+	}&action=edit`;
+
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
+				<Notice status="warning" isDismissible={ false }>
+					{ __(
+						'Some appearance settings may be overridden by the express payment section of the'
+					) }{ ' ' }
+					<a href={ checkoutPageUrl }>
+						{ __( 'Cart & Checkout blocks.' ) }
+					</a>
+				</Notice>
 				<h4>
 					{ __(
 						'Show express checkouts on',

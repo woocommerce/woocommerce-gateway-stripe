@@ -26,8 +26,8 @@ describe( 'Account hooks tests', () => {
 	describe( 'useGetCapabilities()', () => {
 		it( 'returns the value of getAccountData().account.capabilities', () => {
 			selectors = {
-				getAccountData: jest.fn( () => ( {
-					account: { capabilities: { card_payments: 'active' } },
+				getAccountCapabilities: jest.fn( () => ( {
+					card_payments: 'active',
 				} ) ),
 			};
 
@@ -38,7 +38,7 @@ describe( 'Account hooks tests', () => {
 
 		it( 'returns an empty object if the property is missing', () => {
 			selectors = {
-				getAccountData: jest.fn( () => ( {} ) ),
+				getAccountCapabilities: jest.fn( () => ( {} ) ),
 			};
 
 			const { result } = renderHook( () => useGetCapabilities() );

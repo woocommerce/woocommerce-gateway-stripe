@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'card';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::CARD;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe::class;
 
@@ -42,7 +42,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_title( $payment_details = false ) {
 		if ( ! $payment_details ) {
-			return $this->title;
+			return parent::get_title();
 		}
 
 		$details       = $payment_details[ $this->stripe_id ];
@@ -84,7 +84,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token = new WC_Payment_Token_CC();
 		$token->set_expiry_month( $payment_method->card->exp_month );
 		$token->set_expiry_year( $payment_method->card->exp_year );
-		$token->set_card_type( strtolower( $payment_method->card->brand ) );
+		$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 		$token->set_last4( $payment_method->card->last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
@@ -106,7 +106,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * The Credit Card method allows automatic capture.
 	 *
-	 * @return bool
+	 * @inheritDoc
 	 */
 	public function requires_automatic_capture() {
 		return false;

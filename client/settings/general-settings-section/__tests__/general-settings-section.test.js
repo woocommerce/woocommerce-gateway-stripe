@@ -13,7 +13,6 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
-import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -41,9 +40,6 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
-jest.mock( 'utils/use-alipay-currencies', () => ( {
-	useAliPayCurrencies: jest.fn(),
-} ) );
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
@@ -52,7 +48,7 @@ describe( 'GeneralSettingsSection', () => {
 		global.wcSettings = { currency: { code: 'EUR' } };
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
-			giropay_payments: 'active',
+			alipay_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
@@ -70,7 +66,6 @@ describe( 'GeneralSettingsSection', () => {
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
-		useAliPayCurrencies.mockReturnValue( [ 'EUR', 'CNY' ] );
 	} );
 
 	afterEach( () => {
@@ -137,17 +132,11 @@ describe( 'GeneralSettingsSection', () => {
 	it( 'should allow to enable a payment method when UPE is enabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
-			'sofort',
+			'alipay',
 			'sepa_debit',
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [
-				'card',
-				'giropay',
-				'sofort',
-				'sepa_debit',
-			],
+			orderedPaymentMethodIds: [ 'card', 'alipay', 'sepa_debit' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -163,26 +152,25 @@ describe( 'GeneralSettingsSection', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		const giropayCheckbox = screen.getByRole( 'checkbox', {
-			name: /giropay/,
+		const alipayCheckbox = screen.getByRole( 'checkbox', {
+			name: /Alipay/,
 		} );
 
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( giropayCheckbox ).not.toBeChecked();
+		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( giropayCheckbox );
+		userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			'card',
-			'giropay',
+			'alipay',
 		] );
 	} );
 
 	it( 'should allow to enable a payment method when UPE is disabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
-			'sofort',
+			'alipay',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
@@ -191,12 +179,7 @@ describe( 'GeneralSettingsSection', () => {
 			updateEnabledMethodsMock,
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [
-				'card',
-				'giropay',
-				'sofort',
-				'sepa_debit',
-			],
+			orderedPaymentMethodIds: [ 'card', 'alipay', 'sepa_debit' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -207,26 +190,25 @@ describe( 'GeneralSettingsSection', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		const giropayCheckbox = screen.getByRole( 'checkbox', {
-			name: /giropay/,
+		const alipayCheckbox = screen.getByRole( 'checkbox', {
+			name: /Alipay/,
 		} );
 
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
-		expect( giropayCheckbox ).not.toBeChecked();
+		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( giropayCheckbox );
+		userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			'card',
-			'giropay',
+			'alipay',
 		] );
 	} );
 
 	it( 'should show modal to disable a payment method', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
-			'sofort',
+			'alipay',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
@@ -264,8 +246,7 @@ describe( 'GeneralSettingsSection', () => {
 	it( 'should not allow to disable a payment method when canceled via modal', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
-			'sofort',
+			'alipay',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
@@ -296,8 +277,7 @@ describe( 'GeneralSettingsSection', () => {
 	it( 'should allow to disable a payment method when confirmed via modal', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
-			'sofort',
+			'alipay',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
@@ -327,10 +307,7 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'does not display the payment method checkbox when currency is not supprted', () => {
 		global.wcSettings = { currency: { code: 'USD' } };
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'giropay',
-		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -350,10 +327,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'does not display the payment method checkbox when manual capture is enabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'giropay',
-		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
 		useManualCapture.mockReturnValue( [ true ] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
@@ -368,12 +342,12 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'giropay',
+				name: 'Alipay',
 			} )
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'display customization section in the payment method when UPE is disabled', async () => {
+	it( 'display customization section in the payment method', async () => {
 		const PromiseMock = Promise.resolve();
 		const customizePaymentMethodMock = jest
 			.fn()
@@ -384,17 +358,17 @@ describe( 'GeneralSettingsSection', () => {
 					name: 'Card',
 					description: 'Pay with Card',
 				},
-				giropay: {
-					name: 'Giropay',
-					description: 'Pay with Giropay',
+				alipay: {
+					name: 'Alipay',
+					description: 'Pay with Alipay',
 				},
 			},
 			isCustomizing: false,
 			customizePaymentMethod: customizePaymentMethodMock,
 		} );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'alipay' ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'giropay' ],
+			orderedPaymentMethodIds: [ 'alipay' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -407,7 +381,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'giropay',
+				name: 'Alipay',
 			} )
 		).toBeInTheDocument();
 		expect(
@@ -423,9 +397,9 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		// Expect the customization section to be open
-		expect( screen.getByLabelText( 'Name' ) ).toHaveValue( 'Giropay' );
+		expect( screen.getByLabelText( 'Name' ) ).toHaveValue( 'Alipay' );
 		expect( screen.getByLabelText( 'Description' ) ).toHaveValue(
-			'Pay with Giropay'
+			'Pay with Alipay'
 		);
 		expect(
 			screen.queryByRole( 'button', {
@@ -459,10 +433,10 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 	} );
 
-	it( 'should not display customization section in the payment method when UPE is enabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
+	it( 'should display customization section in the payment method when UPE is enabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'alipay' ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'giropay' ],
+			orderedPaymentMethodIds: [ 'alipay' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -475,23 +449,20 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'giropay',
+				name: 'Alipay',
 			} )
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', {
 				name: 'Customize',
 			} )
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'giropay',
-		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'card', 'giropay' ],
+			orderedPaymentMethodIds: [ 'card', 'alipay' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -509,16 +480,13 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'giropay',
+				name: 'Alipay',
 			} )
 		).toBeInTheDocument();
 	} );
 
 	it( 'should not render payment methods that are not part of the account capabilities', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'giropay',
-		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 		} );
@@ -531,7 +499,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: 'giropay',
+				name: 'Alipay',
 			} )
 		).not.toBeInTheDocument();
 	} );
@@ -542,7 +510,7 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
-			'giropay',
+			'alipay',
 			'sepa_debit',
 			'sofort',
 			'eps',

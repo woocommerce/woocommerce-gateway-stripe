@@ -4,14 +4,28 @@
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&#{&} {
 		margin: 0;
-		margin-bottom: $grid-unit-30;
+		margin-bottom: $grid-unit-20;
+		border-left: 0;
+		padding: 12px;
 
+		>.components-notice__content {
+			margin: 0;
+		}
 		&.is-dismissible {
 			padding-right: 12px;
+			gap: $grid-unit-20;
 		}
-	}
-
-	&.is-info {
-		background: #def1f7;
+		&.is-info {
+			background: $wp-blue-0;
+		}
+		&.is-error {
+			background: $wp-red-0;
+		}
+		&.is-warning {
+			background: $wp-yellow-0;
+		}
+		&.is-success {
+			background: $wp-green-0;
+		}
 	}
 }
