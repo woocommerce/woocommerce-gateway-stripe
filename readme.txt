@@ -129,6 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.8.0 - xxxx-xx-xx =
+* Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
+* Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
+* Fix - Fixes some JS console errors when making a purchase with the Stripe Express Checkout Element on the shortcode checkout.
 * Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
 * Fix - Remove unexpected HTML in error message for shortcode checkout.
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
@@ -137,6 +140,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Add support for the new Stripe Express Checkout Element on the shortcode checkout page.
 * Add - Add support for the new Stripe Express Checkout Element on the shortcode cart page.
 * Add - Add support for the new Stripe Express Checkout Element on the pay for order page.
+* Add - Add support for the new Stripe Checkout Element on the product page.
 * Dev - Introduces a new class with payment methods constants.
 * Dev - Introduces a new class with currency codes constants.
 * Dev - Improves the readability of the redirect URL generation code (UPE).
@@ -144,7 +148,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix Google Pay address fields mapping for UAE addresses.
 * Tweak - Render the Klarna payment page in the store locale.
 * Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
-* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
 * Fix - Fix empty error message for Express Payments when order creation fails.
 * Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
 * Fix - Move charge related code to separate try-catch to prevent renewal failure.
@@ -153,5 +156,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
 * Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Set order payment method title to the customizable title setting rather than the default label.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

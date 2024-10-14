@@ -1618,7 +1618,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 		$payment_method       = $this->payment_methods[ $payment_method_type ];
-		$payment_method_title = $payment_method->get_label();
+		$payment_method_title = $payment_method->get_title();
 		$payment_method_id    = $payment_method instanceof WC_Stripe_UPE_Payment_Method_CC ? $this->id : $payment_method->id;
 
 		$order->set_payment_method( $payment_method_id );
