@@ -157,5 +157,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
+* Tweak - Add order lock for redirect payments.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
