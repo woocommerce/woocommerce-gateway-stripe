@@ -316,11 +316,11 @@ class WC_Stripe_Payment_Tokens {
 
 				// Create a new token when:
 				// - The payment method doesn't have an associated token in WooCommerce.
-				// - The payment method is not a source.
+				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type.
 				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
-					! str_starts_with( $payment_method->id, 'src_' ) &&
+					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
