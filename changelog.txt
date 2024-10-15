@@ -31,6 +31,7 @@
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 * Fix - Switch Google Pay and Apple Pay PRB flow to create PaymentMethod (pm_) instead of Source (src_), utilizing deferred intent processing.
+* Tweak - Add order lock for redirect payments.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.

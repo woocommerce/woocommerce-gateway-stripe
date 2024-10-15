@@ -159,5 +159,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 * Fix - Switch Google Pay and Apple Pay PRB flow to create PaymentMethod (pm_) instead of Source (src_), utilizing deferred intent processing.
+* Tweak - Add order lock for redirect payments.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

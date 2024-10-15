@@ -220,6 +220,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
+		if ( $this->lock_order_payment( $order ) ) {
+			return;
+		}
+
 		try {
 			if ( $order->has_status( [ 'processing', 'completed' ] ) ) {
 				return;
@@ -264,6 +268,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
+					// Unlock the order before retrying.
+					$this->unlock_order_payment( $order );
+
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
@@ -315,6 +322,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->send_failed_order_email( $order_id );
 			}
 		}
+
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
