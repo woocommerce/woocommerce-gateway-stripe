@@ -603,6 +603,24 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
+	 * Returns true if the payment method ID is valid for the given payment method type.
+	 *
+	 * Payment method IDs beginning with 'src_' are only valid for card payment methods.
+	 *
+	 * @param string $payment_method_id   The payment method ID (e.g. 'pm_123' or 'src_123').
+	 * @param string $payment_method_type The payment method type.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_payment_method_id( $payment_method_id, $payment_method_type = '' ) {
+		if ( str_starts_with( $payment_method_id, 'pm_' ) ) {
+			return true;
+		}
+
+		return str_starts_with( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
+	}
+
+	/**
 	 * Controls the output for SEPA on the my account page.
 	 *
 	 * @since 4.0.0
