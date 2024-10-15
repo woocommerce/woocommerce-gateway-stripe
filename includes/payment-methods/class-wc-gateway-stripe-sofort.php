@@ -292,7 +292,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			if ( $order->has_status(
 				apply_filters(
 					'wc_stripe_allowed_payment_processing_statuses',
-					[ 'pending', 'failed' ],
+					[ WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED ],
 					$order
 				)
 			) ) {

@@ -78,7 +78,15 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		}
 
 		// Validate order status before creating customer.
-		$disallowed_order_statuses = apply_filters( 'wc_stripe_create_customer_disallowed_order_statuses', [ 'completed', 'cancelled', 'refunded', 'failed' ] );
+		$disallowed_order_statuses = apply_filters(
+			'wc_stripe_create_customer_disallowed_order_statuses',
+			[
+				WC_Stripe_Order_Status::COMPLETED,
+				WC_Stripe_Order_Status::CANCELLED,
+				WC_Stripe_Order_Status::REFUNDED,
+				WC_Stripe_Order_Status::FAILED,
+			]
+		);
 		if ( $order->has_status( $disallowed_order_statuses ) ) {
 			return new WP_Error( 'wc_stripe_invalid_order_status', __( 'Invalid order status', 'woocommerce-gateway-stripe' ), [ 'status' => 400 ] );
 		}
@@ -167,7 +175,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			}
 
 			// Successfully captured.
-			$order->update_status( 'completed' );
+			$order->update_status( WC_Stripe_Order_Status::COMPLETED );
 			return rest_ensure_response(
 				[
 					'status' => $result->status,

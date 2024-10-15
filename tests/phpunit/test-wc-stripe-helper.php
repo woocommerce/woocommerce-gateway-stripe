@@ -230,12 +230,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		return [
 			'regular table' => [
 				'custom orders table' => false,
-				'status'              => 'completed',
+				'status'              => WC_Stripe_Order_Status::COMPLETED,
 				'success'             => true,
 			],
 			'trashed order' => [
 				'custom orders table' => false,
-				'status'              => 'trash',
+				'status'              => WC_Stripe_Order_Status::TRASH,
 				'success'             => false,
 			],
 		];

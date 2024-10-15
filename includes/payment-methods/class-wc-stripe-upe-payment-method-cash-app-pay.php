@@ -99,7 +99,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		if ( isset( $_GET['redirect_status'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$redirect_status = wc_clean( wp_unslash( $_GET['redirect_status'] ) );
 		}
-		if ( $order && $this->id === $order->get_payment_method() && 'failed' === $redirect_status ) {
+		if ( $order && $this->id === $order->get_payment_method() && WC_Stripe_Order_Status::FAILED === $redirect_status ) {
 			$text      = '<p class="woocommerce-error">';
 				$text .= esc_html( 'Unfortunately your order cannot be processed as the payment method has declined your transaction. Please attempt your purchase again.' );
 			$text     .= '</p>';

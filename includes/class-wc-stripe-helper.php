@@ -986,7 +986,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== WC_Stripe_Order_Status::TRASH ) {
 			return $order;
 		}
 

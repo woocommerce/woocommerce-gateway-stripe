@@ -76,7 +76,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 * @return bool
 	 */
 	public function is_pre_order_completed( $order_id ) {
-		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && 'completed' === WC_Pre_Orders_Order::get_pre_order_status( $order_id );
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Stripe_Order_Status::COMPLETED === WC_Pre_Orders_Order::get_pre_order_status( $order_id );
 	}
 
 	/**
@@ -271,7 +271,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				$order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
-				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$order->update_status( WC_Stripe_Order_Status::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
 				}
@@ -292,8 +292,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 			// Mark order as failed if not already set,
 			// otherwise, make sure we add the order note so we can detect when someone fails to check out multiple times
-			if ( ! $order->has_status( 'failed' ) ) {
-				$order->update_status( 'failed', $order_note );
+			if ( ! $order->has_status( WC_Stripe_Order_Status::FAILED ) ) {
+				$order->update_status( WC_Stripe_Order_Status::FAILED, $order_note );
 			} else {
 				$order->add_order_note( $order_note );
 			}
