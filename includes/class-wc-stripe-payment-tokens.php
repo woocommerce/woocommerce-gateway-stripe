@@ -270,10 +270,10 @@ class WC_Stripe_Payment_Tokens {
 
 					// Remove the following deprecated tokens:
 					// - APM tokens from before Split PE was in place.
-					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					// - Non-credit card tokens using the sources API. Payments using these will fail with the PaymentMethods API.
 					if (
 						( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
-						str_starts_with( $token->get_token(), 'src_' )
+						! $this->is_valid_payment_method_id( $token->get_token(), $this->get_payment_method_type_from_token( $token ) )
 					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
