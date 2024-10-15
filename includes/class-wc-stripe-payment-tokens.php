@@ -268,13 +268,7 @@ class WC_Stripe_Payment_Tokens {
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 
-					// Remove the following deprecated tokens:
-					// - APM tokens from before Split PE was in place.
-					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
-					if (
-						( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
-						str_starts_with( $token->get_token(), 'src_' )
-					) {
+					if ( $this->is_token_deprecated( $token ) ) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
 					}
@@ -615,6 +609,26 @@ class WC_Stripe_Payment_Tokens {
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
 		_deprecated_function( __METHOD__, '8.4.0', 'WC_Stripe_Payment_Tokens::get_account_saved_payment_methods_list_item' );
 		return $this->get_account_saved_payment_methods_list_item( $item, $payment_token );
+	}
+
+	/**
+	 * Checks if a token is deprecated and should not be used with the Payment Methods API.
+	 *
+	 * @param WC_Payment_Token $token
+	 * @return bool
+	 */
+	private function is_token_deprecated( $token ) {
+		// LPM source tokens do not work with the Payment Methods API.
+		if ( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) {
+			return true;
+		}
+
+		// Card-type source tokens continue to work with Payment Methods API.
+		if ( str_starts_with( $token->get_token(), 'src_' ) && 'CC' !== $token->get_type() ) {
+			return true;
+		}
+
+		return false;
 	}
 }
 
