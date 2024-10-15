@@ -125,6 +125,7 @@ jQuery( function( $ ) {
 				ship_to_different_address:      1,
 				terms:                          1,
 				'wc-stripe-payment-method':     paymentMethod.id,
+				stripe_source:                  paymentMethod.id, // Needed to process the payment in legacy checkout mode.
 				payment_request_type:           paymentRequestType,
 				'wc-stripe-is-deferred-intent': true,
 			};
