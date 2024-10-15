@@ -160,5 +160,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 * Fix - Switch Google Pay and Apple Pay PRB flow to create PaymentMethod (pm_) instead of Source (src_), utilizing deferred intent processing.
 * Tweak - Add order lock for redirect payments.
+* Fix - Missing Stripe Fee and Stripe Payout details on orders that were captured manually.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
