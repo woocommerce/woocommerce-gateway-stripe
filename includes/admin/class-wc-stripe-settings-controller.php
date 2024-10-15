@@ -71,7 +71,7 @@ class WC_Stripe_Settings_Controller {
 		try {
 			$intent = $this->gateway->get_intent_from_order( $order );
 
-			if ( $intent && 'requires_capture' === $intent->status ) {
+			if ( $intent && \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE === $intent->status ) {
 				$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
 				$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
 				echo '<style>.button.refund-items { display: none; }</style>';

@@ -61,8 +61,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
 		'id'                 => 'pi_mock',
-		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'object'             => \Stripe\PaymentIntent::OBJECT_NAME,
+		'status'             => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 		'last_payment_error' => [],
 		'client_secret'      => 'cs_mock',
 		'charges'            => [
@@ -72,7 +72,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'id'                     => 'ch_mock',
 					'captured'               => true,
 					'payment_method_details' => [],
-					'status'                 => 'succeeded',
+					'status'                 => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 				],
 			],
 		],
@@ -83,8 +83,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_WECHAT_PAY_PAYMENT_INTENT_TEMPLATE = [
 		'id'                 => 'pi_mock',
-		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'object'             => \Stripe\PaymentIntent::OBJECT_NAME,
+		'status'             => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 		'last_payment_error' => [],
 		'client_secret'      => 'cs_mock',
 		'charges'            => [
@@ -94,7 +94,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'id'                     => 'ch_mock',
 					'captured'               => true,
 					'payment_method_details' => [],
-					'status'                 => 'succeeded',
+					'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 				],
 			],
 		],
@@ -104,8 +104,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_SETUP_INTENT_TEMPLATE = [
-		'object'           => 'setup_intent',
-		'status'           => 'succeeded',
+		'object'           => \Stripe\SetupIntent::OBJECT_NAME,
+		'status'           => \Stripe\SetupIntent::STATUS_SUCCEEDED,
 		'client_secret'    => 'cs_mock',
 		'last_setup_error' => [],
 	];
@@ -371,7 +371,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => $order_id,
 							'captured' => 'yes',
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -416,12 +416,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'         => 'requires_action',
+				'status'         => \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION,
 				'data'           => [
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
-						'status'   => 'succeeded',
+						'status'   => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 					],
 				],
 				'payment_method' => 'pm_mock',
@@ -487,13 +487,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'               => 'requires_action',
-				'object'               => 'payment_intent',
+				'status'               => \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION,
+				'object'               => \Stripe\PaymentIntent::OBJECT_NAME,
 				'data'                 => [
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
-						'status'   => 'succeeded',
+						'status'   => \Stripe\PaymentIntent::STATUS_SUCCEEDED,
 					],
 				],
 				'payment_method'       => 'pm_mock',
@@ -601,7 +601,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
-						'status'   => 'succeeded',
+						'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 					],
 				],
 			],
@@ -648,7 +648,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
-						'status'   => 'succeeded',
+						'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 					],
 				],
 			],
@@ -694,7 +694,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
-						'status'   => 'succeeded',
+						'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 					],
 				],
 			],
@@ -765,7 +765,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_method_mock,
 		];
 		$this->mock_gateway
@@ -828,7 +828,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_method_mock,
 		];
 		$this->mock_gateway
@@ -959,7 +959,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_method_mock,
 		];
 		$this->mock_gateway
@@ -1022,7 +1022,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => [
 				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
 				WC_Stripe_Payment_Methods::BANCONTACT => [
@@ -1254,7 +1254,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => 'ch_mock',
 							'captured' => true,
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -1286,7 +1286,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_intent_mock,
 		];
 		$this->mock_gateway
@@ -1336,13 +1336,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'id'             => $payment_intent_id,
 				'amount'         => $amount,
 				'payment_method' => $payment_method_id,
-				'status'         => 'requires_action',
+				'status'         => \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION,
 				'charges'        => (object) [
 					'data' => [
 						(object) [
 							'id'       => 'ch_mock',
 							'captured' => true,
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -1374,7 +1374,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_intent_mock,
 		];
 		$this->mock_gateway
@@ -1418,7 +1418,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'message'        => 'Oh my god',
 				'payment_intent' => (object) [
 					'id'     => $payment_intent_id,
-					'object' => 'payment_intent',
+					'object' => \Stripe\PaymentIntent::OBJECT_NAME,
 				],
 			],
 		];
@@ -1484,7 +1484,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => 'ch_mock',
 							'captured' => true,
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -1498,7 +1498,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'message'        => 'Owie server hurty',
 				'payment_intent' => (object) [
 					'id'     => $payment_intent_id,
-					'object' => 'payment_intent',
+					'object' => \Stripe\PaymentIntent::OBJECT_NAME,
 				],
 			],
 		];
@@ -1532,7 +1532,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $failed_payment_intent_mock,
 		];
 		$this->mock_gateway
@@ -1587,7 +1587,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => 'ch_mock',
 							'captured' => true,
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -1601,7 +1601,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'message'        => 'No such customer',
 				'payment_intent' => (object) [
 					'id'     => $payment_intent_id,
-					'object' => 'payment_intent',
+					'object' => \Stripe\PaymentIntent::OBJECT_NAME,
 				],
 			],
 		];
@@ -1812,7 +1812,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_method_mock,
 		];
 		$this->mock_gateway
@@ -1911,7 +1911,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_intent_mock,
 		];
 		$this->mock_gateway
@@ -2008,7 +2008,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 			'payment_method_details' => $payment_method_mock,
 		];
 		$this->mock_gateway
@@ -2131,11 +2131,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => $order_id,
 							'captured' => 'yes',
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
-				'status'               => 'requires_action',
+				'status'               => \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
@@ -2205,7 +2205,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						(object) [
 							'id'       => 'ch_mock',
 							'captured' => true,
-							'status'   => 'succeeded',
+							'status'   => \Stripe\Charge::STATUS_SUCCEEDED,
 						],
 					],
 				],
@@ -2225,7 +2225,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge = [
 			'id'                     => 'ch_mock',
 			'captured'               => true,
-			'status'                 => 'succeeded',
+			'status'                 => \Stripe\Charge::STATUS_SUCCEEDED,
 		];
 		$this->mock_gateway
 			->expects( $this->exactly( 2 ) )
