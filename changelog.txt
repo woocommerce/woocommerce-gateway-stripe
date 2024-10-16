@@ -32,6 +32,7 @@
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 * Tweak - Add order lock for redirect payments.
 * Fix - Missing Stripe Fee and Stripe Payout details on orders that were captured manually.
+* Fix - Allow legacy `src_` payment methods linked to a saved credit card to be displayed on the checkout and My Account pages when the new checkout experience is enabled.
 
 = 8.7.0 - 2024-09-16 =
 * Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
