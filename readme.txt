@@ -160,5 +160,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
 * Tweak - Add order lock for redirect payments.
+* Fix - Missing Stripe Fee and Stripe Payout details on orders that were captured manually.
+* Fix - Allow legacy `src_` payment methods linked to a saved credit card to be displayed on the checkout and My Account pages when the new checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
