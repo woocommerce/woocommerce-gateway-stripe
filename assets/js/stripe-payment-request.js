@@ -69,8 +69,8 @@ jQuery( function( $ ) {
 			};
 		},
 
-		processSource: function( source, paymentRequestType ) {
-			var data = wc_stripe_payment_request.getOrderData( source, paymentRequestType );
+		processPaymentMethod: function( paymentMethod, paymentRequestType ) {
+			var data = wc_stripe_payment_request.getOrderData( paymentMethod, paymentRequestType );
 
 			return $.ajax( {
 				type:    'POST',
@@ -85,46 +85,49 @@ jQuery( function( $ ) {
 		 *
 		 * @since 3.1.0
 		 * @version 4.0.0
-		 * @param {PaymentResponse} source Payment Response instance.
+		 * @param {Object} evt The event object containing payment details and user information.
+		 * @param {string} paymentRequestType The type of payment request, either 'google_pay' or 'apple_pay'.
 		 *
-		 * @return {Object}
+		 * @return {Object} Processed order data for further handling, including shipping, billing, and payment method information.
 		 */
 		getOrderData: function( evt, paymentRequestType ) {
-			var source   = evt.source;
-			var email    = source.owner.email;
-			var phone    = source.owner.phone;
-			var billing  = source.owner.address;
-			var name     = source.owner.name ?? evt.payerName;
-			var shipping = evt.shippingAddress;
-			var data     = {
-				_wpnonce:                  wc_stripe_payment_request_params.nonce.checkout,
-				billing_first_name:        name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-				billing_last_name:         name?.split( ' ' )?.slice( 1 )?.join( ' ' ) || '-',
-				billing_company:           '',
-				billing_email:             null !== email   ? email : evt.payerEmail,
-				billing_phone:             null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
-				billing_country:           null !== billing ? billing.country : '',
-				billing_address_1:         null !== billing ? billing.line1 : '',
-				billing_address_2:         null !== billing ? billing.line2 : '',
-				billing_city:              null !== billing ? billing.city : '',
-				billing_state:             null !== billing ? billing.state : '',
-				billing_postcode:          null !== billing ? billing.postal_code : '',
-				shipping_first_name:       '',
-				shipping_last_name:        '',
-				shipping_company:          '',
-				shipping_country:          '',
-				shipping_address_1:        '',
-				shipping_address_2:        '',
-				shipping_city:             '',
-				shipping_state:            '',
-				shipping_postcode:         '',
-				shipping_method:           [ null === evt.shippingOption ? null : evt.shippingOption.id ],
-				order_comments:            '',
-				payment_method:            'stripe',
-				ship_to_different_address: 1,
-				terms:                     1,
-				stripe_source:             source.id,
-				payment_request_type:      paymentRequestType
+			var paymentMethod = evt.paymentMethod;
+			var email         = paymentMethod.billing_details.email;
+			var phone         = paymentMethod.billing_details.phone;
+			var billing       = paymentMethod.billing_details.address;
+			var name          = paymentMethod.billing_details.name ?? evt.payerName;
+			var shipping      = evt.shippingAddress;
+			var data          = {
+				_wpnonce:                       wc_stripe_payment_request_params.nonce.checkout,
+				billing_first_name:             name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+				billing_last_name:              name?.split( ' ' )?.slice( 1 )?.join( ' ' ) || '-',
+				billing_company:                '',
+				billing_email:                  null !== email   ? email : evt.payerEmail,
+				billing_phone:                  null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
+				billing_country:                null !== billing ? billing.country : '',
+				billing_address_1:              null !== billing ? billing.line1 : '',
+				billing_address_2:              null !== billing ? billing.line2 : '',
+				billing_city:                   null !== billing ? billing.city : '',
+				billing_state:                  null !== billing ? billing.state : '',
+				billing_postcode:               null !== billing ? billing.postal_code : '',
+				shipping_first_name:            '',
+				shipping_last_name:             '',
+				shipping_company:               '',
+				shipping_country:               '',
+				shipping_address_1:             '',
+				shipping_address_2:             '',
+				shipping_city:                  '',
+				shipping_state:                 '',
+				shipping_postcode:              '',
+				shipping_method:                [ null === evt.shippingOption ? null : evt.shippingOption.id ],
+				order_comments:                 '',
+				payment_method:                 'stripe',
+				ship_to_different_address:      1,
+				terms:                          1,
+				'wc-stripe-payment-method':     paymentMethod.id,
+				stripe_source:                  paymentMethod.id, // Needed to process the payment in legacy checkout mode.
+				payment_request_type:           paymentRequestType,
+				'wc-stripe-is-deferred-intent': true,
 			};
 
 			if ( shipping ) {
@@ -480,12 +483,12 @@ jQuery( function( $ ) {
 					} );
 				} );
 
-				paymentRequest.on( 'source', function( evt ) {
+				paymentRequest.on( 'paymentmethod', function( evt ) {
 					// Check if we allow prepaid cards.
 					if ( 'no' === wc_stripe_payment_request_params.stripe.allow_prepaid_card && 'prepaid' === evt.source.card.funding ) {
 						wc_stripe_payment_request.abortPayment( evt, wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.no_prepaid_card ) );
 					} else {
-						$.when( wc_stripe_payment_request.processSource( evt, paymentRequestType ) ).then( function( response ) {
+						$.when( wc_stripe_payment_request.processPaymentMethod( evt, paymentRequestType ) ).then( function( response ) {
 							if ( 'success' === response.result ) {
 								wc_stripe_payment_request.completePayment( evt, response.redirect );
 							} else {

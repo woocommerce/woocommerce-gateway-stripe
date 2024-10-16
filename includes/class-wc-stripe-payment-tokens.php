@@ -270,10 +270,10 @@ class WC_Stripe_Payment_Tokens {
 
 					// Remove the following deprecated tokens:
 					// - APM tokens from before Split PE was in place.
-					// - Tokens using the sources API. Payments using these will fail with the PaymentMethods API.
+					// - Non-credit card tokens using the sources API. Payments using these will fail with the PaymentMethods API.
 					if (
 						( 'stripe' === $token->get_gateway_id() && WC_Stripe_Payment_Methods::SEPA === $token->get_type() ) ||
-						str_starts_with( $token->get_token(), 'src_' )
+						! $this->is_valid_payment_method_id( $token->get_token(), $this->get_payment_method_type_from_token( $token ) )
 					) {
 						$deprecated_tokens[ $token->get_token() ] = $token;
 						continue;
@@ -316,11 +316,11 @@ class WC_Stripe_Payment_Tokens {
 
 				// Create a new token when:
 				// - The payment method doesn't have an associated token in WooCommerce.
-				// - The payment method is not a source.
+				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type.
 				// - The payment method belongs to the gateway ID being retrieved or the gateway ID is empty (meaning we're looking for all payment methods).
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
-					! str_starts_with( $payment_method->id, 'src_' ) &&
+					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
@@ -600,6 +600,24 @@ class WC_Stripe_Payment_Tokens {
 					break;
 			}
 		}
+	}
+
+	/**
+	 * Returns true if the payment method ID is valid for the given payment method type.
+	 *
+	 * Payment method IDs beginning with 'src_' are only valid for card payment methods.
+	 *
+	 * @param string $payment_method_id   The payment method ID (e.g. 'pm_123' or 'src_123').
+	 * @param string $payment_method_type The payment method type.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_payment_method_id( $payment_method_id, $payment_method_type = '' ) {
+		if ( 0 === strpos( $payment_method_id, 'pm_' ) ) {
+			return true;
+		}
+
+		return 0 === strpos( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
 	}
 
 	/**

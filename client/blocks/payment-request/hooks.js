@@ -186,7 +186,7 @@ export const useProcessPaymentHandler = (
 ) => {
 	useEffect( () => {
 		const handler = paymentRequest?.on(
-			'source',
+			'paymentmethod',
 			paymentProcessingHandler(
 				stripe,
 				paymentRequestType,
@@ -196,7 +196,7 @@ export const useProcessPaymentHandler = (
 
 		return () => {
 			// Need to use `?.` here in case paymentRequest is null.
-			handler?.removeEventListener( 'source' );
+			handler?.removeEventListener( 'paymentmethod' );
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
