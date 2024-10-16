@@ -613,11 +613,11 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool
 	 */
 	public function is_valid_payment_method_id( $payment_method_id, $payment_method_type = '' ) {
-		if ( str_starts_with( $payment_method_id, 'pm_' ) ) {
+		if ( 0 === strpos( $payment_method_id, 'pm_' ) ) {
 			return true;
 		}
 
-		return str_starts_with( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
+		return 0 === strpos( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
 	}
 
 	/**
