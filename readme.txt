@@ -136,10 +136,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
 * Fix - Remove unexpected HTML in error message for shortcode checkout.
 * Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
-* Add - Add support for Stripe Express Checkout Element on the block cart and checkout page.
 * Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
-* Add - Add support for the new Stripe Checkout Element on the shortcode checkout page.
-* Add - Add support for the new Stripe Checkout Element on the pay for order page.
+* Add - Add support for the new Stripe Express Checkout Element on the block cart and checkout page.
+* Add - Add support for the new Stripe Express Checkout Element on the shortcode checkout page.
+* Add - Add support for the new Stripe Express Checkout Element on the shortcode cart page.
+* Add - Add support for the new Stripe Express Checkout Element on the pay for order page.
 * Add - Add support for the new Stripe Checkout Element on the product page.
 * Dev - Introduces a new class with payment methods constants.
 * Dev - Introduces a new class with currency codes constants.
