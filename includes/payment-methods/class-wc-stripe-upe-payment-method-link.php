@@ -19,6 +19,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$this->title       = __( 'Link', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Stripe Link', 'woocommerce-gateway-stripe' );
+		$this->enabled     = self::is_link_enabled() ? 'yes' : 'no';
 		$this->description = __(
 			'Link is a payment method that allows customers to save payment information  and use the payment details
 			for further payments.',
@@ -35,6 +36,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
 		// Assume Link is disabled if UPE is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return false;
+		}
+
+		// Don't mark Link as enabled if we're in the admin so it doesn't show up in the checkout editor page.
+		if ( is_admin() ) {
 			return false;
 		}
 
