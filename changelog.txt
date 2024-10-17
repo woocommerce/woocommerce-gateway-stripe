@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Corrected card brand capitalization on the My Account → Subscription page.
 
 = 8.8.0 - 2024-10-17 =
 * Fix - Update URL and path constants to support use of symlinked plugin.
