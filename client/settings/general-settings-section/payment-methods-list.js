@@ -17,6 +17,7 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import { areAPMsDeprecated } from 'wcstripe/utils';
 
 const List = styled.ul`
 	margin: 0;
@@ -241,8 +242,7 @@ const GeneralSettingsSection = ( {
 
 				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
 				if (
-					new Date() > new Date( '2024-10-31' ) &&
-					! isUpeEnabled &&
+					areAPMsDeprecated( ! isUpeEnabled ) &&
 					method !== 'card'
 				) {
 					return null;
@@ -297,8 +297,7 @@ const GeneralSettingsSection = ( {
 
 				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
 				if (
-					new Date() > new Date( '2024-10-31' ) &&
-					! isUpeEnabled &&
+					areAPMsDeprecated( ! isUpeEnabled ) &&
 					method !== 'card'
 				) {
 					return null;
