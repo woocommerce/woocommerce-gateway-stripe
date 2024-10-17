@@ -82,6 +82,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
+			// Lock the order or return if the order is already locked.
+			if ( $this->lock_order_payment( $order ) ) {
+				return;
+			}
+
 			/**
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
@@ -142,6 +147,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
+					// Unlock the order before retrying.
+					$this->unlock_order_payment( $order );
+
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
@@ -187,10 +195,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			/* translators: error message */
 			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
+			// Unlock the order.
+			$this->unlock_order_payment( $order );
+
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}
+
+		// Unlock the order.
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
@@ -320,7 +334,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 
-					$this->update_fees( $order, $result->balance_transaction->id );
+					$balance_transaction_id = $this->get_balance_transaction_id_from_charge( $result );
+
+					if ( ! empty( $balance_transaction_id ) ) {
+						$this->update_fees( $order, $balance_transaction_id );
+					}
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.

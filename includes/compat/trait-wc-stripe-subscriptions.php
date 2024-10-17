@@ -50,6 +50,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+		add_action( 'woocommerce_stripe_add_payment_method', [ $this, 'handle_upe_add_payment_method_success' ], 10, 2 );
 
 		// Display the payment method used for a subscription in the "My Subscriptions" table.
 		add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
@@ -99,20 +100,26 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 4.1.11
 	 */
 	public function display_update_subs_payment_checkout() {
-		$subs_statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
-		if (
-			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
-			( function_exists( 'wcs_user_has_subscription' ) && wcs_user_has_subscription( get_current_user_id(), '', $subs_statuses ) ) &&
-			is_add_payment_method_page()
-		) {
-			$label = esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the Payment Method used for all of my active subscriptions.', 'woocommerce-gateway-stripe' ) ) );
+		$statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
+
+		if ( ! apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) ) {
+			return;
+		}
+
+		if ( ! is_add_payment_method_page() ) {
+			return;
+		}
+
+		if ( function_exists( 'wcs_user_has_subscription' ) && wcs_user_has_subscription( get_current_user_id(), '', $statuses ) ) {
+			$label = esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the payment method for all of my current subscriptions', 'woocommerce-gateway-stripe' ) ) );
 			$id    = sprintf( 'wc-%1$s-update-subs-payment-method-card', $this->id );
 			woocommerce_form_field(
 				$id,
 				[
-					'type'    => 'checkbox',
-					'label'   => $label,
-					'default' => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
+					'type'        => 'checkbox',
+					'label'       => $label,
+					'default'     => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
+					'input_class' => [ 'wc-stripe-update-all-subscriptions-payment-method' ],
 				]
 			);
 		}
@@ -121,33 +128,64 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Updates all active subscriptions payment method.
 	 *
+	 * Note: This is the Legacy checkout experience method for updating subscriptions payment method.
+	 *
 	 * @since 4.1.11
+	 *
+	 * @see handle_upe_add_payment_method_success() for the new UPE checkout method.
 	 *
 	 * @param string $source_id
 	 * @param object $source_object
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
-		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
-			$all_subs        = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions() : [];
-			$subs_statuses   = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
-			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+		$this->handle_upe_add_payment_method_success( get_current_user_id(), $source_object );
+	}
 
-			if ( ! empty( $all_subs ) ) {
-				foreach ( $all_subs as $sub ) {
-					if ( $sub->has_status( $subs_statuses ) && class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
-						WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
-							$sub,
-							$this->id,
-							[
-								'post_meta' => [
-									'_stripe_source_id'   => [ 'value' => $source_id ],
-									'_stripe_customer_id' => [ 'value' => $stripe_customer->get_id() ],
-								],
-							]
-						);
-					}
-				}
+	/**
+	 * Updates all the user's active subscriptions payment method with the new payment method.
+	 *
+	 * @since 8.8.0
+	 *
+	 * @param int      $user_id               The user ID.
+	 * @param stdClass $payment_method_object The newly added payment method object.
+	 */
+	public function handle_upe_add_payment_method_success( $user_id, $payment_method_object ) {
+		// To avoid errors, exit early if there is no WC_Subscriptions_Change_Payment_Gateway class or the payment method object is not complete.
+		if ( ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) || ! isset( $payment_method_object->id ) ) {
+			return;
+		}
+
+		// Check if the customer has requested to update all subscriptions via a direct request or after returning from the UPE redirect.
+		$should_update_subscriptions = isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] );
+		$should_update_subscriptions = $should_update_subscriptions || isset( $this->stripe_id, $_GET[ "wc-stripe-{$this->stripe_id}-update-all-subscription-payment-methods" ] );
+
+		if ( ! $should_update_subscriptions ) {
+			return;
+		}
+
+		$statuses        = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
+		$subscriptions   = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions( $user_id ) : [];
+		$stripe_customer = new WC_Stripe_Customer( $user_id );
+
+		foreach ( $subscriptions as $subscription ) {
+			if ( ! $subscription->has_status( $statuses ) ) {
+				continue;
 			}
+
+			if ( ! current_user_can( 'edit_shop_subscription_payment_method', $subscription->get_id() ) ) {
+				continue;
+			}
+
+			WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
+				$subscription,
+				$this->id,
+				[
+					'post_meta' => [
+						'_stripe_source_id'   => [ 'value' => $payment_method_object->id ],
+						'_stripe_customer_id' => [ 'value' => $stripe_customer->get_id() ],
+					],
+				]
+			);
 		}
 	}
 
@@ -363,6 +401,22 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' !== $this->id ) {
+				$this->unlock_order_payment( $renewal_order );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
+
+			/* translators: error message */
+			$renewal_order->update_status( 'failed' );
+			return;
+		}
+
+		try {
+
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
@@ -403,18 +457,10 @@ trait WC_Stripe_Subscriptions_Trait {
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
 			}
-
-			// TODO: Remove when SEPA is migrated to payment intents.
-			if ( 'stripe_sepa' !== $this->id ) {
-				$this->unlock_order_payment( $renewal_order );
-			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
-
-			/* translators: error message */
-			$renewal_order->update_status( 'failed' );
 		}
 	}
 
@@ -819,26 +865,26 @@ trait WC_Stripe_Subscriptions_Trait {
 					}
 
 					// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
-					if ( isset( $source->object ) && 'card' === $source->object ) {
+					if ( isset( $source->object ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->brand ) ? $source->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->last4 );
 						break 2;
 					}
 
 					switch ( $source->type ) {
-						case 'card':
+						case WC_Stripe_Payment_Methods::CARD:
 							/* translators: 1) card brand 2) last 4 digits */
 							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->card->brand ) ? $source->card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->card->last4 );
 							break 3;
-						case 'sepa_debit':
+						case WC_Stripe_Payment_Methods::SEPA_DEBIT:
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
 							break 3;
-						case 'cashapp':
+						case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 							/* translators: 1) Cash App Cashtag */
 							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
 							break 3;
-						case 'link':
+						case WC_Stripe_Payment_Methods::LINK:
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;

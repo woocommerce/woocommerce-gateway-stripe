@@ -5,6 +5,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
+
+	/**
+	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
+	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
+	 *
+	 * @return bool
+	 */
+	public static function is_stripe_ece_enabled() {
+		return 'yes' === get_option( self::ECE_FEATURE_FLAG_NAME, 'no' );
+	}
 
 	/**
 	 * Checks whether UPE "preview" feature flag is enabled.

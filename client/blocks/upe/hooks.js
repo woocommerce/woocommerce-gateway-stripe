@@ -159,40 +159,6 @@ export const useStripeLink = ( api, elements, paymentMethodsConfig ) => {
 						customerData.billingAddress
 					);
 				},
-				show_button: ( linkAutofill ) => {
-					jQuery( '#email' )
-						.parent()
-						.append(
-							'<button class="stripe-gateway-stripelink-modal-trigger"></button>'
-						);
-					if ( jQuery( '#email' ).val() !== '' ) {
-						jQuery(
-							'.stripe-gateway-stripelink-modal-trigger'
-						).show();
-
-						const linkButtonTop =
-							jQuery( '#email' ).position().top +
-							( jQuery( '#email' ).outerHeight() - 40 ) / 2;
-						jQuery(
-							'.stripe-gateway-stripelink-modal-trigger'
-						).show();
-						jQuery(
-							'.stripe-gateway-stripelink-modal-trigger'
-						).css( 'top', linkButtonTop + 'px' );
-					}
-
-					//Handle StripeLink button click.
-					jQuery( '.stripe-gateway-stripelink-modal-trigger' ).on(
-						'click',
-						( event ) => {
-							event.preventDefault();
-							// Trigger modal.
-							linkAutofill.launch( {
-								email: jQuery( '#email' ).val(),
-							} );
-						}
-					);
-				},
 				complete_shipping: () => {
 					return (
 						document.getElementById( 'shipping-address_1' ) !== null

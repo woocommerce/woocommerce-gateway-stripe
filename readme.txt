@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.7.0
+Stable tag: 8.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,39 +128,40 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.7.0 - 2024-09-16 =
-* Add - Introduces a new promotional surface to encourage merchants with the legacy checkout experience and APMs enabled to use the new checkout experience.
-* Fix - Prevent duplicate failed-order emails from being sent.
-* Fix - Support custom name and description for Afterpay.
-* Fix - Link APM charge IDs in Order Details page to their Stripe dashboard payments page.
-* Fix - Fix Indian subscription processing by forcing the recreation of mandates during switches (upgrading/downgrading).
-* Fix - Add back support for Stripe Link autofill for shortcode checkout.
-* Fix - Fix undefined method error caused by settings refactor when connecting Stripe account.
-* Fix - Fix multiple compatibility issues and deprecation warnings when running the extension on PHP 8.1.
-* Fix - Re-connect promotional surface blinking after disappearing for merchants that have already connected their Stripe account.
-* Fix - Fix possible fatal errors when Stripe settings format is invalid during account connection.
-* Fix - Clear webhook state after reconfiguring webhooks to remove outdated error and success statuses.
-* Fix - Prevent payment methods from being detached from Stripe customers on non-production sites when a WP user is deleted with the new checkout experience enabled.
-* Add - Log incoming webhook events and their request body.
-* Add - Show UPE payment methods in saved order on block checkout page.
-* Add - Display UI elements for connection type and expired keys status for Stripe accounts linked via the WooCommerce Stripe App.
-* Tweak - Delete the notice about the missing customization options on the updated checkout experience.
-* Fix - Prevent fatal error when canceling uncaptured orders by ensuring refunds array is expanded in Stripe API response.
-* Fix - Fix error in saving settings when express payment methods are disabled.
-* Fix - Catch error when getting intent from order.
-* Fix - Handle undefined array key when no matching customer account is found when guest customers checkout.
-* Tweak - Update capabilities to payment methods mapping.
-* Fix - Address QIT Security test errors.
-* Fix - Address QIT PHPStan test errors.
-* Update - Specify the JS Stripe API version as 2024-06-20.
-* Tweak - Use order ID from 'get_order_number' in stripe intent metadata.
-* Fix - Ensure payment tokens are detached from Stripe when a user is deleted, regardless of if the admin user has a Stripe account.
-* Fix - Address Klarna availability based on correct presentment currency rules.
-* Fix - Use correct ISO country code of United Kingdom in supported country and currency list of AliPay and WeChat.
-* Fix - Prevent duplicate order notes and emails being sent when purchasing subscription products with no initial payment.
-* Add - Display an admin notice on the WooCommerce > Subscriptions screen for tracking the progress of SEPA subscriptions migrations after the legacy checkout is disabled.
-* Add - Introduce a new tool on the WooCommerce > Status > Tools screen to restart the legacy SEPA subscriptions update.
-* Fix - Remove the Stripe OAuth Keys when uninstalling the plugin.
-* Fix - Resolve an error for checkout block where 'wc_stripe_upe_params' is undefined due to the script registering the variable not being loaded yet.
+= 8.8.0 - 2024-10-17 =
+* Fix - Update URL and path constants to support use of symlinked plugin.
+* Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
+* Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
+* Fix - Fixes some JS console errors when making a purchase with the Stripe Express Checkout Element on the shortcode checkout.
+* Fix - Updates the display logic for the OAuth re-connect promotional surface to follow the latest changes made to the connection settings object.
+* Fix - Remove unexpected HTML in error message for shortcode checkout.
+* Fix - Ensure ordering for Stripe payment methods is saved even when setting up from scratch.
+* Add - Implemented the "Update all subscriptions payment methods" checkbox on My Account → Payment methods for UPE payment methods.
+* Add - Add support for the new Stripe Express Checkout Element on the block cart and checkout page.
+* Add - Add support for the new Stripe Express Checkout Element on the shortcode checkout page.
+* Add - Add support for the new Stripe Express Checkout Element on the shortcode cart page.
+* Add - Add support for the new Stripe Express Checkout Element on the pay for order page.
+* Add - Add support for the new Stripe Checkout Element on the product page.
+* Dev - Introduces a new class with payment methods constants.
+* Dev - Introduces a new class with currency codes constants.
+* Dev - Improves the readability of the redirect URL generation code (UPE).
+* Fix - Fix mandate creation for subscriptions and saved payment methods.
+* Fix - Fix Google Pay address fields mapping for UAE addresses.
+* Tweak - Render the Klarna payment page in the store locale.
+* Tweak - Update the Apple Pay domain registration flow to use the new Stripe API endpoint.
+* Fix - Fix empty error message for Express Payments when order creation fails.
+* Fix - Fix multiple issues related to the reuse of Cash App Pay tokens (as a saved payment method) when subscribing.
+* Fix - Move charge related code to separate try-catch to prevent renewal failure.
+* Fix - Corrected translation text domain in UPE checkout integration.
+* Fix - Resolve an issue where Stripe Payment Method API calls passed the token's database ID instead of the Stripe ID.
+* Fix - Pre-orders set to pay upon release were remaining pending when attempting to pay using Stripe.
+* Fix - Ensure subscription renewal order statement descriptors include the order number suffix.
+* Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
+* Fix - Set order payment method title to the customizable title setting rather than the default label.
+* Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
+* Fix - Switch Google Pay and Apple Pay PRB flow to create PaymentMethod (pm_) instead of Source (src_), utilizing deferred intent processing.
+* Tweak - Add order lock for redirect payments.
+* Fix - Missing Stripe Fee and Stripe Payout details on orders that were captured manually.
+* Fix - Allow legacy `src_` payment methods linked to a saved credit card to be displayed on the checkout and My Account pages when the new checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -84,6 +84,11 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 
+		// Check if ECE feature flag is enabled.
+		if ( WC_Stripe_Feature_Flags::is_stripe_ece_enabled() ) {
+			return;
+		}
+
 		// Checks if Stripe Gateway is enabled.
 		if ( empty( $this->stripe_settings ) || ( isset( $this->stripe_settings['enabled'] ) && 'yes' !== $this->stripe_settings['enabled'] ) ) {
 			return;
@@ -1693,6 +1698,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
+		$this->fix_address_fields_mapping();
+
 		// Normalizes billing and shipping state values.
 		$this->normalize_state();
 
@@ -2065,5 +2072,37 @@ class WC_Stripe_Payment_Request {
 		}
 
 		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+	}
+
+	/**
+	 * Performs special mapping for address fields for specific contexts.
+	 */
+	private function fix_address_fields_mapping() {
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
+
+		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
+		// but WooCommerce expects it in the "city" field.
+		if ( 'AE' === $billing_country ) {
+			$billing_state = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
+			$billing_city  = ! empty( $_POST['billing_city'] ) ? wc_clean( wp_unslash( $_POST['billing_city'] ) ) : '';
+
+			// Move the state (emirate) to the city field.
+			if ( empty( $billing_city ) && ! empty( $billing_state ) ) {
+				$_POST['billing_city']  = $billing_state;
+				$_POST['billing_state'] = '';
+			}
+		}
+
+		if ( 'AE' === $shipping_country ) {
+			$shipping_state = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
+			$shipping_city  = ! empty( $_POST['shipping_city'] ) ? wc_clean( wp_unslash( $_POST['shipping_city'] ) ) : '';
+
+			// Move the state (emirate) to the city field.
+			if ( empty( $shipping_city ) && ! empty( $shipping_state ) ) {
+				$_POST['shipping_city']  = $shipping_state;
+				$_POST['shipping_state'] = '';
+			}
+		}
 	}
 }

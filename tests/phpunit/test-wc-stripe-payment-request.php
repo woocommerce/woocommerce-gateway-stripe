@@ -221,7 +221,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 			array_merge(
 				WC_Stripe_Helper::get_stripe_settings(),
 				[
-					'upe_checkout_experience_accepted_payments' => [ 'card' ],
+					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
 				]
 			)
 		);

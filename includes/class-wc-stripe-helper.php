@@ -346,31 +346,31 @@ class WC_Stripe_Helper {
 	public static function get_minimum_amount() {
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
-			case 'USD':
-			case 'CAD':
-			case 'EUR':
-			case 'CHF':
-			case 'AUD':
-			case 'SGD':
+			case WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR:
+			case WC_Stripe_Currency_Code::CANADIAN_DOLLAR:
+			case WC_Stripe_Currency_Code::EURO:
+			case WC_Stripe_Currency_Code::SWISS_FRANC:
+			case WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR:
+			case WC_Stripe_Currency_Code::SINGAPORE_DOLLAR:
 				$minimum_amount = 50;
 				break;
-			case 'GBP':
+			case WC_Stripe_Currency_Code::POUND_STERLING:
 				$minimum_amount = 30;
 				break;
-			case 'DKK':
+			case WC_Stripe_Currency_Code::DANISH_KRONE:
 				$minimum_amount = 250;
 				break;
-			case 'NOK':
-			case 'SEK':
+			case WC_Stripe_Currency_Code::NORWEGIAN_KRONE:
+			case WC_Stripe_Currency_Code::SWEDISH_KRONA:
 				$minimum_amount = 300;
 				break;
-			case 'JPY':
+			case WC_Stripe_Currency_Code::JAPANESE_YEN:
 				$minimum_amount = 5000;
 				break;
-			case 'MXN':
+			case WC_Stripe_Currency_Code::MEXICAN_PESO:
 				$minimum_amount = 1000;
 				break;
-			case 'HKD':
+			case WC_Stripe_Currency_Code::HONG_KONG_DOLLAR:
 				$minimum_amount = 400;
 				break;
 			default:
@@ -492,7 +492,7 @@ class WC_Stripe_Helper {
 			$payment_method_ids = array_map(
 				function( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
-						return 'card';
+						return WC_Stripe_Payment_Methods::CARD;
 					} else {
 						return str_replace( 'stripe_', '', $payment_method_id );
 					}
@@ -521,7 +521,7 @@ class WC_Stripe_Helper {
 				},
 				$payment_method_classes
 			);
-			$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
+			$payment_method_ids = array_merge( [ WC_Stripe_Payment_Methods::CARD ], $payment_method_ids );
 		}
 
 		return $payment_method_ids;
@@ -556,7 +556,7 @@ class WC_Stripe_Helper {
 		$is_stripe_enabled = self::get_settings( null, 'enabled' );
 
 		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ 'card' ] : [];
+		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ WC_Stripe_Payment_Methods::CARD ] : [];
 
 		$payment_methods                   = self::get_legacy_payment_methods();
 		$mapped_enabled_payment_method_ids = [];
@@ -583,7 +583,7 @@ class WC_Stripe_Helper {
 		$payment_methods = self::get_legacy_payment_methods();
 
 		$payment_method_settings = [
-			'card' => [
+			WC_Stripe_Payment_Methods::CARD => [
 				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
 				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
 			],
@@ -625,7 +625,7 @@ class WC_Stripe_Helper {
 				'description' => isset( $individual_gateway_settings['description'] ) ? $individual_gateway_settings['description'] : '',
 			];
 
-			if ( in_array( $gateway, [ 'boleto' ], true ) ) {
+			if ( in_array( $gateway, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
 				$settings['expiration'] = isset( $individual_gateway_settings['expiration'] ) ? $individual_gateway_settings['expiration'] : '';
 			}
 
@@ -673,9 +673,9 @@ class WC_Stripe_Helper {
 			$ordered_payment_method_ids = array_map(
 				function( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
-						return 'card';
+						return WC_Stripe_Payment_Methods::CARD;
 					} elseif ( 'stripe_sepa' === $payment_method_id ) {
-						return 'sepa_debit';
+						return WC_Stripe_Payment_Methods::SEPA_DEBIT;
 					}
 					return str_replace( 'stripe_', '', $payment_method_id );
 				},
@@ -739,7 +739,7 @@ class WC_Stripe_Helper {
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
 			// For card, the legacy key is 'legacy_payments'.
-			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( 'card' === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
+			$has_capability = isset( $data['capabilities'][ $key ] ) || isset( $data['capabilities'][ $payment_method_id ] ) || ( WC_Stripe_Payment_Methods::CARD === $payment_method_id && isset( $data['capabilities']['legacy_payments'] ) );
 			if ( $has_capability ) {
 				$payment_method_ids_with_capability[] = $payment_method_id;
 			}
@@ -783,14 +783,15 @@ class WC_Stripe_Helper {
 			}
 		}
 
-		$gateway_order = get_option( 'woocommerce_gateway_order' );
+		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
+		asort( $gateway_order );
 
 		$ordered_available_stripe_methods = [];
 		// Map the Stripe payment method list to the right format to save in the 'woocommerce_gateway_order' option.
 		foreach ( $ordered_payment_method_ids as $payment_method_id ) {
 			$gateway_id = 0 === strpos( $payment_method_id, 'stripe' ) ? $payment_method_id : 'stripe_' . $payment_method_id;
 
-			if ( 'card' === $payment_method_id ) {
+			if ( WC_Stripe_Payment_Methods::CARD === $payment_method_id ) {
 				$gateway_id = 'stripe';
 			}
 
@@ -799,19 +800,27 @@ class WC_Stripe_Helper {
 
 		$updated_gateway_order = [];
 		$index                 = 0;
-		// Add the Stripe methods back in the right order and assign all the payment methods the updated order index.
-		foreach ( $gateway_order as $gateway => $order ) {
+		$stripe_gateways_added = false;
+		foreach ( array_keys( $gateway_order ) as $gateway ) {
 			if ( 0 === strpos( $gateway, 'stripe_' ) ) {
 				continue; // Skip the other stripe gateways. We'll add all Stripe methods back in the right order.
 			} elseif ( 'stripe' === $gateway ) {
-				unset( $gateway_order['stripe'] );
 				// When the main Stripe gateway is found in the option, add all the Stripe methods in the right order starting from this index.
 				foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
 					$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
 				}
+				$stripe_gateways_added = true;
 			} else {
 				// Add the rest of the gateways.
 				$updated_gateway_order[ $gateway ] = (string) $index++;
+			}
+		}
+
+		// Stripe may not initially be in the gateway order options even when enabled --
+		// we ensure it's added here.
+		if ( ! $stripe_gateways_added ) {
+			foreach ( $ordered_available_stripe_methods as $ordered_available_stripe_method ) {
+				$updated_gateway_order[ $ordered_available_stripe_method ] = (string) $index++;
 			}
 		}
 
@@ -1338,7 +1347,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		return 'card' === $payment_method->type;
+		return WC_Stripe_Payment_Methods::CARD === $payment_method->type;
 	}
 
 	/**
@@ -1488,7 +1497,7 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function is_wallet_payment_method( $order ) {
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'wechat_pay', 'cashapp' ], true );
+		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1532,5 +1541,64 @@ class WC_Stripe_Helper {
 		}
 
 		return 'https://dashboard.stripe.com/payments/%s';
+	}
+
+	/**
+	 * Returns a supported locale for setting Klarna's "preferred_locale".
+	 * While Stripe allows for localization of Klarna's payments page, it still
+	 * limits the locale to the billing country's set of supported locales. For example,
+	 * we cannot set the locale to "fr-FR" or "fr-US" if the billing country is "US".
+	 *
+	 * We compute our desired locale by combining the language tag from the store locale
+	 * and the billing country. We return that if it is supported.
+	 *
+	 * @param string $store_locale The WooCommerce store locale.
+	 *   Expected format: WordPress locale format, e.g. "en" or "en_US".
+	 * @param string $billing_country The billing country code.
+	 * @return string|null The Klarna locale or null if not supported.
+	 */
+	public static function get_klarna_preferred_locale( $store_locale, $billing_country ) {
+		// From https://docs.stripe.com/payments/klarna/accept-a-payment?payments-ui-type=direct-api#supported-locales-and-currencies
+		$supported_locales = [
+			'AU' => [ 'en-AU' ],
+			'AT' => [ 'de-AT', 'en-AT' ],
+			'BE' => [ 'nl-BE', 'fr-BE', 'en-BE' ],
+			'CA' => [ 'en-CA', 'fr-CA' ],
+			'CZ' => [ 'en-CZ', 'cs-CZ' ],
+			'DK' => [ 'da-DK', 'en-DK' ],
+			'FI' => [ 'fi-FI', 'sv-FI', 'en-FI' ],
+			'FR' => [ 'fr-FR', 'en-FR' ],
+			'DE' => [ 'de-DE', 'en-DE' ],
+			'GR' => [ 'en-GR', 'el-GR' ],
+			'IE' => [ 'en-IE' ],
+			'IT' => [ 'it-IT', 'en-IT' ],
+			'NL' => [ 'nl-NL', 'en-NL' ],
+			'NZ' => [ 'en-NZ' ],
+			'NO' => [ 'nb-NO', 'en-NO' ],
+			'PL' => [ 'pl-PL', 'en-PL' ],
+			'PT' => [ 'pt-PT', 'en-PT' ],
+			'RO' => [ 'ro-RO', 'en-RO' ],
+			'ES' => [ 'es-ES', 'en-ES' ],
+			'SE' => [ 'sv-SE', 'en-SE' ],
+			'CH' => [ 'de-CH', 'fr-CH', 'it-CH', 'en-CH' ],
+			'GB' => [ 'en-GB' ],
+			'US' => [ 'en-US', 'es-US' ],
+		];
+
+		$region = strtoupper( $billing_country );
+		if ( ! isset( $supported_locales[ $region ] ) ) {
+			return null;
+		}
+
+		// Get the language tag e.g. "en" for "en_US".
+		$lang          = strtolower( explode( '_', $store_locale )[0] );
+		$target_locale = $lang . '-' . $region;
+
+		// Check if the target locale is supported.
+		if ( ! in_array( $target_locale, $supported_locales[ $region ], true ) ) {
+			return null;
+		}
+
+		return $target_locale;
 	}
 }

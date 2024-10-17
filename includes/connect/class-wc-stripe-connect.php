@@ -227,7 +227,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$result['upe_checkout_experience_enabled']             = 'yes';
-			$result['upe_checkout_experience_accepted_payments'][] = 'link';
+			$result['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
 
 			return $result;
 		}

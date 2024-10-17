@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'bancontact';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::BANCONTACT;
 
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Bancontact::class;
 
@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = 'Bancontact';
 		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'EUR' ];
+		$this->supported_currencies = [ WC_Stripe_Currency_Code::EURO ];
 		$this->label                = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'tokenization';

@@ -79,8 +79,8 @@ const PaymentSettingsPanel = () => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 	const oauthConnected = isTestModeEnabled
-		? data?.oauth_connections?.test
-		: data?.oauth_connections?.live;
+		? data?.oauth_connections?.test?.connected
+		: data?.oauth_connections?.live?.connected;
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -110,9 +110,11 @@ const PaymentSettingsPanel = () => {
 								setIsUpeEnabled={ setIsUpeEnabled }
 								isConnectedViaOAuth={ oauthConnected }
 								oauthUrl={
+									// eslint-disable-next-line camelcase
 									wc_stripe_settings_params.stripe_oauth_url
 								}
 								testOauthUrl={
+									// eslint-disable-next-line camelcase
 									wc_stripe_settings_params.stripe_test_oauth_url
 								}
 							/>

@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "8.7.0",
+  "version": "8.8.0",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -60,9 +60,9 @@
     "config": "^3.3.8",
     "cross-env": "^5.2.1",
     "dotenv": "^16.0.3",
-    "eslint": "^7.32.0",
+    "eslint": "^8.57.1",
     "eslint-import-resolver-webpack": "0.13.1",
-    "eslint-plugin-react-hooks": "4.2.0",
+    "eslint-plugin-react-hooks": "4.3",
     "husky": "^7.0.1",
     "is-ci": "^3.0.0",
     "jest": "^27.4.5",
@@ -91,10 +91,13 @@
     "yarnhook": "^0.5.1"
   },
   "dependencies": {
-    "@stripe/react-stripe-js": "1.4.1",
+    "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^1.36.0",
     "@testing-library/react-hooks": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
     "@woocommerce/settings": "^1.0.0",
+    "eslint-plugin-jest": "^26.9.0",
     "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"

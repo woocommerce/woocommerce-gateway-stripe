@@ -35,8 +35,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe card payment method.
 	 */
 	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
-		'type' => 'card',
-		'card' => [
+		'type' => WC_Stripe_Payment_Methods::CARD,
+		WC_Stripe_Payment_Methods::CARD => [
 			'brand'     => 'visa',
 			'networks'  => [ 'preferred' => 'visa' ],
 			'exp_month' => '7',
@@ -49,9 +49,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for SEPA Direct Debit payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
-		'type'       => 'sepa_debit',
+		'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
 		'object'     => 'payment_method',
-		'sepa_debit' => [
+		WC_Stripe_Payment_Methods::SEPA_DEBIT => [
 			'last4' => '7061',
 		],
 	];
@@ -155,7 +155,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
-			->setMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent' ] )
+			->setMethods( [ 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent', 'create_and_confirm_setup_intent' ] )
 			->getMock();
 
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
@@ -241,8 +241,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->update_option(
 			'upe_checkout_experience_accepted_payments',
 			[
-				'card',
-				'link',
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::LINK,
 			]
 		);
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
@@ -468,10 +468,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test Wallet checkout process_payment flow with deferred intent.
+	 *
+	 * @param string $payment_method Payment method to test.
+	 * @param bool $free_order Whether the order is free.
+	 * @param bool $saved_token Whether the payment method is saved.
+	 * @dataProvider provide_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response
+	 * @throws WC_Data_Exception When setting order payment method fails.
 	 */
-	public function test_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response() {
+	public function test_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response( $payment_method, $free_order = false, $saved_token = false ) {
 		$customer_id = 'cus_mock';
-		$order       = WC_Helper_Order::create_order();
+		$order       = WC_Helper_Order::create_order( 1, null, [ 'total' => $free_order ? 0 : 50 ] );
 		$order_id    = $order->get_id();
 
 		// Set payment gateway.
@@ -482,6 +488,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_intent = (object) wp_parse_args(
 			[
 				'status'               => 'requires_action',
+				'object'               => 'payment_intent',
 				'data'                 => [
 					(object) [
 						'id'       => $order_id,
@@ -490,7 +497,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method'       => 'pm_mock',
-				'payment_method_types' => [ 'wechat_pay' ],
+				'payment_method_types' => [ $payment_method ],
 				'charges'              => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
@@ -501,14 +508,28 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'stripe_wechat_pay',
+			'payment_method'               => 'stripe_' . $payment_method,
 			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
+		if ( $saved_token ) {
+			$token = WC_Helper_Token::create_token( 'pm_mock' );
+			$token->set_gateway_id( 'stripe_' . $payment_method );
+			$token->save();
+
+			$_POST[ 'wc-stripe_' . $payment_method . '-payment-token' ] = (string) $token->get_id();
+		}
+
 		$this->mock_gateway->intent_controller
-			->expects( $this->once() )
+			->expects( $free_order ? $this->never() : $this->once() )
 			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$create_and_confirm_setup_intent_num_calls = $free_order && ! ( $saved_token && WC_Stripe_Payment_Methods::CASHAPP_PAY === $payment_method ) ? 1 : 0;
+		$this->mock_gateway->intent_controller
+			->expects( $this->exactly( $create_and_confirm_setup_intent_num_calls ) )
+			->method( 'create_and_confirm_setup_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -518,19 +539,50 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// We only use this when handling mandates.
 		$this->mock_gateway
-			->expects( $this->exactly( 2 ) )
+			->expects( $saved_token ? $this->never() : ( $free_order ? $this->once() : $this->exactly( 2 ) ) )
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( null );
 
 		$this->mock_gateway
-			->expects( $this->never() )
+			->expects( $saved_token ? $this->once() : $this->never() )
 			->method( 'update_saved_payment_method' );
 
 		$response   = $this->mock_gateway->process_payment( $order_id );
 		$return_url = self::MOCK_RETURN_URL;
 
+		if ( $saved_token ) {
+			$expected_redirect_url = '/' . self::MOCK_RETURN_URL . '/';
+		} else {
+			$expected_redirect_url = "/#wc-stripe-wallet-{$order_id}:{$payment_method}:{$mock_intent->object}:{$mock_intent->client_secret}:{$return_url}/";
+		}
+
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertMatchesRegularExpression( "/#wc-stripe-wallet-{$order_id}:wechat_pay:{$mock_intent->client_secret}:{$return_url}/", $response['redirect'] );
+		$this->assertMatchesRegularExpression( $expected_redirect_url, $response['redirect'] );
+	}
+
+	/**
+	 * Provider for `test_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response`.
+	 *
+	 * @return array
+	 */
+	public function provide_process_payment_deferred_intent_with_required_action_for_wallet_returns_valid_response() {
+		return [
+			'wechat pay / default amount'  => [
+				'payment method' => WC_Stripe_Payment_Methods::WECHAT_PAY,
+			],
+			'cashapp / default amount'     => [
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			],
+			'cashapp / free'               => [
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+				'free order'     => true,
+			],
+			'cashapp / free / saved token' => [
+				'payment method' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+				'free order'     => true,
+				'saved token'    => true,
+			],
+		];
 	}
 
 	/**
@@ -972,8 +1024,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => [
-				'type'       => 'bancontact',
-				'bancontact' => [
+				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
 			],
@@ -1022,8 +1074,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$setup_intent_mock['latest_charge']  = [];
 		$setup_intent_mock['latest_attempt'] = [
 			'payment_method_details' => [
-				'type'       => 'bancontact',
-				'bancontact' => [
+				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
 			],
@@ -2073,7 +2125,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_intent = (object) wp_parse_args(
 			[
 				'payment_method'       => 'pm_mock',
-				'payment_method_types' => [ 'card' ],
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
 				'charges'              => (object) [
 					'data' => [
 						(object) [
@@ -2326,5 +2378,77 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+	}
+
+	/**
+	 * Test test_set_payment_method_title_for_order with custom title.
+	 */
+	public function test_set_payment_method_title_for_order_custom_title() {
+		$order = WC_Helper_Order::create_order();
+
+		// CARD
+		// Set a custom title.
+		$payment_method_type     = WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID;
+		$payment_method_settings = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
+		$payment_method_settings['title'] = 'Custom Card Title';
+		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
+
+		$this->assertEquals( 'Custom Card Title', $order->get_payment_method_title() );
+
+		// SEPA
+		// Set a custom title.
+		$payment_method_type     = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+		$payment_method_settings = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
+		$payment_method_settings['title'] = 'Custom SEPA Title';
+		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
+
+		$this->assertEquals( 'Custom SEPA Title', $order->get_payment_method_title() );
+	}
+
+	/**
+	 * Test test_set_payment_method_title_for_order with ECE wallet PM.
+	 */
+	public function test_set_payment_method_title_for_order_ECE_title() {
+		$order = WC_Helper_Order::create_order();
+		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
+
+		// GOOGLE PAY
+		$mock_ece_payment_method = (object) [
+			'card' => (object) [
+				'brand'  => 'visa',
+				'wallet' => (object) [
+					'type' => 'google_pay',
+				],
+			],
+		];
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+		$this->assertEquals( 'Google Pay (Stripe)', $order->get_payment_method_title() );
+
+		// APPLE PAY
+		$mock_ece_payment_method->card->wallet->type = 'apple_pay';
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+		$this->assertEquals( 'Apple Pay (Stripe)', $order->get_payment_method_title() );
+
+		// INVALID
+		$mock_ece_payment_method->card->wallet->type = 'invalid';
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+
+		// Invalid wallet type should default to Credit / Debit Card.
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// NO WALLET
+		unset( $mock_ece_payment_method->card->wallet->type );
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+
+		// No wallet type should default to Credit / Debit Card.
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// Unset the feature flag.
+		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
 }

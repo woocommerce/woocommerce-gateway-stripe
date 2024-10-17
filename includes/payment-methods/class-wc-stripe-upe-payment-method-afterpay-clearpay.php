@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payment_Method {
 
-	const STRIPE_ID = 'afterpay_clearpay';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY;
 
 	/**
 	 * Constructor for afterpay / clearpay payment method
@@ -19,7 +19,13 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 		$this->stripe_id                    = self::STRIPE_ID;
 		$this->title                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
-		$this->supported_currencies         = [ 'USD', 'CAD', 'GBP', 'AUD', 'NZD' ];
+		$this->supported_currencies         = [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR,
+			WC_Stripe_Currency_Code::POUND_STERLING,
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR,
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR,
+		];
 		$this->supported_countries          = [ 'AU', 'CA', 'GB', 'NZ', 'US' ];
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Clearpay / Afterpay', 'woocommerce-gateway-stripe' );
@@ -28,31 +34,31 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 			'woocommerce-gateway-stripe'
 		);
 		$this->limits_per_currency          = [
-			'AUD' => [
+			WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR    => [
 				'AU' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents AUD 1 - 2,000 AUD.
 			],
-			'CAD' => [
+			WC_Stripe_Currency_Code::CANADIAN_DOLLAR      => [
 				'CA' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents CAD 1 - 2,000 CAD.
 			],
-			'NZD' => [
+			WC_Stripe_Currency_Code::NEW_ZEALAND_DOLLAR   => [
 				'NZ' => [
 					'min' => 100,
 					'max' => 200000,
 				], // Represents NZD 1 - 2,000 NZD.
 			],
-			'GBP' => [
+			WC_Stripe_Currency_Code::POUND_STERLING       => [
 				'GB' => [
 					'min' => 100,
 					'max' => 120000,
 				], // Represents GBP 1 - 1,200 GBP.
 			],
-			'USD' => [
+			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
 				'US' => [
 					'min' => 100,
 					'max' => 400000,
@@ -64,7 +70,7 @@ class WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay extends WC_Stripe_UPE_Payme
 	/**
 	 * Returns payment method title
 	 *
-	 * @param array|bool $payment_details Optional payment details from charge object.
+	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
 	 *
 	 * @return string
 	 */

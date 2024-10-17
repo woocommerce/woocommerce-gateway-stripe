@@ -26,6 +26,7 @@ const NoticeContent = styled.div`
 const DisplayOrderCustomizationNotice = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ showNotice, setShowNotice ] = useState(
+		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params.show_customization_notice
 	);
 

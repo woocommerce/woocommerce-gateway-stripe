@@ -102,7 +102,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'customer'       => $customer,
 						'source'         => $source,
 						'source_object'  => (object) [
-							'type' => 'card',
+							'type' => WC_Stripe_Payment_Methods::CARD,
 						],
 						'payment_method' => null,
 					]
@@ -140,7 +140,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'source'               => $source,
 				'amount'               => $stripe_amount,
 				'currency'             => $currency,
-				'payment_method_types' => [ 'card' ],
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
 				'customer'             => $customer,
 				'off_session'          => 'true',
 				'confirm'              => 'true',
@@ -283,7 +283,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'customer'       => $customer,
 						'source'         => $source,
 						'source_object'  => (object) [
-							'type' => 'card',
+							'type' => WC_Stripe_Payment_Methods::CARD,
 						],
 						'payment_method' => null,
 					]
