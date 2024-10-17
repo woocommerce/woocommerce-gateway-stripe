@@ -16,6 +16,7 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import { areAPMsDeprecated } from 'wcstripe/utils';
 
 const List = styled.ul`
 	margin: 0;
@@ -235,6 +236,11 @@ const GeneralSettingsSection = ( {
 					return null;
 				}
 
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				if ( areAPMsDeprecated() && method !== 'card' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -279,6 +285,11 @@ const GeneralSettingsSection = ( {
 			{ availablePaymentMethods.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
 				if ( method === 'giropay' ) {
+					return null;
+				}
+
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				if ( areAPMsDeprecated() && method !== 'card' ) {
 					return null;
 				}
 
