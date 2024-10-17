@@ -406,6 +406,11 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_payment_method_classes() {
+		// APMs are deprecated as of Oct, 31st 2024 for the legacy checkout.
+		if ( ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-31' ) {
+			return [];
+		}
+
 		$payment_method_classes = [
 			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
