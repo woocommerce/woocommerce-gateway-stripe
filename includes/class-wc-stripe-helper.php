@@ -406,8 +406,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_payment_method_classes() {
-		// APMs are deprecated as of Oct, 31st 2024 for the legacy checkout.
-		if ( ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-31' ) {
+		if ( self::are_apms_deprecated() ) {
 			return [];
 		}
 
@@ -1605,5 +1604,16 @@ class WC_Stripe_Helper {
 		}
 
 		return $target_locale;
+	}
+
+	/**
+	 * Checks if the APMs are deprecated. Stripe deprecated them by October 31, 2024 (for the legacy checkout).
+	 *
+	 * @return bool Whether the APMs are deprecated.
+	 */
+	public static function are_apms_deprecated() {
+		$stripe_settings = self::get_stripe_settings();
+		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-31'
+			&& 'yes' === $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
 	}
 }
