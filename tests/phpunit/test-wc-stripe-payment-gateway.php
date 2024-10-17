@@ -595,21 +595,21 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_payment_method->card->last4 = '4242';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Visa ending in 4242', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Visa card ending in 4242', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// MasterCard ending in 1234
 		$mock_payment_method->card->brand = 'mastercard';
 		$mock_payment_method->card->last4 = '1234';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Mastercard ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Mastercard card ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// American Express ending in 5678
 		$mock_payment_method->card->brand = 'amex';
 		$mock_payment_method->card->last4 = '5678';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Amex ending in 5678', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Amex card ending in 5678', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// JCB ending in 9012'
 		$mock_payment_method->card->brand = 'jcb';
@@ -623,6 +623,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		// Card brands that WC core doesn't recognize will be displayed as ucwords.
-		$this->assertEquals( 'Via dummy card ending in 0000', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Dummy card ending in 0000', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 	}
 }
