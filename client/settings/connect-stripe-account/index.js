@@ -7,6 +7,7 @@ import CardBody from '../card-body';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import { recordEvent } from 'wcstripe/tracking';
 import InlineNotice from 'wcstripe/components/inline-notice';
+import Tooltip from 'wcstripe/components/tooltip';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -35,6 +36,7 @@ const ButtonWrapper = styled.div`
 	align-items: center;
 	display: flex;
 	flex-wrap: wrap;
+	gap: 16px;
 
 	> :last-child {
 		box-shadow: none;
@@ -58,6 +60,32 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 		window.location.assign( testOauthUrl );
 	};
 
+	const connectButton = (
+		<Button
+			variant="primary"
+			onClick={ handleCreateOrConnectAccount }
+			disabled={ ! oauthUrl }
+		>
+			{ __(
+				'Create or connect an account',
+				'woocommerce-gateway-stripe'
+			) }
+		</Button>
+	);
+
+	const connectTestButton = (
+		<Button
+			variant="secondary"
+			onClick={ handleCreateOrConnectTestAccount }
+			disabled={ ! testOauthUrl }
+		>
+			{ __(
+				'Create or connect a test account',
+				'woocommerce-gateway-stripe'
+			) }
+		</Button>
+	);
+
 	return (
 		<CardWrapper>
 			<StripeBanner />
@@ -74,7 +102,6 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 						'woocommerce-gateway-stripe'
 					) }
 				</InformationText>
-
 				{ oauthUrl || testOauthUrl ? (
 					<>
 						<TermsOfServiceText>
@@ -96,34 +123,29 @@ const ConnectStripeAccount = ( { oauthUrl, testOauthUrl } ) => {
 							} ) }
 						</TermsOfServiceText>
 						<ButtonWrapper>
-							{ oauthUrl && (
-								<Button
-									variant="primary"
-									onClick={ handleCreateOrConnectAccount }
-								>
-									{ __(
-										'Create or connect an account',
+							{ ! oauthUrl ? (
+								<Tooltip
+									content={ __(
+										'An issue occurred generating a connection to Stripe. Please try again or connect in test mode.',
 										'woocommerce-gateway-stripe'
 									) }
-								</Button>
-							) }
-							{ testOauthUrl && (
-								<Button
-									variant={
-										oauthUrl ? 'secondary' : 'primary'
-									}
-									onClick={ handleCreateOrConnectTestAccount }
 								>
-									{ oauthUrl
-										? __(
-												'Create or connect a test account instead',
-												'woocommerce-gateway-stripe'
-										  )
-										: __(
-												'Create or connect a test account',
-												'woocommerce-gateway-stripe'
-										  ) }
-								</Button>
+									{ connectButton }
+								</Tooltip>
+							) : (
+								connectButton
+							) }
+							{ ! testOauthUrl ? (
+								<Tooltip
+									content={ __(
+										'An issue occurred generating a connection to Stripe in test mode. Please try again or connect in live mode.',
+										'woocommerce-gateway-stripe'
+									) }
+								>
+									{ connectTestButton }
+								</Tooltip>
+							) : (
+								connectTestButton
 							) }
 						</ButtonWrapper>
 					</>
