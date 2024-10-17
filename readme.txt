@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
