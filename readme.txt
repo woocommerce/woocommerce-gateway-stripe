@@ -105,6 +105,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 2. Link autofills your customers’ payment information to create an easy and secure checkout experience.
 3. Convert customers who would usually abandon their cart and increase average order value with buy now, pay later options like Klarna, Afterpay, and Affirm. Accept credit and debit card payments from Visa, Mastercard, American Express, Discover, and Diners.
 4. Stripe Radar offers seamlessly integrated, powerful fraud-detection tools that use machine learning to detect and flag potentially fraudulent transactions.
+5. Accept in-person payments for products and services using the Stripe Terminal M2 card reader.
+6. Get started with no additional hardware using Tap to Pay on iPhone, or Tap to Pay on Android.
 
 == Changelog ==
 
