@@ -602,7 +602,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_payment_method->card->last4 = '1234';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Mastercard card ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via MasterCard card ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// American Express ending in 5678
 		$mock_payment_method->card->brand = 'amex';
