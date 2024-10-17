@@ -583,8 +583,11 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
 		$mock_subscription->save();
 
-		$mock_payment_method = new stdClass();
-		$mock_payment_method->id = 'src_mock';
+		// This is the key the customer's payment methods are stored under in the transient.
+		$transient_key = WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock';
+
+		$mock_payment_method       = new stdClass();
+		$mock_payment_method->id   = 'src_mock';
 		$mock_payment_method->type = 'card';
 		$mock_payment_method->card = new stdClass();
 
@@ -592,34 +595,34 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_payment_method->card->brand = 'visa';
 		$mock_payment_method->card->last4 = '4242';
 
-		set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock', [ $mock_payment_method ], DAY_IN_SECONDS );
+		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		$this->assertEquals( 'Via Visa ending in 4242', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// MasterCard ending in 1234
 		$mock_payment_method->card->brand = 'mastercard';
 		$mock_payment_method->card->last4 = '1234';
 
-		set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock', [ $mock_payment_method ], DAY_IN_SECONDS );
+		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		$this->assertEquals( 'Via Mastercard ending in 1234', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// American Express ending in 5678
 		$mock_payment_method->card->brand = 'amex';
 		$mock_payment_method->card->last4 = '5678';
 
-		set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock', [ $mock_payment_method ], DAY_IN_SECONDS );
+		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		$this->assertEquals( 'Via Amex ending in 5678', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// JCB ending in 9012'
 		$mock_payment_method->card->brand = 'jcb';
 		$mock_payment_method->card->last4 = '9012';
 
-		set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock', [ $mock_payment_method ], DAY_IN_SECONDS );
+		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 
 		// Unknown card type
 		$mock_payment_method->card->brand = 'dummy';
 		$mock_payment_method->card->last4 = '0000';
 
-		set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock', [ $mock_payment_method ], DAY_IN_SECONDS );
+		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		// Card brands that WC core doesn't recognize will be displayed as ucwords.
 		$this->assertEquals( 'Via dummy card ending in 0000', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 	}
