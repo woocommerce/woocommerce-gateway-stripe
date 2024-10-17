@@ -885,7 +885,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$redirect = $return_url;
 			}
 
-			if ( $payment_needed ) {
+			if ( $payment_needed && ! in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
 				// Use the last charge within the intent to proceed.
 				$charge = $this->get_latest_charge_from_intent( $payment_intent );
 
