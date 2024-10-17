@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __, sprintf } from '@wordpress/i18n';
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
@@ -192,9 +191,6 @@ const GeneralSettingsSection = ( {
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
-	const isUpeEnabled =
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.is_upe_checkout_enabled === '1';
 
 	const availablePaymentMethods = orderedPaymentMethodIds;
 
@@ -241,10 +237,7 @@ const GeneralSettingsSection = ( {
 				}
 
 				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-				if (
-					areAPMsDeprecated( ! isUpeEnabled ) &&
-					method !== 'card'
-				) {
+				if ( areAPMsDeprecated() && method !== 'card' ) {
 					return null;
 				}
 
@@ -296,10 +289,7 @@ const GeneralSettingsSection = ( {
 				}
 
 				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
-				if (
-					areAPMsDeprecated( ! isUpeEnabled ) &&
-					method !== 'card'
-				) {
+				if ( areAPMsDeprecated() && method !== 'card' ) {
 					return null;
 				}
 
