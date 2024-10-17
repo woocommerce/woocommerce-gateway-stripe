@@ -622,7 +622,20 @@ jQuery( function ( $ ) {
 		},
 	};
 
-	wcStripeECE.init();
+	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
+	if ( ! getExpressCheckoutData( 'is_checkout_page' ) ) {
+		wcStripeECE.init();
+	}
+
+	// We need to refresh ECE data when total is updated.
+	$( document.body ).on( 'updated_cart_totals', () => {
+		wcStripeECE.init();
+	} );
+
+	// We need to refresh ECE data when total is updated.
+	$( document.body ).on( 'updated_checkout', () => {
+		wcStripeECE.init();
+	} );
 
 	// Handle bookable products on the product page.
 	let wcBookingFormChanged = false;

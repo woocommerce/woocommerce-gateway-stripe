@@ -2297,4 +2297,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		return true;
 	}
+
+	/**
+	 * Retrieves the balance transaction ID from the Stripe charge.
+	 *
+	 * @param stdClass $charge The charge object.
+	 *
+	 * @return string|null The balance transaction ID.
+	 */
+	public function get_balance_transaction_id_from_charge( $charge ) {
+		$balance_transaction_id = null;
+
+		if ( ! empty( $charge->balance_transaction->id ) ) {
+			$balance_transaction_id = $charge->balance_transaction->id;
+		} elseif ( ! empty( $charge->balance_transaction ) && is_string( $charge->balance_transaction ) ) {
+			$balance_transaction_id = $charge->balance_transaction;
+		}
+
+		return $balance_transaction_id;
+	}
 }
