@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 7.4
-Stable tag: 8.7.0
+Stable tag: 8.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 8.8.0 - xxxx-xx-xx =
+= 8.8.0 - 2024-10-17 =
 * Fix - Update URL and path constants to support use of symlinked plugin.
 * Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
 * Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
