@@ -2408,4 +2408,47 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'Custom SEPA Title', $order->get_payment_method_title() );
 	}
+
+	/**
+	 * Test test_set_payment_method_title_for_order with ECE wallet PM.
+	 */
+	public function test_set_payment_method_title_for_order_ECE_title() {
+		$order = WC_Helper_Order::create_order();
+		update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
+
+		// GOOGLE PAY
+		$mock_ece_payment_method = (object) [
+			'card' => (object) [
+				'brand'  => 'visa',
+				'wallet' => (object) [
+					'type' => 'google_pay',
+				],
+			],
+		];
+
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+		$this->assertEquals( 'Google Pay (Stripe)', $order->get_payment_method_title() );
+
+		// APPLE PAY
+		$mock_ece_payment_method->card->wallet->type = 'apple_pay';
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+		$this->assertEquals( 'Apple Pay (Stripe)', $order->get_payment_method_title() );
+
+		// INVALID
+		$mock_ece_payment_method->card->wallet->type = 'invalid';
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+
+		// Invalid wallet type should default to Credit / Debit Card.
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// NO WALLET
+		unset( $mock_ece_payment_method->card->wallet->type );
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $mock_ece_payment_method );
+
+		// No wallet type should default to Credit / Debit Card.
+		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		// Unset the feature flag.
+		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
+	}
 }

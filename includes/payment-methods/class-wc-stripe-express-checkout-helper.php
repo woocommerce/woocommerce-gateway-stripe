@@ -1321,36 +1321,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Adds the express checkout payment method title to the order.
-	 *
-	 * @param WC_Order $order The order.
-	 */
-	public function add_order_payment_method_title( $order ) {
-		if ( empty( $_POST['express_payment_type'] ) || ! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method'] ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return;
-		}
-
-		$express_payment_type   = wc_clean( wp_unslash( $_POST['express_payment_type'] ) ); // phpcs:ignore WordPress.Security.NonceVerification
-		$express_payment_titles = [
-			'apple_pay'  => 'Apple Pay',
-			'google_pay' => 'Google Pay',
-		];
-		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
-
-		if ( ! $payment_method_title ) {
-			return;
-		}
-
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
-		if ( ! empty( $suffix ) ) {
-			$suffix = " ($suffix)";
-		}
-
-		$order->set_payment_method_title( $payment_method_title . $suffix );
-		$order->save();
-	}
-
-	/**
 	 * Calculates taxes as displayed on cart, based on a product and a particular price.
 	 *
 	 * @param WC_Product $product The product, for retrieval of tax classes.
