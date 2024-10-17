@@ -575,10 +575,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
 	 */
 	public function test_render_subscription_payment_method() {
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'is_subscriptions_enabled' )
-			->will( $this->returnValue( true ) );
-
 		$mock_gateway      = $this->get_partial_mock_for_gateway();
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
