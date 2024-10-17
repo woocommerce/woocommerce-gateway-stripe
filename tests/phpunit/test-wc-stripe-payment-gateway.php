@@ -575,7 +575,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
 	 */
 	public function test_render_subscription_payment_method() {
-		$mock_gateway      = $this->get_partial_mock_for_gateway();
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
 
@@ -596,21 +595,21 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_payment_method->card->last4 = '4242';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Visa ending in 4242', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Visa ending in 4242', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// MasterCard ending in 1234
 		$mock_payment_method->card->brand = 'mastercard';
 		$mock_payment_method->card->last4 = '1234';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Mastercard ending in 1234', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Mastercard ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// American Express ending in 5678
 		$mock_payment_method->card->brand = 'amex';
 		$mock_payment_method->card->last4 = '5678';
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Amex ending in 5678', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via Amex ending in 5678', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 
 		// JCB ending in 9012'
 		$mock_payment_method->card->brand = 'jcb';
@@ -624,6 +623,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
 		// Card brands that WC core doesn't recognize will be displayed as ucwords.
-		$this->assertEquals( 'Via dummy card ending in 0000', $mock_gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( 'Via dummy card ending in 0000', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 	}
 }
