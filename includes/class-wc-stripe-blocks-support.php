@@ -264,7 +264,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// Don't show if ECEs are supposed to be hidden on the cart page.
 		if (
 			has_block( 'woocommerce/cart' )
-			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_cart_page()()
+			&& ! $this->express_checkout_configuration->express_checkout_helper->should_show_ece_on_cart_page()
 		) {
 			return false;
 		}
