@@ -6,6 +6,7 @@ export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
 	const expressPaymentTypeEvents = {
 		google_pay: 'gpay_button_click',
 		apple_pay: 'applepay_button_click',
+		link: 'link_button_click',
 	};
 
 	const event = expressPaymentTypeEvents[ paymentMethod ];
@@ -22,6 +23,7 @@ export const trackExpressCheckoutButtonLoad = debounce(
 		const expressPaymentTypeEvents = {
 			googlePay: 'gpay_button_load',
 			applePay: 'applepay_button_load',
+			link: 'link_button_load',
 		};
 
 		for ( const paymentMethod of paymentMethods ) {

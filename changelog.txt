@@ -2,8 +2,9 @@
 
 = 8.9.0 - xxxx-xx-xx =
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
+* Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
 
-= 8.8.0 - xxxx-xx-xx =
+= 8.8.0 - 2024-10-17 =
 * Fix - Update URL and path constants to support use of symlinked plugin.
 * Tweak - Disable ECE when cart has virtual products and tax is based on customer billing or shipping address.
 * Fix - Fix the usage of coupons and the total shipping amount when using the Express Checkout Element on the shortcode checkout.
@@ -34,6 +35,7 @@
 * Fix - Resolved an issue which caused the WeChat Pay payment icon to not be displayed on shortcode checkout pages.
 * Fix - Set order payment method title to the customizable title setting rather than the default label.
 * Fix - Update Cash App payments to avoid confirming on creation, resolving issues with generic payment failures in live mode.
+* Fix - Switch Google Pay and Apple Pay PRB flow to create PaymentMethod (pm_) instead of Source (src_), utilizing deferred intent processing.
 * Tweak - Add order lock for redirect payments.
 * Fix - Missing Stripe Fee and Stripe Payout details on orders that were captured manually.
 * Fix - Allow legacy `src_` payment methods linked to a saved credit card to be displayed on the checkout and My Account pages when the new checkout experience is enabled.

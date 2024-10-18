@@ -8,6 +8,7 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
+	getExpressPaymentMethodTypes,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import {
@@ -140,6 +141,7 @@ jQuery( function ( $ ) {
 				currency: options.currency,
 				paymentMethodCreation: 'manual',
 				appearance: getExpressCheckoutButtonAppearance(),
+				paymentMethodTypes: getExpressPaymentMethodTypes(),
 			} );
 
 			const eceButton = wcStripeECE.createButton(
