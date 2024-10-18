@@ -27,7 +27,12 @@ const IconWrapper = styled.span`
 	flex-shrink: 0;
 `;
 
-const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
+const PaymentMethodCheckbox = ( {
+	id,
+	label,
+	isAllowingManualCapture,
+	disabled,
+} ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
@@ -40,6 +45,9 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
+		if ( disabled ) {
+			return;
+		}
 		if ( ! hasBeenChecked ) {
 			setIsConfirmationModalOpen( true );
 			return;
@@ -98,7 +106,10 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 				<StyledCheckbox
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }
 					onChange={ handleCheckboxChange }
-					checked={ enabledPaymentMethods.includes( id ) }
+					checked={
+						disabled ? false : enabledPaymentMethods.includes( id )
+					}
+					disabled={ disabled }
 				/>
 			) }
 			{ isConfirmationModalOpen && (

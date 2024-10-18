@@ -16,6 +16,7 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import { areAPMsDeprecated } from 'wcstripe/utils';
 
 const List = styled.ul`
 	margin: 0;
@@ -235,6 +236,11 @@ const GeneralSettingsSection = ( {
 					return null;
 				}
 
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				if ( areAPMsDeprecated() && method !== 'card' ) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -288,6 +294,9 @@ const GeneralSettingsSection = ( {
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
 
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				const deprecated = areAPMsDeprecated() && method !== 'card';
+
 				return (
 					<div key={ method }>
 						<ListElement
@@ -305,6 +314,7 @@ const GeneralSettingsSection = ( {
 								isAllowingManualCapture={
 									isAllowingManualCapture
 								}
+								disabled={ deprecated }
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
@@ -315,6 +325,7 @@ const GeneralSettingsSection = ( {
 										data.account?.default_currency
 									) }
 									label={ label }
+									deprecated={ deprecated }
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
