@@ -106,4 +106,59 @@ class WC_Stripe_Logger {
 
 		return true;
 	}
+
+	/**
+	 * Log a message with additional context about the request for troubleshooting purposes.
+	 *
+	 * @param string $message Message to log.
+	 */
+	public static function log_detailed_info( $message ) {
+		if ( ! self::can_log() ) {
+			return;
+		}
+
+		if ( ! apply_filters( 'wc_stripe_logging', true, $message ) ) {
+			return;
+		}
+
+		if ( empty( self::$logger ) ) {
+			self::$logger = wc_get_logger();
+		}
+
+		$context = [ 'source' => self::WC_LOG_FILENAME ];
+
+		// Record how long this request has been running.
+		if ( defined( 'WCS_INIT_TIMESTAMP' ) ) {
+			$context['init_timestamp'] = WCS_INIT_TIMESTAMP;
+			$context['running-time']   = gmdate( 'U' ) - WCS_INIT_TIMESTAMP;
+		} else {
+			if ( ! defined( 'WC_STRIPE_INIT_TIMESTAMP' ) ) {
+				define( 'WC_STRIPE_INIT_TIMESTAMP', gmdate( 'U' ) );
+			}
+			$context['init_timestamp'] = WCS_INIT_TIMESTAMP;
+			$context['running-time'] = gmdate( 'U' ) - WC_STRIPE_INIT_TIMESTAMP . '*';
+		}
+
+		// Record the memory usage.
+		$context['memory-usage'] = memory_get_usage( true ) . ' bytes';
+
+		// Record the memory limit.
+		if ( ! defined( 'WC_STRIPE_MEMORY_LIMIT' ) ) {
+			if ( function_exists( 'ini_get' ) ) {
+				$memory_limit = ini_get( 'memory_limit' );
+			} else {
+				$memory_limit = '128M - assumed';
+			}
+
+			if ( ! $memory_limit || -1 === $memory_limit || '-1' === $memory_limit ) {
+				$memory_limit = '32G - unlimited';
+			}
+
+			define( 'WC_STRIPE_MEMORY_LIMIT', $memory_limit );
+		}
+
+		$context['wp-memory-limit'] = WC_STRIPE_MEMORY_LIMIT;
+
+		self::$logger->info( $message, $context );
+	}
 }

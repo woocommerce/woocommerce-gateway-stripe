@@ -522,9 +522,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
-		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
+		WC_Stripe_Logger::log_detailed_info( 'Processing response: ' . print_r( $response, true ) );
 
 		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
+		WC_Stripe_Logger::log_detailed_info( 'Potential order: ' . ( $potential_order ? $potential_order->get_id() : 'none' ) );
 		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
@@ -536,6 +537,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Store charge data.
 		$order->update_meta_data( '_stripe_charge_captured', $captured );
+		WC_Stripe_Logger::log_detailed_info( 'Charge captured: ' . $captured );
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -568,6 +570,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( 'succeeded' === $response->status ) {
+				WC_Stripe_Logger::log_detailed_info( 'Charge captured. Marking order as processing/completed' );
 				/**
 				 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
 				 * processing/completed. This will be handled by the incoming review.open webhook.
@@ -580,9 +583,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 * to ensure the review.closed event handler will update the status to the proper status.
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
+					WC_Stripe_Logger::log_detailed_info( 'Charge requires manual review. Marking order as processing/completed after review.' );
 					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
+					WC_Stripe_Logger::log_detailed_info( 'Charge successful. Marking order as processing/completed' );
 					$order->payment_complete( $response->id );
 
 					/* translators: transaction id */
@@ -592,11 +597,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( 'failed' === $response->status ) {
+				WC_Stripe_Logger::log_detailed_info( 'Charge failed. Marking order as failed' );
 				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				$order->add_order_note( $localized_message );
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} else {
+			WC_Stripe_Logger::log_detailed_info( 'Charge not captured. Setting transaction ID' );
 			$order->set_transaction_id( $response->id );
 
 			if ( $order->has_status( [ 'pending', 'failed' ] ) ) {
@@ -608,8 +615,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
+			WC_Stripe_Logger::log_detailed_info( 'Saving order' );
 			$order->save();
 		}
+
+		WC_Stripe_Logger::log_detailed_info( 'Processing response complete' );
 
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
 

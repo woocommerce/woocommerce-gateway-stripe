@@ -307,6 +307,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
+				WC_Stripe_Logger::log_detailed_info( "Info: Payment intent authentication already failed for order $order_id}" );
 				return;
 			}
 
@@ -321,7 +322,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 			}
 
-			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+			WC_Stripe_Logger::log_detailed_info( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
@@ -339,15 +340,21 @@ trait WC_Stripe_Subscriptions_Trait {
 			// If the payment gateway is SEPA, use the charges API.
 			// TODO: Remove when SEPA is migrated to payment intents.
 			if ( 'stripe_sepa' === $this->id ) {
+				WC_Stripe_Logger::log_detailed_info( "Info: Using charges API for SEPA payment for order {$order_id}" );
 				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+				WC_Stripe_Logger::log_detailed_info( 'Info: Generated payment request' );
 				$request['capture'] = 'true';
 				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+				WC_Stripe_Logger::log_detailed_info( 'Info: Running request' );
 				$response           = WC_Stripe_API::request( $request );
+				WC_Stripe_Logger::log_detailed_info( 'Info: Response received' );
 
 				$is_authentication_required = false;
 			} else {
+				WC_Stripe_Logger::log_detailed_info( "Info: Using payment intents API for payment for order {$order_id}" );
 				$this->lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+				WC_Stripe_Logger::log_detailed_info( 'Info: Response received' );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
 
@@ -356,6 +363,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
+					WC_Stripe_Logger::log_detailed_info( "Info: Payment failed for order {$order_id}. Retrying." );
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
@@ -378,6 +386,8 @@ trait WC_Stripe_Subscriptions_Trait {
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
 				}
+
+				WC_Stripe_Logger::log_detailed_info( "Info: Payment failed for order {$order_id}" );
 
 				$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
@@ -419,6 +429,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
+				WC_Stripe_Logger::log_detailed_info( "Info: Payment requires authentication for order {$order_id}" );
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
@@ -434,6 +445,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 			} elseif ( $this->must_authorize_off_session( $response ) ) {
+				WC_Stripe_Logger::log_detailed_info( "Info: Payment requires authorization for order {$order_id}" );
 				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
@@ -450,12 +462,16 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 			} else {
+				WC_Stripe_Logger::log_detailed_info( "Info: Payment successful for order {$order_id}" );
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
 
 				// Use the last charge within the intent or the full response body in case of SEPA.
+				WC_Stripe_Logger::log_detailed_info( "Info: Fetching latest charge for order {$order_id}" );
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
+				WC_Stripe_Logger::log_detailed_info( "Info: Latest charge fetched for order {$order_id} - processing response." );
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
+				WC_Stripe_Logger::log_detailed_info( "Info: Response processed for order {$order_id}" );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
