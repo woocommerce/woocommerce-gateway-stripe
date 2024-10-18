@@ -2,6 +2,7 @@
 
 = 8.9.0 - xxxx-xx-xx =
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
+* Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
 
 = 8.8.0 - 2024-10-17 =
 * Fix - Update URL and path constants to support use of symlinked plugin.
