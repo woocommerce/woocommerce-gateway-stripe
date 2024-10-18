@@ -259,14 +259,14 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// 5. Respond.
-			if ( 'requires_action' === $setup_intent->status ) {
+			if ( \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION === $setup_intent->status ) {
 				$response = [
-					'status'        => 'requires_action',
+					'status'        => \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION,
 					'client_secret' => $setup_intent->client_secret,
 				];
-			} elseif ( 'requires_payment_method' === $setup_intent->status
-				|| 'requires_confirmation' === $setup_intent->status
-				|| 'canceled' === $setup_intent->status ) {
+			} elseif ( \Stripe\PaymentIntent::STATUS_REQUIRES_PAYMENT_METHOD === $setup_intent->status
+				|| \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION === $setup_intent->status
+				|| \Stripe\PaymentIntent::STATUS_CANCELED === $setup_intent->status ) {
 				// These statuses should not be possible, as such we return an error.
 				$response = [
 					'status' => 'error',
@@ -354,7 +354,7 @@ class WC_Stripe_Intent_Controller {
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
 				'payment_method_types' => $enabled_payment_methods,
-				'capture_method'       => $capture ? 'automatic' : 'manual',
+				'capture_method'       => $capture ? \Stripe\PaymentIntent::CAPTURE_METHOD_AUTOMATIC : \Stripe\PaymentIntent::CAPTURE_METHOD_MANUAL,
 			],
 			'payment_intents'
 		);
@@ -461,7 +461,7 @@ class WC_Stripe_Intent_Controller {
 				$request['customer'] = $customer->get_id();
 			}
 			if ( $save_payment_method ) {
-				$request['setup_future_usage'] = 'off_session';
+				$request['setup_future_usage'] = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 			}
 
 			$level3_data = $gateway->get_level3_data_from_order( $order );
@@ -926,7 +926,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		if ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) {
-			$request['setup_future_usage'] = 'off_session';
+			$request['setup_future_usage'] = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 		}
 
 		return $request;
@@ -1041,7 +1041,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ \Stripe\PaymentIntent::STATUS_SUCCEEDED, \Stripe\PaymentIntent::STATUS_PROCESSING, \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION, \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION ], true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 

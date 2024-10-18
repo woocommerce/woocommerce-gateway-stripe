@@ -555,7 +555,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * that are asynchronous may take couple days to clear. Webhook will
 			 * take care of the status changes.
 			 */
-			if ( 'pending' === $response->status ) {
+			if ( \Stripe\Charge::STATUS_PENDING === $response->status ) {
 				$order_stock_reduced = $order->get_meta( '_order_stock_reduced', true );
 
 				if ( ! $order_stock_reduced ) {
@@ -567,7 +567,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
 
-			if ( 'succeeded' === $response->status ) {
+			if ( \Stripe\Charge::STATUS_SUCCEEDED === $response->status ) {
 				/**
 				 * If the response has a succeeded status but also has a risk/fraud outcome that requires manual review, don't mark the order as
 				 * processing/completed. This will be handled by the incoming review.open webhook.
@@ -591,7 +591,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			if ( 'failed' === $response->status ) {
+			if ( \Stripe\Charge::STATUS_FAILED === $response->status ) {
 				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				$order->add_order_note( $localized_message );
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
@@ -1129,7 +1129,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( ! empty( $intent->error ) ) {
 					$response         = $intent;
 					$intent_cancelled = true;
-				} elseif ( 'requires_capture' === $intent->status ) {
+				} elseif ( \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE === $intent->status ) {
 					$result           = WC_Stripe_API::request(
 						[],
 						'payment_intents/' . $intent->id . '/cancel'
@@ -1349,7 +1349,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'currency'             => $currency,
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
+			'capture_method'       => ( 'true' === $full_request['capture'] ) ? \Stripe\PaymentIntent::CAPTURE_METHOD_AUTOMATIC : \Stripe\PaymentIntent::CAPTURE_METHOD_MANUAL,
 			'payment_method_types' => $payment_method_types,
 		];
 
@@ -1358,7 +1358,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
-			$request['setup_future_usage']              = 'off_session';
+			$request['setup_future_usage']              = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 			$request['metadata']['save_payment_method'] = 'true';
 		}
 
@@ -1517,7 +1517,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $this->has_subscription( $order->get_id() ) ) {
 			// If this is a failed subscription order payment, the intent should be
 			// prepared for future usage.
-			$request['setup_future_usage'] = 'off_session';
+			$request['setup_future_usage'] = \Stripe\PaymentIntent::SETUP_FUTURE_USAGE_OFF_SESSION;
 		}
 
 		if ( empty( $request ) ) {
@@ -1553,7 +1553,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object                   Either an error or the updated intent.
 	 */
 	public function confirm_intent( $intent, $order, $prepared_source ) {
-		if ( 'requires_confirmation' !== $intent->status ) {
+		if ( \Stripe\PaymentIntent::STATUS_REQUIRES_CONFIRMATION !== $intent->status ) {
 			return $intent;
 		}
 
@@ -1574,9 +1574,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Save a note about the status of the intent.
 		$order_id = $order->get_id();
-		if ( 'succeeded' === $confirmed_intent->status ) {
+		if ( \Stripe\PaymentIntent::STATUS_SUCCEEDED === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-		} elseif ( 'requires_action' === $confirmed_intent->status ) {
+		} elseif ( \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
 		}
 
@@ -1596,7 +1596,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		if ( 'payment_intent' === $intent->object ) {
+		if ( \Stripe\PaymentIntent::OBJECT_NAME === $intent->object ) {
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
 			// Add the mandate id necessary for renewal payments with Indian cards if it's present.
@@ -1605,7 +1605,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
 			}
-		} elseif ( 'setup_intent' === $intent->object ) {
+		} elseif ( \Stripe\SetupIntent::OBJECT_NAME === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
 		}
 
@@ -1737,7 +1737,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
-		} elseif ( 'requires_action' === $setup_intent->status ) {
+		} elseif ( \Stripe\PaymentIntent::STATUS_REQUIRES_ACTION === $setup_intent->status ) {
 			$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
 			$order->save();
 
@@ -1771,8 +1771,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'payment_method_types' => $payment_method_types,
 			'off_session'          => 'true',
 			'confirm'              => 'true',
-			'confirmation_method'  => 'automatic',
-			'capture_method'       => 'automatic',
+			'confirmation_method'  => \Stripe\PaymentIntent::CONFIRMATION_METHOD_AUTOMATIC,
+			'capture_method'       => \Stripe\PaymentIntent::CAPTURE_METHOD_AUTOMATIC,
 		];
 
 		if ( isset( $full_request['statement_descriptor_suffix'] ) ) {

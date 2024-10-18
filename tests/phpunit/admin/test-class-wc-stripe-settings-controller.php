@@ -90,7 +90,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		$intent = (object) [
 			'id'     => 'pi_123',
-			'status' => 'requires_capture',
+			'status' => \Stripe\PaymentIntent::STATUS_REQUIRES_CAPTURE,
 		];
 
 		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
