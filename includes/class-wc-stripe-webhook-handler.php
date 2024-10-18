@@ -225,11 +225,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		try {
-			if ( $order->has_status( [ 'processing', 'completed' ] ) ) {
+			if ( $order->has_status( [ WC_Stripe_Order_Status::PROCESSING, WC_Stripe_Order_Status::COMPLETED ] ) ) {
 				return;
 			}
 
-			if ( $order->has_status( 'on-hold' ) && ! $is_pending_receiver ) {
+			if ( $order->has_status( WC_Stripe_Order_Status::ON_HOLD ) && ! $is_pending_receiver ) {
 				return;
 			}
 
@@ -316,7 +316,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
-			$statuses = [ 'pending', 'failed' ];
+			$statuses = [ WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED ];
 
 			if ( $order->has_status( $statuses ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -352,7 +352,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		);
 
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
-			$order->update_status( 'on-hold', $message );
+			$order->update_status( WC_Stripe_Order_Status::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
 			$order->save();
@@ -394,7 +394,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_status_final', true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
-			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
+			$order_status = 'lost' === $status ? WC_Stripe_Order_Status::FAILED : $this->get_stripe_order_status_before_hold( $order );
 			$order->update_status( $order_status, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -474,7 +474,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( 'on-hold' ) ) {
+		if ( ! $order->has_status( WC_Stripe_Order_Status::ON_HOLD ) ) {
 			return;
 		}
 
@@ -532,13 +532,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// If order status is already in failed status don't continue.
-		if ( $order->has_status( 'failed' ) ) {
+		if ( $order->has_status( WC_Stripe_Order_Status::FAILED ) ) {
 			return;
 		}
 
 		$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
-			$order->update_status( 'failed', $message );
+			$order->update_status( WC_Stripe_Order_Status::FAILED, $message );
 		} else {
 			$order->add_order_note( $message );
 		}
@@ -574,8 +574,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
-		if ( ! $order->has_status( 'cancelled' ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
-			$order->update_status( 'cancelled', $message );
+		if ( ! $order->has_status( WC_Stripe_Order_Status::CANCELLED ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+			$order->update_status( WC_Stripe_Order_Status::CANCELLED, $message );
 		} else {
 			$order->add_order_note( $message );
 		}
@@ -623,10 +623,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( 'yes' !== $captured ) {
 				// If the process was initiated from wp-admin,
 				// the order was already cancelled, so we don't need a new note.
-				if ( 'cancelled' !== $order->get_status() ) {
+				if ( WC_Stripe_Order_Status::CANCELLED !== $order->get_status() ) {
 					/* translators: amount (including currency symbol) */
 					$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided from the Stripe Dashboard.', 'woocommerce-gateway-stripe' ), $amount ) );
-					$order->update_status( 'cancelled' );
+					$order->update_status( WC_Stripe_Order_Status::CANCELLED );
 				}
 
 				return;
@@ -767,7 +767,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		);
 
 		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
-			$order->update_status( 'on-hold', $message );
+			$order->update_status( WC_Stripe_Order_Status::ON_HOLD, $message );
 		} else {
 			$order->add_order_note( $message );
 			$order->save(); // update_status() calls save on the order, so make sure we manually call save() when not updating the status to ensure meta is saved.
@@ -802,15 +802,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if (
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
-			$order->has_status( 'on-hold' ) &&
+			$order->has_status( WC_Stripe_Order_Status::ON_HOLD ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
 			! $order->get_meta( '_stripe_status_final', false )
 		) {
 			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
 
 			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ) ) ) {
-				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
+			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ WC_Stripe_Order_Status::ON_HOLD, WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED, WC_Stripe_Order_Status::CANCELLED ], $order ) ) ) {
+				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? WC_Stripe_Order_Status::PROCESSING : WC_Stripe_Order_Status::COMPLETED, $order->get_id(), $order );
 			}
 
 			$order->update_status( $status_after_review, $message );
@@ -904,7 +904,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $order->has_status(
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ],
+				[ WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED ],
 				$order
 			)
 		) ) {
@@ -922,7 +922,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
 				if ( $is_voucher_payment ) {
-					$order->update_status( 'on-hold', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+					$order->update_status( WC_Stripe_Order_Status::ON_HOLD, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 					wc_reduce_stock_levels( $order_id );
 				}
 				break;
@@ -965,7 +965,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			default:
 				if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
-					$order->update_status( 'failed', __( 'Payment not completed in time', 'woocommerce-gateway-stripe' ) );
+					$order->update_status( WC_Stripe_Order_Status::FAILED, __( 'Payment not completed in time', 'woocommerce-gateway-stripe' ) );
 					wc_increase_stock_levels( $order_id );
 					break;
 				}
@@ -978,8 +978,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$status_update = [];
 				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
 					$status_update['from'] = $order->get_status();
-					$status_update['to']   = 'failed';
-					$order->update_status( 'failed', $message );
+					$status_update['to']   = WC_Stripe_Order_Status::FAILED;
+					$order->update_status( WC_Stripe_Order_Status::FAILED, $message );
 				} else {
 					$order->add_order_note( $message );
 				}
@@ -1005,7 +1005,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $order->has_status(
 			apply_filters(
 				'wc_gateway_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ]
+				[ WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED ]
 			)
 		) ) {
 			return;
@@ -1032,8 +1032,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$status_update = [];
 			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
 				$status_update['from'] = $order->get_status();
-				$status_update['to']   = 'failed';
-				$order->update_status( 'failed', $message );
+				$status_update['to']   = WC_Stripe_Order_Status::FAILED;
+				$order->update_status( WC_Stripe_Order_Status::FAILED, $message );
 			} else {
 				$order->add_order_note( $message );
 			}
@@ -1088,7 +1088,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Check if the order is still in a valid state to process the webhook.
-					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ 'pending', 'failed' ], $order ) ) ) {
+					if ( ! $order->has_status( apply_filters( 'wc_stripe_allowed_payment_processing_statuses', [ WC_Stripe_Order_Status::PENDING, WC_Stripe_Order_Status::FAILED ], $order ) ) ) {
 						WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - payment already complete." );
 						return;
 					}
