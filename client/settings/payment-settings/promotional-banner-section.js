@@ -10,6 +10,7 @@ import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
+import { areAPMsDeprecated } from 'wcstripe/utils';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -163,6 +164,19 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
+	let newCheckoutExperienceAPMsBannerDescription = '';
+	if ( areAPMsDeprecated() ) {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe ended support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	} else {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
 	const NewCheckoutExperienceAPMsBanner = () => (
 		<CardBody data-testid="new-checkout-apms-banner">
 			<CardInner>
@@ -178,10 +192,7 @@ const PromotionalBannerSection = ( {
 					</h4>
 					<p>
 						{ interpolateComponents( {
-							mixedString: __(
-								'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
-								'woocommerce-gateway-stripe'
-							),
+							mixedString: newCheckoutExperienceAPMsBannerDescription,
 							components: {
 								StripeLegacyLink: (
 									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />
