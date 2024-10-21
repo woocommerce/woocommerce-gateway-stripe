@@ -1,5 +1,7 @@
 /* global wc_stripe_express_checkout_params */
 
+import { getPaymentMethodTypes } from 'wcstripe/stripe-utils';
+
 export * from './normalize';
 
 /**
@@ -130,7 +132,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		paymentMethods: {
 			applePay: 'always',
 			googlePay: 'always',
-			link: 'never',
+			link: 'auto',
 			paypal: 'never',
 			amazonPay: 'never',
 		},
@@ -250,3 +252,21 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 
 	return data;
 };
+
+/**
+ * Get array of payment method types to use with intent. Filtering out the method types not part of Express Checkout.
+ *
+ * @param {string} paymentMethodType Payment method type Stripe ID.
+ * @return {Array} Array of payment method types to use with intent, for Express Checkout.
+ */
+export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
+	getPaymentMethodTypes( paymentMethodType ).filter( ( type ) =>
+		[
+			'link',
+			'google_pay',
+			'apple_pay',
+			'paypal',
+			'amazon_pay',
+			'klarna',
+		].includes( type )
+	);
