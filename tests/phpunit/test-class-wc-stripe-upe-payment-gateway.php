@@ -452,7 +452,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// We only use this when handling mandates.
 		$this->mock_gateway
-			->expects( $this->exactly( 2 ) )
+			->expects( $this->once() )
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( null );
 
@@ -539,7 +539,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// We only use this when handling mandates.
 		$this->mock_gateway
-			->expects( $saved_token ? $this->never() : ( $free_order ? $this->once() : $this->exactly( 2 ) ) )
+			->expects( $saved_token ? $this->never() : $this->once() )
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( null );
 
@@ -1378,7 +1378,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'payment_method_details' => $payment_intent_mock,
 		];
 		$this->mock_gateway
-			->expects( $this->exactly( 2 ) )
+			->expects( $this->once() )
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
@@ -1387,7 +1387,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$client_secret = $payment_intent_mock->client_secret;
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( 'pending', $final_order->get_status() ); // Order status should be pending until 3DS is completed.
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
