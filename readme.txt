@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
 * Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
 * Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
