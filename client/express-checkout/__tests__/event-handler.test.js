@@ -261,7 +261,6 @@ describe( 'Express checkout event handlers', () => {
 				expressPaymentType: 'express',
 			};
 			order = 123;
-			global.window.wcpayFraudPreventionToken = 'token123';
 		} );
 
 		afterEach( () => {
