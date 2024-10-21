@@ -15,6 +15,6 @@ export const getAddToCartVariationParams = ( key ) => {
  * @return {boolean} Whether APMs are deprecated.
  */
 export const areAPMsDeprecated = () =>
-	new Date() > new Date( '2024-10-31' ) &&
+	new Date() > new Date( '2024-10-29' ) &&
 	// eslint-disable-next-line camelcase
 	wc_stripe_settings_params.is_upe_checkout_enabled !== '1';
