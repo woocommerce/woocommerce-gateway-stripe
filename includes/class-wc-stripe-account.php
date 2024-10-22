@@ -369,4 +369,29 @@ class WC_Stripe_Account {
 			}
 		}
 	}
+
+	/**
+	 * Determine if the webhook is enabled by checking with Stripe.
+	 *
+	 * @return bool
+	 */
+	public function is_webhook_enabled() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+		if ( empty( $stripe_settings[ $key ]['id'] ) || empty( $stripe_settings[ $key ]['secret'] ) ) {
+			return false;
+		}
+
+		try {
+			$webhook_id     = $stripe_settings[ $key ]['id'];
+			$webhook_secret = $stripe_settings[ $key ]['secret'];
+			WC_Stripe_API::set_secret_key( $webhook_secret );
+			$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
+			return ! empty( $webhook->status ) && 'enabled' === $webhook->status;
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
+			return false;
+		}
+	}
 }
