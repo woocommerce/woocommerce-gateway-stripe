@@ -20,8 +20,8 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 *
 	 * @return void
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
 			->disableOriginalConstructor()
