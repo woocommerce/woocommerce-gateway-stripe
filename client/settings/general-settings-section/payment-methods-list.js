@@ -345,6 +345,7 @@ const GeneralSettingsSection = ( {
 											[ method ]: true,
 										} )
 									}
+									disabled={ deprecated }
 								>
 									{ __(
 										'Customize',
