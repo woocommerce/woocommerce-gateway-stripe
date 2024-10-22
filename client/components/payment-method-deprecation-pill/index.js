@@ -45,7 +45,7 @@ const PaymentMethodDeprecationPill = () => {
 				<Popover
 					BaseComponent={ IconComponent }
 					content={ __(
-						'This payment method is deprecated on the legacy checkout as of Oct, 31st 2024.'
+						'This payment method is deprecated on the legacy checkout as of Oct, 29th 2024.'
 					) }
 				/>
 			</StyledPill>
