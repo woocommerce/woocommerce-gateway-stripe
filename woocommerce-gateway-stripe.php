@@ -457,7 +457,7 @@ function woocommerce_gateway_stripe() {
 
 					$methods = array_merge( $methods, $upe_payment_methods );
 				} else {
-					// APMs are deprecated as of Oct, 31st 2024 for the legacy checkout.
+					// APMs are deprecated as of Oct, 29th 2024 for the legacy checkout.
 					if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
 						return $methods;
 					}
