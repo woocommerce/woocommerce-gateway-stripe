@@ -407,7 +407,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_payment_method_classes() {
-		if ( self::are_apms_deprecated() ) {
+		if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
 			return [];
 		}
 
