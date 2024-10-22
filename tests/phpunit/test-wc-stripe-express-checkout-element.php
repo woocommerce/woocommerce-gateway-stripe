@@ -103,7 +103,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
 
 		$element->scripts();
-		$actual = wp_script_is( 'wc-stripe-express-checkout-element', 'enqueued' );
+		$actual = wp_script_is( 'wc_stripe_express_checkout', 'enqueued' );
 		$this->assertSame( $expected, $actual );
 	}
 
