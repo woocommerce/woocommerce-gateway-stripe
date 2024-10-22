@@ -407,10 +407,6 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_payment_method_classes() {
-		if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
-			return [];
-		}
-
 		$payment_method_classes = [
 			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
