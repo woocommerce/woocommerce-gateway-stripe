@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
@@ -10,7 +11,6 @@ import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
-import { areAPMsDeprecated } from 'wcstripe/utils';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -165,7 +165,8 @@ const PromotionalBannerSection = ( {
 	);
 
 	let newCheckoutExperienceAPMsBannerDescription = '';
-	if ( areAPMsDeprecated() ) {
+	// eslint-disable-next-line camelcase
+	if ( wc_stripe_settings_params.are_apms_deprecated ) {
 		newCheckoutExperienceAPMsBannerDescription = __(
 			'Stripe ended support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
 			'woocommerce-gateway-stripe'

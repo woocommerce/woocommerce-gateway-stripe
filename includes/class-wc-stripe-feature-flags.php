@@ -47,4 +47,14 @@ class WC_Stripe_Feature_Flags {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'disabled' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
 	}
+
+
+	/**
+	 * Checks if the APMs are deprecated. Stripe deprecated them by October 31, 2024 (for the legacy checkout).
+	 *
+	 * @return bool Whether the APMs are deprecated.
+	 */
+	public static function are_apms_deprecated() {
+		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-29' && ! self::is_upe_checkout_enabled();
+	}
 }
