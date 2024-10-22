@@ -25,7 +25,7 @@ describe( 'WebhookDescription', () => {
 			};
 		} );
 
-		render( <WebhookDescription isWebhookSecretEntered={ true } /> );
+		render( <WebhookDescription isWebhookEnabled={ true } /> );
 
 		expect(
 			screen.queryByTestId( 'webhook-information' )
@@ -44,7 +44,7 @@ describe( 'WebhookDescription', () => {
 			};
 		} );
 
-		render( <WebhookDescription isWebhookSecretEntered={ false } /> );
+		render( <WebhookDescription isWebhookEnabled={ false } /> );
 
 		expect(
 			screen.queryByTestId( 'webhook-information' )
@@ -64,7 +64,7 @@ describe( 'WebhookDescription', () => {
 			};
 		} );
 
-		render( <WebhookDescription isWebhookSecretEntered={ false } /> );
+		render( <WebhookDescription isWebhookEnabled={ false } /> );
 
 		expect(
 			screen.queryByTestId( 'webhook-information' )
