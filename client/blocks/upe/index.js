@@ -93,11 +93,15 @@ Object.entries( paymentMethodsConfig )
 		} );
 	} );
 
-if ( getBlocksConfiguration()?.isECEEnabled ) {
+const blocksConfig = getBlocksConfiguration();
+if (
+	blocksConfig?.isECEEnabled &&
+	blocksConfig?.shouldShowExpressCheckoutButton
+) {
 	// Register Express Checkout Element.
 	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
-} else {
+} else if ( blocksConfig?.shouldShowPaymentRequestButton ) {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
