@@ -256,17 +256,12 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 /**
  * Get array of payment method types to use with intent. Filtering out the method types not part of Express Checkout.
  *
+ * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - which lists the method types supported by Express Checkout.
+ *
  * @param {string} paymentMethodType Payment method type Stripe ID.
  * @return {Array} Array of payment method types to use with intent, for Express Checkout.
  */
 export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
 	getPaymentMethodTypes( paymentMethodType ).filter( ( type ) =>
-		[
-			'link',
-			'google_pay',
-			'apple_pay',
-			'paypal',
-			'amazon_pay',
-			'klarna',
-		].includes( type )
+		[ 'link', 'paypal', 'amazon_pay', 'card' ].includes( type )
 	);
