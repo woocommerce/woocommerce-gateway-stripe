@@ -54,7 +54,7 @@ const PaymentMethodDeprecationPill = () => {
 					mixedString:
 						/* translators: $1: a payment method name. %2: Currency(ies). */
 						__(
-							'This payment method is deprecated on the {{currencySettingsLink}}legacy checkout as of Oct, 29th 2024{{/currencySettingsLink}}.',
+							'This payment method is deprecated on the {{currencySettingsLink}}legacy checkout as of Oct 29th, 2024{{/currencySettingsLink}}.',
 							'woocommerce-gateway-stripe'
 						),
 					components: {
