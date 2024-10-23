@@ -25,9 +25,9 @@ jobs:
         run: |
           VERSION=$( cat changelog.txt | grep xxxx-xx-xx | grep -Eo '[0-9.]+' )
           echo "trimmed-version=$VERSION" >> $GITHUB_ENV
-
-      - name: "Generate the changelog"
-        id: generate_changelog
+          
+      - name: "Process the changelog"
+        id: process_changelog
         uses: ./.github/actions/process-changelog
         with:
           release-version: ${{ steps.parse_next_version.outputs.trimmed-version }}
