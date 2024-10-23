@@ -3,11 +3,17 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromotionalBannerSection from '../promotional-banner-section';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 
 jest.mock( '@wordpress/data' );
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data', () => ( {
+	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [ 'card' ] ] ),
+	useTestMode: jest.fn().mockReturnValue( [ false ] ),
 } ) );
 
 const noticesDispatch = {
@@ -26,6 +32,10 @@ useDispatch.mockImplementation( ( storeName ) => {
 const setShowPromotionalBanner = jest.fn();
 
 describe( 'PromotionalBanner', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = { are_apms_deprecated: false };
+	} );
+
 	it( 'dismiss function should be called', () => {
 		render(
 			<PromotionalBannerSection
@@ -66,6 +76,21 @@ describe( 'PromotionalBanner', () => {
 		);
 		expect(
 			screen.queryByTestId( 're-connect-account-banner' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'Display the APM version of the new checkout experience promotional surface when any APM is enabled', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card', 'ideal' ] ] );
+
+		render(
+			<PromotionalBannerSection
+				setShowPromotionalBanner={ setShowPromotionalBanner }
+				isConnectedViaOAuth={ true }
+			/>
+		);
+
+		expect(
+			screen.queryByTestId( 'new-checkout-apms-banner' )
 		).toBeInTheDocument();
 	} );
 } );

@@ -227,7 +227,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'          => $available_payment_method_ids,
-				'ordered_payment_method_ids'            => array_values( array_diff( $ordered_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
+				'ordered_payment_method_ids'            => array_values( array_diff( $ordered_payment_method_ids, [ WC_Stripe_Payment_Methods::LINK ] ) ), // exclude Link from this list as it is a express methods.
 				'individual_payment_method_settings'    => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
@@ -301,7 +301,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		} else {
 			$ordered_payment_method_ids = array_map(
 				function ( $id ) {
-					if ( 'card' === $id ) {
+					if ( WC_Stripe_Payment_Methods::CARD === $id ) {
 						return 'stripe';
 					}
 					return 'stripe_' . $id;
@@ -568,7 +568,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description' => $description,
 			];
 
-			if ( in_array( $payment_method_id, [ 'boleto' ], true ) ) {
+			if ( in_array( $payment_method_id, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
 				$settings['expiration'] = sanitize_text_field( $request->get_param( 'expiration' ) );
 			}
 
@@ -584,7 +584,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
 
 		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
-		if ( 'card' === $payment_method_id ) {
+		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_id ) {
 			$this->gateway->update_option( 'title', $title );
 			$this->gateway->update_option( 'description', $description );
 			return new WP_REST_Response( [], 200 );

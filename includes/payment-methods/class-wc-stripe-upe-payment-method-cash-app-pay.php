@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	/**
 	 * The Stripe ID for the payment method.
 	 */
-	const STRIPE_ID = 'cashapp';
+	const STRIPE_ID = WC_Stripe_Payment_Methods::CASHAPP_PAY;
 
 	/**
 	 * Constructor for Cash App payment method.
@@ -27,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 		$this->stripe_id                    = self::STRIPE_ID;
 		$this->title                        = __( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
-		$this->supported_currencies         = [ 'USD' ];
+		$this->supported_currencies         = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		$this->supported_countries          = [ 'US' ];
 		$this->accept_only_domestic_payment = true;
 		$this->supports[]                   = 'tokenization';
@@ -39,14 +39,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 
 		// Cash App Pay supports subscriptions. Init subscriptions so it can process subscription payments.
 		$this->maybe_init_subscriptions();
-
-		/**
-		 * Cash App Pay is incapable of processing zero amount payments with saved payment methods.
-		 *
-		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
-		 * disable customer's changing the payment method to Cash App Pay as that would result in a $0 set up intent.
-		 */
-		$this->supports = array_diff( $this->supports, [ 'subscription_payment_method_change_customer' ] );
 
 		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'order_received_text_for_wallet_failure' ], 10, 2 );
 	}
@@ -69,28 +61,6 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 	 */
 	public function get_retrievable_type() {
 		return $this->get_id();
-	}
-
-	/**
-	 * Determines whether Cash App Pay is enabled at checkout.
-	 *
-	 * @param int    $order_id                  The order ID.
-	 * @param string $account_domestic_currency The account's default currency.
-	 *
-	 * @return bool Whether Cash App Pay is enabled at checkout.
-	 */
-	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
-		/**
-		 * Cash App Pay is incapable of processing zero amount payments with saved payment methods.
-		 *
-		 * This is because setup intents with a saved payment method (token) fail. While we wait for a solution to this issue, we
-		 * disable Cash App Pay for zero amount orders.
-		 */
-		if ( ! is_add_payment_method_page() && $this->get_current_order_amount() <= 0 ) {
-			return false;
-		}
-
-		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
 	}
 
 	/**
@@ -130,10 +100,10 @@ class WC_Stripe_UPE_Payment_Method_Cash_App_Pay extends WC_Stripe_UPE_Payment_Me
 			$redirect_status = wc_clean( wp_unslash( $_GET['redirect_status'] ) );
 		}
 		if ( $order && $this->id === $order->get_payment_method() && 'failed' === $redirect_status ) {
-			$text = '<p class="woocommerce-error">';
+			$text      = '<p class="woocommerce-error">';
 				$text .= esc_html( 'Unfortunately your order cannot be processed as the payment method has declined your transaction. Please attempt your purchase again.' );
-			$text .= '</p>';
-			$text .= '<p class="woocommerce-notice woocommerce-notice--error woocommerce-thankyou-order-failed-actions">';
+			$text     .= '</p>';
+			$text     .= '<p class="woocommerce-notice woocommerce-notice--error woocommerce-thankyou-order-failed-actions">';
 				$text .= '<a href="' . esc_url( $order->get_checkout_payment_url() ) . '" class="button pay">' . esc_html( 'Pay' ) . '</a>';
 			if ( is_user_logged_in() ) {
 				$text .= '<a href="' . esc_url( wc_get_page_permalink( 'myaccount' ) ) . '" class="button pay">' . esc_html( 'My account' ) . '</a>';

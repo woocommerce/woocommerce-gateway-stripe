@@ -112,7 +112,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields = true;
 		$this->testmode   = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
@@ -178,7 +178,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns payment method title
 	 *
-	 * @param array|bool $payment_details Optional payment details from charge object.
+	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
 	 *
 	 * @return string
 	 */
@@ -543,16 +543,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
+
 			if ( $this->should_show_save_option() ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
 			}
+
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
 				$this->saved_payment_methods();
 			}
+
+			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

@@ -1,14 +1,16 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
-import { Card, Button } from '@wordpress/components';
+import { Card, Button, ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
+import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
-import { useTestMode } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -66,6 +68,9 @@ const PromotionalBannerSection = ( {
 		'core/notices'
 	);
 	const [ isTestModeEnabled ] = useTestMode();
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const hasAPMEnabled =
+		enabledPaymentMethodIds.filter( ( e ) => e !== 'card' ).length > 0;
 
 	const handleButtonClick = () => {
 		const callback = async () => {
@@ -159,6 +164,76 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
+	let newCheckoutExperienceAPMsBannerDescription = '';
+	// eslint-disable-next-line camelcase
+	if ( wc_stripe_settings_params.are_apms_deprecated ) {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe ended support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	} else {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
+	const NewCheckoutExperienceAPMsBanner = () => (
+		<CardBody data-testid="new-checkout-apms-banner">
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
+						{ __(
+							'Enable the new Stripe checkout to continue accepting non-card payments',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ interpolateComponents( {
+							mixedString: newCheckoutExperienceAPMsBannerDescription,
+							components: {
+								StripeLegacyLink: (
+									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />
+								),
+							},
+						} ) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustration }
+						alt={ __(
+							'New Checkout',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+			<ButtonsRow>
+				<MainCTALink
+					variant="secondary"
+					data-testid="disable-the-legacy-checkout"
+					onClick={ handleButtonClick }
+				>
+					{ __(
+						'Enable the new checkout',
+						'woocommerce-gateway-stripe'
+					) }
+				</MainCTALink>
+				<DismissButton
+					variant="secondary"
+					onClick={ handleBannerDismiss }
+					data-testid="dismiss"
+				>
+					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
+				</DismissButton>
+			</ButtonsRow>
+		</CardBody>
+	);
+
 	const NewCheckoutExperienceBanner = () => (
 		<CardBody>
 			<CardInner>
@@ -215,7 +290,11 @@ const PromotionalBannerSection = ( {
 	if ( isConnectedViaOAuth === false ) {
 		BannerContent = <ReConnectAccountBanner />;
 	} else if ( ! isUpeEnabled ) {
-		BannerContent = <NewCheckoutExperienceBanner />;
+		if ( hasAPMEnabled ) {
+			BannerContent = <NewCheckoutExperienceAPMsBanner />;
+		} else {
+			BannerContent = <NewCheckoutExperienceBanner />;
+		}
 	}
 
 	return (

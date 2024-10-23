@@ -91,7 +91,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 						'customer'       => $customer,
 						'source'         => $source,
 						'source_object'  => (object) [
-							'type' => 'card',
+							'type' => WC_Stripe_Payment_Methods::CARD,
 						],
 						'payment_method' => null,
 					]
@@ -153,7 +153,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 				'currency'             => $currency,
 				'customer'             => $customer,
 				'setup_future_usage'   => 'off_session',
-				'payment_method_types' => [ 'card' ],
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
 			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
