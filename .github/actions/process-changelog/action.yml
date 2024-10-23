@@ -1,0 +1,37 @@
+name: "Process the changelog for WooCommerce Gateway Stripe"
+description: "Generate the changelog entries"
+    
+outputs: 
+  changelog:
+    description: "The escaped changelog content"
+    value: ${{ steps.process_changelog.outputs.CHANGELOG }}
+
+runs:
+  using: composite
+  steps:
+    - name: "Process changelog for changelog.txt"
+      id: process_changelog
+      shell: bash
+      run: |
+        # Install this dev package globally to gather changelog entries while not including it into the release package
+        composer global require automattic/jetpack-changelogger:^3.0.7
+      
+        echo "Generating the changelog entries." >> $GITHUB_STEP_SUMMARY
+      
+        ~/.composer/vendor/bin/changelogger write --no-interaction --yes
+        
+        CHANGELOG=$(awk '/^= / { if (p) { exit }; p=1; next } p && NF' changelog.txt)
+        
+        # Escape backslash, new line and ampersand characters. The order is important.
+        CHANGELOG=${CHANGELOG//\\/\\\\}
+        CHANGELOG=${CHANGELOG//$'\n'/\\n} 
+        CHANGELOG=${CHANGELOG//&/\\&}
+        
+        echo "CHANGELOG=$CHANGELOG" >> $GITHUB_OUTPUT
+
+    - name: "Process changelog for readme.txt"
+      shell: bash
+      env:
+        CHANGELOG: ${{ steps.process_changelog.outputs.CHANGELOG }}
+      run: |
+        sed -ri "s|(== Changelog ==)|\1\n\n= =\n$CHANGELOG|" readme.txt

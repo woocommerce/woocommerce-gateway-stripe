@@ -1,0 +1,29 @@
+name: 'Pull request post-merge processing'
+on:
+    pull_request_target:
+        types: [closed]
+
+permissions: {}
+
+jobs:
+  process-changelog:
+    name: "Process the changelog"
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ SECRETS.GITHUB_TOKEN }}
+
+      - name: "Process changelog"
+        id: process_changelog
+        uses: ./.github/actions/process-changelog
+
+      - name: "Commit and push the changes"
+        run: |
+          git config user.name "bot-wc-stripe"
+          git config user.email "bot-wc-stripe@users.noreply.github.com"
+          git commit -am "Generate changelog entries for release $RELEASE_VERSION"
+          fi
+          git push
