@@ -621,7 +621,10 @@ jQuery( function ( $ ) {
 	};
 
 	// We don't need to initialize ECE on the checkout page now because it will be initialized by updated_checkout event.
-	if ( ! getExpressCheckoutData( 'is_checkout_page' ) ) {
+	if (
+		! getExpressCheckoutData( 'is_checkout_page' ) ||
+		getExpressCheckoutData( 'is_pay_for_order' )
+	) {
 		wcStripeECE.init();
 	}
 
