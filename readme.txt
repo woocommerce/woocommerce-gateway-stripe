@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
-* Dev - Auto-generates readme.txt and changelog.txt entries upon merge, using the message set in the PR description.
+* Dev - Auto-generates readme.txt and changelog.txt entries upon merge, using the message set in changelog files created with jetpack-changelogger.
 * Tweak - Disables APMs when using the legacy checkout experience due Stripe deprecation by October 29, 2024.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
