@@ -44,6 +44,7 @@ class WC_Stripe_Payment_Tokens {
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
+		add_filter( 'woocommerce_credit_card_type_labels', [ $this, 'add_card_brand_type_labels' ] );
 	}
 
 	/**
@@ -618,6 +619,28 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return 0 === strpos( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
+	}
+
+	/**
+	 * Adds additional card brand labels.
+	 *
+	 * Some Stripe saved tokens have a different card brand index than the one used in WooCommerce.
+	 * This method adds additional card brand labels to the list of card brand labels.
+	 *
+	 * @param string[] $card_brand_labels Card brand labels.
+	 * @return string[] $card_brand_labels
+	 */
+	public function add_card_brand_type_labels( $card_brand_labels ) {
+		$card_brand_labels['union pay'] = __( 'UnionPay', 'woocommerce-gateway-stripe' );
+
+		// American Express is sometimes referred to as Amex in Stripe.
+		$card_brand_labels['amex'] = $card_brand_labels['american express'] ?? __( 'American Express', 'woocommerce-gateway-stripe' );
+
+		// WC x.x.x has MasterCard instead of Mastercard and lists Diners Club as Diners. We override both in the meantime.
+		$card_brand_labels['mastercard'] = __( 'Mastercard', 'woocommerce-gateway-stripe' );
+		$card_brand_labels['diners']     = __( 'Diners Club', 'woocommerce-gateway-stripe' );
+
+		return $card_brand_labels;
 	}
 
 	/**
