@@ -174,6 +174,7 @@ class WC_Stripe_Settings_Controller {
 			'is_test_mode'              => $this->gateway->is_in_test_mode(),
 			'plugin_version'            => WC_STRIPE_VERSION,
 			'account_country'           => $this->account->get_account_country(),
+			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

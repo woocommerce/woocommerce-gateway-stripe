@@ -457,6 +457,11 @@ function woocommerce_gateway_stripe() {
 
 					$methods = array_merge( $methods, $upe_payment_methods );
 				} else {
+					// APMs are deprecated as of Oct, 29th 2024 for the legacy checkout.
+					if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
+						return $methods;
+					}
+
 					// These payment gateways will not be included in the gateway list when UPE is enabled:
 					$methods[] = WC_Gateway_Stripe_Alipay::class;
 					$methods[] = WC_Gateway_Stripe_Sepa::class;

@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
@@ -163,6 +164,20 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
+	let newCheckoutExperienceAPMsBannerDescription = '';
+	// eslint-disable-next-line camelcase
+	if ( wc_stripe_settings_params.are_apms_deprecated ) {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe ended support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	} else {
+		newCheckoutExperienceAPMsBannerDescription = __(
+			'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
 	const NewCheckoutExperienceAPMsBanner = () => (
 		<CardBody data-testid="new-checkout-apms-banner">
 			<CardInner>
@@ -178,10 +193,7 @@ const PromotionalBannerSection = ( {
 					</h4>
 					<p>
 						{ interpolateComponents( {
-							mixedString: __(
-								'Stripe will end support for non-card payment methods in the {{StripeLegacyLink}}legacy checkout on October 29, 2024{{/StripeLegacyLink}}. To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions.',
-								'woocommerce-gateway-stripe'
-							),
+							mixedString: newCheckoutExperienceAPMsBannerDescription,
 							components: {
 								StripeLegacyLink: (
 									<ExternalLink href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods" />
