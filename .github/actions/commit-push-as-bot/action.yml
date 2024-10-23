@@ -1,0 +1,27 @@
+name: "Commit and push as the github-actions bot"
+description: "Commit and push as the github-actions bot"
+    
+inputs:
+  release-version:
+    description: "The release version to be used in the commit message"
+    required: true
+  branch:
+    description: "The branch where the commit will be pushed"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: "Commit and push changes"
+      id: build_plugin
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.release-version }}
+        BRANCH_NAME: ${{ inputs.branch }}
+      run: |
+        git config user.name "github-actions[bot]"
+        # We could consider fetching the bot's ID through an API call to be future-proof. Hardcoded for now.
+        # See https://github.com/Automattic/woocommerce-payments/pull/5200#discussion_r1034560144
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git commit -am "Update version and add changelog entries for release $RELEASE_VERSION"
+        git push --set-upstream origin $BRANCH_NAME
