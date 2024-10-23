@@ -8,11 +8,6 @@ on:
         description: "The release version for which the action should process the changelog (e.g. 4.5.0)"
         required: true
         type: string
-      release-date:
-        description: "The release date in human-readable format (default: 'today')."
-        required: false
-        default: "today"
-        type: string
       action-type:
         description: "Whether this is to amend or generate the changelog entries (default: 'amend')."
         required: true
@@ -33,12 +28,9 @@ jobs:
     env:
       CHANGELOG_ACTION: ${{ inputs.action-type }}
       RELEASE_VERSION: ${{ inputs.release-version }}
-      RELEASE_DATE: ${{ inputs.release-date }}
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v4
-        with:
-          token: ${{ SECRETS.BOTWOO_TOKEN }}
       
       - name: "Format the release date"
         id: format_date
@@ -51,7 +43,7 @@ jobs:
         uses: ./.github/actions/process-changelog
         with:
           release-version: ${{ env.RELEASE_VERSION }}
-          release-date: ${{ steps.format_date.outputs.RELEASE_DATE }}
+          release-date: 'xxxx-xx-xx' # we update it manually upon release
           action-type: ${{ env.CHANGELOG_ACTION }}
                     
       - name: "Commit and push the changes"
