@@ -30,6 +30,7 @@ jobs:
         id: process_changelog
         uses: ./.github/actions/process-changelog
         with:
+          release-date: 'xxxx-xx-xx'
           release-version: ${{ steps.parse_next_version.outputs.trimmed-version }}
 
       - name: "Commit and push changes"
