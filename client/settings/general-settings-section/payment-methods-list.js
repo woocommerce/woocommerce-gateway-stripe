@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __, sprintf } from '@wordpress/i18n';
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
@@ -235,6 +236,15 @@ const GeneralSettingsSection = ( {
 					return null;
 				}
 
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				if (
+					// eslint-disable-next-line camelcase
+					wc_stripe_settings_params.are_apms_deprecated &&
+					method !== 'card'
+				) {
+					return null;
+				}
+
 				const {
 					Icon,
 					label,
@@ -288,6 +298,12 @@ const GeneralSettingsSection = ( {
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
 
+				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
+				const deprecated =
+					// eslint-disable-next-line camelcase
+					wc_stripe_settings_params.are_apms_deprecated &&
+					method !== 'card';
+
 				return (
 					<div key={ method }>
 						<ListElement
@@ -305,6 +321,7 @@ const GeneralSettingsSection = ( {
 								isAllowingManualCapture={
 									isAllowingManualCapture
 								}
+								disabled={ deprecated }
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
@@ -315,6 +332,7 @@ const GeneralSettingsSection = ( {
 										data.account?.default_currency
 									) }
 									label={ label }
+									deprecated={ deprecated }
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
@@ -327,6 +345,7 @@ const GeneralSettingsSection = ( {
 											[ method ]: true,
 										} )
 									}
+									disabled={ deprecated }
 								>
 									{ __(
 										'Customize',

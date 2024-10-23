@@ -32,6 +32,10 @@ useDispatch.mockImplementation( ( storeName ) => {
 const setShowPromotionalBanner = jest.fn();
 
 describe( 'PromotionalBanner', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = { are_apms_deprecated: false };
+	} );
+
 	it( 'dismiss function should be called', () => {
 		render(
 			<PromotionalBannerSection
