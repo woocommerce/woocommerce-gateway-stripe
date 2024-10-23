@@ -1,0 +1,66 @@
+name: "Release - Changelog"
+
+# This action will run when it is triggered manually
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: "The release version for which the action should process the changelog (e.g. 4.5.0)"
+        required: true
+        type: string
+      release-date:
+        description: "The release date in human-readable format (default: 'today')."
+        required: false
+        default: "today"
+        type: string
+      action-type:
+        description: "Whether this is to amend or generate the changelog entries (default: 'amend')."
+        required: true
+        default: "amend"
+        type: choice
+        options:
+          - amend
+          - generate
+
+defaults:
+  run:
+    shell: bash
+
+jobs:    
+  process-changelog:
+    name: "Process the changelog"
+    runs-on: ubuntu-latest
+    env:
+      CHANGELOG_ACTION: ${{ inputs.action-type }}
+      RELEASE_VERSION: ${{ inputs.release-version }}
+      RELEASE_DATE: ${{ inputs.release-date }}
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+        with:
+          token: ${{ SECRETS.BOTWOO_TOKEN }}
+      
+      - name: "Format the release date"
+        id: format_date
+        run: |
+          RELEASE_DATE=$( date "+%Y-%m-%d" -d "$RELEASE_DATE" ) # Release date formatted as YYYY-MM-DD
+          echo "RELEASE_DATE=$RELEASE_DATE" >> $GITHUB_OUTPUT
+      
+      - name: "Process changelog"
+        id: process_changelog
+        uses: ./.github/actions/process-changelog
+        with:
+          release-version: ${{ env.RELEASE_VERSION }}
+          release-date: ${{ steps.format_date.outputs.RELEASE_DATE }}
+          action-type: ${{ env.CHANGELOG_ACTION }}
+                    
+      - name: "Commit and push the changes"
+        run: |
+          git config user.name "botwoo"
+          git config user.email "botwoo@users.noreply.github.com"
+          if ${{ env.CHANGELOG_ACTION == 'amend' }}; then
+            git commit -am "Amend changelog entries for release $RELEASE_VERSION"
+          else
+            git commit -am "Generate changelog entries for release $RELEASE_VERSION"
+          fi
+          git push

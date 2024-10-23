@@ -41,54 +41,9 @@ Please follow the following guidelines when writing testing instructions:
 
 ---
 
+-   [ ] Run `npm run changelog` to add a changelog file, choose `patch` to leave it empty if the change is not significant. You can add multiple changelog files in one PR by running this command a few times. Changelog entries will be automatically merged into the `changelog.txt` and `readme.txt` files upon merging to develop.
 -   [ ] Covered with tests (or have a good reason not to test in description ☝️)
 -   [ ] Tested on mobile (or does not apply)
-
-### Changelog entry
-
-<!-- You can optionally choose to enter a changelog entry by checking the box and supplying data. -->
-
--   [ ] Automatically create a changelog entry **in both** `changelog.txt` and `readme.txt` from the details below.
-
-<!-- If no changelog entry is required for this PR, you can specify that below and provide a comment explaining why. This cannot be used if you selected the option to automatically create a changelog entry above. -->
-
--   [ ] This Pull Request does not require a changelog entry. (Comment required below)
-
-<details>
-
-<summary>Changelog Entry Details</summary>
-
-#### Significance
-
-<!-- Choose only one -->
-
--   [ ] Patch
--   [ ] Minor
--   [ ] Major
-
-#### Type
-
-<!-- Choose only one -->
-
--   [ ] Fix - Fixes an existing bug
--   [ ] Add - Adds functionality
--   [ ] Update - Update existing functionality
--   [ ] Dev - Development related task
--   [ ] Tweak - A minor adjustment to the codebase
--   [ ] Performance - Address performance issues
--   [ ] Enhancement - Improvement to existing functionality
-
-#### Message <!-- Add a changelog message here -->
-
-</details>
-
-<details>
-
-<summary>Changelog Entry Comment</summary>
-
-#### Comment <!-- If your Pull Request doesn't require a changelog entry, a comment explaining why is required instead -->
-
-</details>
 
 **Post merge**
 
