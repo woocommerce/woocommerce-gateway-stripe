@@ -488,7 +488,7 @@ function woocommerce_gateway_stripe() {
 					$methods = array_filter(
 						$methods,
 						function( $method ) {
-							return ! is_a( $method, 'WC_Stripe_UPE_Payment_Method_Link' );
+							return WC_Stripe_UPE_Payment_Method_Link::class !== $method;
 						}
 					);
 				}
