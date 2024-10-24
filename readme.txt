@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Tweak - Disables APMs when using the legacy checkout experience due Stripe deprecation by October 29, 2024.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).

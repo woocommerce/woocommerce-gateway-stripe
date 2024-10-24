@@ -32,7 +32,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public static function is_link_enabled() {
-
 		// Assume Link is disabled if UPE is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
