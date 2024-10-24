@@ -899,19 +899,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
 				}
-			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
-				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
-				do_action(
-					'wc_stripe_change_subs_payment_method_success',
-					$payment_information['payment_method'],
-					(object) [
-						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
-						'customer'       => $payment_information['customer'],
-						'source'         => null,
-						'source_object'  => $payment_method,
-						'payment_method' => $payment_information['payment_method'],
-					]
-				);
 			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				if ( ! $this->has_pre_order( $order ) ) {
 					$order->payment_complete();
