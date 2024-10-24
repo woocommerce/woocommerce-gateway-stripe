@@ -379,8 +379,8 @@ function woocommerce_gateway_stripe() {
 			public function update_prb_location_settings() {
 				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-					? $stripe_settings['payment_request_button_locations']
-					: [];
+				? $stripe_settings['payment_request_button_locations']
+				: [];
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
@@ -457,6 +457,11 @@ function woocommerce_gateway_stripe() {
 
 					$methods = array_merge( $methods, $upe_payment_methods );
 				} else {
+					// APMs are deprecated as of Oct, 29th 2024 for the legacy checkout.
+					if ( WC_Stripe_Feature_Flags::are_apms_deprecated() ) {
+						return $methods;
+					}
+
 					// These payment gateways will not be included in the gateway list when UPE is enabled:
 					$methods[] = WC_Gateway_Stripe_Alipay::class;
 					$methods[] = WC_Gateway_Stripe_Sepa::class;
@@ -476,6 +481,16 @@ function woocommerce_gateway_stripe() {
 					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
+				}
+
+				// Don't mark Link as enabled if we're in the admin so it doesn't show up in the checkout editor page.
+				if ( is_admin() ) {
+					$methods = array_filter(
+						$methods,
+						function( $method ) {
+							return WC_Stripe_UPE_Payment_Method_Link::class !== $method;
+						}
+					);
 				}
 
 				return $methods;
