@@ -2,8 +2,7 @@
 
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { ExpressCheckoutContainer } from './express-checkout-container';
-import ApplePayPreview from './apple-pay-preview';
-import GooglePayPreview from './google-pay-preview';
+import { ApplePayPreview, GooglePayPreview } from './express-button-previews';
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
