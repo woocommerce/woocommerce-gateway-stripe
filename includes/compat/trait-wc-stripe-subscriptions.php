@@ -245,6 +245,103 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
+	 * Process the payment method change with deferred intent.
+	 *
+	 * @param int $subscription_id
+	 *
+	 * @return array
+	 */
+	public function process_change_subscription_payment_with_deferred_intent( $subscription_id ) {
+		$subscription = wcs_get_subscription( $subscription_id );
+
+		if ( ! $subscription ) {
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+		}
+
+		try {
+			$payment_information = $this->prepare_payment_information_from_request( $subscription );
+
+			$this->validate_selected_payment_method_type( $payment_information, $subscription->get_billing_country() );
+
+			$payment_method_id     = $payment_information['payment_method'];
+			$selected_payment_type = $payment_information['selected_payment_type'];
+			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
+
+			// Retrieve the payment method object from Stripe.
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			// Throw an exception when the payment method is a prepaid card and it's disallowed.
+			$this->maybe_disallow_prepaid_card( $payment_method );
+
+			// Create a setup intent, or update an existing one associated with the order.
+			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
+
+			// Handle saving the payment method in the store.
+			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+				$this->handle_saving_payment_method(
+					$subscription,
+					$payment_information['payment_method_details'],
+					$selected_payment_type
+				);
+			}
+
+			$redirect           = $this->get_return_url( $subscription );
+			$new_payment_method = $this->get_upe_gateway_id_for_order( $upe_payment_method );
+
+			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
+			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
+				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
+					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
+					$subscription->save();
+				}
+
+				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
+				exit;
+			} else {
+				// Update the payment method for the subscription.
+				WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $new_payment_method );
+
+				// Attach the new payment method ID and the customer ID to the subscription on success.
+				$this->set_payment_method_id_for_order( $subscription, $payment_method_id );
+				$this->set_customer_id_for_order( $subscription, $payment_information['customer'] );
+
+				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
+				do_action(
+					'wc_stripe_change_subs_payment_method_success',
+					$payment_information['payment_method'],
+					(object) [
+						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
+						'customer'       => $payment_information['customer'],
+						'source'         => null,
+						'source_object'  => $payment_method,
+						'payment_method' => $payment_information['payment_method'],
+					]
+				);
+
+				// Because this new payment does not require action/confirmation, remove this filter so that WC_Subscriptions_Change_Payment_Gateway proceeds to update all subscriptions if flagged.
+				remove_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10 );
+			}
+
+			return [
+				'result'   => 'success',
+				'redirect' => $redirect,
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+		}
+	}
+
+	/**
 	 * Scheduled_subscription_payment function.
 	 *
 	 * @param $amount_to_charge float The amount to charge.

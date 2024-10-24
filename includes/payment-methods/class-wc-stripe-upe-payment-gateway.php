@@ -773,6 +773,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
 	private function process_payment_with_deferred_intent( int $order_id ) {
+		if ( $this->is_changing_payment_method_for_subscription() ) {
+			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
+		}
+
 		$order = wc_get_order( $order_id );
 
 		try {
