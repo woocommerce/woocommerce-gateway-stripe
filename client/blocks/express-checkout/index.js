@@ -12,6 +12,7 @@ const stripePromise = loadStripe();
 
 const expressCheckoutElementsGooglePay = ( api ) => ( {
 	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_googlePay',
+	title: 'WooCommerce Stripe - Google Pay',
 	content: (
 		<ExpressCheckoutContainer
 			api={ api }
@@ -31,6 +32,7 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+	gatewayId: 'stripe',
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
 	},
@@ -38,6 +40,7 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 
 const expressCheckoutElementsApplePay = ( api ) => ( {
 	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_applePay',
+	title: 'WooCommerce Stripe - Apple Pay',
 	content: (
 		<ExpressCheckoutContainer
 			api={ api }
@@ -57,6 +60,7 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+	gatewayId: 'stripe',
 	supports: {
 		features: getBlocksConfiguration()?.supports ?? [],
 	},
