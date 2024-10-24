@@ -2176,6 +2176,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return '';
 		}
 
+		// If the customer paid via the Link express payment button, Link is the selected payment method.
+		if ( isset( $_POST['express_checkout_type'] ) && 'link' === sanitize_text_field( wp_unslash( $_POST['express_checkout_type'] ) ) ) {
+			return 'link';
+		}
+
 		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
 	}
 
