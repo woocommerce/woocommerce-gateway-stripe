@@ -91,6 +91,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
 		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
+
+		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
 	}
 
 	/**
@@ -1155,5 +1157,25 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return $editable;
+	}
+
+	/**
+	 * When handling a subscription change payment method request with deferred intents,
+	 * don't immediately update the subscription's payment method to Stripe until we've created and confirmed the setup intent.
+	 *
+	 * For purchases with a 3DS card specifically, we don't want to update the payment method on the subscription until after the customer has authenticated.
+	 *
+	 * @param bool            $update_payment_method Whether to update the payment method.
+	 * @param string          $new_payment_method    The new payment method.
+	 * @param WC_Subscription $subscription          The subscription.
+	 *
+	 * @return bool
+	 */
+	public function update_payment_after_deferred_intent( $update_payment_method, $new_payment_method, $subscription ) {
+		if ( ! $this->is_changing_payment_method_for_subscription() || $new_payment_method !== $this->id || empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+			return $update_payment_method;
+		}
+
+		return false;
 	}
 }
