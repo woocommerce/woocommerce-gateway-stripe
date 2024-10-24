@@ -1,0 +1,96 @@
+name: "Process the changelog for WooCommerce Gateway Stripe"
+description: "Generate or amend the changelog entries"
+
+inputs:
+  release-version:
+    description: "The release version for which the action should generate the changelog (e.g. 4.5.0)"
+    required: true
+  release-date:
+    description: "The release date (format: YYYY-MM-DD) for which the action should generate the changelog (default: unreleased)"
+    required: false
+    default: "unreleased"
+  action-type:
+    description: 'Whether this is to generate or amend the changelog entries (generate or amend)'
+    required: false
+    default: "generate"
+    
+outputs: 
+  changelog:
+    description: "The escaped changelog content"
+    value: ${{ steps.process_changelog.outputs.CHANGELOG }}
+
+runs:
+  using: composite
+  steps:
+    - name: "Verify the action type"
+      id: verify_action_type
+      if: ${{ inputs.action-type == 'generate' }}
+      shell: bash
+      env:
+        RELEASE_VERSION: ${{ inputs.release-version }}
+        RELEASE_DATE: ${{ inputs.release-date }}
+        ACTION_TYPE: ${{ inputs.action-type }}
+      run: |
+        FINAL_RELEASE_VERSION=$(echo "$RELEASE_VERSION" | grep -Po '\d.\d.\d(.*?)') # Keep only x.y.z from x.y.z(-test-n)
+        CURRENT_RELEASE_VERSION=$(jq '.version' package.json -r)
+        
+        # If the changelog directory is empty (except .gitkeep) and the final release version is already defined in package.json, we need to switch to amend
+        # This use case is mainly for the last test package created from the release branch, to avoid an empty changelog
+        if [ "$(ls -A changelog | wc -l)" -eq 1 ] && [[ "$FINAL_RELEASE_VERSION" == "$CURRENT_RELEASE_VERSION" ]]; then
+          echo "ACTION_TYPE=amend-version" >> $GITHUB_OUTPUT
+          echo "CURRENT_VERSION=$CURRENT_RELEASE_VERSION" >> $GITHUB_OUTPUT
+        fi
+
+    - name: "Process changelog for changelog.txt"
+      id: process_changelog
+      shell: bash
+      env:
+        ACTION_TYPE: ${{ steps.verify_action_type.outputs.ACTION_TYPE || inputs.action-type }}
+        CURRENT_VERSION: ${{ steps.verify_action_type.outputs.CURRENT_VERSION }}
+        RELEASE_VERSION: ${{ inputs.release-version }}
+        RELEASE_DATE: ${{ inputs.release-date }}
+      run: |
+        if ${{ env.ACTION_TYPE == 'amend-version' }}; then
+          sed -i "s/^= $CURRENT_VERSION - .* =$/= $RELEASE_VERSION - $RELEASE_DATE =/" changelog.txt
+        else
+          # Install this dev package globally to gather changelog entries while not including it into the release package
+          composer global require automattic/jetpack-changelogger:^3.0.7
+        
+          if ${{ env.ACTION_TYPE == 'generate' }}; then
+            CHANGELOG_FLAG=""
+            echo "Generating the changelog entries." >> $GITHUB_STEP_SUMMARY
+          else
+            CHANGELOG_FLAG="--amend"
+            echo "Amending the changelog entries." >> $GITHUB_STEP_SUMMARY
+          fi
+        
+          ~/.composer/vendor/bin/changelogger write --use-version="$RELEASE_VERSION" --release-date="$RELEASE_DATE" $CHANGELOG_FLAG --no-interaction --yes
+        fi
+        
+        CHANGELOG=$(awk '/^= / { if (p) { exit }; p=1; next } p && NF' changelog.txt)
+        
+        # Escape backslash, new line and ampersand characters. The order is important.
+        CHANGELOG=${CHANGELOG//\\/\\\\}
+        CHANGELOG=${CHANGELOG//$'\n'/\\n} 
+        CHANGELOG=${CHANGELOG//&/\\&}
+        
+        echo "CHANGELOG=$CHANGELOG" >> $GITHUB_OUTPUT
+
+    - name: "Process changelog for readme.txt"
+      shell: bash
+      env:
+        ACTION_TYPE: ${{ steps.verify_action_type.outputs.ACTION_TYPE || inputs.action-type }}
+        CURRENT_VERSION: ${{ steps.verify_action_type.outputs.CURRENT_VERSION }}
+        RELEASE_VERSION: ${{ inputs.release-version }}
+        RELEASE_DATE: ${{ inputs.release-date }}
+        CHANGELOG: ${{ steps.process_changelog.outputs.CHANGELOG }}
+      run: |
+        if ${{ env.ACTION_TYPE == 'amend-version' }}; then
+          sed -i "s/^= $CURRENT_VERSION - .* =$/= $RELEASE_VERSION - $RELEASE_DATE =/" readme.txt
+        else
+          if ${{ env.ACTION_TYPE == 'amend' }}; then
+            perl -i -p0e "s/= $RELEASE_VERSION.*?(\n){2}//s" readme.txt # Delete the existing changelog for the release version first
+          fi
+        
+          sed -ri "s|(== Changelog ==)|\1\n\n= $RELEASE_VERSION - $RELEASE_DATE =\n$CHANGELOG|" readme.txt
+        fi

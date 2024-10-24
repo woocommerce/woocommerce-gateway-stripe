@@ -41,8 +41,8 @@ Please follow the following guidelines when writing testing instructions:
 
 ---
 
+-   [ ] Run `npm run changelog` to add a changelog file, choose `patch` to leave it empty if the change is not significant. You can add multiple changelog files in one PR by running this command a few times. Changelog entries will be automatically merged into the `changelog.txt` and `readme.txt` files upon merging to develop.
 -   [ ] Covered with tests (or have a good reason not to test in description ☝️)
--   [ ] Added changelog entry **in both** `changelog.txt` and `readme.txt` (or does not apply)
 -   [ ] Tested on mobile (or does not apply)
 
 **Post merge**

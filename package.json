@@ -158,8 +158,9 @@
     "test:e2e": "./tests/e2e/bin/run-tests.sh --project=default",
     "test:e2e-debug": "npm run test:e2e -- --debug",
     "test:e2e-legacy": "./tests/e2e/bin/run-tests.sh --project=legacy",
-    "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug"
-  },
+    "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug",
+		"changelog": "./vendor/bin/changelogger add"
+	},
   "engines": {
     "node": ">=16.17.0",
     "npm": ">=8.15.0"

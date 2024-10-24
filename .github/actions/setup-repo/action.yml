@@ -1,0 +1,20 @@
+name: "Setup WooCommerce Gateway Stripe repository"
+description: "Handles the installation, building, and caching of the projects within the repository."
+
+runs:
+  using: composite
+  steps:
+    - name: "Setup Node"
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: ".nvmrc"
+        cache: "npm"
+
+    - name: "Enable composer dependencies caching"
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/composer/
+        key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+    - name: "Set up PHP"
+      uses: ./.github/actions/setup-php

@@ -17,7 +17,8 @@
 				"phpunit/phpunit": "7.5.20",
 				"yoast/phpunit-polyfills": "^2.0",
 				"woocommerce/woocommerce-sniffs": "0.1.0",
-				"wp-cli/wp-cli-bundle": "2.5.0"
+				"wp-cli/wp-cli-bundle": "2.5.0",
+        "automattic/jetpack-changelogger": "^4.2"
     },
     "extra": {
       "installer-disable": true
