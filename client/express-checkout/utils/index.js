@@ -271,7 +271,7 @@ export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
 /**
  * Fetches the payment method types required to process a payment for an Express method.
  *
- *@see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
+ * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
  * supported and which ones are required by each Express Checkout method.
  *
  * @param {*} paymentMethodType
