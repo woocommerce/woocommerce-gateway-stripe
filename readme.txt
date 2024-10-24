@@ -118,5 +118,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
 * Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
 * Fix - Fix payment methods count on settings page.
+* Fix - Prevent subscriptions from being marked as "Pending" when a customer attempts to change their payment method to a declining card.
+* Fix - Delay updating the subscription's payment method until after the intent is confirmed when using the new checkout experience.
+* Fix - Display a success notice to customers after successfully changing their subscription payment method to a card that required 3DS authentication.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
