@@ -274,8 +274,8 @@ export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
  * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
  * supported and which ones are required by each Express Checkout method.
  *
- * @param {*} paymentMethodType
- * @return {Array} Array of payment method types to use with intent, for Express Checkout.
+ * @param {*} paymentMethodType The express payment method type. eg 'link', 'googlePay', or 'applePay'.
+ * @return {Array} Array of payment method types necessary to process a payment for an Express method.
  */
 export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
