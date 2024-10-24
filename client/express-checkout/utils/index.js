@@ -1,5 +1,4 @@
 /* global wc_stripe_express_checkout_params */
-
 import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
@@ -263,10 +262,17 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
  * @param {string} paymentMethodType Payment method type Stripe ID.
  * @return {Array} Array of payment method types to use with intent, for Express Checkout.
  */
-export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
-	getPaymentMethodTypes( paymentMethodType ).filter( ( type ) =>
-		[ 'link', 'paypal', 'amazon_pay', 'card' ].includes( type )
-	);
+export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
+	const expressPaymentMethodTypes = getPaymentMethodTypes(
+		paymentMethodType
+	).filter( ( type ) => [ 'paypal', 'amazon_pay', 'card' ].includes( type ) );
+
+	if ( isLinkEnabled() ) {
+		expressPaymentMethodTypes.push( 'link' );
+	}
+
+	return expressPaymentMethodTypes;
+};
 
 /**
  * Fetches the payment method types required to process a payment for an Express method.
@@ -300,3 +306,4 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 
 	return paymentMethodTypes;
 };
+
