@@ -118,5 +118,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
 * Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
 * Fix - Fix payment methods count on settings page.
+* Update - Improve Express Payment button previews on the edit Block checkout and Cart pages for Google Pay and Apple Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
