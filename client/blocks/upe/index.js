@@ -11,6 +11,7 @@ import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
 	expressCheckoutElementsGooglePay,
 	expressCheckoutElementsApplePay,
+	expressCheckoutElementsStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
@@ -97,6 +98,7 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
 	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementsStripeLink( api ) );
 } else {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
