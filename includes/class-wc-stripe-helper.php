@@ -758,8 +758,7 @@ class WC_Stripe_Helper {
 	public static function get_upe_settings_enabled_payment_method_ids( $gateway ) {
 		$enabled_gateways = $gateway->get_upe_enabled_payment_method_ids();
 
-		// Remove link from the list as it's an express payment method.
-		return array_diff( $enabled_gateways, [ WC_Stripe_Payment_Methods::LINK ] );
+		return $enabled_gateways;
 	}
 
 	/**
