@@ -62,4 +62,34 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 	},
 } );
 
-export { expressCheckoutElementsGooglePay, expressCheckoutElementsApplePay };
+const expressCheckoutElementsStripeLink = ( api ) => ( {
+	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_link',
+	content: (
+		<ExpressCheckoutContainer
+			api={ api }
+			stripe={ stripePromise }
+			expressPaymentMethod="link"
+		/>
+	),
+	edit: <GooglePayPreview />,
+	canMakePayment: ( { cart } ) => {
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
+		return new Promise( ( resolve ) => {
+			checkPaymentMethodIsAvailable( 'link', api, cart, resolve );
+		} );
+	},
+	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+	supports: {
+		features: getBlocksConfiguration()?.supports ?? [],
+	},
+} );
+
+export {
+	expressCheckoutElementsGooglePay,
+	expressCheckoutElementsApplePay,
+	expressCheckoutElementsStripeLink,
+};
