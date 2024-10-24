@@ -968,6 +968,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+
+			if ($token === null) {
+				$order->update_status( 'failed' );
+
+				return [
+					'result'   => 'fail',
+					'redirect' => '',
+				];
+			}
+
 			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method );
 
