@@ -263,17 +263,10 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
  * @param {string} paymentMethodType Payment method type Stripe ID.
  * @return {Array} Array of payment method types to use with intent, for Express Checkout.
  */
-export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
-	const expressPaymentMethodTypes = getPaymentMethodTypes(
-		paymentMethodType
-	).filter( ( type ) => [ 'paypal', 'amazon_pay', 'card' ].includes( type ) );
-
-	if ( isLinkEnabled() ) {
-		expressPaymentMethodTypes.push( 'link' );
-	}
-
-	return expressPaymentMethodTypes;
-};
+export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
+	getPaymentMethodTypes( paymentMethodType ).filter( ( type ) =>
+		[ 'link', 'paypal', 'amazon_pay', 'card' ].includes( type )
+	);
 
 /**
  * Fetches the payment method types required to process a payment for an Express method.
