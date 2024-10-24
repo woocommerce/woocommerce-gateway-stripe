@@ -1,6 +1,6 @@
 import classNames from 'classnames';
-import googlePayIcon from '../../../payment-method-icons/google-pay/white-icon.svg';
-import applePayIcon from '../../../payment-method-icons/apple-pay/white-icon.svg';
+import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
+import applePayIcon from '../../../payment-method-icons/apple-pay/icon-white.svg';
 import './style.scss';
 
 /**
