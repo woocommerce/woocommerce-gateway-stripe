@@ -290,7 +290,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				);
 			}
 
-			$redirect           = $subscription->get_view_order_url();
+			$redirect           = $this->get_return_url( $subscription );
 			$new_payment_method = $this->get_upe_gateway_id_for_order( $upe_payment_method );
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
