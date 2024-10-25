@@ -220,6 +220,8 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  * @return {boolean} True, if enabled; false otherwise.
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
+	paymentMethodsConfig =
+		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
 	return (
 		paymentMethodsConfig?.link !== undefined &&
 		paymentMethodsConfig?.card !== undefined
