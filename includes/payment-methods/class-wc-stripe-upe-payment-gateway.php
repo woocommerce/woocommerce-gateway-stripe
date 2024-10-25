@@ -2561,12 +2561,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		} elseif ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Wallet payment method types (CashApp/WeChat Pay), redirect the customer to a URL hash formatted #wc-stripe-wallet-{order_id}:{payment_method_type}:{payment_intent_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the modal.
 			return sprintf(
-				'#wc-stripe-wallet-%s:%s:%s:%s:%s',
+				'#wc-stripe-wallet-%s:%s:%s:%s:%s:%s',
 				$order->get_id(),
 				$payment_information['selected_payment_type'],
 				$payment_intent->object,
 				$payment_intent->client_secret,
-				rawurlencode( $return_url )
+				rawurlencode( $return_url ),
+				wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 			);
 		} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
 			return $payment_intent->next_action->{$payment_intent->next_action->type}->url;
