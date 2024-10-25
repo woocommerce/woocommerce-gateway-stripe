@@ -1,4 +1,5 @@
 /* global wc_stripe_express_checkout_params */
+import jQuery from 'jquery';
 import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
@@ -305,4 +306,37 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	}
 
 	return paymentMethodTypes;
+};
+
+export const displayExpressCheckoutNotice = (
+	message,
+	type,
+	additionalClasses
+) => {
+	let classNames = [ `woocommerce-${ type }` ];
+	if ( additionalClasses ) {
+		classNames = classNames.concat( additionalClasses );
+	}
+	jQuery( function ( $ ) {
+		$( '.' + classNames.join( '.' ) ).remove();
+
+		const $container = $( '.woocommerce-notices-wrapper' ).first();
+
+		if ( $container.length ) {
+			$container.append(
+				$( `<div class="${ classNames.join( ' ' ) }" />` ).text(
+					message
+				)
+			);
+
+			$( 'html, body' ).animate(
+				{
+					scrollTop: $container
+						.find( `.woocommerce-${ type }` )
+						.offset().top,
+				},
+				600
+			);
+		}
+	} );
 };
