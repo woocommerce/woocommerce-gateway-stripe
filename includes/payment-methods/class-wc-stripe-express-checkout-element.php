@@ -214,6 +214,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_product_page'    => $this->express_checkout_helper->is_product(),
 			'is_checkout_page'   => $this->express_checkout_helper->is_checkout(),
 			'product'            => $this->express_checkout_helper->get_product_data(),
+			'is_cart_page'       => is_cart(),
 		];
 	}
 
