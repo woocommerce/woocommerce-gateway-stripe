@@ -1086,7 +1086,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! function_exists( 'wcs_is_subscription' ) ) {
+			if ( ! function_exists( 'wcs_is_subscription' ) || ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
 				throw new WC_Stripe_Exception( 'subscriptions_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -1104,8 +1104,23 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$gateway = $this->get_upe_gateway();
-			$gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$notice  = __( 'Payment method updated.', 'woocommerce-gateway-stripe' );
 
+			// Manually update the payment method for the subscription now that we have confirmed the payment method.
+			WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
+
+			// Set the new Stripe payment method ID and customer ID on the subscription.
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$gateway->set_customer_id_for_order( $subscription, $customer->get_id() );
+			$gateway->set_payment_method_id_for_order( $subscription, $token->get_token() );
+
+			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
+			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
+				$notice  = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
+			}
+
+			wc_add_notice( $notice );
 			wp_send_json_success(
 				[
 					'return_url' => $subscription->get_view_order_url(),

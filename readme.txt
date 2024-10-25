@@ -122,5 +122,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add error logging in ECE critical Ajax requests.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
+* Fix - Prevent subscriptions from being marked as "Pending" when a customer attempts to change their payment method to a declining card.
+* Fix - Delay updating the subscription's payment method until after the intent is confirmed when using the new checkout experience.
+* Fix - Display a success notice to customers after successfully changing their subscription payment method to a card that required 3DS authentication.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
