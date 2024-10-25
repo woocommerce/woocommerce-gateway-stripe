@@ -1,0 +1,22 @@
+.wc-stripe-payment-button-preview {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	background-color: #000;
+	border-radius: 5px;
+	height: 40px;
+	img {
+		height: 22px;
+	}
+	&:hover {
+		cursor: pointer;
+		filter: opacity(0.7);
+	}
+	/* Stripe Link Overrides */
+	&.wc-stripe-link-preview {
+		background-color: #00d66f;
+		img {
+			height: 40px;
+		}
+	}
+}
