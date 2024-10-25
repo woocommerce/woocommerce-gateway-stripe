@@ -306,4 +306,3 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 
 	return paymentMethodTypes;
 };
-
