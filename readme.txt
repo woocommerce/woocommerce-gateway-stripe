@@ -120,6 +120,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
 * Fix - Fix payment methods count on settings page.
 * Tweak - Add error logging in ECE critical Ajax requests.
+* Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
