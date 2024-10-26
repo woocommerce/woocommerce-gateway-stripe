@@ -317,26 +317,24 @@ export const displayExpressCheckoutNotice = (
 	if ( additionalClasses ) {
 		classNames = classNames.concat( additionalClasses );
 	}
-	jQuery( function ( $ ) {
-		$( '.' + classNames.join( '.' ) ).remove();
 
-		const $container = $( '.woocommerce-notices-wrapper' ).first();
+	jQuery( '.' + classNames.join( '.' ) ).remove();
 
-		if ( $container.length ) {
-			$container.append(
-				$( `<div class="${ classNames.join( ' ' ) }" />` ).text(
-					message
-				)
-			);
+	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
 
-			$( 'html, body' ).animate(
-				{
-					scrollTop: $container
-						.find( `.woocommerce-${ type }` )
-						.offset().top,
-				},
-				600
-			);
-		}
-	} );
+	if ( $container.length ) {
+		$container.append(
+			jQuery(
+				`<div class="${ classNames.join( ' ' ) }" role="note" />`
+			).text( message )
+		);
+
+		jQuery( 'html, body' ).animate(
+			{
+				scrollTop: $container.find( `.woocommerce-${ type }` ).offset()
+					.top,
+			},
+			600
+		);
+	}
 };
