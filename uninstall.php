@@ -117,4 +117,5 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	// Feature flags
 	delete_option( '_wcstripe_feature_upe' );
 	delete_option( 'upe_checkout_experience_accepted_payments' );
+	delete_option( '_wcstripe_feature_ece' );
 }
