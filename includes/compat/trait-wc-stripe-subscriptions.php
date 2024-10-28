@@ -91,6 +91,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// Disable editing for Indian subscriptions with mandates. Those need to be recreated as mandates does not support upgrades (due fixed amounts).
 		add_filter( 'wc_order_is_editable', [ $this, 'disable_subscription_edit_for_india' ], 10, 2 );
+
+		add_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10, 3 );
 	}
 
 	/**
@@ -241,6 +243,103 @@ trait WC_Stripe_Subscriptions_Trait {
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Process the payment method change with deferred intent.
+	 *
+	 * @param int $subscription_id
+	 *
+	 * @return array
+	 */
+	public function process_change_subscription_payment_with_deferred_intent( $subscription_id ) {
+		$subscription = wcs_get_subscription( $subscription_id );
+
+		if ( ! $subscription ) {
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
+		}
+
+		try {
+			$payment_information = $this->prepare_payment_information_from_request( $subscription );
+
+			$this->validate_selected_payment_method_type( $payment_information, $subscription->get_billing_country() );
+
+			$payment_method_id     = $payment_information['payment_method'];
+			$selected_payment_type = $payment_information['selected_payment_type'];
+			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
+
+			// Retrieve the payment method object from Stripe.
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			// Throw an exception when the payment method is a prepaid card and it's disallowed.
+			$this->maybe_disallow_prepaid_card( $payment_method );
+
+			// Create a setup intent, or update an existing one associated with the order.
+			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
+
+			// Handle saving the payment method in the store.
+			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+				$this->handle_saving_payment_method(
+					$subscription,
+					$payment_information['payment_method_details'],
+					$selected_payment_type
+				);
+			}
+
+			$redirect           = $this->get_return_url( $subscription );
+			$new_payment_method = $this->get_upe_gateway_id_for_order( $upe_payment_method );
+
+			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
+			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
+				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
+					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
+					$subscription->save();
+				}
+
+				wp_safe_redirect( $this->get_redirect_url( $redirect, $payment_intent, $payment_information, $subscription, false ) );
+				exit;
+			} else {
+				// Update the payment method for the subscription.
+				WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $new_payment_method );
+
+				// Attach the new payment method ID and the customer ID to the subscription on success.
+				$this->set_payment_method_id_for_order( $subscription, $payment_method_id );
+				$this->set_customer_id_for_order( $subscription, $payment_information['customer'] );
+
+				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
+				do_action(
+					'wc_stripe_change_subs_payment_method_success',
+					$payment_information['payment_method'],
+					(object) [
+						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
+						'customer'       => $payment_information['customer'],
+						'source'         => null,
+						'source_object'  => $payment_method,
+						'payment_method' => $payment_information['payment_method'],
+					]
+				);
+
+				// Because this new payment does not require action/confirmation, remove this filter so that WC_Subscriptions_Change_Payment_Gateway proceeds to update all subscriptions if flagged.
+				remove_filter( 'woocommerce_subscriptions_update_payment_via_pay_shortcode', [ $this, 'update_payment_after_deferred_intent' ], 10 );
+			}
+
+			return [
+				'result'   => 'success',
+				'redirect' => $redirect,
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+			];
 		}
 	}
 
@@ -1058,5 +1157,25 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return $editable;
+	}
+
+	/**
+	 * When handling a subscription change payment method request with deferred intents,
+	 * don't immediately update the subscription's payment method to Stripe until we've created and confirmed the setup intent.
+	 *
+	 * For purchases with a 3DS card specifically, we don't want to update the payment method on the subscription until after the customer has authenticated.
+	 *
+	 * @param bool            $update_payment_method Whether to update the payment method.
+	 * @param string          $new_payment_method    The new payment method.
+	 * @param WC_Subscription $subscription          The subscription.
+	 *
+	 * @return bool
+	 */
+	public function update_payment_after_deferred_intent( $update_payment_method, $new_payment_method, $subscription ) {
+		if ( ! $this->is_changing_payment_method_for_subscription() || $new_payment_method !== $this->id || empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+			return $update_payment_method;
+		}
+
+		return false;
 	}
 }
