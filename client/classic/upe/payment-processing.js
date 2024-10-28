@@ -405,6 +405,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  */
 export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	const isOrderPay = getStripeServerData()?.isOrderPay;
+	const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
@@ -412,7 +413,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const partials = window.location.href.match(
-		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+)$/
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+):(.+)$/
 	);
 
 	if ( ! partials ) {
@@ -495,7 +496,27 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( intentObject.status !== 'requires_action' ) {
-			window.location.href = returnURL;
+			if ( ! isChangingPayment ) {
+				window.location.href = returnURL;
+			}
+
+			// If we're changing a subscription's payment method, there's an extra step needed.
+			// We need to confirm the change payment intent via the confirm_change_payment AJAX request and then redirect to the return URL.
+			const response = await api.request(
+				api.getAjaxUrl( 'confirm_change_payment' ),
+				{
+					order_id: orderId,
+					intent_id: intentObject.id,
+					payment_method_id: intentObject.payment_method || null,
+					_ajax_nonce: partials[ 6 ],
+				}
+			);
+
+			if ( response.success ) {
+				window.location.href = response.data.return_url;
+			} else {
+				throw new Error( response.data.error.message );
+			}
 		}
 	} catch ( error ) {
 		showErrorCheckout( error.message );
