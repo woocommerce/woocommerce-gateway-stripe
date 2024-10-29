@@ -3,6 +3,7 @@
 = 8.9.0 - xxxx-xx-xx =
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
+* Fix - Fix ECE error when initial address on load is not defined as a shipping zone.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
