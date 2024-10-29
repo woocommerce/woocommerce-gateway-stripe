@@ -97,18 +97,7 @@ jQuery( function ( $ ) {
 				}
 
 				if ( getExpressCheckoutData( 'is_product_page' ) ) {
-					// Despite the name of the property, this seems to be just a single option that's not in an array.
-					const {
-						shippingOptions: shippingOption,
-					} = getExpressCheckoutData( 'product' );
-
-					return [
-						{
-							id: shippingOption.id,
-							amount: shippingOption.amount,
-							displayName: shippingOption.label,
-						},
-					];
+					return getExpressCheckoutData( 'product' )?.shippingOptions;
 				}
 
 				return options.displayItems
