@@ -45,8 +45,9 @@ export const useExpressCheckout = ( {
 	const onButtonClick = useCallback(
 		( event ) => {
 			const getShippingRates = () => {
-				// shippingRates will only be populated when the Apple Pay/Google Pay address (default or selected)
-				// is defined as a shipping zone in WooCommerce.
+				// shippingData.shippingRates[ 0 ].shipping_rates will be non-empty
+				// only when the express checkout element's default shipping address
+				// has a shipping method defined in WooCommerce.
 				if (
 					shippingData?.shippingRates[ 0 ]?.shipping_rates?.length > 0
 				) {
@@ -61,8 +62,8 @@ export const useExpressCheckout = ( {
 					);
 				}
 
-				// Return a default shipping option as a non-empty shippingRates array is
-				// required when shippingAddressRequired is true.
+				// Return a default shipping option, as a non-empty shippingRates array
+				// is required when shippingAddressRequired is true.
 				return [
 					getExpressCheckoutData( 'checkout' )
 						?.default_shipping_option,
