@@ -67,4 +67,27 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 	}
+
+	/**
+	 * Test for get_checkout_data().
+	 */
+	public function test_get_checkout_data() {
+		// Local setup
+		update_option( 'woocommerce_checkout_phone_field', 'optional' );
+		update_option( 'woocommerce_default_country', 'US' );
+		update_option( 'woocommerce_currency', 'USD' );
+		WC()->cart->empty_cart();
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
+
+		$this->assertNotEmpty( $checkout_data['url'] );
+		$this->assertEquals( 'usd', $checkout_data['currency_code'] );
+		$this->assertEquals( 'US', $checkout_data['country_code'] );
+		$this->assertEquals( 'no', $checkout_data['needs_shipping'] );
+		$this->assertFalse( $checkout_data['needs_payer_phone'] );
+		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
+		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+	}
 }
