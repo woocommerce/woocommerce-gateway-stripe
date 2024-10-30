@@ -113,6 +113,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 8.9.0 - xxxx-xx-xx =
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
+* Fix - Check if taxes are enabled when applying ECE tax compatibility check.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
