@@ -25,6 +25,10 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 	),
 	edit: <GooglePayPreview />,
 	canMakePayment: ( { cart } ) => {
+		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
+			return false;
+		}
+
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
@@ -53,6 +57,10 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 	),
 	edit: <ApplePayPreview />,
 	canMakePayment: ( { cart } ) => {
+		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
+			return false;
+		}
+
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
@@ -80,6 +88,10 @@ const expressCheckoutElementsStripeLink = ( api ) => ( {
 	),
 	edit: <StripeLinkPreview />,
 	canMakePayment: ( { cart } ) => {
+		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
+			return false;
+		}
+
 		// eslint-disable-next-line camelcase
 		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
 			return false;
