@@ -168,11 +168,6 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return array  The settings used for the Stripe express checkout element in JavaScript.
 	 */
 	public function javascript_params() {
-		$needs_shipping = 'no';
-		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
-			$needs_shipping = 'yes';
-		}
-
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
@@ -199,14 +194,7 @@ class WC_Stripe_Express_Checkout_Element {
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			],
-			'checkout'           => [
-				'url'               => wc_get_checkout_url(),
-				'currency_code'     => strtolower( get_woocommerce_currency() ),
-				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping'    => $needs_shipping,
-				// Defaults to 'required' to match how core initializes this option.
-				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
-			],
+			'checkout'           => $this->express_checkout_helper->get_checkout_data(),
 			'button'             => $this->express_checkout_helper->get_button_settings(),
 			'is_pay_for_order'   => $this->express_checkout_helper->is_pay_for_order_page(),
 			'has_block'          => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),

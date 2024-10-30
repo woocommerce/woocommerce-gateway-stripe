@@ -44,6 +44,32 @@ export const useExpressCheckout = ( {
 
 	const onButtonClick = useCallback(
 		( event ) => {
+			const getShippingRates = () => {
+				// shippingData.shippingRates[ 0 ].shipping_rates will be non-empty
+				// only when the express checkout element's default shipping address
+				// has a shipping method defined in WooCommerce.
+				if (
+					shippingData?.shippingRates[ 0 ]?.shipping_rates?.length > 0
+				) {
+					return shippingData.shippingRates[ 0 ].shipping_rates.map(
+						( r ) => {
+							return {
+								id: r.rate_id,
+								amount: parseInt( r.price, 10 ),
+								displayName: r.name,
+							};
+						}
+					);
+				}
+
+				// Return a default shipping option, as a non-empty shippingRates array
+				// is required when shippingAddressRequired is true.
+				return [
+					getExpressCheckoutData( 'checkout' )
+						?.default_shipping_option,
+				];
+			};
+
 			const options = {
 				lineItems: normalizeLineItems( billing?.cartTotalItems ),
 				emailRequired: true,
@@ -51,15 +77,7 @@ export const useExpressCheckout = ( {
 				phoneNumberRequired:
 					getExpressCheckoutData( 'checkout' )?.needs_payer_phone ??
 					false,
-				shippingRates: shippingData?.shippingRates[ 0 ]?.shipping_rates?.map(
-					( r ) => {
-						return {
-							id: r.rate_id,
-							amount: parseInt( r.price, 10 ),
-							displayName: r.name,
-						};
-					}
-				),
+				shippingRates: getShippingRates(),
 			};
 
 			// Click event from WC Blocks.
