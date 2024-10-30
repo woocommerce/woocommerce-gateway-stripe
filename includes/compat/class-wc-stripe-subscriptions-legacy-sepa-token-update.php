@@ -131,6 +131,11 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 		// Retrieve the source object from the API.
 		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
+		// Bail out (with no error), if the source object isn't expected to be migrated. eg Card sources are not migrated.
+		if ( isset( $source_object->type ) && 'card' === $source_object->type ) {
+			return;
+		}
+
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
 			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
