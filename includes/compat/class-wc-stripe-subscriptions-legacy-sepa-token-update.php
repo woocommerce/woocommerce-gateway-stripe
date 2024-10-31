@@ -40,12 +40,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	const SOURCE_ID_META_KEY = '_stripe_source_id';
 
 	/**
-	 * Exception code used when the migration of a subscription is skipped.
+	 * Exception code used when the migration of a subscription is skipped because the source is a card.
 	 */
 	const CARD_SKIPPED_CODE = 1;
 
 	/**
-	 * Exception code used when the migration of a subscription is skipped.
+	 * Exception code used when the migration of a subscription is skipped because the source hasn't been migrated to a payment method yet.
 	 */
 	const NOT_MIGRATED_YET_CODE = 2;
 
