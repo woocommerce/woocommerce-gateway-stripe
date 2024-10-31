@@ -175,6 +175,7 @@ jQuery( function ( $ ) {
 						'info',
 						[ 'ece-taxes-info' ]
 					);
+					// Wait for the notice to be displayed before proceeding.
 					await new Promise( ( resolve ) =>
 						setTimeout( resolve, 700 )
 					);
