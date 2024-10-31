@@ -40,16 +40,6 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	const SOURCE_ID_META_KEY = '_stripe_source_id';
 
 	/**
-	 * Exception code used when the migration of a subscription is skipped because the source is a card.
-	 */
-	const CARD_SKIPPED_CODE = 1;
-
-	/**
-	 * Exception code used when the migration of a subscription is skipped because the source hasn't been migrated to a payment method yet.
-	 */
-	const NOT_MIGRATED_YET_CODE = 2;
-
-	/**
 	 * Gateway ID for the Updated SEPA payment method.
 	 *
 	 * @var string
@@ -139,12 +129,12 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out, if the source object isn't expected to be migrated. eg Card sources are not migrated.
 		if ( isset( $source_object->type ) && 'card' === $source_object->type ) {
-			throw new \Exception( sprintf( 'Skipping migration of subscription #%d. Source is a card.', $subscription->get_id() ), self::CARD_SKIPPED_CODE );
+			throw new \Exception( sprintf( 'Skipping migration of subscription #%d. Source is a card.', $subscription->get_id() ) );
 		}
 
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
-			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ), self::NOT_MIGRATED_YET_CODE );
+			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
 		}
 
 		// Get the payment method ID that was migrated from the source.
