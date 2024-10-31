@@ -114,6 +114,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Display a notice if taxes vary by customer's shipping address when checking out using the Stripe Express Checkout Element.
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
+* Fix - Check if taxes are enabled when applying ECE tax compatibility check.
+* Fix - Fix ECE error when initial address on load is not defined as a shipping zone.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
