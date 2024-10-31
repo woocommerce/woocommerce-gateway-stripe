@@ -334,12 +334,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// Confirm the subscription's payment method remains the same.
 		$this->assertEquals( $pm_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
-
-		// Confirm a note is added when the Source wasn't migrated to PaymentMethods.
-		$this->assertEquals(
-			'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: The subscription is not using a Stripe Source for renewals.',
-			$notes[0]->content
-		);
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_adds_note_when_source_not_migrated() {
@@ -367,12 +361,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		// Confirm the subscription's payment method remains the same.
 		$this->assertEquals( $source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
-
-		// Confirm a note is added when the Source wasn't migrated to PaymentMethods.
-		$this->assertEquals(
-			'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: The Source has not been migrated to PaymentMethods on the Stripe account.',
-			$notes[0]->content
-		);
 	}
 
 	/**

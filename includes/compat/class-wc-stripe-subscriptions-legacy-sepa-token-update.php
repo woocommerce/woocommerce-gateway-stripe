@@ -129,7 +129,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out, if the source object isn't expected to be migrated. eg Card sources are not migrated.
 		if ( isset( $source_object->type ) && 'card' === $source_object->type ) {
-			throw new \Exception( sprintf( 'Skipping migration of subscription #%d. Source is a card.', $subscription->get_id() ) );
+			throw new \Exception( sprintf( 'Skipping migration of Source for subscription #%d. Source is a card.', $subscription->get_id() ) );
 		}
 
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
