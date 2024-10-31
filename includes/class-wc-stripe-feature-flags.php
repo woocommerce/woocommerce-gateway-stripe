@@ -50,11 +50,11 @@ class WC_Stripe_Feature_Flags {
 
 
 	/**
-	 * Checks if the APMs are deprecated. Stripe deprecated them by October 31, 2024 (for the legacy checkout).
+	 * Checks if the APMs are deprecated. Stripe deprecated them on October 29, 2024 (for the legacy checkout).
 	 *
 	 * @return bool Whether the APMs are deprecated.
 	 */
 	public static function are_apms_deprecated() {
-		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-29' && ! self::is_upe_checkout_enabled();
+		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-28' && ! self::is_upe_checkout_enabled();
 	}
 }
