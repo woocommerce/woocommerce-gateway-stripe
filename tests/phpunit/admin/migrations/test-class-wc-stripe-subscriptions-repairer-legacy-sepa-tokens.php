@@ -328,9 +328,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$this->updater->maybe_migrate_before_renewal( $subscription_id );
 
 		$subscription = new WC_Subscription( $subscription_id );
-		$notes        = wc_get_order_notes(
-			[ 'order_id' => $subscription_id ]
-		);
 
 		// Confirm the subscription's payment method remains the same.
 		$this->assertEquals( $pm_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
@@ -355,9 +352,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 		$this->updater->maybe_migrate_before_renewal( $subscription_id );
 
 		$subscription = new WC_Subscription( $subscription_id );
-		$notes        = wc_get_order_notes(
-			[ 'order_id' => $subscription_id ]
-		);
 
 		// Confirm the subscription's payment method remains the same.
 		$this->assertEquals( $source_id, $subscription->get_meta( self::SOURCE_ID_META_KEY ) );
