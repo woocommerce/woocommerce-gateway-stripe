@@ -1,4 +1,5 @@
 import { useCallback } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { useStripe, useElements } from '@stripe/react-stripe-js';
 import {
 	onAbortPaymentHandler,
@@ -8,6 +9,7 @@ import {
 	onConfirmHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import {
+	displayExpressCheckoutNotice,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -43,7 +45,7 @@ export const useExpressCheckout = ( {
 	};
 
 	const onButtonClick = useCallback(
-		( event ) => {
+		async ( event ) => {
 			const options = {
 				lineItems: normalizeLineItems( billing?.cartTotalItems ),
 				emailRequired: true,
@@ -64,6 +66,20 @@ export const useExpressCheckout = ( {
 
 			// Click event from WC Blocks.
 			onClick();
+
+			if ( getExpressCheckoutData( 'taxes_based_on_billing' ) ) {
+				displayExpressCheckoutNotice(
+					__(
+						'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
+						'woocommerce-gateway-stripe'
+					),
+					'info',
+					[ 'ece-taxes-info' ]
+				);
+				// Wait for the notice to be displayed before proceeding.
+				await new Promise( ( resolve ) => setTimeout( resolve, 700 ) );
+			}
+
 			// Global click event handler to ECE.
 			onClickHandler( event );
 			event.resolve( options );
