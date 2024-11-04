@@ -2,6 +2,7 @@
 import jQuery from 'jquery';
 import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 
 export * from './normalize';
 
@@ -354,4 +355,15 @@ export const displayExpressCheckoutNotice = (
 			600
 		);
 	}
+};
+
+/**
+ * Delay for a short period of time before proceeding with the checkout process.
+ *
+ * @return {Promise<void>} A promise that resolves after the delay.
+ */
+export const expressCheckoutNoticeDelay = async () => {
+	await new Promise( ( resolve ) =>
+		setTimeout( resolve, EXPRESS_CHECKOUT_NOTICE_DELAY )
+	);
 };
