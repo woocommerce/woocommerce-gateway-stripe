@@ -11,6 +11,7 @@ import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
+import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
@@ -263,6 +264,13 @@ const PaymentRequestsSettingsSection = () => {
 					<Elements stripe={ stripePromise }>
 						<PaymentRequestButtonPreview />
 					</Elements>
+
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						buttonType={ buttonType }
+						theme={ theme }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>
