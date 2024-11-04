@@ -1,7 +1,7 @@
 /* global wc_stripe_payment_request_settings_params */
 
 import { __ } from '@wordpress/i18n';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
@@ -13,17 +13,16 @@ const buttonSizeToPxMap = {
 	large: 56,
 };
 
-/* eslint-disable camelcase */
-const stripePromise = loadStripe(
-	wc_stripe_payment_request_settings_params.key,
-	{
-		locale: wc_stripe_payment_request_settings_params.locale,
-	}
-);
-/* eslint-enable camelcase */
-
 const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 	const [ canRenderButtons, setCanRenderButtons ] = useState( true );
+
+	/* eslint-disable camelcase */
+	const stripePromise = useMemo( () => {
+		return loadStripe( wc_stripe_payment_request_settings_params.key, {
+			locale: wc_stripe_payment_request_settings_params.locale,
+		} );
+	}, [] );
+	/* eslint-enable camelcase */
 
 	const options = {
 		mode: 'payment',
