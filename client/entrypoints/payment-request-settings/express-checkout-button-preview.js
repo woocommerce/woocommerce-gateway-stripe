@@ -17,7 +17,7 @@ const buttonSizeToPxMap = {
 const stripePromise = loadStripe(
 	wc_stripe_payment_request_settings_params.key,
 	{
-		locale: wc_stripe_payment_request_settings_params.stripe_locale,
+		locale: wc_stripe_payment_request_settings_params.locale,
 	}
 );
 /* eslint-enable camelcase */
