@@ -203,7 +203,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_checkout_page'       => $this->express_checkout_helper->is_checkout(),
 			'product'                => $this->express_checkout_helper->get_product_data(),
 			'is_cart_page'           => is_cart(),
-			'taxes_based_on_billing' => get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 		];
 	}
 
