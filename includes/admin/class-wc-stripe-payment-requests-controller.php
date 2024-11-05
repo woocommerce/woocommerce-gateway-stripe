@@ -40,7 +40,7 @@ class WC_Stripe_Payment_Requests_Controller {
 		wp_enqueue_script( 'wc-stripe-payment-request-settings' );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$params = [
+		$params          = [
 			'key'            => 'yes' === $stripe_settings['testmode'] ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
 			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 			'is_ece_enabled' => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
