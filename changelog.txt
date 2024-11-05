@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Check if taxes are enabled when applying ECE tax compatibility check.
@@ -15,6 +16,7 @@
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 * Add - Show ECE button preview on settings page.
+* Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 
 = 8.8.1 - 2024-10-28 =
 * Tweak - Disables APMs when using the legacy checkout experience due Stripe deprecation by October 29, 2024.

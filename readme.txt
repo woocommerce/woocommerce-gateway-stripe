@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Check if taxes are enabled when applying ECE tax compatibility check.
@@ -125,5 +126,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 * Add - Show ECE button preview on settings page.
+* Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
