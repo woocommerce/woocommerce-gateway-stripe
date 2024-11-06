@@ -6,6 +6,7 @@ const { setupShortcodeCheckout, fillCreditCardDetailsShortcode } = payments;
 
 let productId;
 let username, userEmail;
+test.slow(); // Make sure test has enough time to complete.
 
 test.beforeAll( async () => {
 	// This allow multiple tests to run in parallel.
