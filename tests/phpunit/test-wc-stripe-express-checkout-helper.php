@@ -54,6 +54,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Gateway_Stripe(),
+		];
 
 		// Create virtual product and add to cart.
 		$virtual_product = WC_Helper_Product::create_simple_product();
@@ -85,6 +89,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$shippable_product = WC_Helper_Product::create_simple_product();
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
 	}
 
 	/**
@@ -108,6 +115,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
 
 		// Hide if 'stripe' gateway is unavailable.
 		update_option( 'woocommerce_calc_taxes', 'no' );
@@ -119,6 +127,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
 		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
 	}
 
 	/**
