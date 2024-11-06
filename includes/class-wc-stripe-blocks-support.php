@@ -222,6 +222,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				return false;
 			}
 
+			$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+			if ( ! isset( $available_gateways['stripe'] ) ) {
+				return false;
+			}
+
 			// Don't show if PRBs are supposed to be hidden on the cart page.
 			if (
 				has_block( 'woocommerce/cart' )
