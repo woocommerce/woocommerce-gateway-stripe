@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Hide express checkout when credit card payments are not enabled.
 * Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
 * Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
