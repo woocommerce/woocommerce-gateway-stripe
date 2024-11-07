@@ -111,8 +111,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
+* Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
 * Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
+* Fix - Check if taxes are enabled when applying ECE tax compatibility check.
+* Fix - Fix ECE error when initial address on load is not defined as a shipping zone.
 * Fix - Corrected card brand capitalization on the My Account → Subscription page.
 * Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
 * Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
@@ -123,5 +127,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 * Tweak - Do not load ECE button if the total amount is 0.
+* Add - Show ECE button preview on settings page.
+* Tweak - Remove the subscription order notes added each time a source wasn't migrated.
+* Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.
+* Dev - Refactor lock_order_payment() to use order meta instead of transients.
+* Update - Process successful payment intent webhooks asynchronously.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
