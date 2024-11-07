@@ -1672,17 +1672,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
-		$order_id       = $order->get_id();
-		$transient_name = 'wc_stripe_processing_intent_' . $order_id;
-		$processing     = get_transient( $transient_name );
+		$order->read_meta_data( true );
 
-		// Block the process if the same intent is already being handled.
-		if ( '-1' === $processing || ( isset( $intent->id ) && $processing === $intent->id ) ) {
-			return true;
+		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
+
+		if ( $existing_lock ) {
+			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
+			$expiration    = (int) $parts[0];
+			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+				return true;
+			}
 		}
 
-		// Save the new intent as a transient, eventually overwriting another one.
-		set_transient( $transient_name, empty( $intent ) ? '-1' : $intent->id, 5 * MINUTE_IN_SECONDS );
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
 
 		return false;
 	}
@@ -1694,8 +1702,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		$order_id = $order->get_id();
-		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
 	}
 
 	/**

@@ -1768,7 +1768,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
+
+		$order = wc_get_order( $order_id );
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -1799,7 +1802,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'create_and_confirm_intent_for_off_session' )
 			->with(
-				wc_get_order( $order_id ),
+				$order,
 				$prepared_source,
 				$amount
 			)
@@ -1820,7 +1823,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		$this->mock_gateway->process_subscription_payment( $amount, wc_get_order( $order_id ), false, false );
+		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
 
 		$final_order = wc_get_order( $order_id );
 		$note        = wc_get_order_notes(
@@ -1859,7 +1862,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
+
+		$order = wc_get_order( $order_id );
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -1898,7 +1904,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'create_and_confirm_intent_for_off_session' )
 			->with(
-				wc_get_order( $order_id ),
+				$order,
 				$prepared_source,
 				$amount
 			)
@@ -1919,7 +1925,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( $this->array_to_object( $charge ) );
 
-		$this->mock_gateway->process_subscription_payment( $amount, wc_get_order( $order_id ), false, false );
+		$this->mock_gateway->process_subscription_payment( $amount, $order, false, false );
 
 		$final_order = wc_get_order( $order_id );
 		$note        = wc_get_order_notes(

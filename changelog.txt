@@ -20,6 +20,11 @@
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 * Tweak - Update links to plugin documentation and Stripe documentation.
 
+= 8.8.2 - 2024-11-07 =
+* Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.
+* Dev - Refactor lock_order_payment() to use order meta instead of transients.
+* Update - Process successful payment intent webhooks asynchronously.
+
 = 8.8.1 - 2024-10-28 =
 * Tweak - Disables APMs when using the legacy checkout experience due Stripe deprecation by October 29, 2024.
 * Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
