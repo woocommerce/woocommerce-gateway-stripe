@@ -18,6 +18,8 @@
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 * Add - Show ECE button preview on settings page.
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
+* Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.
+* Dev - Refactor lock_order_payment() to use order meta instead of transients.
 * Update - Process successful payment intent webhooks asynchronously.
 
 = 8.8.1 - 2024-10-28 =

@@ -625,4 +625,51 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Card brands that WC core doesn't recognize will be displayed as ucwords.
 		$this->assertEquals( 'Via Dummy card ending in 0000', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
 	}
+
+	/**
+	 * Tests for `lock_order_payment` method.
+	 */
+	public function test_lock_order_payment() {
+		$order_1 = WC_Helper_Order::create_order();
+		$locked  = $this->gateway->lock_order_payment( $order_1 );
+
+		$this->assertFalse( $locked );
+		$current_lock = $order_1->get_meta( '_stripe_lock_payment' );
+		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
+
+		$locked = $this->gateway->lock_order_payment( $order_1 );
+		$this->assertTrue( $locked );
+
+		// lock with an intent ID.
+		$order_2   = WC_Helper_Order::create_order();
+		$intent_id = 'pi_123intent';
+
+		$locked       = $this->gateway->lock_order_payment( $order_2, $intent_id );
+		$current_lock = $order_2->get_meta( '_stripe_lock_payment' );
+
+		$this->assertFalse( $locked );
+		$locked = $this->gateway->lock_order_payment( $order_2, $intent_id );
+		$this->assertTrue( $locked );
+		$locked = $this->gateway->lock_order_payment( $order_2 ); // test that you don't need to pass the intent ID to check lock.
+		$this->assertTrue( $locked );
+
+		// test expired locks.
+		$order_3 = WC_Helper_Order::create_order();
+		$order_3->update_meta_data( '_stripe_lock_payment', time() - 1 );
+		$order_3->save_meta_data();
+
+		$locked       = $this->gateway->lock_order_payment( $order_3, $intent_id );
+		$current_lock = $order_3->get_meta( '_stripe_lock_payment' );
+
+		$this->assertFalse( $locked );
+		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
+
+		// test two instances of the same order, one locked and one not.
+		$order_4   = WC_Helper_Order::create_order();
+		$dup_order = wc_get_order( $order_4->get_id() );
+
+		$this->gateway->lock_order_payment( $order_4 );
+		$dup_locked = $this->gateway->lock_order_payment( $dup_order );
+		$this->assertTrue( $dup_locked ); // Confirms lock from $order_4 prevents payment on $dup_order.
+	}
 }

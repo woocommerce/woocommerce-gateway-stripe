@@ -128,6 +128,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
 * Add - Show ECE button preview on settings page.
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
+* Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.
+* Dev - Refactor lock_order_payment() to use order meta instead of transients.
 * Update - Process successful payment intent webhooks asynchronously.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
