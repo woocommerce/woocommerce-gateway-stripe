@@ -4,7 +4,9 @@ import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
+	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
+	expressCheckoutNoticeDelay,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -147,11 +149,24 @@ jQuery( function ( $ ) {
 				);
 			} );
 
-			eceButton.on( 'click', function ( event ) {
+			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
 				if ( getExpressCheckoutData( 'login_confirmation' ) ) {
 					displayLoginConfirmation( event.expressPaymentType );
 					return;
+				}
+
+				if ( getExpressCheckoutData( 'taxes_based_on_billing' ) ) {
+					displayExpressCheckoutNotice(
+						__(
+							'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
+							'woocommerce-gateway-stripe'
+						),
+						'info',
+						[ 'ece-taxes-info' ]
+					);
+					// Wait for the notice to be displayed before proceeding.
+					await expressCheckoutNoticeDelay();
 				}
 
 				if ( getExpressCheckoutData( 'is_product_page' ) ) {
@@ -456,24 +471,7 @@ jQuery( function ( $ ) {
 			payment.paymentFailed( { reason: 'fail' } );
 			onAbortPaymentHandler( payment, message );
 
-			$( '.woocommerce-error' ).remove();
-
-			const $container = $( '.woocommerce-notices-wrapper' ).first();
-
-			if ( $container.length ) {
-				$container.append(
-					$( '<div class="woocommerce-error" />' ).text( message )
-				);
-
-				$( 'html, body' ).animate(
-					{
-						scrollTop: $container
-							.find( '.woocommerce-error' )
-							.offset().top,
-					},
-					600
-				);
-			}
+			displayExpressCheckoutNotice( message, 'error' );
 		},
 
 		attachProductPageEventListeners: ( elements ) => {

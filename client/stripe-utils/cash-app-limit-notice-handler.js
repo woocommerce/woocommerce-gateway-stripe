@@ -1,8 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
-
-/** The amount threshold for displaying the notice. */
-export const CASH_APP_NOTICE_AMOUNT_THRESHOLD = 200000;
+import { CASH_APP_NOTICE_AMOUNT_THRESHOLD } from 'wcstripe/data/constants';
 
 /** The class name for the limit notice element. */
 const LIMIT_NOTICE_CLASSNAME = 'wc-block-checkout__payment-method-limit-notice';
