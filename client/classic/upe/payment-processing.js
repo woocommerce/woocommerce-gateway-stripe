@@ -1,3 +1,4 @@
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
@@ -270,9 +271,19 @@ export const processPayment = (
 			if ( err.code === 'parameter_invalid_empty' ) {
 				const param = err.param.match( /country|postalCode/ );
 				if ( param ) {
-					errorMessage = `Missing required billing address field: ${ param[ 0 ] }.`;
+					errorMessage = sprintf(
+						/* translators: %s is an input field name */
+						__(
+							'Missing required billing address field: %s.',
+							'woocommerce-gateway-stripe'
+						),
+						param[ 0 ]
+					);
 				} else {
-					errorMessage = 'Missing required billing address field.';
+					errorMessage = __(
+						'Missing required billing address field.',
+						'woocommerce-gateway-stripe'
+					);
 				}
 			}
 			showErrorCheckout( errorMessage );
