@@ -22,6 +22,8 @@
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 * Tweak - Update ECE default button type.
 * Fix - Fix position of ECE button on shortcode cart page.
+* Fix - Call ECE specific 'paymentFailed' function only when payment request fails.
+* Fix - Fix issue in purchasing subscriptions when the store has no shipping options.
 
 = 8.8.2 - 2024-11-07 =
 * Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.

@@ -132,5 +132,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 * Tweak - Update ECE default button type.
 * Fix - Fix position of ECE button on shortcode cart page.
+* Fix - Call ECE specific 'paymentFailed' function only when payment request fails.
+* Fix - Fix issue in purchasing subscriptions when the store has no shipping options.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
