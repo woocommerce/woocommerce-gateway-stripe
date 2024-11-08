@@ -499,11 +499,6 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
-
-			// TODO: Remove when SEPA is migrated to payment intents.
-			if ( 'stripe_sepa' !== $this->id ) {
-				$this->unlock_order_payment( $renewal_order );
-			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
@@ -511,6 +506,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
+			$this->unlock_order_payment( $renewal_order );
+
 			return;
 		}
 
@@ -561,6 +558,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
+
+		$this->unlock_order_payment( $renewal_order );
 	}
 
 	/**
