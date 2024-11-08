@@ -3,11 +3,11 @@
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Helper.
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Express_Checkout_Helper
+ * @package WooCommerce_Stripe/Tests/WC_Stripe_Express_Checkout_Helper_Test
  */
 
 /**
- * WC_Stripe_Express_Checkout_Helper class.
+ * WC_Stripe_Express_Checkout_Helper_Test class.
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function set_up() {
@@ -54,6 +54,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Gateway_Stripe(),
+		];
 
 		// Create virtual product and add to cart.
 		$virtual_product = WC_Helper_Product::create_simple_product();
@@ -85,6 +89,47 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$shippable_product = WC_Helper_Product::create_simple_product();
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+	}
+
+	/**
+	 * Test should_show_express_checkout_button, gateway logic.
+	 */
+	public function test_hides_ece_if_stripe_gateway_unavailable() {
+		$wc_stripe_ece_helper_mock = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'is_product',
+				'allowed_items_in_cart',
+				'should_show_ece_on_cart_page',
+				'should_show_ece_on_checkout_page',
+			]
+		);
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->testmode = true;
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+		$original_gateways = WC()->payment_gateways()->payment_gateways;
+
+		// Hide if 'stripe' gateway is unavailable.
+		update_option( 'woocommerce_calc_taxes', 'no' );
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe'        => new WC_Gateway_Stripe(),
+			'stripe_alipay' => new WC_Gateway_Stripe_Alipay(),
+		];
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
+		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original gateways.
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
 	}
 
 	/**

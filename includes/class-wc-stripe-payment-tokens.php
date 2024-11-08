@@ -412,9 +412,28 @@ class WC_Stripe_Payment_Tokens {
 		$stripe_customer = new WC_Stripe_Customer( $token->get_user_id() );
 		try {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
-					$stripe_customer->detach_payment_method( $token->get_token() );
+				// If it's not reusable payment method, we don't need to perform any additional checks.
+				if ( ! in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+					return;
 				}
+
+				/**
+				 * 1. Check if it's live mode.
+				 * 2. Check if it's admin.
+				 * 3. Check if it's not production environment.
+				 * When all conditions are met, we don't want to delete the payment method from Stripe.
+				 * This is to avoid detaching the payment method from the live stripe account on non production environments.
+				 */
+				$settings = WC_Stripe_Helper::get_stripe_settings();
+				if (
+					'no' === $settings['testmode'] &&
+					is_admin() &&
+					'production' !== wp_get_environment_type()
+				) {
+					return;
+				}
+
+				$stripe_customer->detach_payment_method( $token->get_token() );
 			} else {
 				if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
 					$stripe_customer->delete_source( $token->get_token() );

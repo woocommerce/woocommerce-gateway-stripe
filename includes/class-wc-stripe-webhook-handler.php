@@ -942,7 +942,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					$this->process_response( $charge, $order );
 				} else {
-					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) webhook asynchronously for order $order_id. " );
+					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
 					// Schedule a job to check on the status of this intent.
 					$this->defer_webhook_processing(
