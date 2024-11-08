@@ -19,6 +19,8 @@
 * Tweak - Do not load ECE button if the total amount is 0.
 * Add - Show ECE button preview on settings page.
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
+* Tweak - Update ECE default button type.
+* Fix - Fix position of ECE button on shortcode cart page.
 
 = 8.8.2 - 2024-11-07 =
 * Fix - Prevent marking renewal orders as processing/completed multiple times due to handling the Stripe webhook in parallel.
