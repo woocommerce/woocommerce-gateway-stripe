@@ -67,10 +67,10 @@ export const useExpressCheckout = ( {
 
 				// Return a default shipping option, as a non-empty shippingRates array
 				// is required when shippingAddressRequired is true.
-				return [
-					getExpressCheckoutData( 'checkout' )
-						?.default_shipping_option,
-				];
+				const defaultShippingOption = getExpressCheckoutData(
+					'checkout'
+				)?.default_shipping_option;
+				return defaultShippingOption ? [ defaultShippingOption ] : [];
 			};
 
 			const options = {
