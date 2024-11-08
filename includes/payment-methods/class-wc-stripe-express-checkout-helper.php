@@ -252,12 +252,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				'pending' => true,
 			];
 
-			$data['shippingOptions'] = [
-				'id'     => 'pending',
-				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-				'detail' => '',
-				'amount' => 0,
-			];
+			$data['shippingOptions'] = [ $this->get_default_shipping_option() ];
 		}
 
 		$data['displayItems'] = $items;
@@ -275,6 +270,39 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
+	}
+
+	/**
+	 * JS params data used by cart and checkout pages.
+	 *
+	 * @param array $data
+	 */
+	public function get_checkout_data() {
+		$data = [
+			'url'                     => wc_get_checkout_url(),
+			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+			'needs_shipping'          => 'no',
+			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
+			'default_shipping_option' => $this->get_default_shipping_option(),
+		];
+
+		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
+			$data['needs_shipping'] = 'yes';
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Default shipping option, used by product, cart and checkout pages.
+	 */
+	private function get_default_shipping_option() {
+		return [
+			'id'          => 'pending',
+			'displayName' => __( 'Pending', 'woocommerce-gateway-stripe' ),
+			'amount'      => 0,
+		];
 	}
 
 	/**
@@ -543,6 +571,14 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		// Don't show if the total price is 0.
+		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
+		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && 0.0 === (float) WC()->cart->get_total( false ) )
+			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
+		) {
+			return false;
+		}
+
 		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
@@ -557,6 +593,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
 				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )
 			) &&
+			wc_tax_enabled() &&
 			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
 		) {
 			return false;

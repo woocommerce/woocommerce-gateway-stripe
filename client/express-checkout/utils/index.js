@@ -1,6 +1,8 @@
 /* global wc_stripe_express_checkout_params */
+import jQuery from 'jquery';
 import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 
 export * from './normalize';
 
@@ -305,4 +307,63 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	}
 
 	return paymentMethodTypes;
+};
+
+/**
+ * Display a notice on the checkout page (for Express Checkout Element).
+ *
+ * @param {string} message The message to display.
+ * @param {string} type The type of notice.
+ * @param {Array} additionalClasses Additional classes to add to the notice.
+ */
+export const displayExpressCheckoutNotice = (
+	message,
+	type,
+	additionalClasses
+) => {
+	const isBlockCheckout = getExpressCheckoutData( 'has_block' );
+	const mainNoticeClass = `woocommerce-${ type }`;
+	let classNames = [ mainNoticeClass ];
+	if ( additionalClasses ) {
+		classNames = classNames.concat( additionalClasses );
+	}
+
+	// Remove any existing notices.
+	jQuery( '.' + classNames.join( '.' ) ).remove();
+
+	const containerClass = isBlockCheckout
+		? 'wc-block-components-main'
+		: 'woocommerce-notices-wrapper';
+	const $container = jQuery( '.' + containerClass ).first();
+
+	if ( $container.length ) {
+		const note = jQuery(
+			`<div class="${ classNames.join( ' ' ) }" role="note" />`
+		).text( message );
+		if ( isBlockCheckout ) {
+			$container.prepend( note );
+		} else {
+			$container.append( note );
+		}
+
+		// Scroll to notices.
+		jQuery( 'html, body' ).animate(
+			{
+				scrollTop: $container.find( `.${ mainNoticeClass }` ).offset()
+					.top,
+			},
+			600
+		);
+	}
+};
+
+/**
+ * Delay for a short period of time before proceeding with the checkout process.
+ *
+ * @return {Promise<void>} A promise that resolves after the delay.
+ */
+export const expressCheckoutNoticeDelay = async () => {
+	await new Promise( ( resolve ) =>
+		setTimeout( resolve, EXPRESS_CHECKOUT_NOTICE_DELAY )
+	);
 };
