@@ -542,6 +542,11 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
 		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
 		// shortcodes, with items in the cart that aren't supported.
 		if (
@@ -561,7 +566,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show if product page PRB is disabled.
+		// Don't show if product page ECE is disabled.
 		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
 			return false;
 		}
