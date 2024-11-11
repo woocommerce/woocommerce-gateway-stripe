@@ -39,8 +39,10 @@ export const useExpressCheckout = ( {
 		window.location = redirectUrl;
 	};
 
-	const abortPayment = ( onConfirmEvent, message ) => {
-		onConfirmEvent.paymentFailed( { reason: 'fail' } );
+	const abortPayment = ( onConfirmEvent, message, isOrderError = false ) => {
+		if ( ! isOrderError ) {
+			onConfirmEvent.paymentFailed( { reason: 'fail' } );
+		}
 		setExpressPaymentError( message );
 		onAbortPaymentHandler( onConfirmEvent, message );
 	};

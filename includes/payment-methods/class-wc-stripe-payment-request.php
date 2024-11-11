@@ -967,6 +967,11 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
+			return false;
+		}
+
 		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
 		// shortcodes, with items in the cart that aren't supported.
 		if (

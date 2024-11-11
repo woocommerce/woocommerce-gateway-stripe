@@ -340,7 +340,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error'
+				'Order creation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -467,7 +468,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error'
+				'Order creation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
