@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Improve error message displayed when payment method creation fails in classic checkout.
 * Dev - Replace two occurrences of payment method names with their constant equivalents.
 * Fix - Hide express checkout when credit card payments are not enabled.
