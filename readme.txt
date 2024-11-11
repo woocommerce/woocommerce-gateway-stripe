@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 8.9.0 - xxxx-xx-xx =
+* Tweak - Improve error message displayed when payment method creation fails in classic checkout.
+* Dev - Replace two occurrences of payment method names with their constant equivalents.
 * Fix - Hide express checkout when credit card payments are not enabled.
 * Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
 * Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
@@ -132,5 +134,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Remove the subscription order notes added each time a source wasn't migrated.
 * Tweak - Update ECE default button type.
 * Fix - Fix position of ECE button on shortcode cart page.
+* Fix - Call ECE specific 'paymentFailed' function only when payment request fails.
+* Fix - Fix issue in purchasing subscriptions when the store has no shipping options.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

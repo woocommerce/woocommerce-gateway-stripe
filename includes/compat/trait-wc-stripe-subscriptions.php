@@ -682,7 +682,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				],
 				'_stripe_source_id'   => [
 					'value' => $source_id,
-					'label' => 'Stripe Source ID',
+					'label' => 'Stripe Payment Method ID',
 				],
 			],
 		];
@@ -720,7 +720,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'pm_' )
 				)
 			) {
-				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
+				throw new Exception( __( 'Invalid payment method ID. A valid "Stripe Payment Method ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 	}
