@@ -214,6 +214,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
+		 * Enable Stripe express checkout element for new connections.
+		 */
+		private function enable_ece_in_new_accounts() {
+			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+			if ( empty( $existing_stripe_settings ) ) {
+				update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
+			}
+		}
+
+		/**
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
