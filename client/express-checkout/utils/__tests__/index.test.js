@@ -1,7 +1,12 @@
 /**
  * Internal dependencies
  */
-import { getErrorMessageFromNotice, getExpressCheckoutData } from '..';
+import { screen, render } from '@testing-library/react';
+import {
+	displayExpressCheckoutNotice,
+	getErrorMessageFromNotice,
+	getExpressCheckoutData,
+} from '..';
 
 describe( 'Express checkout utils', () => {
 	test( 'getExpressCheckoutData returns null for missing option', () => {
@@ -36,5 +41,46 @@ describe( 'Express checkout utils', () => {
 		expect( getErrorMessageFromNotice( notice ) ).toBe(
 			'Error: Payment failed.alert("hello")'
 		);
+	} );
+
+	describe( 'displayExpressCheckoutNotice', () => {
+		afterEach( () => {
+			document.getElementsByTagName( 'body' )[ 0 ].innerHTML = '';
+		} );
+
+		const additionalClasses = [ 'class-2', 'class-3' ];
+		const createWrapper = () => {
+			const wrapper = document.createElement( 'div' );
+			wrapper.classList.add( 'woocommerce-notices-wrapper' );
+			document.body.appendChild( wrapper );
+		};
+
+		test( 'with info', async () => {
+			function App() {
+				createWrapper();
+				displayExpressCheckoutNotice(
+					'Test message',
+					'info',
+					additionalClasses
+				);
+				return <div />;
+			}
+			render( <App /> );
+			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
+		} );
+
+		test( 'with error', () => {
+			function App() {
+				createWrapper();
+				displayExpressCheckoutNotice(
+					'Test message',
+					'error',
+					additionalClasses
+				);
+				return <div />;
+			}
+			render( <App /> );
+			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
+		} );
 	} );
 } );
