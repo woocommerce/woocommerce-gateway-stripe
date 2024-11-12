@@ -70,14 +70,10 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	public function maybe_update_subscription_source( WC_Subscription $subscription ) {
 		try {
 			$this->set_subscription_updated_payment_method( $subscription );
-
-			$order_note = __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' );
+			$subscription->add_order_note( __( 'Stripe Gateway: The payment method used for renewals was updated from Sources to PaymentMethods.', 'woocommerce-gateway-stripe' ) );
 		} catch ( \Exception $e ) {
-			/* translators: Reason why the subscription payment method wasn't updated */
-			$order_note = sprintf( __( 'Stripe Gateway: A Source is used for renewals but could not be updated to PaymentMethods. Reason: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+			WC_Stripe_Logger::log( $e->getMessage() );
 		}
-
-		$subscription->add_order_note( $order_note );
 	}
 
 	/**
@@ -130,6 +126,11 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Retrieve the source object from the API.
 		$source_object = WC_Stripe_API::get_payment_method( $source_id );
+
+		// Bail out, if the source object isn't expected to be migrated. eg Card sources are not migrated.
+		if ( isset( $source_object->type ) && 'card' === $source_object->type ) {
+			throw new \Exception( sprintf( 'Skipping migration of Source for subscription #%d. Source is a card.', $subscription->get_id() ) );
+		}
 
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
