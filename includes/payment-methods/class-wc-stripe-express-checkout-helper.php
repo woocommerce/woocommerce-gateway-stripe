@@ -296,8 +296,14 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Default shipping option, used by product, cart and checkout pages.
+	 *
+	 * @return void|array
 	 */
 	private function get_default_shipping_option() {
+		if ( wc_get_shipping_method_count( true, true ) === 0 ) {
+			return null;
+		}
+
 		return [
 			'id'          => 'pending',
 			'displayName' => __( 'Pending', 'woocommerce-gateway-stripe' ),
