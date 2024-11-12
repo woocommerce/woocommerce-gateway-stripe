@@ -13,6 +13,9 @@ class WC_Stripe_Account {
 	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
 	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
 
+	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
+	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
+
 	const STATUS_COMPLETE        = 'complete';
 	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
 	const STATUS_RESTRICTED_SOON = 'restricted_soon';
@@ -129,6 +132,10 @@ class WC_Stripe_Account {
 	public function clear_cache() {
 		delete_transient( self::LIVE_ACCOUNT_OPTION );
 		delete_transient( self::TEST_ACCOUNT_OPTION );
+
+		// Clear the webhook status cache.
+		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
+		delete_transient( self::TEST_WEBHOOK_STATUS_OPTION );
 	}
 
 	/**
@@ -379,8 +386,16 @@ class WC_Stripe_Account {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
+
 		if ( empty( $stripe_settings[ $key ]['id'] ) || empty( $stripe_settings[ $key ]['secret'] ) ) {
 			return false;
+		}
+
+		// Check if we have a cached status.
+		$cache_key     = $is_testmode ? self::TEST_WEBHOOK_STATUS_OPTION : self::LIVE_WEBHOOK_STATUS_OPTION;
+		$cached_status = get_transient( $cache_key );
+		if ( false !== $cached_status ) {
+			return 'enabled' === $cached_status;
 		}
 
 		try {
@@ -388,7 +403,14 @@ class WC_Stripe_Account {
 			$webhook_secret = $stripe_settings[ $key ]['secret'];
 			WC_Stripe_API::set_secret_key( $webhook_secret );
 			$webhook = $this->stripe_api::request( [], 'webhook_endpoints/' . $webhook_id, 'GET' );
-			return ! empty( $webhook->status ) && 'enabled' === $webhook->status;
+
+			// Cache the status for 2 hours.
+			$webhook_status = ! empty( $webhook->status ) && 'enabled' === $webhook->status ?
+				'enabled' :
+				'disabled';
+			set_transient( $cache_key, $webhook_status, 2 * HOUR_IN_SECONDS );
+
+			return 'enabled' === $webhook_status;
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
 			return false;

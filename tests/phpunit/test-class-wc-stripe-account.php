@@ -379,14 +379,17 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'secret' => '',
 		];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		$stripe_settings['test_webhook_data'] = [];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		unset( $stripe_settings['test_webhook_data'] );
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		$stripe_settings['testmode']          = 'yes';
@@ -410,12 +413,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'status' => 'disabled',
 		];
+		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		WC_Helper_Stripe_Api::$request_response = (object) [
 			'id'     => 'wh_123_test',
 			'status' => 'enabled',
 		];
+		$this->clear_webhook_status_cache();
 		$this->assertTrue( $this->account->is_webhook_enabled() );
 
 		// Assert that it queries the correct webhook (live).
@@ -428,6 +433,15 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'status' => 'enabled',
 		];
+		$this->clear_webhook_status_cache();
 		$this->assertTrue( $this->account->is_webhook_enabled() );
+
+		// Assert that it uses the cached status.
+		$this->assertTrue( $this->account->is_webhook_enabled() );
+	}
+
+	private function clear_webhook_status_cache() {
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
 	}
 }
