@@ -1,7 +1,7 @@
-import { getSetting } from '@woocommerce/settings';
+/* global wc */
 
 export const getBlocksConfiguration = () => {
-	const stripeServerData = getSetting( 'stripe_data', null );
+	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
 
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );
