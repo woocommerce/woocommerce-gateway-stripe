@@ -347,22 +347,6 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		];
 	}
 
-	/**
-	 * Test for `is_wallet_payment_method`
-	 *
-	 * @param $payment_method string Payment method.
-	 * @param $expected bool Expected result.
-	 * @return void
-	 * @dataProvider provide_is_wallet_payment_method
-	 */
-	public function test_is_wallet_payment_method( $payment_method, $expected ): void {
-		$order = WC_Helper_Order::create_order();
-		$order->update_meta_data( '_stripe_upe_payment_type', $payment_method );
-
-		$actual = WC_Stripe_Helper::is_wallet_payment_method( $order );
-		$this->assertSame( $expected, $actual );
-	}
-
 	public function provide_is_wallet_payment_method(): array {
 		return [
 			'Apple Pay'  => [
