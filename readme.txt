@@ -112,11 +112,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 8.9.0 - xxxx-xx-xx =
 * Dev - Minor updates to the webhook handler class related to payment method names constants.
+* Tweak - Improve error message displayed when payment method creation fails in classic checkout.
 * Dev - Replace two occurrences of payment method names with their constant equivalents.
 * Fix - Hide express checkout when credit card payments are not enabled.
 * Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
 * Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
-* Tweak - Makes the new Stripe Express Checkout Element enabled by default in new accounts.
+* Tweak - Makes the new Stripe Express Checkout Element enabled by default.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Check if taxes are enabled when applying ECE tax compatibility check.
 * Fix - Fix ECE error when initial address on load is not defined as a shipping zone.
