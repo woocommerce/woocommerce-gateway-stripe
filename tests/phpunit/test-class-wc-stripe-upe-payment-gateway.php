@@ -221,7 +221,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'order_id'       => $order_number,
 			'order_key'      => $order_key,
 			'payment_type'   => 'single',
-			'signature'      => sprintf( '%d:%s', $order->get_id(), md5( $order->get_order_key() . $order->get_id() . $order->get_customer_id() ) ),
+			'signature'      => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
 		];
 		return [ $amount, $description, $metadata ];
 	}
