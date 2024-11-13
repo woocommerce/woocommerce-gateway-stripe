@@ -10,6 +10,9 @@
  * WC_Stripe_Express_Checkout_Helper_Test class.
  */
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
+	private $shipping_zone;
+	private $shipping_method;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -19,17 +22,28 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	}
 
+	public function tear_down() {
+		if ( $this->shipping_zone ) {
+			delete_option( $this->shipping_method->get_instance_option_key() );
+			$this->shipping_zone->delete();
+		}
+
+		parent::tear_down();
+	}
+
+	public function set_up_shipping_methods() {
 		// Add a shipping zone.
-		$zone = new WC_Shipping_Zone();
-		$zone->set_zone_name( 'Worldwide' );
-		$zone->set_zone_order( 1 );
-		$zone->save();
+		$this->shipping_zone = new WC_Shipping_Zone();
+		$this->shipping_zone->set_zone_name( 'Worldwide' );
+		$this->shipping_zone->set_zone_order( 1 );
+		$this->shipping_zone->save();
 
-		$flat_rate_id    = $zone->add_shipping_method( 'flat_rate' );
-		$method          = WC_Shipping_Zones::get_shipping_method( $flat_rate_id );
-		$option_key      = $method->get_instance_option_key();
-		$options['cost'] = '5';
+		$flat_rate_id          = $this->shipping_zone->add_shipping_method( 'flat_rate' );
+		$this->shipping_method = WC_Shipping_Zones::get_shipping_method( $flat_rate_id );
+		$option_key            = $this->shipping_method->get_instance_option_key();
+		$options['cost']       = '5';
 		update_option( $option_key, $options );
 	}
 
@@ -37,6 +51,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test should_show_express_checkout_button, tax logic.
 	 */
 	public function test_hides_ece_if_cannot_compute_taxes() {
+		$this->set_up_shipping_methods();
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
@@ -98,6 +114,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test should_show_express_checkout_button, gateway logic.
 	 */
 	public function test_hides_ece_if_stripe_gateway_unavailable() {
+		$this->set_up_shipping_methods();
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
@@ -142,6 +160,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_currency', 'USD' );
 		WC()->cart->empty_cart();
 
+		$this->set_up_shipping_methods();
+
 		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 
@@ -153,5 +173,17 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'id', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'displayName', $checkout_data['default_shipping_option'] );
 		$this->assertArrayHasKey( 'amount', $checkout_data['default_shipping_option'] );
+	}
+
+	/**
+	 * Test for get_checkout_data(), no shipping zones.
+	 *
+	 * This is in a separate test, to avoid problems with cached data.
+	 */
+	public function test_get_checkout_data_no_shipping_zones() {
+		// When no shipping zones are set up, the default shipping option should be empty.
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
+		$this->assertEmpty( $checkout_data['default_shipping_option'] );
 	}
 }
