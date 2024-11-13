@@ -584,7 +584,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Don't show if the total price is 0.
 		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && 0.0 === (float) WC()->cart->get_total( false ) )
+		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
 			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
 		) {
 			return false;

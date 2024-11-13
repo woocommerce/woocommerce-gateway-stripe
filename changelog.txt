@@ -7,7 +7,7 @@
 * Fix - Hide express checkout when credit card payments are not enabled.
 * Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
 * Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
-* Tweak - Makes the new Stripe Express Checkout Element enabled by default.
+* Tweak - Makes the new Stripe Express Checkout Element enabled by default in new accounts.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Check if taxes are enabled when applying ECE tax compatibility check.
 * Fix - Fix ECE error when initial address on load is not defined as a shipping zone.
