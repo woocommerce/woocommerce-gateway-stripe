@@ -118,7 +118,7 @@ class WC_Stripe_Account {
 			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
 
-		return WC_Stripe_Mode::is_test() && 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
+		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
 	}
 
 	/**
