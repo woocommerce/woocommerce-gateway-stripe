@@ -14,7 +14,7 @@ class WC_Stripe_Mode {
 	 */
 	public static function is_live() {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
-		return 'yes' !== $settings['testmode'];
+		return 'yes' !== ( $settings['testmode'] ?? 'no' );
 	}
 
 	/**
@@ -24,6 +24,6 @@ class WC_Stripe_Mode {
 	 */
 	public static function is_test() {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
-		return 'yes' === $settings['testmode'];
+		return 'yes' === ( $settings['testmode'] ?? 'no' );
 	}
 }
