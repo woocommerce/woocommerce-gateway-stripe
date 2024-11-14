@@ -424,9 +424,8 @@ class WC_Stripe_Payment_Tokens {
 				 * When all conditions are met, we don't want to delete the payment method from Stripe.
 				 * This is to avoid detaching the payment method from the live stripe account on non production environments.
 				 */
-				$settings = WC_Stripe_Helper::get_stripe_settings();
 				if (
-					'no' === $settings['testmode'] &&
+					WC_Stripe_Mode::is_live() &&
 					is_admin() &&
 					'production' !== wp_get_environment_type()
 				) {
