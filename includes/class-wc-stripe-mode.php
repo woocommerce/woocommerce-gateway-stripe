@@ -5,6 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class WC_Stripe_Mode
+ *
+ * @method static bool is_live() Whether the extension is in live mode.
+ * @method static bool is_test() Whether the extension is in test mode.
  */
 class WC_Stripe_Mode {
 	/**
