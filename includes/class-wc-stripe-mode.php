@@ -8,22 +8,35 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Mode {
 	/**
-	 * Checks if the plugin is in live mode.
+	 * Whether the extension is in test mode.
 	 *
-	 * @return bool Whether the plugin is in live mode.
+	 * @var bool
 	 */
-	public static function is_live() {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-		return 'yes' !== ( $settings['testmode'] ?? 'no' );
+	private static $is_test;
+
+	/**
+	 * Maybe initializes the extension mode if not yet initialized.
+	 */
+	private static function maybe_init() {
+		if ( ! isset( static::$is_test ) ) {
+			static::$is_test = 'yes' === ( WC_Stripe_Helper::get_stripe_settings()['testmode'] ?? 'no' );
+		}
 	}
 
 	/**
-	 * Checks if the plugin is in test mode.
+	 * Checks if the extension is in test or live mode.
 	 *
-	 * @return bool Whether the plugin is in test mode.
+	 * @param $method string The method name.
+	 * @param $arguments = []
+	 * @return bool Whether the extension is in test or live mode.
 	 */
-	public static function is_test() {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-		return 'yes' === ( $settings['testmode'] ?? 'no' );
+	public static function __callStatic( $method, $arguments = [] ) {
+		// Only allow is_live and is_test methods.
+		if ( ! in_array( $method, [ 'is_live', 'is_test' ], true ) ) {
+			throw new BadMethodCallException( 'Method not found: ' . $method );
+		}
+
+		static::maybe_init();
+		return 'is_test' === $method ? static::$is_test : ! static::$is_test;
 	}
 }
