@@ -1750,6 +1750,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'order_id'       => $order->get_order_number(),
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
+			'signature'      => $this->get_order_signature( $order ),
 		];
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );

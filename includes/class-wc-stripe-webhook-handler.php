@@ -892,9 +892,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		return false;
 	}
 
+	/**
+	 * Handles the processing of a payment intent webhook.
+	 *
+	 * @param stdClass $notification The webhook notification from Stripe.
+	 */
 	public function process_payment_intent_success( $notification ) {
 		$intent = $notification->data->object;
-		$order  = WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+		$order  = $this->get_order_from_intent( $intent );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via intent ID: ' . $intent->id );
@@ -1198,6 +1203,43 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+	}
+
+	/**
+	 * Fetches an order from a payment intent.
+	 *
+	 * @param stdClass $intent The Stripe PaymentIntent object.
+	 * @return WC_Order|false The order object, or false if not found.
+	 */
+	private function get_order_from_intent( $intent ) {
+		// Attempt to get the order from the intent metadata.
+		if ( isset( $intent->metadata->signature ) ) {
+			$signature = wc_clean( $intent->metadata->signature );
+			$data      = explode( ':', $signature );
+
+			// Verify we received the order ID and signature (hash).
+			$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
+
+			if ( $order ) {
+				$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
+
+				// Return the order if the intent ID matches.
+				if ( $intent->id === $intent_id ) {
+					return $order;
+				}
+
+				/**
+				 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
+				 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+				 */
+				if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
+					return $order;
+				}
+			}
+		}
+
+		// Fall back to finding the order via the intent ID.
+		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
 	}
 }
 

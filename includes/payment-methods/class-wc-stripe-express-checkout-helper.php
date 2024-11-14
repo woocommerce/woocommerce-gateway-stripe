@@ -600,6 +600,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		if (
+			! $this->is_pay_for_order_page() &&
 			(
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
 				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )
