@@ -91,7 +91,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 		return new WP_REST_Response(
 			[
 				'account'                 => $this->account->get_cached_account_data(),
-				'testmode'                => WC_Stripe_Webhook_State::get_testmode(),
+				'testmode'                => WC_Stripe_Mode::is_test(),
 				'webhook_status_code'     => WC_Stripe_Webhook_State::get_webhook_status_code(),
 				'webhook_status_message'  => WC_Stripe_Webhook_State::get_webhook_status_message(),
 				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
@@ -134,7 +134,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				],
 				'country'                  => $account['country'] ?? WC()->countries->get_base_country(),
 				'is_live'                  => $account['charges_enabled'] ?? false,
-				'test_mode'                => WC_Stripe_Webhook_State::get_testmode(),
+				'test_mode'                => WC_Stripe_Mode::is_test(),
 			]
 		);
 	}

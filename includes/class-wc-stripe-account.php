@@ -113,11 +113,9 @@ class WC_Stripe_Account {
 	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
 	 */
 	private function get_transient_key( $mode = null ) {
-		$settings_options = WC_Stripe_Helper::get_stripe_settings();
-
 		// If the mode is not provided or is invalid, we'll check the current mode.
-		if ( is_null( $mode ) || ! in_array( $mode, [ 'test', 'live' ] ) ) {
-			$mode = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
+		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
 
 		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
