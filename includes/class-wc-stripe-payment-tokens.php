@@ -321,7 +321,7 @@ class WC_Stripe_Payment_Tokens {
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
-					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
+					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
 					$tokens[ $token->get_id() ] = $token;
@@ -424,9 +424,8 @@ class WC_Stripe_Payment_Tokens {
 				 * When all conditions are met, we don't want to delete the payment method from Stripe.
 				 * This is to avoid detaching the payment method from the live stripe account on non production environments.
 				 */
-				$settings = WC_Stripe_Helper::get_stripe_settings();
 				if (
-					'no' === $settings['testmode'] &&
+					WC_Stripe_Mode::is_live() &&
 					is_admin() &&
 					'production' !== wp_get_environment_type()
 				) {
@@ -477,8 +476,8 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool                       True, if payment method type matches gateway, false if otherwise.
 	 */
 	private function is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) {
-		$reusable_gateway = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
-		return self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ] === $gateway_id;
+		$reusable_gateway = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ] ?? null;
+		return $reusable_gateway === $gateway_id;
 	}
 
 	/**

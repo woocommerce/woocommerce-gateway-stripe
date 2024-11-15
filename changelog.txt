@@ -1,14 +1,18 @@
 *** Changelog ***
 
-= 8.9.0 - xxxx-xx-xx =
+= 9.0.0 - xxxx-xx-xx =
 * Update - Improve accuracy of webhook status information displayed in settings page.
+* Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
+
+= 8.9.0 - 2024-11-14 =
+* Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
 * Dev - Minor updates to the webhook handler class related to payment method names constants.
 * Tweak - Improve error message displayed when payment method creation fails in classic checkout.
 * Dev - Replace two occurrences of payment method names with their constant equivalents.
 * Fix - Hide express checkout when credit card payments are not enabled.
 * Fix - Fix issues when detaching payment methods on staging sites (with the new checkout experience enabled).
 * Fix - Display a notice if taxes vary by customer's billing address when checking out using the Stripe Express Checkout Element.
-* Tweak - Makes the new Stripe Express Checkout Element enabled by default.
+* Tweak - Makes the new Stripe Express Checkout Element enabled by default in new accounts.
 * Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
 * Fix - Check if taxes are enabled when applying ECE tax compatibility check.
 * Fix - Fix ECE error when initial address on load is not defined as a shipping zone.

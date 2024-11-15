@@ -115,7 +115,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
 		$this->has_fields = true;
-		$this->testmode   = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->testmode   = WC_Stripe_Mode::is_test();
 		$this->supports   = [ 'products', 'refunds' ];
 	}
 
@@ -316,10 +316,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_capability_active() {
 		// Treat all capabilities as active when in test mode.
-		$plugin_settings   = WC_Stripe_Helper::get_stripe_settings();
-		$test_mode_setting = ! empty( $plugin_settings['testmode'] ) ? $plugin_settings['testmode'] : 'no';
-
-		if ( 'yes' === $test_mode_setting ) {
+		if ( WC_Stripe_Mode::is_test() ) {
 			return true;
 		}
 

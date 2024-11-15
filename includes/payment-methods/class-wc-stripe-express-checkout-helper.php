@@ -37,7 +37,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function __construct() {
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
@@ -584,7 +584,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Don't show if the total price is 0.
 		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && 0.0 === (float) WC()->cart->get_total( false ) )
+		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
 			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
 		) {
 			return false;
@@ -600,6 +600,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		if (
+			! $this->is_pay_for_order_page() &&
 			(
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
 				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )

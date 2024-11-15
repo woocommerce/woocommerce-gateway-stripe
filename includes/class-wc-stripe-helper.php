@@ -666,7 +666,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_upe_ordered_payment_method_ids( $gateway ) {
 		$stripe_settings            = self::get_stripe_settings();
-		$testmode                   = isset( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'];
+		$testmode                   = WC_Stripe_Mode::is_test();
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_upe_payment_method_order'] ) ? $stripe_settings['stripe_upe_payment_method_order'] : [];
 
 		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.

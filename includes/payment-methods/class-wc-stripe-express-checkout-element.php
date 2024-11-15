@@ -172,7 +172,7 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'               => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                 => [
-				'publishable_key'             => 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
+				'publishable_key'             => WC_Stripe_Mode::is_test() ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
@@ -218,12 +218,23 @@ class WC_Stripe_Express_Checkout_Element {
 		$data     = [];
 		$items    = [];
 
-		foreach ( $order->get_items() as $item ) {
-			if ( method_exists( $item, 'get_total' ) ) {
-				$items[] = [
-					'label'  => $item->get_name(),
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
-				];
+		// Allow third-party plugins to show itemization on the payment request button.
+		if ( apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
+			$items[] = [
+				'label'  => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_subtotal(), $currency ),
+			];
+		} else {
+			foreach ( $order->get_items() as $item ) {
+				$quantity       = $item->get_quantity();
+				$quantity_label = 1 < $quantity ? ' (x' . $quantity . ')' : '';
+
+				if ( method_exists( $item, 'get_total' ) ) {
+					$items[] = [
+						'label'  => $item->get_name() . $quantity_label,
+						'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
+					];
+				}
 			}
 		}
 

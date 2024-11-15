@@ -253,13 +253,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected, false otherwise.
 		 */
 		public function is_connected( $mode = null ) {
-			$options = WC_Stripe_Helper::get_stripe_settings();
-
 			// If the mode is not provided, we'll check the current mode.
 			if ( is_null( $mode ) ) {
-				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			}
 
+			$options = WC_Stripe_Helper::get_stripe_settings();
 			if ( 'test' === $mode ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
@@ -290,11 +289,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected via Stripe App OAuth, false otherwise.
 		 */
 		public function is_connected_via_app_oauth( $mode = null ) {
-			$options = WC_Stripe_Helper::get_stripe_settings();
-
 			// If the mode is not provided, we'll check the current mode.
 			if ( is_null( $mode ) ) {
-				$mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			}
 
 			return 'app' === $this->get_connection_type( $mode );
@@ -323,13 +320,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$options    = WC_Stripe_Helper::get_stripe_settings();
-			$is_test    = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
 			$event_name = ! $had_error ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
 
 			// We're recording this directly instead of queueing it because
 			// a queue wouldn't be processed due to the redirect that comes after.
-			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
+			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => WC_Stripe_Mode::is_test() ] );
 		}
 
 		/**
@@ -380,7 +375,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			$options       = WC_Stripe_Helper::get_stripe_settings();
-			$mode          = isset( $options['testmode'] ) && 'yes' === $options['testmode'] ? 'test' : 'live';
+			$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			$prefix        = 'test' === $mode ? 'test_' : '';
 			$refresh_token = $options[ $prefix . 'refresh_token' ];
 

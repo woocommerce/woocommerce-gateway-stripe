@@ -35,8 +35,12 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @since 5.0.0
 	 * @return bool
+	 *
+	 * @deprecated 8.9.0
 	 */
 	public static function get_testmode() {
+		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
+
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 	}
@@ -70,7 +74,7 @@ class WC_Stripe_Webhook_State {
 	 * @return integer UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
-		$option              = self::get_testmode() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
+		$option              = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
 		$monitoring_began_at = get_option( $option, 0 );
 		if ( 0 == $monitoring_began_at ) {
 			$monitoring_began_at = time();
@@ -93,7 +97,7 @@ class WC_Stripe_Webhook_State {
 	 * @param integer UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_success_at( $timestamp ) {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		update_option( $option, $timestamp );
 	}
 
@@ -105,7 +109,7 @@ class WC_Stripe_Webhook_State {
 	 * @return integer UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		return get_option( $option, 0 );
 	}
 
@@ -116,7 +120,7 @@ class WC_Stripe_Webhook_State {
 	 * @param integer UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ) {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
 		update_option( $option, $timestamp );
 	}
 
@@ -128,7 +132,7 @@ class WC_Stripe_Webhook_State {
 	 * @return integer UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_failure_at() {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_FAILURE_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
 		return get_option( $option, 0 );
 	}
 
@@ -139,7 +143,7 @@ class WC_Stripe_Webhook_State {
 	 * @param string Reason code.
 	 */
 	public static function set_last_error_reason( $reason ) {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		update_option( $option, $reason );
 	}
 
@@ -150,7 +154,7 @@ class WC_Stripe_Webhook_State {
 	 * @return string Reason the last webhook failed.
 	 */
 	public static function get_last_error_reason() {
-		$option     = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
+		$option     = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		$last_error = get_option( $option, false );
 
 		if ( self::VALIDATION_SUCCEEDED == $last_error ) {
@@ -196,8 +200,8 @@ class WC_Stripe_Webhook_State {
 	 * @return int The status code for the webhook processing.
 	 */
 	public static function get_webhook_status_code() {
-		$last_success_at     = self::get_last_webhook_success_at();
-		$last_failure_at     = self::get_last_webhook_failure_at();
+		$last_success_at = self::get_last_webhook_success_at();
+		$last_failure_at = self::get_last_webhook_failure_at();
 
 		// Case 1 (Nominal case): Most recent = success
 		if ( $last_success_at > $last_failure_at ) {
@@ -229,7 +233,7 @@ class WC_Stripe_Webhook_State {
 		$last_success_at     = self::get_last_webhook_success_at();
 		$last_failure_at     = self::get_last_webhook_failure_at();
 		$last_error          = self::get_last_error_reason();
-		$test_mode           = self::get_testmode();
+		$test_mode           = WC_Stripe_Mode::is_test();
 		$code                = self::get_webhook_status_code();
 
 		$date_format = 'Y-m-d H:i:s e';
