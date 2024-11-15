@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 9.0.0 - xxxx-xx-xx =
-
+* Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
 
 = 8.9.0 - 2024-11-14 =
 * Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
@@ -43,7 +43,6 @@
 * Fix - Prevent subscriptions from being marked as "Pending" when a customer attempts to change their payment method to a declining card.
 * Fix - Delay updating the subscription's payment method until after the intent is confirmed when using the new checkout experience.
 * Fix - Display a success notice to customers after successfully changing their subscription payment method to a card that required 3DS authentication.
-* Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
 
 = 8.8.0 - 2024-10-17 =
 * Fix - Update URL and path constants to support use of symlinked plugin.
