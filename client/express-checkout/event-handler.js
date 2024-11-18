@@ -92,7 +92,8 @@ export const onConfirmHandler = async (
 		if ( orderResponse.result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( orderResponse.messages )
+				getErrorMessageFromNotice( orderResponse.messages ),
+				true
 			);
 		}
 
