@@ -106,7 +106,7 @@ class WC_Stripe_Payment_Request {
 
 		// Don't load for switch subscription page.
 		if ( isset( $_GET['switch-subscription'] ) ) {
-			return true;
+			return;
 		}
 
 		$this->init();
