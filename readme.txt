@@ -113,5 +113,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.0.0 - xxxx-xx-xx =
 * Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
+* Fix - Do not load express payment buttons on switch subscription page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
