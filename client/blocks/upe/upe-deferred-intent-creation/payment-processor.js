@@ -13,11 +13,7 @@ import { useEffect, useState } from 'react';
 /**
  * Internal dependencies
  */
-import {
-	usePaymentCompleteHandler,
-	usePaymentFailHandler,
-	useStripeLink,
-} from '../hooks';
+import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -267,8 +263,6 @@ const PaymentProcessor = ( {
 		onCheckoutFail,
 		emitResponse
 	);
-
-	useStripeLink( api, elements, paymentMethodsConfig );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
