@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.0.0 - xxxx-xx-xx =
+* Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
 * Fix - Fix ECE modal not loading on pay for order page when coupon is applied
 

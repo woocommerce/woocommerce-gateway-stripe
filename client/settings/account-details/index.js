@@ -7,10 +7,6 @@ import styled from '@emotion/styled';
 import SectionStatus from '../section-status';
 import Tooltip from 'wcstripe/components/tooltip';
 import { useAccount } from 'wcstripe/data/account';
-import {
-	useAccountKeysTestWebhookSecret,
-	useAccountKeysWebhookSecret,
-} from 'wcstripe/data/account-keys';
 import { WebhookDescription } from 'wcstripe/components/webhook-description';
 
 const AccountDetailsContainer = styled.div`
@@ -108,28 +104,20 @@ const PayoutsSection = () => {
 };
 
 const WebhooksSection = () => {
-	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
-	const [ webhookSecret ] = useAccountKeysWebhookSecret();
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
-
-	const isWebhookSecretEntered = Boolean(
-		isTestModeEnabled ? testWebhookSecret : webhookSecret
-	);
+	const isWebhookEnabled = Boolean( data.is_webhook_enabled );
 
 	return (
 		<>
 			<AccountSection>
 				<Label>{ __( 'Webhook', 'woocommerce-gateway-stripe' ) }</Label>
-				<SectionStatus isEnabled={ isWebhookSecretEntered }>
-					{ isWebhookSecretEntered
+				<SectionStatus isEnabled={ isWebhookEnabled }>
+					{ isWebhookEnabled
 						? __( 'Enabled', 'woocommerce-gateway-stripe' )
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
 			</AccountSection>
-			<WebhookDescription
-				isWebhookSecretEntered={ isWebhookSecretEntered }
-			/>
+			<WebhookDescription isWebhookEnabled={ isWebhookEnabled } />
 		</>
 	);
 };
