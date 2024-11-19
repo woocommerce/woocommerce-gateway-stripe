@@ -57,7 +57,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_account_summary' ],
-				// 'permission_callback' => [ $this, 'check_permission' ],
+				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
 
