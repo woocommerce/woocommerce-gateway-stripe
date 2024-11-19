@@ -245,6 +245,13 @@ class WC_Stripe_Express_Checkout_Element {
 			];
 		}
 
+		if ( $order->get_total_discount() ) {
+			$items[] = [
+				'label'  => __( 'Discount', 'woocommerce-gateway-stripe' ),
+				'amount' => - WC_Stripe_Helper::get_stripe_amount( $order->get_total_discount(), $currency ),
+			];
+		}
+
 		if ( $order->get_shipping_total() ) {
 			$shipping_label = sprintf(
 			// Translators: %s is the name of the shipping method.

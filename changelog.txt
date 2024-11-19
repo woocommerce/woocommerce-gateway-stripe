@@ -4,6 +4,7 @@
 * Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
 * Tweak - Remove duplicate notice about the new checkout experience.
+* Fix - Fix ECE modal not loading on pay for order page when coupon is applied
 
 = 8.9.0 - 2024-11-14 =
 * Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
