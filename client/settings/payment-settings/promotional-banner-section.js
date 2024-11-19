@@ -1,13 +1,14 @@
 /* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
-import { React } from 'react';
+import { React, useEffect } from 'react';
 import { Card, Button, ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
+import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from './constants';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
@@ -58,6 +59,7 @@ const DismissButton = styled( Button )`
 
 const PromotionalBannerSection = ( {
 	setShowPromotionalBanner,
+	setPromotionalBannerType,
 	isUpeEnabled,
 	setIsUpeEnabled,
 	isConnectedViaOAuth,
@@ -71,6 +73,14 @@ const PromotionalBannerSection = ( {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const hasAPMEnabled =
 		enabledPaymentMethodIds.filter( ( e ) => e !== 'card' ).length > 0;
+
+	useEffect( () => {
+		if ( isConnectedViaOAuth === false ) {
+			setPromotionalBannerType( RECONNECT_BANNER );
+		} else if ( ! isUpeEnabled ) {
+			setPromotionalBannerType( NEW_CHECKOUT_EXPERIENCE_BANNER );
+		}
+	}, [ isUpeEnabled, isConnectedViaOAuth, setPromotionalBannerType ] );
 
 	const handleButtonClick = () => {
 		const callback = async () => {
