@@ -113,7 +113,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.0.0 - xxxx-xx-xx =
 * Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
+* Tweak - Remove duplicate notice about the new checkout experience.
+* Fix - Fix ECE modal not loading on pay for order page when coupon is applied.
 * Fix - Do not load express payment buttons on switch subscription page.
-* Fix - Fix ECE modal not loading on pay for order page when coupon is applied
+* Fix - Return 'is_live' as true in account summary response when test mode is disabled in gateway settings and charge is enabled in Stripe account.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
