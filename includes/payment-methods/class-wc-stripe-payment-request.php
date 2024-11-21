@@ -372,7 +372,7 @@ class WC_Stripe_Payment_Request {
 		$product_price = $product->get_price();
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price = (float) $product->get_price() + (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
 		return $product_price;
