@@ -91,13 +91,13 @@ jobs:
       
       - name: Set the path in an env var
         if: ${{ failure() }}
-        run: echo "E2E_REPORT_PATH=$(./vendor/bin/qit e2e-report --dir_only --local)" >> $GITHUB_ENV
+        run: echo "E2E_REPORT_PATH=$(./vendor/bin/qit e2e-report --dir_only --local)/playwright" >> $GITHUB_ENV
 
       - name: Upload ${{ matrix.checkout }} E2E test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-WP_latest-WC_latest-results
+          name: ${{ matrix.checkout }}-test-results
           path: ${{ env.E2E_REPORT_PATH }}
           if-no-files-found: ignore
           retention-days: 14
