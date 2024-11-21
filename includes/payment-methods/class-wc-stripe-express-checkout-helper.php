@@ -544,7 +544,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL.' );
+			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
 			return false;
 		}
 
