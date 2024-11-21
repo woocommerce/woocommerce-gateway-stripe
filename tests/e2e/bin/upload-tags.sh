@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 echo "Start uploading QIT Custom E2E tests tags";
-
+ls
 # Create a temporary directory to copy tests to upload.
 tmp_tests_dir="./qit-tests"
 rm -rf "$tmp_tests_dir"
