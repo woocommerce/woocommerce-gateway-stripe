@@ -85,6 +85,11 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		// Don't load for switch subscription page.
+		if ( isset( $_GET['switch-subscription'] ) ) {
+			return;
+		}
+
 		add_action( 'template_redirect', [ $this, 'set_session' ] );
 		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
