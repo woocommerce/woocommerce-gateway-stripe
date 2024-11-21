@@ -40,6 +40,7 @@ const PaymentRequestSection = () => {
 		}
 	};
 
+	const displayExpressPaymentMethods = enabledMethodIds.includes( 'card' );
 	const displayLinkPaymentMethod =
 		enabledMethodIds.includes( 'card' ) &&
 		availablePaymentMethodIds.includes( linkMethodID );
@@ -53,70 +54,83 @@ const PaymentRequestSection = () => {
 		<Card className="express-checkouts">
 			<CardBody size={ 0 }>
 				<ul className="express-checkouts-list">
-					<li className="express-checkout has-icon-border">
-						<div className="express-checkout__checkbox">
-							<CheckboxControl
-								checked={ isPaymentRequestEnabled }
-								onChange={ updateIsPaymentRequestEnabled }
-							/>
-						</div>
-						<div className="express-checkout__icon">
-							<PaymentRequestIcon size="medium" />
-						</div>
-						<div className="express-checkout__label-container">
-							<div className="express-checkout__label">
-								{ __(
-									'Apple Pay / Google Pay',
-									'woocommerce-gateway-stripe'
-								) }
+					{ ! displayExpressPaymentMethods &&
+						! displayLinkPaymentMethod && (
+							<li className="express-checkout">
+								<div>
+									{ __(
+										'Credit card / debit card must be enabled as a payment method in order to use Express Checkout.',
+										'woocommerce-gateway-stripe'
+									) }
+								</div>
+							</li>
+						) }
+					{ displayExpressPaymentMethods && (
+						<li className="express-checkout has-icon-border">
+							<div className="express-checkout__checkbox">
+								<CheckboxControl
+									checked={ isPaymentRequestEnabled }
+									onChange={ updateIsPaymentRequestEnabled }
+								/>
 							</div>
-							<div className="express-checkout__description">
-								{
-									/* eslint-disable jsx-a11y/anchor-has-content */
-									interpolateComponents( {
-										mixedString: __(
-											'Boost sales by offering a fast, simple, and secure checkout experience.' +
-												'By enabling this feature, you agree to {{stripeLink}}Stripe{{/stripeLink}}, ' +
-												"{{appleLink}}Apple{{/appleLink}}, and {{googleLink}}Google{{/googleLink}}'s terms of use.",
-											'woocommerce-gateway-stripe'
-										),
-										components: {
-											stripeLink: (
-												<a
-													target="_blank"
-													rel="noreferrer"
-													href="https://stripe.com/apple-pay/legal"
-												/>
-											),
-											appleLink: (
-												<a
-													target="_blank"
-													rel="noreferrer"
-													href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/"
-												/>
-											),
-											googleLink: (
-												<a
-													target="_blank"
-													rel="noreferrer"
-													href="https://androidpay.developers.google.com/terms/sellertos"
-												/>
-											),
-										},
-									} )
-									/* eslint-enable jsx-a11y/anchor-has-content */
-								}
+							<div className="express-checkout__icon">
+								<PaymentRequestIcon size="medium" />
 							</div>
-						</div>
-						<div className="express-checkout__link">
-							<a href={ customizeAppearanceURL }>
-								{ __(
-									'Customize',
-									'woocommerce-gateway-stripe'
-								) }
-							</a>
-						</div>
-					</li>
+							<div className="express-checkout__label-container">
+								<div className="express-checkout__label">
+									{ __(
+										'Apple Pay / Google Pay',
+										'woocommerce-gateway-stripe'
+									) }
+								</div>
+								<div className="express-checkout__description">
+									{
+										/* eslint-disable jsx-a11y/anchor-has-content */
+										interpolateComponents( {
+											mixedString: __(
+												'Boost sales by offering a fast, simple, and secure checkout experience.' +
+													'By enabling this feature, you agree to {{stripeLink}}Stripe{{/stripeLink}}, ' +
+													"{{appleLink}}Apple{{/appleLink}}, and {{googleLink}}Google{{/googleLink}}'s terms of use.",
+												'woocommerce-gateway-stripe'
+											),
+											components: {
+												stripeLink: (
+													<a
+														target="_blank"
+														rel="noreferrer"
+														href="https://stripe.com/apple-pay/legal"
+													/>
+												),
+												appleLink: (
+													<a
+														target="_blank"
+														rel="noreferrer"
+														href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/"
+													/>
+												),
+												googleLink: (
+													<a
+														target="_blank"
+														rel="noreferrer"
+														href="https://androidpay.developers.google.com/terms/sellertos"
+													/>
+												),
+											},
+										} )
+										/* eslint-enable jsx-a11y/anchor-has-content */
+									}
+								</div>
+							</div>
+							<div className="express-checkout__link">
+								<a href={ customizeAppearanceURL }>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</a>
+							</div>
+						</li>
+					) }
 					{ displayLinkPaymentMethod && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox loadable-checkbox label-hidden">

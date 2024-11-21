@@ -70,7 +70,7 @@ class WC_Stripe_Payment_Request {
 	public function __construct() {
 		self::$_this           = $this;
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
@@ -101,6 +101,11 @@ class WC_Stripe_Payment_Request {
 
 		// Don't load for change payment method page.
 		if ( isset( $_GET['change_payment_method'] ) ) {
+			return;
+		}
+
+		// Don't load for switch subscription page.
+		if ( isset( $_GET['switch-subscription'] ) ) {
 			return;
 		}
 
@@ -964,6 +969,11 @@ class WC_Stripe_Payment_Request {
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
 			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
 			return false;
 		}
 

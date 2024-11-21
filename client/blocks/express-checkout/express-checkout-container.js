@@ -1,7 +1,11 @@
 import React from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import ExpressCheckoutComponent from './express-checkout-component';
-import { getPaymentMethodTypesForExpressMethod } from 'wcstripe/express-checkout/utils';
+import {
+	getExpressCheckoutButtonAppearance,
+	getExpressCheckoutData,
+	getPaymentMethodTypesForExpressMethod,
+} from 'wcstripe/express-checkout/utils';
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
@@ -13,6 +17,8 @@ export const ExpressCheckoutContainer = ( props ) => {
 		paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
 			expressPaymentMethod
 		),
+		appearance: getExpressCheckoutButtonAppearance(),
+		locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 	};
 
 	return (

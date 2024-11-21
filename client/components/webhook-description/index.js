@@ -31,7 +31,7 @@ const WebhookDescriptionInner = styled.div`
 	}
 `;
 
-export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
+export const WebhookDescription = ( { isWebhookEnabled } ) => {
 	const {
 		code,
 		message,
@@ -40,10 +40,9 @@ export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
 	} = useWebhookStateMessage();
 	const isWarningMessage = code === 3 || code === 4;
 	const isSuccessMessage = code === 1;
-	const isSuccessMessageWithSecret =
-		isSuccessMessage && isWebhookSecretEntered;
+	const isSuccessMessageWithSecret = isSuccessMessage && isWebhookEnabled;
 	const webhookDescriptionClassesAr = [];
-	if ( isWebhookSecretEntered ) {
+	if ( isWebhookEnabled ) {
 		webhookDescriptionClassesAr.push( 'expanded' );
 	}
 	if ( isWarningMessage ) {
@@ -52,7 +51,7 @@ export const WebhookDescription = ( { isWebhookSecretEntered } ) => {
 
 	return (
 		<WebhookDescriptionWrapper>
-			{ ! isWebhookSecretEntered && <WebhookInformation /> }
+			{ ! isWebhookEnabled && <WebhookInformation /> }
 			<WebhookDescriptionInner
 				className={ webhookDescriptionClassesAr.join( ' ' ) }
 			>

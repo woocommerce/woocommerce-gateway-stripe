@@ -55,7 +55,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->retry_interval = 2;
 		$stripe_settings      = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$this->testmode       = WC_Stripe_Mode::is_test();
 		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
 
@@ -892,9 +892,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		return false;
 	}
 
+	/**
+	 * Handles the processing of a payment intent webhook.
+	 *
+	 * @param stdClass $notification The webhook notification from Stripe.
+	 */
 	public function process_payment_intent_success( $notification ) {
 		$intent = $notification->data->object;
-		$order  = WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+		$order  = $this->get_order_from_intent( $intent );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via intent ID: ' . $intent->id );
@@ -916,8 +921,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id           = $order->get_id();
-		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO ] );
-		$is_wallet_payment  = WC_Stripe_Helper::is_wallet_payment_method( $order );
+		$payment_type_meta  = $order->get_meta( '_stripe_upe_payment_type' );
+		$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
+		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
@@ -928,22 +934,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'payment_intent.succeeded':
 			case 'payment_intent.amount_capturable_updated':
-				$charge = $this->get_latest_charge_from_intent( $intent );
-
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
-				/**
-				 * Check if the order is awaiting further action from the customer. If so, do not process the payment via the webhook, let the redirect handle it.
-				 *
-				 * This is a stop-gap to fix a critical issue, see https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
-				 * be better if we removed the need for additional meta data in favor of refactoring this part of the payment processing.
-				 */
-				$is_awaiting_action = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
+				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
+				$is_awaiting_action    = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
 
-				// Voucher payments are only processed via the webhook so are excluded from the above check.
-				// Wallets are also processed via the webhook, not redirection.
-				if ( ! $is_voucher_payment && ! $is_wallet_payment && $is_awaiting_action ) {
-					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. Scheduled deferred webhook processing. The status for order $order_id might need manual adjustment." );
+				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
+				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
+					$charge = $this->get_latest_charge_from_intent( $intent );
+
+					do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+
+					$this->process_response( $charge, $order );
+				} else {
+					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
 					// Schedule a job to check on the status of this intent.
 					$this->defer_webhook_processing(
@@ -954,14 +958,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						]
 					);
 
-					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
-					return;
+					if ( $is_awaiting_action ) {
+						do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
+					}
 				}
 
-				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
-
-				// Process valid response.
-				$this->process_response( $charge, $order );
 				break;
 			default:
 				if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
@@ -1123,6 +1124,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
+		if ( ! $charge ) {
+			WC_Stripe_Logger::log( "Skipped processing deferred webhook for Stripe PaymentIntent {$intent_id} for order {$order->get_id()} - no charge found." );
+			return;
+		}
+
 		WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
 		do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
@@ -1197,6 +1203,43 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+	}
+
+	/**
+	 * Fetches an order from a payment intent.
+	 *
+	 * @param stdClass $intent The Stripe PaymentIntent object.
+	 * @return WC_Order|false The order object, or false if not found.
+	 */
+	private function get_order_from_intent( $intent ) {
+		// Attempt to get the order from the intent metadata.
+		if ( isset( $intent->metadata->signature ) ) {
+			$signature = wc_clean( $intent->metadata->signature );
+			$data      = explode( ':', $signature );
+
+			// Verify we received the order ID and signature (hash).
+			$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
+
+			if ( $order ) {
+				$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
+
+				// Return the order if the intent ID matches.
+				if ( $intent->id === $intent_id ) {
+					return $order;
+				}
+
+				/**
+				 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
+				 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+				 */
+				if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
+					return $order;
+				}
+			}
+		}
+
+		// Fall back to finding the order via the intent ID.
+		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
 	}
 }
 
