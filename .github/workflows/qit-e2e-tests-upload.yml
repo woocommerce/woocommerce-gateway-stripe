@@ -1,0 +1,30 @@
+name: Upload QIT E2E tests
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: New release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set PHP version
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 7.4
+        tools: composer:v2
+        coverage: none
+
+    - name: Install QIT via composer
+      run: composer require woocommerce/qit-cli
+
+    - name: Add partner
+      run: ./vendor/bin/qit partner:add --user='${{ secrets.PARTNER_USER }}' --application_password='${{ secrets.PARTNER_SECRET }}'
+
+    - name: Upload E2E tests tags to QIT
+      run: sh ./tests/e2e/bin/upload-tags.sh
