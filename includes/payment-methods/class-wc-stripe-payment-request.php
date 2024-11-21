@@ -366,7 +366,7 @@ class WC_Stripe_Payment_Request {
 	 * @since 5.2.0
 	 *
 	 * @param object $product WC_Product_* object.
-	 * @return integer Total price.
+	 * @return int|float Total price.
 	 */
 	public function get_product_price( $product ) {
 		$product_price = $product->get_price();

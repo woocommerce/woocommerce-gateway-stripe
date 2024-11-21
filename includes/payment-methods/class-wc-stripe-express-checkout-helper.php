@@ -147,7 +147,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param bool|null $is_deposit      Whether this is a deposit.
 	 * @param int       $deposit_plan_id Deposit plan ID.
 	 *
-	 * @return integer Total price.
+	 * @return int|float Total price.
 	 */
 	public function get_product_price( $product, $is_deposit = null, $deposit_plan_id = 0 ) {
 		// If prices should include tax, using tax inclusive price.
