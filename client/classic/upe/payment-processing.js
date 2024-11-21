@@ -3,6 +3,8 @@ import {
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	isLinkEnabled,
+	getDefaultValues,
 	getStripeServerData,
 	getUpeSettings,
 	showErrorCheckout,
@@ -82,6 +84,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	const elements = api.getStripe().elements( options );
 	const createdStripePaymentElement = elements.create( 'payment', {
 		...getUpeSettings(),
+		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -92,7 +95,40 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	gatewayUPEComponents[
 		paymentMethodType
 	].upeElement = createdStripePaymentElement;
+
+	// When email or phone is updated and Link is enabled, we need to
+	// update the payment element to update its default values.
+	if (
+		getStripeServerData()?.isCheckout &&
+		isLinkEnabled() &&
+		paymentMethodType === 'card'
+	) {
+		if ( document.getElementById( 'billing_email' ) ) {
+			document.getElementById( 'billing_email' ).onblur = function () {
+				updatePaymentElementDefaultValues();
+			};
+		}
+
+		if ( document.getElementById( 'billing_phone' ) ) {
+			document.getElementById( 'billing_phone' ).onblur = function () {
+				updatePaymentElementDefaultValues();
+			};
+		}
+	}
+
 	return createdStripePaymentElement;
+}
+
+/**
+ * Updates the payment element's default values.
+ */
+function updatePaymentElementDefaultValues() {
+	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+		return;
+	}
+
+	const paymentElement = gatewayUPEComponents.card.upeElement;
+	paymentElement.update( getDefaultValues() );
 }
 
 /**
