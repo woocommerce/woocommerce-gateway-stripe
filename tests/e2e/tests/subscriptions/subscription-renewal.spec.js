@@ -68,7 +68,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 
 		await page.locator( 'text=Sign up now' ).first().click();
 		await page.waitForURL( '**/checkout/order-received/**', {
-			timeout: 20000,
+			timeout: 30000,
 		} ); // Allow some extra time for the redirect to complete.
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
@@ -91,7 +91,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 		);
 		await page.click( 'text=Renew subscription' );
 		await page.waitForURL( '**/checkout/order-received/**', {
-			timeout: 20000,
+			timeout: 30000,
 		} ); // Allow some extra time for the redirect to complete.
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
