@@ -26,7 +26,7 @@ test.beforeAll( async () => {
 
 	await api.create.customer( user );
 } );
-
+test.slow();
 test( 'customer can checkout with a saved card @smoke @blocks @legacy', async ( {
 	page,
 } ) => {

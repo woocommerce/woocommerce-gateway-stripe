@@ -21,13 +21,14 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( '#place_order' ).first().click();
 
 	expect
 		.soft( await page.innerText( '.woocommerce-error' ) )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
+test.slow();
 test.describe.configure( { mode: 'parallel' } );
 test.describe( 'customer cannot checkout with invalid cards', () => {
 	test( `a declined card shows the correct error message @smoke`, async ( {

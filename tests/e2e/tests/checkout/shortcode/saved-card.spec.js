@@ -49,7 +49,7 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 		// check box to save payment method.
 		await page.locator( '#wc-stripe-new-payment-method' ).click();
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( '#place_order' ).first().click();
 
 		await page.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,
@@ -71,7 +71,7 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 			)
 		).toHaveCount( 1 );
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( '#place_order' ).first().click();
 
 		await page.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,

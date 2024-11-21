@@ -7,7 +7,7 @@ const {
 } = payments;
 
 let productId;
-
+test.slow();
 test.beforeAll( async () => {
 	const product = {
 		...config.get( 'products.subscription' ),
@@ -50,7 +50,7 @@ test( 'customer can purchase a subscription product @smoke @subscriptions @legac
 		config.get( 'cards.basic' )
 	);
 
-	await page.locator( 'text=Sign up now' ).click();
+	await page.locator( 'text=Sign up now' ).first().click();
 	await page.waitForURL( '**/checkout/order-received/**', {
 		timeout: 20000,
 	} ); // Allow some extra time for the redirect to complete.

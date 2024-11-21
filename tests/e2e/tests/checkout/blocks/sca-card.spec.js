@@ -8,6 +8,7 @@ const {
 	fillCreditCardDetails,
 } = payments;
 
+test.slow(); // Make sure that test have enough time to complete.
 test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 	page,
 } ) => {

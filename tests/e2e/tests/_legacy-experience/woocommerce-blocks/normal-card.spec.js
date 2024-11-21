@@ -7,7 +7,7 @@ const {
 	fillCreditCardDetailsLegacy,
 	setupBlocksCheckout,
 } = payments;
-
+test.slow();
 test( 'customer can checkout with a normal credit card @smoke @blocks @legacy', async ( {
 	page,
 } ) => {

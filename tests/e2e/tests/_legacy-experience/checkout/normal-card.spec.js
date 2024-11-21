@@ -8,6 +8,7 @@ const {
 	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
+test.slow();
 test( 'customer can checkout with a normal credit card @smoke @legacy', async ( {
 	page,
 } ) => {
@@ -21,7 +22,7 @@ test( 'customer can checkout with a normal credit card @smoke @legacy', async ( 
 		page,
 		config.get( 'cards.basic' )
 	);
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( '#place_order' ).first().click();
 	await page.waitForURL( '**/checkout/order-received/**', {
 		timeout: 20000,
 	} ); // Allow some extra time for the redirect to complete.

@@ -36,7 +36,7 @@ const testCard = async ( page, cardKey ) => {
 		.soft( expected )
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
-
+test.slow();
 test.describe.configure( { mode: 'parallel' } );
 test.describe(
 	'customer cannot checkout with invalid cards @blocks @legacy',

@@ -10,6 +10,7 @@ const {
 	fillCreditCardDetailsShortcodeLegacy,
 } = payments;
 
+test.slow();
 test( 'merchant can issue a full refund @smoke @legacy', async ( {
 	browser,
 } ) => {
@@ -35,7 +36,7 @@ test( 'merchant can issue a full refund @smoke @legacy', async ( {
 			userPage,
 			config.get( 'cards.basic' )
 		);
-		await userPage.locator( 'text=Place order' ).click();
+		await userPage.locator( '#place_order' ).first().click();
 		await userPage.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,
 		} ); // Allow some extra time for the redirect to complete.

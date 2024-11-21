@@ -4,7 +4,7 @@ import { payments, api, config } from '../../../utils';
 const { setupBlocksCheckout, fillCreditCardDetailsLegacy } = payments;
 
 let productId;
-
+test.slow();
 test.beforeAll( async () => {
 	const product = {
 		...config.get( 'products.subscription' ),

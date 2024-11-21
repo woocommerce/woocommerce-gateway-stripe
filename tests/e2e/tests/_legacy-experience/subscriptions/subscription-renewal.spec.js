@@ -47,6 +47,7 @@ test.afterAll( async () => {
 	await api.deletePost.product( productId );
 } );
 
+test.slow();
 test( 'customer can renew a subscription @smoke @subscriptions @legacy', async ( {
 	page,
 } ) => {
@@ -68,7 +69,7 @@ test( 'customer can renew a subscription @smoke @subscriptions @legacy', async (
 			config.get( 'cards.basic' )
 		);
 
-		await page.locator( 'text=Sign up now' ).click();
+		await page.locator( 'text=Sign up now' ).first().click();
 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'

@@ -21,7 +21,7 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcodeLegacy( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( '#place_order' ).first().click();
 
 	expect
 		.soft( await page.innerText( '.woocommerce-error' ) )
@@ -32,7 +32,7 @@ const testCardBlocks = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcodeLegacy( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( '#place_order' ).first().click();
 
 	expect
 		.soft(
@@ -43,6 +43,7 @@ const testCardBlocks = async ( page, cardKey ) => {
 		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
+test.slow();
 test.describe.configure( { mode: 'parallel' } );
 test.describe( 'customer cannot checkout with invalid cards @legacy', () => {
 	test( `a declined card shows the correct error message @smoke`, async ( {

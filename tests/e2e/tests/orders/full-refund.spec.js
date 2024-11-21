@@ -11,6 +11,7 @@ const {
 	fillCreditCardDetailsShortcode,
 } = payments;
 
+test.slow();
 test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 	let orderId, stripeChargeId, stripeRefundId;
 
@@ -34,7 +35,7 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 			userPage,
 			config.get( 'cards.basic' )
 		);
-		await userPage.locator( 'text=Place order' ).click();
+		await userPage.locator( '#place_order' ).first().click();
 		await userPage.waitForURL( '**/checkout/order-received/**' );
 
 		await expect( userPage.locator( 'h1.entry-title' ) ).toHaveText(

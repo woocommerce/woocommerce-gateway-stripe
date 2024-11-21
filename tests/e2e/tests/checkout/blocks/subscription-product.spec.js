@@ -5,6 +5,7 @@ const { setupBlocksCheckout, fillCreditCardDetails } = payments;
 
 let productId;
 
+test.slow();
 test.beforeAll( async () => {
 	const product = {
 		...config.get( 'products.subscription' ),

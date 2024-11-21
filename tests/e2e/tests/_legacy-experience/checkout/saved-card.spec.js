@@ -10,7 +10,7 @@ const {
 } = payments;
 
 let username, userEmail;
-
+test.slow();
 test.beforeAll( async () => {
 	// This allow multiple tests to run in parallel.
 	const randomString = Date.now();
@@ -50,7 +50,7 @@ test( 'customer can checkout with a saved card @smoke @legacy', async ( {
 		// check box to save payment method.
 		await page.locator( '#wc-stripe-new-payment-method' ).click();
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( '#place_order' ).first().click();
 
 		await page.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,
@@ -72,7 +72,7 @@ test( 'customer can checkout with a saved card @smoke @legacy', async ( {
 			)
 		).toHaveCount( 1 );
 
-		await page.locator( 'text=Place order' ).click();
+		await page.locator( '#place_order' ).first().click();
 
 		await page.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,

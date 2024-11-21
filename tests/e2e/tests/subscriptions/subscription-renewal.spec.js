@@ -66,7 +66,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 			config.get( 'cards.basic' )
 		);
 
-		await page.locator( 'text=Sign up now' ).click();
+		await page.locator( 'text=Sign up now' ).first().click();
 		await page.waitForURL( '**/checkout/order-received/**', {
 			timeout: 20000,
 		} ); // Allow some extra time for the redirect to complete.
