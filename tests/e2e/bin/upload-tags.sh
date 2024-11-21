@@ -12,6 +12,13 @@ cp -r ./tests/e2e/ $tmp_tests_dir
 echo "Uploading default tests tag";
 # Remove the legacy tests from the default tests
 rm -rf "$tmp_tests_dir/tests/_legacy-experience"
+echo "===="
+ls
+echo "===="
+cd $tmp_tests_dir
+ls
+echo "===="
+cd ..
 ./vendor/bin/qit tag:upload woocommerce-gateway-stripe:default "$tmp_tests_dir"
 
 echo "Uploading legacy tests tag";
