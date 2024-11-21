@@ -3,8 +3,8 @@
 echo "Start uploading QIT Custom E2E tests tags";
 
 # Create a temporary directory to copy tests to upload.
-tmp_dir=$(mktemp -d)
-tmp_tests_dir="$tmp_dir/qit-tests"
+tmp_tests_dir="./qit-tests"
+rm -rf "$tmp_tests_dir"
 mkdir -p "$tmp_tests_dir"
 
 cp -r ./tests/e2e/ $tmp_tests_dir
@@ -29,6 +29,6 @@ cp -r ./tests/e2e/tests/subscriptions/ $tmp_tests_dir/tests/subscriptions
 ./vendor/bin/qit tag:upload woocommerce-gateway-stripe:subscriptions-tests "$tmp_tests_dir"
 
 # Remove the temporary directory
-rm -rf "$tmp_dir"
+rm -rf "$tmp_tests_dir"
 
 echo "Finished uploading QIT Custom E2E tests tags";

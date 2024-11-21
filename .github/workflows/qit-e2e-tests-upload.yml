@@ -28,4 +28,4 @@ jobs:
       run: ./vendor/bin/qit partner:add --user='${{ secrets.PARTNER_USER }}' --application_password='${{ secrets.PARTNER_SECRET }}'
 
     - name: Upload E2E tests tags to QIT
-      run: sh ./tests/e2e/bin/upload-tags.sh
+      run: npm run test:upload-tags
