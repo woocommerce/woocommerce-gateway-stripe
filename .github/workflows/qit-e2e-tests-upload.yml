@@ -1,7 +1,6 @@
 name: Upload QIT E2E tests
 
 on:
-  pull_request:
   workflow_dispatch:
   release:
     types: [published]

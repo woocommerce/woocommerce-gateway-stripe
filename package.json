@@ -155,6 +155,7 @@
 		"test:e2e-legacy": "./vendor/bin/qit run:e2e woocommerce-gateway-stripe ./tests/e2e --source ./ --pw_options=\"--grep @legacy\"",
 		"test:e2e-local": "./vendor/bin/qit run:e2e woocommerce-gateway-stripe ./tests/e2e --source ./ --pw_options=\"--grep-invert @legacy\" --env_file ./tests/e2e/config/local.env",
 		"test:e2e-legacy-local": "./vendor/bin/qit run:e2e woocommerce-gateway-stripe ./tests/e2e --source ./ --pw_options=\"--grep @legacy\" --env_file ./tests/e2e/config/local.env",
+		"test:e2e-all-local": "./vendor/bin/qit run:e2e woocommerce-gateway-stripe ./tests/e2e --source ./ --env_file ./tests/e2e/config/local.env",
 		"test:upload-tags": "sh ./tests/e2e/bin/upload-tags.sh"
   },
   "engines": {
