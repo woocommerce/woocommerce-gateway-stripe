@@ -20,7 +20,7 @@ class WC_Stripe_Settings_Controller {
 	/**
 	 * The Stripe gateway instance.
 	 *
-	 * @var WC_Stripe_Payment_Gateway
+	 * @var WC_Stripe_Payment_Gateway|null
 	 */
 	private $gateway;
 
@@ -29,9 +29,10 @@ class WC_Stripe_Settings_Controller {
 	 *
 	 * @param WC_Stripe_Account $account Stripe account
 	 */
-	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway ) {
+	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway = null ) {
 		$this->account = $account;
 		$this->gateway = $gateway;
+
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
@@ -42,6 +43,17 @@ class WC_Stripe_Settings_Controller {
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
 
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+	}
+
+	/**
+	 * Fetches the Stripe gateway instance.
+	 */
+	private function get_gateway() {
+		if ( ! $this->gateway ) {
+			$this->gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		}
+
+		return $this->gateway;
 	}
 
 	/**
@@ -69,7 +81,7 @@ class WC_Stripe_Settings_Controller {
 	*/
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
 		try {
-			$intent = $this->gateway->get_intent_from_order( $order );
+			$intent = $this->get_gateway()->get_intent_from_order( $order );
 
 			if ( $intent && 'requires_capture' === $intent->status ) {
 				$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
@@ -171,7 +183,7 @@ class WC_Stripe_Settings_Controller {
 			'stripe_oauth_url'          => $oauth_url,
 			'stripe_test_oauth_url'     => $test_oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
-			'is_test_mode'              => $this->gateway->is_in_test_mode(),
+			'is_test_mode'              => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'            => WC_STRIPE_VERSION,
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),

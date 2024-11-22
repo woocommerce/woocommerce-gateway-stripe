@@ -2,7 +2,6 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
-	getPaymentMethodTypes,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
 	isPaymentMethodRestrictedToLocation,
@@ -17,7 +16,6 @@ import {
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
-import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
@@ -89,67 +87,10 @@ jQuery( function ( $ ) {
 			for ( const upeElement of $(
 				'.wc-stripe-upe-element'
 			).toArray() ) {
-				const component = await mountStripePaymentElement(
-					api,
-					upeElement
-				);
+				await mountStripePaymentElement( api, upeElement );
 				restrictPaymentMethodToLocation( upeElement );
-				maybeEnableStripeLinkPaymentMethod(
-					component.elements,
-					upeElement.dataset.paymentMethodType
-				);
 			}
 		}
-	}
-
-	function maybeEnableStripeLinkPaymentMethod( elements, paymentMethodType ) {
-		const isCheckout = getStripeServerData()?.isCheckout;
-		if ( ! isCheckout ) {
-			return;
-		}
-
-		if ( paymentMethodType !== 'card' ) {
-			return;
-		}
-
-		const isStripeLinkEnabled = getPaymentMethodTypes(
-			paymentMethodType
-		).includes( 'link' );
-		if ( ! isStripeLinkEnabled ) {
-			return;
-		}
-
-		enableStripeLinkPaymentMethod( {
-			api,
-			elements,
-			emailId: 'billing_email',
-			complete_billing: () => {
-				return document.getElementById( 'billing_address_1' ) !== null;
-			},
-			complete_shipping: () => {
-				return document.getElementById( 'shipping_address_1' ) !== null;
-			},
-			shipping_fields: {
-				line1: 'shipping_address_1',
-				line2: 'shipping_address_2',
-				city: 'shipping_city',
-				state: 'shipping_state',
-				postal_code: 'shipping_postcode',
-				country: 'shipping_country',
-				first_name: 'shipping_first_name',
-				last_name: 'shipping_last_name',
-			},
-			billing_fields: {
-				line1: 'billing_address_1',
-				line2: 'billing_address_2',
-				city: 'billing_city',
-				state: 'billing_state',
-				postal_code: 'billing_postcode',
-				country: 'billing_country',
-				first_name: 'billing_first_name',
-				last_name: 'billing_last_name',
-			},
-		} );
 	}
 
 	function restrictPaymentMethodToLocation( upeElement ) {

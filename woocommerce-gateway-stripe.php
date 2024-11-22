@@ -285,7 +285,7 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						new WC_Stripe_Settings_Controller( $this->account, $this->get_main_stripe_gateway() );
+						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
 					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
@@ -318,6 +318,7 @@ function woocommerce_gateway_stripe() {
 
 				// Intitialize the class for updating subscriptions' Legacy SEPA payment methods.
 				add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
+				add_action( 'init', [ $this, 'load_plugin_textdomain' ] );
 			}
 
 			/**
@@ -787,6 +788,10 @@ function woocommerce_gateway_stripe() {
 				$updater->init();
 				$updater->maybe_update();
 			}
+
+			public function load_plugin_textdomain() {
+				load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+			}
 		}
 
 		$plugin = WC_Stripe::get_instance();
@@ -799,8 +804,6 @@ function woocommerce_gateway_stripe() {
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
-	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
-
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
 		return;
