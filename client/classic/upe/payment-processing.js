@@ -82,6 +82,15 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	};
 
 	const elements = api.getStripe().elements( options );
+
+	const attachDefaultValuesUpdateEvent = ( element ) => {
+		if ( document.getElementById( element ) ) {
+			document.getElementById( element ).onblur = function () {
+				updatePaymentElementDefaultValues();
+			};
+		}
+	};
+
 	const createdStripePaymentElement = elements.create( 'payment', {
 		...getUpeSettings(),
 		...getDefaultValues(),
@@ -103,17 +112,8 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		isLinkEnabled() &&
 		paymentMethodType === 'card'
 	) {
-		if ( document.getElementById( 'billing_email' ) ) {
-			document.getElementById( 'billing_email' ).onblur = function () {
-				updatePaymentElementDefaultValues();
-			};
-		}
-
-		if ( document.getElementById( 'billing_phone' ) ) {
-			document.getElementById( 'billing_phone' ).onblur = function () {
-				updatePaymentElementDefaultValues();
-			};
-		}
+		attachDefaultValuesUpdateEvent( 'billing_email' );
+		attachDefaultValuesUpdateEvent( 'billing_phone' );
 	}
 
 	return createdStripePaymentElement;
