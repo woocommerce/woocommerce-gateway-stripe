@@ -1,6 +1,5 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
@@ -64,20 +63,9 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const {
-			key,
-			locale,
-			isUPEEnabled,
-			paymentMethodsConfig,
-		} = this.options;
+		const { key, locale } = this.options;
 		if ( ! this.stripe ) {
-			if ( isUPEEnabled && isLinkEnabled( paymentMethodsConfig ) ) {
-				this.stripe = this.createStripe( key, locale, [
-					'link_autofill_modal_beta_1',
-				] );
-			} else {
-				this.stripe = this.createStripe( key, locale );
-			}
+			this.stripe = this.createStripe( key, locale );
 		}
 		return this.stripe;
 	}
