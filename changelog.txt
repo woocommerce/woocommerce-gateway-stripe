@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 9.0.0 - xxxx-xx-xx =
-* Add - Pre-fill user email and phone number for Link in the Payment Element and block checkout.
+* Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
 * Update - Improve accuracy of webhook status information displayed in settings page.
 * Tweak - Standardize ECE Express payment buttons on Pay for Order page to match cart and checkout itemization behavior.
