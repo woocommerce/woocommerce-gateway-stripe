@@ -417,6 +417,32 @@ export const getUpeSettings = () => {
 };
 
 /**
+ * Craft the defaultValues parameter, used to pre-fill
+ * user email and phone number for Link in the Payment Element.
+ *
+ * @return {Object} The defaultValues object for the Payment Element.
+ */
+export const getDefaultValues = () => {
+	const userEmail = document.getElementById( 'billing_email' )?.value;
+	if ( ! userEmail ) {
+		return {};
+	}
+
+	const userPhone =
+		document.getElementById( 'billing_phone' )?.value ||
+		document.getElementById( 'shipping_phone' )?.value;
+
+	return {
+		defaultValues: {
+			billingDetails: {
+				email: userEmail,
+				phone: userPhone,
+			},
+		},
+	};
+};
+
+/**
  * Show error notice at top of checkout form.
  * Will try to use a translatable message using the message code if available
  *
