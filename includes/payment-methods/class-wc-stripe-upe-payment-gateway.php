@@ -1415,7 +1415,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Retries the payment process once an error occured.
 	 *
-	 * @param object   $intent            The Payment Intent response from the Stripe API.
+	 * @param object   $response          The response from the Stripe API.
 	 * @param WC_Order $order             An order that is being paid for.
 	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
 	 * @param bool     $force_save_source Force save the payment source.
@@ -1424,7 +1424,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @throws WC_Stripe_Exception If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $intent, $order, $retry, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+	public function retry_after_error( $response, $order, $retry, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
@@ -1433,13 +1433,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Don't do anymore retries after this.
 		if ( 5 <= $this->retry_interval ) {
-			return $this->process_payment_with_saved_payment_method( $order->get_id(), false );
+			return $this->process_payment( $order->get_id(), false, $force_save_source, $response->error, $previous_error );
 		}
 
 		sleep( $this->retry_interval );
 		$this->retry_interval++;
 
-		return $this->process_payment_with_saved_payment_method( $order->get_id(), true );
+		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
 	}
 
 	/**
