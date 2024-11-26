@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PaymentRequestsSettingsSection from '../payment-request-settings-section';
-import PaymentRequestButtonPreview from '../payment-request-button-preview';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
@@ -24,17 +23,6 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn().mockReturnValue( {} ),
 	useAccountKeysPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
-} ) );
-
-jest.mock( '../payment-request-button-preview' );
-PaymentRequestButtonPreview.mockImplementation( () => '<></>' );
-
-jest.mock( '../utils/utils', () => ( {
-	getPaymentRequestData: jest.fn().mockReturnValue( {
-		publishableKey: 'pk_test_123',
-		accountId: '0001',
-		locale: 'en',
-	} ),
 } ) );
 
 const getMockPaymentRequestEnabledSettings = (
