@@ -125,13 +125,6 @@ function woocommerce_gateway_stripe() {
 			public $connect;
 
 			/**
-			 * Stripe Payment Request configurations.
-			 *
-			 * @var WC_Stripe_Payment_Request
-			 */
-			public $payment_request_configuration;
-
-			/**
 			 * Stripe Express Checkout configurations.
 			 *
 			 * @var WC_Stripe_Express_Checkout_Element
@@ -265,7 +258,6 @@ function woocommerce_gateway_stripe() {
 
 				$this->api                           = new WC_Stripe_Connect_API();
 				$this->connect                       = new WC_Stripe_Connect( $this->api );
-				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				// Express checkout configurations.
@@ -872,7 +864,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 					WC_Stripe_Blocks_Support::class,
 					function() {
 						if ( class_exists( 'WC_Stripe' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
+							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->express_checkout_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}
