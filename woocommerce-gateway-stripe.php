@@ -347,7 +347,7 @@ function woocommerce_gateway_stripe() {
 					// TODO: Remove this when we're reasonably sure most merchants have had their
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
-					$this->update_prb_location_settings();
+					$this->update_ece_location_settings();
 
 					// Check for subscriptions using legacy SEPA tokens on upgrade.
 					// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
@@ -368,12 +368,29 @@ function woocommerce_gateway_stripe() {
 			 *
 			 * @since 5.5.0
 			 * @version 5.5.0
+			 *
+			 * @deprecated 9.0.0
 			 */
 			public function update_prb_location_settings() {
+				_deprecated_function( __METHOD__, '9.0.0', 'WC_Stripe::update_ece_location_settings' );
+				self::update_ece_location_settings();
+			}
+
+			/**
+			 * Updates the ECE location settings based on deprecated filters.
+			 *
+			 * The filters were removed in favor of plugin settings. This function can, and should,
+			 * be removed when we're reasonably sure most merchants have had their settings updated
+			 * through this function. Maybe ~80% of merchants is a good threshold?
+			 *
+			 * @since 5.5.0
+			 * @version 5.5.0
+			 */
+			public function update_ece_location_settings() {
 				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-				? $stripe_settings['payment_request_button_locations']
-				: [];
+					? $stripe_settings['payment_request_button_locations']
+					: [];
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
@@ -853,7 +870,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 			'woocommerce_blocks_payment_method_type_registration',
 			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
 				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
-				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) || ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
+				if ( ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
 					return;
 				}
 

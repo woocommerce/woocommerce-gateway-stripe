@@ -84,23 +84,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Load Stripe for payment request button.
-	 *
-	 * @return {Promise} Promise with the Stripe object or an error.
-	 */
-	loadStripe() {
-		return new Promise( ( resolve ) => {
-			try {
-				resolve( this.getStripe() );
-			} catch ( error ) {
-				// In order to avoid showing console error publicly to users,
-				// we resolve instead of rejecting when there is an error.
-				resolve( { error } );
-			}
-		} );
-	}
-
-	/**
 	 * Creates a setup intent without confirming it.
 	 *
 	 * @return {Promise} The final promise for the request to the server.

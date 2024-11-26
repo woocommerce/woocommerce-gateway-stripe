@@ -19,7 +19,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
-	 * The Express Checkout configuration class used for Shortcode PRBs. We use it here to retrieve
+	 * The Express Checkout configuration class used for Shortcode ECE. We use it here to retrieve
 	 * the same configurations.
 	 *
 	 * @var WC_Stripe_Express_Checkout_Element

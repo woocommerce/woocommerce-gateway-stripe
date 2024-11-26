@@ -834,12 +834,7 @@ jQuery( function( $ ) {
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
-			var prButtonClicked = $( 'body' ).hasClass( 'woocommerce-stripe-prb-clicked' );
-			if ( prButtonClicked ) {
-				// If payment was initiated with a payment request button, display errors in the notices div.
-				$( 'body' ).removeClass( 'woocommerce-stripe-prb-clicked' );
-				errorContainer = $( 'div.woocommerce-notices-wrapper' ).first();
-			} else if ( savedTokens.length ) {
+			if ( savedTokens.length ) {
 				// In case there are saved cards too, display the message next to the correct one.
 				var selectedToken = savedTokens.filter( ':checked' );
 

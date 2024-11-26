@@ -265,8 +265,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_individual_payment_method_settings( $request );
 
 		/* Settings > Express checkouts */
-		$this->update_is_payment_request_enabled( $request );
-		$this->update_payment_request_settings( $request );
+		$this->update_is_express_checkout_enabled( $request );
+		$this->update_express_checkout_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -352,11 +352,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates the "payment request" enable/disable settings.
+	 * Updates the Express Checkout Element enable/disable settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_is_payment_request_enabled( WP_REST_Request $request ) {
+	private function update_is_express_checkout_enabled( WP_REST_Request $request ) {
 		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
 
 		if ( null === $is_payment_request_enabled ) {
@@ -477,11 +477,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates appearance attributes of the payment request button.
+	 * Updates appearance attributes of the Express Checkout Element.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_payment_request_settings( WP_REST_Request $request ) {
+	private function update_express_checkout_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'payment_request_button_type'      => 'payment_request_button_type',
 			'payment_request_button_size'      => 'payment_request_button_size',
