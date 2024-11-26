@@ -137,23 +137,23 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
 );
-export const usePaymentRequestEnabledSettings = makeSettingsHook(
-	'is_payment_request_enabled'
+export const useExpressCheckoutEnabledSettings = makeSettingsHook(
+	'is_express_checkout_enabled'
 );
-export const usePaymentRequestButtonSize = makeSettingsHook(
-	'payment_request_button_size',
+export const useExpressCheckoutButtonSize = makeSettingsHook(
+	'express_checkout_button_size',
 	''
 );
-export const usePaymentRequestButtonType = makeSettingsHook(
-	'payment_request_button_type',
+export const useExpressCheckoutButtonType = makeSettingsHook(
+	'express_checkout_button_type',
 	''
 );
-export const usePaymentRequestButtonTheme = makeSettingsHook(
-	'payment_request_button_theme',
+export const useExpressCheckoutButtonTheme = makeSettingsHook(
+	'express_checkout_button_theme',
 	''
 );
-export const usePaymentRequestLocations = makeSettingsHook(
-	'payment_request_button_locations',
+export const useExpressCheckoutButtonLocations = makeSettingsHook(
+	'express_checkout_button_locations',
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );

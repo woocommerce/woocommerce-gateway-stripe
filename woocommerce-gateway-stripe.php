@@ -273,8 +273,8 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
 					if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
-						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
-						new WC_Stripe_Payment_Requests_Controller();
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-express-checkout-controller.php';
+						new WC_Stripe_Express_Checkout_Controller();
 					} else {
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
@@ -388,9 +388,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function update_ece_location_settings() {
 				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-					? $stripe_settings['payment_request_button_locations']
-					: [];
+				$prb_locations   = $stripe_settings['express_checkout_button_locations'] ?? [];
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
@@ -398,21 +396,21 @@ function woocommerce_gateway_stripe() {
 					$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
 					$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
-					$new_prb_locations = [];
+					$new_button_locations = [];
 
 					if ( $should_show_on_product_page ) {
-						$new_prb_locations[] = 'product';
+						$new_button_locations[] = 'product';
 					}
 
 					if ( $should_show_on_cart_page ) {
-						$new_prb_locations[] = 'cart';
+						$new_button_locations[] = 'cart';
 					}
 
 					if ( $should_show_on_checkout_page ) {
-						$new_prb_locations[] = 'checkout';
+						$new_button_locations[] = 'checkout';
 					}
 
-					$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
+					$stripe_settings['express_checkout_button_locations'] = $new_button_locations;
 					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				}
 			}

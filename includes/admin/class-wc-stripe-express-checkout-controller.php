@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.4.1
  */
-class WC_Stripe_Payment_Requests_Controller {
+class WC_Stripe_Express_Checkout_Controller {
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );

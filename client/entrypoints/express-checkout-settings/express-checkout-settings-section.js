@@ -11,11 +11,11 @@ import interpolateComponents from 'interpolate-components';
 import { loadStripe } from '@stripe/stripe-js';
 import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonType,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonTheme,
+	useExpressCheckoutButtonType,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonTheme,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutButtonLocations,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
@@ -122,10 +122,10 @@ const buttonThemeOptions = [
 	},
 ];
 
-const PaymentRequestsSettingsSection = () => {
-	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
-	const [ size, setSize ] = usePaymentRequestButtonSize();
-	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
+const ExpressCheckoutSettingsSection = () => {
+	const [ buttonType, setButtonType ] = useExpressCheckoutButtonType();
+	const [ size, setSize ] = useExpressCheckoutButtonSize();
+	const [ theme, setTheme ] = useExpressCheckoutButtonTheme();
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
@@ -140,12 +140,12 @@ const PaymentRequestsSettingsSection = () => {
 		);
 	}, [ testPublishableKey, publishableKey, accountId ] );
 
-	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+	const [ isPaymentRequestEnabled ] = useExpressCheckoutEnabledSettings();
 
 	const [
 		paymentRequestLocations,
 		updatePaymentRequestLocations,
-	] = usePaymentRequestLocations();
+	] = useExpressCheckoutButtonLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
@@ -271,4 +271,4 @@ const PaymentRequestsSettingsSection = () => {
 	);
 };
 
-export default PaymentRequestsSettingsSection;
+export default ExpressCheckoutSettingsSection;

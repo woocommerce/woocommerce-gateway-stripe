@@ -57,8 +57,8 @@ module.exports = {
 	},
 	entry: {
 		index: './client/blocks/index.js',
-		payment_requests_settings:
-			'./client/entrypoints/payment-request-settings/index.js',
+		express_checkout_settings:
+			'./client/entrypoints/express-checkout-settings/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_blocks: './client/blocks/upe/index.js',
 		upe_settings: './client/settings/index.js',

@@ -32,11 +32,11 @@ class Allowed_Payment_Request_Button_Types_Update {
 		$stripe_gateway = $this->get_gateway();
 
 		// "custom" or "branded" are no longer valid values for the button type - map them to new ones
-		$button_type = $stripe_gateway->get_option( 'payment_request_button_type' );
+		$button_type = $stripe_gateway->get_option( 'express_checkout_button_type' );
 		if ( in_array( $button_type, [ 'branded', 'custom' ], true ) ) {
-			$branded_type = $stripe_gateway->get_option( 'payment_request_button_branded_type' );
+			$branded_type = $stripe_gateway->get_option( 'express_checkout_button_branded_type' );
 			$stripe_gateway->update_option(
-				'payment_request_button_type',
+				'express_checkout_button_type',
 				$this->map_button_type( $button_type, $branded_type )
 			);
 		}
@@ -45,8 +45,8 @@ class Allowed_Payment_Request_Button_Types_Update {
 	/**
 	 * Maps deprecated button types to fallback values.
 	 *
-	 * @param mixed $button_type "payment_request_button_type" value.
-	 * @param mixed $branded_type "payment_request_button_branded_type" value.
+	 * @param mixed $button_type "express_checkout_button_type" value.
+	 * @param mixed $branded_type "express_checkout_button_branded_type" value.
 	 *
 	 * @return mixed
 	 */
