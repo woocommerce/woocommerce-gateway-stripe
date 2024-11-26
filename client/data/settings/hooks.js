@@ -138,22 +138,22 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useExpressCheckoutEnabledSettings = makeSettingsHook(
-	'is_express_checkout_enabled'
+	'is_payment_request_enabled'
 );
 export const useExpressCheckoutButtonSize = makeSettingsHook(
-	'express_checkout_button_size',
+	'payment_request_button_size',
 	''
 );
 export const useExpressCheckoutButtonType = makeSettingsHook(
-	'express_checkout_button_type',
+	'payment_request_button_type',
 	''
 );
 export const useExpressCheckoutButtonTheme = makeSettingsHook(
-	'express_checkout_button_theme',
+	'payment_request_button_theme',
 	''
 );
 export const useExpressCheckoutButtonLocations = makeSettingsHook(
-	'express_checkout_button_locations',
+	'payment_request_button_locations',
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );

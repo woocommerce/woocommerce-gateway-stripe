@@ -339,7 +339,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
-			'is_express_checkout_enabled'           => [ 'is_express_checkout_enabled', 'express_checkout' ],
+			'is_payment_request_enabled'            => [ 'is_payment_request_enabled', 'payment_request' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
 			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],
@@ -361,30 +361,30 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				[ 'foo' ],
 				true,
 			],
-			'express_checkout_button_theme'     => [
-				'express_checkout_button_theme',
-				'express_checkout_button_theme',
+			'payment_request_button_theme'     => [
+				'payment_request_button_theme',
+				'payment_request_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'express_checkout_button_size'      => [
-				'express_checkout_button_size',
-				'express_checkout_button_size',
+			'payment_request_button_size'      => [
+				'payment_request_button_size',
+				'payment_request_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'express_checkout_button_type'      => [
-				'express_checkout_button_type',
-				'express_checkout_button_type',
+			'payment_request_button_type'      => [
+				'payment_request_button_type',
+				'payment_request_button_type',
 				'buy',
 				'book',
 				'foo',
 			],
-			'express_checkout_button_locations' => [
-				'express_checkout_button_locations',
-				'express_checkout_button_locations',
+			'payment_request_button_locations' => [
+				'payment_request_button_locations',
+				'payment_request_button_locations',
 				[ 'cart' ],
 				[ 'cart', 'checkout', 'product' ],
 				[ 'foo' ],

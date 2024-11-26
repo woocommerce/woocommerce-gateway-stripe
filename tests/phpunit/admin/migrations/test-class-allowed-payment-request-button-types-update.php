@@ -44,14 +44,14 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	 */
 	public function test_it_maps_deprecated_button_type_values( string $button_type, string $branded_type, string $expected_mapped_value ) {
 		$old_settings = [
-			'express_checkout_button_type'         => $button_type,
-			'express_checkout_button_branded_type' => $branded_type,
+			'payment_request_button_type'         => $button_type,
+			'payment_request_button_branded_type' => $branded_type,
 		];
 
 		$this->setup_environment( $old_settings );
 		$this->gateway_mock->expects( $this->once() )
 						   ->method( 'update_option' )
-						   ->with( 'express_checkout_button_type', $expected_mapped_value );
+						   ->with( 'payment_request_button_type', $expected_mapped_value );
 
 		$this->migration->maybe_migrate();
 	}
@@ -60,7 +60,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	 * @dataProvider not_deprecated_values_provider
 	 */
 	public function test_it_does_not_map_values_other_than_deprecated( $button_type ) {
-		$this->setup_environment( [ 'express_checkout_button_type' => $button_type ] );
+		$this->setup_environment( [ 'payment_request_button_type' => $button_type ] );
 		$this->gateway_mock->expects( $this->never() )
 						   ->method( 'update_option' );
 
