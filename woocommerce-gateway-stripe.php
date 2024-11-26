@@ -388,7 +388,9 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function update_ece_location_settings() {
 				$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-				$prb_locations   = $stripe_settings['express_checkout_button_locations'] ?? [];
+				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
+				? $stripe_settings['payment_request_button_locations']
+				: [];
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
@@ -410,7 +412,7 @@ function woocommerce_gateway_stripe() {
 						$new_button_locations[] = 'checkout';
 					}
 
-					$stripe_settings['express_checkout_button_locations'] = $new_button_locations;
+					$stripe_settings['payment_request_button_locations'] = $new_button_locations;
 					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 				}
 			}
