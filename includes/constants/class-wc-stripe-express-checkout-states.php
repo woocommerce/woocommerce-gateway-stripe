@@ -1,8 +1,8 @@
 <?php
 /**
- * Class WC_Stripe_Payment_Request_Button_States
+ * Class WC_Stripe_Express_Checkout_States file.
  *
- * Provides a map between WC states and Payment Request API states.
+ * Provides a map between WC states and Express Checkout API states.
  * The list is based on libaddressinput: https://github.com/google/libaddressinput,
  * which is used by Chromium based browsers in the native Payment Request address dialog.
  *
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *        AC (Ascension Island), IC (Canary Islands), EA (Ceuta & Melilla), CP (Clipperton Island), DG (Diego Garcia),
  *        TA (Tristan da Cunha), XK (Kosovo).
  */
-class WC_Stripe_Payment_Request_Button_States {
+class WC_Stripe_Express_Checkout_States {
 	/**
 	 * A list of states which is compatible with Chromium based browsers for the Payment Request API.
 	 * If the input comes from Chrome, we will always match with `code`, but if the request comes from

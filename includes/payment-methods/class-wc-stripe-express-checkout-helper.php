@@ -914,23 +914,38 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param string $country Two-letter country code.
 	 *
 	 * @return string Normalized state or original state input value.
+	 *
+	 * @deprecated 9.0.0
 	 */
 	public function get_normalized_state_from_pr_states( $state, $country ) {
-		// Include Payment Request API State list for compatibility with WC countries/states.
-		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
-		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
+		wc_deprecated_function( __METHOD__, '9.0.0', 'WC_Stripe_Express_Checkout_Helper::get_normalized_state_from_ece_states' );
+		return $this->get_normalized_state_from_ece_states( $state, $country );
+	}
 
-		if ( ! isset( $pr_states[ $country ] ) ) {
+	/**
+	 * Get normalized state from express checkout API dropdown list of states.
+	 *
+	 * @param string $state   Full state name or state code.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state or original state input value.
+	 */
+	public function get_normalized_state_from_ece_states( $state, $country ) {
+		// Include Payment Request API State list for compatibility with WC countries/states.
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-express-checkout-states.php';
+		$ece_states = WC_Stripe_Express_Checkout_States::STATES;
+
+		if ( ! isset( $ece_states[ $country ] ) ) {
 			return $state;
 		}
 
-		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
+		foreach ( $ece_states[ $country ] as $wc_state_abbr => $ece_state ) {
 			$sanitized_state_string = $this->sanitize_string( $state );
 			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
 			if (
-				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
-				( ! empty( $pr_state[1] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[1] ) ) ||
-				( ! empty( $pr_state[2] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[2] ) )
+				( ! empty( $ece_state[0] ) && $sanitized_state_string === $this->sanitize_string( $ece_state[0] ) ) ||
+				( ! empty( $ece_state[1] ) && $sanitized_state_string === $this->sanitize_string( $ece_state[1] ) ) ||
+				( ! empty( $ece_state[2] ) && $sanitized_state_string === $this->sanitize_string( $ece_state[2] ) )
 			) {
 				return $wc_state_abbr;
 			}
@@ -978,8 +993,8 @@ class WC_Stripe_Express_Checkout_Helper {
 			return $state;
 		}
 
-		// Try to match state from the Payment Request API list of states.
-		$state = $this->get_normalized_state_from_pr_states( $state, $country );
+		// Try to match state from the Express Checkout API list of states.
+		$state = $this->get_normalized_state_from_ece_states( $state, $country );
 
 		// If it's normalized, return.
 		if ( $this->is_normalized_state( $state, $country ) ) {
