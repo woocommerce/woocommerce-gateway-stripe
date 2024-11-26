@@ -339,7 +339,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
-			'is_express_checkout_enabled'           => [ 'is_express_checkout_enabled', 'payment_request' ],
+			'is_express_checkout_enabled'           => [ 'is_express_checkout_enabled', 'express_checkout' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
 			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],
