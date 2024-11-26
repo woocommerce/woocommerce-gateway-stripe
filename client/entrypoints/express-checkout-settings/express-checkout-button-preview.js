@@ -1,4 +1,4 @@
-/* global wc_stripe_payment_request_settings_params */
+/* global wc_stripe_express_checkout_params */
 
 import { __ } from '@wordpress/i18n';
 import { useState, useMemo } from 'react';
@@ -18,8 +18,8 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 
 	/* eslint-disable camelcase */
 	const stripePromise = useMemo( () => {
-		return loadStripe( wc_stripe_payment_request_settings_params.key, {
-			locale: wc_stripe_payment_request_settings_params.locale,
+		return loadStripe( wc_stripe_express_checkout_params.key, {
+			locale: wc_stripe_express_checkout_params.locale,
 		} );
 	}, [] );
 	/* eslint-enable camelcase */

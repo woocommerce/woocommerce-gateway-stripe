@@ -8,7 +8,7 @@ import {
 
 jest.mock( 'wcstripe/data', () => ( {
 	useExpressCheckoutEnabledSettings: jest.fn(),
-	useExpressCheckoutLocations: jest.fn(),
+	useExpressCheckoutButtonLocations: jest.fn(),
 	useExpressCheckoutButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	useExpressCheckoutButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	useExpressCheckoutButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),

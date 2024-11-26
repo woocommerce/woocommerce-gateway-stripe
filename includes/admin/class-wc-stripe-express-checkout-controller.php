@@ -46,7 +46,7 @@ class WC_Stripe_Express_Checkout_Controller {
 		];
 		wp_localize_script(
 			'wc-stripe-payment-request-settings',
-			'wc_stripe_payment_request_settings_params',
+			'wc_express_checkout_params',
 			$params
 		);
 

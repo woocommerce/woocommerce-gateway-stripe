@@ -6,11 +6,6 @@ import {
 	useSettings,
 	useGetOrderedPaymentMethodIds,
 	useCustomizePaymentMethodSettings,
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestButtonTheme,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonType,
 	useIsStripeEnabled,
 	useTestMode,
 	useSavedCards,
@@ -18,6 +13,11 @@ import {
 	useIsShortAccountStatementEnabled,
 	useDebugLog,
 	useManualCapture,
+	useExpressCheckoutButtonLocations,
+	useExpressCheckoutEnabledSettings,
+	useExpressCheckoutButtonSize,
+	useExpressCheckoutButtonType,
+	useExpressCheckoutButtonTheme,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 
@@ -223,25 +223,25 @@ describe( 'Settings hooks tests', () => {
 			fallbackValue: [],
 		},
 		usePaymentRequestEnabledSettings: {
-			hook: usePaymentRequestEnabledSettings,
+			hook: useExpressCheckoutEnabledSettings,
 			storeKey: 'is_express_checkout_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
-		usePaymentRequestButtonSize: {
-			hook: usePaymentRequestButtonSize,
+		useExpressCheckoutButtonSize: {
+			hook: useExpressCheckoutButtonSize,
 			storeKey: 'express_checkout_button_size',
 			testedValue: 'large',
 			fallbackValue: '',
 		},
-		usePaymentRequestButtonType: {
-			hook: usePaymentRequestButtonType,
+		useExpressCheckoutButtonType: {
+			hook: useExpressCheckoutButtonType,
 			storeKey: 'express_checkout_button_type',
 			testedValue: '',
 			fallbackValue: '',
 		},
-		usePaymentRequestButtonTheme: {
-			hook: usePaymentRequestButtonTheme,
+		useExpressCheckoutButtonTheme: {
+			hook: useExpressCheckoutButtonTheme,
 			storeKey: 'express_checkout_button_theme',
 			testedValue: 'dark',
 			fallbackValue: '',
@@ -288,8 +288,8 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
-		usePaymentRequestLocations: {
-			hook: usePaymentRequestLocations,
+		useExpressCheckoutLocations: {
+			hook: useExpressCheckoutButtonLocations,
 			storeKey: 'express_checkout_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
