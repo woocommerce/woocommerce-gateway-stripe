@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 8.8.2
+ * Version: 8.9.0
  * Requires Plugins: woocommerce
- * Requires at least: 6.4
- * Tested up to: 6.6
- * WC requires at least: 8.9
- * WC tested up to: 9.3
+ * Requires at least: 6.5
+ * Tested up to: 6.7
+ * WC requires at least: 9.2
+ * WC tested up to: 9.4
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '8.8.2' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '8.9.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -198,6 +198,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php';
 				include_once dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php';
+				include_once dirname( __FILE__ ) . '/includes/class-wc-stripe-mode.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
@@ -284,7 +285,7 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						new WC_Stripe_Settings_Controller( $this->account, $this->get_main_stripe_gateway() );
+						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
 					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
@@ -317,6 +318,7 @@ function woocommerce_gateway_stripe() {
 
 				// Intitialize the class for updating subscriptions' Legacy SEPA payment methods.
 				add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
+				add_action( 'init', [ $this, 'load_plugin_textdomain' ] );
 			}
 
 			/**
@@ -786,6 +788,10 @@ function woocommerce_gateway_stripe() {
 				$updater->init();
 				$updater->maybe_update();
 			}
+
+			public function load_plugin_textdomain() {
+				load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+			}
 		}
 
 		$plugin = WC_Stripe::get_instance();
@@ -798,8 +804,6 @@ function woocommerce_gateway_stripe() {
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
-	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
-
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
 		return;

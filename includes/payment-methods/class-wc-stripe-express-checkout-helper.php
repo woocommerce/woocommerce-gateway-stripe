@@ -37,7 +37,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function __construct() {
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
@@ -296,8 +296,14 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Default shipping option, used by product, cart and checkout pages.
+	 *
+	 * @return void|array
 	 */
 	private function get_default_shipping_option() {
+		if ( wc_get_shipping_method_count( true, true ) === 0 ) {
+			return null;
+		}
+
 		return [
 			'id'          => 'pending',
 			'displayName' => __( 'Pending', 'woocommerce-gateway-stripe' ),
@@ -538,7 +544,12 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL.' );
+			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
 			return false;
 		}
 
@@ -561,13 +572,21 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show if product page PRB is disabled.
+		// Don't show if product page ECE is disabled.
 		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
 			return false;
 		}
 
 		// Don't show if product on current page is not supported.
 		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+			return false;
+		}
+
+		// Don't show if the total price is 0.
+		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
+		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
+			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
+		) {
 			return false;
 		}
 
@@ -581,6 +600,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		if (
+			! $this->is_pay_for_order_page() &&
 			(
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
 				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )

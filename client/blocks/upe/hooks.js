@@ -1,9 +1,7 @@
 import { useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
 import confirmCardPayment from './confirm-card-payment.js';
-import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
 /**
  * Handles the Block Checkout onCheckoutSuccess event.
@@ -78,103 +76,6 @@ export const usePaymentFailHandler = (
 			emitResponse.noticeContexts.PAYMENTS,
 		]
 	);
-};
-
-/**
- * Handles rendering the Block Checkout Stripe Link payment method.
- *
- * @param {*} api                  The api object.
- * @param {*} elements             The Stripe elements object.
- * @param {*} paymentMethodsConfig The payment methods config object. Used to determine if Stripe Link is enabled.
- */
-export const useStripeLink = ( api, elements, paymentMethodsConfig ) => {
-	const customerData = useCustomerData();
-	useEffect( () => {
-		if ( isLinkEnabled( paymentMethodsConfig ) ) {
-			const shippingAddressFields = {
-				line1: 'shipping-address_1',
-				line2: 'shipping-address_2',
-				city: 'shipping-city',
-				state: 'components-form-token-input-1',
-				postal_code: 'shipping-postcode',
-				country: 'components-form-token-input-0',
-				first_name: 'shipping-first_name',
-				last_name: 'shipping-last_name',
-			};
-			const billingAddressFields = {
-				line1: 'billing-address_1',
-				line2: 'billing-address_2',
-				city: 'billing-city',
-				state: 'components-form-token-input-3',
-				postal_code: 'billing-postcode',
-				country: 'components-form-token-input-2',
-				first_name: 'billing-first_name',
-				last_name: 'billing-last_name',
-			};
-
-			enableStripeLinkPaymentMethod( {
-				api,
-				elements,
-				emailId: 'email',
-				fill_field_method: ( address, nodeId, key ) => {
-					const setAddress =
-						shippingAddressFields[ key ] === nodeId
-							? customerData.setShippingAddress
-							: customerData.setBillingAddress;
-					const customerAddress =
-						shippingAddressFields[ key ] === nodeId
-							? customerData.shippingAddress
-							: customerData.billingAddress;
-
-					if ( undefined === customerAddress ) {
-						return;
-					}
-
-					if ( address.address[ key ] === null ) {
-						address.address[ key ] = '';
-					}
-
-					if ( key === 'line1' ) {
-						customerAddress.address_1 = address.address[ key ];
-					} else if ( key === 'line2' ) {
-						customerAddress.address_2 = address.address[ key ];
-					} else if ( key === 'postal_code' ) {
-						customerAddress.postcode = address.address[ key ];
-					} else {
-						customerAddress[ key ] = address.address[ key ];
-					}
-
-					if ( undefined !== customerData.billingAddress ) {
-						customerAddress.email = getEmail();
-					}
-
-					setAddress( customerAddress );
-
-					function getEmail() {
-						return document.getElementById( 'email' ).value;
-					}
-
-					customerData.billingAddress.email = getEmail();
-					customerData.setBillingAddress(
-						customerData.billingAddress
-					);
-				},
-				complete_shipping: () => {
-					return (
-						document.getElementById( 'shipping-address_1' ) !== null
-					);
-				},
-				shipping_fields: shippingAddressFields,
-				billing_fields: billingAddressFields,
-				complete_billing: () => {
-					return (
-						document.getElementById( 'billing-address_1' ) !== null
-					);
-				},
-			} );
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [ elements ] );
 };
 
 /**

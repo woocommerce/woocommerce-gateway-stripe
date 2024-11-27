@@ -481,8 +481,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$metadata = [
 			__( 'customer_name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
 			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
-			'order_id' => $order->get_order_number(),
-			'site_url' => esc_url( get_site_url() ),
+			'order_id'  => $order->get_order_number(),
+			'site_url'  => esc_url( get_site_url() ),
+			'signature' => $this->get_order_signature( $order ),
 		];
 
 		if ( $this->has_subscription( $order->get_id() ) ) {
@@ -2323,5 +2324,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $balance_transaction_id;
+	}
+
+	/**
+	 * Generates a unique signature for an order.
+	 *
+	 * This signature is included as metadata in Stripe requests and used to identify the order when webhooks are received.
+	 *
+	 * @param WC_Order $order The Order object.
+	 * @return string The order's unique signature. Format: order_id:md5(order_id-order_key-customer_id-order_total).
+	 */
+	protected function get_order_signature( $order ) {
+		$signature = [
+			absint( $order->get_id() ),
+			$order->get_order_key(),
+			$order->get_customer_id() ?? '',
+			WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() ),
+		];
+
+		return sprintf( '%d:%s', $order->get_id(), md5( implode( '-', $signature ) ) );
 	}
 }

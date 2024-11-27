@@ -85,13 +85,18 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		// Don't load for switch subscription page.
+		if ( isset( $_GET['switch-subscription'] ) ) {
+			return;
+		}
+
 		add_action( 'template_redirect', [ $this, 'set_session' ] );
 		add_action( 'template_redirect', [ $this, 'handle_express_checkout_redirect' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 
 		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_express_checkout_button_html' ], 1 );
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_express_checkout_button_html' ] );
+		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_express_checkout_button_html' ], 20 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_express_checkout_button_html' ], 1 );
 		add_action( 'woocommerce_pay_order_before_payment', [ $this, 'display_express_checkout_button_html' ], 1 );
 
@@ -99,6 +104,7 @@ class WC_Stripe_Express_Checkout_Element {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
+		add_filter( 'woocommerce_cart_needs_shipping_address', [ $this, 'filter_cart_needs_shipping_address' ], 11, 1 );
 
 		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
 	}
@@ -171,7 +177,7 @@ class WC_Stripe_Express_Checkout_Element {
 		return [
 			'ajax_url'               => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'                 => [
-				'publishable_key'             => 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
+				'publishable_key'             => WC_Stripe_Mode::is_test() ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
@@ -217,12 +223,23 @@ class WC_Stripe_Express_Checkout_Element {
 		$data     = [];
 		$items    = [];
 
-		foreach ( $order->get_items() as $item ) {
-			if ( method_exists( $item, 'get_total' ) ) {
-				$items[] = [
-					'label'  => $item->get_name(),
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
-				];
+		// Allow third-party plugins to show itemization on the payment request button.
+		if ( apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
+			$items[] = [
+				'label'  => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_subtotal(), $currency ),
+			];
+		} else {
+			foreach ( $order->get_items() as $item ) {
+				$quantity       = $item->get_quantity();
+				$quantity_label = 1 < $quantity ? ' (x' . $quantity . ')' : '';
+
+				if ( method_exists( $item, 'get_total' ) ) {
+					$items[] = [
+						'label'  => $item->get_name() . $quantity_label,
+						'amount' => WC_Stripe_Helper::get_stripe_amount( $item->get_total(), $currency ),
+					];
+				}
 			}
 		}
 
@@ -230,6 +247,13 @@ class WC_Stripe_Express_Checkout_Element {
 			$items[] = [
 				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), $currency ),
+			];
+		}
+
+		if ( $order->get_total_discount() ) {
+			$items[] = [
+				'label'  => __( 'Discount', 'woocommerce-gateway-stripe' ),
+				'amount' => - WC_Stripe_Helper::get_stripe_amount( $order->get_total_discount(), $currency ),
 			];
 		}
 
@@ -403,7 +427,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! is_checkout() && ! is_cart() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
@@ -411,12 +435,21 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		if ( is_cart() && ! in_array( 'cart', $this->express_checkout_helper->get_button_locations(), true ) ) {
-			return;
-		}
-
 		?>
 		<p id="wc-stripe-express-checkout-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
 		<?php
+	}
+
+	/**
+	 * Determine whether to filter the cart needs shipping address.
+	 *
+	 * @param boolean $needs_shipping_address Whether the cart needs a shipping address.
+	 */
+	public function filter_cart_needs_shipping_address( $needs_shipping_address ) {
+		if ( $this->express_checkout_helper->has_subscription_product() && wc_get_shipping_method_count( true, true ) === 0 ) {
+			return false;
+		}
+
+		return $needs_shipping_address;
 	}
 }

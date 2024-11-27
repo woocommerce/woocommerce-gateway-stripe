@@ -30,7 +30,10 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = ( { onSaveChanges } ) => {
+const GeneralSettingsSection = ( {
+	onSaveChanges,
+	showLegacyExperienceTransitionNotice,
+} ) => {
 	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
 		false
 	);
@@ -47,10 +50,12 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 
 	return (
 		<>
-			<LegacyExperienceTransitionNotice
-				isUpeEnabled={ isUpeEnabled }
-				setIsUpeEnabled={ setIsUpeEnabled }
-			/>
+			{ showLegacyExperienceTransitionNotice && (
+				<LegacyExperienceTransitionNotice
+					isUpeEnabled={ isUpeEnabled }
+					setIsUpeEnabled={ setIsUpeEnabled }
+				/>
+			) }
 			<Card>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading

@@ -1,7 +1,10 @@
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	isLinkEnabled,
+	getDefaultValues,
 	getStripeServerData,
 	getUpeSettings,
 	showErrorCheckout,
@@ -79,8 +82,18 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	};
 
 	const elements = api.getStripe().elements( options );
+
+	const attachDefaultValuesUpdateEvent = ( element ) => {
+		if ( document.getElementById( element ) ) {
+			document.getElementById( element ).onblur = function () {
+				updatePaymentElementDefaultValues();
+			};
+		}
+	};
+
 	const createdStripePaymentElement = elements.create( 'payment', {
 		...getUpeSettings(),
+		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -91,7 +104,31 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	gatewayUPEComponents[
 		paymentMethodType
 	].upeElement = createdStripePaymentElement;
+
+	// When email or phone is updated and Link is enabled, we need to
+	// update the payment element to update its default values.
+	if (
+		getStripeServerData()?.isCheckout &&
+		isLinkEnabled() &&
+		paymentMethodType === 'card'
+	) {
+		attachDefaultValuesUpdateEvent( 'billing_email' );
+		attachDefaultValuesUpdateEvent( 'billing_phone' );
+	}
+
 	return createdStripePaymentElement;
+}
+
+/**
+ * Updates the payment element's default values.
+ */
+function updatePaymentElementDefaultValues() {
+	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+		return;
+	}
+
+	const paymentElement = gatewayUPEComponents.card.upeElement;
+	paymentElement.update( getDefaultValues() );
 }
 
 /**
@@ -265,7 +302,27 @@ export const processPayment = (
 		} catch ( err ) {
 			hasCheckoutCompleted = false;
 			jQueryForm.removeClass( 'processing' ).unblock();
-			showErrorCheckout( err.message );
+
+			let errorMessage = err.message;
+			if ( err.code === 'parameter_invalid_empty' ) {
+				const param = err.param.match( /country|postalCode/ );
+				if ( param ) {
+					errorMessage = sprintf(
+						/* translators: %s is an input field name */
+						__(
+							'Missing required billing address field: %s.',
+							'woocommerce-gateway-stripe'
+						),
+						param[ 0 ]
+					);
+				} else {
+					errorMessage = __(
+						'Missing required billing address field.',
+						'woocommerce-gateway-stripe'
+					);
+				}
+			}
+			showErrorCheckout( errorMessage );
 		}
 	} )();
 
