@@ -32,11 +32,21 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
 	const shipping = event?.shippingAddress ?? {};
+	const phoneField = event?.billingDetails?.phone ?? event?.payerPhone ?? '';
+	const phone = phoneField.replace( /[() -]/g, '' );
 
-	const phone =
-		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
-		event?.payerPhone?.replace( /[() -]/g, '' ) ??
-		'';
+	// Get order attribution data from the hidden inputs.
+	const orderAttributionData = {};
+	const orderAttributionWrapper = document.getElementsByTagName(
+		'wc-order-attribution-inputs'
+	);
+	if ( orderAttributionWrapper.length ) {
+		const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
+		for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
+			orderAttributionData[ orderAttributionInputs[ i ].name ] =
+				orderAttributionInputs[ i ].value;
+		}
+	}
 
 	return {
 		billing_first_name:
@@ -72,6 +82,7 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		express_checkout_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-is-deferred-intent': true,
+		...orderAttributionData,
 	};
 };
 
