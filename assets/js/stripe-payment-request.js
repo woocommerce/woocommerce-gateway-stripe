@@ -144,7 +144,7 @@ jQuery( function( $ ) {
 
 			data = wc_stripe_payment_request.getRequiredFieldDataFromCheckoutForm( data );
 
-			return data;
+			return { ...data, ...wc_stripe_payment_request.extractOrderAttributionData() };
 		},
 
 		/**
@@ -831,6 +831,24 @@ jQuery( function( $ ) {
 					paymentRequest.show();
 				}
 			} );
+		},
+
+		/**
+		 * Get order attribution data from the hidden inputs.
+		 *
+		 * @return {Object} Order attribution data.
+		 */
+		extractOrderAttributionData: function() {
+			const $orderAttributionWrapper = $( 'wc-order-attribution-inputs' );
+			if ( ! $orderAttributionWrapper.length ) {
+				return {};
+			}
+
+			const orderAttributionData = {};
+			$orderAttributionWrapper.children( 'input' ).each( function () {
+				orderAttributionData[ $(this).attr( 'name' ) ] = $(this).val();
+			});
+			return orderAttributionData;
 		},
 
 		showPaymentRequestButton: function( prButton ) {
