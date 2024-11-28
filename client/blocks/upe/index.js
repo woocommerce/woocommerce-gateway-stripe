@@ -104,23 +104,33 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
-const addOrderAttributionInputs = () => {
+const addOrderAttributionInputsIfNotExists = () => {
+	const elementId = 'wc-stripe-express-checkout__order-attribution-inputs';
+	if ( document.getElementById( elementId ) ) {
+		return;
+	}
+
 	const orderAttributionInputs = document.createElement(
 		'wc-order-attribution-inputs'
 	);
-	orderAttributionInputs.id =
-		'wc-stripe-express-checkout__order-attribution-inputs';
+	orderAttributionInputs.id = elementId;
 	document.body.appendChild( orderAttributionInputs );
+};
+
+const populateOrderAttributionInputs = () => {
+	const orderAttribution = window?.wc_order_attribution;
+	if ( orderAttribution ) {
+		orderAttribution.setOrderTracking(
+			orderAttribution.params.allowTracking
+		);
+	}
 };
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
 
 // Add order attribution inputs to the page.
-addOrderAttributionInputs();
+addOrderAttributionInputsIfNotExists();
 
 // Populate order attribution inputs with order tracking data.
-const orderAttribution = window?.wc_order_attribution;
-if ( orderAttribution ) {
-	orderAttribution.setOrderTracking( orderAttribution.params.allowTracking );
-}
+populateOrderAttributionInputs();
