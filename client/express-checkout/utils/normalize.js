@@ -1,3 +1,5 @@
+import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
+
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
  *
@@ -71,28 +73,6 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		'wc-stripe-is-deferred-intent': true,
 		...extractOrderAttributionData(),
 	};
-};
-
-/**
- * Get order attribution data from the hidden inputs.
- *
- * @return {Object} Order attribution data.
- */
-export const extractOrderAttributionData = () => {
-	const orderAttributionWrapper = document.getElementsByTagName(
-		'wc-order-attribution-inputs'
-	);
-	if ( ! orderAttributionWrapper.length ) {
-		return {};
-	}
-
-	const orderAttributionData = {};
-	const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
-	for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
-		orderAttributionData[ orderAttributionInputs[ i ].name ] =
-			orderAttributionInputs[ i ].value;
-	}
-	return orderAttributionData;
 };
 
 /**
