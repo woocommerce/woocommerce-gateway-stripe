@@ -35,19 +35,6 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 	const phoneField = event?.billingDetails?.phone ?? event?.payerPhone ?? '';
 	const phone = phoneField.replace( /[() -]/g, '' );
 
-	// Get order attribution data from the hidden inputs.
-	const orderAttributionData = {};
-	const orderAttributionWrapper = document.getElementsByTagName(
-		'wc-order-attribution-inputs'
-	);
-	if ( orderAttributionWrapper.length ) {
-		const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
-		for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
-			orderAttributionData[ orderAttributionInputs[ i ].name ] =
-				orderAttributionInputs[ i ].value;
-		}
-	}
-
 	return {
 		billing_first_name:
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
@@ -82,8 +69,30 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		express_checkout_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-is-deferred-intent': true,
-		...orderAttributionData,
+		...extractOrderAttributionData(),
 	};
+};
+
+/**
+ * Get order attribution data from the hidden inputs.
+ *
+ * @return {Object} Order attribution data.
+ */
+export const extractOrderAttributionData = () => {
+	const orderAttributionWrapper = document.getElementsByTagName(
+		'wc-order-attribution-inputs'
+	);
+	if ( ! orderAttributionWrapper.length ) {
+		return {};
+	}
+
+	const orderAttributionData = {};
+	const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
+	for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
+		orderAttributionData[ orderAttributionInputs[ i ].name ] =
+			orderAttributionInputs[ i ].value;
+	}
+	return orderAttributionData;
 };
 
 /**
