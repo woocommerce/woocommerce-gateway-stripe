@@ -15,8 +15,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Express_Checkout_Element {
 
-	use WC_Stripe_Add_Order_Attribution_Inputs;
-
 	/**
 	 * Stripe settings.
 	 *
@@ -431,6 +429,15 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$this->display_express_checkout_button_separator_html();
+	}
+
+	/**
+	 * Add order attribution inputs to the page.
+	 *
+	 * @return void
+	 */
+	public function add_order_attribution_inputs() {
+		echo '<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs"></wc-order-attribution-inputs>';
 	}
 
 	/**
