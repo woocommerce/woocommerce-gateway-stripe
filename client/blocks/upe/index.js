@@ -104,19 +104,6 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
-const addOrderAttributionInputsIfNotExists = () => {
-	const elementId = 'wc-stripe-express-checkout__order-attribution-inputs';
-	if ( document.getElementById( elementId ) ) {
-		return;
-	}
-
-	const orderAttributionInputs = document.createElement(
-		'wc-order-attribution-inputs'
-	);
-	orderAttributionInputs.id = elementId;
-	document.body.appendChild( orderAttributionInputs );
-};
-
 const populateOrderAttributionInputs = () => {
 	const orderAttribution = window?.wc_order_attribution;
 	if ( orderAttribution ) {
@@ -128,9 +115,6 @@ const populateOrderAttributionInputs = () => {
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
-
-// Add order attribution inputs to the page.
-addOrderAttributionInputsIfNotExists();
 
 // Populate order attribution inputs with order tracking data.
 populateOrderAttributionInputs();

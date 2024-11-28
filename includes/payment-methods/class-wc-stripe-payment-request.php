@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Payment_Request {
 
 	use WC_Stripe_Pre_Orders_Trait;
+	use WC_Stripe_Add_Order_Attribution_Inputs;
 
 	/**
 	 * Enabled.
@@ -901,6 +902,13 @@ class WC_Stripe_Payment_Request {
 			</div>
 		</div>
 		<?php
+
+		if ( is_cart() ) {
+			add_action( 'woocommerce_after_cart', [ $this, 'add_order_attribution_inputs' ], 1 );
+		} else {
+			$this->add_order_attribution_inputs();
+		}
+
 		$this->display_payment_request_button_separator_html();
 	}
 
