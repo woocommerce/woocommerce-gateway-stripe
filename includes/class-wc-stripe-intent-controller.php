@@ -937,7 +937,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
 	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
-	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
+	 * https://docs.stripe.com/payments/finalize-payments-on-the-server
 	 *
 	 * @param string $selected_payment_type         The name of the selected UPE payment type.
 	 * @param bool   $is_using_saved_payment_method Option. True if the customer is using a saved payment method, false otherwise.

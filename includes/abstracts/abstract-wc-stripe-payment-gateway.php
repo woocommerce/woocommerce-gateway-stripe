@@ -1105,7 +1105,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $reason ) {
-			// Trim the refund reason to a max of 500 characters due to Stripe limits: https://stripe.com/docs/api/metadata.
+			// Trim the refund reason to a max of 500 characters due to Stripe limits: https://docs.stripe.com/api/metadata.
 			if ( strlen( $reason ) > 500 ) {
 				$reason = function_exists( 'mb_substr' ) ? mb_substr( $reason, 0, 450 ) : substr( $reason, 0, 450 );
 				// Add some explainer text indicating where to find the full refund reason.

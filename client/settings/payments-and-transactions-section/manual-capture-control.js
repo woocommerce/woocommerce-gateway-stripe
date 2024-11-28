@@ -1,5 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
+import interpolateComponents from 'interpolate-components';
 import React, { useContext, useState } from 'react';
 import { CheckboxControl, Button } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
@@ -72,10 +73,18 @@ const ManualCaptureControl = () => {
 					'Issue an authorization on checkout, and capture later',
 					'woocommerce-gateway-stripe'
 				) }
-				help={ __(
-					'Charge must be captured on the order details screen within 7 days of authorization, otherwise the authorization and order will be canceled.',
-					'woocommerce-gateway-stripe'
-				) }
+				help={ interpolateComponents( {
+					mixedString: __(
+						'Charge must be captured on the order details screen within 7 days of authorization, otherwise the authorization and order will be canceled. {{learnMoreLink}}Learn more{{/learnMoreLink}}',
+						'woocommerce-gateway-stripe'
+					),
+					components: {
+						learnMoreLink: (
+							// eslint-disable-next-line jsx-a11y/anchor-has-content
+							<a href="https://woocommerce.com/document/stripe/admin-experience/authorize-and-capture/" />
+						),
+					},
+				} ) }
 			/>
 			{ isConfirmationModalOpen && (
 				<ConfirmationModal

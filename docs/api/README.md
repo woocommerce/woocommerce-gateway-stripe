@@ -8,16 +8,18 @@ explains how payment gateways API is used to manage WooCommerce Stripe gateway.
 Table of Contents
 =================
 
-* [Retrieve Stripe Payment Gateway](#retrieve-stripe-payment-gateway)
-  * [Capability required](#capability-required)
-  * [Request](#request)
-  * [Response](#response)
-  * [Notes](#notes)
-* [Update Stripe Payment Gateway](#update-stripe-payment-gateway)
-  * [Capability required](#capability-required-1)
-  * [Request](#request-1)
-  * [Response](#response-1)
-  * [Notes](#notes-1)
+- [REST API](#rest-api)
+- [Table of Contents](#table-of-contents)
+	- [Retrieve Stripe Payment Gateway](#retrieve-stripe-payment-gateway)
+		- [Capability required](#capability-required)
+		- [Request](#request)
+		- [Response](#response)
+		- [Notes](#notes)
+	- [Update Stripe Payment Gateway](#update-stripe-payment-gateway)
+		- [Capability required](#capability-required-1)
+		- [Request](#request-1)
+		- [Response](#response-1)
+		- [Notes](#notes-1)
 
 ## Retrieve Stripe Payment Gateway
 
@@ -25,7 +27,7 @@ Table of Contents
 
 * `manage_woocommerce`
 
-### Request 
+### Request
 
 ```
 GET /wp-json/wc/v2/payment_gateways/stripe
@@ -47,7 +49,7 @@ Status: 200 OK
 {
   "id": "stripe",
   "title": "Stripe",
-  "description": "Pay with your credit card via Stripe. TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation \"<a href=\"https://stripe.com/docs/testing\">Testing Stripe</a>\" for more card numbers.",
+  "description": "Pay with your credit card via Stripe. TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation \"<a href=\"https://docs.stripe.com/testing\">Testing Stripe</a>\" for more card numbers.",
   "order": 4,
   "enabled": true,
   "method_title": "Stripe",
@@ -216,7 +218,7 @@ Status: 200 OK
 ### Notes
 
 In WooCommerce Stripe 4.0.0, there will be multiple payment methods to support
-[Stripe Sources](https://stripe.com/docs/sources). For example, there will be
+[Stripe Sources](https://docs.stripe.com/sources). For example, there will be
 [`stripe_bancontact`](https://github.com/woocommerce/woocommerce-gateway-stripe/blob/3041f46f4b1b5d25b24be25767e0387f0cdf3f96/includes/payment-methods/class-wc-gateway-stripe-bancontact.php#L59) payment method
 in addition to `stripe` payment method. You can request `stripe_bancontact` with:
 
@@ -266,7 +268,7 @@ curl -u consumer_key:consumer_secret -X PUT \
 {
   "id": "stripe",
   "title": "Stripe",
-  "description": "Pay with your credit card via Stripe. TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation \"<a href=\"https://stripe.com/docs/testing\">Testing Stripe</a>\" for more card numbers.",
+  "description": "Pay with your credit card via Stripe. TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation \"<a href=\"https://docs.stripe.com/testing\">Testing Stripe</a>\" for more card numbers.",
   "order": 4,
   "enabled": true,
   "method_title": "Stripe",

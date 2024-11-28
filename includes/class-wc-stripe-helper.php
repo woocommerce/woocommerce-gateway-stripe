@@ -271,8 +271,8 @@ class WC_Stripe_Helper {
 
 	/**
 	 * List of currencies supported by Stripe that has no decimals
-	 * https://stripe.com/docs/currencies#zero-decimal from https://stripe.com/docs/currencies#presentment-currencies
-	 * ugx is an exception and not in this list for being a special cases in Stripe https://stripe.com/docs/currencies#special-cases
+	 * https://docs.stripe.com/currencies#zero-decimal from https://docs.stripe.com/currencies#presentment-currencies
+	 * ugx is an exception and not in this list for being a special cases in Stripe https://docs.stripe.com/currencies#special-cases
 	 *
 	 * @return array $currencies
 	 */
@@ -1088,7 +1088,7 @@ class WC_Stripe_Helper {
 	 * Converts a WooCommerce locale to the closest supported by Stripe.js.
 	 *
 	 * Stripe.js supports only a subset of IETF language tags, if a country specific locale is not supported we use
-	 * the default for that language (https://stripe.com/docs/js/appendix/supported_locales).
+	 * the default for that language (https://docs.stripe.com/js/appendix/supported_locales).
 	 * If no match is found we return 'auto' so Stripe.js uses the browser locale.
 	 *
 	 * @param string $wc_locale The locale to convert.
@@ -1096,7 +1096,7 @@ class WC_Stripe_Helper {
 	 * @return string Closest locale supported by Stripe ('auto' if NONE).
 	 */
 	public static function convert_wc_locale_to_stripe_locale( $wc_locale ) {
-		// List copied from: https://stripe.com/docs/js/appendix/supported_locales.
+		// List copied from: https://docs.stripe.com/js/appendix/supported_locales.
 		$supported = [
 			'ar',     // Arabic.
 			'bg',     // Bulgarian (Bulgaria).

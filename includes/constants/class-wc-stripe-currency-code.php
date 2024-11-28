@@ -2,7 +2,7 @@
 
 class WC_Stripe_Currency_Code {
 
-	// Source: https://stripe.com/docs/currencies
+	// Source: https://docs.stripe.com/currencies
 	const UNITED_STATES_DOLLAR                    = 'USD'; // United States Dollar.
 	const UNITED_ARAB_EMIRATES_DIRHAM             = 'AED'; // United Arab Emirates dirham.
 	const AFGHAN_AFGHANI                          = 'AFN'; // Afghan afghani.

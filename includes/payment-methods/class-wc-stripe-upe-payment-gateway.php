@@ -539,7 +539,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 	/**
 	 * Returns the list of available payment method types for UPE.
-	 * See https://stripe.com/docs/stripe-js/payment-element#web-create-payment-intent for a complete list.
+	 * See https://docs.stripe.com/payments/accept-a-payment?platform=web&ui=elements#web-create-intent for a complete list.
 	 *
 	 * @return string[]
 	 */
@@ -577,7 +577,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
 						'<strong>',
 						'</strong>',
-						'<a href="https://stripe.com/docs/testing" target="_blank">',
+						'<a href="https://docs.stripe.com/testing" target="_blank">',
 						'</a>'
 					);
 					?>
@@ -1847,9 +1847,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns an array of address datato be used in a Stripe /payment_intents API request.
+	 * Returns an array of address data to be used in a Stripe /payment_intents API request.
 	 *
-	 * Stripe docs: https://stripe.com/docs/api/payment_intents/create#create_payment_intent-shipping
+	 * Stripe docs: https://docs.stripe.com/api/payment_intents/create#create_payment_intent-shipping
 	 *
 	 * @since 7.7.0
 	 *
