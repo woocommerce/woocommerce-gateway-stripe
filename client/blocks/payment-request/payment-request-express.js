@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { useEffect } from '@wordpress/element';
 import {
 	Elements,
 	PaymentRequestButtonElement,
@@ -70,6 +71,17 @@ const PaymentRequestExpressComponent = ( {
 	);
 	useCancelHandler( paymentRequest, onClose );
 
+	useEffect( () => {
+		if ( paymentRequest ) {
+			const orderAttribution = window?.wc_order_attribution;
+			if ( orderAttribution ) {
+				orderAttribution.setOrderTracking(
+					orderAttribution.params.allowTracking
+				);
+			}
+		}
+	}, [ paymentRequest ] );
+
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
 	let {
@@ -100,6 +112,8 @@ const PaymentRequestExpressComponent = ( {
 
 	const { LoadingMask } = components;
 
+	<!-- @todo: remove duplicate wc-order-attribution-inputs -->
+
 	if ( isCustom ) {
 		return (
 			<LoadingMask
@@ -114,6 +128,7 @@ const PaymentRequestExpressComponent = ( {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
+				<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 			</LoadingMask>
 		);
 	}
@@ -132,6 +147,7 @@ const PaymentRequestExpressComponent = ( {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
+				<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 			</LoadingMask>
 		);
 	}
@@ -159,6 +175,7 @@ const PaymentRequestExpressComponent = ( {
 					paymentRequest,
 				} }
 			/>
+			<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 		</LoadingMask>
 	);
 };
