@@ -369,13 +369,13 @@ class WC_Stripe_Payment_Request {
 	 * @return float Total price.
 	 */
 	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
+		$product_price = (float) $product->get_price();
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = (float) $product_price + (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price += (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
-		return (float) $product_price;
+		return $product_price;
 	}
 
 	/**
