@@ -112,8 +112,6 @@ const PaymentRequestExpressComponent = ( {
 
 	const { LoadingMask } = components;
 
-	<!-- @todo: remove duplicate wc-order-attribution-inputs -->
-
 	if ( isCustom ) {
 		return (
 			<LoadingMask
@@ -128,7 +126,6 @@ const PaymentRequestExpressComponent = ( {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
-				<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 			</LoadingMask>
 		);
 	}
@@ -147,7 +144,6 @@ const PaymentRequestExpressComponent = ( {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
-				<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 			</LoadingMask>
 		);
 	}
@@ -175,7 +171,6 @@ const PaymentRequestExpressComponent = ( {
 					paymentRequest,
 				} }
 			/>
-			<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 		</LoadingMask>
 	);
 };
@@ -190,6 +185,7 @@ export const PaymentRequestExpress = ( props ) => {
 	return (
 		<Elements stripe={ stripe }>
 			<PaymentRequestExpressComponent { ...props } />
+			<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 		</Elements>
 	);
 };

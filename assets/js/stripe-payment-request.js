@@ -173,7 +173,7 @@ jQuery( function( $ ) {
 						if ( ! data[ name ] ) {
 							data[ name ] = value;
 						}
-	
+
 						// if shipping same as billing is selected, copy the billing field to shipping field.
 						const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
 						if ( ! shipToDiffAddress ) {

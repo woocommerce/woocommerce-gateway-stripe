@@ -79,7 +79,29 @@ const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
 		data.shipping_postcode = shipping?.postalCode;
 	}
 
-	return data;
+	return { ...data, ...extractOrderAttributionData() };
+};
+
+/**
+ * Get order attribution data from the hidden inputs.
+ *
+ * @return {Object} Order attribution data.
+ */
+export const extractOrderAttributionData = () => {
+	const orderAttributionWrapper = document.getElementsByTagName(
+		'wc-order-attribution-inputs'
+	);
+	if ( ! orderAttributionWrapper.length ) {
+		return {};
+	}
+
+	const orderAttributionData = {};
+	const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
+	for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
+		orderAttributionData[ orderAttributionInputs[ i ].name ] =
+			orderAttributionInputs[ i ].value;
+	}
+	return orderAttributionData;
 };
 
 /**
