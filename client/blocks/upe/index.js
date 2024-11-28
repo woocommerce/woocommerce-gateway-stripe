@@ -104,5 +104,23 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
+const addOrderAttributionInputs = () => {
+	const orderAttributionInputs = document.createElement(
+		'wc-order-attribution-inputs'
+	);
+	orderAttributionInputs.id =
+		'wc-stripe-express-checkout__order-attribution-inputs';
+	document.body.appendChild( orderAttributionInputs );
+};
+
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
+
+// Add order attribution inputs to the page.
+addOrderAttributionInputs();
+
+// Populate order attribution inputs with order tracking data.
+const orderAttribution = window?.wc_order_attribution;
+if ( orderAttribution ) {
+	orderAttribution.setOrderTracking( orderAttribution.params.allowTracking );
+}
