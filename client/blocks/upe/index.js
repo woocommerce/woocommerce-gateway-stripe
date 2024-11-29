@@ -16,6 +16,7 @@ import {
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import { populateOrderAttributionInputs } from 'wcstripe/blocks/upe/populate-order-attribution-inputs';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -103,15 +104,6 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
-
-const populateOrderAttributionInputs = () => {
-	const orderAttribution = window?.wc_order_attribution;
-	if ( orderAttribution ) {
-		orderAttribution.setOrderTracking(
-			orderAttribution.params.allowTracking
-		);
-	}
-};
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
