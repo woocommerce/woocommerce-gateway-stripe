@@ -513,7 +513,8 @@ jQuery( function ( $ ) {
 							const needsShipping =
 								! wcStripeECE.paymentAborted &&
 								getExpressCheckoutData( 'product' )
-									.needs_shipping === response.needs_shipping;
+									.requestShipping ===
+									response.requestShipping;
 
 							if ( ! isDeposits && needsShipping ) {
 								elements.update( {
@@ -553,8 +554,8 @@ jQuery( function ( $ ) {
 									if (
 										! wcStripeECE.paymentAborted &&
 										getExpressCheckoutData( 'product' )
-											.needs_shipping ===
-											response.needs_shipping
+											.requestShipping ===
+											response.requestShipping
 									) {
 										elements.update( {
 											amount: response.total.amount,
