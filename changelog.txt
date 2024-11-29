@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.0.0 - xxxx-xx-xx =
+* Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
 * Update - Improve accuracy of webhook status information displayed in settings page.
