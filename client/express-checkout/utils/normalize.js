@@ -34,8 +34,11 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
 	const shipping = event?.shippingAddress ?? {};
-	const phoneField = event?.billingDetails?.phone ?? event?.payerPhone ?? '';
-	const phone = phoneField.replace( /[() -]/g, '' );
+
+	const phone =
+		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
+		event?.payerPhone?.replace( /[() -]/g, '' ) ??
+		'';
 
 	return {
 		billing_first_name:
