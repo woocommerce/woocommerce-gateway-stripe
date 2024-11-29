@@ -362,4 +362,26 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `add_order_attribution_data`.
+	 *
+	 * @return void
+	 */
+	public function test_add_order_attribution_data() {
+		$ajax_handler = $this->getMockBuilder( WC_Stripe_Express_Checkout_Ajax_Handler::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+
+		ob_start();
+		$element->add_order_attribution_inputs();
+		$output = ob_get_clean();
+		$this->assertStringMatchesFormat( '%aid="wc-stripe-express-checkout__order-attribution-inputs"%a', $output );
+	}
 }
