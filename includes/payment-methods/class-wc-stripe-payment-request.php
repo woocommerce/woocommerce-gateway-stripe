@@ -901,7 +901,6 @@ class WC_Stripe_Payment_Request {
 			</div>
 		</div>
 		<?php
-
 		$this->display_payment_request_button_separator_html();
 	}
 

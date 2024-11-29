@@ -14,7 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Stripe_Express_Checkout_Element class.
  */
 class WC_Stripe_Express_Checkout_Element {
-
 	/**
 	 * Stripe settings.
 	 *
