@@ -1,5 +1,8 @@
 import { render } from '@testing-library/react';
-import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
+import {
+	extractOrderAttributionData,
+	populateOrderAttributionInputs,
+} from 'wcstripe/blocks/utils';
 
 describe( 'Blocks Utils', () => {
 	describe( 'extractOrderAttributionData', () => {
@@ -21,6 +24,23 @@ describe( 'Blocks Utils', () => {
 				foo: 'bar',
 				baz: 'qux',
 			} );
+		} );
+	} );
+
+	describe( 'populateOrderAttributionInputs', () => {
+		test( 'order attribution global present', () => {
+			global.wc_order_attribution = {
+				params: {
+					allowTracking: true,
+				},
+				setOrderTracking: jest.fn(),
+			};
+
+			populateOrderAttributionInputs();
+
+			expect(
+				global.wc_order_attribution.setOrderTracking
+			).toHaveBeenCalledWith( true );
 		} );
 	} );
 } );

@@ -106,3 +106,35 @@ export const extractOrderAttributionData = () => {
 	}
 	return orderAttributionData;
 };
+
+/**
+ * Populate order attribution inputs with order tracking data.
+ *
+ * @return {void}
+ */
+export const populateOrderAttributionInputs = () => {
+	const orderAttribution = window?.wc_order_attribution;
+	if ( orderAttribution ) {
+		orderAttribution.setOrderTracking(
+			orderAttribution.params.allowTracking
+		);
+	}
+};
+
+/**
+ * Add order attribution inputs to the page.
+ *
+ * @return {void}
+ */
+export const addOrderAttributionInputsIfNotExists = () => {
+	const elementId = 'wc-stripe-express-checkout__order-attribution-inputs';
+	if ( document.getElementById( elementId ) ) {
+		return;
+	}
+
+	const orderAttributionInputs = document.createElement(
+		'wc-order-attribution-inputs'
+	);
+	orderAttributionInputs.id = elementId;
+	document.body.appendChild( orderAttributionInputs );
+};
