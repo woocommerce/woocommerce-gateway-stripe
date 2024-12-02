@@ -13,6 +13,7 @@
 * Fix - Resolve a fatal error by casting product price and subscription sign up fee to 'float' while adding them.
 * Fix - Return 'is_live' as true in account summary response when test mode is disabled in gateway settings and charge is enabled in Stripe account.
 * Fix - Prevents notices being displayed on WordPress 6.7 due to loading translations too early (only shown on stores with WP_DEBUG enabled).
+* Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Tweak - Update links to plugin documentation and Stripe documentation.
 
 = 8.9.0 - 2024-11-14 =
