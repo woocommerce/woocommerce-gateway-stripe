@@ -166,15 +166,26 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise containing the setup intent.
 	 */
 	setupIntent( paymentMethod, additionalData = {} ) {
+		let data = {
+			...additionalData,
+			action: 'create_and_confirm_setup_intent',
+			'wc-stripe-payment-method': paymentMethod.id,
+			'wc-stripe-payment-type': paymentMethod.type,
+			_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
+		};
+		// Add card details if the payment method is a card.
+		if ( paymentMethod.type === 'card' ) {
+			const cardData = {
+				'wc-stripe-card-brand': paymentMethod.card.brand,
+				'wc-stripe-card-last4': paymentMethod.card.last4,
+				'wc-stripe-card-exp-month': paymentMethod.card.exp_month,
+				'wc-stripe-card-exp-year': paymentMethod.card.exp_year,
+			};
+			data = { ...data, ...cardData };
+		}
 		return this.request(
 			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
-			{
-				...additionalData,
-				action: 'create_and_confirm_setup_intent',
-				'wc-stripe-payment-method': paymentMethod.id,
-				'wc-stripe-payment-type': paymentMethod.type,
-				_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
-			}
+			data
 		).then( ( response ) => {
 			if ( ! response.success ) {
 				throw response.data.error;
