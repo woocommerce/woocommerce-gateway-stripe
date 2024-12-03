@@ -147,7 +147,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param bool|null $is_deposit      Whether this is a deposit.
 	 * @param int       $deposit_plan_id Deposit plan ID.
 	 *
-	 * @return integer Total price.
+	 * @return float Total price.
 	 */
 	public function get_product_price( $product, $is_deposit = null, $deposit_plan_id = 0 ) {
 		// If prices should include tax, using tax inclusive price.
@@ -180,10 +180,10 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product_price + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price = (float) $product_price + (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
-		return $product_price;
+		return (float) $product_price;
 	}
 
 	/**

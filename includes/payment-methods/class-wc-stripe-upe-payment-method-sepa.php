@@ -57,7 +57,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			esc_html__( '%1$sTest mode:%2$s use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
 			'</strong>',
-			'<a href="https://stripe.com/docs/testing?payment-method=sepa-direct-debit" target="_blank">',
+			'<a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">',
 			'</a>'
 		);
 	}

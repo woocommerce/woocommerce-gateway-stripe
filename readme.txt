@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.0.0 - xxxx-xx-xx =
+* Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
 * Update - Improve accuracy of webhook status information displayed in settings page.
@@ -119,7 +120,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Include page URL information in the SSL-required log for the Stripe Express Checkout Element.
 * Fix - Fix ECE modal not loading on pay for order page when coupon is applied.
 * Fix - Do not load express payment buttons on switch subscription page.
+* Fix - Resolve a fatal error by casting product price and subscription sign up fee to 'float' while adding them.
 * Fix - Return 'is_live' as true in account summary response when test mode is disabled in gateway settings and charge is enabled in Stripe account.
 * Fix - Prevents notices being displayed on WordPress 6.7 due to loading translations too early (only shown on stores with WP_DEBUG enabled).
+* Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
+* Tweak - Update links to plugin documentation and Stripe documentation.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

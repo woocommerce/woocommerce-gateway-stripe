@@ -149,7 +149,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
-				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
+				$url = 'https://docs.stripe.com/payments/3d-secure/authentication-flow#three-ds-radar';
 
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */

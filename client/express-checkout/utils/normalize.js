@@ -1,3 +1,5 @@
+import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
+
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
  *
@@ -72,6 +74,7 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		express_checkout_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-is-deferred-intent': true,
+		...extractOrderAttributionData(),
 	};
 };
 

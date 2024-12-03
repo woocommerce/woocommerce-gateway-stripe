@@ -119,7 +119,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// A webhook endpoint must return a 2xx HTTP status code to prevent future webhook
 			// delivery failures.
-			// @see https://stripe.com/docs/webhooks/build#acknowledge-events-immediately
+			// @see https://docs.stripe.com/webhooks#acknowledge-events-immediately
 			status_header( 204 );
 			exit;
 		}

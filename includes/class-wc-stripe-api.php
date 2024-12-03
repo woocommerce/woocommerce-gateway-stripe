@@ -225,7 +225,7 @@ class WC_Stripe_API {
 		// 2. Do not add level3 data if there's a transient indicating that level3 was
 		// not accepted by Stripe in the past for this account.
 		// 3. Do not try to add level3 data if merchant is not based in the US.
-		// https://stripe.com/docs/level3#level-iii-usage-requirements
+		// https://docs.stripe.com/level3#level-iii-usage-requirements
 		// (Needs to be authenticated with a level3 gated account to see above docs).
 		if (
 			empty( $level3_data ) ||
