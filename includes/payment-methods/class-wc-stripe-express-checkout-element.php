@@ -420,7 +420,23 @@ class WC_Stripe_Express_Checkout_Element {
 			<!-- A Stripe Element will be inserted here. -->
 		</div>
 		<?php
+
+		if ( is_cart() ) {
+			add_action( 'woocommerce_after_cart', [ $this, 'add_order_attribution_inputs' ], 1 );
+		} else {
+			$this->add_order_attribution_inputs();
+		}
+
 		$this->display_express_checkout_button_separator_html();
+	}
+
+	/**
+	 * Add order attribution inputs to the page.
+	 *
+	 * @return void
+	 */
+	public function add_order_attribution_inputs() {
+		echo '<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs"></wc-order-attribution-inputs>';
 	}
 
 	/**

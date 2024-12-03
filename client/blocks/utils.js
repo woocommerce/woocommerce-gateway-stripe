@@ -84,3 +84,57 @@ export const getApiKey = () => {
 	}
 	return apiKey;
 };
+
+/**
+ * Get order attribution data from the hidden inputs.
+ *
+ * @return {Object} Order attribution data.
+ */
+export const extractOrderAttributionData = () => {
+	const orderAttributionWrapper = document.getElementsByTagName(
+		'wc-order-attribution-inputs'
+	);
+	if ( ! orderAttributionWrapper.length ) {
+		return {};
+	}
+
+	const orderAttributionData = {};
+	const orderAttributionInputs = orderAttributionWrapper[ 0 ].children;
+	for ( let i = 0; i < orderAttributionInputs.length; i++ ) {
+		orderAttributionData[ orderAttributionInputs[ i ].name ] =
+			orderAttributionInputs[ i ].value;
+	}
+	return orderAttributionData;
+};
+
+/**
+ * Populate order attribution inputs with order tracking data.
+ *
+ * @return {void}
+ */
+export const populateOrderAttributionInputs = () => {
+	const orderAttribution = window?.wc_order_attribution;
+	if ( orderAttribution ) {
+		orderAttribution.setOrderTracking(
+			orderAttribution.params.allowTracking
+		);
+	}
+};
+
+/**
+ * Add order attribution inputs to the page.
+ *
+ * @return {void}
+ */
+export const addOrderAttributionInputsIfNotExists = () => {
+	const elementId = 'wc-stripe-express-checkout__order-attribution-inputs';
+	if ( document.getElementById( elementId ) ) {
+		return;
+	}
+
+	const orderAttributionInputs = document.createElement(
+		'wc-order-attribution-inputs'
+	);
+	orderAttributionInputs.id = elementId;
+	document.body.appendChild( orderAttributionInputs );
+};
