@@ -370,6 +370,19 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Updates a payment token.
+	 *
+	 * @param WC_Payment_Token $token   The token to update.
+	 * @param string $payment_method_id The new payment method ID.
+	 * @return WC_Payment_Token
+	 */
+	public function update_payment_token( $token, $payment_method_id ) {
+		$token->set_token( $payment_method_id );
+		$token->save();
+		return $token;
+	}
+
+	/**
 	 * Returns the currencies this UPE method supports.
 	 *
 	 * @return array|null
