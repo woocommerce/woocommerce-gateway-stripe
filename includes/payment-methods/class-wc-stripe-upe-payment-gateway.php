@@ -2490,11 +2490,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	protected function get_upe_gateway_id_for_order( $payment_method ) {
 		$token_gateway_type = $payment_method->get_retrievable_type();
 
-		if ( WC_Stripe_Payment_Methods::CARD !== $token_gateway_type ) {
-			return $this->payment_methods[ $token_gateway_type ]->id;
+		if ( WC_Stripe_Payment_Methods::CARD === $token_gateway_type ||
+			WC_Stripe_Payment_Methods::LINK === $token_gateway_type ) {
+			return $this->id;
 		}
 
-		return $this->id;
+		return $this->payment_methods[ $token_gateway_type ]->id;
 	}
 
 	/**
