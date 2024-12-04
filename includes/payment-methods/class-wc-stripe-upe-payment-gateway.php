@@ -2198,8 +2198,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
-		// Create a payment token for the user in the store.
-		$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
+		$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
+		if ( $found_token ) {
+			// Update the token with the new payment method ID.
+			$found_token->set_token( $payment_method_object->id );
+			$found_token->save();
+		} else {
+			// Create a payment token for the user in the store.
+			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
+		}
 
 		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
