@@ -2200,7 +2200,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Searches for an existing duplicate token to update if this is not a subscription order.
 		$found_token = null;
-		if ( ! $this->is_subscriptions_enabled() || ! $this->has_subscription( $order->get_id() ) ) {
+		if ( ! $this->has_subscription( $order->get_id() ) ) {
 			$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 		}
 
@@ -2359,9 +2359,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Check if a token with the same payment method details exist. If so, just updates the payment method ID and return.
 			$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $user->ID, $this->id );
+
+			// Check if any subscription is using the found token. If so, we cannot update it (it would break renewals).
+			$subscriptions = function_exists( 'wcs_get_users_subscriptions' ) ? wcs_get_users_subscriptions( $user->ID ) : [];
+			foreach ( $subscriptions as $subscription ) {
+				if ( $found_token->get_token() === $subscription->get_meta( '_stripe_source_id' ) ) {
+					$found_token = null;
+					break;
+				}
+			}
+
+			// If we still have a token found, update it and return.
 			if ( $found_token ) {
 				$token = $payment_method->update_payment_token( $found_token, $payment_method_object->id );
 			} else {
+				// Create a new token if not.
 				$token = $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
 			}
 
