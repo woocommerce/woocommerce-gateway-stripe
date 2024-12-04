@@ -1458,7 +1458,7 @@ class WC_Stripe_Payment_Request {
 			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		} elseif ( ! in_array( $product_type, [ 'grouped', 'external' ], true ) ) { // Grouped and external products should not be added to the cart.
+		} elseif ( in_array( $product_type, $this->supported_product_types(), true ) ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
