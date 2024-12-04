@@ -2206,8 +2206,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
-			$found_token->set_token( $payment_method_object->id );
-			$found_token->save();
+			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
 		} else {
 			// Create a payment token for the user in the store.
 			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
