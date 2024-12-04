@@ -2346,7 +2346,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$customer->clear_cache();
 
 			// Check if a token with the same payment method details exist. If so, just updates the payment method ID and return.
-			$found_token = $this->search_for_duplicate_token( $payment_method_object );
+			$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $user->ID, $this->id );
 			if ( $found_token ) {
 				$token = $payment_method->update_payment_token( $found_token, $payment_method_object->id );
 			} else {
@@ -2587,45 +2587,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_intent->client_secret,
 			wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 		);
-	}
-
-	/**
-	 * Searches for a duplicate token in the user's saved payment methods.
-	 *
-	 * @param $payment_method_object stdClass The payment method object.
-	 * @return WC_Payment_Token|null
-	 */
-	protected function search_for_duplicate_token( $payment_method_object ) {
-		$found_token = null;
-		foreach ( $this->get_tokens() as $token ) {
-			switch ( $payment_method_object->type ) {
-				case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-					if ( 'CC' === $token->get_type()
-						&& $payment_method_object->card->brand === $token->get_card_type()
-						&& $payment_method_object->card->last4 === $token->get_last4()
-						&& (string) $payment_method_object->card->exp_month === $token->get_expiry_month()
-						&& (string) $payment_method_object->card->exp_year === $token->get_expiry_year() ) {
-						$found_token = $token;
-					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID:
-					if ( $payment_method_object->sepa_debit->last4 === $token->get_last4() ) {
-						$found_token = $token;
-					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
-					if ( $payment_method_object->link->email === $token->get_email() ) {
-						$found_token = $token;
-					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
-					if ( isset( $payment_method->cashapp->cashtag ) && $payment_method->cashapp->cashtag === $token->get_cashtag() ) {
-						$found_token = $token;
-					}
-					break;
-			}
-		}
-		return $found_token;
 	}
 
 	/**
