@@ -14,7 +14,11 @@ import {
 	expressCheckoutElementsStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	addOrderAttributionInputsIfNotExists,
+	getBlocksConfiguration,
+	populateOrderAttributionInputs,
+} from 'wcstripe/blocks/utils';
 import './styles.scss';
 
 const api = new WCStripeAPI(
@@ -106,3 +110,9 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 
 // Update token labels when the checkout form is loaded.
 updateTokenLabelsWhenLoaded();
+
+// Add order attribution inputs to the page.
+addOrderAttributionInputsIfNotExists();
+
+// Populate order attribution inputs with order tracking data.
+populateOrderAttributionInputs();
