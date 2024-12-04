@@ -596,11 +596,11 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// If the cart is not available we don't have any unsupported products in the cart, so we
+		// If the cart is not available or if the cart is empty we don't have any unsupported products in the cart, so we
 		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
-		if ( is_null( WC()->cart ) ) {
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			return true;
-		}
+		} 
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
