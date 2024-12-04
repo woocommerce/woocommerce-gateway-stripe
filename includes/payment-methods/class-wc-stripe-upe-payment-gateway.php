@@ -1458,7 +1458,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
-			$pre_order_product  = $this->get_pre_order_product_from_cart();
+			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
@@ -2198,7 +2198,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
-		$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
+		// Searches for an existing duplicate token to update if this is not a subscription order.
+		$found_token = null;
+		if ( ! $this->is_subscriptions_enabled() || ! $this->has_subscription( $order->get_id() ) ) {
+			$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
+		}
+
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
 			$found_token->set_token( $payment_method_object->id );
