@@ -125,5 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevents notices being displayed on WordPress 6.7 due to loading translations too early (only shown on stores with WP_DEBUG enabled).
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -15,6 +15,7 @@
 * Fix - Prevents notices being displayed on WordPress 6.7 due to loading translations too early (only shown on stores with WP_DEBUG enabled).
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 = 8.9.0 - 2024-11-14 =
 * Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
