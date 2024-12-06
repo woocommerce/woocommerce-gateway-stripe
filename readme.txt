@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.0.0 - xxxx-xx-xx =
+* Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
