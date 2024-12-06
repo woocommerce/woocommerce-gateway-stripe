@@ -41,9 +41,6 @@ jobs:
         shell: bash
         run: composer install --no-progress
 
-      - name: Add partner for QIT
-        run: ./vendor/bin/qit partner:add --user='${{ secrets.PARTNER_USER }}' --application_password='${{ secrets.PARTNER_SECRET }}'
-
       # Node
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -69,6 +66,13 @@ jobs:
         shell: bash
         run: |
           npm run build
+
+      # QIT CLI
+      - name: Install QIT via composer
+        run: composer require woocommerce/qit-cli --dev
+      
+      - name: Add partner for QIT
+        run: ./vendor/bin/qit partner:add --user='${{ secrets.PARTNER_USER }}' --application_password='${{ secrets.PARTNER_SECRET }}'
 
       # E2E test environment
       - name: Fill in .env
