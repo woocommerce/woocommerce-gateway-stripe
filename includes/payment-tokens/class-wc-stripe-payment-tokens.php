@@ -42,6 +42,7 @@ class WC_Stripe_Payment_Tokens {
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
+		add_filter( 'woocommerce_payment_token_class', [ $this, 'woocommerce_payment_token_class' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
 	}
@@ -743,6 +744,20 @@ class WC_Stripe_Payment_Tokens {
 				break;
 		}
 		return null;
+	}
+
+	/**
+	 * Filters the payment token class to override the credit card class with the extension's version.
+	 *
+	 * @param string $class Payment token class.
+	 * @param string $type Token type.
+	 * @return string
+	 */
+	public function woocommerce_payment_token_class( $class, $type ) {
+		if ( WC_Payment_Token_CC::class === $class ) {
+			return WC_Stripe_Payment_Token_CC::class;
+		}
+		return $class;
 	}
 
 	/**

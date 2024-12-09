@@ -65,7 +65,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @param string $user_id        WP_User ID
 	 * @param object $payment_method Stripe payment method object
 	 *
-	 * @return WC_Payment_Token_CC
+	 * @return WC_Stripe_Payment_Token_CC
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Stripe_Payment_Token_CC();

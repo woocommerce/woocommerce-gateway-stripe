@@ -1784,7 +1784,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string  $setup_intent_id ID of the setup intent.
 	 * @param WP_User $user            User to add token to.
 	 *
-	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
+	 * @return WC_Payment_Token The added token.
 	 *
 	 * @since 5.8.0
 	 * @version 5.8.0
