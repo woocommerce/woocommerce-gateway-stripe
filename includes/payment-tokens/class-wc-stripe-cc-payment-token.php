@@ -16,4 +16,16 @@ defined( 'ABSPATH' ) || exit;
 class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC {
 
 	use WC_Stripe_Fingerprint_Trait;
+
+	/**
+	 * Constructor.
+	 *
+	 * @inheritDoc
+	 */
+	public function __construct( $token = '' ) {
+		// Add fingerprint to extra data to be persisted.
+		$this->extra_data['fingerprint'] = '';
+
+		parent::__construct( $token );
+	}
 }

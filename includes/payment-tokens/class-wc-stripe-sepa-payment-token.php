@@ -34,6 +34,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	protected $extra_data = [
 		'last4'               => '',
 		'payment_method_type' => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+		'fingerprint'         => '',
 	];
 
 	/**
