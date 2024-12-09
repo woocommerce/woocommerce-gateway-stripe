@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Payment_Token_Link extends WC_Payment_Token {
 
+	use WC_Stripe_Fingerprint_Trait;
+
 	/**
 	 * Stores payment type.
 	 *

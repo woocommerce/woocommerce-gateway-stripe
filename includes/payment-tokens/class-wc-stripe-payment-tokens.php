@@ -173,7 +173,7 @@ class WC_Stripe_Payment_Tokens {
 					foreach ( $stripe_sources as $source ) {
 						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::CARD === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
-								$token = new WC_Payment_Token_CC();
+								$token = new WC_Stripe_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( WC_Gateway_Stripe::ID );
 
@@ -184,6 +184,7 @@ class WC_Stripe_Payment_Tokens {
 									$token->set_expiry_year( $source->card->exp_year );
 								}
 
+								$token->set_fingerprint( $source->fingerprint );
 								$token->set_user_id( $customer_id );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
@@ -192,7 +193,7 @@ class WC_Stripe_Payment_Tokens {
 							}
 						} else {
 							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
-								$token = new WC_Payment_Token_CC();
+								$token = new WC_Stripe_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( WC_Gateway_Stripe::ID );
 								$token->set_card_type( strtolower( $source->brand ) );
@@ -200,6 +201,7 @@ class WC_Stripe_Payment_Tokens {
 								$token->set_expiry_month( $source->exp_month );
 								$token->set_expiry_year( $source->exp_year );
 								$token->set_user_id( $customer_id );
+								$token->set_fingerprint( $source->fingerprint );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
 							} else {
@@ -221,6 +223,7 @@ class WC_Stripe_Payment_Tokens {
 								$token->set_gateway_id( WC_Gateway_Stripe_Sepa::ID );
 								$token->set_last4( $source->sepa_debit->last4 );
 								$token->set_user_id( $customer_id );
+								$token->set_fingerprint( $source->fingerprint );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
 							} else {
@@ -504,11 +507,12 @@ class WC_Stripe_Payment_Tokens {
 
 		switch ( $payment_method_type ) {
 			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-				$token = new WC_Payment_Token_CC();
+				$token = new WC_Stripe_Payment_Token_CC();
 				$token->set_expiry_month( $payment_method->card->exp_month );
 				$token->set_expiry_year( $payment_method->card->exp_year );
 				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
+				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
 
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
@@ -527,6 +531,7 @@ class WC_Stripe_Payment_Tokens {
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_last4( $payment_method->sepa_debit->last4 );
 				$token->set_payment_method_type( $payment_method_type );
+				$token->set_fingerprint( $payment_method->sepa_debit->fingerprint );
 		}
 
 		$token->set_gateway_id( $gateway_id );
@@ -663,34 +668,79 @@ class WC_Stripe_Payment_Tokens {
 				'limit'      => 100,
 			]
 		);
-		foreach ( $tokens as $token ) {
-			switch ( $payment_method->type ) {
-				case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-					if ( 'CC' === $token->get_type()
-						&& isset( $payment_method->card->brand, $payment_method->card->last4, $payment_method->card->exp_month, $payment_method->card->exp_year )
-						&& $payment_method->card->brand === $token->get_card_type()
-						&& $payment_method->card->last4 === $token->get_last4()
-						&& (string) $payment_method->card->exp_month === $token->get_expiry_month()
-						&& (string) $payment_method->card->exp_year === $token->get_expiry_year() ) {
+		switch ( $payment_method->type ) {
+			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
+				if ( ! isset( $payment_method->card->fingerprint ) ) {
+					return null;
+				}
+				foreach ( $tokens as $token ) {
+					if ( 'CC' !== $token->get_type() ) {
+						continue;
+					}
+					/**
+					 * Token object.
+					 *
+					 * @var WC_Stripe_Payment_Token_CC $token
+					 */
+					if ( $payment_method->card->fingerprint === $token->get_fingerprint() ) {
 						return $token;
 					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID:
-					if ( isset( $payment_method->sepa_debit->last4 ) && $payment_method->sepa_debit->last4 === $token->get_last4() ) {
+				}
+				break;
+			case WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID:
+				if ( ! isset( $payment_method->sepa_debit->fingerprint ) ) {
+					return null;
+				}
+				foreach ( $tokens as $token ) {
+					if ( WC_Stripe_Payment_Methods::SEPA !== $token->get_type() ) {
+						continue;
+					}
+					/**
+					 * Token object.
+					 *
+					 * @var WC_Payment_Token_SEPA $token
+					 */
+					if ( $payment_method->sepa_debit->fingerprint === $token->get_fingerprint() ) {
 						return $token;
 					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
-					if ( isset( $payment_method->link->email ) && $payment_method->link->email === $token->get_email() ) {
+				}
+				break;
+			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
+				if ( ! isset( $payment_method->link->email ) ) {
+					return null;
+				}
+				foreach ( $tokens as $token ) {
+					if ( WC_Stripe_Payment_Methods::LINK !== $token->get_type() ) {
+						continue;
+					}
+					/**
+					 * Token object.
+					 *
+					 * @var WC_Payment_Token_Link $token
+					 */
+					if ( $payment_method->link->email === $token->get_email() ) {
 						return $token;
 					}
-					break;
-				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
-					if ( isset( $payment_method->cashapp->cashtag ) && $payment_method->cashapp->cashtag === $token->get_cashtag() ) {
+				}
+				break;
+			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
+				if ( ! isset( $payment_method->cashapp->cashtag ) ) {
+					return null;
+				}
+				foreach ( $tokens as $token ) {
+					if ( WC_Stripe_Payment_Methods::CASHAPP_PAY !== $token->get_type() ) {
+						continue;
+					}
+					/**
+					 * Token object.
+					 *
+					 * @var WC_Payment_Token_CashApp $token
+					 */
+					if ( $payment_method->cashapp->cashtag === $token->get_cashtag() ) {
 						return $token;
 					}
-					break;
-			}
+				}
+				break;
 		}
 		return null;
 	}
