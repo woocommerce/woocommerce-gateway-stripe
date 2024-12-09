@@ -106,8 +106,20 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$payment_method_cc[ WC_Stripe_Payment_Methods::CARD ] = (object) $payment_method_cc[ WC_Stripe_Payment_Methods::CARD ];
 
 		// Unknown CC method.
-		$payment_method_cc_unknown = $payment_method_cc;
-		$payment_method_cc_unknown[ WC_Stripe_Payment_Methods::CARD ]->fingerprint = 'Fxxxxxxxxxxxxxxx_unknown';
+		$payment_method_cc_unknown                                    = [
+			'id'                            => 'pm_mock_payment_method_id',
+			'type'                          => WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::CARD => [
+				'brand'       => 'visa',
+				'network'     => 'visa',
+				'exp_month'   => '7',
+				'exp_year'    => '2099',
+				'funding'     => 'credit',
+				'last4'       => '4242',
+				'fingerprint' => 'Fxxxxxxxxxxxxxxx_unknown',
+			],
+		];
+		$payment_method_cc_unknown[ WC_Stripe_Payment_Methods::CARD ] = (object) $payment_method_cc_unknown[ WC_Stripe_Payment_Methods::CARD ];
 
 		// Known CashApp method.
 		$payment_method_cashapp = [
