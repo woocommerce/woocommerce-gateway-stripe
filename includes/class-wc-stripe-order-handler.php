@@ -28,6 +28,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
+
+		add_filter( 'wc_order_is_editable', [ $this, 'disable_edit_for_uncaptured_orders' ], 10, 2 );
 	}
 
 	/**
@@ -38,6 +40,27 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public static function get_instance() {
 		return self::$_this;
+	}
+
+	/**
+	 * Disables the ability to edit for orders with uncaptured payment.
+	 *
+	 * @param $editable boolean The current editability of the order.
+	 * @param $order WC_Order The order object.
+	 * @return boolean false if the order has uncaptured payment, true otherwise.
+	 */
+	public function disable_edit_for_uncaptured_orders( $editable, $order ) {
+		try {
+			$intent = $this->get_intent_from_order( $order );
+
+			if ( $intent && 'requires_capture' === $intent->status ) {
+				$editable = false;
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+		}
+
+		return $editable;
 	}
 
 	/**
