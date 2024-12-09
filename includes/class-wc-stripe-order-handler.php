@@ -106,7 +106,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public static function change_order_item_editable_text_tooltip( $translated_text, $text, $domain ) {
 		switch ( $text ) {
 			case 'To edit this order change the status back to "Pending payment"':
-				$translated_text = __( 'This order is no longer editable because the charge has been authorized.', 'woocommerce-subscriptions' );
+				$translated_text = __( 'This order is no longer editable because the charge has been authorized.', 'woocommerce-gateway-stripe' );
 				break;
 		}
 
