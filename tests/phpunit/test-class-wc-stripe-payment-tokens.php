@@ -174,4 +174,41 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `woocommerce_payment_token_class`.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_woocommerce_payment_token_class
+	 */
+	public function test_woocommerce_payment_token_class( $class, $expected ) {
+		$actual = $this->stripe_payment_tokens->woocommerce_payment_token_class( $class, '' );
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_woocommerce_payment_token_class` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_woocommerce_payment_token_class() {
+		return [
+			WC_Payment_Token_CC::class      => [
+				'class'    => WC_Payment_Token_CC::class,
+				'expected' => WC_Stripe_Payment_Token_CC::class,
+			],
+			WC_Payment_Token_CashApp::class => [
+				'class'    => WC_Payment_Token_CashApp::class,
+				'expected' => WC_Payment_Token_CashApp::class,
+			],
+			WC_Payment_Token_SEPA::class    => [
+				'class'    => WC_Payment_Token_SEPA::class,
+				'expected' => WC_Payment_Token_SEPA::class,
+			],
+			WC_Payment_Token_Link::class    => [
+				'class'    => WC_Payment_Token_Link::class,
+				'expected' => WC_Payment_Token_Link::class,
+			],
+		];
+	}
 }
