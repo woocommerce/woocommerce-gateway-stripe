@@ -23,7 +23,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	const MOCK_PAYMENT_INTENT = [
 		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'status'             => WC_Stripe_Payment_Intent_Status::SUCCEEDED,
 		'charges'            => [
 			'total_count' => 1,
 			'data'        => [
