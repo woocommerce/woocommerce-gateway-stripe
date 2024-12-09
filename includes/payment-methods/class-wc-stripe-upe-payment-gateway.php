@@ -844,28 +844,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
-			$intent_success_or_requiring_action = in_array(
+			// Don't save the payment method if the intent was not successful
+			$intent_successful_or_requiring_action = in_array(
 				$payment_intent->status,
 				array_merge( self::SUCCESSFUL_INTENT_STATUS, [ 'requires_confirmation', 'requires_action' ] ),
 				true
 			);
-			if ( $payment_information['save_payment_method_to_store']
-				&& $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type()
-				&& $intent_success_or_requiring_action ) {
-				$this->handle_saving_payment_method(
-					$order,
-					$payment_method_details,
-					$selected_payment_type
-				);
-			} elseif ( $is_using_saved_payment_method ) {
-				$this->maybe_update_source_on_subscription_order(
-					$order,
-					(object) [
-						'payment_method' => $payment_information['payment_method'],
-						'customer'       => $payment_information['customer'],
-					],
-					$this->get_upe_gateway_id_for_order( $upe_payment_method )
-				);
+			if ( $intent_successful_or_requiring_action ) {
+				if ( $payment_information['save_payment_method_to_store']
+					&& $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+					$this->handle_saving_payment_method(
+						$order,
+						$payment_method_details,
+						$selected_payment_type
+					);
+				} elseif ( $is_using_saved_payment_method ) {
+					$this->maybe_update_source_on_subscription_order(
+						$order,
+						(object) [
+							'payment_method' => $payment_information['payment_method'],
+							'customer'       => $payment_information['customer'],
+						],
+						$this->get_upe_gateway_id_for_order( $upe_payment_method )
+					);
+				}
 			}
 
 			// Set the selected UPE payment method type title in the WC order.
@@ -1465,7 +1467,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
-			$pre_order_product  = $this->get_pre_order_product_from_cart();
+			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
