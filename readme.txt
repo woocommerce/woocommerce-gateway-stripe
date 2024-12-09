@@ -127,5 +127,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Fix - Do not assume payment is using a saved card when retrying a failed payment. 
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

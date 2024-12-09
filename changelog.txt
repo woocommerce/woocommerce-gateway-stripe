@@ -17,6 +17,7 @@
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Fix - Do not assume payment is using a saved card when retrying a failed payment. 
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 = 8.9.0 - 2024-11-14 =
 * Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
