@@ -68,7 +68,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Only attach the gettext callback when on admin edit order screen
+	 * Only attach the gettext callback when on admin edit order screen.
 	 */
 	public function maybe_attach_gettext_callback() {
 
@@ -83,7 +83,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * unattach the gettext callback
+	 * unattach the gettext callback.
 	 */
 	public function maybe_unattach_gettext_callback() {
 
@@ -101,7 +101,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	* When order items are not editable due to the charge being authorized to capture the current amount,
-	* change the tooltip to explain the reason
+	* change the tooltip to explain the reason.
 	*/
 	public function change_order_item_editable_text_tooltip( $translated_text, $text, $domain ) {
 		switch ( $text ) {
