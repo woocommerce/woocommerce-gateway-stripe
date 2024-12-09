@@ -2,6 +2,7 @@
 
 = 9.0.0 - xxxx-xx-xx =
 * Fix - Set correct payment method when using Link and a card that is 3D Secure authenticated.
+* Fix - Fix total calculation for custom product types when using the Payment Request Button.
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
@@ -17,6 +18,7 @@
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Fix - Do not assume payment is using a saved card when retrying a failed payment. 
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 = 8.9.0 - 2024-11-14 =
 * Update - Enhance webhook processing to enable retrieving orders using payment_intent metadata.
