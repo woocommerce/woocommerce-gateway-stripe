@@ -844,7 +844,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
-			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			$intent_success_or_requiring_action = in_array(
+				$payment_intent->status,
+				array_merge( self::SUCCESSFUL_INTENT_STATUS, [ 'requires_confirmation', 'requires_action' ] ),
+				true
+			);
+			if ( $payment_information['save_payment_method_to_store']
+				&& $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type()
+				&& $intent_success_or_requiring_action ) {
 				$this->handle_saving_payment_method(
 					$order,
 					$payment_method_details,
