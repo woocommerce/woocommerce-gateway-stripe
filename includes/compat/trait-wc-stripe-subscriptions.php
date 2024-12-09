@@ -281,13 +281,20 @@ trait WC_Stripe_Subscriptions_Trait {
 			// Create a setup intent, or update an existing one associated with the order.
 			$payment_intent = $this->process_setup_intent_for_order( $subscription, $payment_information );
 
-			// Handle saving the payment method in the store.
-			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
-				$this->handle_saving_payment_method(
-					$subscription,
-					$payment_information['payment_method_details'],
-					$selected_payment_type
-				);
+			$intent_successful_or_requiring_action = in_array(
+				$payment_intent->status,
+				array_merge( self::SUCCESSFUL_INTENT_STATUS, [ 'requires_confirmation', 'requires_action' ] ),
+				true
+			);
+			if ( $intent_successful_or_requiring_action ) {
+				// Handle saving the payment method in the store.
+				if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+					$this->handle_saving_payment_method(
+						$subscription,
+						$payment_information['payment_method_details'],
+						$selected_payment_type
+					);
+				}
 			}
 
 			$redirect           = $this->get_return_url( $subscription );
