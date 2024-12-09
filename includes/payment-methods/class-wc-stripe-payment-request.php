@@ -600,7 +600,7 @@ class WC_Stripe_Payment_Request {
 		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
 		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			return true;
-		} 
+		}
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
