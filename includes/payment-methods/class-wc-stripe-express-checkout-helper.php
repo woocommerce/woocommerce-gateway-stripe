@@ -50,6 +50,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return bool
 	 */
 	public function is_authentication_required() {
+		// If guest checkout is enabled, authentication is not required.
 		if ( 'yes' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) ) {
 			return false;
 		}
@@ -64,19 +65,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return bool
 	 */
 	public function is_account_creation_possible() {
-		// If automatically generate username/password are disabled, we can not include any of those fields,
-		// during express checkout. So account creation is not possible.
-
-		$is_checkout_signup_allowed =
+		// Check if account creation is allowed on checkout.
+		$is_signup_on_checkout_allowed =
 			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) ||
 			( $this->has_subscription_product() &&
 				'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
 
-		return (
-			$is_checkout_signup_allowed &&
+		// Account creation is not possible for express checkout if we cannot automatically generate the username and password.
+		$username_password_generation_enabled =
 			'yes' === get_option( 'woocommerce_registration_generate_username', 'yes' ) &&
-			'yes' === get_option( 'woocommerce_registration_generate_password', 'yes' )
-		);
+			'yes' === get_option( 'woocommerce_registration_generate_password', 'yes' );
+
+		return $is_signup_on_checkout_allowed && $username_password_generation_enabled;
 	}
 
 	/**
