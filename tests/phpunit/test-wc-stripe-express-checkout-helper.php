@@ -192,4 +192,79 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 		$this->assertEmpty( $checkout_data['default_shipping_option'] );
 	}
+
+	/**
+	 * Test for is_authentication_required().
+	 */
+	public function test_is_authentication_required() {
+		$wc_stripe_ece_helper_mock = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'is_account_creation_possible',
+			]
+		);
+		$wc_stripe_ece_helper_mock->expects( $this->any() )
+			->method( 'is_account_creation_possible' )
+			->willReturnOnConsecutiveCalls( true, false );
+
+		// Guest checkout is enabled.
+		update_option( 'woocommerce_enable_guest_checkout', 'yes' );
+		$this->assertFalse( $wc_stripe_ece_helper_mock->is_authentication_required() );
+
+		// Guest checkout is disabled, and account creation is possible.
+		update_option( 'woocommerce_enable_guest_checkout', 'no' );
+		$this->assertFalse( $wc_stripe_ece_helper_mock->is_authentication_required() );
+
+		// Guest checkout is disabled, and account creation is not possible.
+		update_option( 'woocommerce_enable_guest_checkout', 'no' );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->is_authentication_required() );
+	}
+
+	/**
+	 * Test for is_account_creation_possible().
+	 */
+	public function test_is_account_creation_possible() {
+		$wc_stripe_ece_helper_mock = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'has_subscription_product',
+			]
+		);
+		$wc_stripe_ece_helper_mock->expects( $this->any() )
+			->method( 'has_subscription_product' )
+			->willReturn( false );
+
+		// Account creation on checkout is enabled.
+		update_option( 'woocommerce_enable_signup_and_login_from_checkout', 'yes' );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->is_account_creation_possible() );
+
+		// Account creation on checkout is disabled.
+		update_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' );
+		$this->assertFalse( $wc_stripe_ece_helper_mock->is_account_creation_possible() );
+
+		// Account creation on checkout is enabled for subscriptions, but no subscription in cart.
+		update_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'yes' );
+		$this->assertFalse( $wc_stripe_ece_helper_mock->is_account_creation_possible() );
+
+		//. Tests for when a subscription product is in the cart.
+		$wc_stripe_ece_helper_mock2 = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'has_subscription_product',
+			]
+		);
+		$wc_stripe_ece_helper_mock2->expects( $this->any() )
+			->method( 'has_subscription_product' )
+			->willReturn( true );
+
+		// Account creation on checkout is disabled.
+		update_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' );
+		update_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' );
+		$this->assertFalse( $wc_stripe_ece_helper_mock2->is_account_creation_possible() );
+
+		// Account creation on checkout is enabled for subscriptions, with subscription in cart.
+		update_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' );
+		update_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'yes' );
+		$this->assertTrue( $wc_stripe_ece_helper_mock2->is_account_creation_possible() );
+	}
 }
