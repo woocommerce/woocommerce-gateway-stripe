@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
+	use WC_Stripe_Capture_Method_Trait;
+
 	const ID = 'stripe';
 
 	/**
@@ -1069,15 +1071,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_in_test_mode() {
 		return 'yes' === $this->get_option( 'testmode' );
-	}
-
-	/**
-	 * Determines whether the "automatic" or "manual" capture setting is enabled.
-	 *
-	 * @return bool
-	 */
-	public function is_automatic_capture_enabled() {
-		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
 	}
 
 	/**

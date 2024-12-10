@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
+
+	use WC_Stripe_Capture_Method_Trait;
+
 	/**
 	 * Is test mode active?
 	 *
@@ -801,6 +804,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
 		if (
+			$this->is_automatic_capture_enabled() && // Only process if automatic capture is enabled.
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
 			$order->has_status( 'on-hold' ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
