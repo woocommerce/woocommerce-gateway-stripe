@@ -521,6 +521,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.5 Can handle any fail payments from any methods.
+	 * @since 9.0.0 Can handle payment expiration.
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_failed( $notification ) {
@@ -536,7 +537,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
+		if ( 'charge.expired' === $notification->type ) {
+			$message = __( 'This payment has expired.', 'woocommerce-gateway-stripe' );
+		} else {
+			$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
+		}
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
 			$order->update_status( 'failed', $message );
 		} else {
@@ -1160,6 +1165,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 
 			case 'charge.failed':
+			case 'charge.expired':
 				$this->process_webhook_charge_failed( $notification );
 				break;
 
