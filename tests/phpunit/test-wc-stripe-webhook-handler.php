@@ -21,10 +21,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
-		'id'                 => 'pi_mock',
-		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
-		'charges'            => [
+		'id'      => 'pi_mock',
+		'object'  => 'payment_intent',
+		'status'  => 'succeeded',
+		'charges' => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -96,7 +96,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
 
 		// No payment intent.
-		$order = WC_Helper_Order::create_order();
+		$order            = WC_Helper_Order::create_order();
 		$data['order_id'] = $order->get_id();
 
 		$this->expectExceptionMessage( "Missing required data. 'intent_id' is missing for the deferred 'payment_intent.succeeded' event." );
@@ -110,7 +110,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order     = WC_Helper_Order::create_order();
 		$intent_id = 'pi_mock_1234';
 		$data      = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => $intent_id,
 		];
 
@@ -134,7 +134,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_mismatch_intent_id_process_deferred_webhook() {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => 'pi_wrong_id',
 		];
 
@@ -168,7 +168,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_of_successful_payment_intent_deferred_webhook() {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
 		];
 
@@ -197,5 +197,107 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+	}
+
+	/**
+	 * Test for `process_webhook_charge_failed`.
+	 *
+	 * @param WC_Order|bool $order           The order.
+	 * @param array         $event           The event type.
+	 * @param string        $expected_status The expected order status.
+	 * @param string        $expected_note   The expected order note.
+	 * @return void
+	 * @dataProvider provide_test_process_webhook_charge_failed
+	 */
+	public function test_process_webhook_charge_failed( $order, $event, $expected_status, $expected_note ) {
+		$notification = (object) [
+			'type' => $event,
+			'data' => (object) [
+				'object' => (object) [
+					'id' => 1234,
+				],
+			],
+		];
+		if ( $order instanceof WC_Order ) {
+			$charge_id                      = $order->get_transaction_id();
+			$notification->data->object->id = $charge_id;
+		}
+
+		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
+
+		if ( $order instanceof WC_Order ) {
+			$order = wc_get_order( $order->get_id() );
+			$note  = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			)[0];
+
+			$this->assertEquals( $expected_status, $order->get_status() );
+			$this->assertSame( $expected_note, $note->content );
+		} else {
+			$this->assertFalse( $order );
+		}
+	}
+
+	/**
+	 * Provider for `test_process_webhook_charge_failed`.
+	 *
+	 * @return array
+	 * @throws WC_Data_Exception If the transaction ID cannot be set.
+	 */
+	public function provide_test_process_webhook_charge_failed() {
+		$order_on_hold_charge_id = 1;
+		$order_on_hold           = WC_Helper_Order::create_order();
+		$order_on_hold->set_status( 'on-hold' );
+		$order_on_hold->set_transaction_id( $order_on_hold_charge_id );
+		$order_on_hold->save();
+
+		$order_on_hold_status_final_charge_id = 2;
+		$order_on_hold_status_final           = WC_Helper_Order::create_order();
+		$order_on_hold_status_final->set_status( 'on-hold' );
+		$order_on_hold_status_final->set_transaction_id( $order_on_hold_status_final_charge_id );
+		$order_on_hold_status_final->update_meta_data( '_stripe_status_final', true );
+		$order_on_hold_status_final->save();
+
+		$order_failed_charge_id = 3;
+		$order_failed           = WC_Helper_Order::create_order();
+		$order_failed->set_status( 'failed' );
+		$order_failed->set_transaction_id( $order_failed_charge_id );
+		$order_failed->save();
+
+		return [
+			'order not found'      => [
+				'order'           => false,
+				'event'           => 'charge.failed',
+				'expected status' => 'on-hold',
+				'expected note'   => '',
+			],
+			'order already failed' => [
+				'order'           => $order_failed,
+				'event'           => 'charge.failed',
+				'expected status' => 'failed',
+				'expected note'   => 'Order status changed from Pending payment to Failed.',
+			],
+			'charge failed event, order already with the final status' => [
+				'order'           => $order_on_hold_status_final,
+				'event'           => 'charge.failed',
+				'expected status' => 'on-hold',
+				'expected note'   => 'This payment failed to clear.',
+			],
+			'charge failed event'  => [
+				'order'           => $order_on_hold,
+				'event'           => 'charge.failed',
+				'expected status' => 'failed',
+				'expected note'   => 'This payment failed to clear. Order status changed from On hold to Failed.',
+			],
+			'charge expired event' => [
+				'order'           => $order_on_hold,
+				'event'           => 'charge.expired',
+				'expected status' => 'failed',
+				'expected note'   => 'This payment has expired. Order status changed from On hold to Failed.',
+			],
+		];
 	}
 }
