@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.0.0 - xxxx-xx-xx =
 * Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
+* Fix - Set correct payment method when using Link and a card that is 3D Secure authenticated.
+* Fix - Fix total calculation for custom product types when using the Payment Request Button.
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
 * Remove - Remove Link autofill modal feature.
@@ -127,5 +129,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
 * Fix - Do not assume payment is using a saved card when retrying a failed payment. 
 * Tweak - Update links to plugin documentation and Stripe documentation.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

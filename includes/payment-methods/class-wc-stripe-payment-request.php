@@ -596,9 +596,9 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// If the cart is not available we don't have any unsupported products in the cart, so we
+		// If the cart is not available or if the cart is empty we don't have any unsupported products in the cart, so we
 		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
-		if ( is_null( WC()->cart ) ) {
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			return true;
 		}
 
@@ -1458,9 +1458,7 @@ class WC_Stripe_Payment_Request {
 			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		}
-
-		if ( in_array( $product_type, [ 'simple', 'variation', 'subscription', 'subscription_variation' ], true ) ) {
+		} elseif ( in_array( $product_type, $this->supported_product_types(), true ) ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
