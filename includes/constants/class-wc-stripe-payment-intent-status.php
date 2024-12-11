@@ -72,5 +72,5 @@ class WC_Stripe_Payment_Intent_Status {
 	/**
 	 * Grouping of statuses that are considered successful when setting up intents.
 	 */
-	const VALID_SUCCESSFUL_SETUP_INTENT_STATUSES = [ self::SUCCEEDED, self::PROCESSING, self::REQUIRES_ACTION, self::REQUIRES_CONFIRMATION ];
+	const SUCCESSFUL_SETUP_INTENT_STATUSES = [ self::SUCCEEDED, self::PROCESSING, self::REQUIRES_ACTION, self::REQUIRES_CONFIRMATION ];
 }
