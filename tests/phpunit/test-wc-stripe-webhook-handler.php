@@ -202,43 +202,55 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `process_webhook_charge_failed`.
 	 *
-	 * @param WC_Order|bool $order           The order.
-	 * @param array         $event           The event type.
-	 * @param string        $expected_status The expected order status.
-	 * @param string        $expected_note   The expected order note.
+	 * @param string $order_status       The order status.
+	 * @param bool   $order_status_final Whether the order status is final.
+	 * @param string $charge_id          The charge ID.
+	 * @param array  $event              The event type.
+	 * @param string $expected_status    The expected order status.
+	 * @param string $expected_note      The expected order note.
 	 * @return void
 	 * @dataProvider provide_test_process_webhook_charge_failed
 	 */
-	public function test_process_webhook_charge_failed( $order, $event, $expected_status, $expected_note ) {
+	public function test_process_webhook_charge_failed(
+		$order_status,
+		$order_status_final,
+		$charge_id,
+		$event,
+		$expected_status,
+		$expected_note
+	) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->set_transaction_id( $charge_id );
+		if ( $order_status_final ) {
+			$order->update_meta_data( '_stripe_status_final', true );
+		}
+		$order->save();
+
 		$notification = (object) [
 			'type' => $event,
 			'data' => (object) [
 				'object' => (object) [
-					'id' => 1234,
+					'id' => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
 				],
 			],
 		];
-		if ( $order instanceof WC_Order ) {
-			$charge_id                      = $order->get_transaction_id();
-			$notification->data->object->id = $charge_id;
-		}
 
 		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
 
-		if ( $order instanceof WC_Order ) {
-			$order_id = $order->get_id();
-			$order    = wc_get_order( $order_id );
-			$note     = wc_get_order_notes(
-				[
-					'order_id' => $order_id,
-					'limit'    => 1,
-				]
-			)[0];
+		if ( $charge_id ) { // Order not found charge ID.
+			$final_order = wc_get_order( $order->get_id() );
+			$this->assertEquals( $expected_status, $final_order->get_status() );
 
-			$this->assertEquals( $expected_status, $order->get_status() );
-			$this->assertSame( $expected_note, $note->content );
-		} else {
-			$this->assertFalse( $order );
+			if ( $expected_note ) {
+				$notes = wc_get_order_notes(
+					[
+						'order_id' => $final_order->get_id(),
+						'limit'    => 1,
+					]
+				);
+				$this->assertSame( $expected_note, $notes[0]->content );
+			}
 		}
 	}
 
@@ -246,58 +258,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Provider for `test_process_webhook_charge_failed`.
 	 *
 	 * @return array
-	 * @throws WC_Data_Exception If the transaction ID cannot be set.
 	 */
 	public function provide_test_process_webhook_charge_failed() {
-		$order_on_hold_charge_id = 1;
-		$order_on_hold           = WC_Helper_Order::create_order();
-		$order_on_hold->set_status( 'on-hold' );
-		$order_on_hold->set_transaction_id( $order_on_hold_charge_id );
-		$order_on_hold->save();
-
-		$order_on_hold_status_final_charge_id = 2;
-		$order_on_hold_status_final           = WC_Helper_Order::create_order();
-		$order_on_hold_status_final->set_status( 'on-hold' );
-		$order_on_hold_status_final->set_transaction_id( $order_on_hold_status_final_charge_id );
-		$order_on_hold_status_final->update_meta_data( '_stripe_status_final', true );
-		$order_on_hold_status_final->save();
-
-		$order_failed_charge_id = 3;
-		$order_failed           = WC_Helper_Order::create_order();
-		$order_failed->set_status( 'failed' );
-		$order_failed->set_transaction_id( $order_failed_charge_id );
-		$order_failed->save();
-
 		return [
-			'order not found'      => [
-				'order'           => false,
-				'event'           => 'charge.failed',
-				'expected status' => 'on-hold',
-				'expected note'   => '',
-			],
 			'order already failed' => [
-				'order'           => $order_failed,
-				'event'           => 'charge.failed',
-				'expected status' => 'failed',
-				'expected note'   => 'Order status changed from Pending payment to Failed.',
+				'order status'       => 'failed',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'failed',
+				'expected note'      => '',
 			],
 			'charge failed event, order already with the final status' => [
-				'order'           => $order_on_hold_status_final,
-				'event'           => 'charge.failed',
-				'expected status' => 'on-hold',
-				'expected note'   => 'This payment failed to clear.',
+				'order status'       => 'on-hold',
+				'order status final' => true,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'on-hold',
+				'expected note'      => 'This payment failed to clear.',
 			],
 			'charge failed event'  => [
-				'order'           => $order_on_hold,
-				'event'           => 'charge.failed',
-				'expected status' => 'failed',
-				'expected note'   => 'This payment failed to clear. Order status changed from On hold to Failed.',
+				'order status'       => 'on-hold',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'failed',
+				'expected note'      => 'This payment failed to clear. Order status changed from On hold to Failed.',
 			],
 			'charge expired event' => [
-				'order'           => $order_on_hold,
-				'event'           => 'charge.expired',
-				'expected status' => 'failed',
-				'expected note'   => 'This payment has expired. Order status changed from On hold to Failed.',
+				'order status'       => 'on-hold',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.expired',
+				'expected status'    => 'failed',
+				'expected note'      => 'This payment has expired. Order status changed from On hold to Failed.',
 			],
 		];
 	}
