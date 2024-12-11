@@ -50,4 +50,40 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 	}
+
+	/**
+	 * Test for prevent_editing_orders_awaiting_payment_capture().
+	 */
+	public function test_prevent_editing_orders_awaiting_payment_capture() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'bacs' );
+		$order->save();
+
+		// Test when payment method is not stripe.
+		$this->assertTrue( $this->order_handler->prevent_editing_orders_awaiting_payment_capture( true, $order ) );
+		$this->assertFalse( $this->order_handler->prevent_editing_orders_awaiting_payment_capture( false, $order ) );
+
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls(
+				(object) [
+					'intent_id' => 'pi_mock1',
+					'status'    => 'succeeded',
+				],
+				(object) [
+					'intent_id' => 'pi_mock2',
+					'status'    => 'requires_capture',
+				]
+			);
+
+		// Test when intent is succeeded.
+		$this->assertTrue( $this->order_handler->prevent_editing_orders_awaiting_payment_capture( true, $order ) );
+
+		// Test when intent is requires_capture.
+		$this->assertFalse( $this->order_handler->prevent_editing_orders_awaiting_payment_capture( true, $order ) );
+	}
 }
