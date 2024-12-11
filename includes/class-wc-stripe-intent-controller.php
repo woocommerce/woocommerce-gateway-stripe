@@ -1041,7 +1041,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ WC_Stripe_Payment_Intent_Status::SUCCEEDED, WC_Stripe_Payment_Intent_Status::PROCESSING, WC_Stripe_Payment_Intent_Status::REQUIRES_ACTION, WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, WC_Stripe_Payment_Intent_Status::VALID_SUCCESSFUL_SETUP_INTENT_STATUSES, true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 

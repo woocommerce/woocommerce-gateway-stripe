@@ -294,7 +294,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$new_payment_method = $this->get_upe_gateway_id_for_order( $upe_payment_method );
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
-			if ( in_array( $payment_intent->status, [ WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION, WC_Stripe_Payment_Intent_Status::REQUIRES_ACTION ], true ) ) {
+			if ( in_array( $payment_intent->status, WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
