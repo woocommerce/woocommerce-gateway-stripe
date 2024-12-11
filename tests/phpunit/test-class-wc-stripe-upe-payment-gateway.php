@@ -2347,7 +2347,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
-		$this->mock_gateway->expects( $this->exactly( 3 ) ) // 3 times because we test 3 payment methods.
+		$this->mock_gateway->expects( $this->exactly( 4 ) ) // 4 times because we test 4 payment methods.
 			->method( 'is_subscriptions_enabled' )
 			->willReturn( true );
 
@@ -2382,6 +2382,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Cards should be set to `stripe`.
 		$this->assertEquals( 'stripe', $order->get_payment_method() );
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+
+		/**
+		 * Link
+		 */
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID );
+		// Cards should be set to `stripe`.
+		$this->assertEquals( 'stripe', $order->get_payment_method() );
+		$this->assertEquals( 'Link', $order->get_payment_method_title() );
 
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
