@@ -2,6 +2,7 @@
 
 = 9.0.0 - xxxx-xx-xx =
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
+* Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.
 * Fix - Set correct payment method when using Link and a card that is 3D Secure authenticated.
 * Fix - Fix total calculation for custom product types when using the Payment Request Button.
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.

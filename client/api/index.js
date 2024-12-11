@@ -290,7 +290,8 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
-	 * @return {string|true} A redirect URL on success, or `true` if no confirmation is needed.
+	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
+	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
 		const partials = redirectUrl.match(
