@@ -28,6 +28,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
+
+		add_filter( 'wc_order_is_editable', [ $this, 'prevent_editing_orders_awaiting_payment_capture' ], 10, 2 );
 	}
 
 	/**
@@ -439,6 +441,28 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $cancel_order;
+	}
+
+	/**
+	 * Hooks into wc_order_is_editable filter to prevent editing of orders that are
+	 * awaiting payment capture.
+	 *
+	 * This is necessary because any changes to the order total does
+	 * not update the pre-authorized amount on the Stripe side, and later attempts to
+	 * capture payment for the new total will fail.
+	 */
+	public function prevent_editing_orders_awaiting_payment_capture( $is_editable, $order ) {
+		// Bail if payment method is not stripe.
+		if ( substr( (string) $order->get_payment_method(), 0, 6 ) !== 'stripe' ) {
+			return $is_editable;
+		}
+
+		$intent = $this->get_intent_from_order( $order );
+		if ( isset( $intent->status ) && 'requires_capture' === $intent->status ) {
+			return false;
+		}
+
+		return $is_editable;
 	}
 }
 
