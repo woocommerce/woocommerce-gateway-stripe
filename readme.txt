@@ -110,6 +110,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 9.1.0 - xxxx-xx-xx =
+* Update - Prevent editing of orders awaiting payment capture.
+
 = 9.0.0 - xxxx-xx-xx =
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
 * Add - Pre-fill user email and phone number for Link in the Payment Element.
