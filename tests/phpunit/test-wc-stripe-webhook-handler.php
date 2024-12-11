@@ -226,10 +226,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
 
 		if ( $order instanceof WC_Order ) {
-			$order = wc_get_order( $order->get_id() );
-			$note  = wc_get_order_notes(
+			$order_id = $order->get_id();
+			$order    = wc_get_order( $order_id );
+			$note     = wc_get_order_notes(
 				[
-					'order_id' => $order->get_id(),
+					'order_id' => $order_id,
 					'limit'    => 1,
 				]
 			)[0];
