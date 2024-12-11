@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.0.0 - xxxx-xx-xx =
+* Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.
 * Fix - Set correct payment method when using Link and a card that is 3D Secure authenticated.
 * Fix - Fix total calculation for custom product types when using the Payment Request Button.
 * Fix - Fix order attribution metadata not included in PRBs or Express Checkout Element.
@@ -126,7 +127,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Return 'is_live' as true in account summary response when test mode is disabled in gateway settings and charge is enabled in Stripe account.
 * Fix - Prevents notices being displayed on WordPress 6.7 due to loading translations too early (only shown on stores with WP_DEBUG enabled).
 * Fix - Prevent showing the shipping options on express checkout modal for virtual product variations.
-* Fix - Do not assume payment is using a saved card when retrying a failed payment. 
+* Fix - Do not assume payment is using a saved card when retrying a failed payment.
 * Tweak - Update links to plugin documentation and Stripe documentation.
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
