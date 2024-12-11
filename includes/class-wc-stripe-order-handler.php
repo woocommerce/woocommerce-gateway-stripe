@@ -75,7 +75,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 
-			if ( true || ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
+			if ( ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
 				// Hook to gettext callback to change the tooltip text
 				add_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10, 3 );
 			}
@@ -87,12 +87,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function maybe_unattach_gettext_callback() {
 
-		wc_get_logger()->debug( 'maybe_unattach_gettext_callback' );
-
 		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 
-			if ( true || ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
+			if ( ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
 				// Unhook gettext callback to prevent extra call impact
 				remove_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10 );
 			}
@@ -106,7 +104,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function change_order_item_editable_text_tooltip( $translated_text, $text, $domain ) {
 		switch ( $text ) {
 			case 'To edit this order change the status back to "Pending payment"':
-				$translated_text = __( 'This order is no longer editable because the charge has been authorized.', 'woocommerce-gateway-stripe' );
+				$translated_text = __( 'This order is no longer editable because the charge has been authorized for this amount.', 'woocommerce-gateway-stripe' );
 				break;
 		}
 
