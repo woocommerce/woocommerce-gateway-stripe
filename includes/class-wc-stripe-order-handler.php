@@ -50,6 +50,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return boolean false if the order has uncaptured payment, true otherwise.
 	 */
 	public function disable_edit_for_uncaptured_orders( $editable, $order ) {
+		// Bail if payment method is not manual capture supporting stripe method.
+		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+			return $editable;
+		}
+
 		try {
 			$intent = $this->get_intent_from_order( $order );
 
