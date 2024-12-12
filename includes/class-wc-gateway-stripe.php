@@ -888,7 +888,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'setup_intent' === $intent->object && WC_Stripe_Payment_Intent_Status::SUCCESSFUL_STATUSES === $intent->status ) {
+		if ( 'setup_intent' === $intent->object && WC_Stripe_Payment_Intent_Status::SUCCEEDED === $intent->status ) {
 			WC()->cart->empty_cart();
 			if ( $this->has_pre_order( $order ) ) {
 				$this->mark_order_as_pre_ordered( $order );
