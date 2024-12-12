@@ -11,9 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
-
-	use WC_Stripe_Capture_Method_Trait;
-
 	/**
 	 * Is test mode active?
 	 *
