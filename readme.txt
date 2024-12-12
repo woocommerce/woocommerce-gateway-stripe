@@ -110,8 +110,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.0.0 - xxxx-xx-xx =
+= 9.1.0 - xxxx-xx-xx =
 * Dev - Introduces a new class with payment intent statuses constants.
+* Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
+
+= 9.0.0 - xxxx-xx-xx =
+* Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
 * Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.
 * Fix - Set correct payment method when using Link and a card that is 3D Secure authenticated.
 * Fix - Fix total calculation for custom product types when using the Payment Request Button.
