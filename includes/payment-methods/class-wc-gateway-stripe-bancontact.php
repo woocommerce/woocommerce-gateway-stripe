@@ -240,7 +240,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Helper::get_order( $order_id );
 
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
@@ -262,7 +262,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->set_source_id( $response->id );
 			$order->save();
 
 			WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );

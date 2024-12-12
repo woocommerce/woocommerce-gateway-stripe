@@ -361,7 +361,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 				throw new Exception( $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->set_source_id( $response->id );
 			$order->save();
 
 			$this->save_instructions( $order, $response );

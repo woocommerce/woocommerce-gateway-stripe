@@ -926,7 +926,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id           = $order->get_id();
-		$payment_type_meta  = $order->get_meta( '_stripe_upe_payment_type' );
+		$payment_type_meta  = $order->get_upe_payment_type();
 		$is_voucher_payment = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true );
 		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 
@@ -1215,7 +1215,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Fetches an order from a payment intent.
 	 *
 	 * @param stdClass $intent The Stripe PaymentIntent object.
-	 * @return WC_Order|false The order object, or false if not found.
+	 * @return WC_Stripe_Order|false The order object, or false if not found.
 	 */
 	private function get_order_from_intent( $intent ) {
 		// Attempt to get the order from the intent metadata.

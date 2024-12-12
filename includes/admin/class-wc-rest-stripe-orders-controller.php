@@ -72,7 +72,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		$order_id = $request['order_id'];
 
 		// Ensure order exists.
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 		if ( false === $order || ! ( $order instanceof WC_Order ) ) {
 			return new WP_Error( 'wc_stripe', __( 'Order not found', 'woocommerce-gateway-stripe' ), [ 'status' => 404 ] );
 		}
@@ -91,7 +91,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		$customer = new WC_Stripe_Customer( $order_user->ID );
 
 		// Set the customer ID if known but not already set.
-		$customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$customer_id = $order->get_stripe_customer_id();
 		if ( ! $customer->get_id() && $customer_id ) {
 			$customer->set_id( $customer_id );
 		}
@@ -108,7 +108,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			return new WP_Error( 'stripe_error', $e->getMessage() );
 		}
 
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order->set_stripe_customer_id( $customer_id );
 		$order->save();
 
 		return rest_ensure_response( [ 'id' => $customer_id ] );

@@ -133,11 +133,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_meta( '_stripe_source_id', true ),
+							'value' => $order->get_source_id(),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_meta( '_stripe_customer_id', true ),
+							'value' => $order->get_stripe_customer_id(),
 						],
 					],
 				];
@@ -384,13 +384,13 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	/**
 	 * Handle eraser of data tied to Orders
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Stripe_Order $order
 	 * @return array
 	 */
 	protected function maybe_handle_order( $order ) {
-		$stripe_source_id   = $order->get_meta( '_stripe_source_id', true );
+		$stripe_source_id   = $order->get_source_id();
 		$stripe_refund_id   = $order->get_meta( '_stripe_refund_id', true );
-		$stripe_customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$stripe_customer_id = $order->get_stripe_customer_id();
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */

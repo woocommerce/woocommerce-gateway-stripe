@@ -418,7 +418,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array|null An array with result of the update, or nothing
 	 */
 	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
@@ -455,7 +455,7 @@ class WC_Stripe_Intent_Controller {
 						WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					];
 				}
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order->set_upe_payment_type( $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
@@ -770,7 +770,7 @@ class WC_Stripe_Intent_Controller {
 
 		// Only update the payment_type if we have a reference to the payment type the customer selected.
 		if ( '' !== $selected_payment_type ) {
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+			$order->set_upe_payment_type( $selected_payment_type );
 		}
 
 		return $payment_intent;

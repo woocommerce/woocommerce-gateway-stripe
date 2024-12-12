@@ -10,6 +10,82 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Set the Stripe intent ID.
+	 *
+	 * @param $intent_id string The intent ID to set.
+	 * @return void
+	 */
+	public function set_intent_id( $intent_id ) {
+		$this->update_meta_data( '_stripe_intent_id', $intent_id );
+	}
+
+	/**
+	 * Get the Stripe intent ID.
+	 *
+	 * @return string
+	 */
+	public function get_intent_id() {
+		return $this->get_meta( '_stripe_intent_id' );
+	}
+
+	/**
+	 * Set the UPE payment type.
+	 *
+	 * @param $payment_type string The payment type to set.
+	 * @return void
+	 */
+	public function set_upe_payment_type( $payment_type ) {
+		$this->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+	}
+
+	/**
+	 * Get the UPE payment type.
+	 *
+	 * @return string
+	 */
+	public function get_upe_payment_type() {
+		return $this->get_meta( '_stripe_upe_payment_type' );
+	}
+
+	/**
+	 * Set the Stripe source ID.
+	 *
+	 * @param $source_id string The Stripe source ID.
+	 * @return void
+	 */
+	public function set_source_id( $source_id ) {
+		$this->update_meta_data( '_stripe_source_id', $source_id );
+	}
+
+	/**
+	 * Get the Stripe source ID.
+	 *
+	 * @return string
+	 */
+	public function get_source_id() {
+		return $this->get_meta( '_stripe_source_id' );
+	}
+
+	/**
+	 * Set the Stripe customer ID.
+	 *
+	 * @param $customer_id string The Stripe customer ID.
+	 * @return void
+	 */
+	public function set_stripe_customer_id( $customer_id ) {
+		$this->update_meta_data( '_stripe_customer_id', $customer_id );
+	}
+
+	/**
+	 * Get the Stripe customer ID.
+	 *
+	 * @return string
+	 */
+	public function get_stripe_customer_id() {
+		return $this->get_meta( '_stripe_customer_id' );
+	}
+
+	/**
 	 * Set the charge captured flag.
 	 *
 	 * @param $value string The value to set.

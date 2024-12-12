@@ -261,7 +261,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 				throw new Exception( $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->set_source_id( $response->id );
 			$order->save();
 
 			WC_Stripe_Logger::log( 'Info: Redirecting to EPS...' );

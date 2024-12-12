@@ -392,8 +392,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order->get_meta( '_stripe_customer_id', true );
-
+		$customer = $order->get_stripe_customer_id();
 		if ( empty( $customer ) ) {
 			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
 		}
@@ -951,14 +950,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = $order->get_meta( '_stripe_source_id', true );
+			$source_id = $order->get_source_id();
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
 				$source_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$order->update_meta_data( '_stripe_source_id', $source_id );
+				$order->set_source_id( $source_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1005,17 +1004,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param WC_Order $order For to which the source applies.
+	 * @param WC_Stripe_Order $order For to which the source applies.
 	 * @param stdClass $source Source information.
 	 */
 	public function save_source_to_order( $order, $source ) {
 		// Store source in the order.
 		if ( $source->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order->set_stripe_customer_id( $source->customer );
 		}
 
 		if ( $source->source ) {
-			$order->update_meta_data( '_stripe_source_id', $source->source );
+			$order->set_source_id( $source->source );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1619,11 +1618,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Retrieves the payment intent, associated with an order.
 	 *
 	 * @since 4.2
-	 * @param WC_Order $order The order to retrieve an intent for.
-	 * @return obect|bool     Either the intent object or `false`.
+	 * @param WC_Stripe_Order $order The order to retrieve an intent for.
+	 * @return obect|bool            Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
+		$intent_id = $order->get_intent_id();
 
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );

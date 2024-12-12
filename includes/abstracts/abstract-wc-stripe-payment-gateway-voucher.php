@@ -253,7 +253,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Helper::get_order( $order_id );
 
 			if ( ! in_array( $order->get_billing_country(), $this->supported_countries ) ) {
 				throw new \Exception( __( 'This payment method is not available in the selected country', 'woocommerce-gateway-stripe' ) );
@@ -261,7 +261,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
+			$order->set_upe_payment_type( $this->stripe_id );
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
@@ -383,7 +383,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$intent = $this->create_or_update_payment_intent( $order );
 
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
+			$order->set_upe_payment_type( $this->stripe_id );
 			$order->save();
 
 			wp_send_json(

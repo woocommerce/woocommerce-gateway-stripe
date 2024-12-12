@@ -42,7 +42,7 @@ class WC_Helper_Order {
 	 * @param WC_Product $product The product to add to the order.
 	 * @param array      $order_props Order properties.
 	 *
-	 * @return WC_Order
+	 * @return WC_Stripe_Order
 	 */
 	public static function create_order( $customer_id = 1, $product = null, $order_props = [] ) {
 

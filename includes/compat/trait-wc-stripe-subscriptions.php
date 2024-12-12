@@ -646,7 +646,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
 		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_source_id() );
 		$subscription->save();
 	}
 
@@ -798,7 +798,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
+			$renewal_order_payment_method = $renewal_order->get_source_id();
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -938,14 +938,14 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
 			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
-			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
+			$stripe_source_id   = $parent_order->get_source_id();
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
 				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$parent_order->update_meta_data( '_stripe_source_id', $stripe_source_id );
+				$parent_order->set_source_id( $stripe_source_id );
 				$parent_order->save();
 			}
 		}

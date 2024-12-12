@@ -248,12 +248,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Hides refund through stripe when payment method does not allow refund
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Stripe_Order $order
 	 *
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = $order->get_meta( '_stripe_upe_payment_type' );
+		$upe_payment_type = $order->get_upe_payment_type();
 
 		if ( ! $upe_payment_type ) {
 			return true;
@@ -649,7 +649,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                     = wc_get_order( $order_id );
+		$order                     = WC_Stripe_Helper::get_order( $order_id );
 		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -725,7 +725,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order->set_upe_payment_type( $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
@@ -1390,15 +1390,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Save payment method to order.
 	 *
-	 * @param WC_Order $order For to which the source applies.
+	 * @param WC_Stripe_Order $order For to which the source applies.
 	 * @param stdClass $payment_method Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
 		if ( $payment_method->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
+			$order->set_stripe_customer_id( $payment_method->customer );
 		}
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		$order->update_meta_data( '_stripe_source_id', $payment_method->payment_method );
+		$order->set_source_id( $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -2220,12 +2220,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Set the payment metadata for payment method id.
 	 *
-	 * @param WC_Order $order The order.
+	 * @param WC_Stripe_Order $order The order.
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_order( WC_Order $order, string $payment_method_id ) {
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		$order->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$order->set_source_id( $payment_method_id );
 		$order->save_meta_data();
 	}
 
@@ -2234,22 +2234,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
 	 *
-	 * @param WC_Order $order The order.
+	 * @param WC_Stripe_Order $order The order.
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order->set_stripe_customer_id( $customer_id );
 		$order->save_meta_data();
 	}
 
 	/**
 	 * Set the payment metadata for the selected payment type.
 	 *
-	 * @param WC_Order $order                 The order for which we're setting the selected payment type.
+	 * @param WC_Stripe_Order $order                 The order for which we're setting the selected payment type.
 	 * @param string   $selected_payment_type The selected payment type.
 	 */
 	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
-		$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		$order->set_upe_payment_type( $selected_payment_type );
 		$order->save_meta_data();
 	}
 	/**

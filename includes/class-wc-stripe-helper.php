@@ -1260,12 +1260,10 @@ class WC_Stripe_Helper {
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @param $payment_intent_id
-	 * @param $order
+	 * @param $order WC_Stripe_Order
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-
-		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
-
+		$old_intent_id = $order->get_intent_id();
 		if ( $old_intent_id === $payment_intent_id ) {
 			return;
 		}
@@ -1278,7 +1276,7 @@ class WC_Stripe_Helper {
 			)
 		);
 
-		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->set_intent_id( $payment_intent_id );
 		$order->save();
 	}
 
@@ -1373,13 +1371,12 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the payment intent or setup intent ID from a given order object.
 	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 * @param WC_Stripe_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
-
+		$intent_id = $order->get_intent_id();
 		if ( ! $intent_id ) {
 			$intent_id = $order->get_meta( '_stripe_setup_intent' );
 		}
@@ -1494,14 +1491,14 @@ class WC_Stripe_Helper {
 	/**
 	 * Verifies if the provided order contains the identifier for a wallet method.
 	 *
-	 * @param WC_Order $order The order.
+	 * @param WC_Stripe_Order $order The order.
 	 * @return bool
 	 *
 	 * @deprecated 8.9.0
 	 */
 	public static function is_wallet_payment_method( $order ) {
 		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
-		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
+		return in_array( $order->get_upe_payment_type(), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
 	/**
@@ -1625,7 +1622,7 @@ class WC_Stripe_Helper {
 	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_data array Order data.
-	 * @return bool|WC_Order
+	 * @return bool|WC_Stripe_Order
 	 */
 	public static function create_order( $order_data ) {
 		$order = wc_create_order( $order_data );
