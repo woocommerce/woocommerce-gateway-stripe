@@ -13,6 +13,7 @@ class WC_Stripe_Payment_Methods {
 	const CASHAPP_PAY       = 'cashapp';
 	const EPS               = 'eps';
 	const GIROPAY           = 'giropay';
+	const GOOGLE_PAY        = 'google_pay';
 	const IDEAL             = 'ideal';
 	const KLARNA            = 'klarna';
 	const LINK              = 'link';

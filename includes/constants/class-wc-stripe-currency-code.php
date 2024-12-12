@@ -36,6 +36,7 @@ class WC_Stripe_Currency_Code {
 	const COLOMBIAN_PESO                          = 'COP'; // Colombian peso.
 	const COSTA_RICAN_COLON                       = 'CRC'; // Costa Rican colon.
 	const CAPE_VERDE_ESCUDO                       = 'CVE'; // Cape Verde escudo.
+	const CROATIAN_KUNA                           = 'HRK'; // Croatian kuna.
 	const CZECH_KORUNA                            = 'CZK'; // Czech koruna.
 	const DJIBOUTIAN_FRANC                        = 'DJF'; // Djiboutian franc.
 	const DANISH_KRONE                            = 'DKK'; // Danish krone.
@@ -65,6 +66,7 @@ class WC_Stripe_Currency_Code {
 	const JORDANIAN_DINAR                         = 'JOD'; // Jordanian dinar.
 	const JAPANESE_YEN                            = 'JPY'; // Japanese yen.
 	const KENYAN_SHILLING                         = 'KES'; // Kenyan shilling.
+	const KUWAITI_DINAR                           = 'KWD'; // Kuwaiti dinar.
 	const KYRGYZSTANI_SOM                         = 'KGS'; // Kyrgyzstani som.
 	const CAMBODIAN_RIEL                          = 'KHR'; // Cambodian riel.
 	const COMORIAN_FRANC                          = 'KMF'; // Comorian franc.
@@ -75,6 +77,7 @@ class WC_Stripe_Currency_Code {
 	const LEBANESE_POUND                          = 'LBP'; // Lebanese pound.
 	const SRI_LANKAN_RUPEE                        = 'LKR'; // Sri Lankan rupee.
 	const LIBERIAN_DOLLAR                         = 'LRD'; // Liberian dollar.
+	const LIBYAN_DINAR                            = 'LYD'; // Libyan dinar.
 	const LESOTHO_LOTI                            = 'LSL'; // Lesotho loti.
 	const MOROCCAN_DIRHAM                         = 'MAD'; // Moroccan dirham.
 	const MOLDOVAN_LEU                            = 'MDL'; // Moldovan leu.
@@ -95,6 +98,7 @@ class WC_Stripe_Currency_Code {
 	const NORWEGIAN_KRONE                         = 'NOK'; // Norwegian krone.
 	const NEPALESE_RUPEE                          = 'NPR'; // Nepalese rupee.
 	const NEW_ZEALAND_DOLLAR                      = 'NZD'; // New Zealand dollar.
+	const OMANI_RIAL                              = 'OMR'; // Omani rial.
 	const PANAMANIAN_BALBOA                       = 'PAB'; // Panamanian balboa.
 	const PERUVIAN_SOL                            = 'PEN'; // Peruvian sol.
 	const PAPUA_NEW_GUINEAN_KINA                  = 'PGK'; // Papua New Guinean kina.
@@ -121,7 +125,9 @@ class WC_Stripe_Currency_Code {
 	const THAI_BAHT                               = 'THB'; // Thai baht.
 	const TAJIKISTANI_SOMONI                      = 'TJS'; // Tajikistani somoni.
 	const TONGAN_PAANGA                           = 'TOP'; // Tongan paʻanga.
+	const TUNISIAN_DINAR                          = 'TND'; // Tunisian dinar.
 	const TURKISH_LIRA                            = 'TRY'; // Turkish lira.
+	const TURKMENISTAN_MANAT                      = 'TMT'; // Turkmenistan manat.
 	const TRINIDAD_AND_TOBAGO_DOLLAR              = 'TTD'; // Trinidad and Tobago dollar.
 	const NEW_TAIWAN_DOLLAR                       = 'TWD'; // New Taiwan dollar.
 	const TANZANIAN_SHILLING                      = 'TZS'; // Tanzanian shilling.
@@ -129,6 +135,7 @@ class WC_Stripe_Currency_Code {
 	const UGANDAN_SHILLING                        = 'UGX'; // Ugandan shilling.
 	const URUGUAYAN_PESO                          = 'UYU'; // Uruguayan peso.
 	const UZBEKISTANI_SOM                         = 'UZS'; // Uzbekistani som.
+	const VENEZUELAN_BOLIVAR                      = 'VES'; // Venezuelan bolívar.
 	const VIETNAMESE_DONG                         = 'VND'; // Vietnamese đồng.
 	const VANUATU_VATU                            = 'VUV'; // Vanuatu vatu.
 	const SAMOAN_TALA                             = 'WST'; // Samoan tala.
