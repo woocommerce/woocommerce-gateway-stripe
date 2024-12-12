@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
-* Fix - Do not update an order status when a Radar review is closed if automatic capture is disabled.
+* Fix - Only update order status for a Radar review closed event when the order was already captured.
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
 
 = 9.0.0 - xxxx-xx-xx =
