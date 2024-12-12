@@ -353,6 +353,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				WC_Stripe_Payment_Methods::OXXO        => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
 				'cards'                                => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="credit / debit card" />',
 				WC_Stripe_Payment_Methods::CASHAPP_PAY => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
+				WC_Stripe_Payment_Methods::GOOGLE_PAY  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/google-pay.svg" class="stripe-google-pay-icon stripe-icon" alt="Google Pay" />',
 			]
 		);
 	}
