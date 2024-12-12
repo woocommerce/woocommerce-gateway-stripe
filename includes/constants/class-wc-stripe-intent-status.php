@@ -6,6 +6,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class WC_Stripe_Intent_Status
+ *
+ * For a documentation on the possible intent statuses, please refer to the following link:
+ * https://docs.stripe.com/api/payment_intents/object#payment_intent_object-status
  */
 class WC_Stripe_Intent_Status {
 	/**
