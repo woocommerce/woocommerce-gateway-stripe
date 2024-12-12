@@ -117,7 +117,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 					[
 						'id'      => 'pi_12345',
 						'object'  => 'payment_intent',
-						'status'  => WC_Stripe_Payment_Intent_Status::REQUIRES_CAPTURE,
+						'status'  => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
 						'charges' => [
 							'data' => [
 								[
@@ -173,7 +173,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 					[
 						'id'     => 'pi_12345',
 						'object' => 'payment_intent',
-						'status' => WC_Stripe_Payment_Intent_Status::SUCCEEDED,
+						'status' => WC_Stripe_Intent_Status::SUCCEEDED,
 					]
 				),
 			];
@@ -223,7 +223,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 					[
 						'id'      => 'pi_12345',
 						'object'  => 'payment_intent',
-						'status'  => WC_Stripe_Payment_Intent_Status::REQUIRES_CAPTURE,
+						'status'  => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
 						'charges' => [
 							'data' => [
 								[

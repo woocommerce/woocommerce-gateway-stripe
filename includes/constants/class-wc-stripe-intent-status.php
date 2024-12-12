@@ -5,9 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class WC_Stripe_Payment_Intent_Status
+ * Class WC_Stripe_Intent_Status
  */
-class WC_Stripe_Payment_Intent_Status {
+class WC_Stripe_Intent_Status {
 	/**
 	 * Payment intent status that indicates the payment was canceled.
 	 *

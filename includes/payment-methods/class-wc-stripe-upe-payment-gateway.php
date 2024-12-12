@@ -863,7 +863,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$return_url = $this->get_return_url( $order );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( in_array( $payment_intent->status, WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
@@ -891,7 +891,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					if ( $charge ) {
 						$this->process_response( $charge, $order );
 					}
-				} elseif ( in_array( $payment_intent->status, WC_Stripe_Payment_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
+				} elseif ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_STATUSES, true ) ) {
 					if ( ! $this->has_pre_order( $order ) ) {
 						$order->payment_complete();
 					} elseif ( $this->maybe_process_pre_orders( $order ) ) {
@@ -1046,7 +1046,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( WC_Stripe_Payment_Intent_Status::REQUIRES_ACTION === $intent->status || WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION === $intent->status ) {
+			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status || WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $intent->status ) {
 				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
 					return [
 						'result'   => 'success',
@@ -2406,17 +2406,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Check if the status of the intent still allows update.
-		if ( in_array( $intent->status, [ WC_Stripe_Payment_Intent_Status::CANCELED, WC_Stripe_Payment_Intent_Status::SUCCEEDED ], true ) ) {
+		if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::CANCELED, WC_Stripe_Intent_Status::SUCCEEDED ], true ) ) {
 			return null;
 		}
 
 		// If the intent requires confirmation to show voucher on checkout (i.e. Boleto or oxxo or multibanco ) or requires action (i.e. need to show a 3DS confirmation card or handle the UPE redirect), don't reuse the intent
-		if ( in_array( $intent->status, [ WC_Stripe_Payment_Intent_Status::REQUIRES_CONFIRMATION, WC_Stripe_Payment_Intent_Status::REQUIRES_ACTION ], true ) ) {
+		if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION, WC_Stripe_Intent_Status::REQUIRES_ACTION ], true ) ) {
 			return null;
 		}
 
 		// Cash App Pay intents with a "requires payment method" status cannot be reused. See https://docs.stripe.com/payments/cash-app-pay/accept-a-payment?web-or-mobile=web&payments-ui-type=direct-api#failed-payments
-		if ( in_array( WC_Stripe_Payment_Methods::CASHAPP_PAY, $intent->payment_method_types ) && WC_Stripe_Payment_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status ) {
+		if ( in_array( WC_Stripe_Payment_Methods::CASHAPP_PAY, $intent->payment_method_types ) && WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status ) {
 			return null;
 		}
 
