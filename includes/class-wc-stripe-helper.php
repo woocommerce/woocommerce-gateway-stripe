@@ -735,7 +735,7 @@ class WC_Stripe_Helper {
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
-			$key            = $payment_method_id . '_payments';
+			$key = $payment_method_id . '_payments';
 			// Check if the payment method has capabilities set in the account data.
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
@@ -884,7 +884,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			return self::get_order( $order_id );
 		}
 
 		return false;
@@ -917,7 +917,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			return self::get_order( $order_id );
 		}
 
 		return false;
@@ -950,7 +950,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			return self::get_order( $order_id );
 		}
 
 		return false;
@@ -984,7 +984,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			$order = wc_get_order( $order_id );
+			$order = self::get_order( $order_id );
 		}
 
 		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
@@ -1022,7 +1022,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			return self::get_order( $order_id );
 		}
 
 		return false;
@@ -1604,5 +1604,35 @@ class WC_Stripe_Helper {
 		}
 
 		return $target_locale;
+	}
+
+	/**
+	 * Wrapper to return an order using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $order_id int Order ID.
+	 * @return bool|WC_Order
+	 */
+	public static function get_order( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return false;
+		}
+
+		return new WC_Stripe_Order( $order );
+	}
+
+	/**
+	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $order_data array Order data.
+	 * @return bool|WC_Order
+	 */
+	public static function create_order( $order_data ) {
+		$order = wc_create_order( $order_data );
+		if ( ! $order ) {
+			return false;
+		}
+
+		return new WC_Stripe_Order( $order );
 	}
 }

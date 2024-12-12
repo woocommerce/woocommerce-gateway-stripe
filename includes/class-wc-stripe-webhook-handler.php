@@ -351,7 +351,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			'</a>'
 		);
 
-		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! $order->status_final() ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -391,7 +391,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
 			// Mark final so that order status is not overridden by out-of-sequence events.
-			$order->update_meta_data( '_stripe_status_final', true );
+			$order->set_status_final( true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
@@ -419,10 +419,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge   = $order->get_transaction_id();
-			$captured = $order->get_meta( '_stripe_charge_captured', true );
+			$captured = $order->charge_captured();
 
-			if ( $charge && 'no' === $captured ) {
-				$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+			if ( $charge && ! $captured ) {
+				$order->set_charge_captured( 'yes' );
 
 				// Store other data such as fees
 				$order->set_transaction_id( $notification->data->object->id );
@@ -542,7 +542,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} else {
 			$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
 		}
-		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! $order->status_final() ) {
 			$order->update_status( 'failed', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -579,7 +579,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
-		if ( ! $order->has_status( 'cancelled' ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( ! $order->has_status( 'cancelled' ) && ! $order->status_final() ) {
 			$order->update_status( 'cancelled', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -613,7 +613,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge        = $order->get_transaction_id();
-			$captured      = $order->get_meta( '_stripe_charge_captured' );
+			$captured      = $order->charge_captured();
 			$refund_id     = $order->get_meta( '_stripe_refund_id' );
 			$currency      = $order->get_currency();
 			$raw_amount    = $refund_object->amount;
@@ -625,7 +625,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
 			// If charge wasn't captured, skip creating a refund.
-			if ( 'yes' !== $captured ) {
+			if ( ! $captured ) {
 				// If the process was initiated from wp-admin,
 				// the order was already cancelled, so we don't need a new note.
 				if ( 'cancelled' !== $order->get_status() ) {
@@ -771,7 +771,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			esc_html( $notification->data->object->reason )
 		);
 
-		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->status_final() ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -809,12 +809,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
 			$order->has_status( 'on-hold' ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
-			! $order->get_meta( '_stripe_status_final', false )
+			! $order->status_final()
 		) {
 			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
 
 			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ) ) ) {
+			if ( $order->charge_captured() && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ), true ) ) {
 				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
 			}
 
@@ -982,7 +982,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 				$status_update = [];
-				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+				if ( ! $order->status_final() ) {
 					$status_update['from'] = $order->get_status();
 					$status_update['to']   = 'failed';
 					$order->update_status( 'failed', $message );
@@ -1036,7 +1036,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 			$status_update = [];
-			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+			if ( ! $order->status_final() ) {
 				$status_update['from'] = $order->get_status();
 				$status_update['to']   = 'failed';
 				$order->update_status( 'failed', $message );
@@ -1224,7 +1224,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$data      = explode( ':', $signature );
 
 			// Verify we received the order ID and signature (hash).
-			$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
+			$order = isset( $data[0], $data[1] ) ? WC_Stripe_Helper::get_order( absint( $data[0] ) ) : false;
 
 			if ( $order ) {
 				$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );

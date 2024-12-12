@@ -60,7 +60,7 @@ class WC_Helper_Order {
 		];
 
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Required, else wc_create_order throws an exception.
-		$order                  = wc_create_order( $order_data );
+		$order                  = WC_Stripe_Helper::create_order( $order_data );
 
 		// Add order products.
 		$item = new WC_Order_Item_Product();

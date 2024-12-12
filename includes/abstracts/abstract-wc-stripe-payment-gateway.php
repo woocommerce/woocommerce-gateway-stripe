@@ -536,7 +536,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
-		$order->update_meta_data( '_stripe_charge_captured', $captured );
+		$order->set_charge_captured( $captured );
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -1079,7 +1079,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws Exception Throws exception when charge wasn't captured.
 	 */
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( ! $order ) {
 			return false;
@@ -1088,7 +1088,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		$order_currency = $order->get_currency();
-		$captured       = $order->get_meta( '_stripe_charge_captured', true );
+		$captured       = $order->charge_captured();
 		$charge_id      = $order->get_transaction_id();
 
 		if ( ! $charge_id ) {
@@ -1100,7 +1100,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// If order is only authorized, don't pass amount.
-		if ( 'yes' !== $captured ) {
+		if ( ! $captured ) {
 			unset( $request['amount'] );
 		}
 
@@ -1149,7 +1149,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			if ( ! $intent_cancelled && 'yes' === $captured ) {
+			if ( ! $intent_cancelled && $captured ) {
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
@@ -1184,7 +1184,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			// If charge wasn't captured, skip creating a refund and cancel order.
-			if ( 'yes' !== $captured ) {
+			if ( ! $captured ) {
 				/* translators: amount (including currency symbol) */
 				$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided.', 'woocommerce-gateway-stripe' ), $formatted_amount ) );
 				$order->update_status( 'cancelled' );

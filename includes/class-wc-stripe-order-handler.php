@@ -248,11 +248,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function capture_payment( $order_id ) {
 		$result = new stdClass();
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
-			$captured           = $order->get_meta( '_stripe_charge_captured', true );
+			$captured           = $order->charge_captured();
 			$is_stripe_captured = false;
 
 			if ( $charge && 'no' === $captured ) {
@@ -325,7 +325,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_stripe_captured ) {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-					$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+					$order->set_charge_captured( 'yes' );
 
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
@@ -356,12 +356,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param  int $order_id
 	 */
 	public function cancel_payment( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = $order->get_meta( '_stripe_charge_captured', true );
-
-			if ( 'no' === $captured ) {
+			if ( ! $order->charge_captured() ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
