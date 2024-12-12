@@ -55,5 +55,6 @@ class WC_Stripe_Payment_Methods {
 	const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
+		self::GOOGLE_PAY,
 	];
 }

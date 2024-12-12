@@ -15,6 +15,7 @@ export const PAYMENT_METHOD_NAME_AFFIRM = 'stripe_affirm';
 export const PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY = 'stripe_afterpay_clearpay';
 export const PAYMENT_METHOD_NAME_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_NAME_CASHAPP = 'stripe_cashapp';
+export const PAYMENT_METHOD_NAME_GOOGLE_PAY = 'stripe_google_pay';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -35,6 +36,7 @@ export function getPaymentMethodsConstants() {
 		afterpay_clearpay: PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY,
 		wechat_pay: PAYMENT_METHOD_NAME_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_NAME_CASHAPP,
+		google_pay: PAYMENT_METHOD_NAME_GOOGLE_PAY,
 	};
 }
 
