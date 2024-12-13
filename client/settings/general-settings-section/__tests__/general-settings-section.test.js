@@ -13,6 +13,14 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import {
+	PAYMENT_METHOD_ALIPAY,
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_SEPA,
+	PAYMENT_METHOD_SOFORT,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -52,9 +60,12 @@ describe( 'GeneralSettingsSection', () => {
 			alipay_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_LINK,
+		] );
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card', 'link' ],
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
 			jest.fn(),
 		] );
 		useAccount.mockReturnValue( {
@@ -63,7 +74,10 @@ describe( 'GeneralSettingsSection', () => {
 		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'card', 'eps' ],
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_EPS,
+			],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -132,18 +146,22 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should allow to enable a payment method when UPE is enabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'card', 'alipay', 'sepa_debit' ],
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_ALIPAY,
+				PAYMENT_METHOD_SEPA,
+			],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card' ],
+			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
 
@@ -163,24 +181,28 @@ describe( 'GeneralSettingsSection', () => {
 		userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-			'card',
-			'alipay',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
 		] );
 	} );
 
 	it( 'should allow to enable a payment method when UPE is disabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card' ],
+			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'card', 'alipay', 'sepa_debit' ],
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_ALIPAY,
+				PAYMENT_METHOD_SEPA,
+			],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -201,20 +223,20 @@ describe( 'GeneralSettingsSection', () => {
 		userEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
-			'card',
-			'alipay',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
 		] );
 	} );
 
 	it( 'should show modal to disable a payment method', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card' ],
+			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
 
@@ -246,13 +268,13 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should not allow to disable a payment method when canceled via modal', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card' ],
+			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
 
@@ -277,13 +299,13 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should allow to disable a payment method when confirmed via modal', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card' ],
+			[ PAYMENT_METHOD_CARD ],
 			updateEnabledMethodsMock,
 		] );
 
@@ -308,7 +330,10 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'does not display the payment method checkbox when currency is not supprted', () => {
 		global.wcSettings = { currency: { code: 'USD' } };
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -328,7 +353,10 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'does not display the payment method checkbox when manual capture is enabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		useManualCapture.mockReturnValue( [ true ] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
@@ -367,9 +395,11 @@ describe( 'GeneralSettingsSection', () => {
 			isCustomizing: false,
 			customizePaymentMethod: customizePaymentMethodMock,
 		} );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'alipay' ],
+			orderedPaymentMethodIds: [ PAYMENT_METHOD_ALIPAY ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -435,9 +465,11 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should display customization section in the payment method when UPE is enabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'alipay' ],
+			orderedPaymentMethodIds: [ PAYMENT_METHOD_ALIPAY ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -461,9 +493,15 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ 'card', 'alipay' ],
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_ALIPAY,
+			],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
@@ -487,7 +525,10 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render payment methods that are not part of the account capabilities', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'alipay' ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 		} );
@@ -510,13 +551,15 @@ describe( 'GeneralSettingsSection', () => {
 			card_payments: 'active',
 		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			'card',
-			'alipay',
-			'sepa_debit',
-			'sofort',
-			'eps',
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
+			PAYMENT_METHOD_SOFORT,
+			PAYMENT_METHOD_EPS,
 		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ] ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>

@@ -5,6 +5,7 @@ import {
 	getExpressCheckoutAjaxURL,
 	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
+import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -195,7 +196,7 @@ export default class WCStripeAPI {
 				return response.data.next_action.type;
 			}
 
-			if ( response.data.payment_type === 'cashapp' ) {
+			if ( response.data.payment_type === PAYMENT_METHOD_CASHAPP ) {
 				// Cash App Payments.
 				const returnURL = decodeURIComponent(
 					response.data.return_url
