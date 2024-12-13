@@ -92,6 +92,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'cashapp_payments'           => 'inactive',
 		'wechat_pay_payments'        => 'inactive',
 		'google_pay_payments'        => 'inactive',
+		'apple_pay_payments'         => 'inactive',
 	];
 
 	/**
@@ -118,6 +119,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'cashapp_payments'           => 'active',
 		'wechat_pay_payments'        => 'active',
 		'google_pay_payments'        => 'active',
+		'apple_pay_payments'         => 'active',
 	];
 
 	/**
@@ -240,6 +242,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_google_pay_details = [
 			'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 		];
+		$mock_apple_pay_details  = [
+			'type' => WC_Stripe_Payment_Methods::APPLE_PAY,
+		];
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$alipay_method     = $this->mock_payment_methods['alipay'];
@@ -255,6 +260,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$cash_app_method   = $this->mock_payment_methods['cashapp'];
 		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
 		$google_pay_method = $this->mock_payment_methods['google_pay'];
+		$apple_pay_method  = $this->mock_payment_methods['apple_pay'];
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -371,6 +377,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $google_pay_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::GOOGLE_PAY, $google_pay_method->get_retrievable_type() );
 		$this->assertEquals( '', $google_pay_method->get_testing_instructions() );
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::APPLE_PAY, $apple_pay_method->get_id() );
+		$this->assertEquals( 'Apple Pay', $apple_pay_method->get_label() );
+		$this->assertEquals( 'Apple Pay', $apple_pay_method->get_title() );
+		$this->assertEquals( 'Apple Pay', $apple_pay_method->get_title( $mock_apple_pay_details ) );
+		$this->assertFalse( $apple_pay_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::APPLE_PAY, $apple_pay_method->get_retrievable_type() );
+		$this->assertEquals( '', $apple_pay_method->get_testing_instructions() );
 	}
 
 	/**
@@ -402,6 +416,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 		$google_pay_method        = $this->mock_payment_methods['google_pay'];
+		$apple_pay_method         = $this->mock_payment_methods['apple_pay'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
@@ -418,6 +433,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $google_pay_method->is_enabled_at_checkout() );
+		$this->assertFalse( $apple_pay_method->is_enabled_at_checkout() );
 	}
 
 	/**
