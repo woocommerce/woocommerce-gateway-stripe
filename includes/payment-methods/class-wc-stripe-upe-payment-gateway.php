@@ -221,6 +221,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
+
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'filter_wallets_from_available_payment_gateways' ], 10, 1 );
 	}
 
 	/**
@@ -2364,6 +2366,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
 			return [ 'result' => 'failure' ];
 		}
+	}
+
+	/**
+	 * Filters wallets methods that are rendered inside the card element from the list of available payment gateways (such as Google Pay).
+	 *
+	 * @param $gateways array of WC_Stripe_UPE_Payment_Method
+	 * @return array
+	 */
+	public function filter_wallets_from_available_payment_gateways( $gateways ) {
+		foreach ( $gateways as $key => $gateway ) {
+			if ( $gateway instanceof WC_Stripe_UPE_Payment_Method_Google_Pay ) {
+				unset( $gateways[ $key ] );
+			}
+		}
+		return $gateways;
 	}
 
 	/**

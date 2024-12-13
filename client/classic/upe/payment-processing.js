@@ -96,7 +96,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
-			googlePay: 'never',
+			googlePay: paymentMethodsConfig?.google_pay ? 'auto' : 'never',
 		},
 	} );
 

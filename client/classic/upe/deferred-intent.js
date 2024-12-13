@@ -87,6 +87,10 @@ jQuery( function ( $ ) {
 			for ( const upeElement of $(
 				'.wc-stripe-upe-element'
 			).toArray() ) {
+				if ( upeElement.dataset.paymentMethodType === 'google_pay' ) {
+					// Google Pay is a special case, as it is mounted inside the card element.
+					continue;
+				}
 				await mountStripePaymentElement( api, upeElement );
 				restrictPaymentMethodToLocation( upeElement );
 			}
@@ -135,7 +139,7 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// On every page load and on hash change, check to see whether we should display the Voucher (Boleto/Oxxo/Multibanco) or Wallet (CashApp/WeChat Pay) modal.
+	// On every page load and on hash change, check to see whether we should display the Voucher (Boleto/Oxxo/Multibanco) or Wallet (Google Pay/CashApp/WeChat Pay) modal.
 	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
 	maybeConfirmVoucherOrWalletPayment();
 	$( window ).on( 'hashchange', () => {
