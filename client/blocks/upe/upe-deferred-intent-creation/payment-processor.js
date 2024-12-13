@@ -46,7 +46,7 @@ const getStripeElementOptions = () => {
 			},
 		},
 		wallets: {
-			applePay: 'never',
+			applePay: paymentMethodsConfig?.apple_pay ? 'auto' : 'never',
 			googlePay: paymentMethodsConfig?.google_pay ? 'auto' : 'never',
 		},
 	};

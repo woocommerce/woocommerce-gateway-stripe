@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Add - Includes Apple Pay as a new wallet payment method.
 * Add - Includes Google Pay as a new wallet payment method.
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.

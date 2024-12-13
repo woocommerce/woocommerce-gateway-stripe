@@ -7,6 +7,7 @@ class WC_Stripe_Payment_Methods {
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
+	const APPLE_PAY         = 'apple_pay';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
@@ -56,5 +57,6 @@ class WC_Stripe_Payment_Methods {
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
 		self::GOOGLE_PAY,
+		self::APPLE_PAY,
 	];
 }

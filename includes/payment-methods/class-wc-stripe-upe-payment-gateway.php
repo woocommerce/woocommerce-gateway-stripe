@@ -40,6 +40,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Google_Pay::class,
+		WC_Stripe_UPE_Payment_Method_Apple_Pay::class,
 	];
 
 	/**
@@ -2376,7 +2377,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function filter_wallets_from_available_payment_gateways( $gateways ) {
 		foreach ( $gateways as $key => $gateway ) {
-			if ( $gateway instanceof WC_Stripe_UPE_Payment_Method_Google_Pay ) {
+			if ( $gateway instanceof WC_Stripe_UPE_Payment_Method_Google_Pay || $gateway instanceof WC_Stripe_UPE_Payment_Method_Apple_Pay ) {
 				unset( $gateways[ $key ] );
 			}
 		}
@@ -2559,7 +2560,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
 	 *
 	 * - Voucher payments (Boleto or Oxxo or Multibanco) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
-	 * - Wallet payments (Google pay, CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
+	 * - Wallet payments (Google Pay, Apple Pay, CashApp or WeChat) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the modal.
 	 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
 	 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
 	 *

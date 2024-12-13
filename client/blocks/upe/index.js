@@ -39,7 +39,9 @@ Object.entries( paymentMethodsConfig )
 		return ! [
 			'link',
 			'giropay', // Skip giropay as it was deprecated by Jun, 30th 2024.
-			'google_pay', // Remove Google Pay since it does not need to be passed to Stripe settings.
+			// Remove Google Pay and Apple Pay since they don't need to be passed to Stripe settings.
+			'google_pay',
+			'apple_pay',
 		].includes( upeName );
 	} )
 	.forEach( ( [ upeName, upeConfig ] ) => {
