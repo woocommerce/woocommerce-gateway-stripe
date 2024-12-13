@@ -805,19 +805,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/* translators: 1) The reason type. */
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
-		if (
-			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
+		// Only change the status if the charge was captured, status is not final, the order is on-hold and the review was approved.
+		if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) &&
+			! $order->get_meta( '_stripe_status_final', false ) &&
 			$order->has_status( 'on-hold' ) &&
-			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
-			! $order->get_meta( '_stripe_status_final', false )
+			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
+			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
+			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
 			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
-
-			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			if ( 'yes' === $order->get_meta( '_stripe_charge_captured' ) && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ) ) ) {
+			if ( in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ), true ) ) {
 				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
 			}
-
 			$order->update_status( $status_after_review, $message );
 		} else {
 			$order->add_order_note( $message );
