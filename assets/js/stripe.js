@@ -1,6 +1,12 @@
 /* global wc_stripe_params, Stripe */
 
-jQuery( function( $ ) {
+import {
+	PAYMENT_METHOD_NAME_BOLETO, PAYMENT_METHOD_NAME_OXXO,
+	PAYMENT_METHOD_NAME_SEPA,
+	PAYMENT_METHOD_NAME_STRIPE_SEPA,
+} from 'wcstripe/stripe-utils/constants';
+
+jQuery( function($ ) {
 	'use strict';
 
 	try {
@@ -538,7 +544,7 @@ jQuery( function( $ ) {
 			if ( wc_stripe_form.isSepaChosen() ) {
 				extra_details.currency = $( '#stripe-sepa_debit-payment-data' ).data( 'currency' );
 				extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
-				extra_details.type     = 'sepa_debit';
+				extra_details.type     = PAYMENT_METHOD_NAME_SEPA;
 
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
@@ -695,7 +701,7 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleBoleto: function () {
-			wc_stripe_form.executeCheckout( 'boleto', function ( checkout_response ) {
+			wc_stripe_form.executeCheckout( PAYMENT_METHOD_NAME_BOLETO, function ( checkout_response ) {
 				stripe.confirmBoletoPayment(
 					checkout_response.client_secret,
 					checkout_response.confirm_payment_data
@@ -779,7 +785,7 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleOxxo: function () {
-			wc_stripe_form.executeCheckout( 'oxxo', function ( checkout_response ) {
+			wc_stripe_form.executeCheckout( PAYMENT_METHOD_NAME_OXXO, function ( checkout_response ) {
 				stripe.confirmOxxoPayment(
 					checkout_response.client_secret,
 					checkout_response.confirm_payment_data
