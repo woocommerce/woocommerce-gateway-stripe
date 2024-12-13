@@ -16,9 +16,7 @@ jest.mock( 'wcstripe/data/account', () => ( {
 } ) );
 
 jest.mock( 'wcstripe/data', () => ( {
-	useEnabledPaymentMethodIds: jest
-		.fn()
-		.mockReturnValue( [ [ PAYMENT_METHOD_CARD ] ] ),
+	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [ 'card' ] ] ),
 	useTestMode: jest.fn().mockReturnValue( [ false ] ),
 } ) );
 
