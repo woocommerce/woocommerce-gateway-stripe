@@ -89,7 +89,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'boleto_payments'            => 'inactive',
 		'oxxo_payments'              => 'inactive',
 		'link_payments'              => 'inactive',
+		'cashapp_payments'           => 'inactive',
 		'wechat_pay_payments'        => 'inactive',
+		'google_pay_payments'        => 'inactive',
 	];
 
 	/**
@@ -115,6 +117,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'link_payments'              => 'active',
 		'cashapp_payments'           => 'active',
 		'wechat_pay_payments'        => 'active',
+		'google_pay_payments'        => 'active',
 	];
 
 	/**
@@ -228,8 +231,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_oxxo_details       = [
 			'type' => WC_Stripe_Payment_Methods::OXXO,
 		];
+		$mock_cash_app_details   = [
+			'type' => WC_Stripe_Payment_Methods::CASHAPP_PAY,
+		];
 		$mock_wechat_pay_details = [
 			'type' => WC_Stripe_Payment_Methods::WECHAT_PAY,
+		];
+		$mock_google_pay_details = [
+			'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 		];
 
 		$card_method       = $this->mock_payment_methods['card'];
@@ -243,7 +252,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$multibanco_method = $this->mock_payment_methods['multibanco'];
 		$boleto_method     = $this->mock_payment_methods['boleto'];
 		$oxxo_method       = $this->mock_payment_methods['oxxo'];
+		$cash_app_method   = $this->mock_payment_methods['cashapp'];
 		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
+		$google_pay_method = $this->mock_payment_methods['google_pay'];
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -337,6 +348,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( WC_Stripe_Payment_Methods::OXXO, $oxxo_method->get_retrievable_type() );
 		$this->assertEquals( '', $oxxo_method->get_testing_instructions() );
 
+		$this->assertEquals( WC_Stripe_Payment_Methods::CASHAPP_PAY, $cash_app_method->get_id() );
+		$this->assertEquals( 'Cash App Pay', $cash_app_method->get_label() );
+		$this->assertEquals( 'Cash App Pay', $cash_app_method->get_title() );
+		$this->assertEquals( 'Cash App Pay', $cash_app_method->get_title( $mock_cash_app_details ) );
+		$this->assertTrue( $cash_app_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::CASHAPP_PAY, $cash_app_method->get_retrievable_type() );
+		$this->assertEquals( '', $cash_app_method->get_testing_instructions() );
+
 		$this->assertEquals( WC_Stripe_Payment_Methods::WECHAT_PAY, $wechat_pay_method->get_id() );
 		$this->assertEquals( 'WeChat Pay', $wechat_pay_method->get_label() );
 		$this->assertEquals( 'WeChat Pay', $wechat_pay_method->get_title() );
@@ -344,6 +363,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $wechat_pay_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::WECHAT_PAY, $wechat_pay_method->get_retrievable_type() );
 		$this->assertEquals( '', $wechat_pay_method->get_testing_instructions() );
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::GOOGLE_PAY, $google_pay_method->get_id() );
+		$this->assertEquals( 'Google Pay', $google_pay_method->get_label() );
+		$this->assertEquals( 'Google Pay', $google_pay_method->get_title() );
+		$this->assertEquals( 'Google Pay', $google_pay_method->get_title( $mock_google_pay_details ) );
+		$this->assertFalse( $google_pay_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::GOOGLE_PAY, $google_pay_method->get_retrievable_type() );
+		$this->assertEquals( '', $google_pay_method->get_testing_instructions() );
 	}
 
 	/**
@@ -374,6 +401,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$multibanco_method        = $this->mock_payment_methods['multibanco'];
 		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
+		$google_pay_method        = $this->mock_payment_methods['google_pay'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
@@ -389,6 +417,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $multibanco_method->is_enabled_at_checkout() );
 		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
+		$this->assertFalse( $google_pay_method->is_enabled_at_checkout() );
 	}
 
 	/**
@@ -511,7 +540,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
 			[
-				'country' => 'US',
+				'country'          => 'US',
 				'default_currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			]
 		);
