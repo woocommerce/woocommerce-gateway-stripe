@@ -294,7 +294,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$new_payment_method = $this->get_upe_gateway_id_for_order( $upe_payment_method );
 
 			// If the payment intent requires confirmation or action, redirect the customer to confirm the intent.
-			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
+			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
 					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
@@ -1030,7 +1030,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		if (
 			! $existing_intent
-			|| 'requires_payment_method' !== $existing_intent->status
+			|| WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD !== $existing_intent->status
 			|| empty( $existing_intent->last_payment_error )
 			|| 'authentication_required' !== $existing_intent->last_payment_error->code
 		) {
@@ -1118,7 +1118,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	protected function must_authorize_off_session( $payment_intent ) {
 		return ! empty( $payment_intent->status )
-			&& 'processing' === $payment_intent->status
+			&& WC_Stripe_Intent_Status::PROCESSING === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
 	}
 
