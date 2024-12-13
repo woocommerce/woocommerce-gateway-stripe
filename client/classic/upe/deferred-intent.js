@@ -87,10 +87,6 @@ jQuery( function ( $ ) {
 			for ( const upeElement of $(
 				'.wc-stripe-upe-element'
 			).toArray() ) {
-				if ( upeElement.dataset.paymentMethodType === 'google_pay' ) {
-					// Google Pay is a special case, as it is mounted inside the card element.
-					continue;
-				}
 				await mountStripePaymentElement( api, upeElement );
 				restrictPaymentMethodToLocation( upeElement );
 			}
