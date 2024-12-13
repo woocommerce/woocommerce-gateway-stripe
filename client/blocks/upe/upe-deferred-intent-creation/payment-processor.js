@@ -28,6 +28,7 @@ import { isLinkEnabled } from 'wcstripe/stripe-utils';
  * @return {Object} The Stripe element options.
  */
 const getStripeElementOptions = () => {
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	let options = {
 		fields: {
 			billingDetails: {
@@ -45,8 +46,8 @@ const getStripeElementOptions = () => {
 			},
 		},
 		wallets: {
-			applePay: 'auto',
-			googlePay: 'auto',
+			applePay: 'never',
+			googlePay: paymentMethodsConfig?.google_pay ? 'auto' : 'never',
 		},
 	};
 
