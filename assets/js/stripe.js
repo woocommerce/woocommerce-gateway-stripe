@@ -1,9 +1,9 @@
 /* global wc_stripe_params, Stripe */
 
 import {
-	PAYMENT_METHOD_BOLETO, PAYMENT_METHOD_OXXO,
+	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_OXXO,
 	PAYMENT_METHOD_SEPA,
-	PAYMENT_METHOD_STRIPE_SEPA,
 } from 'wcstripe/stripe-utils/constants';
 
 jQuery( function($ ) {
