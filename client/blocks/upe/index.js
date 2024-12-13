@@ -35,8 +35,13 @@ const upeMethods = getPaymentMethodsConstants();
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 Object.entries( paymentMethodsConfig )
-	.filter( ( [ upeName ] ) => upeName !== 'link' )
-	.filter( ( [ upeName ] ) => upeName !== 'giropay' ) // Skip giropay as it was deprecated by Jun, 30th 2024.
+	.filter( ( [ upeName ] ) => {
+		return ! [
+			'link',
+			'giropay', // Skip giropay as it was deprecated by Jun, 30th 2024.
+			'google_pay', // Remove Google Pay since it does not need to be passed to Stripe settings.
+		].includes( upeName );
+	} )
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
 
