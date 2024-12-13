@@ -15,10 +15,10 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
-	PAYMENT_METHOD_NAME_BOLETO,
-	PAYMENT_METHOD_NAME_CASHAPP,
-	PAYMENT_METHOD_NAME_MULTIBANCO,
-	PAYMENT_METHOD_NAME_WECHAT_PAY,
+	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_CASHAPP,
+	PAYMENT_METHOD_MULTIBANCO,
+	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 const gatewayUPEComponents = {};
@@ -427,11 +427,11 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	try {
 		// Confirm the payment to tell Stripe to display the voucher to the customer.
 		let confirmPayment;
-		if ( paymentMethodType === PAYMENT_METHOD_NAME_BOLETO ) {
+		if ( paymentMethodType === PAYMENT_METHOD_BOLETO ) {
 			confirmPayment = await api
 				.getStripe()
 				.confirmBoletoPayment( clientSecret, {} );
-		} else if ( paymentMethodType === PAYMENT_METHOD_NAME_MULTIBANCO ) {
+		} else if ( paymentMethodType === PAYMENT_METHOD_MULTIBANCO ) {
 			confirmPayment = await api
 				.getStripe()
 				.confirmMultibancoPayment( clientSecret, {} );
@@ -511,7 +511,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Confirm the payment to tell Stripe to display the modal to the customer.
 		let confirmPayment;
 		switch ( paymentMethodType ) {
-			case PAYMENT_METHOD_NAME_WECHAT_PAY:
+			case PAYMENT_METHOD_WECHAT_PAY:
 				confirmPayment = await api
 					.getStripe()
 					.confirmWechatPayPayment( clientSecret, {
@@ -522,7 +522,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 						},
 					} );
 				break;
-			case PAYMENT_METHOD_NAME_CASHAPP:
+			case PAYMENT_METHOD_CASHAPP:
 				if ( intentType === 'setup_intent' ) {
 					confirmPayment = await api
 						.getStripe()

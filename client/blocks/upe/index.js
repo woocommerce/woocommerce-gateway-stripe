@@ -4,10 +4,10 @@ import {
 } from '@woocommerce/blocks-registry';
 import {
 	getPaymentMethodsConstants,
-	PAYMENT_METHOD_NAME_AFTERPAY,
-	PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_NAME_CLEARPAY,
-	PAYMENT_METHOD_NAME_GIROPAY,
+	PAYMENT_METHOD_AFTERPAY,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_CLEARPAY,
+	PAYMENT_METHOD_GIROPAY,
 } from '../../stripe-utils/constants';
 import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
@@ -42,16 +42,16 @@ const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 Object.entries( paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
-	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_NAME_GIROPAY ) // Skip giropay as it was deprecated by Jun, 30th 2024.
+	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_GIROPAY ) // Skip giropay as it was deprecated by Jun, 30th 2024.
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
 
 		// Afterpay/Clearpay have different icons for UK merchants.
-		if ( upeName === PAYMENT_METHOD_NAME_AFTERPAY_CLEARPAY ) {
+		if ( upeName === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
 			iconName =
 				getBlocksConfiguration()?.accountCountry === 'GB'
-					? PAYMENT_METHOD_NAME_CLEARPAY
-					: PAYMENT_METHOD_NAME_AFTERPAY;
+					? PAYMENT_METHOD_CLEARPAY
+					: PAYMENT_METHOD_AFTERPAY;
 		}
 
 		const Icon = Icons[ iconName ];
