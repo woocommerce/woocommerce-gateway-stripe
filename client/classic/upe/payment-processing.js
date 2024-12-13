@@ -16,6 +16,7 @@ import {
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
 	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
@@ -116,7 +117,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	if (
 		getStripeServerData()?.isCheckout &&
 		isLinkEnabled() &&
-		paymentMethodType === 'card'
+		paymentMethodType === PAYMENT_METHOD_CARD
 	) {
 		attachDefaultValuesUpdateEvent( 'billing_email' );
 		attachDefaultValuesUpdateEvent( 'billing_phone' );
@@ -228,7 +229,7 @@ export async function mountStripePaymentElement( api, domElement ) {
 	let paymentMethodType = domElement.dataset.paymentMethodType;
 
 	if ( typeof paymentMethodType === 'undefined' ) {
-		paymentMethodType = 'card';
+		paymentMethodType = PAYMENT_METHOD_CARD;
 	}
 
 	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {

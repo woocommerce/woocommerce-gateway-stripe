@@ -8,6 +8,7 @@ import {
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
 import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
@@ -41,7 +42,7 @@ const upeMethods = getPaymentMethodsConstants();
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 Object.entries( paymentMethodsConfig )
-	.filter( ( [ upeName ] ) => upeName !== 'link' )
+	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_LINK )
 	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_GIROPAY ) // Skip giropay as it was deprecated by Jun, 30th 2024.
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
