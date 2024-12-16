@@ -7,6 +7,7 @@ import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
+import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
@@ -52,6 +53,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
 		true
 	);
+	const [ promotionalBannerType, setPromotionalBannerType ] = useState( '' );
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
@@ -65,6 +67,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 				<SettingsSection>
 					<PromotionalBannerSection
 						setShowPromotionalBanner={ setShowPromotionalBanner }
+						setPromotionalBannerType={ setPromotionalBannerType }
 						isUpeEnabled={ isUpeEnabled }
 						setIsUpeEnabled={ setIsUpeEnabled }
 						isConnectedViaOAuth={ oauthConnected }
@@ -81,7 +84,12 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
-				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
+				<GeneralSettingsSection
+					onSaveChanges={ onSaveChanges }
+					showLegacyExperienceTransitionNotice={
+						promotionalBannerType !== NEW_CHECKOUT_EXPERIENCE_BANNER
+					}
+				/>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<LoadableSettingsSection numLines={ 20 }>

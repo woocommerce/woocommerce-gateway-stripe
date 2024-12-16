@@ -106,6 +106,7 @@ const PaymentSettingsPanel = () => {
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
+								setPromotionalBannerType={ () => {} }
 								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 								isConnectedViaOAuth={ oauthConnected }

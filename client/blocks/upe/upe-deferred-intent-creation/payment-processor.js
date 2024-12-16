@@ -13,17 +13,14 @@ import { useEffect, useState } from 'react';
 /**
  * Internal dependencies
  */
-import {
-	usePaymentCompleteHandler,
-	usePaymentFailHandler,
-	useStripeLink,
-} from '../hooks';
+import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
 
 /**
  * Gets the Stripe element options.
@@ -31,7 +28,7 @@ import {
  * @return {Object} The Stripe element options.
  */
 const getStripeElementOptions = () => {
-	const options = {
+	let options = {
 		fields: {
 			billingDetails: {
 				name: 'never',
@@ -52,6 +49,26 @@ const getStripeElementOptions = () => {
 			googlePay: 'never',
 		},
 	};
+
+	// Prefill Link customer data if available.
+	if ( isLinkEnabled() ) {
+		const userEmail = document.getElementById( 'email' )?.value;
+		if ( userEmail ) {
+			const userPhone =
+				document.getElementById( 'billing-phone' )?.value ||
+				document.getElementById( 'shipping-phone' )?.value;
+
+			options = {
+				...options,
+				defaultValues: {
+					billingDetails: {
+						email: userEmail,
+						phone: userPhone,
+					},
+				},
+			};
+		}
+	}
 
 	return options;
 };
@@ -267,8 +284,6 @@ const PaymentProcessor = ( {
 		onCheckoutFail,
 		emitResponse
 	);
-
-	useStripeLink( api, elements, paymentMethodsConfig );
 
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );

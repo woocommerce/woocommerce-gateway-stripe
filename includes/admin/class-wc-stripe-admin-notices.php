@@ -123,7 +123,7 @@ class WC_Stripe_Admin_Notices {
 		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$options             = WC_Stripe_Helper::get_stripe_settings();
-		$testmode            = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
+		$testmode            = WC_Stripe_Mode::is_test();
 		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
 		$live_pub_key        = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
@@ -149,7 +149,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
-				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
+				$url = 'https://docs.stripe.com/payments/3d-secure/authentication-flow#three-ds-radar';
 
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */

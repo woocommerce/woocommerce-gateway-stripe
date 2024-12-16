@@ -92,7 +92,8 @@ export const onConfirmHandler = async (
 		if ( orderResponse.result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( orderResponse.messages )
+				getErrorMessageFromNotice( orderResponse.messages ),
+				true
 			);
 		}
 
@@ -102,7 +103,8 @@ export const onConfirmHandler = async (
 		if ( confirmationRequest === true ) {
 			completePayment( orderResponse.redirect );
 		} else {
-			const redirectUrl = await confirmationRequest;
+			const { request } = confirmationRequest;
+			const redirectUrl = await request;
 
 			completePayment( redirectUrl );
 		}

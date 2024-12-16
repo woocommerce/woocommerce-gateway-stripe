@@ -174,7 +174,7 @@ class WC_Stripe_Inbox_Notes {
 			$note->add_action(
 				'learn-more',
 				__( 'Learn more', 'woocommerce-gateway-stripe' ),
-				'https://woocommerce.com/document/stripe/troubleshooting/apple-pay-private-window/'
+				'https://woocommerce.com/document/stripe/setup-and-configuration/express-checkouts/#apple-pay-requirements'
 			);
 			$note->save();
 		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine.

@@ -132,6 +132,7 @@ jQuery( function ( $ ) {
 				currency: options.currency,
 				paymentMethodCreation: 'manual',
 				appearance: getExpressCheckoutButtonAppearance(),
+				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 				paymentMethodTypes: getExpressPaymentMethodTypes(),
 			} );
 
@@ -289,6 +290,7 @@ jQuery( function ( $ ) {
 					currency: getExpressCheckoutData( 'checkout' )
 						.currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
+					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems,
 					order,
 				} );
@@ -466,9 +468,12 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {PaymentResponse} payment Payment response instance.
 		 * @param {string} message Error message to display.
+		 * @param {boolean} isOrderError Whether the error is related to the order creation.
 		 */
-		abortPayment: ( payment, message ) => {
-			payment.paymentFailed( { reason: 'fail' } );
+		abortPayment: ( payment, message, isOrderError = false ) => {
+			if ( ! isOrderError ) {
+				payment.paymentFailed( { reason: 'fail' } );
+			}
 			onAbortPaymentHandler( payment, message );
 
 			displayExpressCheckoutNotice( message, 'error' );
@@ -508,7 +513,8 @@ jQuery( function ( $ ) {
 							const needsShipping =
 								! wcStripeECE.paymentAborted &&
 								getExpressCheckoutData( 'product' )
-									.needs_shipping === response.needs_shipping;
+									.requestShipping ===
+									response.requestShipping;
 
 							if ( ! isDeposits && needsShipping ) {
 								elements.update( {
@@ -548,8 +554,8 @@ jQuery( function ( $ ) {
 									if (
 										! wcStripeECE.paymentAborted &&
 										getExpressCheckoutData( 'product' )
-											.needs_shipping ===
-											response.needs_shipping
+											.requestShipping ===
+											response.requestShipping
 									) {
 										elements.update( {
 											amount: response.total.amount,

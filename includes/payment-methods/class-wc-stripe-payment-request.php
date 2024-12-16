@@ -70,7 +70,7 @@ class WC_Stripe_Payment_Request {
 	public function __construct() {
 		self::$_this           = $this;
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
@@ -101,6 +101,11 @@ class WC_Stripe_Payment_Request {
 
 		// Don't load for change payment method page.
 		if ( isset( $_GET['change_payment_method'] ) ) {
+			return;
+		}
+
+		// Don't load for switch subscription page.
+		if ( isset( $_GET['switch-subscription'] ) ) {
 			return;
 		}
 
@@ -361,13 +366,13 @@ class WC_Stripe_Payment_Request {
 	 * @since 5.2.0
 	 *
 	 * @param object $product WC_Product_* object.
-	 * @return integer Total price.
+	 * @return float Total price.
 	 */
 	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
+		$product_price = (float) $product->get_price();
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price += (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
 		return $product_price;
@@ -591,9 +596,9 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// If the cart is not available we don't have any unsupported products in the cart, so we
+		// If the cart is not available or if the cart is empty we don't have any unsupported products in the cart, so we
 		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
-		if ( is_null( WC()->cart ) ) {
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			return true;
 		}
 
@@ -964,6 +969,11 @@ class WC_Stripe_Payment_Request {
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
 			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
 			return false;
 		}
 
@@ -1448,9 +1458,7 @@ class WC_Stripe_Payment_Request {
 			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		}
-
-		if ( in_array( $product_type, [ 'simple', 'variation', 'subscription', 'subscription_variation' ], true ) ) {
+		} elseif ( in_array( $product_type, $this->supported_product_types(), true ) ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 

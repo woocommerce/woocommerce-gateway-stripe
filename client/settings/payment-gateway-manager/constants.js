@@ -92,7 +92,7 @@ export const gatewaysInfo = {
 			'woocommerce-gateway-stripe'
 		),
 		guide:
-			'https://stripe.com/docs/payments/payment-methods/overview#vouchers',
+			'https://docs.stripe.com/payments/payment-methods/overview#vouchers',
 		Fields: () => {
 			const [
 				gatewayExpiration,

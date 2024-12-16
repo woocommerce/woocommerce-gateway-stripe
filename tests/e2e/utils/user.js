@@ -18,7 +18,7 @@ export async function login( page, username, password, retries = 3 ) {
 			if ( await page.url().includes( 'wp-login.php' ) ) {
 				await page.fill( 'input[name="log"]', username );
 				await page.fill( 'input[name="pwd"]', password );
-				await page.click( 'text=Log In' );
+				await page.click( 'input[value="Log In"]' );
 			}
 			await page.waitForLoadState( 'networkidle' );
 

@@ -436,7 +436,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		$account_country     = $cached_account_data['country'] ?? null;
 
 		// Stripe Elements doesn’t support Apple Pay for Stripe accounts in India.
-		// https://stripe.com/docs/stripe-js/elements/payment-request-button?client=html#html-js-testing
+		// https://docs.stripe.com/stripe-js/elements/payment-request-button?client=html#prerequisites
 		return 'IN' !== $account_country;
 	}
 }

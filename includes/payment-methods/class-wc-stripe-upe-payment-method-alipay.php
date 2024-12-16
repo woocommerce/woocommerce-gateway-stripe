@@ -42,7 +42,7 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 
 	/**
 	 * Returns the currencies this UPE method supports for the Stripe account.
-	 * Documentation: https://stripe.com/docs/payments/alipay#supported-currencies.
+	 * Documentation: https://docs.stripe.com/payments/alipay#supported-currencies.
 	 *
 	 * @return array
 	 */
