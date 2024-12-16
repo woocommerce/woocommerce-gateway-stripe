@@ -37,7 +37,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function __construct() {
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
@@ -50,16 +50,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return bool
 	 */
 	public function is_authentication_required() {
-		// If guest checkout is disabled and account creation upon checkout is not possible, authentication is required.
-		if ( 'no' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) && ! $this->is_account_creation_possible() ) {
-			return true;
-		}
-		// If cart contains subscription and account creation upon checkout is not posible, authentication is required.
-		if ( $this->has_subscription_product() && ! $this->is_account_creation_possible() ) {
-			return true;
+		// If guest checkout is enabled, authentication is not required.
+		if ( 'yes' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) ) {
+			return false;
 		}
 
-		return false;
+		// If guest checkout is disabled and account creation upon checkout is not possible, authentication is required.
+		return 'no' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) && ! $this->is_account_creation_possible();
 	}
 
 	/**
@@ -68,13 +65,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return bool
 	 */
 	public function is_account_creation_possible() {
-		// If automatically generate username/password are disabled, we can not include any of those fields,
-		// during express checkout. So account creation is not possible.
-		return (
-			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) &&
+		// Check if account creation is allowed on checkout.
+		$is_signup_on_checkout_allowed =
+			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) ||
+			( $this->has_subscription_product() &&
+				'yes' === get_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'no' ) );
+
+		// Account creation is not possible for express checkout if we cannot automatically generate the username and password.
+		$username_password_generation_enabled =
 			'yes' === get_option( 'woocommerce_registration_generate_username', 'yes' ) &&
-			'yes' === get_option( 'woocommerce_registration_generate_password', 'yes' )
-		);
+			'yes' === get_option( 'woocommerce_registration_generate_password', 'yes' );
+
+		return $is_signup_on_checkout_allowed && $username_password_generation_enabled;
 	}
 
 	/**
@@ -147,7 +149,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @param bool|null $is_deposit      Whether this is a deposit.
 	 * @param int       $deposit_plan_id Deposit plan ID.
 	 *
-	 * @return integer Total price.
+	 * @return float Total price.
 	 */
 	public function get_product_price( $product, $is_deposit = null, $deposit_plan_id = 0 ) {
 		// If prices should include tax, using tax inclusive price.
@@ -180,10 +182,10 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Add subscription sign-up fees to product price.
 		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product_price + WC_Subscriptions_Product::get_sign_up_fee( $product );
+			$product_price = (float) $product_price + (float) WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
-		return $product_price;
+		return (float) $product_price;
 	}
 
 	/**
@@ -252,12 +254,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				'pending' => true,
 			];
 
-			$data['shippingOptions'] = [
-				'id'     => 'pending',
-				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-				'detail' => '',
-				'amount' => 0,
-			];
+			$data['shippingOptions'] = [ $this->get_default_shipping_option() ];
 		}
 
 		$data['displayItems'] = $items;
@@ -275,6 +272,45 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
+	}
+
+	/**
+	 * JS params data used by cart and checkout pages.
+	 *
+	 * @param array $data
+	 */
+	public function get_checkout_data() {
+		$data = [
+			'url'                     => wc_get_checkout_url(),
+			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+			'needs_shipping'          => 'no',
+			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
+			'default_shipping_option' => $this->get_default_shipping_option(),
+		];
+
+		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
+			$data['needs_shipping'] = 'yes';
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Default shipping option, used by product, cart and checkout pages.
+	 *
+	 * @return void|array
+	 */
+	private function get_default_shipping_option() {
+		if ( wc_get_shipping_method_count( true, true ) === 0 ) {
+			return null;
+		}
+
+		return [
+			'id'          => 'pending',
+			'displayName' => __( 'Pending', 'woocommerce-gateway-stripe' ),
+			'amount'      => 0,
+		];
 	}
 
 	/**
@@ -334,9 +370,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// If the cart is not available we don't have any unsupported products in the cart, so we
+		// If the cart is not available or if the cart is empty we don't have any unsupported products in the cart, so we
 		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
-		if ( is_null( WC()->cart ) ) {
+		if ( is_null( WC()->cart ) || WC()->cart->is_empty() ) {
 			return true;
 		}
 
@@ -510,7 +546,12 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL.' );
+			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
+			return false;
+		}
+
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( ! isset( $available_gateways['stripe'] ) ) {
 			return false;
 		}
 
@@ -533,13 +574,21 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show if product page PRB is disabled.
+		// Don't show if product page ECE is disabled.
 		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
 			return false;
 		}
 
 		// Don't show if product on current page is not supported.
 		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+			return false;
+		}
+
+		// Don't show if the total price is 0.
+		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
+		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
+			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
+		) {
 			return false;
 		}
 
@@ -553,10 +602,12 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 		if (
+			! $this->is_pay_for_order_page() &&
 			(
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
 				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )
 			) &&
+			wc_tax_enabled() &&
 			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
 		) {
 			return false;

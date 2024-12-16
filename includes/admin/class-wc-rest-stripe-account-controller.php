@@ -91,11 +91,12 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 		return new WP_REST_Response(
 			[
 				'account'                 => $this->account->get_cached_account_data(),
-				'testmode'                => WC_Stripe_Webhook_State::get_testmode(),
+				'testmode'                => WC_Stripe_Mode::is_test(),
 				'webhook_status_code'     => WC_Stripe_Webhook_State::get_webhook_status_code(),
 				'webhook_status_message'  => WC_Stripe_Webhook_State::get_webhook_status_message(),
 				'webhook_url'             => WC_Stripe_Helper::get_webhook_url(),
 				'configured_webhook_urls' => WC_Stripe_Webhook_State::get_configured_webhook_urls(),
+				'is_webhook_enabled'      => $this->account->is_webhook_enabled(),
 				'oauth_connections'       => [
 					'test' => $this->get_account_oauth_connection_data( 'test' ),
 					'live' => $this->get_account_oauth_connection_data( 'live' ),
@@ -133,8 +134,8 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 					'supported' => $this->account->get_supported_store_currencies(),
 				],
 				'country'                  => $account['country'] ?? WC()->countries->get_base_country(),
-				'is_live'                  => $account['charges_enabled'] ?? false,
-				'test_mode'                => WC_Stripe_Webhook_State::get_testmode(),
+				'is_live'                  => WC_Stripe_Mode::is_live() && $account['charges_enabled'] ?? false,
+				'test_mode'                => WC_Stripe_Mode::is_test(),
 			]
 		);
 	}

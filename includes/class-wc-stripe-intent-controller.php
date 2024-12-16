@@ -259,14 +259,14 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// 5. Respond.
-			if ( 'requires_action' === $setup_intent->status ) {
+			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
 				$response = [
-					'status'        => 'requires_action',
+					'status'        => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 					'client_secret' => $setup_intent->client_secret,
 				];
-			} elseif ( 'requires_payment_method' === $setup_intent->status
-				|| 'requires_confirmation' === $setup_intent->status
-				|| 'canceled' === $setup_intent->status ) {
+			} elseif ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $setup_intent->status
+				|| WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $setup_intent->status
+				|| WC_Stripe_Intent_Status::CANCELED === $setup_intent->status ) {
 				// These statuses should not be possible, as such we return an error.
 				$response = [
 					'status' => 'error',
@@ -348,7 +348,7 @@ class WC_Stripe_Intent_Controller {
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
 		$currency       = get_woocommerce_currency();
-		$capture        = empty( $gateway->get_option( 'capture' ) ) || $gateway->get_option( 'capture' ) === 'yes';
+		$capture        = $gateway->is_automatic_capture_enabled();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
@@ -937,7 +937,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
 	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
-	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
+	 * https://docs.stripe.com/payments/finalize-payments-on-the-server
 	 *
 	 * @param string $selected_payment_type         The name of the selected UPE payment type.
 	 * @param bool   $is_using_saved_payment_method Option. True if the customer is using a saved payment method, false otherwise.
@@ -1041,7 +1041,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_SETUP_INTENT_STATUSES, true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -1086,7 +1086,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! function_exists( 'wcs_is_subscription' ) ) {
+			if ( ! function_exists( 'wcs_is_subscription' ) || ! class_exists( 'WC_Subscriptions_Change_Payment_Gateway' ) ) {
 				throw new WC_Stripe_Exception( 'subscriptions_not_found', __( "We're not able to process this subscription change payment request payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -1104,8 +1104,23 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$gateway = $this->get_upe_gateway();
-			$gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$token   = $gateway->create_token_from_setup_intent( $setup_intent_id, $subscription->get_user() );
+			$notice  = __( 'Payment method updated.', 'woocommerce-gateway-stripe' );
 
+			// Manually update the payment method for the subscription now that we have confirmed the payment method.
+			WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $token->get_gateway_id() );
+
+			// Set the new Stripe payment method ID and customer ID on the subscription.
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$gateway->set_customer_id_for_order( $subscription, $customer->get_id() );
+			$gateway->set_payment_method_id_for_order( $subscription, $token->get_token() );
+
+			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
+			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
+				$notice  = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
+			}
+
+			wc_add_notice( $notice );
 			wp_send_json_success(
 				[
 					'return_url' => $subscription->get_view_order_url(),

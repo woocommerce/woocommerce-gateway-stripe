@@ -39,6 +39,18 @@ class WC_Stripe_Payment_Requests_Controller {
 		);
 		wp_enqueue_script( 'wc-stripe-payment-request-settings' );
 
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$params          = [
+			'key'            => WC_Stripe_Mode::is_test() ? $stripe_settings['test_publishable_key'] : $stripe_settings['publishable_key'],
+			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'is_ece_enabled' => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
+		];
+		wp_localize_script(
+			'wc-stripe-payment-request-settings',
+			'wc_stripe_payment_request_settings_params',
+			$params
+		);
+
 		wp_register_style(
 			'wc-stripe-payment-request-settings',
 			plugins_url( 'build/payment_requests_settings.css', WC_STRIPE_MAIN_FILE ),

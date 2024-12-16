@@ -9,7 +9,10 @@
  * @typedef {import('@woocommerce/type-defs/billing').BillingData} CartBillingAddress
  */
 
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	extractOrderAttributionData,
+	getBlocksConfiguration,
+} from 'wcstripe/blocks/utils';
 
 /**
  * Normalizes order data received upon creating an order using the store's AJAX API.
@@ -79,7 +82,7 @@ const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
 		data.shipping_postcode = shipping?.postalCode;
 	}
 
-	return data;
+	return { ...data, ...extractOrderAttributionData() };
 };
 
 /**

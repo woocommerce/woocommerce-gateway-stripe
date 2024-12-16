@@ -275,9 +275,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			$settings['test_connection_type'] = '';
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';
-			$this->record_manual_account_disconnect_track_event( 'yes' === $settings['testmode'] );
+			$this->record_manual_account_disconnect_track_event( WC_Stripe_Mode::is_test() );
 		} else {
-			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
+			$this->record_manual_account_key_update_track_event( WC_Stripe_Mode::is_test() );
 		}
 
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.

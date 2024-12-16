@@ -8,7 +8,17 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * Constructor
 	 */
 	public function __construct() {
-		parent::__construct( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		parent::__construct();
+
+		add_action( 'init', [ $this, 'register_erasers_exporters' ] );
+		add_filter( 'woocommerce_get_settings_account', [ $this, 'account_settings' ] );
+	}
+
+	/**
+	 * Register erasers and exporters.
+	 */
+	public function register_erasers_exporters() {
+		$this->name = __( 'Stripe', 'woocommerce-gateway-stripe' );
 
 		$this->add_exporter( 'woocommerce-gateway-stripe-order-data', __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), [ $this, 'order_data_exporter' ] );
 
@@ -20,8 +30,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$this->add_eraser( 'woocommerce-gateway-stripe-customer-data', __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), [ $this, 'customer_data_eraser' ] );
 		$this->add_eraser( 'woocommerce-gateway-stripe-order-data', __( 'WooCommerce Stripe Data', 'woocommerce-gateway-stripe' ), [ $this, 'order_data_eraser' ] );
-
-		add_filter( 'woocommerce_get_settings_account', [ $this, 'account_settings' ] );
 	}
 
 	/**

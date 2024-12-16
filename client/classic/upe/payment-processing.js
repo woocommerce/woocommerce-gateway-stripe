@@ -1,7 +1,10 @@
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
+	isLinkEnabled,
+	getDefaultValues,
 	getStripeServerData,
 	getUpeSettings,
 	showErrorCheckout,
@@ -79,8 +82,18 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	};
 
 	const elements = api.getStripe().elements( options );
+
+	const attachDefaultValuesUpdateEvent = ( element ) => {
+		if ( document.getElementById( element ) ) {
+			document.getElementById( element ).onblur = function () {
+				updatePaymentElementDefaultValues();
+			};
+		}
+	};
+
 	const createdStripePaymentElement = elements.create( 'payment', {
 		...getUpeSettings(),
+		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -91,7 +104,31 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 	gatewayUPEComponents[
 		paymentMethodType
 	].upeElement = createdStripePaymentElement;
+
+	// When email or phone is updated and Link is enabled, we need to
+	// update the payment element to update its default values.
+	if (
+		getStripeServerData()?.isCheckout &&
+		isLinkEnabled() &&
+		paymentMethodType === 'card'
+	) {
+		attachDefaultValuesUpdateEvent( 'billing_email' );
+		attachDefaultValuesUpdateEvent( 'billing_phone' );
+	}
+
 	return createdStripePaymentElement;
+}
+
+/**
+ * Updates the payment element's default values.
+ */
+function updatePaymentElementDefaultValues() {
+	if ( ! gatewayUPEComponents?.card?.upeElement ) {
+		return;
+	}
+
+	const paymentElement = gatewayUPEComponents.card.upeElement;
+	paymentElement.update( getDefaultValues() );
 }
 
 /**
@@ -265,7 +302,27 @@ export const processPayment = (
 		} catch ( err ) {
 			hasCheckoutCompleted = false;
 			jQueryForm.removeClass( 'processing' ).unblock();
-			showErrorCheckout( err.message );
+
+			let errorMessage = err.message;
+			if ( err.code === 'parameter_invalid_empty' ) {
+				const param = err.param.match( /country|postalCode/ );
+				if ( param ) {
+					errorMessage = sprintf(
+						/* translators: %s is an input field name */
+						__(
+							'Missing required billing address field: %s.',
+							'woocommerce-gateway-stripe'
+						),
+						param[ 0 ]
+					);
+				} else {
+					errorMessage = __(
+						'Missing required billing address field.',
+						'woocommerce-gateway-stripe'
+					);
+				}
+			}
+			showErrorCheckout( errorMessage );
 		}
 	} )();
 
@@ -405,6 +462,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
  */
 export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	const isOrderPay = getStripeServerData()?.isOrderPay;
+	const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
@@ -412,7 +470,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 
 	const partials = window.location.href.match(
-		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+)$/
+		/#wc-stripe-wallet-(.+):(.+):(.+):(.+):(.+):(.+)$/
 	);
 
 	if ( ! partials ) {
@@ -495,7 +553,27 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
 		if ( intentObject.status !== 'requires_action' ) {
-			window.location.href = returnURL;
+			if ( ! isChangingPayment ) {
+				window.location.href = returnURL;
+			}
+
+			// If we're changing a subscription's payment method, there's an extra step needed.
+			// We need to confirm the change payment intent via the confirm_change_payment AJAX request and then redirect to the return URL.
+			const response = await api.request(
+				api.getAjaxUrl( 'confirm_change_payment' ),
+				{
+					order_id: orderId,
+					intent_id: intentObject.id,
+					payment_method_id: intentObject.payment_method || null,
+					_ajax_nonce: partials[ 6 ],
+				}
+			);
+
+			if ( response.success ) {
+				window.location.href = response.data.return_url;
+			} else {
+				throw new Error( response.data.error.message );
+			}
 		}
 	} catch ( error ) {
 		showErrorCheckout( error.message );

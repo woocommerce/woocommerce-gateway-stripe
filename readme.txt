@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.4
-Tested up to: 6.6
+Requires at least: 6.5
+Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 8.8.0
+Stable tag: 9.0.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,17 +110,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 8.9.0 - xxxx-xx-xx =
-* Dev - Add multiple unit tests for the Stripe Express Checkout Element implementation (for both frontend and backend).
-* Tweak - Disables APMs when using the legacy checkout experience due Stripe deprecation by October 29, 2024.
-* Fix - Corrected card brand capitalization on the My Account → Subscription page.
-* Fix - Displays a specific message when an authentication error occurs during checkout for 3DS cards (shortcode version).
-* Fix - Show 'Use a New Payment Method' radio button for logged in users only when card saving is enabled.
-* Fix - Fix the display and usage of the Link payment method on the shortcode checkout page with the Stripe Express Checkout Element.
-* Fix - Prevent marking orders on-hold with order note "Process order to take payment" when the payment has failed.
-* Fix - Fix payment methods count on settings page.
-* Tweak - Add error logging in ECE critical Ajax requests.
-* Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the block cart and block checkout pages.
-* Add - Add support for Stripe Link payments via the new Stripe Checkout Element on the product, cart, checkout and pay for order pages.
+= 9.1.0 - xxxx-xx-xx =
+* Fix - Only update order status for a Radar review closed event when the order was already captured.
+* Dev - Introduces a new class with payment intent statuses constants.
+* Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
+* Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
+* Tweak - Add empty check for cart when checking for allowed products for express checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

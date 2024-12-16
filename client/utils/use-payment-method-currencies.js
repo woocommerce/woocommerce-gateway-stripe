@@ -7,7 +7,7 @@ const accountCountry =
 
 // When UPE is disabled returns the list of all the currencies supported by AliPay.
 // When UPE is enabled returns the specific currencies AliPay supports for the corresponding Stripe account based on location.
-// Documentation: https://stripe.com/docs/payments/alipay#supported-currencies.
+// Documentation: https://docs.stripe.com/payments/alipay#supported-currencies.
 const getAliPayCurrencies = ( isUpeEnabled ) => {
 	if ( ! isUpeEnabled ) {
 		return [
