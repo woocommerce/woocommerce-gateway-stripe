@@ -937,6 +937,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
+				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
+
 				if ( $is_voucher_payment ) {
 					$order->update_status( 'on-hold', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 					wc_reduce_stock_levels( $order_id );
