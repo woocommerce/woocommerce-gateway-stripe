@@ -53,50 +53,16 @@ jobs:
         id: collect_changelog_data
         
       - name: 'Add changelog entry to changelog.txt'
-        uses: actions/github-script@v6
+        uses: ./.github/actions/add-changelog-entry
         with:
-          script: |
-            const fs = require( 'node:fs' );
-            
-            const token = 'xxxx-xx-xx =';
-            const filename = './changelog.txt';
-            
-            const changelog = fs.readFileSync( filename, 'utf-8' );
-            const changelog_parts = changelog.split( token );
-
-            changelog_parts[1] = '\n' + $( steps.collect_changelog_data.outputs.CHANGELOG_ENTRY ) + changelog_parts[1];
-
-            const updatedChangelog = changelog_parts.join( token );
-            
-            fs.writeFile( filename, updatedChangelog, err => {
-              if ( err ) {
-                console.error( 'Unable to update changelog entries in changelog.txt' );
-              }
-            } )
-          id: add_changelog_txt_entry
+          CHANGELOG_ENTRY: ${{ steps.collect_changelog_data.outputs.CHANGELOG_ENTRY }}
+          FILENAME: './changelog.txt'
           
       - name: 'Add changelog entry to readme.txt'
-        uses: actions/github-script@v6
+        uses: ./.github/actions/add-changelog-entry
         with:
-          script: |
-            const fs = require( 'node:fs' );
-            
-            const token = 'xxxx-xx-xx =';
-            const filename = './readme.txt';
-            
-            const changelog = fs.readFileSync( filename, 'utf-8' );
-            const changelog_parts = changelog.split( token );
-
-            changelog_parts[1] = '\n' + $( steps.collect_changelog_data.outputs.CHANGELOG_ENTRY ) + changelog_parts[1];
-
-            const updatedChangelog = changelog_parts.join( token );
-            
-            fs.writeFile( filename, updatedChangelog, err => {
-              if ( err ) {
-                console.error( 'Unable to update changelog entries in readme.txt' );
-              }
-            } )
-          id: add_readme_txt_entry
+          CHANGELOG_ENTRY: ${{ steps.collect_changelog_data.outputs.CHANGELOG_ENTRY }}
+          FILENAME: './readme.txt'
           
       - name: 'Commit changes'
         run: |
