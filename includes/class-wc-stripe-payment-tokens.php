@@ -394,8 +394,8 @@ class WC_Stripe_Payment_Tokens {
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
 					/* translators: customer email */
-					__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
-					$payment_token->get_email()
+					esc_html__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
+					esc_html( $payment_token->get_email() )
 				);
 				break;
 		}
