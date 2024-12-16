@@ -220,6 +220,8 @@ export { getStripeServerData, getErrorMessageForTypeAndCode };
  * @return {boolean} True, if enabled; false otherwise.
  */
 export const isLinkEnabled = ( paymentMethodsConfig ) => {
+	paymentMethodsConfig =
+		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
 	return (
 		paymentMethodsConfig?.link !== undefined &&
 		paymentMethodsConfig?.card !== undefined
@@ -412,6 +414,32 @@ export const getUpeSettings = () => {
 	}
 
 	return upeSettings;
+};
+
+/**
+ * Craft the defaultValues parameter, used to pre-fill
+ * user email and phone number for Link in the Payment Element.
+ *
+ * @return {Object} The defaultValues object for the Payment Element.
+ */
+export const getDefaultValues = () => {
+	const userEmail = document.getElementById( 'billing_email' )?.value;
+	if ( ! userEmail ) {
+		return {};
+	}
+
+	const userPhone =
+		document.getElementById( 'billing_phone' )?.value ||
+		document.getElementById( 'shipping_phone' )?.value;
+
+	return {
+		defaultValues: {
+			billingDetails: {
+				email: userEmail,
+				phone: userPhone,
+			},
+		},
+	};
 };
 
 /**

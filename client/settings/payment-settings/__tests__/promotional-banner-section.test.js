@@ -30,6 +30,7 @@ useDispatch.mockImplementation( ( storeName ) => {
 } );
 
 const setShowPromotionalBanner = jest.fn();
+const setPromotionalBannerType = jest.fn();
 
 describe( 'PromotionalBanner', () => {
 	beforeEach( () => {
@@ -40,6 +41,7 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
 			/>
 		);
@@ -57,6 +59,7 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setPromotionalBannerType={ setPromotionalBannerType }
 				isUpeEnabled={ false }
 				setIsUpeEnabled={ setIsUpeEnabledMock }
 				isConnectedViaOAuth={ true }
@@ -71,6 +74,7 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ false }
 			/>
 		);
@@ -85,6 +89,7 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
 			/>
 		);

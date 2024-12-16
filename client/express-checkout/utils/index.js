@@ -1,6 +1,8 @@
 /* global wc_stripe_express_checkout_params */
-
-import { getPaymentMethodTypes } from 'wcstripe/stripe-utils';
+import jQuery from 'jquery';
+import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 
 export * from './normalize';
 
@@ -262,7 +264,106 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
  * @param {string} paymentMethodType Payment method type Stripe ID.
  * @return {Array} Array of payment method types to use with intent, for Express Checkout.
  */
-export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) =>
-	getPaymentMethodTypes( paymentMethodType ).filter( ( type ) =>
-		[ 'link', 'paypal', 'amazon_pay', 'card' ].includes( type )
+export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
+	const expressPaymentMethodTypes = getPaymentMethodTypes(
+		paymentMethodType
+	).filter( ( type ) => [ 'paypal', 'amazon_pay', 'card' ].includes( type ) );
+
+	if ( isLinkEnabled() ) {
+		expressPaymentMethodTypes.push( 'link' );
+	}
+
+	return expressPaymentMethodTypes;
+};
+
+/**
+ * Fetches the payment method types required to process a payment for an Express method.
+ *
+ * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
+ * supported and which ones are required by each Express Checkout method.
+ *
+ * @param {*} paymentMethodType The express payment method type. eg 'link', 'googlePay', or 'applePay'.
+ * @return {Array} Array of payment method types necessary to process a payment for an Express method.
+ */
+export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const paymentMethodTypes = [];
+
+	if ( ! paymentMethodsConfig ) {
+		return paymentMethodTypes;
+	}
+
+	// All express payment methods require 'card' payments. Add it if it's enabled.
+	if ( paymentMethodsConfig?.card !== undefined ) {
+		paymentMethodTypes.push( 'card' );
+	}
+
+	// Add 'link' payment method type if enabled and requested.
+	if (
+		paymentMethodType === 'link' &&
+		isLinkEnabled( paymentMethodsConfig )
+	) {
+		paymentMethodTypes.push( 'link' );
+	}
+
+	return paymentMethodTypes;
+};
+
+/**
+ * Display a notice on the checkout page (for Express Checkout Element).
+ *
+ * @param {string} message The message to display.
+ * @param {string} type The type of notice.
+ * @param {Array} additionalClasses Additional classes to add to the notice.
+ */
+export const displayExpressCheckoutNotice = (
+	message,
+	type,
+	additionalClasses
+) => {
+	const isBlockCheckout = getExpressCheckoutData( 'has_block' );
+	const mainNoticeClass = `woocommerce-${ type }`;
+	let classNames = [ mainNoticeClass ];
+	if ( additionalClasses ) {
+		classNames = classNames.concat( additionalClasses );
+	}
+
+	// Remove any existing notices.
+	jQuery( '.' + classNames.join( '.' ) ).remove();
+
+	const containerClass = isBlockCheckout
+		? 'wc-block-components-main'
+		: 'woocommerce-notices-wrapper';
+	const $container = jQuery( '.' + containerClass ).first();
+
+	if ( $container.length ) {
+		const note = jQuery(
+			`<div class="${ classNames.join( ' ' ) }" role="note" />`
+		).text( message );
+		if ( isBlockCheckout ) {
+			$container.prepend( note );
+		} else {
+			$container.append( note );
+		}
+
+		// Scroll to notices.
+		jQuery( 'html, body' ).animate(
+			{
+				scrollTop: $container.find( `.${ mainNoticeClass }` ).offset()
+					.top,
+			},
+			600
+		);
+	}
+};
+
+/**
+ * Delay for a short period of time before proceeding with the checkout process.
+ *
+ * @return {Promise<void>} A promise that resolves after the delay.
+ */
+export const expressCheckoutNoticeDelay = async () => {
+	await new Promise( ( resolve ) =>
+		setTimeout( resolve, EXPRESS_CHECKOUT_NOTICE_DELAY )
 	);
+};

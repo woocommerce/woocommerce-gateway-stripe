@@ -340,7 +340,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error'
+				'Order creation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -383,9 +384,12 @@ describe( 'Express checkout event handlers', () => {
 				result: 'success',
 				redirect: 'https://example.com/redirect',
 			} );
-			api.confirmIntent.mockResolvedValue(
-				'https://example.com/confirmation_redirect'
-			);
+			api.confirmIntent.mockReturnValue( {
+				request: Promise.resolve(
+					'https://example.com/confirmation_redirect'
+				),
+				isOrderPage: false,
+			} );
 
 			await onConfirmHandler(
 				api,
@@ -414,9 +418,12 @@ describe( 'Express checkout event handlers', () => {
 				result: 'success',
 				redirect: 'https://example.com/redirect',
 			} );
-			api.confirmIntent.mockRejectedValue(
-				new Error( 'Intent confirmation error' )
-			);
+			api.confirmIntent.mockReturnValue( {
+				request: Promise.reject(
+					new Error( 'Intent confirmation error' )
+				),
+				isOrderPage: false,
+			} );
 
 			await onConfirmHandler(
 				api,
@@ -467,7 +474,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Order creation error'
+				'Order creation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -511,9 +519,12 @@ describe( 'Express checkout event handlers', () => {
 				result: 'success',
 				redirect: 'https://example.com/redirect',
 			} );
-			api.confirmIntent.mockResolvedValue(
-				'https://example.com/confirmation_redirect'
-			);
+			api.confirmIntent.mockReturnValue( {
+				request: Promise.resolve(
+					'https://example.com/confirmation_redirect'
+				),
+				isOrderPage: false,
+			} );
 
 			await onConfirmHandler(
 				api,
@@ -543,9 +554,12 @@ describe( 'Express checkout event handlers', () => {
 				result: 'success',
 				redirect: 'https://example.com/redirect',
 			} );
-			api.confirmIntent.mockRejectedValue(
-				new Error( 'Intent confirmation error' )
-			);
+			api.confirmIntent.mockReturnValue( {
+				request: Promise.reject(
+					new Error( 'Intent confirmation error' )
+				),
+				isOrderPage: false,
+			} );
 
 			await onConfirmHandler(
 				api,

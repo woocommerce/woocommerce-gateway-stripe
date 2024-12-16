@@ -1,6 +1,5 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
@@ -64,20 +63,9 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const {
-			key,
-			locale,
-			isUPEEnabled,
-			paymentMethodsConfig,
-		} = this.options;
+		const { key, locale } = this.options;
 		if ( ! this.stripe ) {
-			if ( isUPEEnabled && isLinkEnabled( paymentMethodsConfig ) ) {
-				this.stripe = this.createStripe( key, locale, [
-					'link_autofill_modal_beta_1',
-				] );
-			} else {
-				this.stripe = this.createStripe( key, locale );
-			}
+			this.stripe = this.createStripe( key, locale );
 		}
 		return this.stripe;
 	}
@@ -302,7 +290,8 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
-	 * @return {string|true} A redirect URL on success, or `true` if no confirmation is needed.
+	 * @return {Object|true} An object containing the redirect URL on success and a flag indicating
+	 *   if the page is the Pay for order page, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
 		const partials = redirectUrl.match(

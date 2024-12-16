@@ -57,6 +57,7 @@ const getMockPaymentRequestLocations = (
 ];
 
 describe( 'PaymentRequestsSettingsSection', () => {
+	const globalValues = global.wc_stripe_payment_request_settings_params;
 	beforeEach( () => {
 		usePaymentRequestEnabledSettings.mockReturnValue(
 			getMockPaymentRequestEnabledSettings( true, jest.fn() )
@@ -65,6 +66,18 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		usePaymentRequestLocations.mockReturnValue(
 			getMockPaymentRequestLocations( true, true, true, jest.fn() )
 		);
+
+		global.wc_stripe_payment_request_settings_params = {
+			...globalValues,
+			key: 'pk_test_123',
+			locale: 'en',
+			is_ece_enabled: true,
+		};
+	} );
+
+	afterEach( () => {
+		jest.clearAllMocks();
+		global.wc_stripe_payment_request_settings_params = globalValues;
 	} );
 
 	it( 'renders settings with defaults', () => {

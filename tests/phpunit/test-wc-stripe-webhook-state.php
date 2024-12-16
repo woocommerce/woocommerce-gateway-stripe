@@ -97,7 +97,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 
 		// Headers
 		$this->request_headers = [
-			'USER-AGENT'       => 'Stripe/1.0 (+https://stripe.com/docs/webhooks)',
+			'USER-AGENT'       => 'Stripe/1.0 (+https://docs.stripe.com/webhooks)',
 			'CONTENT-TYPE'     => 'application/json; charset=utf-8',
 			'STRIPE-SIGNATURE' => 't=' . $timestamp . ',v1=' . $signature,
 		];

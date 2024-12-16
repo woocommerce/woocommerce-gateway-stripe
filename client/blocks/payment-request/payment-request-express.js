@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { useEffect } from '@wordpress/element';
 import {
 	Elements,
 	PaymentRequestButtonElement,
@@ -69,6 +70,17 @@ const PaymentRequestExpressComponent = ( {
 		onClick
 	);
 	useCancelHandler( paymentRequest, onClose );
+
+	useEffect( () => {
+		if ( paymentRequest ) {
+			const orderAttribution = window?.wc_order_attribution;
+			if ( orderAttribution ) {
+				orderAttribution.setOrderTracking(
+					orderAttribution.params.allowTracking
+				);
+			}
+		}
+	}, [ paymentRequest ] );
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
@@ -173,6 +185,7 @@ export const PaymentRequestExpress = ( props ) => {
 	return (
 		<Elements stripe={ stripe }>
 			<PaymentRequestExpressComponent { ...props } />
+			<wc-order-attribution-inputs id="wc-stripe-express-checkout__order-attribution-inputs" />
 		</Elements>
 	);
 };

@@ -365,4 +365,83 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		// Confirm that all expected request call params were called.
 		$this->assertEmpty( WC_Helper_Stripe_Api::$expected_request_call_params );
 	}
+
+	/**
+	 * Tests for is_webhook_enabled().
+	 */
+	public function test_is_webhook_enabled() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// False if webhook secrets are not set.
+		$stripe_settings['testmode']          = 'yes';
+		$stripe_settings['test_webhook_data'] = [
+			'id'     => 'wh_123_test',
+			'secret' => '',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
+		$this->assertFalse( $this->account->is_webhook_enabled() );
+
+		$stripe_settings['test_webhook_data'] = [];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
+		$this->assertFalse( $this->account->is_webhook_enabled() );
+
+		unset( $stripe_settings['test_webhook_data'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->clear_webhook_status_cache();
+		$this->assertFalse( $this->account->is_webhook_enabled() );
+
+		$stripe_settings['testmode']          = 'yes';
+		$stripe_settings['webhook_data']      = [
+			'id'     => 'wh_123',
+			'secret' => 'wh_secret_123',
+		];
+		$stripe_settings['test_webhook_data'] = [
+			'id'     => 'wh_123_test',
+			'secret' => 'wh_secret_123_test',
+		];
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
+			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
+		];
+
+		// Assert that it correctly reads the webhook status field.
+		WC_Helper_Stripe_Api::$request_response = (object) [
+			'id'     => 'wh_123_test',
+			'status' => 'disabled',
+		];
+		$this->clear_webhook_status_cache();
+		$this->assertFalse( $this->account->is_webhook_enabled() );
+
+		WC_Helper_Stripe_Api::$request_response = (object) [
+			'id'     => 'wh_123_test',
+			'status' => 'enabled',
+		];
+		$this->clear_webhook_status_cache();
+		$this->assertTrue( $this->account->is_webhook_enabled() );
+
+		// Assert that it queries the correct webhook (live).
+		$stripe_settings['testmode'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Helper_Stripe_Api::$expected_request_call_params = [
+			[ [], 'webhook_endpoints/wh_123', 'GET' ],
+		];
+		WC_Helper_Stripe_Api::$request_response = (object) [
+			'id'     => 'wh_123_test',
+			'status' => 'enabled',
+		];
+		$this->clear_webhook_status_cache();
+		$this->assertTrue( $this->account->is_webhook_enabled() );
+
+		// Assert that it uses the cached status.
+		$this->assertTrue( $this->account->is_webhook_enabled() );
+	}
+
+	private function clear_webhook_status_cache() {
+		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
+		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+	}
 }

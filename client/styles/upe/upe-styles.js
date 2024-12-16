@@ -1,4 +1,4 @@
-// List of supported CSS properties accepted by UPE elements. Source: https://stripe.com/docs/stripe-js/payment-element#appearance.
+// List of supported CSS properties accepted by UPE elements. Source: https://docs.stripe.com/elements/appearance-api.
 const paddingColorProps = [
 	'color',
 	'padding',
