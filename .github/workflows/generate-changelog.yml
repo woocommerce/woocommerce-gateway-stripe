@@ -18,36 +18,31 @@ jobs:
     steps:
       - name: 'Collect changelog data from PR description'
         run: |
-          DO_NOT_REQUIRE_CHANGELOG=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} This Pull Request does not require a changelog entry' | awk '{print substr($0,2,1)}' )
+          DO_NOT_REQUIRE_CHANGELOG=$(grep -E -o '.{0,3} This Pull Request does not require a changelog entry' <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}')
           if [[ $DO_NOT_REQUIRE_CHANGELOG == 'x' ]]; then
-              echo "This PR does not require a changelog entry. Exiting."
-              exit 0
+          echo "This PR does not require a changelog entry. Exiting."
+          exit 0
           fi
-          TYPE_FIX=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} Fix - ' | awk '{print substr($0,2,1)}' )
-          TYPE_ADD=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} Add - ' | awk '{print substr($0,2,1)}' )
-          TYPE_UPDATE=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} Update - ' | awk '{print substr($0,2,1)}' )
-          TYPE_DEV=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} Dev - ' | awk '{print substr($0,2,1)}' )
-          TYPE_TWEAK=$( cat ${{ github.event.pull_request.description }} | grep -E -o '.{0,3} Tweak - ' | awk '{print substr($0,2,1)}' )
-          CHANGELOG_TYPE=''
-            if [[ $TYPE_FIX == 'x' ]]; then
-                CHANGELOG_TYPE='Fix'
-            elif [[ $TYPE_ADD == 'x' ]]; then
-                CHANGELOG_TYPE='Add'
-            elif [[ $TYPE_UPDATE == 'x' ]]; then
-                CHANGELOG_TYPE='Update'
-            elif [[ $TYPE_DEV == 'x' ]]; then
-                CHANGELOG_TYPE='Dev'
-            elif [[ $TYPE_TWEAK == 'x' ]]; then
-                CHANGELOG_TYPE='Tweak'
-            else
-                echo "This PR does not have a valid changelog entry. Exiting."
-                exit 0
-            fi
-          CHANGELOG_CONTENT=$( cat ${{ github.event.pull_request.description }} | grep -wns '#### Message <!-- Add a changelog message here -->' -A2 | tail -1 | awk '{print substr($0,index($0," - ")+4)}' )
-          if [[ CHANGELOG_CONTENT == '</details>' ]]; then
-              echo "This PR does not contain a changelog entry. Exiting."
-              exit 0
+          
+          declare -A TYPES=( ["Fix"]="Fix" ["Add"]="Add" ["Update"]="Update" ["Dev"]="Dev" ["Tweak"]="Tweak" )
+          for TYPE in "${!TYPES[@]}"; do
+          if [[ $(grep -E -o ".{0,3} $TYPE - " <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}') == 'x' ]]; then
+          CHANGELOG_TYPE=${TYPES[$TYPE]}
+          break
           fi
+          done
+          
+          if [[ -z $CHANGELOG_TYPE ]]; then
+          echo "This PR does not have a valid changelog entry. Exiting."
+          exit 0
+          fi
+          
+          CHANGELOG_CONTENT=$(grep -wns '#### Message <!-- Add a changelog message here -->' <<< "${{ github.event.pull_request.description }}" -A2 | tail -1 | awk '{print substr($0,index($0," - ")+4)}')
+          if [[ $CHANGELOG_CONTENT == '</details>' ]]; then
+          echo "This PR does not contain a changelog entry. Exiting."
+          exit 0
+          fi
+          
           CHANGELOG_ENTRY="* $CHANGELOG_TYPE - $CHANGELOG_CONTENT"
           echo "CHANGELOG_ENTRY=$CHANGELOG_ENTRY" >> $GITHUB_OUTPUT
         id: collect_changelog_data
