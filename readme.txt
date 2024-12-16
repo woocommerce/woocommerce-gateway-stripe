@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
 * Fix - Only update order status for a Radar review closed event when the order was already captured.
 * Dev - Introduces a new class with payment intent statuses constants.
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
