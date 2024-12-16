@@ -23,7 +23,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	const MOCK_PAYMENT_INTENT = [
 		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'status'             => WC_Stripe_Intent_Status::SUCCEEDED,
 		'charges'            => [
 			'total_count' => 1,
 			'data'        => [
@@ -96,7 +96,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
 
 		// No payment intent.
-		$order = WC_Helper_Order::create_order();
+		$order            = WC_Helper_Order::create_order();
 		$data['order_id'] = $order->get_id();
 
 		$this->expectExceptionMessage( "Missing required data. 'intent_id' is missing for the deferred 'payment_intent.succeeded' event." );
@@ -110,7 +110,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order     = WC_Helper_Order::create_order();
 		$intent_id = 'pi_mock_1234';
 		$data      = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => $intent_id,
 		];
 
@@ -134,7 +134,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_mismatch_intent_id_process_deferred_webhook() {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => 'pi_wrong_id',
 		];
 
@@ -168,7 +168,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function test_process_of_successful_payment_intent_deferred_webhook() {
 		$order = WC_Helper_Order::create_order();
 		$data  = [
-			'order_id' => $order->get_id(),
+			'order_id'  => $order->get_id(),
 			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
 		];
 
@@ -197,5 +197,102 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+	}
+
+	/**
+	 * Test for `process_webhook_charge_failed`.
+	 *
+	 * @param string $order_status       The order status.
+	 * @param bool   $order_status_final Whether the order status is final.
+	 * @param string $charge_id          The charge ID.
+	 * @param array  $event              The event type.
+	 * @param string $expected_status    The expected order status.
+	 * @param string $expected_note      The expected order note.
+	 * @return void
+	 * @dataProvider provide_test_process_webhook_charge_failed
+	 */
+	public function test_process_webhook_charge_failed(
+		$order_status,
+		$order_status_final,
+		$charge_id,
+		$event,
+		$expected_status,
+		$expected_note
+	) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->set_transaction_id( $charge_id );
+		if ( $order_status_final ) {
+			$order->update_meta_data( '_stripe_status_final', true );
+		}
+		$order->save();
+
+		$notification = (object) [
+			'type' => $event,
+			'data' => (object) [
+				'object' => (object) [
+					'id' => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
+
+		if ( $charge_id ) { // Order not found charge ID.
+			$final_order = wc_get_order( $order->get_id() );
+			$this->assertEquals( $expected_status, $final_order->get_status() );
+
+			if ( $expected_note ) {
+				$notes = wc_get_order_notes(
+					[
+						'order_id' => $final_order->get_id(),
+						'limit'    => 1,
+					]
+				);
+				$this->assertSame( $expected_note, $notes[0]->content );
+			}
+		}
+	}
+
+	/**
+	 * Provider for `test_process_webhook_charge_failed`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_charge_failed() {
+		return [
+			'order already failed' => [
+				'order status'       => 'failed',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'failed',
+				'expected note'      => '',
+			],
+			'charge failed event, order already with the final status' => [
+				'order status'       => 'on-hold',
+				'order status final' => true,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'on-hold',
+				'expected note'      => 'This payment failed to clear.',
+			],
+			'charge failed event'  => [
+				'order status'       => 'on-hold',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.failed',
+				'expected status'    => 'failed',
+				'expected note'      => 'This payment failed to clear. Order status changed from On hold to Failed.',
+			],
+			'charge expired event' => [
+				'order status'       => 'on-hold',
+				'order status final' => false,
+				'charge id'          => 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg',
+				'event'              => 'charge.expired',
+				'expected status'    => 'failed',
+				'expected note'      => 'This payment has expired. Order status changed from On hold to Failed.',
+			],
+		];
 	}
 }

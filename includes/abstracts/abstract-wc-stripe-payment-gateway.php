@@ -1130,7 +1130,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( ! empty( $intent->error ) ) {
 					$response         = $intent;
 					$intent_cancelled = true;
-				} elseif ( 'requires_capture' === $intent->status ) {
+				} elseif ( WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
 					$result           = WC_Stripe_API::request(
 						[],
 						'payment_intents/' . $intent->id . '/cancel'
@@ -1554,7 +1554,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object                   Either an error or the updated intent.
 	 */
 	public function confirm_intent( $intent, $order, $prepared_source ) {
-		if ( 'requires_confirmation' !== $intent->status ) {
+		if ( WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION !== $intent->status ) {
 			return $intent;
 		}
 
@@ -1575,9 +1575,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Save a note about the status of the intent.
 		$order_id = $order->get_id();
-		if ( 'succeeded' === $confirmed_intent->status ) {
+		if ( WC_Stripe_Intent_Status::SUCCEEDED === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-		} elseif ( 'requires_action' === $confirmed_intent->status ) {
+		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
 		}
 
@@ -1746,7 +1746,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
-		} elseif ( 'requires_action' === $setup_intent->status ) {
+		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
 			$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
 			$order->save();
 
