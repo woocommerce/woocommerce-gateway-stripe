@@ -58,10 +58,10 @@ redirect_output cli wp core install \
 	--skip-email
 
 if [[ -n "$WP_VERSION" && "$WP_VERSION" != "latest" ]]; then
-	echo " - Installing Wordpress ${WP_VERSION}..."
+	echo " - Installing WordPress ${WP_VERSION}..."
 	redirect_output cli wp core update --version="$WP_VERSION" --force --quiet
 else
-	echo " - Updating Wordpress to the latest version"
+	echo " - Updating WordPress to the latest version"
 	redirect_output cli wp core update --quiet
 fi
 
@@ -74,7 +74,7 @@ redirect_output cli wp config set WP_DEBUG false --raw
 echo " - Updating permalink structure"
 redirect_output cli wp rewrite structure '/%postname%/'
 
-echo " - Installing Wordpress Importer"
+echo " - Installing WordPress Importer"
 redirect_output cli wp plugin install wordpress-importer --activate
 
 echo " - Disable emails to avoid spamming"
