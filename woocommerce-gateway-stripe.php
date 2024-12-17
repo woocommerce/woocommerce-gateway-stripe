@@ -215,6 +215,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-currency-code.php';
 				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-payment-methods.php';
+				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-intent-status.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
