@@ -877,8 +877,9 @@ class WC_Stripe_Intent_Controller {
 		if ( ! empty( $missing_params ) ) {
 			throw new WC_Stripe_Exception(
 				sprintf(
-					'The information for creating and confirming the intent is missing the following data: %s.',
-					implode( ', ', $missing_params )
+					'The information for creating and confirming the intent is missing the following data: %s. Payment information received: %s.',
+					implode( ', ', $missing_params ),
+					wp_json_encode( $payment_information )
 				),
 				$shopper_error_message
 			);
