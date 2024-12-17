@@ -36,7 +36,7 @@ fi
 step "Starting E2E docker containers"
 CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
 
-step "Configuring Wordpress"
+step "Configuring WordPress"
 # Wait for containers to be started up before setup.
 # The db being accessible means that the db container started and the WP has been downloaded and the plugin linked
 set +e
