@@ -29,7 +29,7 @@ const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
 	const name =
 		paymentMethod.billing_details.name ?? paymentMethodEvent.payerName;
 
-	let data = {
+	const data = {
 		_wpnonce: getBlocksConfiguration()?.nonce?.checkout,
 		billing_first_name:
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
@@ -82,58 +82,7 @@ const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
 		data.shipping_postcode = shipping?.postalCode;
 	}
 
-	data = getRequiredFieldDataFromCheckoutForm( data );
-
 	return { ...data, ...extractOrderAttributionData() };
-};
-
-/**
- * Get required field values from the checkout form if they are filled and add to the order data.
- *
- * @param {Object} data Order data.
- *
- * @return {Object} Order data with required field values.
- */
-const getRequiredFieldDataFromCheckoutForm = ( data ) => {
-	const requiredFields = document.querySelectorAll(
-		'form.checkout .validate-required'
-	);
-
-	if ( requiredFields.length ) {
-		requiredFields.forEach( function ( fieldWrapper ) {
-			const field = fieldWrapper.querySelector( ':input' );
-			const name = field.getAttribute( 'name' );
-
-			let value = '';
-			if ( field.getAttribute( 'type' ) === 'checkbox' ) {
-				value = field.checked;
-			} else {
-				value = field.value;
-			}
-
-			if ( value && name ) {
-				if ( ! data[ name ] ) {
-					data[ name ] = value;
-				}
-
-				// if shipping same as billing is selected, copy the billing field to shipping field.
-				const shipToDiffAddress = document.querySelector(
-					'#ship-to-different-address input'
-				).checked;
-				if ( ! shipToDiffAddress ) {
-					const shippingFieldName = name.replace(
-						'billing_',
-						'shipping_'
-					);
-					if ( ! data[ shippingFieldName ] && data[ name ] ) {
-						data[ shippingFieldName ] = data[ name ];
-					}
-				}
-			}
-		} );
-	}
-
-	return data;
 };
 
 /**
