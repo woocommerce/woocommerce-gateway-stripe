@@ -88,7 +88,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * unattach the gettext callback.
+	 * Unattach the gettext callback.
 	 */
 	public function maybe_unattach_gettext_callback() {
 
