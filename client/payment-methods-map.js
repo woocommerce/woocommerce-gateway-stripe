@@ -60,7 +60,6 @@ export default {
 		),
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
-		acceptsDomesticPaymentsOnly: true,
 		allows_manual_capture: true,
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
@@ -73,11 +72,11 @@ export default {
 		description:
 			accountCountry === 'GB'
 				? __(
-						'Allow customers to pay over time with Clearpay.',
+						'Allow customers to pay over time with Clearpay. {{limitsLink}}Transaction limits vary by country{{/limitsLink}}.',
 						'woocommerce-gateway-stripe'
 				  )
 				: __(
-						'Allow customers to pay over time with Afterpay.',
+						'Allow customers to pay over time with Afterpay. {{limitsLink}}Transaction limits vary by country{{/limitsLink}}.',
 						'woocommerce-gateway-stripe'
 				  ),
 		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
