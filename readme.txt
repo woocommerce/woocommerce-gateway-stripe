@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Dev - Improves the missing intent params error log by appending the payment information array.
 * Tweak - Improve error message displayed when payment method creation fails in classic checkout.
 * Tweak - Display email address for Link saved payment methods.
 * Fix - Only update order status for a Radar review closed event when the order was already captured.
