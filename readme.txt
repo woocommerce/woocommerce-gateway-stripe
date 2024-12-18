@@ -119,5 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
+* Update - Prevent editing of orders awaiting payment capture.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
