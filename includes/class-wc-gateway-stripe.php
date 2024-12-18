@@ -463,7 +463,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
+			if ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
 				$this->save_payment_method( $prepared_source->source_object );
 			}
 
@@ -472,7 +472,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$response = $this->get_latest_charge_from_intent( $intent );
 
 				// If the intent requires a 3DS flow, redirect to it.
-				if ( 'requires_action' === $intent->status ) {
+				if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status ) {
 					$this->unlock_order_payment( $order );
 
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
@@ -705,7 +705,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			);
 		}
 
-		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
+		if ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status && isset( $intent->last_payment_error )
 			&& 'authentication_required' === $intent->last_payment_error->code ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
 			$intent      = WC_Stripe_API::request_with_level3_data(
@@ -888,17 +888,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'setup_intent' === $intent->object && 'succeeded' === $intent->status ) {
+		if ( 'setup_intent' === $intent->object && WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
 			WC()->cart->empty_cart();
 			if ( $this->has_pre_order( $order ) ) {
 				$this->mark_order_as_pre_ordered( $order );
 			} else {
 				$order->payment_complete();
 			}
-		} elseif ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
+		} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status || WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->handle_intent_verification_success( $order, $intent );
-		} elseif ( 'requires_payment_method' === $intent->status ) {
+		} elseif ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $intent->status ) {
 			// `requires_payment_method` means that SCA got denied for the current payment method.
 			$this->handle_intent_verification_failure( $order, $intent );
 		}
