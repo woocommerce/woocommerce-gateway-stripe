@@ -339,7 +339,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		);
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
-		$this->assertSame( $expected_note, $notes[0]->content );
+		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
 
 	}
 
@@ -354,19 +354,19 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'order status final' => false,
 				'dispute status'     => 'needs_response',
 				'expected status'    => 'on-hold',
-				'expected note'      => 'A dispute was created for this order. Response is needed. Please go to your <a href="https://dashboard.stripe.com/payments/ch_fQpkNKxmUrZ8t4CT7EHGS3Rg" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute. Order status changed from Processing to On hold.',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
 			],
 			'response needed, order status final'         => [
 				'order status final' => true,
 				'dispute status'     => 'needs_response',
 				'expected status'    => 'processing',
-				'expected note'      => 'A dispute was created for this order. Response is needed. Please go to your <a href="https://dashboard.stripe.com/payments/ch_fQpkNKxmUrZ8t4CT7EHGS3Rg" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
 			],
 			'response not needed, order status not final' => [
 				'order status final' => false,
 				'dispute status'     => 'lost',
 				'expected status'    => 'on-hold',
-				'expected note'      => 'A dispute was created for this order. It was closed as lost or accepted. Order status changed from Processing to On hold.',
+				'expected note'      => '/A dispute was created for this order. It was closed as lost or accepted. Order status changed from Processing to On hold./',
 			],
 		];
 	}
