@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Tweak - Add the transaction limit information to the Afterpay/Clearpay method when listing payment methods.
 * Dev - Introduces new payment method name constants for the frontend.
 * Dev - Improves the missing intent params error log by appending the payment information array.
 * Tweak - Improve error message displayed when payment method creation fails in classic checkout.
