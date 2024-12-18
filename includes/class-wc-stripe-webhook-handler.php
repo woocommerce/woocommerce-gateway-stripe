@@ -344,12 +344,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
-		$message = sprintf(
-		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
-			'</a>'
-		);
+		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
+		if ( $needs_response ) {
+			$message = sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
+				'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+				'</a>'
+			);
+		} else {
+			$message = __( 'A dispute was created for this order. It was closed as lost or accepted.', 'woocommerce-gateway-stripe' );
+		}
 
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
 			$order->update_status( 'on-hold', $message );
@@ -597,7 +602,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
-		$order = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -612,11 +617,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
-			$charge        = $order->get_transaction_id();
-			$captured      = $order->get_meta( '_stripe_charge_captured' );
-			$refund_id     = $order->get_meta( '_stripe_refund_id' );
-			$currency      = $order->get_currency();
-			$raw_amount    = $refund_object->amount;
+			$charge     = $order->get_transaction_id();
+			$captured   = $order->get_meta( '_stripe_charge_captured' );
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $refund_object->amount;
 
 			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 				$raw_amount /= 100;
