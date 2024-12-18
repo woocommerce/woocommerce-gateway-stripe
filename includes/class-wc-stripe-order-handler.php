@@ -28,6 +28,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
+
+		add_filter( 'wc_order_is_editable', [ $this, 'disable_edit_for_uncaptured_orders' ], 10, 2 );
 	}
 
 	/**
@@ -38,6 +40,80 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public static function get_instance() {
 		return self::$_this;
+	}
+
+	/**
+	 * Disables the ability to edit for orders with uncaptured payment.
+	 *
+	 * @param $editable boolean The current editability of the order.
+	 * @param $order WC_Order The order object.
+	 * @return boolean false if the order has uncaptured payment, true otherwise.
+	 */
+	public function disable_edit_for_uncaptured_orders( $editable, $order ) {
+		// Bail if payment method is not manual capture supporting stripe method.
+		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+			return $editable;
+		}
+
+		try {
+			$intent = $this->get_intent_from_order( $order );
+
+			if ( $intent && 'requires_capture' === $intent->status ) {
+				$editable = false;
+
+				// add hooks to change text about the reason when order items cannot be edited
+				add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'maybe_attach_gettext_callback' ] );
+				add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'maybe_unattach_gettext_callback' ] );
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+		}
+
+		return $editable;
+	}
+
+	/**
+	 * Only attach the gettext callback when on admin edit order screen.
+	 */
+	public function maybe_attach_gettext_callback() {
+
+		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
+			$screen = get_current_screen();
+
+			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
+				// Hook to gettext callback to change the tooltip text
+				add_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10, 3 );
+			}
+		}
+	}
+
+	/**
+	 * Unattach the gettext callback.
+	 */
+	public function maybe_unattach_gettext_callback() {
+
+		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
+			$screen = get_current_screen();
+
+			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
+				// Unhook gettext callback to prevent extra call impact
+				remove_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10 );
+			}
+		}
+	}
+
+	/**
+	* When order items are not editable due to the charge being authorized to capture the current amount,
+	* change the tooltip to explain the reason.
+	*/
+	public function change_order_item_editable_text_tooltip( $translated_text, $text, $domain ) {
+		switch ( $text ) {
+			case 'To edit this order change the status back to "Pending payment"':
+				$translated_text = __( 'This order is no longer editable because the charge has been authorized for this amount.', 'woocommerce-gateway-stripe' );
+				break;
+		}
+
+		return $translated_text;
 	}
 
 	/**
@@ -268,7 +344,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( ! empty( $intent->error ) ) {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
-					} elseif ( 'requires_capture' === $intent->status ) {
+					} elseif ( WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
 						$level3_data = $this->get_level3_data_from_order( $order );
 						$result      = WC_Stripe_API::request_with_level3_data(
 							[
@@ -287,7 +363,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							$is_stripe_captured = true;
 							$result             = $this->get_latest_charge_from_intent( $result );
 						}
-					} elseif ( 'succeeded' === $intent->status ) {
+					} elseif ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status ) {
 						$is_stripe_captured = true;
 					}
 				} else {
