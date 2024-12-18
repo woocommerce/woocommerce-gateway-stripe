@@ -1078,7 +1078,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool True or false based on success.
 	 * @throws Exception Throws exception when charge wasn't captured.
 	 */
-	public function process_refund( $order_id, $amount = null, $reason = '' ) { // mayisha
+	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! $order ) {

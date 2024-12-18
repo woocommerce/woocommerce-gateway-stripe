@@ -590,7 +590,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.9.0
 	 * @param object $notification
 	 */
-	public function process_webhook_refund( $notification ) { // mayisha
+	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
 		$order = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
 
