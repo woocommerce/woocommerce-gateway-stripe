@@ -50,4 +50,40 @@ class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->order_handler->prevent_cancelling_orders_awaiting_action( true, $order ) );
 	}
+
+	/**
+	 * Test for disable_edit_for_uncaptured_orders().
+	 */
+	public function test_disable_edit_for_uncaptured_orders() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'bacs' );
+		$order->save();
+
+		// Test when payment method is not stripe.
+		$this->assertTrue( $this->order_handler->disable_edit_for_uncaptured_orders( true, $order ) );
+		$this->assertFalse( $this->order_handler->disable_edit_for_uncaptured_orders( false, $order ) );
+
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		$this->order_handler
+			->expects( $this->any() )
+			->method( 'get_intent_from_order' )
+			->willReturnOnConsecutiveCalls(
+				(object) [
+					'intent_id' => 'pi_mock1',
+					'status'    => 'succeeded',
+				],
+				(object) [
+					'intent_id' => 'pi_mock2',
+					'status'    => 'requires_capture',
+				]
+			);
+
+		// Test when intent is succeeded.
+		$this->assertTrue( $this->order_handler->disable_edit_for_uncaptured_orders( true, $order ) );
+
+		// Test when intent is requires_capture.
+		$this->assertFalse( $this->order_handler->disable_edit_for_uncaptured_orders( true, $order ) );
+	}
 }
