@@ -2,6 +2,7 @@ import ReactDOM from 'react-dom';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
 import { getPaymentMethodTypesForExpressMethod } from 'wcstripe/express-checkout/utils';
+import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart, resolve ) => {
@@ -41,7 +42,10 @@ export const checkPaymentMethodIsAvailable = memoize(
 								paymentMethod === 'googlePay'
 									? 'always'
 									: 'never',
-							link: paymentMethod === 'link' ? 'auto' : 'never',
+							link:
+								paymentMethod === PAYMENT_METHOD_LINK
+									? 'auto'
+									: 'never',
 							paypal: 'never',
 						},
 					} }

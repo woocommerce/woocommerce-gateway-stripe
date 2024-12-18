@@ -6,6 +6,8 @@ import {
 	errorTypes,
 	errorCodes,
 	getPaymentMethodsConstants,
+	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_CARD,
 } from './constants';
 
 /**
@@ -248,15 +250,15 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 		}
 
 		// If we're on the My Account > Add payment method page make sure we only support the card paymentMethodType.
-		return [ 'card' ];
+		return [ PAYMENT_METHOD_CARD ];
 	}
 
 	const paymentMethodTypes = [ paymentMethodType ];
 	if (
-		paymentMethodType === 'card' &&
+		paymentMethodType === PAYMENT_METHOD_CARD &&
 		isLinkEnabled( paymentMethodsConfig )
 	) {
-		paymentMethodTypes.push( 'link' );
+		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}
 	return paymentMethodTypes;
 };

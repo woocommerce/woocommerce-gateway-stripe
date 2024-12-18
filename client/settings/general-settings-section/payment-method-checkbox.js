@@ -11,6 +11,7 @@ import {
 	useIsStripeEnabled,
 } from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const StyledCheckbox = styled( CheckboxControl )`
 	.components-base-control__field {
@@ -55,7 +56,7 @@ const PaymentMethodCheckbox = ( {
 
 		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
 		// So if the card payment method is enabled, Stripe should be enabled.
-		if ( id === 'card' && ! isUpeEnabled ) {
+		if ( id === PAYMENT_METHOD_CARD && ! isUpeEnabled ) {
 			setIsStripeEnabled( true );
 		}
 
@@ -70,7 +71,7 @@ const PaymentMethodCheckbox = ( {
 
 		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
 		// So if the card payment method is disabled, Stripe should be disabled.
-		if ( id === 'card' && ! isUpeEnabled ) {
+		if ( id === PAYMENT_METHOD_CARD && ! isUpeEnabled ) {
 			setIsStripeEnabled( false );
 		}
 	};
