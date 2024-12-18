@@ -8,6 +8,11 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
+import {
+	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_MULTIBANCO,
+	PAYMENT_METHOD_OXXO,
+} from 'wcstripe/stripe-utils/constants';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -195,9 +200,9 @@ jQuery( function ( $ ) {
 				const upeType = formFields.wc_stripe_selected_upe_payment_type;
 
 				if (
-					upeType !== 'boleto' &&
-					upeType !== 'oxxo' &&
-					upeType !== 'multibanco'
+					upeType !== PAYMENT_METHOD_BOLETO &&
+					upeType !== PAYMENT_METHOD_OXXO &&
+					upeType !== PAYMENT_METHOD_MULTIBANCO
 				) {
 					await api.updateFailedOrder(
 						paymentIntentId,

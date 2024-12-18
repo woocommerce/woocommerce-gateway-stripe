@@ -5,6 +5,7 @@ import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
 import Popover from 'wcstripe/components/popover';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -49,7 +50,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const storeCurrency = window?.wcSettings?.currency?.code;
 
 	if (
-		id !== 'card' &&
+		id !== PAYMENT_METHOD_CARD &&
 		! paymentMethodCurrencies.includes( storeCurrency )
 	) {
 		return (

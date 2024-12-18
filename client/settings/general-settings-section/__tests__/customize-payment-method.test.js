@@ -6,6 +6,11 @@ import {
 	useEnabledPaymentMethodIds,
 	useCustomizePaymentMethodSettings,
 } from 'wcstripe/data';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useCustomizePaymentMethodSettings: jest.fn(),
@@ -38,7 +43,7 @@ describe( 'CustomizePaymentMethod', () => {
 			customizePaymentMethod: customizePaymentMethodMock,
 		} );
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card', 'eps', 'giropay' ],
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_EPS, PAYMENT_METHOD_GIROPAY ],
 			jest.fn(),
 		] );
 	} );

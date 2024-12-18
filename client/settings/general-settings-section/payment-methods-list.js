@@ -17,6 +17,11 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_SOFORT,
+} from 'wcstripe/stripe-utils/constants';
 
 const List = styled.ul`
 	margin: 0;
@@ -197,11 +202,11 @@ const GeneralSettingsSection = ( {
 	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 	if (
-		! enabledPaymentMethodIds.includes( 'sofort' ) &&
-		availablePaymentMethods.includes( 'sofort' )
+		! enabledPaymentMethodIds.includes( PAYMENT_METHOD_SOFORT ) &&
+		availablePaymentMethods.includes( PAYMENT_METHOD_SOFORT )
 	) {
 		availablePaymentMethods.splice(
-			availablePaymentMethods.indexOf( 'sofort' ),
+			availablePaymentMethods.indexOf( PAYMENT_METHOD_SOFORT ),
 			1
 		);
 	}
@@ -232,7 +237,7 @@ const GeneralSettingsSection = ( {
 		>
 			{ availablePaymentMethods.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
-				if ( method === 'giropay' ) {
+				if ( method === PAYMENT_METHOD_GIROPAY ) {
 					return null;
 				}
 
@@ -240,7 +245,7 @@ const GeneralSettingsSection = ( {
 				if (
 					// eslint-disable-next-line camelcase
 					wc_stripe_settings_params.are_apms_deprecated &&
-					method !== 'card'
+					method !== PAYMENT_METHOD_CARD
 				) {
 					return null;
 				}
@@ -288,7 +293,7 @@ const GeneralSettingsSection = ( {
 		<List>
 			{ availablePaymentMethods.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
-				if ( method === 'giropay' ) {
+				if ( method === PAYMENT_METHOD_GIROPAY ) {
 					return null;
 				}
 
@@ -302,7 +307,7 @@ const GeneralSettingsSection = ( {
 				const deprecated =
 					// eslint-disable-next-line camelcase
 					wc_stripe_settings_params.are_apms_deprecated &&
-					method !== 'card';
+					method !== PAYMENT_METHOD_CARD;
 
 				return (
 					<div key={ method }>

@@ -12,6 +12,7 @@ import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from './constants';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -72,7 +73,8 @@ const PromotionalBannerSection = ( {
 	const [ isTestModeEnabled ] = useTestMode();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const hasAPMEnabled =
-		enabledPaymentMethodIds.filter( ( e ) => e !== 'card' ).length > 0;
+		enabledPaymentMethodIds.filter( ( e ) => e !== PAYMENT_METHOD_CARD )
+			.length > 0;
 
 	useEffect( () => {
 		if ( isConnectedViaOAuth === false ) {

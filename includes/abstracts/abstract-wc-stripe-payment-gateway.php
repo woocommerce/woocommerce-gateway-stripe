@@ -1150,10 +1150,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( ! $intent_cancelled && 'yes' === $captured ) {
+				$this->lock_order_refund( $order );
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			$this->unlock_order_refund( $order );
 
 			return new WP_Error(
 				'stripe_error',
@@ -1167,6 +1169,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line (return statement is added)
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
+			$this->unlock_order_refund( $order );
 
 			return new WP_Error(
 				'stripe_error',
@@ -1208,6 +1211,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $response->id, $reason );
 
 			$order->add_order_note( $refund_message );
+			$this->unlock_order_refund( $order );
+
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( wp_strip_all_tags( $refund_message ) ) );
 
 			return true;
@@ -1704,6 +1709,46 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function unlock_order_payment( $order ) {
 		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Locks an order for refund processing for 5 minutes.
+	 *
+	 * @since 9.1.0
+	 * @param WC_Order $order  The order that is being refunded.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 */
+	public function lock_order_refund( $order ) {
+		$order->read_meta_data( true );
+
+		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+
+		if ( $existing_lock ) {
+			$expiration    = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+
+		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing refund.
+	 *
+	 * @since 9.1.0
+	 * @param WC_Order $order The order that is being unlocked.
+	 */
+	public function unlock_order_refund( $order ) {
+		$order->delete_meta_data( '_stripe_lock_refund' );
 		$order->save_meta_data();
 	}
 
