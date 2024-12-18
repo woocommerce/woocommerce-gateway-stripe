@@ -1,5 +1,12 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
+/**
+ * Class WC_Stripe_Currency_Code
+ */
 class WC_Stripe_Currency_Code {
 
 	// Source: https://docs.stripe.com/currencies

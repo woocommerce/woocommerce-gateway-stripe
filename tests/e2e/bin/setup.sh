@@ -36,7 +36,7 @@ fi
 step "Starting E2E docker containers"
 CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
 
-step "Configuring Wordpress"
+step "Configuring WordPress"
 # Wait for containers to be started up before setup.
 # The db being accessible means that the db container started and the WP has been downloaded and the plugin linked
 set +e
@@ -58,10 +58,10 @@ redirect_output cli wp core install \
 	--skip-email
 
 if [[ -n "$WP_VERSION" && "$WP_VERSION" != "latest" ]]; then
-	echo " - Installing Wordpress ${WP_VERSION}..."
+	echo " - Installing WordPress ${WP_VERSION}..."
 	redirect_output cli wp core update --version="$WP_VERSION" --force --quiet
 else
-	echo " - Updating Wordpress to the latest version"
+	echo " - Updating WordPress to the latest version"
 	redirect_output cli wp core update --quiet
 fi
 
@@ -74,7 +74,7 @@ redirect_output cli wp config set WP_DEBUG false --raw
 echo " - Updating permalink structure"
 redirect_output cli wp rewrite structure '/%postname%/'
 
-echo " - Installing Wordpress Importer"
+echo " - Installing WordPress Importer"
 redirect_output cli wp plugin install wordpress-importer --activate
 
 echo " - Disable emails to avoid spamming"

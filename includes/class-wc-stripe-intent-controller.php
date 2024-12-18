@@ -259,14 +259,14 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// 5. Respond.
-			if ( 'requires_action' === $setup_intent->status ) {
+			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
 				$response = [
-					'status'        => 'requires_action',
+					'status'        => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 					'client_secret' => $setup_intent->client_secret,
 				];
-			} elseif ( 'requires_payment_method' === $setup_intent->status
-				|| 'requires_confirmation' === $setup_intent->status
-				|| 'canceled' === $setup_intent->status ) {
+			} elseif ( WC_Stripe_Intent_Status::REQUIRES_PAYMENT_METHOD === $setup_intent->status
+				|| WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $setup_intent->status
+				|| WC_Stripe_Intent_Status::CANCELED === $setup_intent->status ) {
 				// These statuses should not be possible, as such we return an error.
 				$response = [
 					'status' => 'error',
@@ -348,7 +348,7 @@ class WC_Stripe_Intent_Controller {
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
 		$currency       = get_woocommerce_currency();
-		$capture        = empty( $gateway->get_option( 'capture' ) ) || $gateway->get_option( 'capture' ) === 'yes';
+		$capture        = $gateway->is_automatic_capture_enabled();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
@@ -875,10 +875,14 @@ class WC_Stripe_Intent_Controller {
 
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
+			$calling_method = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'] ?? '';
 			throw new WC_Stripe_Exception(
 				sprintf(
-					'The information for creating and confirming the intent is missing the following data: %s.',
-					implode( ', ', $missing_params )
+					'The information for creating and confirming the intent is missing the following data: %s. Payment information received: %s. Calling method: %s',
+					implode( ', ', $missing_params ),
+					wp_json_encode( $payment_information ),
+					$calling_method
 				),
 				$shopper_error_message
 			);
@@ -1041,7 +1045,7 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
-			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action', 'requires_confirmation' ], true ) ) {
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, WC_Stripe_Intent_Status::SUCCESSFUL_SETUP_INTENT_STATUSES, true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 

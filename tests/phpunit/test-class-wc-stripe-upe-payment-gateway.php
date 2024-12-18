@@ -62,7 +62,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
 		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'status'             => WC_Stripe_Intent_Status::SUCCEEDED,
 		'last_payment_error' => [],
 		'client_secret'      => 'cs_mock',
 		'charges'            => [
@@ -105,7 +105,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_CARD_SETUP_INTENT_TEMPLATE = [
 		'object'           => 'setup_intent',
-		'status'           => 'succeeded',
+		'status'           => WC_Stripe_Intent_Status::SUCCEEDED,
 		'client_secret'    => 'cs_mock',
 		'last_setup_error' => [],
 	];
@@ -417,7 +417,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'         => 'requires_action',
+				'status'         => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'data'           => [
 					(object) [
 						'id'       => $order_id,
@@ -488,7 +488,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'               => 'requires_action',
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'object'               => 'payment_intent',
 				'data'                 => [
 					(object) [
@@ -1337,7 +1337,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'id'             => $payment_intent_id,
 				'amount'         => $amount,
 				'payment_method' => $payment_method_id,
-				'status'         => 'requires_action',
+				'status'         => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'charges'        => (object) [
 					'data' => [
 						(object) [
@@ -2142,7 +2142,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						],
 					],
 				],
-				'status'               => 'requires_action',
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
@@ -2347,7 +2347,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
-		$this->mock_gateway->expects( $this->exactly( 3 ) ) // 3 times because we test 3 payment methods.
+		$this->mock_gateway->expects( $this->exactly( 4 ) ) // 4 times because we test 4 payment methods.
 			->method( 'is_subscriptions_enabled' )
 			->willReturn( true );
 
@@ -2382,6 +2382,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Cards should be set to `stripe`.
 		$this->assertEquals( 'stripe', $order->get_payment_method() );
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
+
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+
+		/**
+		 * Link
+		 */
+		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID );
+		// Cards should be set to `stripe`.
+		$this->assertEquals( 'stripe', $order->get_payment_method() );
+		$this->assertEquals( 'Link', $order->get_payment_method_title() );
 
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );

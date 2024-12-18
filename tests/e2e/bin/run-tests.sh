@@ -31,7 +31,7 @@ for arg in "$@"; do
 	fi
 done
 
-if [[ *"wordpress" == "$(docker-compose -p wcstripe-e2e ps --services --filter "status=running" | grep wordpress)" ]]; then
+if [[ *"wordpress" == "$(docker compose -p wcstripe-e2e ps --services --filter "status=running" | grep wordpress)" ]]; then
 	error "Docker E2E containers are not running, please start them with 'npm run test:e2e-up' or 'npm run test:e2e-setup' and try again."
 	exit 1
 fi
