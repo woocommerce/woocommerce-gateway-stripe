@@ -80,7 +80,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 
-			if ( ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
+			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
 				// Hook to gettext callback to change the tooltip text
 				add_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10, 3 );
 			}
@@ -95,7 +95,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
 			$screen = get_current_screen();
 
-			if ( ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) ) {
+			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
 				// Unhook gettext callback to prevent extra call impact
 				remove_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10 );
 			}
