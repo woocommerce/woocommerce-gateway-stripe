@@ -6,6 +6,7 @@ import classnames from 'classnames';
 import { Button } from '@wordpress/components';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
+import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import CustomizePaymentMethod from './customize-payment-method';
@@ -18,6 +19,8 @@ import {
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import {
+	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
@@ -173,17 +176,28 @@ const getFormattedPaymentMethodDescription = (
 	method,
 	accountDefaultCurrency
 ) => {
-	const { description, acceptsDomesticPaymentsOnly } = PaymentMethodsMap[
-		method
-	];
+	const { description } = PaymentMethodsMap[ method ];
 
-	if ( acceptsDomesticPaymentsOnly ) {
-		const args = [];
-		const argsCount = ( description.match( /%s/g ) || [] ).length;
-		for ( let i = 0; i < argsCount; i++ ) {
-			args.push( accountDefaultCurrency?.toUpperCase() );
-		}
-		return sprintf( description, ...args );
+	if ( method === PAYMENT_METHOD_AFFIRM ) {
+		const currency = accountDefaultCurrency?.toUpperCase();
+		return sprintf( description, currency, currency, currency );
+	}
+
+	if ( method === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
+		/* eslint-disable jsx-a11y/anchor-has-content */
+		return interpolateComponents( {
+			mixedString: description,
+			components: {
+				limitsLink: (
+					<a
+						target="_blank"
+						rel="noreferrer"
+						href="https://docs.stripe.com/payments/afterpay-clearpay#collection-schedule"
+					/>
+				),
+			},
+		} );
+		/* eslint-enable jsx-a11y/anchor-has-content */
 	}
 
 	return description;
