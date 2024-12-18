@@ -121,5 +121,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
 * Update - Prevent editing of orders awaiting payment capture.
+* Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
