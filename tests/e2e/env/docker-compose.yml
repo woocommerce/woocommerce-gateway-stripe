@@ -1,7 +1,7 @@
 volumes:
   # Kludge for not having the ./docker directory bound recursively
   dockerdirectory:
-    
+
 services:
   wordpress:
     build: .
@@ -24,7 +24,7 @@ services:
       - "host.docker.internal:host-gateway"
   db:
     container_name: wcstripe-e2e-mysql
-    image: mariadb:10.5.8
+    image: mariadb:latest
     ports:
       - "6789:3306"
     env_file:

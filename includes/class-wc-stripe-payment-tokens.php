@@ -392,7 +392,11 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
-				$item['method']['brand'] = esc_html__( 'Stripe Link', 'woocommerce-gateway-stripe' );
+				$item['method']['brand'] = sprintf(
+					/* translators: customer email */
+					esc_html__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
+					esc_html( $payment_token->get_email() )
+				);
 				break;
 		}
 
