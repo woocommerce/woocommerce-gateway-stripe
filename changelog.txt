@@ -2,11 +2,16 @@
 
 = 9.1.0 - xxxx-xx-xx =
 * Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
+* Dev - Improves the missing intent params error log by appending the payment information array.
+* Tweak - Improve error message displayed when payment method creation fails in classic checkout.
+* Tweak - Display email address for Link saved payment methods.
 * Fix - Only update order status for a Radar review closed event when the order was already captured.
 * Dev - Introduces a new class with payment intent statuses constants.
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
+* Update - Prevent editing of orders awaiting payment capture.
+* Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
 
 = 9.0.0 - 2024-12-12 =
 * Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.
