@@ -1200,7 +1200,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 		$this->process_response( $charge, $order );
-
 	}
 
 	/**
