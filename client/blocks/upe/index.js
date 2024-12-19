@@ -97,14 +97,7 @@ Object.entries( paymentMethodsConfig )
 				</>
 			),
 			ariaLabel: 'Stripe',
-			supports: {
-				// Use `false` as fallback values in case server provided configuration is missing.
-				showSavedCards:
-					getBlocksConfiguration()?.showSavedCards ?? false,
-				showSaveOption: upeConfig.showSaveOption ?? false,
-				features: getBlocksConfiguration()?.supports ?? [],
-				style: getBlocksConfiguration()?.style ?? [],
-			},
+			supports,
 		} );
 	} );
 
