@@ -85,8 +85,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Reference:', 'woocommerce-gateway-stripe' ) . "\n\n";
 			echo esc_html( $data['reference'] ) . "\n\n";
-			esc_html_e( 'Voucher URL:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo esc_html( $data['hosted_voucher_url'] ) . "\n\n";
 		} else {
 			?>
 			<h3><?php esc_html_e( 'MULTIBANCO ORDER INFORMATION', 'woocommerce-gateway-stripe' ); ?></h3>
