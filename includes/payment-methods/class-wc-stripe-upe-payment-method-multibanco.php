@@ -67,6 +67,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * Gets Multibanco payment instructions for the customer.
 	 *
 	 * @param WC_Order $order
+	 * @param bool     $plain_text
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
 		$data = $order->get_meta( '_stripe_multibanco' );
