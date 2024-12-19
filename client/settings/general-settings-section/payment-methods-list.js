@@ -178,7 +178,12 @@ const getFormattedPaymentMethodDescription = (
 	];
 
 	if ( acceptsDomesticPaymentsOnly ) {
-		return sprintf( description, accountDefaultCurrency?.toUpperCase() );
+		const args = [];
+		const argsCount = ( description.match( /%s/g ) || [] ).length;
+		for ( let i = 0; i < argsCount; i++ ) {
+			args.push( accountDefaultCurrency?.toUpperCase() );
+		}
+		return sprintf( description, ...args );
 	}
 
 	return description;
