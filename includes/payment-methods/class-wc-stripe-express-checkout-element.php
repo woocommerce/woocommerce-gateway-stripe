@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Blocks\Package;
+use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
+
 /**
  * WC_Stripe_Express_Checkout_Element class.
  */
@@ -366,6 +369,16 @@ class WC_Stripe_Express_Checkout_Element {
 		} elseif ( 'google_pay' === $express_checkout_type ) {
 			$order->set_payment_method_title( 'Google Pay (Stripe)' );
 			$order->save();
+		}
+
+		// Save custom checkout fields to the order.
+		$checkout_fields = Package::container()->get( CheckoutFields::class );
+		$field_names     = array_keys( $checkout_fields->get_additional_fields() );
+		foreach ( $field_names as $name ) {
+			if ( isset( $_POST[ $name ] ) ) {
+				$order->update_meta_data( $name, wc_clean( wp_unslash( $_POST[ $name ] ) ) );
+				$order->save_meta_data();
+			}
 		}
 	}
 
