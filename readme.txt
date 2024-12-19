@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Don't update canceled order status to on-hold when a dispute is opened.
 * Tweak - Add the transaction limit information to the Afterpay/Clearpay method when listing payment methods.
 * Tweak - Add transaction threshold information to Affirm when listing payment methods.
 * Fix - Handles additional fields when checking out using ECE on the block checkout.
