@@ -9,6 +9,11 @@ import {
 	saveIndividualPaymentMethodSettings,
 	updateIsCustomizingPaymentMethod,
 } from '../actions';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@wordpress/data-controls' );
@@ -264,7 +269,11 @@ describe( 'Settings actions tests', () => {
 
 		test( 'makes POST request with ordered payment method list', () => {
 			const orderedPaymentMethodIdsMock = {
-				ordered_payment_method_ids: [ 'card', 'giropay', 'eps' ],
+				ordered_payment_method_ids: [
+					PAYMENT_METHOD_CARD,
+					PAYMENT_METHOD_GIROPAY,
+					PAYMENT_METHOD_EPS,
+				],
 			};
 
 			select.mockReturnValue( {

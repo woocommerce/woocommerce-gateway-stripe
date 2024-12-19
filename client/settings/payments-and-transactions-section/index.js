@@ -20,6 +20,7 @@ import {
 	useIsShortAccountStatementEnabled,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 
 const StatementDescriptorInputWrapper = styled.div`
 	position: relative;
@@ -48,7 +49,9 @@ const PaymentsAndTransactionsSection = () => {
 	] = useIsShortAccountStatementEnabled();
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 
-	const isCashAppEnabled = enabledPaymentMethods.includes( 'cashapp' );
+	const isCashAppEnabled = enabledPaymentMethods.includes(
+		PAYMENT_METHOD_CASHAPP
+	);
 
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 

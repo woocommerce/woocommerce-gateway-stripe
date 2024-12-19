@@ -9,6 +9,7 @@ import PaymentMethodIcon from '../../settings/payment-method-icon';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import './style.scss';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
+import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -17,7 +18,7 @@ const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	] = usePaymentRequestEnabledSettings();
 
 	const enabledMethodIds = enabledPaymentMethodIds.filter(
-		( methodId ) => methodId !== 'link'
+		( methodId ) => methodId !== PAYMENT_METHOD_LINK
 	);
 
 	const mainDialogText =
