@@ -353,7 +353,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				'</a>'
 			);
 		} else {
-			$message = __( 'A dispute was created for this order. It was closed as lost or accepted.', 'woocommerce-gateway-stripe' );
+			$message = __( 'A dispute was created for this order.', 'woocommerce-gateway-stripe' );
 		}
 
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
