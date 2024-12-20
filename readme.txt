@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
 * Fix - Don't update canceled order status to on-hold when a dispute is opened.
 * Fix - Correctly sets the dispute opened note when a dispute does not require any further action.
 * Add - Display Multibanco payment instruction details in Order Received page and Order Confirmation email.
