@@ -366,7 +366,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'order status final' => false,
 				'dispute status'     => 'lost',
 				'expected status'    => 'on-hold',
-				'expected note'      => '/A dispute was created for this order. It was closed as lost or accepted. Order status changed from Processing to On hold./',
+				'expected note'      => '/A dispute was created for this order. Order status changed from Processing to On hold./',
 			],
 		];
 	}
