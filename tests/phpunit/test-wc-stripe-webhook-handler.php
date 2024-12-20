@@ -306,11 +306,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return void
 	 * @dataProvider provide_test_process_webhook_dispute
 	 */
-	public function test_process_webhook_dispute( $order_status_final, $dispute_status, $expected_status, $expected_note ) {
+	public function test_process_webhook_dispute( $order_status, $order_status_final, $dispute_status, $expected_status, $expected_note ) {
 		$charge_id = 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg';
 
 		$order = WC_Helper_Order::create_order();
-		$order->set_status( 'processing' );
+		$order->set_status( $order_status );
 		$order->set_transaction_id( $charge_id );
 		if ( $order_status_final ) {
 			$order->update_meta_data( '_stripe_status_final', true );
@@ -351,18 +351,28 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	public function provide_test_process_webhook_dispute() {
 		return [
 			'response needed, order status not final'     => [
+				'order status'       => 'processing',
 				'order status final' => false,
 				'dispute status'     => 'needs_response',
 				'expected status'    => 'on-hold',
 				'expected note'      => '/A dispute was created for this order. Response is needed./',
 			],
+			'response needed, order status not final, status is cancelled' => [
+				'order status'       => 'cancelled',
+				'order status final' => false,
+				'dispute status'     => 'needs_response',
+				'expected status'    => 'cancelled',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
+			],
 			'response needed, order status final'         => [
+				'order status'       => 'processing',
 				'order status final' => true,
 				'dispute status'     => 'needs_response',
 				'expected status'    => 'processing',
 				'expected note'      => '/A dispute was created for this order. Response is needed./',
 			],
 			'response not needed, order status not final' => [
+				'order status'       => 'processing',
 				'order status final' => false,
 				'dispute status'     => 'lost',
 				'expected status'    => 'on-hold',
