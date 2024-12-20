@@ -9,6 +9,10 @@ import {
 	useSeparateCardForm,
 	useGetSavingError,
 } from 'wcstripe/data';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -32,7 +36,10 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			jest.fn(),
 		] );
 		useSeparateCardForm.mockReturnValue( [ true, jest.fn() ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+			jest.fn(),
+		] );
 		useAccount.mockReturnValue( {
 			data: {
 				account: {
@@ -101,7 +108,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			jest.fn(),
 		] );
 		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ 'card', 'cashapp' ],
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_CASHAPP ],
 			jest.fn(),
 		] );
 

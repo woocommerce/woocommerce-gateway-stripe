@@ -11,12 +11,13 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from '../../data';
-
 import './styles.scss';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
-	const linkMethodID = 'link';
-
 	const [
 		isPaymentRequestEnabled,
 		updateIsPaymentRequestEnabled,
@@ -32,19 +33,28 @@ const PaymentRequestSection = () => {
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
 		if ( isEnabled ) {
-			updateEnabledMethodIds( [ ...enabledMethodIds, linkMethodID ] );
+			updateEnabledMethodIds( [
+				...enabledMethodIds,
+				PAYMENT_METHOD_LINK,
+			] );
 		} else {
 			updateEnabledMethodIds( [
-				...enabledMethodIds.filter( ( id ) => id !== linkMethodID ),
+				...enabledMethodIds.filter(
+					( id ) => id !== PAYMENT_METHOD_LINK
+				),
 			] );
 		}
 	};
 
-	const displayExpressPaymentMethods = enabledMethodIds.includes( 'card' );
+	const displayExpressPaymentMethods = enabledMethodIds.includes(
+		PAYMENT_METHOD_CARD
+	);
 	const displayLinkPaymentMethod =
-		enabledMethodIds.includes( 'card' ) &&
-		availablePaymentMethodIds.includes( linkMethodID );
-	const isStripeLinkEnabled = enabledMethodIds.includes( linkMethodID );
+		enabledMethodIds.includes( PAYMENT_METHOD_CARD ) &&
+		availablePaymentMethodIds.includes( PAYMENT_METHOD_LINK );
+	const isStripeLinkEnabled = enabledMethodIds.includes(
+		PAYMENT_METHOD_LINK
+	);
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',

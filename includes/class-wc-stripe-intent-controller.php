@@ -875,10 +875,14 @@ class WC_Stripe_Intent_Controller {
 
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
+			$calling_method = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'] ?? '';
 			throw new WC_Stripe_Exception(
 				sprintf(
-					'The information for creating and confirming the intent is missing the following data: %s.',
-					implode( ', ', $missing_params )
+					'The information for creating and confirming the intent is missing the following data: %s. Payment information received: %s. Calling method: %s',
+					implode( ', ', $missing_params ),
+					wp_json_encode( $payment_information ),
+					$calling_method
 				),
 				$shopper_error_message
 			);

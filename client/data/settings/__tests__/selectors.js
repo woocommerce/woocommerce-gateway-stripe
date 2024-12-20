@@ -6,6 +6,11 @@ import {
 	getIndividualPaymentMethodSettings,
 	isCustomizingPaymentMethod,
 } from '../selectors';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+} from 'wcstripe/stripe-utils/constants';
 
 describe( 'Settings selectors tests', () => {
 	describe( 'getSettings()', () => {
@@ -116,18 +121,18 @@ describe( 'Settings selectors tests', () => {
 					data: {
 						foo: 'bar',
 						ordered_payment_method_ids: [
-							'card',
-							'giropay',
-							'eps',
+							PAYMENT_METHOD_CARD,
+							PAYMENT_METHOD_GIROPAY,
+							PAYMENT_METHOD_EPS,
 						],
 					},
 				},
 			};
 
 			expect( getOrderedPaymentMethodIds( state ) ).toEqual( [
-				'card',
-				'giropay',
-				'eps',
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_EPS,
 			] );
 		} );
 

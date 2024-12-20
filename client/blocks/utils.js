@@ -1,5 +1,7 @@
 /* global wc */
 
+import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+
 export const getBlocksConfiguration = () => {
 	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
 
@@ -23,7 +25,7 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 
 	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
 	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
-		disableWallets.push( 'link' );
+		disableWallets.push( PAYMENT_METHOD_LINK );
 	}
 
 	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.

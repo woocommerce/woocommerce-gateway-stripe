@@ -637,6 +637,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			if ( $this->lock_order_refund( $order ) ) {
+				return;
+			}
+
 			// If the refund ID matches, don't continue to prevent double refunding.
 			if ( $refund_object->id === $refund_id ) {
 				return;
@@ -663,6 +667,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( isset( $refund_object->balance_transaction ) ) {
 					$this->update_fees( $order, $refund_object->balance_transaction );
 				}
+
+				$this->unlock_order_refund( $order );
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
@@ -931,6 +937,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
+				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
+
 				if ( $is_voucher_payment ) {
 					$order->update_status( 'on-hold', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 					wc_reduce_stock_levels( $order_id );
