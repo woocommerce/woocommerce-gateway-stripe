@@ -301,6 +301,11 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 
+			// Add SEPA if it is disabled and iDEAL is enabled. iDEAL tokens are saved as SEPA tokens.
+			if ( ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled() && $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled() ) {
+				$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+			}
+
 			$payment_methods = array_merge( ...$payment_methods );
 
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
