@@ -10,6 +10,7 @@ import {
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
+import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const stripePromise = loadStripe();
 
@@ -98,7 +99,12 @@ const expressCheckoutElementsStripeLink = ( api ) => ( {
 		}
 
 		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'link', api, cart, resolve );
+			checkPaymentMethodIsAvailable(
+				PAYMENT_METHOD_LINK,
+				api,
+				cart,
+				resolve
+			);
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,

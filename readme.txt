@@ -112,6 +112,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.1.0 - xxxx-xx-xx =
 * Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
+* Fix - Don't update canceled order status to on-hold when a dispute is opened.
+* Fix - Correctly sets the dispute opened note when a dispute does not require any further action.
+* Add - Display Multibanco payment instruction details in Order Received page and Order Confirmation email.
+* Tweak - Add the transaction limit information to the Afterpay/Clearpay method when listing payment methods.
+* Tweak - Add transaction threshold information to Affirm when listing payment methods.
+* Fix - Handles additional fields when checking out using ECE on the block checkout.
+* Dev - Introduces new payment method name constants for the frontend.
 * Dev - Improves the missing intent params error log by appending the payment information array.
 * Tweak - Improve error message displayed when payment method creation fails in classic checkout.
 * Tweak - Display email address for Link saved payment methods.

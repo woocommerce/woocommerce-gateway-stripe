@@ -6,6 +6,7 @@ import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
 import { useIsStripeEnabled, useEnabledPaymentMethodIds } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
@@ -28,18 +29,20 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 		if ( ! isUpeEnabled ) {
 			if (
 				! hasBeenChecked &&
-				enabledPaymentMethods.includes( 'card' )
+				enabledPaymentMethods.includes( PAYMENT_METHOD_CARD )
 			) {
 				setEnabledPaymentMethods(
-					enabledPaymentMethods.filter( ( m ) => m !== 'card' )
+					enabledPaymentMethods.filter(
+						( m ) => m !== PAYMENT_METHOD_CARD
+					)
 				);
 			} else if (
 				hasBeenChecked &&
-				! enabledPaymentMethods.includes( 'card' )
+				! enabledPaymentMethods.includes( PAYMENT_METHOD_CARD )
 			) {
 				setEnabledPaymentMethods( [
 					...enabledPaymentMethods,
-					'card',
+					PAYMENT_METHOD_CARD,
 				] );
 			}
 		}
