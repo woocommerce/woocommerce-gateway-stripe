@@ -14,6 +14,13 @@ import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const stripePromise = loadStripe();
 
+const supports = {
+	features: getBlocksConfiguration()?.supports ?? [],
+};
+if ( getBlocksConfiguration().isAdmin ?? false ) {
+	supports.style = getBlocksConfiguration()?.style ?? [];
+}
+
 const expressCheckoutElementsGooglePay = ( api ) => ( {
 	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_googlePay',
 	title: 'WooCommerce Stripe - Google Pay',
@@ -41,9 +48,7 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	gatewayId: 'stripe',
-	supports: {
-		features: getBlocksConfiguration()?.supports ?? [],
-	},
+	supports,
 } );
 
 const expressCheckoutElementsApplePay = ( api ) => ( {
@@ -73,9 +78,7 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
 	gatewayId: 'stripe',
-	supports: {
-		features: getBlocksConfiguration()?.supports ?? [],
-	},
+	supports,
 } );
 
 const expressCheckoutElementsStripeLink = ( api ) => ( {
@@ -108,9 +111,7 @@ const expressCheckoutElementsStripeLink = ( api ) => ( {
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	supports: {
-		features: getBlocksConfiguration()?.supports ?? [],
-	},
+	supports,
 } );
 
 export {

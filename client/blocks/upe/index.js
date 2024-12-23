@@ -56,6 +56,15 @@ Object.entries( paymentMethodsConfig )
 		}
 
 		const Icon = Icons[ iconName ];
+		const supports = {
+			// Use `false` as fallback values in case server provided configuration is missing.
+			showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+			showSaveOption: upeConfig.showSaveOption ?? false,
+			features: getBlocksConfiguration()?.supports ?? [],
+		};
+		if ( getBlocksConfiguration().isAdmin ?? false ) {
+			supports.style = getBlocksConfiguration()?.style ?? [];
+		}
 
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
@@ -95,13 +104,7 @@ Object.entries( paymentMethodsConfig )
 				</>
 			),
 			ariaLabel: 'Stripe',
-			supports: {
-				// Use `false` as fallback values in case server provided configuration is missing.
-				showSavedCards:
-					getBlocksConfiguration()?.showSavedCards ?? false,
-				showSaveOption: upeConfig.showSaveOption ?? false,
-				features: getBlocksConfiguration()?.supports ?? [],
-			},
+			supports,
 		} );
 	} );
 
