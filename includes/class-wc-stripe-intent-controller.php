@@ -571,7 +571,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
-			$order    = wc_get_order( $order_id );
+			$order    = WC_Stripe_Helper::get_order( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -604,7 +604,7 @@ class WC_Stripe_Intent_Controller {
 			/* translators: error message */
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
-				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
+				$order->remove_payment_awaiting_action();
 				$order->update_status( 'failed' );
 			}
 

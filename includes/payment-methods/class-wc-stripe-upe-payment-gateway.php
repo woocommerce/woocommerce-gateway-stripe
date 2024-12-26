@@ -1366,7 +1366,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
 		 * Now that payment is confirmed, we can remove this meta.
 		 */
-		WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
+		$order->remove_payment_awaiting_action();
 
 		$order->save();
 	}
