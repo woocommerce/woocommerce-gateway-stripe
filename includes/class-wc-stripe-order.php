@@ -10,6 +10,141 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Gets the Stripe fee for order. With legacy check.
+	 *
+	 * @return string $amount
+	 */
+	public function get_fee() {
+		$amount = $this->get_meta( '_stripe_fee' );
+
+		// If not found let's check for legacy name.
+		if ( empty( $amount ) ) {
+			$amount = $this->get_meta( 'Stripe Fee' );
+
+			// If found update to new name.
+			if ( $amount ) {
+				$this->set_fee( $amount );
+			}
+		}
+
+		return $amount;
+	}
+
+	/**
+	 * Updates the Stripe fee for order.
+	 *
+	 * @param float $amount
+	 */
+	public function set_fee( $amount = 0.0 ) {
+		$this->update_meta_data( '_stripe_fee', $amount );
+	}
+
+	/**
+	 * Deletes the Stripe fee for order.
+	 */
+	public function delete_fee() {
+		$this->delete_meta_data( '_stripe_fee' );
+		$this->delete_meta_data( 'Stripe Fee' );
+	}
+
+	/**
+	 * Gets the Stripe net for order. With legacy check.
+	 *
+	 * @return string $amount
+	 */
+	public function get_net() {
+		$amount = $this->get_meta( '_stripe_net', true );
+
+		// If not found let's check for legacy name.
+		if ( empty( $amount ) ) {
+			$amount = $this->get_meta( 'Net Revenue From Stripe', true );
+
+			// If found update to new name.
+			if ( $amount ) {
+				$this->set_net( $amount );
+			}
+		}
+
+		return $amount;
+	}
+
+	/**
+	 * Updates the Stripe net for order.
+	 *
+	 * @param float  $amount
+	 */
+	public function set_net( $amount = 0.0 ) {
+		$this->update_meta_data( '_stripe_net', $amount );
+	}
+
+	/**
+	 * Deletes the Stripe net for order.
+	 */
+	public function delete_net() {
+		$this->delete_meta_data( '_stripe_net' );
+		$this->delete_meta_data( 'Net Revenue From Stripe' );
+	}
+
+	/**
+	 * Gets the Stripe currency for order.
+	 *
+	 * @return string $currency
+	 */
+	public function get_stripe_currency() {
+		return $this->get_meta( '_stripe_currency' );
+	}
+
+	/**
+	 * Updates the Stripe currency for order.
+	 *
+	 * @param string $currency
+	 */
+	public function set_stripe_currency( $currency ) {
+		$this->update_meta_data( '_stripe_currency', $currency );
+	}
+
+	/**
+	 * Adds metadata to the order to indicate that the payment is awaiting action.
+	 *
+	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
+	 *
+	 * @param bool     $save  Whether to save the order after adding the metadata.
+	 *
+	 * @return void
+	 */
+	public function set_payment_awaiting_action( $value, $save = true ) {
+		$this->update_meta_data( '_stripe_payment_awaiting_action', wc_bool_to_string( $value ) );
+
+		if ( $save ) {
+			$this->save();
+		}
+	}
+
+	/**
+	 * Gets the metadata that indicates that the payment is awaiting action.
+	 *
+	 * @return bool Whether the payment is awaiting action.
+	 */
+	public function payment_awaiting_action() {
+		return wc_string_to_bool( $this->get_meta( '_stripe_payment_awaiting_action' ) );
+	}
+
+	/**
+	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
+	 *
+	 * @param bool     $save  Whether to save the order after removing the metadata.
+	 *
+	 * @return void
+	 */
+	public function remove_payment_awaiting_action( $save = true ) {
+		$this->delete_meta_data( '_stripe_payment_awaiting_action' );
+
+		if ( $save ) {
+			$this->save();
+		}
+	}
+
+	/**
 	 * Set the preferred card brand.
 	 *
 	 * @param $brand string The brand to set.
@@ -340,7 +475,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool
 	 */
 	public function charge_captured() {
-		return $this->get_meta( '_stripe_charge_captured' ) === 'yes';
+		return wc_string_to_bool( $this->get_meta( '_stripe_charge_captured' ) );
 	}
 
 	/**

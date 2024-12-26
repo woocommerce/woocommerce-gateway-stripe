@@ -9,12 +9,47 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
-	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
-	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
-	const META_NAME_FEE                = '_stripe_fee';
-	const META_NAME_NET                = '_stripe_net';
-	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+
+	/**
+	 * Legacy meta key for Stripe fee.
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const LEGACY_META_NAME_FEE = 'Stripe Fee';
+	/**
+	 * Legacy meta key for Stripe net.
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
+
+	/**
+	 * Meta key for Stripe fee.
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const META_NAME_FEE = '_stripe_fee';
+
+	/**
+	 * Meta key for Stripe net.
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const META_NAME_NET = '_stripe_net';
+
+	/**
+	 * Meta key for Stripe currency.
+	 *
+	 * @deprecated 9.1.0
+	 */
+	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
+
+	/**
+	 * Meta key for payment awaiting action.
+	 *
+	 * @deprecated 9.1.0
+	 */
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
@@ -61,144 +96,141 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return string $currency
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
+		return $order->get_stripe_currency();
 	}
 
 	/**
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @param string $currency
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
+		$order->set_stripe_currency( $currency );
 	}
 
 	/**
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$amount = $order->get_meta( self::META_NAME_FEE, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				self::update_stripe_fee( $order, $amount );
-			}
-		}
-
-		return $amount;
+		return $order->get_fee();
 	}
 
 	/**
 	 * Updates the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->update_meta_data( self::META_NAME_FEE, $amount );
+		$order->set_fee( $amount );
 	}
 
 	/**
 	 * Deletes the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::delete_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->delete_meta_data( self::META_NAME_FEE );
-		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
+		$order->delete_fee();
 	}
 
 	/**
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$amount = $order->get_meta( self::META_NAME_NET, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				self::update_stripe_net( $order, $amount );
-			}
-		}
-
-		return $amount;
+		return $order->get_net();
 	}
 
 	/**
 	 * Updates the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->update_meta_data( self::META_NAME_NET, $amount );
+		$order->set_net( $amount );
 	}
 
 	/**
 	 * Deletes the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::delete_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
 
-		$order->delete_meta_data( self::META_NAME_NET );
-		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
+		$order->delete_net();
 	}
 
 	/**
@@ -1408,33 +1440,31 @@ class WC_Stripe_Helper {
 	 *
 	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
 	 *
-	 * @param WC_Order $order The order to add the metadata to.
+	 * @param WC_Stripe_Order $order The order to add the metadata to.
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
-
-		if ( $save ) {
-			$order->save();
-		}
+		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_payment_awaiting_action' );
+		$order->set_payment_awaiting_action( true );
 	}
 
 	/**
 	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
 	 *
-	 * @param WC_Order $order The order to remove the metadata from.
+	 * @param WC_Stripe_Order $order The order to remove the metadata from.
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
-
-		if ( $save ) {
-			$order->save();
-		}
+		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::remove_payment_awaiting_action' );
+		$order->remove_payment_awaiting_action();
 	}
 
 	/**

@@ -342,7 +342,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
+		$order->set_status_before_hold( $order->get_status() );
 
 		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
 		if ( $needs_response ) {

@@ -624,11 +624,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Don't transfer Stripe fee/ID meta to renewal orders.
 	 *
-	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
+	 * @param WC_Stripe_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
-		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
+		$renewal_order->delete_fee();
+		$renewal_order->delete_net();
 
 		// Delete payment intent ID.
 		$renewal_order->delete_meta_data( '_stripe_intent_id' );

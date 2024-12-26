@@ -1032,7 +1032,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.6
-	 * @param object $order The order object
+	 * @param WC_Stripe_Order $order The order object
 	 * @param int    $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
@@ -1046,18 +1046,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
 
 				// Current data fee & net.
-				$fee_current = WC_Stripe_Helper::get_stripe_fee( $order );
-				$net_current = WC_Stripe_Helper::get_stripe_net( $order );
+				$fee_current = $order->get_fee();
+				$net_current = $order->get_net();
 
 				// Calculation.
 				$fee = (float) $fee_current + (float) $fee_refund;
 				$net = (float) $net_current + (float) $net_refund;
 
-				WC_Stripe_Helper::update_stripe_fee( $order, $fee );
-				WC_Stripe_Helper::update_stripe_net( $order, $net );
+				$order->set_fee( $fee );
+				$order->set_net( $net );
 
 				$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
-				WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+				$order->set_stripe_currency( $currency );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
