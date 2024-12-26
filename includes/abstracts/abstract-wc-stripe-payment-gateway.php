@@ -519,6 +519,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Store extra meta data for an order from a Stripe Response.
 	 *
+	 * @param object $response The Stripe response.
+	 * @param WC_Stripe_Order $order The order object.
 	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
@@ -542,7 +544,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+			$order->set_mandate_id( $response->payment_method_details->card->mandate );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -1200,7 +1202,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			$order->update_meta_data( '_stripe_refund_id', $response->id );
+			$order->set_refund_id( $response->id );
 
 			if ( isset( $response->balance_transaction ) ) {
 				$this->update_fees( $order, $response->balance_transaction );
@@ -1592,7 +1594,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Saves intent to order.
 	 *
 	 * @since 3.2.0
-	 * @param WC_Order $order For to which the source applies.
+	 * @param WC_Stripe_Order $order For to which the source applies.
 	 * @param stdClass $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
@@ -1608,7 +1610,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
+				$order->set_mandate_id( $charge->payment_method_details->card->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
@@ -1672,7 +1674,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
 	 * @since 4.2
-	 * @param WC_Order $order  The order that is being paid.
+	 * @param WC_Stripe_Order $order  The order that is being paid.
 	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
@@ -1694,7 +1696,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
 
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->set_lock_payment( $new_lock );
 		$order->save_meta_data();
 
 		return false;

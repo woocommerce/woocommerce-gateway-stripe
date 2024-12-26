@@ -311,7 +311,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
-		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->set_intent_id( $payment_intent_id );
 		$order->set_upe_payment_type( '' );
 		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save();
@@ -1769,7 +1769,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
+		$order->set_lock_payment( ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
 
 		$order = wc_get_order( $order_id );
@@ -1863,7 +1863,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
-		$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
+		$order->set_lock_payment( ( time() + MINUTE_IN_SECONDS ) ); // To assist with comparing expected order objects, set an existing lock.
 		$order->save();
 
 		$order = wc_get_order( $order_id );

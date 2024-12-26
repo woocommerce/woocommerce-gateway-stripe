@@ -313,7 +313,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_status( $order_status );
 		$order->set_transaction_id( $charge_id );
 		if ( $order_status_final ) {
-			$order->update_meta_data( '_stripe_status_final', true );
+			$order->set_status_final( true );
 		}
 		$order->save();
 

@@ -680,7 +680,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
 
-				$order->update_meta_data( '_stripe_refund_id', $refund_object->id );
+				$order->set_refund_id( $refund_object->id );
 
 				if ( isset( $refund_object->balance_transaction ) ) {
 					$this->update_fees( $order, $refund_object->balance_transaction );

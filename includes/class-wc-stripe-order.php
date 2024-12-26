@@ -10,6 +10,82 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Set the mandate ID.
+	 *
+	 * @param $mandate_id string The mandate ID to set.
+	 * @return void
+	 */
+	public function set_mandate_id( $mandate_id ) {
+		$this->update_meta_data( '_stripe_mandate_id', $mandate_id );
+	}
+
+	/**
+	 * Get the mandate ID.
+	 *
+	 * @return string
+	 */
+	public function get_mandate_id() {
+		return $this->get_meta( '_stripe_mandate_id' );
+	}
+
+	/**
+	 * Set the lock payment time.
+	 *
+	 * @param $time int The time to set.
+	 * @return void
+	 */
+	public function set_lock_payment( $time ) {
+		$this->update_meta_data( '_stripe_lock_payment', $time );
+	}
+
+	/**
+	 * Get the lock payment time.
+	 *
+	 * @return int
+	 */
+	public function get_lock_payment() {
+		return $this->get_meta( '_stripe_lock_payment' );
+	}
+
+	/**
+	 * Set the refund ID.
+	 *
+	 * @param $refund_id string The refund ID to set.
+	 * @return void
+	 */
+	public function set_refund_id( $refund_id ) {
+		$this->update_meta_data( '_stripe_refund_id', $refund_id );
+	}
+
+	/**
+	 * Get the refund ID.
+	 *
+	 * @return string
+	 */
+	public function get_refund_id() {
+		return $this->get_meta( '_stripe_refund_id' );
+	}
+
+	/**
+	 * Set the Multibanco data.
+	 *
+	 * @param $data array The Multibanco data to set.
+	 * @return void
+	 */
+	public function set_multibanco_data( $data ) {
+		$this->update_meta_data( '_stripe_multibanco', $data );
+	}
+
+	/**
+	 * Get the Multibanco data.
+	 *
+	 * @return array
+	 */
+	public function get_multibanco_data() {
+		return $this->get_meta( '_stripe_multibanco' );
+	}
+
+	/**
 	 * Set the Stripe intent ID.
 	 *
 	 * @param $intent_id string The intent ID to set.

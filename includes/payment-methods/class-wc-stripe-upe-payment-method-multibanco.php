@@ -66,11 +66,11 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Gets Multibanco payment instructions for the customer.
 	 *
-	 * @param WC_Order $order
+	 * @param WC_Stripe_Order $order
 	 * @param bool     $plain_text
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = $order->get_multibanco_data();
 		if ( ! $data ) {
 			return;
 		}
@@ -111,7 +111,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Saves Multibanco information to the order meta for later use.
 	 *
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @param object $payment_intent. The PaymentIntent object.
 	 */
 	public function save_instructions( $order, $payment_intent ) {
@@ -125,7 +125,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'reference' => $payment_intent->next_action->multibanco_display_details->reference,
 		];
 
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		$order->set_multibanco_data( $data );
 	}
 
 	/**

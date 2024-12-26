@@ -578,8 +578,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
 
-		$mock_subscription->update_meta_data( '_stripe_source_id', 'src_mock' );
-		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
+		$mock_subscription->set_source_id( 'src_mock' );
+		$mock_subscription->set_stripe_customer_id( 'cus_mock' );
 		$mock_subscription->save();
 
 		// This is the key the customer's payment methods are stored under in the transient.
@@ -655,11 +655,11 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// test expired locks.
 		$order_3 = WC_Helper_Order::create_order();
-		$order_3->update_meta_data( '_stripe_lock_payment', time() - 1 );
+		$order_3->set_lock_payment( time() - 1 );
 		$order_3->save_meta_data();
 
 		$locked       = $this->gateway->lock_order_payment( $order_3, $intent_id );
-		$current_lock = $order_3->get_meta( '_stripe_lock_payment' );
+		$current_lock = $order_3->get_lock_payment();
 
 		$this->assertFalse( $locked );
 		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
