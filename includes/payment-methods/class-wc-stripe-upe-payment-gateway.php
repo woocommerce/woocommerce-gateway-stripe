@@ -815,7 +815,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
-			$this->lock_order_payment( $order );
+			$order->lock_payment();
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
@@ -909,7 +909,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
-			$this->unlock_order_payment( $order );
+			$order->unlock_payment();
 
 			return array_merge(
 				[

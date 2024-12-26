@@ -1674,43 +1674,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
 	 * @since 4.2
+	 * @deprecated 9.1.0 Use WC_Stripe_Order::lock_payment instead.
 	 * @param WC_Stripe_Order $order  The order that is being paid.
 	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
-		$order->read_meta_data( true );
-
-		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
-
-		if ( $existing_lock ) {
-			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
-			$expiration    = (int) $parts[0];
-			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
-				return true;
-			}
-		}
-
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
-
-		$order->set_lock_payment( $new_lock );
-		$order->save_meta_data();
-
-		return false;
+		wc_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::lock_payment' );
+		return $order->lock_payment( $intent );
 	}
 
 	/**
 	 * Unlocks an order for processing by payment intents.
 	 *
 	 * @since 4.2
-	 * @param WC_Order $order The order that is being unlocked.
+	 * @deprecated 9.1.0 Use WC_Stripe_Order::unlock_payment instead.
+	 * @param WC_Stripe_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		$order->delete_meta_data( '_stripe_lock_payment' );
-		$order->save_meta_data();
+		wc_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::unlock_payment' );
+		$order->unlock_payment();
 	}
 
 	/**

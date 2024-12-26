@@ -445,7 +445,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$this->lock_order_payment( $renewal_order );
+				$renewal_order->lock_payment();
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -506,7 +506,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
-			$this->unlock_order_payment( $renewal_order );
+			$renewal_order->unlock_payment();
 
 			return;
 		}
@@ -559,7 +559,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$this->unlock_order_payment( $renewal_order );
+		$renewal_order->unlock_payment();
 	}
 
 	/**

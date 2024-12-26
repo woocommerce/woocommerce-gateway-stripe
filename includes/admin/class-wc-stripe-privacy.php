@@ -389,7 +389,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 */
 	protected function maybe_handle_order( $order ) {
 		$stripe_source_id   = $order->get_source_id();
-		$stripe_refund_id   = $order->get_meta( '_stripe_refund_id', true );
+		$stripe_refund_id   = $order->get_refund_id();
 		$stripe_customer_id = $order->get_stripe_customer_id();
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {

@@ -155,6 +155,44 @@ class WC_Stripe_Order extends WC_Order {
 	}
 
 	/**
+	 * Locks an order for payment intent processing for 5 minutes.
+	 *
+	 * @param stdClass $intent The intent that is being processed.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 */
+	public function lock_payment( $intent = null ) {
+		$this->read_meta_data( true );
+
+		$existing_lock = $this->get_lock_payment();
+
+		if ( $existing_lock ) {
+			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
+			$expiration    = (int) $parts[0];
+			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+				return true;
+			}
+		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+
+		$this->set_lock_payment( $new_lock );
+		$this->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing by payment intents.
+	 */
+	public function unlock_payment() {
+		$this->delete_meta_data( '_stripe_lock_payment' );
+		$this->save_meta_data();
+	}
+
+	/**
 	 * Set the lock payment time.
 	 *
 	 * @param $time int The time to set.

@@ -140,7 +140,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Helper::get_order( $order_id );
 
 			if ( ! is_object( $order ) ) {
 				return;
@@ -159,7 +159,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Lock the order or return if the order is already locked.
-			if ( $this->lock_order_payment( $order ) ) {
+			if ( $order->lock_payment( $order ) ) {
 				return;
 			}
 
@@ -224,7 +224,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					// Unlock the order before retrying.
-					$this->unlock_order_payment( $order );
+					$order->unlock_payment();
 
 					if ( $retry ) {
 						// Don't do anymore retries after this.
@@ -272,7 +272,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
 			// Unlock the order.
-			$this->unlock_order_payment( $order );
+			$order->unlock_payment();
 
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
@@ -280,7 +280,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Unlock the order.
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**

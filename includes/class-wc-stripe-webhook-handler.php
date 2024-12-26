@@ -220,7 +220,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
-		if ( $this->lock_order_payment( $order ) ) {
+		if ( $order->lock_payment() ) {
 			return;
 		}
 
@@ -269,7 +269,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					// Unlock the order before retrying.
-					$this->unlock_order_payment( $order );
+					$order->unlock_payment();
 
 					if ( $retry ) {
 						// Don't do anymore retries after this.
@@ -323,7 +323,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**
@@ -632,7 +632,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge        = $order->get_transaction_id();
 			$captured      = $order->charge_captured();
-			$refund_id     = $order->get_meta( '_stripe_refund_id' );
+			$refund_id     = $order->get_refund_id();
 			$currency      = $order->get_currency();
 			$raw_amount    = $refund_object->amount;
 
@@ -712,7 +712,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge     = $order->get_transaction_id();
-			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$refund_id  = $order->get_refund_id();
 			$currency   = $order->get_currency();
 			$raw_amount = $refund_object->amount;
 
@@ -944,7 +944,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( $order->lock_payment( $intent ) ) {
 			return;
 		}
 
@@ -967,7 +967,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
-				$is_awaiting_action    = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
+				$is_awaiting_action    = $order->upe_waiting_for_redirect();
 
 				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
@@ -1021,7 +1021,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	public function process_setup_intent( $notification ) {
@@ -1042,7 +1042,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( $order->lock_payment( $intent ) ) {
 			return;
 		}
 
@@ -1072,7 +1072,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->send_failed_order_email( $order_id, $status_update );
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**
