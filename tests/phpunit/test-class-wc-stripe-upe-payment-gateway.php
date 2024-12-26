@@ -1174,7 +1174,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test no charge captured.
 		$charge_mock['captured'] = false;
 		$charge_mock['id']       = 'ch_mock_1';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Helper::get_order( $order_id ) );
 		$test_order = WC_Stripe_Helper::get_order( $order_id );
 
 		$this->assertFalse( $test_order->charge_captured() );
@@ -1184,7 +1184,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test charge succeeds.
 		$charge_mock['captured'] = true;
 		$charge_mock['id']       = 'ch_mock_2';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Helper::get_order( $order_id ) );
 		$test_order = WC_Stripe_Helper::get_order( $order_id );
 
 		$this->assertTrue( $test_order->charge_captured() );
@@ -1193,7 +1193,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Test charge pending.
 		$charge_mock['status'] = 'pending';
 		$charge_mock['id']     = 'ch_mock_3';
-		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Helper::get_order( $order_id ) );
 		$test_order = WC_Stripe_Helper::get_order( $order_id );
 
 		$this->assertTrue( $test_order->charge_captured() );
@@ -1205,7 +1205,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$charge_mock['id']     = 'ch_mock_4';
 		$exception             = null;
 		try {
-			$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+			$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Helper::get_order( $order_id ) );
 		} catch ( WC_Stripe_Exception $e ) {
 			// Test that exception is thrown.
 			$exception = $e;
