@@ -230,7 +230,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order = WC_Stripe_Helper::get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 

@@ -359,7 +359,7 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		$express_checkout_type = wc_clean( wp_unslash( $_POST['express_checkout_type'] ) );
 
@@ -390,7 +390,7 @@ class WC_Stripe_Express_Checkout_Element {
 
 		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
 		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
-			$theorder = wc_get_order( $GLOBALS['post']->ID );
+			$theorder = WC_Stripe_Helper::get_order( $GLOBALS['post']->ID );
 		}
 
 		if ( ! is_object( $theorder ) ) {

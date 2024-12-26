@@ -224,7 +224,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 		if ( $this->is_valid_pay_for_order_endpoint() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? wc_get_order( $order_id )->get_order_key() : null;
+			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? WC_Stripe_Helper::get_order( $order_id )->get_order_key() : null;
 		}
 
 		return $stripe_params;
@@ -372,7 +372,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 				throw new \Exception( __( 'Order Id not found, send an order id', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Helper::get_order( $order_id );
 
 			$order_key = isset( $_POST['stripe_order_key'] ) ? wc_clean( wp_unslash( $_POST['stripe_order_key'] ) ) : null;
 			if ( $order->get_order_key() !== $order_key ) {

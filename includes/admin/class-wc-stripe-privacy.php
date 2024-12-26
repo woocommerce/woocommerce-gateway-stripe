@@ -305,7 +305,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$messages       = [];
 
 		foreach ( (array) $orders as $order ) {
-			$order = wc_get_order( $order->get_id() );
+			$order = WC_Stripe_Helper::get_order( $order->get_id() );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_order( $order );
 			$items_removed                    |= $removed;

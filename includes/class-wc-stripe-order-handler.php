@@ -331,7 +331,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$captured           = $order->charge_captured();
 			$is_stripe_captured = false;
 
-			if ( $charge && 'no' === $captured ) {
+			if ( $charge && ! $captured ) {
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
@@ -500,6 +500,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function prevent_cancelling_orders_awaiting_action( $cancel_order, $order ) {
 		if ( ! $cancel_order || ! $order instanceof WC_Order ) {
 			return $cancel_order;
+		}
+
+		if ( ! $order instanceof WC_Stripe_Order ) {
+			$order = new WC_Stripe_Order( $order );
 		}
 
 		// Bail if payment method is not stripe or `stripe_{apm_method}` or doesn't have an intent yet.

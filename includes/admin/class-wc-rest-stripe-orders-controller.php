@@ -118,7 +118,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		try {
 			$intent_id = $request['payment_intent_id'];
 			$order_id  = $request['order_id'];
-			$order     = wc_get_order( $order_id );
+			$order     = WC_Stripe_Helper::get_order( $order_id );
 
 			// Check that order exists before capturing payment.
 			if ( ! $order ) {

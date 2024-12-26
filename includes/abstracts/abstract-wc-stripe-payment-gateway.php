@@ -1855,7 +1855,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$order_id = absint( get_query_var( 'order-pay' ) );
-		$order    = wc_get_order( $order_id );
+		$order    = WC_Stripe_Helper::get_order( $order_id );
 
 		// If the order is not found or the param `key` is not set or the order key does not match the order key in the URL param, return false.
 		if ( ! $order || ! isset( $_GET['key'] ) || wc_clean( wp_unslash( $_GET['key'] ) ) !== $order->get_order_key() ) {
@@ -1894,7 +1894,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		$order = wc_get_order( $order_id_from_order_key );
+		$order = WC_Stripe_Helper::get_order( $order_id_from_order_key );
 
 		// If the order doesn't need payment, return false.
 		if ( ! $order->needs_payment() ) {
@@ -2053,7 +2053,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// If we're on the pay page we need to pass stripe.js the address of the order.
 		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$order    = wc_get_order( $order_id );
+			$order    = WC_Stripe_Helper::get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$stripe_params['billing_first_name'] = $order->get_billing_first_name();
@@ -2185,7 +2185,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order|int $order             Order object or id.
 	 */
 	public function update_saved_payment_method( $payment_method_id, $order ) {
-		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
+		$order = ! is_a( $order, 'WC_Order' ) ? WC_Stripe_Helper::get_order( $order ) : $order;
 
 		if ( ! $order || ! $this->is_type_payment_method( $payment_method_id ) ) {
 			return;

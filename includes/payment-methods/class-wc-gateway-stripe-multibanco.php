@@ -180,7 +180,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order = WC_Stripe_Helper::get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 
@@ -242,7 +242,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
 		if ( true === is_int( $order ) ) {
-			$order = wc_get_order( $order );
+			$order = WC_Stripe_Helper::get_order( $order );
 		}
 
 		$data = $order->get_multibanco_data();

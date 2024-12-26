@@ -421,7 +421,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$order    = wc_get_order( $order_id );
+			$order    = WC_Stripe_Helper::get_order( $order_id );
 
 			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
 			if ( is_a( $order, 'WC_Order' ) ) {
@@ -1219,7 +1219,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
@@ -1482,7 +1482,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Free trial subscriptions without a sign up fee, or any other type
 		// of order with a `0` amount should fall into the logic below.
 		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		$order  = isset( $order_id ) ? WC_Stripe_Helper::get_order( $order_id ) : null;
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -2403,7 +2403,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function get_existing_compatible_payment_intent( $order, $payment_method_types ) {
 		// Reload the order to make sure we have the latest data.
-		$order  = wc_get_order( $order->get_id() );
+		$order  = WC_Stripe_Helper::get_order( $order->get_id() );
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			return null;
