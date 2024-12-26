@@ -10,6 +10,42 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Validates that the order meets the minimum order amount
+	 * set by Stripe.
+	 *
+	 * @throws WC_Stripe_Exception If the order does not meet the minimum amount.
+	 */
+	public function validate_minimum_amount() {
+		if ( $this->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
+	}
+
+	/**
+	 * Adds payment intent id and order note to order if payment intent is not already saved
+	 *
+	 * @param $payment_intent_id string The payment intent id to add to the order.
+	 */
+	public function add_payment_intent_to_order( $payment_intent_id ) {
+		$old_intent_id = $this->get_intent_id();
+		if ( $old_intent_id === $payment_intent_id ) {
+			return;
+		}
+
+		$this->add_order_note(
+			sprintf(
+			/* translators: $1%s payment intent ID */
+				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+				$payment_intent_id
+			)
+		);
+
+		$this->set_intent_id( $payment_intent_id );
+		$this->save();
+	}
+
+	/**
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @return string $amount

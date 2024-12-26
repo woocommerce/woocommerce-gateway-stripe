@@ -280,7 +280,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Helper::get_order( $order_id );
 
 			if ( $this->has_subscription( $order_id ) ) {
 				$force_save_source = true;
@@ -312,7 +312,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 			if ( $order->get_total() > 0 ) {
 				// This will throw exception if not valid.
-				$this->validate_minimum_order_amount( $order );
+				$order->validate_minimum_amount();
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 

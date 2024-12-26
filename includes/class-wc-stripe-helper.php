@@ -1294,23 +1294,13 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $payment_intent_id
 	 * @param $order WC_Stripe_Order
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		$old_intent_id = $order->get_intent_id();
-		if ( $old_intent_id === $payment_intent_id ) {
-			return;
-		}
+		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::add_payment_intent' );
 
-		$order->add_order_note(
-			sprintf(
-			/* translators: $1%s payment intent ID */
-				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-				$payment_intent_id
-			)
-		);
-
-		$order->set_intent_id( $payment_intent_id );
-		$order->save();
+		$order->add_payment_intent_to_order( $payment_intent_id );
 	}
 
 	/**
@@ -1638,7 +1628,7 @@ class WC_Stripe_Helper {
 	 * Wrapper to return an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_id int Order ID.
-	 * @return bool|WC_Order
+	 * @return bool|WC_Stripe_Order
 	 */
 	public static function get_order( $order_id ) {
 		$order = wc_get_order( $order_id );
