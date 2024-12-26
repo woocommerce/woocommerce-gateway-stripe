@@ -339,7 +339,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				"payment_intents/$payment_intent_id",
 				$expected_request,
-				wc_get_order( $order_id )
+				WC_Stripe_Helper::get_order( $order_id )
 			)
 			->will(
 				$this->returnValue( [] )
@@ -911,7 +911,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$final_order = WC_Stripe_Helper::get_order( $order_id );
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
-		$this->assertEquals( $customer_id, $final_order->get_customer_id() );
+		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 	}
@@ -2029,7 +2029,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
-		$this->assertEquals( $customer_id, $final_order->get_customer_id() );
+		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertTrue( $final_order->upe_redirect_processed() );
 	}
