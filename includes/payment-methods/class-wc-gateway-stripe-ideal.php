@@ -204,7 +204,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
@@ -214,7 +214,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
 		$post_data['type']     = WC_Stripe_Payment_Methods::IDEAL;
-		$post_data['owner']    = $this->get_owner_details( $order );
+		$post_data['owner']    = $order->get_owner_details();
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 
 		if ( ! empty( $this->statement_descriptor ) ) {

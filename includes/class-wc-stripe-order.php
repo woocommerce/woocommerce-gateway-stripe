@@ -10,6 +10,43 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Get owner details.
+	 *
+	 * @return object $details
+	 */
+	public function get_owner_details() {
+		$billing_first_name = $this->get_billing_first_name();
+		$billing_last_name  = $this->get_billing_last_name();
+
+		$details = [];
+
+		$name  = $billing_first_name . ' ' . $billing_last_name;
+		$email = $this->get_billing_email();
+		$phone = $this->get_billing_phone();
+
+		if ( ! empty( $phone ) ) {
+			$details['phone'] = $phone;
+		}
+
+		if ( ! empty( $name ) ) {
+			$details['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$details['email'] = $email;
+		}
+
+		$details['address']['line1']       = $this->get_billing_address_1();
+		$details['address']['line2']       = $this->get_billing_address_2();
+		$details['address']['state']       = $this->get_billing_state();
+		$details['address']['city']        = $this->get_billing_city();
+		$details['address']['postal_code'] = $this->get_billing_postcode();
+		$details['address']['country']     = $this->get_billing_country();
+
+		return (object) apply_filters( 'wc_stripe_owner_details', $details, $this );
+	}
+
+	/**
 	 * Validates that the order meets the minimum order amount
 	 * set by Stripe.
 	 *
@@ -197,6 +234,41 @@ class WC_Stripe_Order extends WC_Order {
 	 */
 	public function get_card_brand() {
 		return $this->get_meta( '_stripe_card_brand' );
+	}
+
+	/**
+	 * Locks an order for refund processing for 5 minutes.
+	 *
+	 * @return bool A flag that indicates whether the order is already locked.
+	 */
+	public function lock_refund() {
+		$this->read_meta_data( true );
+
+		$existing_lock = $this->get_lock_refund();
+
+		if ( $existing_lock ) {
+			$expiration = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+
+		$this->set_lock_refund( $new_lock );
+		$this->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing refund.
+	 */
+	public function unlock_refund() {
+		$this->delete_meta_data( '_stripe_lock_refund' );
+		$this->save_meta_data();
 	}
 
 	/**

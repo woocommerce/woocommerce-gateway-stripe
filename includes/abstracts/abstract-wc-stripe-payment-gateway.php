@@ -659,39 +659,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return object $details
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public function get_owner_details( $order ) {
-		$billing_first_name = $order->get_billing_first_name();
-		$billing_last_name  = $order->get_billing_last_name();
-
-		$details = [];
-
-		$name  = $billing_first_name . ' ' . $billing_last_name;
-		$email = $order->get_billing_email();
-		$phone = $order->get_billing_phone();
-
-		if ( ! empty( $phone ) ) {
-			$details['phone'] = $phone;
-		}
-
-		if ( ! empty( $name ) ) {
-			$details['name'] = $name;
-		}
-
-		if ( ! empty( $email ) ) {
-			$details['email'] = $email;
-		}
-
-		$details['address']['line1']       = $order->get_billing_address_1();
-		$details['address']['line2']       = $order->get_billing_address_2();
-		$details['address']['state']       = $order->get_billing_state();
-		$details['address']['city']        = $order->get_billing_city();
-		$details['address']['postal_code'] = $order->get_billing_postcode();
-		$details['address']['country']     = $order->get_billing_country();
-
-		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_owner_details' );
+		return $order->get_owner_details();
 	}
 
 	/**
@@ -1153,12 +1128,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( ! $intent_cancelled && $captured ) {
-				$this->lock_order_refund( $order );
+				$order->lock_refund();
 				$response = WC_Stripe_API::request( $request, 'refunds' );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
-			$this->unlock_order_refund( $order );
+			$order->unlock_refund();
 
 			return new WP_Error(
 				'stripe_error',
@@ -1172,7 +1147,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( ! empty( $response->error ) ) { // @phpstan-ignore-line (return statement is added)
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
-			$this->unlock_order_refund( $order );
+			$order->unlock_refund();
 
 			return new WP_Error(
 				'stripe_error',
@@ -1214,7 +1189,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $response->id, $reason );
 
 			$order->add_order_note( $refund_message );
-			$this->unlock_order_refund( $order );
+			$order->unlock_refund();
 
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( wp_strip_all_tags( $refund_message ) ) );
 
@@ -1704,38 +1679,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 9.1.0
 	 * @param WC_Stripe_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
+	 *
+	 * @deprecated 9.1.0 Use WC_Stripe_Order::lock_refund instead.
 	 */
 	public function lock_order_refund( $order ) {
-		$order->read_meta_data( true );
-
-		$existing_lock = $order->get_lock_refund();
-
-		if ( $existing_lock ) {
-			$expiration    = (int) $existing_lock;
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration ) {
-				return true;
-			}
-		}
-
-		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
-
-		$order->set_lock_refund( $new_lock );
-		$order->save_meta_data();
-
-		return false;
+		_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::lock_refund' );
+		return $order->lock_refund();
 	}
 
 	/**
 	 * Unlocks an order for processing refund.
 	 *
 	 * @since 9.1.0
-	 * @param WC_Order $order The order that is being unlocked.
+	 * @param WC_Stripe_Order $order The order that is being unlocked.
+	 *
+	 * @deprecated 9.1.0 Use WC_Stripe_Order::unlock_refund instead.
 	 */
 	public function unlock_order_refund( $order ) {
-		$order->delete_meta_data( '_stripe_lock_refund' );
-		$order->save_meta_data();
+		_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::unlock_refund' );
+		$order->unlock_refund();
 	}
 
 	/**
