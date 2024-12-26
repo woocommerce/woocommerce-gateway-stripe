@@ -725,7 +725,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
-				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+				$order->add_payment_intent_to_order( $payment_intent_id );
 				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->set_upe_payment_type( $selected_upe_payment_type );
 

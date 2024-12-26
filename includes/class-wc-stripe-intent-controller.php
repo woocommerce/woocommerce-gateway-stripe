@@ -475,7 +475,7 @@ class WC_Stripe_Intent_Controller {
 
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
-			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+			$order->add_payment_intent_to_order( $payment_intent_id );
 		}
 
 		return [

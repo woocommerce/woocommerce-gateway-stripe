@@ -265,7 +265,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
-			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
+			$order->add_payment_intent_to_order( $intent->id );
 
 			return [
 				'result'               => 'success',
