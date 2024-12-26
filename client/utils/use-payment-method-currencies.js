@@ -1,6 +1,11 @@
 import { useContext } from '@wordpress/element';
 import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
+import {
+	PAYMENT_METHOD_ALIPAY,
+	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_WECHAT_PAY,
+} from 'wcstripe/stripe-utils/constants';
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
@@ -205,11 +210,11 @@ export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	switch ( paymentMethodId ) {
-		case 'alipay':
+		case PAYMENT_METHOD_ALIPAY:
 			return getAliPayCurrencies( isUpeEnabled );
-		case 'wechat_pay':
+		case PAYMENT_METHOD_WECHAT_PAY:
 			return getWechatPayCurrencies();
-		case 'klarna':
+		case PAYMENT_METHOD_KLARNA:
 			return getKlarnaCurrencies();
 		default:
 			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];

@@ -491,7 +491,7 @@ class WC_Stripe_Helper {
 		// If the legacy method order is not set, return the default order.
 		if ( ! empty( $ordered_payment_method_ids ) ) {
 			$payment_method_ids = array_map(
-				function( $payment_method_id ) {
+				function ( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
 						return WC_Stripe_Payment_Methods::CARD;
 					} else {
@@ -517,7 +517,7 @@ class WC_Stripe_Helper {
 			}
 		} else {
 			$payment_method_ids = array_map(
-				function( $payment_method_class ) {
+				function ( $payment_method_class ) {
 					return str_replace( 'stripe_', '', $payment_method_class::ID );
 				},
 				$payment_method_classes
@@ -616,6 +616,7 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
+		$payment_method_settings = [];
 		$available_gateways = $gateway->get_upe_available_payment_methods();
 
 		foreach ( $available_gateways as $gateway ) {
@@ -672,7 +673,7 @@ class WC_Stripe_Helper {
 		// When switched to the new checkout experience, the UPE method order is not set. Copy the legacy order to the UPE order to persist previous settings.
 		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) && ! empty( $stripe_settings['stripe_legacy_method_order'] ) ) {
 			$ordered_payment_method_ids = array_map(
-				function( $payment_method_id ) {
+				function ( $payment_method_id ) {
 					if ( 'stripe' === $payment_method_id ) {
 						return WC_Stripe_Payment_Methods::CARD;
 					} elseif ( 'stripe_sepa' === $payment_method_id ) {
@@ -692,7 +693,7 @@ class WC_Stripe_Helper {
 
 		$ordered_payment_method_ids_with_capability = array_filter(
 			$ordered_payment_method_ids,
-			function( $payment_method_id ) use ( $available_methods_with_capability ) {
+			function ( $payment_method_id ) use ( $available_methods_with_capability ) {
 				return in_array( $payment_method_id, $available_methods_with_capability, true );
 			}
 		);

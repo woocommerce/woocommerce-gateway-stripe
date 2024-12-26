@@ -62,7 +62,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
 		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
-		'status'             => 'succeeded',
+		'status'             => WC_Stripe_Intent_Status::SUCCEEDED,
 		'last_payment_error' => [],
 		'client_secret'      => 'cs_mock',
 		'charges'            => [
@@ -105,7 +105,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_CARD_SETUP_INTENT_TEMPLATE = [
 		'object'           => 'setup_intent',
-		'status'           => 'succeeded',
+		'status'           => WC_Stripe_Intent_Status::SUCCEEDED,
 		'client_secret'    => 'cs_mock',
 		'last_setup_error' => [],
 	];
@@ -417,7 +417,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'         => 'requires_action',
+				'status'         => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'data'           => [
 					(object) [
 						'id'       => $order_id,
@@ -488,7 +488,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status'               => 'requires_action',
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'object'               => 'payment_intent',
 				'data'                 => [
 					(object) [
@@ -1337,7 +1337,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'id'             => $payment_intent_id,
 				'amount'         => $amount,
 				'payment_method' => $payment_method_id,
-				'status'         => 'requires_action',
+				'status'         => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 				'charges'        => (object) [
 					'data' => [
 						(object) [
@@ -2142,7 +2142,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						],
 					],
 				],
-				'status'               => 'requires_action',
+				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);

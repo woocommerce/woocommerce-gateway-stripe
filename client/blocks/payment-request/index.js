@@ -13,6 +13,13 @@ const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 
 const componentStripePromise = loadStripe();
 
+const supports = {
+	features: getBlocksConfiguration()?.supports ?? [],
+};
+if ( getBlocksConfiguration().isAdmin ?? false ) {
+	supports.style = getBlocksConfiguration()?.style ?? [];
+}
+
 const paymentRequestPaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	title: 'Stripe',
@@ -63,9 +70,7 @@ const paymentRequestPaymentMethod = {
 		} );
 	},
 	paymentMethodId: 'stripe',
-	supports: {
-		features: getBlocksConfiguration()?.supports ?? [],
-	},
+	supports,
 };
 
 export default paymentRequestPaymentMethod;

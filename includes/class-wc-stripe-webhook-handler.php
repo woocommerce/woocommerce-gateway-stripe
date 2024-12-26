@@ -344,14 +344,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
 
-		$message = sprintf(
-		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
-			'</a>'
-		);
+		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
+		if ( $needs_response ) {
+			$message = sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
+				'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+				'</a>'
+			);
+		} else {
+			$message = __( 'A dispute was created for this order.', 'woocommerce-gateway-stripe' );
+		}
 
-		if ( ! $order->status_final() ) {
+		if ( ! $order->has_status( 'cancelled' ) && ! $order->status_final() ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -395,6 +400,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
+
+			// Do not re-send "Processing Order" email to customer after a dispute win.
+			if ( 'processing' === $order_status ) {
+				$emails = WC()->mailer()->get_emails();
+				if ( isset( $emails['WC_Email_Customer_Processing_Order'] ) ) {
+					$callback = [ $emails['WC_Email_Customer_Processing_Order'], 'trigger' ];
+					remove_action(
+						'woocommerce_order_status_on-hold_to_processing_notification',
+						$callback
+					);
+				}
+			}
+
 			$order->update_status( $order_status, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -637,6 +655,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			if ( $this->lock_order_refund( $order ) ) {
+				return;
+			}
+
 			// If the refund ID matches, don't continue to prevent double refunding.
 			if ( $refund_object->id === $refund_id ) {
 				return;
@@ -663,6 +685,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( isset( $refund_object->balance_transaction ) ) {
 					$this->update_fees( $order, $refund_object->balance_transaction );
 				}
+
+				$this->unlock_order_refund( $order );
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
@@ -805,19 +829,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/* translators: 1) The reason type. */
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
-		if (
-			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
+		// Only change the status if the charge was captured, status is not final, the order is on-hold and the review was approved.
+		if ( $order->charge_captured() &&
+			! $order->status_final() &&
 			$order->has_status( 'on-hold' ) &&
-			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
-			! $order->status_final()
+			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
+			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
+			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
 			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
-
-			// If the review was approved, the charge has been captured and the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			if ( $order->charge_captured() && in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ), true ) ) {
+			if ( in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ), true ) ) {
 				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
 			}
-
 			$order->update_status( $status_after_review, $message );
 		} else {
 			$order->add_order_note( $message );
@@ -932,6 +955,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
+				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
+
 				if ( $is_voucher_payment ) {
 					$order->update_status( 'on-hold', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 					wc_reduce_stock_levels( $order_id );

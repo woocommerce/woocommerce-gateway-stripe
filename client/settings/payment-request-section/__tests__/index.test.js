@@ -5,6 +5,10 @@ import {
 	useGetAvailablePaymentMethodIds,
 	usePaymentRequestEnabledSettings,
 } from 'wcstripe/data';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
@@ -22,8 +26,14 @@ describe( 'PaymentRequestSection', () => {
 		usePaymentRequestEnabledSettings.mockReturnValue(
 			getMockPaymentRequestEnabledSettings( true, jest.fn() )
 		);
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+			jest.fn(),
+		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_LINK,
+		] );
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -34,8 +44,13 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'hide link payment if card payment method is inactive', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'link' ] ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_CARD,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_LINK ],
+		] );
 
 		render( <PaymentRequestSection /> );
 
@@ -43,8 +58,13 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'show link payment if card payment method is active', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card', 'link' ] ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_CARD,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
+		] );
 
 		render( <PaymentRequestSection /> );
 
@@ -52,8 +72,13 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'test stripe link checkbox checked', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card', 'link' ] ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_CARD,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD, PAYMENT_METHOD_LINK ],
+		] );
 
 		const container = render( <PaymentRequestSection /> );
 		const linkCheckbox = container.getByRole( 'checkbox', {
@@ -63,8 +88,13 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'test stripe link checkbox not checked', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ] ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_CARD,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
 
 		const container = render( <PaymentRequestSection /> );
 		const linkCheckbox = container.getByRole( 'checkbox', {
