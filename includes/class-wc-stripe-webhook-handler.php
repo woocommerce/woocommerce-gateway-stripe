@@ -117,6 +117,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
 
+			if ( WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH === $validation_result ) {
+				// Return a 400 HTTP status code to notify Stripe about a misconfigured webhook when the signature does not match.
+				// @see https://docs.stripe.com/webhooks#disable
+				status_header( 400 );
+				exit;
+			}
+
 			// A webhook endpoint must return a 2xx HTTP status code to prevent future webhook
 			// delivery failures.
 			// @see https://docs.stripe.com/webhooks#acknowledge-events-immediately
@@ -135,7 +142,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
 	public function validate_request( $request_headers, $request_body ) {
-		if ( empty( $request_headers ) ) {
+		if ( true || empty( $request_headers ) ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_HEADERS;
 		}
 		if ( empty( $request_body ) ) {
