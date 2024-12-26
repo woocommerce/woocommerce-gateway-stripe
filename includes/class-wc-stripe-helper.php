@@ -1439,7 +1439,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
 		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_payment_awaiting_action' );
-		$order->set_payment_awaiting_action( true );
+		$order->set_payment_awaiting_action( $save );
 	}
 
 	/**

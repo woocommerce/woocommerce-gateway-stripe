@@ -324,7 +324,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function capture_payment( $order_id ) {
 		$result = new stdClass();
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order  = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();

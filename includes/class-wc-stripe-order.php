@@ -181,12 +181,10 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
 	 *
-	 * @param bool     $save  Whether to save the order after adding the metadata.
-	 *
 	 * @return void
 	 */
-	public function set_payment_awaiting_action( $value, $save = true ) {
-		$this->update_meta_data( '_stripe_payment_awaiting_action', wc_bool_to_string( $value ) );
+	public function set_payment_awaiting_action( $save = true ) {
+		$this->update_meta_data( '_stripe_payment_awaiting_action', wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$this->save();

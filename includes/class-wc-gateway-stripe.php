@@ -476,7 +476,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					$order->unlock_payment();
 
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-					WC_Stripe_Helper::set_payment_awaiting_action( $order );
+					$order->set_payment_awaiting_action();
 
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
