@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
 * Fix - Allow the saving of iDEAL tokens when SEPA is disabled.
 * Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods. 
