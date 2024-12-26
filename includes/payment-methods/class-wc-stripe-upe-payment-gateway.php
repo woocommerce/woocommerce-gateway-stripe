@@ -1196,7 +1196,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method );
+		if ( isset( $_GET['redirect_on_error'] ) ) {
+			$redirect_on_error = wc_clean( wp_unslash( $_GET['redirect_on_error'] ) );
+		} else {
+			$redirect_on_error = wc_get_checkout_url();
+		}
+
+		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error );
 	}
 
 	/**
@@ -1250,7 +1256,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @since 5.5.0
 	 * @version 5.5.0
 	 */
-	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
+	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error = null ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! is_object( $order ) ) {
@@ -1276,7 +1282,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			wc_add_notice( $e->getMessage(), 'error' );
-			wp_safe_redirect( wc_get_checkout_url() );
+
+			if ( $redirect_on_error ) {
+				wp_safe_redirect( $redirect_on_error );
+			} else {
+				wp_safe_redirect( wc_get_checkout_url() );
+			}
 			exit;
 		}
 	}
@@ -2376,15 +2387,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	private function get_return_url_for_redirect( $order, $save_payment_method ) {
+		$query_args = [
+			'order_id'            => $order->get_id(),
+			'wc_payment_method'   => self::ID,
+			'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+			'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+		];
+
+		// If the user was originally on the pay-for-order page, and something went wrong during
+		// processing of the UPE redirect payment, redirect the user back to the pay-for-order page.
+		if ( parent::is_valid_pay_for_order_endpoint() ) {
+			$query_args['redirect_on_error'] =
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $order->get_checkout_payment_url() ) ) );
+		}
+
 		return wp_sanitize_redirect(
 			esc_url_raw(
 				add_query_arg(
-					[
-						'order_id'            => $order->get_id(),
-						'wc_payment_method'   => self::ID,
-						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
-						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
-					],
+					$query_args,
 					$this->get_return_url( $order )
 				)
 			)
