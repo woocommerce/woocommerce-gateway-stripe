@@ -2264,7 +2264,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
-		$final_order = wc_get_order( $order_id );
+		$final_order = WC_Stripe_Helper::get_order( $order_id );
 		$note        = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
