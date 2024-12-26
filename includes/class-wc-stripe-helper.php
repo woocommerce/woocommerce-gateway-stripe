@@ -617,7 +617,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
 		$payment_method_settings = [];
-		$available_gateways = $gateway->get_upe_available_payment_methods();
+		$available_gateways      = $gateway->get_upe_available_payment_methods();
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -868,7 +868,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders   = self::get_orders(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -906,7 +906,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders   = self::get_orders(
 				[
 					'transaction_id' => $charge_id,
 					'limit'          => 1,
@@ -934,7 +934,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders   = self::get_orders(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -968,7 +968,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders   = self::get_orders(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -1006,7 +1006,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
+			$orders   = self::get_orders(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -1379,7 +1379,7 @@ class WC_Stripe_Helper {
 	public static function get_intent_id_from_order( $order ) {
 		$intent_id = $order->get_intent_id();
 		if ( ! $intent_id ) {
-			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+			$intent_id = $order->get_setup_intent();
 		}
 
 		return $intent_id ?? false;
@@ -1617,6 +1617,26 @@ class WC_Stripe_Helper {
 		}
 
 		return new WC_Stripe_Order( $order );
+	}
+
+	/**
+	 * Wrapper to get orders using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $args array Arguments to pass to wc_get_orders.
+	 * @return array|WC_Stripe_Order[]
+	 */
+	public static function get_orders( $args ) {
+		$orders = wc_get_orders( $args );
+		if ( empty( $orders ) ) {
+			return [];
+		}
+
+		return array_map(
+			function ( $order ) {
+				return new WC_Stripe_Order( $order );
+			},
+			$orders
+		);
 	}
 
 	/**

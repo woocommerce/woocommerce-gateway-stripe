@@ -399,7 +399,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->set_status_final( true );
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
-			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
+			$order_status = 'lost' === $status ? 'failed' : $order->get_status_before_hold();
 
 			// Do not re-send "Processing Order" email to customer after a dispute win.
 			if ( 'processing' === $order_status ) {
@@ -837,7 +837,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
 			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
+			$status_after_review = $order->get_status_before_hold();
 			if ( in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ 'on-hold', 'pending', 'failed', 'cancelled' ], $order ), true ) ) {
 				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? 'processing' : 'completed', $order->get_id(), $order );
 			}

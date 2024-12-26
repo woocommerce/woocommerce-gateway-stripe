@@ -733,7 +733,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
-				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+				$order->set_upe_waiting_for_redirect( true );
 
 				$order->save();
 
@@ -779,7 +779,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
 		}
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
@@ -887,7 +887,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				WC_Stripe_Helper::set_payment_awaiting_action( $order, false );
 
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
-				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+				$order->set_upe_waiting_for_redirect( true );
 				$order->save();
 			} else {
 				$redirect = $return_url;
@@ -1251,7 +1251,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.5.0
 	 */
 	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Helper::get_order( $order_id );
 
 		if ( ! is_object( $order ) ) {
 			return;
@@ -1261,7 +1261,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+		if ( $order->upe_redirect_processed() ) {
 			return;
 		}
 
@@ -1284,7 +1284,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Update order and maybe save payment method for an order after an intent has been created and confirmed.
 	 *
-	 * @param WC_Order $order               Order being processed.
+	 * @param WC_Stripe_Order $order        Order being processed.
 	 * @param string   $intent_id           Stripe setup/payment ID.
 	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
 	 */
@@ -1354,7 +1354,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order->set_upe_redirect_processed( true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
@@ -2093,15 +2093,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Conditionally stores the card brand to the order meta.
 	 *
-	 * @param WC_Order $order          The WC Order for which we're processing a payment.
+	 * @param WC_Stripe_Order $order   The WC Order for which we're processing a payment.
 	 * @param stdClass $payment_method The payment method object.
 	 */
-	private function maybe_set_preferred_card_brand_for_order( WC_Order $order, $payment_method ) {
+	private function maybe_set_preferred_card_brand_for_order( WC_Stripe_Order $order, $payment_method ) {
 		// Retrieve the preferred card brand for the payment method.
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 
-			$order->update_meta_data( '_stripe_card_brand', $preferred_brand );
+			$order->set_card_brand( $preferred_brand );
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {

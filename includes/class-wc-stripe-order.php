@@ -10,6 +10,132 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Set the preferred card brand.
+	 *
+	 * @param $brand string The brand to set.
+	 * @return void
+	 */
+	public function set_card_brand( $brand ) {
+		$this->update_meta_data( '_stripe_card_brand', $brand );
+	}
+
+	/**
+	 * Get the preferred card brand.
+	 *
+	 * @return string
+	 */
+	public function get_card_brand() {
+		return $this->get_meta( '_stripe_card_brand' );
+	}
+
+	/**
+	 * Set the lock refund time.
+	 *
+	 * @param $time int The time to set.
+	 * @return void
+	 */
+	public function set_lock_refund( $time ) {
+		$this->update_meta_data( '_stripe_lock_refund', $time );
+	}
+
+	/**
+	 * Get the lock refund time.
+	 *
+	 * @return int
+	 */
+	public function get_lock_refund() {
+		return $this->get_meta( '_stripe_lock_refund' );
+	}
+
+	/**
+	 * Set the setup intent.
+	 *
+	 * @param $value string The value to set.
+	 * @return void
+	 */
+	public function set_setup_intent( $value ) {
+		$this->update_meta_data( '_stripe_setup_intent', $value );
+	}
+
+	/**
+	 * Get the setup intent.
+	 *
+	 * @return string
+	 */
+	public function get_setup_intent() {
+		return $this->get_meta( '_stripe_setup_intent' );
+	}
+
+	/**
+	 * Set the UPE redirect processed flag.
+	 *
+	 * @param $value bool The value to set.
+	 * @return void
+	 */
+	public function set_upe_redirect_processed( $value ) {
+		$this->update_meta_data( '_stripe_upe_redirect_processed', $value );
+	}
+
+	/**
+	 * Whether the UPE redirect has been processed.
+	 *
+	 * @return bool The value of the flag.
+	 */
+	public function upe_redirect_processed() {
+		return (bool) $this->get_meta( '_stripe_upe_redirect_processed' );
+	}
+
+	/**
+	 * Stores the status of the order before being put on hold in metadata.
+	 *
+	 * @param string $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @return void
+	 */
+	public function set_status_before_hold( $status ) {
+		if ( 'default_payment_complete' === $status ) {
+			$payment_complete_status = $this->needs_processing() ? 'processing' : 'completed';
+			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $this->get_id(), $this );
+		}
+
+		$this->update_meta_data( '_stripe_status_before_hold', $status );
+	}
+
+	/**
+	 * Helper method to retrieve the status of the order before it was put on hold.
+	 *
+	 * @return string The status of the order before it was put on hold.
+	 */
+	public function get_status_before_hold() {
+		$before_hold_status = $this->get_meta( '_stripe_status_before_hold' );
+
+		if ( ! empty( $before_hold_status ) ) {
+			return $before_hold_status;
+		}
+
+		$default_before_hold_status = $this->needs_processing() ? 'processing' : 'completed';
+		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $this->get_id(), $this );
+	}
+
+	/**
+	 * Set the UPE waiting for redirect flag.
+	 *
+	 * @param $value bool The value to set.
+	 * @return void
+	 */
+	public function set_upe_waiting_for_redirect( $value ) {
+		$this->update_meta_data( '_stripe_upe_waiting_for_redirect', $value );
+	}
+
+	/**
+	 * Whether the UPE payment is waiting for redirect.
+	 *
+	 * @return bool
+	 */
+	public function upe_waiting_for_redirect() {
+		return (bool) $this->get_meta( '_stripe_upe_waiting_for_redirect' );
+	}
+
+	/**
 	 * Set the mandate ID.
 	 *
 	 * @param $mandate_id string The mandate ID to set.

@@ -582,7 +582,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 * to ensure the review.closed event handler will update the status to the proper status.
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
-					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
+					$order->set_status_before_hold( 'default_payment_complete' );
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
 					$order->payment_complete( $response->id );
@@ -1613,7 +1613,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->set_mandate_id( $charge->payment_method_details->card->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+			$order->set_setup_intent( $intent->id );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1636,7 +1636,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		$intent_id = $order->get_setup_intent();
 
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
@@ -1717,13 +1717,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Locks an order for refund processing for 5 minutes.
 	 *
 	 * @since 9.1.0
-	 * @param WC_Order $order  The order that is being refunded.
+	 * @param WC_Stripe_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_refund( $order ) {
 		$order->read_meta_data( true );
 
-		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+		$existing_lock = $order->get_lock_refund();
 
 		if ( $existing_lock ) {
 			$expiration    = (int) $existing_lock;
@@ -1736,7 +1736,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
 
-		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->set_lock_refund( $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1768,7 +1768,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Creates a SetupIntent for future payments, and saves it to the order.
 	 *
-	 * @param WC_Order $order           The ID of the (free/pre- order).
+	 * @param WC_Stripe_Order $order    The ID of the (free/pre- order).
 	 * @param object   $prepared_source The source, entered/chosen by the customer.
 	 * @return string|null              The client secret of the intent, used for confirmation in JS.
 	 */
@@ -1793,7 +1793,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
-			$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+			$order->set_setup_intent( $setup_intent->id );
 			$order->save();
 
 			return $setup_intent->client_secret;
@@ -2210,45 +2210,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	private function needs_ssl_setup() {
 		return ! $this->testmode && ! is_ssl(); // @phpstan-ignore-line (testmode is defined in the classes that use this class)
-	}
-
-	/**
-	 * Helper method to retrieve the status of the order before it was put on hold.
-	 *
-	 * @since 8.3.0
-	 *
-	 * @param WC_Order $order The order.
-	 *
-	 * @return string The status of the order before it was put on hold.
-	 */
-	protected function get_stripe_order_status_before_hold( $order ) {
-		$before_hold_status = $order->get_meta( '_stripe_status_before_hold' );
-
-		if ( ! empty( $before_hold_status ) ) {
-			return $before_hold_status;
-		}
-
-		$default_before_hold_status = $order->needs_processing() ? 'processing' : 'completed';
-		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $order->get_id(), $order );
-	}
-
-	/**
-	 * Stores the status of the order before being put on hold in metadata.
-	 *
-	 * @since 8.3.0
-	 *
-	 * @param WC_Order  $order  The order.
-	 * @param string    $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
-	 *
-	 * @return void
-	 */
-	protected function set_stripe_order_status_before_hold( $order, $status ) {
-		if ( 'default_payment_complete' === $status ) {
-			$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
-			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
-		}
-
-		$order->update_meta_data( '_stripe_status_before_hold', $status );
 	}
 
 	/**
