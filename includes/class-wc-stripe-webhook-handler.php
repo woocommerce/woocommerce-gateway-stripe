@@ -400,6 +400,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? 'failed' : $this->get_stripe_order_status_before_hold( $order );
+
+			// Do not re-send "Processing Order" email to customer after a dispute win.
+			if ( 'processing' === $order_status ) {
+				$emails = WC()->mailer()->get_emails();
+				if ( isset( $emails['WC_Email_Customer_Processing_Order'] ) ) {
+					$callback = [ $emails['WC_Email_Customer_Processing_Order'], 'trigger' ];
+					remove_action(
+						'woocommerce_order_status_on-hold_to_processing_notification',
+						$callback
+					);
+				}
+			}
+
 			$order->update_status( $order_status, $message );
 		} else {
 			$order->add_order_note( $message );

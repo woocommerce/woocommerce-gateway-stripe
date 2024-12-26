@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.1.0 - xxxx-xx-xx =
 * Fix - Show default recipient for Payment Authentication Requested email.
+* Fix - Correctly handles UK postcodes redacted by Apple Pay.
+* Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
+* Fix - Allow the saving of iDEAL tokens when SEPA is disabled.
 * Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods. 
 * Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
 * Fix - Don't update canceled order status to on-hold when a dispute is opened.
