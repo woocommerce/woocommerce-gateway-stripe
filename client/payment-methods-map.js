@@ -55,12 +55,11 @@ export default {
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
 		// translators: %s is the store currency.
 		description: __(
-			'Allow customers to pay over time with Affirm. Available to all customers paying in %s.',
+			'Allow customers to pay over time. Available to all customers paying in %s. Purchases from 50 %s to 30,000 %s are eligible for Affirm financing.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
-		acceptsDomesticPaymentsOnly: true,
 		allows_manual_capture: true,
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
@@ -73,11 +72,11 @@ export default {
 		description:
 			accountCountry === 'GB'
 				? __(
-						'Allow customers to pay over time with Clearpay.',
+						'Allow customers to pay over time with Clearpay. {{limitsLink}}Transaction limits vary by country{{/limitsLink}}.',
 						'woocommerce-gateway-stripe'
 				  )
 				: __(
-						'Allow customers to pay over time with Afterpay.',
+						'Allow customers to pay over time with Afterpay. {{limitsLink}}Transaction limits vary by country{{/limitsLink}}.',
 						'woocommerce-gateway-stripe'
 				  ),
 		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,

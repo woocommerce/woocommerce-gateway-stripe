@@ -3,6 +3,10 @@ import jQuery from 'jquery';
 import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
 
@@ -267,10 +271,12 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
 	const expressPaymentMethodTypes = getPaymentMethodTypes(
 		paymentMethodType
-	).filter( ( type ) => [ 'paypal', 'amazon_pay', 'card' ].includes( type ) );
+	).filter( ( type ) =>
+		[ 'paypal', 'amazon_pay', PAYMENT_METHOD_CARD ].includes( type )
+	);
 
 	if ( isLinkEnabled() ) {
-		expressPaymentMethodTypes.push( 'link' );
+		expressPaymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}
 
 	return expressPaymentMethodTypes;
@@ -295,15 +301,15 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 
 	// All express payment methods require 'card' payments. Add it if it's enabled.
 	if ( paymentMethodsConfig?.card !== undefined ) {
-		paymentMethodTypes.push( 'card' );
+		paymentMethodTypes.push( PAYMENT_METHOD_CARD );
 	}
 
 	// Add 'link' payment method type if enabled and requested.
 	if (
-		paymentMethodType === 'link' &&
+		paymentMethodType === PAYMENT_METHOD_LINK &&
 		isLinkEnabled( paymentMethodsConfig )
 	) {
-		paymentMethodTypes.push( 'link' );
+		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}
 
 	return paymentMethodTypes;
