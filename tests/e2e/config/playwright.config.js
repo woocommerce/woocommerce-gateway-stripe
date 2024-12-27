@@ -32,7 +32,7 @@ const config = {
 	/* Retry on CI only */
 	retries: CI ? 3 : 0,
 
-	fullyParallel: true,
+	workers: 5,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
