@@ -65,30 +65,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $source_id
 	 */
 	public static function get_by_source_id( $source_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						[
-							'key'   => '_stripe_source_id',
-							'value' => $source_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		return self::get_by_meta( '_stripe_source_id', $source_id );
 	}
 
 	/**
@@ -97,29 +74,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $charge_id
 	 */
 	public static function get_by_charge_id( $charge_id ) {
-		global $wpdb;
-
-		if ( empty( $charge_id ) ) {
-			return false;
-		}
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'transaction_id' => $charge_id,
-					'limit'          => 1,
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		return self::get_by_meta( '_transaction_id', $charge_id );
 	}
 
 	/**
@@ -128,30 +83,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $refund_id
 	 */
 	public static function get_by_refund_id( $refund_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						[
-							'key'   => '_stripe_refund_id',
-							'value' => $refund_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		return self::get_by_meta( '_stripe_refund_id', $refund_id );
 	}
 
 	/**
@@ -161,34 +93,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_by_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						[
-							'key'   => '_stripe_intent_id',
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			$order = self::get_by_id( $order_id );
-		}
-
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
-			return $order;
-		}
-
-		return false;
+		return self::get_by_meta( '_stripe_intent_id', $intent_id );
 	}
 
 	/**
@@ -198,30 +103,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_by_setup_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						[
-							'key'   => '_stripe_setup_intent',
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		return self::get_by_meta( '_stripe_setup_intent', $intent_id );
 	}
 
 	/**
@@ -816,5 +698,43 @@ class WC_Stripe_Order extends WC_Order {
 	 */
 	public function status_final() {
 		return (bool) $this->get_meta( '_stripe_status_final' );
+	}
+
+	/**
+	 * Queries for an order by a specific meta key and value.
+	 *
+	 * @param $meta_key string The meta key to search for.
+	 * @param $meta_value string The meta value to search for.
+	 * @return bool|WC_Stripe_Order
+	 */
+	private static function get_by_meta( $meta_key, $meta_value ) {
+		global $wpdb;
+
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
+			$orders   = self::query(
+				[
+					'limit'      => 1,
+					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+						[
+							'key'   => $meta_key,
+							'value' => $meta_value,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $meta_value, $meta_key ) );
+		}
+
+		if ( ! empty( $order_id ) ) {
+			$order = self::get_by_id( $order_id );
+		}
+
+		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+			return $order;
+		}
+
+		return false;
 	}
 }
