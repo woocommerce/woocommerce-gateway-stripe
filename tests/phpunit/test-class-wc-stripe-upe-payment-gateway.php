@@ -52,7 +52,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		'type'                                => WC_Stripe_Payment_Methods::SEPA_DEBIT,
 		'object'                              => 'payment_method',
 		WC_Stripe_Payment_Methods::SEPA_DEBIT => [
-			'last4' => '7061',
+			'last4'       => '7061',
+			'fingerprint' => 'fp_mock',
 		],
 	];
 
@@ -1025,7 +1026,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => [
-				'type'                                => WC_Stripe_Payment_Methods::BANCONTACT,
+				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
 				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
