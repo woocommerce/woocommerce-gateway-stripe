@@ -65,6 +65,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
 
 	/**
+	 * Flag indicating where to redirect after a redirect-based payment method fails.
+	 *
+	 * @type string
+	 */
+	const REDIRECT_ON_ERROR_PAY_FOR_ORDER = 'pay-for-order';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -1196,10 +1203,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( isset( $_GET['redirect_on_error'] ) ) {
-			$redirect_on_error = wc_clean( wp_unslash( $_GET['redirect_on_error'] ) );
-		} else {
-			$redirect_on_error = wc_get_checkout_url();
+		$redirect_on_error = '';
+		if ( isset( $_GET['redirect_on_error'] ) && self::REDIRECT_ON_ERROR_PAY_FOR_ORDER === $_GET['redirect_on_error'] ) {
+			$redirect_on_error = self::REDIRECT_ON_ERROR_PAY_FOR_ORDER;
 		}
 
 		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error );
@@ -1252,11 +1258,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param int    $order_id The order ID being processed.
 	 * @param string $intent_id The Stripe setup/payment intent ID for the order payment.
 	 * @param bool   $save_payment_method Boolean representing whether payment method for order should be saved.
+	 * @param string $redirect_on_error String representing the URL to redirect to on error, e.g. 'pay-for-order'. Optional.
 	 *
 	 * @since 5.5.0
 	 * @version 5.5.0
 	 */
-	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error = null ) {
+	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error = '' ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! is_object( $order ) ) {
@@ -1283,11 +1290,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			wc_add_notice( $e->getMessage(), 'error' );
 
-			if ( $redirect_on_error ) {
-				wp_safe_redirect( $redirect_on_error );
+			$redirect_url = '';
+			if ( self::REDIRECT_ON_ERROR_PAY_FOR_ORDER === $redirect_on_error ) {
+				$redirect_url = $order->get_checkout_payment_url();
 			} else {
-				wp_safe_redirect( wc_get_checkout_url() );
+				$redirect_url = wc_get_checkout_url();
 			}
+			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
+
 			exit;
 		}
 	}
@@ -2397,8 +2407,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If the user was originally on the pay-for-order page, and something went wrong during
 		// processing of the UPE redirect payment, redirect the user back to the pay-for-order page.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$query_args['redirect_on_error'] =
-				rawurlencode( wp_sanitize_redirect( esc_url_raw( $order->get_checkout_payment_url() ) ) );
+			$query_args['redirect_on_error'] = self::REDIRECT_ON_ERROR_PAY_FOR_ORDER;
 		}
 
 		return wp_sanitize_redirect(
