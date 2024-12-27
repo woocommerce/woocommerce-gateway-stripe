@@ -227,7 +227,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_change_subscription_payment_method( $order_id ) {
 		try {
-			$subscription    = WC_Stripe_Helper::get_order( $order_id );
+			$subscription    = WC_Stripe_Order::get_by_id( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
@@ -792,7 +792,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
 
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
-			$renewal_order = WC_Stripe_Helper::get_order( $renewal_order_id );
+			$renewal_order = WC_Stripe_Order::get_by_id( $renewal_order_id );
 			if ( ! $renewal_order instanceof WC_Order ) {
 				continue;
 			}
@@ -936,7 +936,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$parent_order       = WC_Stripe_Helper::get_order( $subscription->get_parent_id() );
+			$parent_order       = WC_Stripe_Order::get_by_id( $subscription->get_parent_id() );
 			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
 			$stripe_source_id   = $parent_order->get_source_id();
 
@@ -1147,7 +1147,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return boolean true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
-		$parent_order = WC_Stripe_Helper::get_order( $order->get_parent_id() );
+		$parent_order = WC_Stripe_Order::get_by_id( $order->get_parent_id() );
 		if ( $this->is_subscriptions_enabled()
 			&& $this->is_subscription( $order )
 			&& $parent_order

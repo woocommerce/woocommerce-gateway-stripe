@@ -666,7 +666,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// test two instances of the same order, one locked and one not.
 		$order_4   = WC_Helper_Order::create_order();
-		$dup_order = WC_Stripe_Helper::get_order( $order_4->get_id() );
+		$dup_order = WC_Stripe_Order::get_by_id( $order_4->get_id() );
 
 		$order_4->lock_payment();
 		$dup_locked = $dup_order->lock_payment();

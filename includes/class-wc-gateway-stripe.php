@@ -220,7 +220,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// If paying for order, we need to get email from the order not the user account.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order      = WC_Stripe_Helper::get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order      = WC_Stripe_Order::get_by_id( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
@@ -387,7 +387,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
-			$order = WC_Stripe_Helper::get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( $this->has_subscription( $order_id ) ) {
 				$force_save_source = true;
@@ -547,7 +547,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		$fee      = $order->get_fee();
 		$currency = $order->get_stripe_currency();
@@ -584,7 +584,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		$net      = $order->get_net();
 		$currency = $order->get_stripe_currency();
@@ -690,7 +690,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function prepare_intent_for_order_pay_page( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = WC_Stripe_Helper::get_order( absint( get_query_var( 'order-pay' ) ) );
+			$order = WC_Stripe_Order::get_by_id( absint( get_query_var( 'order-pay' ) ) );
 		}
 		$intent = $this->get_intent_from_order( $order );
 
@@ -735,7 +735,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function render_payment_intent_inputs( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = WC_Stripe_Helper::get_order( absint( get_query_var( 'order-pay' ) ) );
+			$order = WC_Stripe_Order::get_by_id( absint( get_query_var( 'order-pay' ) ) );
 		}
 		if ( ! isset( $this->order_pay_intent ) ) {
 			$this->prepare_intent_for_order_pay_page( $order );
@@ -781,7 +781,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order( absint( $order_id ) );
+		$order = WC_Stripe_Order::get_by_id( absint( $order_id ) );
 
 		if ( ! $order ) {
 			return;
@@ -871,7 +871,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// A webhook might have modified or locked the order while the intent was retreived. This ensures we are reading the right status.
 		clean_post_cache( $order->get_id() );
-		$order = WC_Stripe_Helper::get_order( $order->get_id() );
+		$order = WC_Stripe_Order::get_by_id( $order->get_id() );
 
 		if ( ! $order->has_status(
 			apply_filters(

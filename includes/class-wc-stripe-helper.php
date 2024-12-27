@@ -900,7 +900,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::get_orders(
+			$orders   = WC_Stripe_Order::query(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -917,7 +917,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return self::get_order( $order_id );
+			return self::get_by_id( $order_id );
 		}
 
 		return false;
@@ -938,7 +938,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::get_orders(
+			$orders   = WC_Stripe_Order::query(
 				[
 					'transaction_id' => $charge_id,
 					'limit'          => 1,
@@ -950,7 +950,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return self::get_order( $order_id );
+			return self::get_by_id( $order_id );
 		}
 
 		return false;
@@ -966,7 +966,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::get_orders(
+			$orders   = WC_Stripe_Order::query(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -983,7 +983,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return self::get_order( $order_id );
+			return self::get_by_id( $order_id );
 		}
 
 		return false;
@@ -1000,7 +1000,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::get_orders(
+			$orders   = WC_Stripe_Order::query(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -1017,7 +1017,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			$order = self::get_order( $order_id );
+			$order = self::get_by_id( $order_id );
 		}
 
 		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
@@ -1038,7 +1038,7 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::get_orders(
+			$orders   = WC_Stripe_Order::query(
 				[
 					'limit'      => 1,
 					'meta_query' => [
@@ -1055,7 +1055,7 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return self::get_order( $order_id );
+			return self::get_by_id( $order_id );
 		}
 
 		return false;
@@ -1622,55 +1622,5 @@ class WC_Stripe_Helper {
 		}
 
 		return $target_locale;
-	}
-
-	/**
-	 * Wrapper to return an order using the extension's custom WC_Stripe_Order class.
-	 *
-	 * @param $order_id int Order ID.
-	 * @return bool|WC_Stripe_Order
-	 */
-	public static function get_order( $order_id ) {
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			return false;
-		}
-
-		return new WC_Stripe_Order( $order );
-	}
-
-	/**
-	 * Wrapper to get orders using the extension's custom WC_Stripe_Order class.
-	 *
-	 * @param $args array Arguments to pass to wc_get_orders.
-	 * @return array|WC_Stripe_Order[]
-	 */
-	public static function get_orders( $args ) {
-		$orders = wc_get_orders( $args );
-		if ( empty( $orders ) ) {
-			return [];
-		}
-
-		return array_map(
-			function ( $order ) {
-				return new WC_Stripe_Order( $order );
-			},
-			$orders
-		);
-	}
-
-	/**
-	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
-	 *
-	 * @param $order_data array Order data.
-	 * @return bool|WC_Stripe_Order
-	 */
-	public static function create_order( $order_data ) {
-		$order = wc_create_order( $order_data );
-		if ( ! $order ) {
-			return false;
-		}
-
-		return new WC_Stripe_Order( $order );
 	}
 }

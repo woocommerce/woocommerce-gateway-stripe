@@ -197,7 +197,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 */
 	public function process_pre_order( $order_id ) {
 		try {
-			$order = WC_Stripe_Helper::get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			// This will throw exception if not valid.
 			$order->validate_minimum_amount(); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)

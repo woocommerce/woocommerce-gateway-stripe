@@ -230,7 +230,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order = WC_Stripe_Helper::get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order = WC_Stripe_Order::get_by_id( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 
@@ -280,7 +280,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = WC_Stripe_Helper::get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( $this->has_subscription( $order_id ) ) {
 				$force_save_source = true;

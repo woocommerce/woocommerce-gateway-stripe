@@ -41,7 +41,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param int $order_id
 	 */
 	public function thankyou_page( $order_id ) {
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 		if ( ! $order ) {
 			return;
 		}

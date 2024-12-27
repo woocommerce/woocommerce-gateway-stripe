@@ -140,7 +140,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
-		$order = WC_Stripe_Helper::get_order( $order->get_id() );
+		$order = WC_Stripe_Order::get_by_id( $order->get_id() );
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'succeeded', $response->get_data()['status'] );

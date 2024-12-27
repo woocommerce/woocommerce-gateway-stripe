@@ -1107,7 +1107,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
 				case 'payment_intent.amount_capturable_updated':
-					$order     = isset( $additional_data['order_id'] ) ? WC_Stripe_Helper::get_order( $additional_data['order_id'] ) : null;
+					$order     = isset( $additional_data['order_id'] ) ? WC_Stripe_Order::get_by_id( $additional_data['order_id'] ) : null;
 					$intent_id = $additional_data['intent_id'] ?? '';
 
 					if ( empty( $order ) ) {
@@ -1249,7 +1249,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$data      = explode( ':', $signature );
 
 			// Verify we received the order ID and signature (hash).
-			$order = isset( $data[0], $data[1] ) ? WC_Stripe_Helper::get_order( absint( $data[0] ) ) : false;
+			$order = isset( $data[0], $data[1] ) ? WC_Stripe_Order::get_by_id( absint( $data[0] ) ) : false;
 
 			if ( $order ) {
 				$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );

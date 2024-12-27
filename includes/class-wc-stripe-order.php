@@ -10,6 +10,56 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Wrapper to return an order using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $order_id int Order ID.
+	 * @return bool|WC_Stripe_Order
+	 */
+	public static function get_by_id( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return false;
+		}
+
+		return new WC_Stripe_Order( $order );
+	}
+
+	/**
+	 * Wrapper to get orders using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $args array Arguments to pass to wc_get_orders.
+	 * @return array|WC_Stripe_Order[]
+	 */
+	public static function query( $args ) {
+		$orders = wc_get_orders( $args );
+		if ( empty( $orders ) ) {
+			return [];
+		}
+
+		return array_map(
+			function ( $order ) {
+				return new WC_Stripe_Order( $order );
+			},
+			$orders
+		);
+	}
+
+	/**
+	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
+	 *
+	 * @param $order_data array Order data.
+	 * @return bool|WC_Stripe_Order
+	 */
+	public static function create( $order_data ) {
+		$order = wc_create_order( $order_data );
+		if ( ! $order ) {
+			return false;
+		}
+
+		return new WC_Stripe_Order( $order );
+	}
+
+	/**
 	 * Get owner details.
 	 *
 	 * @return object $details

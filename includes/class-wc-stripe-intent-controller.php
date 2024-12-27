@@ -88,7 +88,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Retrieve the order.
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! $order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
@@ -310,7 +310,7 @@ class WC_Stripe_Intent_Controller {
 			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
 
 			if ( $order_id ) {
-				$order = WC_Stripe_Helper::get_order( $order_id );
+				$order = WC_Stripe_Order::get_by_id( $order_id );
 				if ( ! $order || ! $order->needs_payment() ) {
 					throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 				}
@@ -339,7 +339,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function create_payment_intent( $order_id = null ) {
 		$amount = WC()->cart->get_total( false );
-		$order  = WC_Stripe_Helper::get_order( $order_id );
+		$order  = WC_Stripe_Order::get_by_id( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -418,7 +418,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array|null An array with result of the update, or nothing
 	 */
 	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
@@ -571,7 +571,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
-			$order    = WC_Stripe_Helper::get_order( $order_id );
+			$order    = WC_Stripe_Order::get_by_id( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -635,7 +635,7 @@ class WC_Stripe_Intent_Controller {
 
 			$order_id  = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
 			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
-			$order     = WC_Stripe_Helper::get_order( $order_id );
+			$order     = WC_Stripe_Order::get_by_id( $order_id );
 
 			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {

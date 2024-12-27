@@ -421,7 +421,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$order    = WC_Stripe_Helper::get_order( $order_id );
+			$order    = WC_Stripe_Order::get_by_id( $order_id );
 
 			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
 			if ( is_a( $order, 'WC_Order' ) ) {
@@ -651,7 +651,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                     = WC_Stripe_Helper::get_order( $order_id );
+		$order                     = WC_Stripe_Order::get_by_id( $order_id );
 		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -779,7 +779,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
 		}
 
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
@@ -954,7 +954,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function process_payment_with_saved_payment_method( $order_id, $can_retry = true ) {
 		try {
-			$order = WC_Stripe_Helper::get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->process_pre_order( $order_id );
@@ -1219,7 +1219,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
@@ -1251,7 +1251,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.5.0
 	 */
 	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
-		$order = WC_Stripe_Helper::get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! is_object( $order ) ) {
 			return;
@@ -1482,7 +1482,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Free trial subscriptions without a sign up fee, or any other type
 		// of order with a `0` amount should fall into the logic below.
 		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? WC_Stripe_Helper::get_order( $order_id ) : null;
+		$order  = isset( $order_id ) ? WC_Stripe_Order::get_by_id( $order_id ) : null;
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -2403,7 +2403,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function get_existing_compatible_payment_intent( $order, $payment_method_types ) {
 		// Reload the order to make sure we have the latest data.
-		$order  = WC_Stripe_Helper::get_order( $order->get_id() );
+		$order  = WC_Stripe_Order::get_by_id( $order->get_id() );
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			return null;
