@@ -386,7 +386,7 @@ class WC_Stripe_Intent_Controller {
 			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 			$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			$order_from_payment = WC_Stripe_Order::get_by_intent_id( $payment_intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -637,7 +637,7 @@ class WC_Stripe_Intent_Controller {
 			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
 			$order     = WC_Stripe_Order::get_by_id( $order_id );
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			$order_from_payment = WC_Stripe_Order::get_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}

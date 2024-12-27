@@ -895,32 +895,12 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $source_id
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_order_by_source_id( $source_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = WC_Stripe_Order::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => '_stripe_source_id',
-							'value' => $source_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_source_id' );
+		return WC_Stripe_Order::get_by_source_id( $source_id );
 	}
 
 	/**
@@ -929,31 +909,12 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
-		global $wpdb;
-
-		if ( empty( $charge_id ) ) {
-			return false;
-		}
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = WC_Stripe_Order::query(
-				[
-					'transaction_id' => $charge_id,
-					'limit'          => 1,
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_charge_id' );
+		return WC_Stripe_Order::get_by_charge_id( $charge_id );
 	}
 
 	/**
@@ -961,32 +922,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 7.5.0
 	 * @param string $refund_id
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = WC_Stripe_Order::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => '_stripe_refund_id',
-							'value' => $refund_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_refund_id' );
+		return WC_Stripe_Order::get_by_refund_id( $refund_id );
 	}
 
 	/**
@@ -995,36 +936,12 @@ class WC_Stripe_Helper {
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = WC_Stripe_Order::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => '_stripe_intent_id',
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			$order = self::get_by_id( $order_id );
-		}
-
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
-			return $order;
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_intent_id' );
+		return WC_Stripe_Order::get_by_intent_id( $intent_id );
 	}
 
 	/**
@@ -1033,32 +950,12 @@ class WC_Stripe_Helper {
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.1.0
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = WC_Stripe_Order::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => '_stripe_setup_intent',
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return self::get_by_id( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_setup_intent_id' );
+		return WC_Stripe_Order::get_by_setup_intent_id( $intent_id );
 	}
 
 	/**

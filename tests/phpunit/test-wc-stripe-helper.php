@@ -213,7 +213,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$intent_id = 'pi_mock';
 		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
 
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		$order = WC_Stripe_Order::get_by_intent_id( $intent_id );
 		if ( $success ) {
 			$this->assertInstanceOf( WC_Order::class, $order );
 		} else {

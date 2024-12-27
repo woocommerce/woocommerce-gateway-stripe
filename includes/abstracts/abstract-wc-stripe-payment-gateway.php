@@ -528,7 +528,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_response( $response, $order ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
-		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
+		$potential_order = WC_Stripe_Order::get_by_charge_id( $response->id );
 		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
