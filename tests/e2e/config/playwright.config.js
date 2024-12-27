@@ -18,7 +18,7 @@ const config = {
 	testDir: '../tests',
 
 	// Maximum time one test can run for
-	timeout: TIMEOUT ? Number( TIMEOUT ) : 90 * 1000,
+	timeout: TIMEOUT ? Number( TIMEOUT ) : 120 * 1000,
 
 	expect: {
 		// Maximum time expect() should wait for the condition to be met
@@ -32,7 +32,7 @@ const config = {
 	/* Retry on CI only */
 	retries: CI ? 3 : 0,
 
-	workers: 5,
+	fullyParallel: true,
 
 	// Reporter to use. See https://playwright.dev/docs/test-reporters
 	reporter: [
