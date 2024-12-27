@@ -27,7 +27,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 			name: 'stripe-challenge-frame',
 		} )
 	) {
-		await page.waitForTimeout( 1000 );
+		await page.waitForTimeout( 2000 );
 	}
 
 	await page
