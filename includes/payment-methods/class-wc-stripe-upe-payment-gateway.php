@@ -65,13 +65,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
 
 	/**
-	 * Flag indicating where to redirect after a redirect-based payment method fails.
-	 *
-	 * @type string
-	 */
-	const REDIRECT_ON_ERROR_PAY_FOR_ORDER = 'pay-for-order';
-
-	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -1203,12 +1196,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		$redirect_on_error = '';
-		if ( isset( $_GET['redirect_on_error'] ) && self::REDIRECT_ON_ERROR_PAY_FOR_ORDER === $_GET['redirect_on_error'] ) {
-			$redirect_on_error = self::REDIRECT_ON_ERROR_PAY_FOR_ORDER;
-		}
-
-		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error );
+		$this->process_upe_redirect_payment(
+			$order_id,
+			$intent_id,
+			$save_payment_method,
+			isset( $_GET['pay_for_order'] ) && 'yes' === $_GET['pay_for_order']
+		);
 	}
 
 	/**
@@ -1258,12 +1251,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param int    $order_id The order ID being processed.
 	 * @param string $intent_id The Stripe setup/payment intent ID for the order payment.
 	 * @param bool   $save_payment_method Boolean representing whether payment method for order should be saved.
-	 * @param string $redirect_on_error String representing the URL to redirect to on error, e.g. 'pay-for-order'. Optional.
+	 * @param bool $is_pay_for_order True if processing payment from Pay for Order page. Optional.
 	 *
 	 * @since 5.5.0
 	 * @version 5.5.0
 	 */
-	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $redirect_on_error = '' ) {
+	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $is_pay_for_order = false ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! is_object( $order ) ) {
@@ -1291,7 +1284,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			wc_add_notice( $e->getMessage(), 'error' );
 
 			$redirect_url = '';
-			if ( self::REDIRECT_ON_ERROR_PAY_FOR_ORDER === $redirect_on_error ) {
+			if ( $is_pay_for_order ) {
 				$redirect_url = $order->get_checkout_payment_url();
 			} else {
 				$redirect_url = wc_get_checkout_url();
@@ -2397,23 +2390,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	private function get_return_url_for_redirect( $order, $save_payment_method ) {
-		$query_args = [
-			'order_id'            => $order->get_id(),
-			'wc_payment_method'   => self::ID,
-			'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
-			'save_payment_method' => $save_payment_method ? 'yes' : 'no',
-		];
-
-		// If the user was originally on the pay-for-order page, and something went wrong during
-		// processing of the UPE redirect payment, redirect the user back to the pay-for-order page.
-		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$query_args['redirect_on_error'] = self::REDIRECT_ON_ERROR_PAY_FOR_ORDER;
-		}
-
 		return wp_sanitize_redirect(
 			esc_url_raw(
 				add_query_arg(
-					$query_args,
+					[
+						'order_id'            => $order->get_id(),
+						'wc_payment_method'   => self::ID,
+						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+						'pay_for_order'       => parent::is_valid_pay_for_order_endpoint() ? 'yes' : 'no',
+					],
 					$this->get_return_url( $order )
 				)
 			)
