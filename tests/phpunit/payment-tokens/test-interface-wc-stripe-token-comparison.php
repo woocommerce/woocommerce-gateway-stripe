@@ -44,12 +44,15 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 		return [
 			'Unknown method' => [
 				'token type'     => 'unknown',
-				'payment method' => (object) [],
+				'payment method' => (object) [
+					'type' => 'unknown',
+				],
 				'expected'       => false,
 			],
 			'CC, not equal'  => [
 				'token type'     => 'CC',
 				'payment_method' => (object) [
+					'type' => WC_Stripe_Payment_Methods::CARD,
 					'card' => (object) [
 						'fingerprint' => '456def',
 					],
@@ -59,6 +62,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 			'CC, equal'      => [
 				'token type'     => 'CC',
 				'payment method' => (object) [
+					'type' => WC_Stripe_Payment_Methods::CARD,
 					'card' => (object) [
 						'fingerprint' => '123abc',
 					],
@@ -68,6 +72,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 			'SEPA, equal'    => [
 				'token type'     => WC_Stripe_Payment_Methods::SEPA,
 				'payment method' => (object) [
+					'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
 					'sepa_debit' => (object) [
 						'fingerprint' => '123abc',
 					],
@@ -77,6 +82,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 			'Link, equal'    => [
 				'token type'     => WC_Stripe_Payment_Methods::LINK,
 				'payment method' => (object) [
+					'type' => WC_Stripe_Payment_Methods::LINK,
 					'link' => (object) [
 						'email' => 'john.doe@example.com',
 					],
@@ -86,6 +92,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 			'CashApp, equal' => [
 				'token type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				'payment method' => (object) [
+					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 					'cashapp' => (object) [
 						'cashtag' => '$test_cashtag',
 					],
