@@ -662,7 +662,7 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Searches for a duplicate token in the user's saved payment methods.
+	 * Searches for a duplicate token in the user's saved payment methods and returns it.
 	 *
 	 * @param $payment_method stdClass The payment method object.
 	 * @param $user_id int The user ID.
@@ -678,79 +678,15 @@ class WC_Stripe_Payment_Tokens {
 				'limit'      => 100,
 			]
 		);
-		switch ( $payment_method->type ) {
-			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-				if ( ! isset( $payment_method->card->fingerprint ) ) {
-					return null;
-				}
-				foreach ( $tokens as $token ) {
-					if ( 'CC' !== $token->get_type() ) {
-						continue;
-					}
-					/**
-					 * Token object.
-					 *
-					 * @var WC_Stripe_Payment_Token_CC $token
-					 */
-					if ( $payment_method->card->fingerprint === $token->get_fingerprint() ) {
-						return $token;
-					}
-				}
-				break;
-			case WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID:
-				if ( ! isset( $payment_method->sepa_debit->fingerprint ) ) {
-					return null;
-				}
-				foreach ( $tokens as $token ) {
-					if ( WC_Stripe_Payment_Methods::SEPA !== $token->get_type() ) {
-						continue;
-					}
-					/**
-					 * Token object.
-					 *
-					 * @var WC_Payment_Token_SEPA $token
-					 */
-					if ( $payment_method->sepa_debit->fingerprint === $token->get_fingerprint() ) {
-						return $token;
-					}
-				}
-				break;
-			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
-				if ( ! isset( $payment_method->link->email ) ) {
-					return null;
-				}
-				foreach ( $tokens as $token ) {
-					if ( WC_Stripe_Payment_Methods::LINK !== $token->get_type() ) {
-						continue;
-					}
-					/**
-					 * Token object.
-					 *
-					 * @var WC_Payment_Token_Link $token
-					 */
-					if ( $payment_method->link->email === $token->get_email() ) {
-						return $token;
-					}
-				}
-				break;
-			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
-				if ( ! isset( $payment_method->cashapp->cashtag ) ) {
-					return null;
-				}
-				foreach ( $tokens as $token ) {
-					if ( WC_Stripe_Payment_Methods::CASHAPP_PAY !== $token->get_type() ) {
-						continue;
-					}
-					/**
-					 * Token object.
-					 *
-					 * @var WC_Payment_Token_CashApp $token
-					 */
-					if ( $payment_method->cashapp->cashtag === $token->get_cashtag() ) {
-						return $token;
-					}
-				}
-				break;
+		foreach ( $tokens as $token ) {
+			/**
+			 * Token object.
+			 *
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA $token
+			 */
+			if ( $token->is_equal( $payment_method ) ) {
+				return $token;
+			}
 		}
 		return null;
 	}

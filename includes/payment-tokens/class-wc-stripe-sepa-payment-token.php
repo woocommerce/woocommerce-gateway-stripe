@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Payment_Token_SEPA extends WC_Payment_Token {
 
 	use WC_Stripe_Fingerprint_Trait;
+	use WC_Stripe_Unique_Identifier_Trait;
 
 	/**
 	 * Stores payment type.
