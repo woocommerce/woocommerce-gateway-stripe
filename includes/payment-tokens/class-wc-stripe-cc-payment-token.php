@@ -13,10 +13,9 @@
 // Exit if accessed directly
 defined( 'ABSPATH' ) || exit;
 
-class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC {
+class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC implements WC_Stripe_Payment_Method_Comparison_Interface {
 
 	use WC_Stripe_Fingerprint_Trait;
-	use WC_Stripe_Token_Comparison_Trait;
 
 	/**
 	 * Constructor.
@@ -28,5 +27,19 @@ class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC {
 		$this->extra_data['fingerprint'] = '';
 
 		parent::__construct( $token );
+	}
+
+	/**
+	 * Checks if the payment method token is equal a provided payment method.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_equal_payment_method( $payment_method ): bool {
+		if ( WC_Stripe_Payment_Methods::CARD === $payment_method->type
+			&& ( $payment_method->card->fingerprint ?? null ) === $this->get_fingerprint() ) {
+			return true;
+		}
+
+		return false;
 	}
 }

@@ -1,18 +1,18 @@
 <?php
 /**
- * Trait WC_Stripe_Token_Comparison_Trait tests.
+ * Trait WC_Stripe_Token_Comparison_Interface tests.
  */
 class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 	/**
-	 * Test for `is_equal`.
+	 * Test for `is_equal_payment_method`.
 	 *
 	 * @param string $token_type Token type.
 	 * @param object $payment_method Payment method object.
 	 * @param boolean $expected Whether the payment method is equal.
 	 * @return void
-	 * @dataProvider provide_test_is_equal
+	 * @dataProvider provide_test_is_equal_payment_method
 	 */
-	public function test_is_equal( $token_type, $payment_method, $expected ) {
+	public function test_is_equal_payment_method( $token_type, $payment_method, $expected ) {
 		switch ( $token_type ) {
 			case WC_Stripe_Payment_Methods::SEPA:
 				$token = new WC_Payment_Token_SEPA();
@@ -32,7 +32,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				$token->set_fingerprint( '123abc' );
 		}
 
-		$this->assertEquals( $expected, $token->is_equal( $payment_method ) );
+		$this->assertEquals( $expected, $token->is_equal_payment_method( $payment_method ) );
 	}
 
 	/**
@@ -40,7 +40,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_equal() {
+	public function provide_test_is_equal_payment_method() {
 		return [
 			'Unknown method' => [
 				'token type'     => 'unknown',

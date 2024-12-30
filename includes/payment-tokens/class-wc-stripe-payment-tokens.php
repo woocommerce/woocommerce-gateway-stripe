@@ -684,7 +684,7 @@ class WC_Stripe_Payment_Tokens {
 			 *
 			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA $token
 			 */
-			if ( $token->is_equal( $payment_method ) ) {
+			if ( $token->is_equal_payment_method( $payment_method ) ) {
 				return $token;
 			}
 		}
