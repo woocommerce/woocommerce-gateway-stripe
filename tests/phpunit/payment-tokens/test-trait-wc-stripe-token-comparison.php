@@ -1,0 +1,97 @@
+<?php
+/**
+ * Trait WC_Stripe_Token_Comparison_Trait tests.
+ */
+class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
+	/**
+	 * Test for `is_equal`.
+	 *
+	 * @param string $token_type Token type.
+	 * @param object $payment_method Payment method object.
+	 * @param boolean $expected Whether the payment method is equal.
+	 * @return void
+	 * @dataProvider provide_test_is_equal
+	 */
+	public function test_is_equal( $token_type, $payment_method, $expected ) {
+		switch ( $token_type ) {
+			case 'sepa':
+				$token = new WC_Payment_Token_SEPA();
+				$token->set_fingerprint( '123abc' );
+				break;
+			case 'link':
+				$token = new WC_Payment_Token_Link();
+				$token->set_email( 'john.doe@example.com' );
+				break;
+			case 'cashapp':
+				$token = new WC_Payment_Token_CashApp();
+				$token->set_cashtag( '$test_cashtag' );
+				break;
+			case 'CC':
+			default:
+				$token = new WC_Stripe_Payment_Token_CC();
+				$token->set_fingerprint( '123abc' );
+		}
+
+		$this->assertEquals( $expected, $token->is_equal( $payment_method ) );
+	}
+
+	/**
+	 * Data provider for `test_is_equal`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_equal() {
+		return [
+			'Unknown method' => [
+				'token type'     => 'unknown',
+				'payment method' => (object) [],
+				'expected'       => false,
+			],
+			'CC, not equal'  => [
+				'token type'     => 'CC',
+				'payment_method' => (object) [
+					'card' => (object) [
+						'fingerprint' => '456def',
+					],
+				],
+				'expected'       => false,
+			],
+			'CC, equal'      => [
+				'token type'     => 'CC',
+				'payment method' => (object) [
+					'card' => (object) [
+						'fingerprint' => '123abc',
+					],
+				],
+				'expected'       => true,
+			],
+			'SEPA, equal'    => [
+				'token type'     => 'sepa',
+				'payment method' => (object) [
+					'sepa_debit' => (object) [
+						'fingerprint' => '123abc',
+					],
+				],
+				'expected'       => true,
+			],
+			'Link, equal'    => [
+				'token type'     => 'link',
+				'payment method' => (object) [
+					'link' => (object) [
+						'email' => 'john.doe@example.com',
+					],
+				],
+				'expected'       => true,
+			],
+			'CashApp, equal' => [
+				'token type'     => 'cashapp',
+				'payment method' => (object) [
+					'cashapp' => (object) [
+						'cashtag' => '$test_cashtag',
+					],
+				],
+				'expected'       => true,
+			],
+		];
+	}
+}
