@@ -498,28 +498,32 @@ jQuery( function ( $ ) {
 
 					$.when( wcStripeECE.getSelectedProductData() )
 						.then( ( response ) => {
-							const isDeposits = wcStripeECE.productHasDepositOption();
-							/**
-							 * If the customer aborted the express checkout,
-							 * we need to re init the express checkout button to ensure the shipping
-							 * options are refetched. If the customer didn't abort the express checkout,
-							 * and the product's shipping status is consistent,
-							 * we can simply update the express checkout button with the new total and display items.
-							 */
-							const needsShipping =
-								! wcStripeECE.paymentAborted &&
-								getExpressCheckoutData( 'product' )
-									.requestShipping ===
-									response.requestShipping;
-
-							if ( ! isDeposits && needsShipping ) {
-								elements.update( {
-									amount: response.total.amount,
-								} );
+							if ( response.error ) {
+								wcStripeECE.hide();
 							} else {
-								wcStripeECE.reInitExpressCheckoutElement(
-									response
-								);
+								const isDeposits = wcStripeECE.productHasDepositOption();
+								/**
+								 * If the customer aborted the express checkout,
+								 * we need to re init the express checkout button to ensure the shipping
+								 * options are refetched. If the customer didn't abort the express checkout,
+								 * and the product's shipping status is consistent,
+								 * we can simply update the express checkout button with the new total and display items.
+								 */
+								const needsShipping =
+									! wcStripeECE.paymentAborted &&
+									getExpressCheckoutData( 'product' )
+										.requestShipping ===
+										response.requestShipping;
+
+								if ( ! isDeposits && needsShipping ) {
+									elements.update( {
+										amount: response.total.amount,
+									} );
+								} else {
+									wcStripeECE.reInitExpressCheckoutElement(
+										response
+									);
+								}
 							}
 						} )
 						.catch( () => {
@@ -604,7 +608,6 @@ jQuery( function ( $ ) {
 		},
 
 		unblockExpressCheckoutButton: () => {
-			wcStripeECE.show();
 			$( '#wc-stripe-express-checkout-element' ).unblock();
 		},
 	};
