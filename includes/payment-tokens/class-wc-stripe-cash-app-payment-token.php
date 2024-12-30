@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 class WC_Payment_Token_CashApp extends WC_Payment_Token {
 
-	use WC_Stripe_Unique_Identifier_Trait;
+	use WC_Stripe_Token_Comparison_Trait;
 
 	/**
 	 * Token Type.

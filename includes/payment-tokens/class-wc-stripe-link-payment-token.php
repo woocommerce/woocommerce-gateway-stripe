@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Payment_Token_Link extends WC_Payment_Token {
 
-	use WC_Stripe_Unique_Identifier_Trait;
+	use WC_Stripe_Token_Comparison_Trait;
 
 	/**
 	 * Stores payment type.

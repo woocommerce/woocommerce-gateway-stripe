@@ -209,6 +209,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/trait-wc-stripe-token-comparison.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';

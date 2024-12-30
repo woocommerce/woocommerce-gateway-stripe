@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 class WC_Stripe_Payment_Token_CC extends WC_Payment_Token_CC {
 
 	use WC_Stripe_Fingerprint_Trait;
-	use WC_Stripe_Unique_Identifier_Trait;
+	use WC_Stripe_Token_Comparison_Trait;
 
 	/**
 	 * Constructor.
