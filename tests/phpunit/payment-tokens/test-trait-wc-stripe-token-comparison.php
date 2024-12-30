@@ -14,15 +14,15 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 	 */
 	public function test_is_equal( $token_type, $payment_method, $expected ) {
 		switch ( $token_type ) {
-			case 'sepa':
+			case WC_Stripe_Payment_Methods::SEPA:
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_fingerprint( '123abc' );
 				break;
-			case 'link':
+			case WC_Stripe_Payment_Methods::LINK:
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( 'john.doe@example.com' );
 				break;
-			case 'cashapp':
+			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$token = new WC_Payment_Token_CashApp();
 				$token->set_cashtag( '$test_cashtag' );
 				break;
@@ -66,7 +66,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				'expected'       => true,
 			],
 			'SEPA, equal'    => [
-				'token type'     => 'sepa',
+				'token type'     => WC_Stripe_Payment_Methods::SEPA,
 				'payment method' => (object) [
 					'sepa_debit' => (object) [
 						'fingerprint' => '123abc',
@@ -75,7 +75,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				'expected'       => true,
 			],
 			'Link, equal'    => [
-				'token type'     => 'link',
+				'token type'     => WC_Stripe_Payment_Methods::LINK,
 				'payment method' => (object) [
 					'link' => (object) [
 						'email' => 'john.doe@example.com',
@@ -84,7 +84,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				'expected'       => true,
 			],
 			'CashApp, equal' => [
-				'token type'     => 'cashapp',
+				'token type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				'payment method' => (object) [
 					'cashapp' => (object) [
 						'cashtag' => '$test_cashtag',

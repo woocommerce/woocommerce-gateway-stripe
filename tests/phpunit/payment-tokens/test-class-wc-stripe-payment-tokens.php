@@ -28,14 +28,14 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `get_payment_method_type` method.
+	 * Test for `get_duplicate_token` method.
 	 *
 	 * @param object $payment_method Payment method object.
 	 * @param boolean $instance_expected Whether an instance of token is expected.
 	 * @return void
-	 * @dataProvider provide_test_search_for_duplicate_tokens
+	 * @dataProvider provide_test_get_duplicate_token
 	 */
-	public function test_search_for_duplicate_token( $payment_method, $instance_expected ) {
+	public function test_get_duplicate_token( $payment_method, $instance_expected ) {
 		// CC token.
 		$token = new WC_Stripe_Payment_Token_CC();
 		$token->set_expiry_month( '12' );
@@ -75,7 +75,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 
 		$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 
-		$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method, 1, $gateway_id );
+		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method, 1, $gateway_id );
 		if ( $instance_expected ) {
 			$this->assertInstanceOf( WC_Payment_Token::class, $found_token );
 		} else {
@@ -84,11 +84,11 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Provider for `test_search_for_duplicate_token` method.
+	 * Provider for `test_get_duplicate_token` method.
 	 *
 	 * @return array
 	 */
-	public function provide_test_search_for_duplicate_tokens() {
+	public function provide_test_get_duplicate_token() {
 		// Known CC method.
 		$payment_method_cc                                    = [
 			'id'                            => 'pm_mock_payment_method_id',

@@ -507,7 +507,7 @@ class WC_Stripe_Payment_Tokens {
 		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
-		$found_token = $this->search_for_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
+		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
 			$found_token->set_token( $payment_method->id );
@@ -669,7 +669,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @param $gateway_id string The gateway ID.
 	 * @return WC_Payment_Token|null
 	 */
-	public static function search_for_duplicate_token( $payment_method, $user_id, $gateway_id ) {
+	public static function get_duplicate_token( $payment_method, $user_id, $gateway_id ) {
 		// Using the base method instead of `WC_Payment_Tokens::get_customer_tokens` to avoid recursive calls to hooked filters and actions
 		$tokens = WC_Payment_Tokens::get_tokens(
 			[

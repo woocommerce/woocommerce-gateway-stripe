@@ -2203,7 +2203,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Searches for an existing duplicate token to update.
-		$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
+		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
 
 		if ( $found_token ) {
 			// Update the token with the new payment method ID.
@@ -2358,7 +2358,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$customer->clear_cache();
 
 			// Check if a token with the same payment method details exist. If so, just updates the payment method ID and return.
-			$found_token = WC_Stripe_Payment_Tokens::search_for_duplicate_token( $payment_method_object, $user->ID, $this->id );
+			$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $user->ID, $this->id );
 
 			// If we have a token found, update it and return.
 			if ( $found_token ) {
