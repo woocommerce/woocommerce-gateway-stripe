@@ -1469,7 +1469,7 @@ class WC_Stripe_Payment_Request {
 		$product      = wc_get_product( $product_id );
 
 		if ( ! $product ) {
-			throw new \Exception( 'There was an error adding this product to the cart.' );
+			throw new \Exception( __( 'There was an error adding this product to the cart.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$product_type = $product->get_type();
