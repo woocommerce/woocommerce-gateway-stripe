@@ -159,8 +159,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		wc_get_logger()->debug( 'Number of webhooks: ' . $number_of_duplicate_webhooks );
-
 		return $number_of_duplicate_webhooks > 1;
 	}
 
