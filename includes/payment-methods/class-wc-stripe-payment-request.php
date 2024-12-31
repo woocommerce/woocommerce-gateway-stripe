@@ -1467,6 +1467,11 @@ class WC_Stripe_Payment_Request {
 		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 		$product      = wc_get_product( $product_id );
+
+		if ( ! $product ) {
+			throw new \Exception( 'There was an error adding this product to the cart.' );
+		}
+
 		$product_type = $product->get_type();
 
 		// First empty the cart to prevent wrong calculation.
