@@ -118,7 +118,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH === $validation_result && $this->has_duplicate_webhooks_setup() ) {
 				WC_Stripe_Webhook_State::set_last_error_reason( WC_Stripe_Webhook_State::VALIDATION_FAILED_DUPLICATE_WEBHOOKS );
-			
+
 				// Return a 400 HTTP status code to notify Stripe about a misconfigured webhook when the signature does not match.
 				// @see https://docs.stripe.com/webhooks#disable
 				status_header( 400 );
