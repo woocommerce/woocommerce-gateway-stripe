@@ -25,6 +25,7 @@
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
 * Fix - Hide ECE button for synced subscription variations.
+* Fix - Check order currency on pay for order page to display supported payment methods.
 
 = 9.0.0 - 2024-12-12 =
 * Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.

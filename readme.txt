@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
 * Fix - Hide ECE button for synced subscription variations.
+* Fix - Check order currency on pay for order page to display supported payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
