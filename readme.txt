@@ -134,5 +134,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
+* Fix - Hide ECE button for synced subscription variations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
