@@ -291,19 +291,25 @@ jQuery( function ( $ ) {
 					order,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.startExpressCheckoutElement( {
-					mode: 'payment',
-					total: getExpressCheckoutData( 'product' )?.total.amount,
-					currency: getExpressCheckoutData( 'product' )?.currency,
-					requestShipping:
-						getExpressCheckoutData( 'product' )?.requestShipping ??
-						false,
-					requestPhone:
-						getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone ?? false,
-					displayItems: getExpressCheckoutData( 'product' )
-						.displayItems,
-				} );
+				const isProductSupported =
+					getExpressCheckoutData( 'product' )
+						?.validVariationSelected ?? true;
+				if ( isProductSupported ) {
+					wcStripeECE.startExpressCheckoutElement( {
+						mode: 'payment',
+						total: getExpressCheckoutData( 'product' )?.total
+							.amount,
+						currency: getExpressCheckoutData( 'product' )?.currency,
+						requestShipping:
+							getExpressCheckoutData( 'product' )
+								?.requestShipping ?? false,
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone ?? false,
+						displayItems: getExpressCheckoutData( 'product' )
+							.displayItems,
+					} );
+				}
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
