@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
 * Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
 * Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
