@@ -115,6 +115,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Return to the correct page when redirect-based payment method fails.
 * Fix - Show default recipient for Payment Authentication Requested email.
 * Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
+* Dev - Fix lint issues raised by WordPress code standards.
 * Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
 * Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
