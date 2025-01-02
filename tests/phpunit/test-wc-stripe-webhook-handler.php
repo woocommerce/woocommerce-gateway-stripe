@@ -380,4 +380,148 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `process_payment_intent`.
+	 *
+	 * @param string $event_type The event type.
+	 * @param string $order_status The order status.
+	 * @param bool $order_locked Whether the order is locked.
+	 * @param string $payment_type The payment method.
+	 * @param bool $order_status_final Whether the order status is final.
+	 * @param string $expected_status The expected order status.
+	 * @param string $expected_note The expected order note.
+	 * @return void
+	 * @dataProvider provide_test_process_payment_intent
+	 * @throws WC_Data_Exception When order status is invalid.
+	 */
+	public function test_process_payment_intent( $event_type, $order_status, $order_locked, $payment_type, $order_status_final, $expected_status, $expected_note ) {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		if ( $order_locked ) {
+			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
+		}
+		if ( $order_status_final ) {
+			$order->update_meta_data( '_stripe_status_final', true );
+		}
+		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+		if ( in_array( $payment_type, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )
+			|| in_array( $payment_type, WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, true ) ) {
+			$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+		}
+		$order->save_meta_data();
+		$order->save();
+
+		$notification = (object) [
+			'type' => $event_type,
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => 'pi_mock',
+					'metadata'           => (object) [
+						'order_id' => $order->get_id(),
+					],
+					'last_payment_error' => (object) [
+						'message' => 'Your card was declined. You can call your bank for details.',
+					],
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+
+		$this->assertSame( $expected_status, $final_order->get_status() );
+		if ( ! empty( $expected_note ) ) {
+			$notes = wc_get_order_notes(
+				[
+					'order_id' => $final_order->get_id(),
+					'limit'    => 1,
+				]
+			);
+			$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+		}
+	}
+
+	/**
+	 * Provider for `test_process_payment_intent`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_payment_intent() {
+		return [
+			'invalid status'                              => [
+				'event_type'         => 'payment_intent.succeeded',
+				'order_status'       => 'cancelled',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::CARD,
+				'order_status_final' => false,
+				'expected_status'    => 'cancelled',
+				'expected_note'      => '',
+			],
+			'order is locked'                             => [
+				'event_type'         => 'payment_intent.succeeded',
+				'order_status'       => 'pending',
+				'order locked'       => true,
+				'payment type'       => WC_Stripe_Payment_Methods::CARD,
+				'order_status_final' => false,
+				'expected_status'    => 'pending',
+				'expected_note'      => '',
+			],
+			'success, payment_intent.requires_action, voucher payment' => [
+				'event_type'         => 'payment_intent.requires_action',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::BOLETO,
+				'order_status_final' => false,
+				'expected_status'    => 'on-hold',
+				'expected_note'      => '/Awaiting payment. Order status changed from Pending payment to On hold./',
+			],
+			'success, payment_intent.succeeded, voucher payment' => [
+				'event_type'         => 'payment_intent.succeeded',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::BOLETO,
+				'order_status_final' => false,
+				'expected_status'    => 'pending',
+				'expected_note'      => '',
+			],
+			'success, payment_intent.amount_capturable_updated, async payment, awaiting action' => [
+				'event_type'         => 'payment_intent.amount_capturable_updated',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::CARD,
+				'order_status_final' => false,
+				'expected_status'    => 'pending',
+				'expected_note'      => '',
+			],
+			'success, payment_intent.payment_failed, voucher payment' => [
+				'event_type'         => 'payment_intent.payment_failed',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::BOLETO,
+				'order_status_final' => false,
+				'expected_status'    => 'failed',
+				'expected_note'      => '/Payment not completed in time Order status changed from Pending payment to Failed./',
+			],
+			'success, payment_intent.payment_failed, IPP' => [
+				'event_type'         => 'payment_intent.payment_failed',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::CARD_PRESENT,
+				'order_status_final' => false,
+				'expected_status'    => 'failed',
+				'expected_note'      => '/Stripe SCA authentication failed. Reason: Your card was declined. You can call your bank for details. Order status changed from Pending payment to Failed./',
+			],
+			'success, payment_intent.payment_failed, IPP, status final' => [
+				'event_type'         => 'payment_intent.payment_failed',
+				'order_status'       => 'pending',
+				'order locked'       => false,
+				'payment type'       => WC_Stripe_Payment_Methods::CARD_PRESENT,
+				'order_status_final' => true,
+				'expected_status'    => 'pending',
+				'expected_note'      => '/Stripe SCA authentication failed. Reason: Your card was declined. You can call your bank for details./',
+			],
+		];
+	}
 }

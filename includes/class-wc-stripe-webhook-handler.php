@@ -1001,7 +1001,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 				}
 
-				$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : '';
+				$error_message = $intent->last_payment_error->message ?? '';
 
 				/* translators: 1) The error message that was received from Stripe. */
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
