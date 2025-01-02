@@ -28,7 +28,7 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data {
 
 		$express_checkout_enabled = $stripe_gateway->get_option( 'express_checkout' );
 
-		if ( ! isset ( $express_checkout_enabled ) ) {
+		if ( empty( $express_checkout_enabled ) ) {
 			$this->migrate();
 		}
 	}
@@ -36,7 +36,7 @@ class Migrate_Payment_Request_Data_To_Express_Checkout_Data {
 	/**
 	 * Copies over Payment Request settings data to Express Checkout settings data.
 	 */
-	private function migrate( $button_type, $branded_type ) {
+	private function migrate() {
 		$stripe_gateway = $this->get_gateway();
 
 		$payment_request_enabled   = $stripe_gateway->get_option( 'payment_request', 'no' );
