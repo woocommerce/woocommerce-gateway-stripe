@@ -20,6 +20,11 @@ import {
 	useManualCapture,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( '@wordpress/data' );
 
@@ -46,7 +51,7 @@ describe( 'Settings hooks tests', () => {
 		test( 'returns the value of getSettings().available_payment_method_ids', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( {
-					available_payment_method_ids: [ 'card' ],
+					available_payment_method_ids: [ PAYMENT_METHOD_CARD ],
 				} ) ),
 			};
 
@@ -54,7 +59,7 @@ describe( 'Settings hooks tests', () => {
 				useGetAvailablePaymentMethodIds()
 			);
 
-			expect( result.current ).toEqual( [ 'card' ] );
+			expect( result.current ).toEqual( [ PAYMENT_METHOD_CARD ] );
 		} );
 
 		test( 'returns an empty array if setting is missing', () => {
@@ -160,7 +165,7 @@ describe( 'Settings hooks tests', () => {
 				},
 			} );
 
-			customizePaymentMethod( 'giropay', true, {
+			customizePaymentMethod( PAYMENT_METHOD_GIROPAY, true, {
 				giropay: {
 					name: 'Giropay',
 					description: 'Pay with Giropay',
@@ -171,7 +176,7 @@ describe( 'Settings hooks tests', () => {
 				actions.saveIndividualPaymentMethodSettings
 			).toHaveBeenCalledWith( {
 				isEnabled: true,
-				method: 'giropay',
+				method: PAYMENT_METHOD_GIROPAY,
 				name: 'Giropay',
 				description: 'Pay with Giropay',
 				expiration: '10',
@@ -189,7 +194,11 @@ describe( 'Settings hooks tests', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( {
 					foo: 'bar',
-					ordered_payment_method_ids: [ 'card', 'eps', 'giropay' ],
+					ordered_payment_method_ids: [
+						PAYMENT_METHOD_CARD,
+						PAYMENT_METHOD_EPS,
+						PAYMENT_METHOD_GIROPAY,
+					],
 				} ) ),
 				isSavingOrderedPaymentMethodIds: jest.fn(),
 			};
@@ -203,14 +212,22 @@ describe( 'Settings hooks tests', () => {
 			} = result.current;
 
 			expect( orderedPaymentMethodIds ).toEqual( [
-				'card',
-				'eps',
-				'giropay',
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_EPS,
+				PAYMENT_METHOD_GIROPAY,
 			] );
 
-			setOrderedPaymentMethodIds( [ 'giropay', 'card', 'eps' ] );
+			setOrderedPaymentMethodIds( [
+				PAYMENT_METHOD_GIROPAY,
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_EPS,
+			] );
 			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
-				ordered_payment_method_ids: [ 'giropay', 'card', 'eps' ],
+				ordered_payment_method_ids: [
+					PAYMENT_METHOD_GIROPAY,
+					PAYMENT_METHOD_CARD,
+					PAYMENT_METHOD_EPS,
+				],
 			} );
 		} );
 	} );

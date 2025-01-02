@@ -5,7 +5,7 @@ import {
 	useElements,
 } from '@stripe/react-stripe-js';
 import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
-import { errorTypes } from '../../stripe-utils/constants';
+import { errorTypes, PAYMENT_METHOD_CARD } from '../../stripe-utils/constants';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
@@ -56,7 +56,7 @@ export const usePaymentProcessing = (
 					: CardNumberElement;
 			return await stripe.createPaymentMethod( {
 				card: elements?.getElement( elementToGet ),
-				type: 'card',
+				type: PAYMENT_METHOD_CARD,
 				billing_details: ownerInfo,
 			} );
 		};

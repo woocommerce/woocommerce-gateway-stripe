@@ -2,7 +2,15 @@ import {
 	registerPaymentMethod,
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
-import { getPaymentMethodsConstants } from '../../stripe-utils/constants';
+import {
+	getPaymentMethodsConstants,
+	PAYMENT_METHOD_AFTERPAY,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_CLEARPAY,
+	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_GOOGLE_PAY,
+} from '../../stripe-utils/constants';
 import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
 import { SavedTokenHandler } from './saved-token-handler';
@@ -37,23 +45,32 @@ const paymentMethodsConfig =
 Object.entries( paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => {
 		return ! [
-			'link',
-			'giropay', // Skip giropay as it was deprecated by Jun, 30th 2024.
-			'google_pay', // Remove Google Pay since it does not need to be passed to Stripe settings.
+			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
+			PAYMENT_METHOD_GOOGLE_PAY, // Remove Google Pay since it does not need to be passed to Stripe settings.
 		].includes( upeName );
 	} )
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
 
 		// Afterpay/Clearpay have different icons for UK merchants.
-		if ( upeName === 'afterpay_clearpay' ) {
+		if ( upeName === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
 			iconName =
 				getBlocksConfiguration()?.accountCountry === 'GB'
-					? 'clearpay'
-					: 'afterpay';
+					? PAYMENT_METHOD_CLEARPAY
+					: PAYMENT_METHOD_AFTERPAY;
 		}
 
 		const Icon = Icons[ iconName ];
+		const supports = {
+			// Use `false` as fallback values in case server provided configuration is missing.
+			showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+			showSaveOption: upeConfig.showSaveOption ?? false,
+			features: getBlocksConfiguration()?.supports ?? [],
+		};
+		if ( getBlocksConfiguration().isAdmin ?? false ) {
+			supports.style = getBlocksConfiguration()?.style ?? [];
+		}
 
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
@@ -93,13 +110,7 @@ Object.entries( paymentMethodsConfig )
 				</>
 			),
 			ariaLabel: 'Stripe',
-			supports: {
-				// Use `false` as fallback values in case server provided configuration is missing.
-				showSavedCards:
-					getBlocksConfiguration()?.showSavedCards ?? false,
-				showSaveOption: upeConfig.showSaveOption ?? false,
-				features: getBlocksConfiguration()?.supports ?? [],
-			},
+			supports,
 		} );
 	} );
 

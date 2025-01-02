@@ -22,7 +22,7 @@ services:
       - "host.docker.internal:host-gateway"
   db:
     container_name: woocommerce_stripe_mysql
-    image: mariadb:10.5.8
+    image: mariadb:latest
     ports:
       - "5678:3306"
     env_file:

@@ -39,6 +39,15 @@ const StripeLabel = ( props ) => {
 };
 
 const cardIcons = getStripeCreditCardIcons();
+const supports = {
+	// Use `false` as fallback values in case server provided configuration is missing.
+	showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+	showSaveOption: getBlocksConfiguration()?.showSaveOption ?? false,
+	features: getBlocksConfiguration()?.supports ?? [],
+};
+if ( getBlocksConfiguration().isAdmin ?? false ) {
+	supports.style = getBlocksConfiguration()?.style ?? [];
+}
 const stripeCcPaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	label: <StripeLabel />,
@@ -53,12 +62,7 @@ const stripeCcPaymentMethod = {
 		'Stripe Credit Card payment method',
 		'woocommerce-gateway-stripe'
 	),
-	supports: {
-		// Use `false` as fallback values in case server provided configuration is missing.
-		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
-		showSaveOption: getBlocksConfiguration()?.showSaveOption ?? false,
-		features: getBlocksConfiguration()?.supports ?? [],
-	},
+	supports,
 };
 
 export default stripeCcPaymentMethod;
