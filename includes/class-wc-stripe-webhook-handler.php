@@ -925,7 +925,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param stdClass $notification The webhook notification from Stripe.
 	 */
-	public function process_payment_intent_success( $notification ) {
+	public function process_payment_intent( $notification ) {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
@@ -1226,7 +1226,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
 			case 'payment_intent.requires_action':
-				$this->process_payment_intent_success( $notification );
+				$this->process_payment_intent( $notification );
 				break;
 
 			case 'setup_intent.succeeded':
