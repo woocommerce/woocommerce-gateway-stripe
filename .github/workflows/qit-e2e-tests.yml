@@ -88,7 +88,7 @@ jobs:
 
       - name: Run ${{ matrix.checkout }} E2E tests
         shell: bash
-        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe ${{ matrix.checkout == 'Legacy' && 'legacy' || '' }} --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --theme storefront --env_file .env
+        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe ${{ matrix.checkout == 'Legacy' && 'legacy' || '' }} --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --env_file .env
       
       - name: Set the path in an env var
         if: ${{ failure() }}
