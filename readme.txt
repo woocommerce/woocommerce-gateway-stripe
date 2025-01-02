@@ -111,10 +111,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
 * Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
 * Fix - Allow the saving of iDEAL tokens when SEPA is disabled.
-* Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods. 
+* Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods.
 * Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
 * Fix - Don't update canceled order status to on-hold when a dispute is opened.
 * Fix - Correctly sets the dispute opened note when a dispute does not require any further action.
@@ -133,5 +134,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
+* Fix - Check order currency on pay for order page to display supported payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
