@@ -15,7 +15,7 @@ jobs:
       # clone the repository
       - uses: actions/checkout@v2
       # enable dependencies caching
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
@@ -38,11 +38,11 @@ jobs:
         with:
           node-version-file: '.nvmrc'
       # enable dependencies caching
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: ~/.cache/composer/
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v4
         with:
           path: ~/.npm/
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}

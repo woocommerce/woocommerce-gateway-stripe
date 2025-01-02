@@ -72,7 +72,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
-		$original_gateways = WC()->payment_gateways()->payment_gateways;
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe' => new WC_Gateway_Stripe(),
 		];
@@ -266,5 +266,49 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' );
 		update_option( 'woocommerce_enable_signup_from_checkout_for_subscriptions', 'yes' );
 		$this->assertTrue( $wc_stripe_ece_helper_mock2->is_account_creation_possible() );
+	}
+
+	/**
+	 * Test for `get_normalized_postal_code`.
+	 *
+	 * @param string $postal_code Postal code.
+	 * @param string $country Country code.
+	 * @param string $expected Expected normalized postal code.
+	 * @return void
+	 * @dataProvider provide_test_get_normalized_postal_code
+	 */
+	public function test_get_normalized_postal_code( $postal_code, $country, $expected ) {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_postal_code( $postal_code, $country ) );
+	}
+
+	/**
+	 * Provider for `test_get_normalized_postal_code`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_normalized_postal_code() {
+		return [
+			'GB country'           => [
+				'postal code' => 'SW1A 1AA',
+				'country'     => 'GB',
+				'expected'    => 'SW1A 1AA',
+			],
+			'GB country, redacted' => [
+				'postal code' => 'SW1A',
+				'country'     => 'GB',
+				'expected'    => 'SW1A ***',
+			],
+			'CA country'           => [
+				'postal code' => 'K1A   ',
+				'country'     => 'CA',
+				'expected'    => 'K1A***',
+			],
+			'US country'           => [
+				'postal code' => '12345',
+				'country'     => 'US',
+				'expected'    => '12345',
+			],
+		];
 	}
 }

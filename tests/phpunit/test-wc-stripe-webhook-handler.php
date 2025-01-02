@@ -21,10 +21,10 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * Mock card payment intent template.
 	 */
 	const MOCK_PAYMENT_INTENT = [
-		'id'                 => 'pi_mock',
-		'object'             => 'payment_intent',
-		'status'             => WC_Stripe_Intent_Status::SUCCEEDED,
-		'charges'            => [
+		'id'      => 'pi_mock',
+		'object'  => 'payment_intent',
+		'status'  => WC_Stripe_Intent_Status::SUCCEEDED,
+		'charges' => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -292,6 +292,91 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'event'              => 'charge.expired',
 				'expected status'    => 'failed',
 				'expected note'      => 'This payment has expired. Order status changed from On hold to Failed.',
+			],
+		];
+	}
+
+	/**
+	 * Test for `process_webhook_dispute`.
+	 *
+	 * @param bool $order_status_final Whether the order status is final.
+	 * @param string $dispute_status   The dispute status.
+	 * @param string $expected_status  The expected order status.
+	 * @param string $expected_note    The expected order note.
+	 * @return void
+	 * @dataProvider provide_test_process_webhook_dispute
+	 */
+	public function test_process_webhook_dispute( $order_status, $order_status_final, $dispute_status, $expected_status, $expected_note ) {
+		$charge_id = 'ch_fQpkNKxmUrZ8t4CT7EHGS3Rg';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( $order_status );
+		$order->set_transaction_id( $charge_id );
+		if ( $order_status_final ) {
+			$order->update_meta_data( '_stripe_status_final', true );
+		}
+		$order->save();
+
+		$notification = (object) [
+			'type' => 'charge.dispute.created',
+			'data' => (object) [
+				'object' => (object) [
+					'charge' => $charge_id,
+					'status' => $dispute_status,
+				],
+			],
+		];
+
+		$this->mock_webhook_handler->process_webhook_dispute( $notification );
+
+		$final_order = wc_get_order( $order->get_id() );
+
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $final_order->get_id(),
+				'limit'    => 1,
+			]
+		);
+
+		$this->assertSame( $expected_status, $final_order->get_status() );
+		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
+
+	}
+
+	/**
+	 * Provider for `test_process_webhook_dispute`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_dispute() {
+		return [
+			'response needed, order status not final'     => [
+				'order status'       => 'processing',
+				'order status final' => false,
+				'dispute status'     => 'needs_response',
+				'expected status'    => 'on-hold',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
+			],
+			'response needed, order status not final, status is cancelled' => [
+				'order status'       => 'cancelled',
+				'order status final' => false,
+				'dispute status'     => 'needs_response',
+				'expected status'    => 'cancelled',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
+			],
+			'response needed, order status final'         => [
+				'order status'       => 'processing',
+				'order status final' => true,
+				'dispute status'     => 'needs_response',
+				'expected status'    => 'processing',
+				'expected note'      => '/A dispute was created for this order. Response is needed./',
+			],
+			'response not needed, order status not final' => [
+				'order status'       => 'processing',
+				'order status final' => false,
+				'dispute status'     => 'lost',
+				'expected status'    => 'on-hold',
+				'expected note'      => '/A dispute was created for this order. Order status changed from Processing to On hold./',
 			],
 		];
 	}
