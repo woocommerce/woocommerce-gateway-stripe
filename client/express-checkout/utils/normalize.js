@@ -1,4 +1,5 @@
 import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils/index';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -30,6 +31,10 @@ export const normalizeLineItems = ( displayItems ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizeOrderData = ( event, paymentMethodId ) => {
+	if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+		return normalizeOrderDataBlocksAPI( event );
+	}
+
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
@@ -79,6 +84,59 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 };
 
 /**
+ * Normalize order data from Stripe's object to the expected format for WC (when using the Blocks API).
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {Object} Order object in the format WooCommerce expects.
+ */
+export const normalizeOrderDataBlocksAPI = ( event ) => {
+	const name = event?.billingDetails?.name;
+	const email = event?.billingDetails?.email ?? '';
+	const billing = event?.billingDetails?.address ?? {};
+	const shipping = event?.shippingAddress ?? {};
+
+	const phone =
+		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
+		event?.payerPhone?.replace( /[() -]/g, '' ) ??
+		'';
+
+	return {
+		billing: {
+			first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+			last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
+			company: billing?.organization ?? '',
+			email: email ?? event?.payerEmail ?? '',
+			phone,
+			country: billing?.country ?? '',
+			address_1: billing?.line1 ?? '',
+			address_2: billing?.line2 ?? '',
+			city: billing?.city ?? '',
+			state: billing?.state ?? '',
+			postcode: billing?.postal_code ?? '',
+		},
+		shipping: {
+			first_name:
+				shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+			last_name:
+				shipping?.name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
+			company: shipping?.organization ?? '',
+			phone,
+			country: shipping?.address?.country ?? '',
+			address_1: shipping?.address?.line1 ?? '',
+			address_2: shipping?.address?.line2 ?? '',
+			city: shipping?.address?.city ?? '',
+			state: shipping?.address?.state ?? '',
+			postcode: shipping?.address?.postal_code ?? '',
+			method: [ event?.shippingRate?.id ?? null ],
+		},
+		customer_note: '',
+		payment_method: 'stripe',
+		...extractOrderAttributionData(),
+	};
+};
+
+/**
  * Normalize Pay for Order data from Stripe's object to the expected format for WC.
  *
  * @param {Object} event Stripe's event object.
@@ -87,6 +145,26 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
+	if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+		return { payment_method: 'stripe' };
+	}
+	return {
+		payment_method: 'stripe',
+		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
+		'wc-stripe-payment-method': paymentMethodId,
+		express_payment_type: event?.expressPaymentType,
+	};
+};
+
+/**
+ * Normalize Pay for Order data from Stripe's object to the expected format for WC (when using Blocks API).
+ *
+ * @param {Object} event Stripe's event object.
+ * @param {string} paymentMethodId Stripe's payment method id.
+ *
+ * @return {Object} Order object in the format WooCommerce expects.
+ */
+export const normalizePayForOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 	return {
 		payment_method: 'stripe',
 		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.

@@ -518,7 +518,21 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		// @todo replace with Blocks API request
+		if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+			return this.request( {
+				method: 'POST',
+				path: '/wc/store/v1/checkout',
+				headers: {
+					Nonce: getExpressCheckoutData( 'nonce' )?.checkout,
+				},
+				data: {
+					...getRequiredFieldDataFromCheckoutForm( paymentData ),
+					// preventing billing and shipping address from being overwritten in the request to the store - we don't want to update them
+					billing_address: this.cachedCartData.billing_address,
+					shipping_address: this.cachedCartData.shipping_address,
+				},
+			} );
+		}
 		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
@@ -533,7 +547,21 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
-		// @todo replace with Blocks API request
+		if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+			return this.request( {
+				method: 'POST',
+				path: `/wc/store/v1/checkout/${ order }`,
+				headers: {
+					Nonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
+				},
+				data: {
+					...paymentData,
+					// preventing billing and shipping address from being overwritten in the request to the store - we don't want to update them
+					billing_address: this.cachedCartData.billing_address,
+					shipping_address: this.cachedCartData.shipping_address,
+				},
+			} );
+		}
 		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
 			order,
