@@ -925,7 +925,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param stdClass $notification The webhook notification from Stripe.
 	 */
-	public function process_payment_intent_success( $notification ) {
+	public function process_payment_intent( $notification ) {
 		$intent = $notification->data->object;
 		$order  = $this->get_order_from_intent( $intent );
 
@@ -1001,7 +1001,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 				}
 
-				$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : '';
+				$error_message = $intent->last_payment_error->message ?? '';
 
 				/* translators: 1) The error message that was received from Stripe. */
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
@@ -1226,7 +1226,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
 			case 'payment_intent.requires_action':
-				$this->process_payment_intent_success( $notification );
+				$this->process_payment_intent( $notification );
 				break;
 
 			case 'setup_intent.succeeded':
@@ -1244,29 +1244,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_order_from_intent( $intent ) {
 		// Attempt to get the order from the intent metadata.
-		if ( isset( $intent->metadata->signature ) ) {
-			$signature = wc_clean( $intent->metadata->signature );
-			$data      = explode( ':', $signature );
+		if ( isset( $intent->metadata ) ) {
+			// Try to retrieve from the signature
+			if ( isset( $intent->metadata->signature ) ) {
+				$signature = wc_clean( $intent->metadata->signature );
+				$data      = explode( ':', $signature );
 
-			// Verify we received the order ID and signature (hash).
-			$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
+				// Verify we received the order ID and signature (hash).
+				$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
 
-			if ( $order ) {
-				$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
+				if ( $order ) {
+					$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
 
-				// Return the order if the intent ID matches.
-				if ( $intent->id === $intent_id ) {
-					return $order;
-				}
+					// Return the order if the intent ID matches.
+					if ( $intent->id === $intent_id ) {
+						return $order;
+					}
 
-				/**
-				 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
-				 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
-				 */
-				if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
-					return $order;
+					/**
+					 * If the order has no intent ID stored, we may have failed to store it during the initial payment request.
+					 * Confirm that the signature matches the order, otherwise fall back to finding the order via the intent ID.
+					 */
+					if ( empty( $intent_id ) && $this->get_order_signature( $order ) === $signature ) {
+						return $order;
+					}
 				}
 			}
+
+			// Try to retrieve from the metadata order ID.
+			if ( isset( $intent->metadata->order_id ) ) {
+				return wc_get_order( absint( $intent->metadata->order_id ) );
+			}
+		}
+
+		// Try to retrieve from the charges array.
+		if ( ! empty( $intent->charges ) ) {
+			$charge   = $intent->charges[0] ?? [];
+			$order_id = $charge['metadata']['order_id'] ?? null;
+			return wc_get_order( $order_id );
 		}
 
 		// Fall back to finding the order via the intent ID.
