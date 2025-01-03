@@ -518,6 +518,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
+		// @todo replace with Blocks API request
 		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
@@ -532,6 +533,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
+		// @todo replace with Blocks API request
 		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
 			order,

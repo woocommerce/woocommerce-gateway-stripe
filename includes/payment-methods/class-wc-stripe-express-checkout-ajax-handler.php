@@ -299,6 +299,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Create order. Security is handled by WC.
+	 *
+	 * @todo Maybe remove this
 	 */
 	public function ajax_create_order() {
 		try {
@@ -347,6 +349,8 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Processes the Pay for Order AJAX request from the Express Checkout.
+	 *
+	 * @todo Maybe remove this
 	 */
 	public function ajax_pay_for_order() {
 		check_ajax_referer( 'wc-stripe-pay-for-order' );
