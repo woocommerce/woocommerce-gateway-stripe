@@ -148,18 +148,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		$number_of_duplicate_webhooks = count( $webhooks );
+		$number_of_webhooks = 0;
 		foreach ( $webhooks->data as $webhook ) {
 			if ( ! isset( $webhook->url ) ) {
 				continue;
 			}
 
 			if ( $webhook->url === $webhook_url ) {
-				$number_of_duplicate_webhooks++;
+				$number_of_webhooks++;
 			}
 		}
 
-		return $number_of_duplicate_webhooks > 1;
+		return $number_of_webhooks > 1;
 	}
 
 	/**
