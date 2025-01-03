@@ -184,7 +184,7 @@ class WC_Stripe_Webhook_State {
 		}
 
 		if ( self::VALIDATION_FAILED_DUPLICATE_WEBHOOKS == $last_error ) {
-			return( __( 'Multiple webhooks are created for this site. Please remove the duplicate webhooks or re-configure the webhooks', 'woocommerce-gateway-stripe' ) );
+			return( __( 'Multiple webhooks exist for this site. Please remove the duplicate webhooks or re-configure the webhooks', 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( self::VALIDATION_FAILED_TIMESTAMP_MISMATCH == $last_error ) {
