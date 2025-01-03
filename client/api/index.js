@@ -527,9 +527,6 @@ export default class WCStripeAPI {
 				},
 				data: {
 					...getRequiredFieldDataFromCheckoutForm( paymentData ),
-					// preventing billing and shipping address from being overwritten in the request to the store - we don't want to update them
-					billing_address: this.cachedCartData.billing_address,
-					shipping_address: this.cachedCartData.shipping_address,
 				},
 			} );
 		}
@@ -556,9 +553,6 @@ export default class WCStripeAPI {
 				},
 				data: {
 					...paymentData,
-					// preventing billing and shipping address from being overwritten in the request to the store - we don't want to update them
-					billing_address: this.cachedCartData.billing_address,
-					shipping_address: this.cachedCartData.shipping_address,
 				},
 			} );
 		}
