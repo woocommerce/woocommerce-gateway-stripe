@@ -31,7 +31,7 @@ export const normalizeLineItems = ( displayItems ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizeOrderData = ( event, paymentMethodId ) => {
-	if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
 		return normalizeOrderDataBlocksAPI( event );
 	}
 
@@ -145,7 +145,7 @@ export const normalizeOrderDataBlocksAPI = ( event ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
-	if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
 		return { payment_method: 'stripe' };
 	}
 	return {

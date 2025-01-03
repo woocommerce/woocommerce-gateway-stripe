@@ -518,7 +518,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
 			return this.request( {
 				method: 'POST',
 				path: '/wc/store/v1/checkout',
@@ -547,7 +547,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
-		if ( getExpressCheckoutData( 'blocks_api_enabled_for_ece' ) ) {
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
 			return this.request( {
 				method: 'POST',
 				path: `/wc/store/v1/checkout/${ order }`,
