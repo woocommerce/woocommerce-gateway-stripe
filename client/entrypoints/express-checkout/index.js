@@ -19,6 +19,7 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
+	onConfirmHandlerBlocksAPI,
 	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -233,16 +234,19 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-
-				return await onConfirmHandler(
+				const params = {
 					api,
-					api.getStripe(),
+					stripe: api.getStripe(),
 					elements,
-					wcStripeECE.completePayment,
-					wcStripeECE.abortPayment,
+					completePayment: wcStripeECE.completePayment,
+					abortPayment: wcStripeECE.abortPayment,
 					event,
-					order
-				);
+					order,
+				};
+				if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+					return await onConfirmHandlerBlocksAPI( ...params );
+				}
+				return await onConfirmHandler( ...params );
 			} );
 
 			eceButton.on( 'cancel', () => {

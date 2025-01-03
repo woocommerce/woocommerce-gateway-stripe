@@ -519,18 +519,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return apiFetch( {
-				method: 'POST',
-				path: '/wc/store/v1/checkout',
-				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-				},
-				data: {
-					...getRequiredFieldDataFromCheckoutForm( paymentData ),
-				},
-			} );
-		}
 		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
@@ -545,22 +533,49 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return apiFetch( {
-				method: 'POST',
-				path: `/wc/store/v1/checkout/${ order }`,
-				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
-				},
-				data: {
-					...paymentData,
-				},
-			} );
-		}
 		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
 			order,
 			...paymentData,
+		} );
+	}
+
+	/**
+	 * Creates order based on Express Checkout ECE payment method.
+	 *
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECreateOrderBlocksAPI( paymentData ) {
+		return apiFetch( {
+			method: 'POST',
+			path: '/wc/store/v1/checkout',
+			headers: {
+				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			},
+			data: {
+				...getRequiredFieldDataFromCheckoutForm( paymentData ),
+			},
+		} );
+	}
+
+	/**
+	 * Pays for an order based on the Express Checkout payment method.
+	 *
+	 * @param {number} order The order ID.
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECEPayForOrderBlocksAPI( order, paymentData ) {
+		return apiFetch( {
+			method: 'POST',
+			path: `/wc/store/v1/checkout/${ order }`,
+			headers: {
+				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			},
+			data: {
+				...paymentData,
+			},
 		} );
 	}
 

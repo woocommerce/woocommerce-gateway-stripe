@@ -1,5 +1,4 @@
 import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
-import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils/index';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -31,10 +30,6 @@ export const normalizeLineItems = ( displayItems ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizeOrderData = ( event, paymentMethodId ) => {
-	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-		return normalizeOrderDataBlocksAPI( event, paymentMethodId );
-	}
-
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
@@ -168,38 +163,47 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
-	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-		return {
-			payment_method: 'stripe',
-			payment_data: [
-				{
-					key: 'payment_method',
-					value: 'stripe',
-				},
-				{
-					key: 'payment_request_type',
-					value: event?.expressPaymentType,
-				},
-				{
-					key: 'wc-stripe-payment-method',
-					value: paymentMethodId,
-				},
-				{
-					key: 'express_payment_type',
-					value: event?.expressPaymentType,
-				},
-				{
-					key: 'wc-stripe-is-deferred-intent',
-					value: true,
-				},
-			],
-		};
-	}
 	return {
 		payment_method: 'stripe',
 		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
 		'wc-stripe-payment-method': paymentMethodId,
 		express_payment_type: event?.expressPaymentType,
+	};
+};
+
+/**
+ * Normalize Pay for Order data from Stripe's object to the expected format for WC.
+ *
+ * @param {Object} event Stripe's event object.
+ * @param {string} paymentMethodId Stripe's payment method id.
+ *
+ * @return {Object} Order object in the format WooCommerce expects.
+ */
+export const normalizePayForOrderDataBlocksAPI = ( event, paymentMethodId ) => {
+	return {
+		payment_method: 'stripe',
+		payment_data: [
+			{
+				key: 'payment_method',
+				value: 'stripe',
+			},
+			{
+				key: 'payment_request_type',
+				value: event?.expressPaymentType,
+			},
+			{
+				key: 'wc-stripe-payment-method',
+				value: paymentMethodId,
+			},
+			{
+				key: 'express_payment_type',
+				value: event?.expressPaymentType,
+			},
+			{
+				key: 'wc-stripe-is-deferred-intent',
+				value: true,
+			},
+		],
 	};
 };
 

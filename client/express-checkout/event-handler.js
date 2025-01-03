@@ -6,6 +6,8 @@ import {
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
+	normalizeOrderDataBlocksAPI,
+	normalizePayForOrderDataBlocksAPI,
 } from './utils';
 import {
 	trackExpressCheckoutButtonClick,
@@ -89,77 +91,26 @@ export const onConfirmHandler = async (
 			);
 		}
 
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			if ( orderResponse.payment_result.payment_status !== 'success' ) {
-				return abortPayment(
-					event,
-					getErrorMessageFromNotice(
-						orderResponse.payment_result?.payment_details.find(
-							( detail ) => detail.key === 'errorMessage'
-						)?.value
-					),
-					true
-				);
-			}
-
-			const confirmationRequest = api.confirmIntent(
-				orderResponse.payment_result.redirect_url
-			);
-
-			// `true` means there is no intent to confirm.
-			if ( confirmationRequest === true ) {
-				completePayment( orderResponse.payment_result.redirect_url );
-			} else {
-				const { request } = confirmationRequest;
-				const redirectUrl = await request;
-
-				completePayment( redirectUrl );
-			}
-		} else {
-			if ( orderResponse.result !== 'success' ) {
-				return abortPayment(
-					event,
-					getErrorMessageFromNotice( orderResponse.messages ),
-					true
-				);
-			}
-
-			const confirmationRequest = api.confirmIntent(
-				orderResponse.redirect
-			);
-
-			// `true` means there is no intent to confirm.
-			if ( confirmationRequest === true ) {
-				completePayment( orderResponse.redirect );
-			} else {
-				const { request } = confirmationRequest;
-				const redirectUrl = await request;
-
-				completePayment( redirectUrl );
-			}
-		}
-	} catch ( e ) {
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			let errorMessage;
-			if (
-				e.payment_result?.payment_details.find(
-					( detail ) => detail.key === 'errorMessage'
-				)?.value
-			) {
-				errorMessage = e.payment_result?.payment_details.find(
-					( detail ) => detail.key === 'errorMessage'
-				)?.value;
-			} else {
-				errorMessage = __(
-					'There was a problem processing the order.',
-					'woocommerce-gateway-stripe'
-				);
-			}
+		if ( orderResponse.result !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( errorMessage )
+				getErrorMessageFromNotice( orderResponse.messages ),
+				true
 			);
 		}
+
+		const confirmationRequest = api.confirmIntent( orderResponse.redirect );
+
+		// `true` means there is no intent to confirm.
+		if ( confirmationRequest === true ) {
+			completePayment( orderResponse.redirect );
+		} else {
+			const { request } = confirmationRequest;
+			const redirectUrl = await request;
+
+			completePayment( redirectUrl );
+		}
+	} catch ( e ) {
 		let errorMessage;
 		if ( e.message ) {
 			errorMessage = e.message;
@@ -170,6 +121,87 @@ export const onConfirmHandler = async (
 			);
 		}
 		return abortPayment( event, errorMessage );
+	}
+};
+
+export const onConfirmHandlerBlocksAPI = async (
+	api,
+	stripe,
+	elements,
+	completePayment,
+	abortPayment,
+	event,
+	order = 0 // Order ID for the pay for order flow.
+) => {
+	const submitResponse = await elements.submit();
+	if ( submitResponse?.error ) {
+		return abortPayment( event, submitResponse?.error?.message );
+	}
+
+	const { paymentMethod, error } = await stripe.createPaymentMethod( {
+		elements,
+	} );
+
+	if ( error ) {
+		return abortPayment( event, error.message );
+	}
+
+	try {
+		// Kick off checkout processing step.
+		let orderResponse;
+		if ( ! order ) {
+			orderResponse = await api.expressCheckoutECECreateOrderBlocksAPI(
+				normalizeOrderDataBlocksAPI( event, paymentMethod.id )
+			);
+		} else {
+			orderResponse = await api.expressCheckoutECEPayForOrderBlocksAPI(
+				order,
+				normalizePayForOrderDataBlocksAPI( event, paymentMethod.id )
+			);
+		}
+
+		if ( orderResponse.payment_result.payment_status !== 'success' ) {
+			return abortPayment(
+				event,
+				getErrorMessageFromNotice(
+					orderResponse.payment_result?.payment_details.find(
+						( detail ) => detail.key === 'errorMessage'
+					)?.value
+				),
+				true
+			);
+		}
+
+		const confirmationRequest = api.confirmIntent(
+			orderResponse.payment_result.redirect_url
+		);
+
+		// `true` means there is no intent to confirm.
+		if ( confirmationRequest === true ) {
+			completePayment( orderResponse.payment_result.redirect_url );
+		} else {
+			const { request } = confirmationRequest;
+			const redirectUrl = await request;
+
+			completePayment( redirectUrl );
+		}
+	} catch ( e ) {
+		let errorMessage;
+		if (
+			e.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value
+		) {
+			errorMessage = e.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value;
+		} else {
+			errorMessage = __(
+				'There was a problem processing the order.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+		return abortPayment( event, getErrorMessageFromNotice( errorMessage ) );
 	}
 };
 

@@ -7,6 +7,7 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
+	onConfirmHandlerBlocksAPI,
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
@@ -116,14 +117,18 @@ export const useExpressCheckout = ( {
 	);
 
 	const onConfirm = async ( event ) => {
-		await onConfirmHandler(
+		const params = {
 			api,
 			stripe,
 			elements,
 			completePayment,
 			abortPayment,
-			event
-		);
+			event,
+		};
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+			return await onConfirmHandlerBlocksAPI( ...params );
+		}
+		return await onConfirmHandler( ...params );
 	};
 
 	return {
