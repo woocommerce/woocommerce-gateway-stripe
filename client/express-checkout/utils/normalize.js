@@ -132,6 +132,7 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 			method: [ event?.shippingRate?.id ?? null ],
 		},
 		customer_note: event.order_comments,
+		payment_method: 'stripe',
 		payment_data: [
 			{
 				key: 'payment_method',
@@ -169,6 +170,7 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
 	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
 		return {
+			payment_method: 'stripe',
 			payment_data: [
 				{
 					key: 'payment_method',

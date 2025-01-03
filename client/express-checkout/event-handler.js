@@ -89,26 +89,77 @@ export const onConfirmHandler = async (
 			);
 		}
 
-		if ( orderResponse.result !== 'success' ) {
-			return abortPayment(
-				event,
-				getErrorMessageFromNotice( orderResponse.messages ),
-				true
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+			if ( orderResponse.payment_result.payment_status !== 'success' ) {
+				return abortPayment(
+					event,
+					getErrorMessageFromNotice(
+						orderResponse.payment_result?.payment_details.find(
+							( detail ) => detail.key === 'errorMessage'
+						)?.value
+					),
+					true
+				);
+			}
+
+			const confirmationRequest = api.confirmIntent(
+				orderResponse.payment_result.redirect_url
 			);
-		}
 
-		const confirmationRequest = api.confirmIntent( orderResponse.redirect );
+			// `true` means there is no intent to confirm.
+			if ( confirmationRequest === true ) {
+				completePayment( orderResponse.payment_result.redirect_url );
+			} else {
+				const { request } = confirmationRequest;
+				const redirectUrl = await request;
 
-		// `true` means there is no intent to confirm.
-		if ( confirmationRequest === true ) {
-			completePayment( orderResponse.redirect );
+				completePayment( redirectUrl );
+			}
 		} else {
-			const { request } = confirmationRequest;
-			const redirectUrl = await request;
+			if ( orderResponse.result !== 'success' ) {
+				return abortPayment(
+					event,
+					getErrorMessageFromNotice( orderResponse.messages ),
+					true
+				);
+			}
 
-			completePayment( redirectUrl );
+			const confirmationRequest = api.confirmIntent(
+				orderResponse.redirect
+			);
+
+			// `true` means there is no intent to confirm.
+			if ( confirmationRequest === true ) {
+				completePayment( orderResponse.redirect );
+			} else {
+				const { request } = confirmationRequest;
+				const redirectUrl = await request;
+
+				completePayment( redirectUrl );
+			}
 		}
 	} catch ( e ) {
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+			let errorMessage;
+			if (
+				e.payment_result?.payment_details.find(
+					( detail ) => detail.key === 'errorMessage'
+				)?.value
+			) {
+				errorMessage = e.payment_result?.payment_details.find(
+					( detail ) => detail.key === 'errorMessage'
+				)?.value;
+			} else {
+				errorMessage = __(
+					'There was a problem processing the order.',
+					'woocommerce-gateway-stripe'
+				);
+			}
+			return abortPayment(
+				event,
+				getErrorMessageFromNotice( errorMessage )
+			);
+		}
 		let errorMessage;
 		if ( e.message ) {
 			errorMessage = e.message;
