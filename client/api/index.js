@@ -1,5 +1,6 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
@@ -519,7 +520,7 @@ export default class WCStripeAPI {
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
 		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return this.request( {
+			return apiFetch( {
 				method: 'POST',
 				path: '/wc/store/v1/checkout',
 				headers: {
@@ -545,7 +546,7 @@ export default class WCStripeAPI {
 	 */
 	expressCheckoutECEPayForOrder( order, paymentData ) {
 		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return this.request( {
+			return apiFetch( {
 				method: 'POST',
 				path: `/wc/store/v1/checkout/${ order }`,
 				headers: {

@@ -102,7 +102,7 @@ export const normalizeOrderDataBlocksAPI = ( event ) => {
 		'';
 
 	return {
-		billing: {
+		billing_address: {
 			first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 			last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
 			company: billing?.organization ?? '',
@@ -115,7 +115,7 @@ export const normalizeOrderDataBlocksAPI = ( event ) => {
 			state: billing?.state ?? '',
 			postcode: billing?.postal_code ?? '',
 		},
-		shipping: {
+		shipping_address: {
 			first_name:
 				shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 			last_name:
