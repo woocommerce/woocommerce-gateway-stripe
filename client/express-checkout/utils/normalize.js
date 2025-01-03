@@ -132,11 +132,10 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 			method: [ event?.shippingRate?.id ?? null ],
 		},
 		customer_note: event.order_comments,
-		payment_method: 'stripe',
 		payment_data: [
 			{
 				key: 'payment_method',
-				value: 'card',
+				value: 'stripe',
 			},
 			{
 				key: 'payment_request_type',
@@ -149,6 +148,10 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 			{
 				key: 'express_payment_type',
 				value: event.expressPaymentType,
+			},
+			{
+				key: 'wc-stripe-is-deferred-intent',
+				value: true,
 			},
 		],
 		...extractOrderAttributionData(),
@@ -165,25 +168,31 @@ export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
  */
 export const normalizePayForOrderData = ( event, paymentMethodId ) => {
 	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-		return { payment_method: 'stripe' };
+		return {
+			payment_data: [
+				{
+					key: 'payment_method',
+					value: 'stripe',
+				},
+				{
+					key: 'payment_request_type',
+					value: event?.expressPaymentType,
+				},
+				{
+					key: 'wc-stripe-payment-method',
+					value: paymentMethodId,
+				},
+				{
+					key: 'express_payment_type',
+					value: event?.expressPaymentType,
+				},
+				{
+					key: 'wc-stripe-is-deferred-intent',
+					value: true,
+				},
+			],
+		};
 	}
-	return {
-		payment_method: 'stripe',
-		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
-		'wc-stripe-payment-method': paymentMethodId,
-		express_payment_type: event?.expressPaymentType,
-	};
-};
-
-/**
- * Normalize Pay for Order data from Stripe's object to the expected format for WC (when using Blocks API).
- *
- * @param {Object} event Stripe's event object.
- * @param {string} paymentMethodId Stripe's payment method id.
- *
- * @return {Object} Order object in the format WooCommerce expects.
- */
-export const normalizePayForOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 	return {
 		payment_method: 'stripe',
 		'wc-stripe-is-deferred-intent': true, // Set the deferred intent flag, so the deferred intent flow is used.
