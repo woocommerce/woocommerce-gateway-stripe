@@ -546,7 +546,7 @@ export default class WCStripeAPI {
 	 * @param {Object} paymentData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrderBlocksAPI( paymentData ) {
+	expressCheckoutECECreateOrderForBlocksAPI( paymentData ) {
 		return apiFetch( {
 			method: 'POST',
 			path: '/wc/store/v1/checkout',
@@ -566,7 +566,7 @@ export default class WCStripeAPI {
 	 * @param {Object} paymentData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECEPayForOrderBlocksAPI( order, paymentData ) {
+	expressCheckoutECEPayForOrderForBlocksAPI( order, paymentData ) {
 		return apiFetch( {
 			method: 'POST',
 			path: `/wc/store/v1/checkout/${ order }`,

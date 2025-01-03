@@ -19,7 +19,7 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
-	onConfirmHandlerBlocksAPI,
+	onConfirmHandlerForBlocksAPI,
 	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
@@ -244,7 +244,7 @@ jQuery( function ( $ ) {
 					order,
 				};
 				if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-					return await onConfirmHandlerBlocksAPI( ...params );
+					return await onConfirmHandlerForBlocksAPI( ...params );
 				}
 				return await onConfirmHandler( ...params );
 			} );

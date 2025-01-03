@@ -6,8 +6,8 @@ import {
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
-	normalizeOrderDataBlocksAPI,
-	normalizePayForOrderDataBlocksAPI,
+	normalizeOrderDataForBlocksAPI,
+	normalizePayForOrderDataForBlocksAPI,
 } from './utils';
 import {
 	trackExpressCheckoutButtonClick,
@@ -124,7 +124,7 @@ export const onConfirmHandler = async (
 	}
 };
 
-export const onConfirmHandlerBlocksAPI = async (
+export const onConfirmHandlerForBlocksAPI = async (
 	api,
 	stripe,
 	elements,
@@ -150,13 +150,13 @@ export const onConfirmHandlerBlocksAPI = async (
 		// Kick off checkout processing step.
 		let orderResponse;
 		if ( ! order ) {
-			orderResponse = await api.expressCheckoutECECreateOrderBlocksAPI(
-				normalizeOrderDataBlocksAPI( event, paymentMethod.id )
+			orderResponse = await api.expressCheckoutECECreateOrderForBlocksAPI(
+				normalizeOrderDataForBlocksAPI( event, paymentMethod.id )
 			);
 		} else {
-			orderResponse = await api.expressCheckoutECEPayForOrderBlocksAPI(
+			orderResponse = await api.expressCheckoutECEPayForOrderForBlocksAPI(
 				order,
-				normalizePayForOrderDataBlocksAPI( event, paymentMethod.id )
+				normalizePayForOrderDataForBlocksAPI( event, paymentMethod.id )
 			);
 		}
 
@@ -187,14 +187,11 @@ export const onConfirmHandlerBlocksAPI = async (
 		}
 	} catch ( e ) {
 		let errorMessage;
-		if (
-			e.payment_result?.payment_details.find(
-				( detail ) => detail.key === 'errorMessage'
-			)?.value
-		) {
-			errorMessage = e.payment_result?.payment_details.find(
-				( detail ) => detail.key === 'errorMessage'
-			)?.value;
+		const paymentDetailsErrorMessage = e.payment_result?.payment_details.find(
+			( detail ) => detail.key === 'errorMessage'
+		)?.value;
+		if ( paymentDetailsErrorMessage ) {
+			errorMessage = paymentDetailsErrorMessage;
 		} else {
 			errorMessage = __(
 				'There was a problem processing the order.',
