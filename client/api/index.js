@@ -523,7 +523,7 @@ export default class WCStripeAPI {
 				method: 'POST',
 				path: '/wc/store/v1/checkout',
 				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.checkout,
+					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
 				},
 				data: {
 					...getRequiredFieldDataFromCheckoutForm( paymentData ),
@@ -549,7 +549,7 @@ export default class WCStripeAPI {
 				method: 'POST',
 				path: `/wc/store/v1/checkout/${ order }`,
 				headers: {
-					Nonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
+					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
 				},
 				data: {
 					...paymentData,
