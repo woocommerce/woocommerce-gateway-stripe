@@ -32,7 +32,7 @@ export const normalizeLineItems = ( displayItems ) => {
  */
 export const normalizeOrderData = ( event, paymentMethodId ) => {
 	if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-		return normalizeOrderDataBlocksAPI( event );
+		return normalizeOrderDataBlocksAPI( event, paymentMethodId );
 	}
 
 	const name = event?.billingDetails?.name;
@@ -87,10 +87,11 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
  * Normalize order data from Stripe's object to the expected format for WC (when using the Blocks API).
  *
  * @param {Object} event Stripe's event object.
+ * @param {string} paymentMethodId Stripe's payment method id.
  *
  * @return {Object} Order object in the format WooCommerce expects.
  */
-export const normalizeOrderDataBlocksAPI = ( event ) => {
+export const normalizeOrderDataBlocksAPI = ( event, paymentMethodId ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
@@ -130,8 +131,26 @@ export const normalizeOrderDataBlocksAPI = ( event ) => {
 			postcode: shipping?.address?.postal_code ?? '',
 			method: [ event?.shippingRate?.id ?? null ],
 		},
-		customer_note: '',
+		customer_note: event.order_comments,
 		payment_method: 'stripe',
+		payment_data: [
+			{
+				key: 'payment_method',
+				value: 'card',
+			},
+			{
+				key: 'payment_request_type',
+				value: event.expressPaymentType,
+			},
+			{
+				key: 'wc-stripe-payment-method',
+				value: paymentMethodId,
+			},
+			{
+				key: 'express_payment_type',
+				value: event.expressPaymentType,
+			},
+		],
 		...extractOrderAttributionData(),
 	};
 };
