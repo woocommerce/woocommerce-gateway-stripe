@@ -103,13 +103,9 @@ jQuery( function ( $ ) {
 				}
 
 				return options.displayItems
-					.filter(
-						( i ) =>
-							i.label ===
-							__( 'Shipping', 'woocommerce-gateway-stripe' )
-					)
+					.filter( ( i ) => i.key && i.key === 'total_shipping' )
 					.map( ( i ) => ( {
-						id: `rate-${ i.label }`,
+						id: `rate-shipping`,
 						amount: i.amount,
 						displayName: i.label,
 					} ) );
