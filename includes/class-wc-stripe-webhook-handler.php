@@ -115,6 +115,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::error( 'Webhook body: ' . print_r( $request_body, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 
 			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
+
+			if ( WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH === $validation_result && $this->has_duplicate_webhooks_setup() ) {
+				WC_Stripe_Webhook_State::set_last_error_reason( WC_Stripe_Webhook_State::VALIDATION_FAILED_DUPLICATE_WEBHOOKS );
+
+				// Return a 400 HTTP status code to notify Stripe about a misconfigured webhook when the signature does not match.
+				// @see https://docs.stripe.com/webhooks#disable
+				status_header( 400 );
+				exit;
+			}
+
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
 
 			// A webhook endpoint must return a 2xx HTTP status code to prevent future webhook
@@ -123,6 +133,33 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			status_header( 204 );
 			exit;
 		}
+	}
+
+	/**
+	 * Check if the Stripe account has duplicate webhooks setup for this site.
+	 *
+	 * @since 9.1.0
+	 */
+	public function has_duplicate_webhooks_setup() {
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+		$webhooks    = WC_Stripe_API::retrieve( 'webhook_endpoints' );
+
+		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) || empty( $webhooks->data ) ) {
+			return false;
+		}
+
+		$number_of_webhooks = 0;
+		foreach ( $webhooks->data as $webhook ) {
+			if ( ! isset( $webhook->url ) ) {
+				continue;
+			}
+
+			if ( $webhook->url === $webhook_url ) {
+				$number_of_webhooks++;
+			}
+		}
+
+		return $number_of_webhooks > 1;
 	}
 
 	/**
