@@ -111,6 +111,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Return to the correct page when redirect-based payment method fails.
+* Fix - Show default recipient for Payment Authentication Requested email.
+* Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
 * Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
 * Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
@@ -132,6 +135,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
 * Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
+* Tweak - Improve webhook status related messages on the settings page.
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
 * Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
