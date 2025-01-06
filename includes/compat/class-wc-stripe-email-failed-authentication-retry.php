@@ -36,10 +36,11 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 		$this->template_plain = 'emails/plain/failed-renewal-authentication-requested.php';
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
-		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
-
 		// We want all the parent's methods, with none of its properties, so call its parent's constructor, rather than my parent constructor.
 		WC_Email::__construct();
+
+		// Set after calling the parent constructor, so it is not overriden.
+		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
 	}
 
 	/**
