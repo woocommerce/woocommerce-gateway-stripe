@@ -27,6 +27,7 @@
 * Tweak - Add empty check for cart when checking for allowed products for express checkout.
 * Update - Prevent editing of orders awaiting payment capture.
 * Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
+* Fix - Check billing interval and period to set in mandate options.
 * Fix - Check order currency on pay for order page to display supported payment methods.
 
 = 9.0.0 - 2024-12-12 =
