@@ -31,6 +31,7 @@
 * Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
 * Fix - Check billing interval and period to set in mandate options.
 * Fix - Check order currency on pay for order page to display supported payment methods.
+* Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
 
 = 9.0.0 - 2024-12-12 =
 * Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.

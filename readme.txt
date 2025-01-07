@@ -141,5 +141,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
 * Fix - Check billing interval and period to set in mandate options.
 * Fix - Check order currency on pay for order page to display supported payment methods.
+* Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
