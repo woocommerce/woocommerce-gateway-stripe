@@ -128,28 +128,10 @@ export const normalizeOrderDataForBlocksAPI = ( event, paymentMethodId ) => {
 		},
 		customer_note: event.order_comments,
 		payment_method: 'stripe',
-		payment_data: [
-			{
-				key: 'payment_method',
-				value: 'stripe',
-			},
-			{
-				key: 'payment_request_type',
-				value: event.expressPaymentType,
-			},
-			{
-				key: 'wc-stripe-payment-method',
-				value: paymentMethodId,
-			},
-			{
-				key: 'express_payment_type',
-				value: event.expressPaymentType,
-			},
-			{
-				key: 'wc-stripe-is-deferred-intent',
-				value: true,
-			},
-		],
+		payment_data: buildBlocksAPIPaymentData(
+			event?.expressPaymentType,
+			paymentMethodId
+		),
 		...extractOrderAttributionData(),
 	};
 };
@@ -185,28 +167,10 @@ export const normalizePayForOrderDataForBlocksAPI = (
 ) => {
 	return {
 		payment_method: 'stripe',
-		payment_data: [
-			{
-				key: 'payment_method',
-				value: 'stripe',
-			},
-			{
-				key: 'payment_request_type',
-				value: event?.expressPaymentType,
-			},
-			{
-				key: 'wc-stripe-payment-method',
-				value: paymentMethodId,
-			},
-			{
-				key: 'express_payment_type',
-				value: event?.expressPaymentType,
-			},
-			{
-				key: 'wc-stripe-is-deferred-intent',
-				value: true,
-			},
-		],
+		payment_data: buildBlocksAPIPaymentData(
+			event?.expressPaymentType,
+			paymentMethodId
+		),
 	};
 };
 
@@ -236,4 +200,36 @@ export const normalizeShippingAddress = ( shippingAddress ) => {
 		country: shippingAddress?.country ?? '',
 		postcode: shippingAddress?.postal_code ?? '',
 	};
+};
+
+/**
+ * Builds the payment data for the Blocks API.
+ *
+ * @param {string} expressPaymentType The express payment type.
+ * @param {string} paymentMethodId The payment method ID.
+ * @return {Array} The payment data.
+ */
+const buildBlocksAPIPaymentData = ( expressPaymentType, paymentMethodId ) => {
+	return [
+		{
+			key: 'payment_method',
+			value: 'stripe',
+		},
+		{
+			key: 'payment_request_type',
+			value: expressPaymentType,
+		},
+		{
+			key: 'wc-stripe-payment-method',
+			value: paymentMethodId,
+		},
+		{
+			key: 'express_payment_type',
+			value: expressPaymentType,
+		},
+		{
+			key: 'wc-stripe-is-deferred-intent',
+			value: true,
+		},
+	];
 };
