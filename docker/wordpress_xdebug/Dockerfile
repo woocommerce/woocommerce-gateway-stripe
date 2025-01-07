@@ -6,6 +6,8 @@ RUN pecl install xdebug-3.1.6 \
 	&& echo 'xdebug.discover_client_host=1' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.client_port=9000' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.log=/tmp/xdebug.log' >> $PHP_INI_DIR/php.ini \
+	&& echo 'xdebug.output_dir=/tmp/xdebug' >> $PHP_INI_DIR/php.ini \
+	&& echo 'xdebug.profiler_output_name=cachegrind.out.%R.%u' >> $PHP_INI_DIR/php.ini \
 	&& docker-php-ext-enable xdebug
 RUN apt-get update \
 	&& apt-get install --assume-yes --quiet --no-install-recommends gnupg2 subversion mariadb-client less jq

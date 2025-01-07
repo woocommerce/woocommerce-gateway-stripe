@@ -18,17 +18,20 @@ services:
       - ./tests/phpunit:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/phpunit
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
       - ./docker/bin:/var/scripts
+      - ./docker/xdebug/profiles:/tmp/xdebug
     extra_hosts:
       - "host.docker.internal:host-gateway"
   db:
     container_name: woocommerce_stripe_mysql
-    image: mariadb:latest
+    build: ./docker/mysql
+    image: mysql
     ports:
       - "5678:3306"
     env_file:
       - default.env
     volumes:
       - ./docker/data:/var/lib/mysql
+      - ./docker/logs/mysql:/var/log/mysql
   phpMyAdmin:
     container_name: woocommerce_stripe_phpmyadmin
     image: phpmyadmin/phpmyadmin:latest

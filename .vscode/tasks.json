@@ -12,6 +12,11 @@
 			"type": "shell",
 			"command": "npm run xdebug:stop",
 			"label": "disable:xdebug"
+		},
+		{
+			"type": "shell",
+			"command": "npm run xdebug:profile-start",
+			"label": "enable:xdebug-profile"
 		}
 	]
 }
