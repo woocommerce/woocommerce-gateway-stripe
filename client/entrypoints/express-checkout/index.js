@@ -234,19 +234,26 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-				const params = {
-					api,
-					stripe: api.getStripe(),
-					elements,
-					completePayment: wcStripeECE.completePayment,
-					abortPayment: wcStripeECE.abortPayment,
-					event,
-					order,
-				};
 				if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-					return await onConfirmHandlerForBlocksAPI( ...params );
+					return await onConfirmHandlerForBlocksAPI(
+						api,
+						api.getStripe(),
+						elements,
+						wcStripeECE.completePayment,
+						wcStripeECE.abortPayment,
+						event,
+						order
+					);
 				}
-				return await onConfirmHandler( ...params );
+				return await onConfirmHandler(
+					api,
+					api.getStripe(),
+					elements,
+					wcStripeECE.completePayment,
+					wcStripeECE.abortPayment,
+					event,
+					order
+				);
 			} );
 
 			eceButton.on( 'cancel', () => {

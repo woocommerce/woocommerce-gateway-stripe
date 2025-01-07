@@ -117,18 +117,24 @@ export const useExpressCheckout = ( {
 	);
 
 	const onConfirm = async ( event ) => {
-		const params = {
+		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+			return await onConfirmHandlerForBlocksAPI(
+				api,
+				stripe,
+				elements,
+				completePayment,
+				abortPayment,
+				event
+			);
+		}
+		return await onConfirmHandler(
 			api,
 			stripe,
 			elements,
 			completePayment,
 			abortPayment,
-			event,
-		};
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return await onConfirmHandlerForBlocksAPI( ...params );
-		}
-		return await onConfirmHandler( ...params );
+			event
+		);
 	};
 
 	return {
