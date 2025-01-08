@@ -16,11 +16,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled']              = 'yes';
-		$stripe_settings['testmode']             = 'yes';
-		$stripe_settings['test_publishable_key'] = 'pk_test_key';
-		$stripe_settings['test_secret_key']      = 'sk_test_key';
+		$stripe_settings                                    = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']                         = 'yes';
+		$stripe_settings['testmode']                        = 'yes';
+		$stripe_settings['test_publishable_key']            = 'pk_test_key';
+		$stripe_settings['test_secret_key']                 = 'sk_test_key';
+		$stripe_settings['express_checkout_use_blocks_api'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
@@ -310,5 +311,15 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'expected'    => '12345',
 			],
 		];
+	}
+
+	/**
+	 * Test for `use_blocks_api`.
+	 *
+	 * @return void
+	 */
+	public function test_use_blocks_api() {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$this->assertTrue( $wc_stripe_ece_helper->use_blocks_api() );
 	}
 }
