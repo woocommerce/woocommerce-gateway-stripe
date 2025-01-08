@@ -204,21 +204,7 @@ class WC_Stripe_Payment_Tokens {
 							$token->save();
 							$tokens[ $token->get_id() ] = $token;
 						} else {
-							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
-								$token = new WC_Stripe_Payment_Token_CC();
-								$token->set_token( $source->id );
-								$token->set_gateway_id( WC_Gateway_Stripe::ID );
-								$token->set_card_type( strtolower( $source->brand ) );
-								$token->set_last4( $source->last4 );
-								$token->set_expiry_month( $source->exp_month );
-								$token->set_expiry_year( $source->exp_year );
-								$token->set_user_id( $customer_id );
-								$token->set_fingerprint( $source->fingerprint );
-								$token->save();
-								$tokens[ $token->get_id() ] = $token;
-							} else {
-								unset( $stored_tokens[ $source->id ] );
-							}
+							unset( $stored_tokens[ $source->id ] );
 						}
 					}
 				}
