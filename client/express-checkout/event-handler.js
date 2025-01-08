@@ -187,12 +187,17 @@ export const onConfirmHandlerForBlocksAPI = async (
 		}
 	} catch ( e ) {
 		let errorMessage;
-		const paymentDetailsErrorMessage = e.payment_result?.payment_details.find(
-			( detail ) => detail.key === 'errorMessage'
-		)?.value;
-		if ( paymentDetailsErrorMessage ) {
-			errorMessage = paymentDetailsErrorMessage;
+		if ( e.message ) {
+			errorMessage = e.message;
 		} else {
+			const paymentDetailsErrorMessage = e.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value;
+			if ( paymentDetailsErrorMessage ) {
+				errorMessage = paymentDetailsErrorMessage;
+			}
+		}
+		if ( ! errorMessage ) {
 			errorMessage = __(
 				'There was a problem processing the order.',
 				'woocommerce-gateway-stripe'
