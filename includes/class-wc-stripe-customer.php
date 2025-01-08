@@ -391,28 +391,31 @@ class WC_Stripe_Customer {
 						$wc_token->set_token( $response->id );
 						$wc_token->set_gateway_id( 'stripe_sepa' );
 						$wc_token->set_last4( $response->sepa_debit->last4 );
+						$wc_token->set_fingerprint( $response->sepa_debit->fingerprint );
 						break;
 					default:
 						if ( WC_Stripe_Helper::is_card_payment_method( $response ) ) {
-							$wc_token = new WC_Payment_Token_CC();
+							$wc_token = new WC_Stripe_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
 							$wc_token->set_card_type( strtolower( $response->card->brand ) );
 							$wc_token->set_last4( $response->card->last4 );
 							$wc_token->set_expiry_month( $response->card->exp_month );
 							$wc_token->set_expiry_year( $response->card->exp_year );
+							$wc_token->set_fingerprint( $response->card->fingerprint );
 						}
 						break;
 				}
 			} else {
 				// Legacy.
-				$wc_token = new WC_Payment_Token_CC();
+				$wc_token = new WC_Stripe_Payment_Token_CC();
 				$wc_token->set_token( $response->id );
 				$wc_token->set_gateway_id( 'stripe' );
 				$wc_token->set_card_type( strtolower( $response->brand ) );
 				$wc_token->set_last4( $response->last4 );
 				$wc_token->set_expiry_month( $response->exp_month );
 				$wc_token->set_expiry_year( $response->exp_year );
+				$wc_token->set_fingerprint( $response->fingerprint );
 			}
 
 			$wc_token->set_user_id( $this->get_user_id() );

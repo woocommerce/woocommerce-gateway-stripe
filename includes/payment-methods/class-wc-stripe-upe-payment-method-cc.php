@@ -65,10 +65,10 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @param string $user_id        WP_User ID
 	 * @param object $payment_method Stripe payment method object
 	 *
-	 * @return WC_Payment_Token_CC
+	 * @return WC_Stripe_Payment_Token_CC
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		$token = new WC_Payment_Token_CC();
+		$token = new WC_Stripe_Payment_Token_CC();
 		$token->set_expiry_month( $payment_method->card->exp_month );
 		$token->set_expiry_year( $payment_method->card->exp_year );
 		$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
@@ -76,6 +76,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
+		$token->set_fingerprint( $payment_method->card->fingerprint );
 		$token->save();
 		return $token;
 	}

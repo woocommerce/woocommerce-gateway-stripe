@@ -42,6 +42,7 @@ class WC_Stripe_Payment_Tokens {
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
 		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
+		add_filter( 'woocommerce_payment_token_class', [ $this, 'woocommerce_payment_token_class' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
 	}
@@ -173,7 +174,7 @@ class WC_Stripe_Payment_Tokens {
 					foreach ( $stripe_sources as $source ) {
 						if ( isset( $source->type ) && WC_Stripe_Payment_Methods::CARD === $source->type ) {
 							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
-								$token = new WC_Payment_Token_CC();
+								$token = new WC_Stripe_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( WC_Gateway_Stripe::ID );
 
@@ -184,6 +185,7 @@ class WC_Stripe_Payment_Tokens {
 									$token->set_expiry_year( $source->card->exp_year );
 								}
 
+								$token->set_fingerprint( $source->fingerprint );
 								$token->set_user_id( $customer_id );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
@@ -192,7 +194,7 @@ class WC_Stripe_Payment_Tokens {
 							}
 						} else {
 							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
-								$token = new WC_Payment_Token_CC();
+								$token = new WC_Stripe_Payment_Token_CC();
 								$token->set_token( $source->id );
 								$token->set_gateway_id( WC_Gateway_Stripe::ID );
 								$token->set_card_type( strtolower( $source->brand ) );
@@ -200,6 +202,7 @@ class WC_Stripe_Payment_Tokens {
 								$token->set_expiry_month( $source->exp_month );
 								$token->set_expiry_year( $source->exp_year );
 								$token->set_user_id( $customer_id );
+								$token->set_fingerprint( $source->fingerprint );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
 							} else {
@@ -221,6 +224,7 @@ class WC_Stripe_Payment_Tokens {
 								$token->set_gateway_id( WC_Gateway_Stripe_Sepa::ID );
 								$token->set_last4( $source->sepa_debit->last4 );
 								$token->set_user_id( $customer_id );
+								$token->set_fingerprint( $source->fingerprint );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
 							} else {
@@ -492,9 +496,9 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Creates and add a token to an user, based on the PaymentMethod object.
 	 *
-	 * @param   array              $payment_method                              Payment method to be added.
-	 * @param   WC_Stripe_Customer $user                                        WC_Stripe_Customer we're processing the tokens for.
-	 * @return  WC_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA The WC object for the payment token.
+	 * @param   object             $payment_method Payment method to be added.
+	 * @param   WC_Stripe_Customer $customer       WC_Stripe_Customer we're processing the tokens for.
+	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
 	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer ) {
 		// Clear cached payment methods.
@@ -503,13 +507,22 @@ class WC_Stripe_Payment_Tokens {
 		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
+		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
+		if ( $found_token ) {
+			// Update the token with the new payment method ID.
+			$found_token->set_token( $payment_method->id );
+			$found_token->save();
+			return $found_token;
+		}
+
 		switch ( $payment_method_type ) {
 			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
-				$token = new WC_Payment_Token_CC();
+				$token = new WC_Stripe_Payment_Token_CC();
 				$token->set_expiry_month( $payment_method->card->exp_month );
 				$token->set_expiry_year( $payment_method->card->exp_year );
 				$token->set_card_type( strtolower( $payment_method->card->display_brand ?? $payment_method->card->networks->preferred ?? $payment_method->card->brand ) );
 				$token->set_last4( $payment_method->card->last4 );
+				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
 
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
@@ -528,6 +541,7 @@ class WC_Stripe_Payment_Tokens {
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_last4( $payment_method->sepa_debit->last4 );
 				$token->set_payment_method_type( $payment_method_type );
+				$token->set_fingerprint( $payment_method->sepa_debit->fingerprint );
 		}
 
 		$token->set_gateway_id( $gateway_id );
@@ -645,6 +659,50 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return 0 === strpos( $payment_method_id, 'src_' ) && WC_Stripe_Payment_Methods::CARD === $payment_method_type;
+	}
+
+	/**
+	 * Searches for a duplicate token in the user's saved payment methods and returns it.
+	 *
+	 * @param $payment_method stdClass The payment method object.
+	 * @param $user_id int The user ID.
+	 * @param $gateway_id string The gateway ID.
+	 * @return WC_Payment_Token|null
+	 */
+	public static function get_duplicate_token( $payment_method, $user_id, $gateway_id ) {
+		// Using the base method instead of `WC_Payment_Tokens::get_customer_tokens` to avoid recursive calls to hooked filters and actions
+		$tokens = WC_Payment_Tokens::get_tokens(
+			[
+				'user_id'    => $user_id,
+				'gateway_id' => $gateway_id,
+				'limit'      => 100,
+			]
+		);
+		foreach ( $tokens as $token ) {
+			/**
+			 * Token object.
+			 *
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA $token
+			 */
+			if ( $token->is_equal_payment_method( $payment_method ) ) {
+				return $token;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Filters the payment token class to override the credit card class with the extension's version.
+	 *
+	 * @param string $class Payment token class.
+	 * @param string $type Token type.
+	 * @return string
+	 */
+	public function woocommerce_payment_token_class( $class, $type ) {
+		if ( WC_Payment_Token_CC::class === $class ) {
+			return WC_Stripe_Payment_Token_CC::class;
+		}
+		return $class;
 	}
 
 	/**

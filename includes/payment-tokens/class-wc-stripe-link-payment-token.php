@@ -13,8 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @class    WC_Payment_Token_Link
  */
-class WC_Payment_Token_Link extends WC_Payment_Token {
-
+class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	/**
 	 * Stores payment type.
 	 *
@@ -91,5 +90,19 @@ class WC_Payment_Token_Link extends WC_Payment_Token {
 	 */
 	public function set_email( $email ) {
 		$this->set_prop( 'email', $email );
+	}
+
+	/**
+	 * Checks if the payment method token is equal a provided payment method.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_equal_payment_method( $payment_method ): bool {
+		if ( WC_Stripe_Payment_Methods::LINK === $payment_method->type
+			&& ( $payment_method->link->email ?? null ) === $this->get_email() ) {
+			return true;
+		}
+
+		return false;
 	}
 }

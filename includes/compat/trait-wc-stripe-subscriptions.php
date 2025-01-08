@@ -868,7 +868,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return [];
 		}
 
-		if ( 1 === count( $subscriptions ) || $cart_contain_switches ) {
+		$has_interval = $sub_billing_period && $sub_billing_interval > 0;
+		if ( $has_interval && ( 1 === count( $subscriptions ) || $cart_contain_switches ) ) {
 			$mandate_options['amount_type']    = 'fixed';
 			$mandate_options['interval']       = $sub_billing_period;
 			$mandate_options['interval_count'] = $sub_billing_interval;
