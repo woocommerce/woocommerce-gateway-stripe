@@ -208,9 +208,12 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-link-payment-token.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-cash-app-pay-token.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/constants/class-wc-stripe-currency-code.php';
@@ -255,7 +258,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-tokens/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';

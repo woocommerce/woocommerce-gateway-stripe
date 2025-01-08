@@ -1474,7 +1474,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
-			$pre_order_product  = $this->get_pre_order_product_from_cart();
+			$pre_order_product = $this->get_pre_order_product_from_cart();
 
 			// Only one pre-order product is allowed per cart,
 			// so we can return if it's charged upfront.
@@ -1802,7 +1802,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string  $setup_intent_id ID of the setup intent.
 	 * @param WP_User $user            User to add token to.
 	 *
-	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
+	 * @return WC_Payment_Token The added token.
 	 *
 	 * @since 5.8.0
 	 * @version 5.8.0
@@ -2216,8 +2216,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
-		// Create a payment token for the user in the store.
-		$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
+		// Searches for an existing duplicate token to update.
+		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
+
+		if ( $found_token ) {
+			// Update the token with the new payment method ID.
+			$payment_method_instance->update_payment_token( $found_token, $payment_method_object->id );
+		} else {
+			// Create a payment token for the user in the store.
+			$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
+		}
 
 		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
@@ -2363,7 +2371,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$customer = new WC_Stripe_Customer( $user->ID );
 			$customer->clear_cache();
 
-			$token = $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+			// Check if a token with the same payment method details exist. If so, just updates the payment method ID and return.
+			$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $user->ID, $this->id );
+
+			// If we have a token found, update it and return.
+			if ( $found_token ) {
+				$token = $payment_method->update_payment_token( $found_token, $payment_method_object->id );
+			} else {
+				// Create a new token if not.
+				$token = $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+			}
 
 			if ( ! is_a( $token, 'WC_Payment_Token' ) ) {
 				throw new WC_Stripe_Exception( sprintf( 'New payment token is not an instance of WC_Payment_Token. Token: %s.', print_r( $token, true ) ) );

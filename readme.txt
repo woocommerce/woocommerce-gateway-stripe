@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.0 - xxxx-xx-xx =
+* Fix - Prevents duplicated credit cards to be added to the customer's account through the My Account page, the shortcode checkout and the block checkout.
 * Fix - Return to the correct page when redirect-based payment method fails.
 * Fix - Show default recipient for Payment Authentication Requested email.
 * Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
