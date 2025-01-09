@@ -32,8 +32,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		update_option( '_wcstripe_feature_upe', 'yes' );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'no',
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
 			]
 		);
 	}
@@ -56,8 +56,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_upe_stripelink_note() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'yes',
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -86,8 +86,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_upe_notes_does_not_create_availability_note_when_upe_is_enbled() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'yes',
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -109,8 +109,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_upe_notes_does_not_create_note_when_stripe_is_disabled() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'no',
-				'upe_checkout_experience_enabled' => 'no',
+				'enabled' => 'no',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
 			]
 		);
 
@@ -124,8 +124,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_upe_notes_does_not_create_note_when_upe_has_been_manually_disabled() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'disabled',
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'disabled',
 			]
 		);
 
@@ -139,8 +139,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_stripelink_note_unavailable_if_cc_not_enabled() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'yes',
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);
 
@@ -154,9 +154,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function test_create_stripelink_note_unavailable_link_enabled() {
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'upe_checkout_experience_enabled' => 'yes',
-				'testmode'                        => 'yes',
+				'enabled'  => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
+				'testmode' => 'yes',
 			]
 		);
 

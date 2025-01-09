@@ -63,7 +63,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$this->assertEquals( 'yes', $settings['upe_checkout_experience_enabled'] );
+		$this->assertEquals( 'yes', $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] );
 	}
 
 	public function test_set_flag_disabled_request_returns_status_code_200() {
@@ -80,7 +80,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$this->assertEquals( 'disabled', $settings['upe_checkout_experience_enabled'] );
+		$this->assertEquals( 'disabled', $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] );
 	}
 
 	public function test_set_flag_missing_request_returns_status_code_400() {

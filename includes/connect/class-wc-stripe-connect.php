@@ -150,19 +150,19 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$publishable_key                            = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$secret_key                                 = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$is_test                                    = 'live' !== $mode;
-			$prefix                                     = $is_test ? 'test_' : '';
-			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
-			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
-			$options['enabled']                         = 'yes';
-			$options['testmode']                        = $is_test ? 'yes' : 'no';
-			$options['upe_checkout_experience_enabled'] = $this->get_upe_checkout_experience_enabled();
-			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
-			$options[ $prefix . 'secret_key' ]          = $secret_key;
-			$options[ $prefix . 'connection_type' ]     = $type;
+			$publishable_key                        = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$secret_key                             = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$is_test                                = 'live' !== $mode;
+			$prefix                                 = $is_test ? 'test_' : '';
+			$default_options                        = $this->get_default_stripe_config();
+			$current_options                        = WC_Stripe_Helper::get_stripe_settings();
+			$options                                = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
+			$options['enabled']                     = 'yes';
+			$options['testmode']                    = $is_test ? 'yes' : 'no';
+			$options[ $prefix . 'publishable_key' ] = $publishable_key;
+			$options[ $prefix . 'secret_key' ]      = $secret_key;
+			$options[ $prefix . 'connection_type' ] = $type;
+			$options[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $this->get_upe_checkout_experience_enabled();
 
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -208,12 +208,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		private function get_upe_checkout_experience_enabled() {
 			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
-				return $existing_stripe_settings['upe_checkout_experience_enabled'];
-			}
-
-			return 'yes';
+			return $existing_stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ?? 'yes';
 		}
 
 		/**
@@ -240,8 +235,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 			}
 
-			$result['upe_checkout_experience_enabled']             = 'yes';
-			$result['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
+			$result[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
+			$result['upe_checkout_experience_accepted_payments'][]                  = WC_Stripe_Payment_Methods::LINK;
 
 			return $result;
 		}

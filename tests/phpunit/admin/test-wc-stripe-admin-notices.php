@@ -83,11 +83,11 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		WC_Stripe_Helper::update_main_stripe_settings(
 			[
-				'enabled'                         => 'yes',
-				'testmode'                        => 'no',
-				'publishable_key'                 => 'pk_live_valid_test_key',
-				'secret_key'                      => 'sk_live_valid_test_key',
-				'upe_checkout_experience_enabled' => 'yes',
+				'enabled'         => 'yes',
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_valid_test_key',
+				'secret_key'      => 'sk_live_valid_test_key',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);
 
