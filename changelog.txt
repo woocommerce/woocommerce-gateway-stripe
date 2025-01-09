@@ -36,6 +36,7 @@
 * Update - Migrate payment request settings data to express checkout settings data.
 * Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
 * Fix - Duplicate emails when enabling the gateway.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 
 = 9.0.0 - 2024-12-12 =
 * Fix - Fix 404 that happens when using ECE and 3D Secure auth is triggered.

@@ -146,5 +146,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Migrate payment request settings data to express checkout settings data.
 * Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
 * Fix - Duplicate emails when enabling the gateway.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
