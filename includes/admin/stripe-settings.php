@@ -267,7 +267,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			),
 			'type'        => 'checkbox',
 			'description' => __( 'New checkout experience allows you to manage all payment methods on one screen and display them to customers based on their currency and location.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'yes',
+			'default'     => 'no',
 			'desc_tip'    => true,
 		],
 	];
