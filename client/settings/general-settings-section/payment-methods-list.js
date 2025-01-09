@@ -273,7 +273,12 @@ const GeneralSettingsSection = ( {
 					Icon,
 					label,
 					allows_manual_capture: isAllowingManualCapture,
-				} = PaymentMethodsMap[ method ];
+				} = PaymentMethodsMap[ method ] || {};
+
+				// Skip if there are no mapped fields for the payment method.
+				if ( ! Icon || ! label ) {
+					return null;
+				}
 
 				return (
 					<DraggableListElement
