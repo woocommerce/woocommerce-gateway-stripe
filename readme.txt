@@ -116,6 +116,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Return to the correct page when redirect-based payment method fails.
 * Fix - Show default recipient for Payment Authentication Requested email.
 * Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
+* Dev - Fix lint issues raised by WordPress code standards.
 * Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
 * Fix - Correctly handles UK postcodes redacted by Apple Pay.
 * Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
@@ -143,5 +144,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
 * Fix - Check billing interval and period to set in mandate options.
 * Fix - Check order currency on pay for order page to display supported payment methods.
+* Update - Migrate payment request settings data to express checkout settings data.
+* Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
+* Fix - Duplicate emails when enabling the gateway.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

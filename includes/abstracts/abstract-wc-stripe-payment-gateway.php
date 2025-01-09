@@ -1408,7 +1408,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$currency    = $order->get_currency();
 
 		$stripe_line_items = array_map(
-			function( $item ) use ( $currency ) {
+			function ( $item ) use ( $currency ) {
 				if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
 					$product_id = $item->get_variation_id()
 						? $item->get_variation_id()

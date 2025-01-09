@@ -14,7 +14,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_stripe_ece_enabled() {
-		return 'yes' === get_option( self::ECE_FEATURE_FLAG_NAME, 'no' );
+		return 'yes' === get_option( self::ECE_FEATURE_FLAG_NAME, 'yes' );
 	}
 
 	/**
