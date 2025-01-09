@@ -267,7 +267,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-migrate-payment-request-data-to-express-checkout-data.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
-				new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+				// TODO: Temporary disabling the migration as it has a conflict with the new UPE checkout.
+				// new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 
 				$this->api                           = new WC_Stripe_Connect_API();
 				$this->connect                       = new WC_Stripe_Connect( $this->api );
