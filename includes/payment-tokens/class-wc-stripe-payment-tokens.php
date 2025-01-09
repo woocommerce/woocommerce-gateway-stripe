@@ -192,22 +192,19 @@ class WC_Stripe_Payment_Tokens {
 							} else {
 								unset( $stored_tokens[ $source->id ] );
 							}
+						} elseif ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
+							$token = new WC_Payment_Token_CC();
+							$token->set_token( $source->id );
+							$token->set_gateway_id( WC_Gateway_Stripe::ID );
+							$token->set_card_type( strtolower( $source->brand ) );
+							$token->set_last4( $source->last4 );
+							$token->set_expiry_month( $source->exp_month );
+							$token->set_expiry_year( $source->exp_year );
+							$token->set_user_id( $customer_id );
+							$token->save();
+							$tokens[ $token->get_id() ] = $token;
 						} else {
-							if ( ! isset( $stored_tokens[ $source->id ] ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
-								$token = new WC_Stripe_Payment_Token_CC();
-								$token->set_token( $source->id );
-								$token->set_gateway_id( WC_Gateway_Stripe::ID );
-								$token->set_card_type( strtolower( $source->brand ) );
-								$token->set_last4( $source->last4 );
-								$token->set_expiry_month( $source->exp_month );
-								$token->set_expiry_year( $source->exp_year );
-								$token->set_user_id( $customer_id );
-								$token->set_fingerprint( $source->fingerprint );
-								$token->save();
-								$tokens[ $token->get_id() ] = $token;
-							} else {
-								unset( $stored_tokens[ $source->id ] );
-							}
+							unset( $stored_tokens[ $source->id ] );
 						}
 					}
 				}
@@ -446,10 +443,8 @@ class WC_Stripe_Payment_Tokens {
 				}
 
 				$stripe_customer->detach_payment_method( $token->get_token() );
-			} else {
-				if ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
-					$stripe_customer->delete_source( $token->get_token() );
-				}
+			} elseif ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
+				$stripe_customer->delete_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -471,10 +466,8 @@ class WC_Stripe_Payment_Tokens {
 				if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
 					$stripe_customer->set_default_payment_method( $token->get_token() );
 				}
-			} else {
-				if ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
-					$stripe_customer->set_default_source( $token->get_token() );
-				}
+			} elseif ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
+				$stripe_customer->set_default_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

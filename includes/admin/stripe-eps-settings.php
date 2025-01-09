@@ -1,4 +1,6 @@
 <?php
+// This file is the body of WC_Gateway_Stripe_Eps::init_form_fields().
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -39,7 +41,7 @@ return apply_filters(
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			/* translators: webhook URL */
-			'description' => $this->display_admin_settings_webhook_description(),
+			'description' => $this->display_admin_settings_webhook_description(), // phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UndefinedVariable
 		],
 	]
 );
