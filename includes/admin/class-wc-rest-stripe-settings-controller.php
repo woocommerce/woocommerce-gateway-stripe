@@ -439,7 +439,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'logging', $is_debug_log_enabled ? 'yes' : 'no' );
-
 	}
 
 	/**
