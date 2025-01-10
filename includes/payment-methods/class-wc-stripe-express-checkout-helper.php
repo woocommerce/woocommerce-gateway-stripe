@@ -1329,7 +1329,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function get_button_locations() {
 		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['express_checkout_button_locations'], $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( ! isset( $this->stripe_settings['express_checkout_button_locations'] ) && ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
 			return [ 'product', 'cart' ];
 		}
 
