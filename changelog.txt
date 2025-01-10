@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.1.1 - xxxx-xx-xx =
+* Fix - Payment request button fails to display when the legacy checkout experience is enabled.
 
 = 9.1.0 - 2025-01-09 =
 * Fix - Fixes the new checkout experience not being enabled by default due to conflict with a migration.
