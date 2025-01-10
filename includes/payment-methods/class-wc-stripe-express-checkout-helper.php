@@ -1336,7 +1336,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		// If all locations are removed through the settings UI the location config will be set to
 		// an empty string "". If that's the case (and if the settings are not an array for any
 		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['express_checkout_button_locations'] ) && ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
+		if ( empty( $this->stripe_settings['express_checkout_button_locations'] ) && empty( $this->stripe_settings['payment_request_button_locations'] ) ) {
 			return [];
 		}
 
