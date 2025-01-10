@@ -1,7 +1,6 @@
 *** Changelog ***
 
 = 9.1.1 - xxxx-xx-xx =
-* Fix - Adds support for both versions of ECE settings key names (after and before the migration script).
 
 = 9.1.0 - 2025-01-09 =
 * Fix - Fixes the new checkout experience not being enabled by default due to conflict with a migration.
