@@ -111,5 +111,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.1.1 - xxxx-xx-xx =
+* Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
