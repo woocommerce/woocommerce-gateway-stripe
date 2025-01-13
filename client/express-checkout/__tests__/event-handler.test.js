@@ -831,7 +831,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error'
+				'Intent confirmation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -978,7 +979,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error'
+				'Intent confirmation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
