@@ -203,7 +203,7 @@ export const onConfirmHandlerForBlocksAPI = async (
 				'woocommerce-gateway-stripe'
 			);
 		}
-		return abortPayment( event, getErrorMessageFromNotice( errorMessage ) );
+		return abortPayment( event, getErrorMessageFromNotice( errorMessage ) , true);
 	}
 };
 
