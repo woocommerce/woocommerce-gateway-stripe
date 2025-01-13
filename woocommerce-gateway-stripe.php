@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.0.0
+ * Version: 9.1.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
  * WC requires at least: 9.2
- * WC tested up to: 9.4
+ * WC tested up to: 9.5
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.0.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.1.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -268,7 +268,8 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-account.php';
 
 				new Allowed_Payment_Request_Button_Types_Update();
-				new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
+				// TODO: Temporary disabling the migration as it has a conflict with the new UPE checkout.
+				// new Migrate_Payment_Request_Data_To_Express_Checkout_Data();
 
 				$this->api                           = new WC_Stripe_Connect_API();
 				$this->connect                       = new WC_Stripe_Connect( $this->api );

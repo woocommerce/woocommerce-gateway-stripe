@@ -433,20 +433,26 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->save_meta_data();
 		$order->save();
 
-		$notification = (object) [
+		$notification = [
 			'type' => $event_type,
-			'data' => (object) [
-				'object' => (object) [
+			'data' => [
+				'object' => [
 					'id'                 => 'pi_mock',
-					'metadata'           => (object) [
-						'order_id' => $order->get_id(),
+					'charges'            => [
+						[
+							'metadata' => [
+								'order_id' => $order->get_id(),
+							],
+						],
 					],
-					'last_payment_error' => (object) [
+					'last_payment_error' => [
 						'message' => 'Your card was declined. You can call your bank for details.',
 					],
 				],
 			],
 		];
+
+		$notification = json_decode( wp_json_encode( $notification ) );
 
 		$this->mock_webhook_handler->process_payment_intent( $notification );
 
