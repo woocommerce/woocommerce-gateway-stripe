@@ -216,10 +216,6 @@ const buildBlocksAPIPaymentData = ( expressPaymentType, paymentMethodId ) => {
 			value: 'stripe',
 		},
 		{
-			key: 'payment_request_type',
-			value: expressPaymentType,
-		},
-		{
 			key: 'wc-stripe-payment-method',
 			value: paymentMethodId,
 		},
