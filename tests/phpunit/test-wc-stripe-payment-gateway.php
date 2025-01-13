@@ -675,7 +675,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tests zero amount refunds.
-	 * @group refund
 	 */
 	public function test_process_refund_on_zero_amount() {
 		$order = WC_Helper_Order::create_order();
@@ -689,7 +688,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tests that process_refund returns false for negative amounts.
-	 * @group refund
 	 */
 	public function test_process_refund_fails_on_negative_amount() {
 		$order = WC_Helper_Order::create_order();
@@ -703,7 +701,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tests successful refund processing with a positive amount.
-	 * @group refund
 	 */
 	public function test_process_refund_success() {
 		$order = WC_Helper_Order::create_order();
