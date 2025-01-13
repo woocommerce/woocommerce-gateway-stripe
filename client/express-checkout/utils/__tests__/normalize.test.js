@@ -405,10 +405,6 @@ describe( 'Express checkout normalization', () => {
 						value: 'stripe',
 					},
 					{
-						key: 'payment_request_type',
-						value: 'express',
-					},
-					{
 						key: 'wc-stripe-payment-method',
 						value: 'pm_123456',
 					},
@@ -465,10 +461,6 @@ describe( 'Express checkout normalization', () => {
 					{
 						key: 'payment_method',
 						value: 'stripe',
-					},
-					{
-						key: 'payment_request_type',
-						value: undefined,
 					},
 					{
 						key: 'wc-stripe-payment-method',
@@ -531,10 +523,6 @@ describe( 'Express checkout normalization', () => {
 					{
 						key: 'payment_method',
 						value: 'stripe',
-					},
-					{
-						key: 'payment_request_type',
-						value: undefined,
 					},
 					{
 						key: 'wc-stripe-payment-method',
@@ -613,10 +601,6 @@ describe( 'Express checkout normalization', () => {
 						value: 'stripe',
 					},
 					{
-						key: 'payment_request_type',
-						value: 'express',
-					},
-					{
 						key: 'wc-stripe-payment-method',
 						value: 'pm_123456',
 					},
@@ -644,10 +628,6 @@ describe( 'Express checkout normalization', () => {
 					{
 						key: 'payment_method',
 						value: 'stripe',
-					},
-					{
-						key: 'payment_request_type',
-						value: undefined,
 					},
 					{
 						key: 'wc-stripe-payment-method',
