@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.1.0
+Stable tag: 9.1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,43 +111,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
-
-= 9.1.0 - 2025-01-09 =
-* Fix - Fixes the new checkout experience not being enabled by default due to conflict with a migration.
-* Fix - Prevents duplicated credit cards to be added to the customer's account through the My Account page, the shortcode checkout and the block checkout.
-* Fix - Return to the correct page when redirect-based payment method fails.
-* Fix - Show default recipient for Payment Authentication Requested email.
-* Fix - Correctly handles IPP failed payments webhook calls by extracting the order ID from the payment intent metadata.
-* Dev - Fix lint issues raised by WordPress code standards.
-* Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
-* Fix - Correctly handles UK postcodes redacted by Apple Pay.
-* Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
-* Fix - Allow the saving of iDEAL tokens when SEPA is disabled.
-* Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods.
-* Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
-* Fix - Don't update canceled order status to on-hold when a dispute is opened.
-* Fix - Correctly sets the dispute opened note when a dispute does not require any further action.
-* Add - Display Multibanco payment instruction details in Order Received page and Order Confirmation email.
-* Tweak - Add the transaction limit information to the Afterpay/Clearpay method when listing payment methods.
-* Tweak - Add transaction threshold information to Affirm when listing payment methods.
-* Fix - Handles additional fields when checking out using ECE on the block checkout.
-* Dev - Introduces new payment method name constants for the frontend.
-* Dev - Improves the missing intent params error log by appending the payment information array.
-* Tweak - Improve error message displayed when payment method creation fails in classic checkout.
-* Tweak - Display email address for Link saved payment methods.
-* Fix - Only update order status for a Radar review closed event when the order was already captured.
-* Dev - Introduces a new class with payment intent statuses constants.
-* Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
-* Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
-* Tweak - Add empty check for cart when checking for allowed products for express checkout.
-* Tweak - Improve webhook status related messages on the settings page.
-* Update - Prevent editing of orders awaiting payment capture.
-* Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
-* Dev - Add a GitHub Action workflow to run QIT E2E Integrations tests.
-* Fix - Check billing interval and period to set in mandate options.
-* Fix - Check order currency on pay for order page to display supported payment methods.
-* Update - Migrate payment request settings data to express checkout settings data.
-* Update - Make the new Stripe Express Checkout Element enabled by default in all accounts.
-* Fix - Duplicate emails when enabling the gateway.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

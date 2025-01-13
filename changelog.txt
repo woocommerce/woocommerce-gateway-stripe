@@ -2,6 +2,11 @@
 
 = 9.2.0 - xxxx-xx-xx =
 
+= 9.1.1 - 2025-01-10 =
+* Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
+* Fix - Payment request button fails to display when the legacy checkout experience is enabled.
+* Fix - Resolves the payment element loading issue in the legacy checkout experience.
+
 = 9.1.0 - 2025-01-09 =
 * Fix - Fixes the new checkout experience not being enabled by default due to conflict with a migration.
 * Fix - Prevents duplicated credit cards to be added to the customer's account through the My Account page, the shortcode checkout and the block checkout.
