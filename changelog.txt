@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Add - Support zero-amount refunds.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
