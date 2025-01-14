@@ -1904,12 +1904,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if order already has a successful payment intent
 		$existing_intent = $this->get_intent_from_order( $order );
 		if ( $existing_intent && isset( $existing_intent->id ) ) {
-			// Fetch the latest intent data from Stripe
-			$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
+			$is_payment_intent = 'pi_' === substr( $existing_intent->id, 0, 3 );
+			if ( $is_payment_intent ) {
+				// Fetch the latest intent data from Stripe
+				$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
-			// If the intent is already successful, return it to prevent duplicate charges
-			if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, WC_Stripe_Intent_Status::PROCESSING ], true ) ) {
-				return $intent;
+				// If the intent is already successful, return it to prevent duplicate charges
+				if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, WC_Stripe_Intent_Status::PROCESSING ], true ) ) {
+					return $intent;
+				}
 			}
 		}
 

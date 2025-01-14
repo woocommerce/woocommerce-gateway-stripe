@@ -2206,6 +2206,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$mock_intent = (object) wp_parse_args(
 			[
+				'id'                   => 'pi_mock',
 				'payment_method'       => 'pm_mock',
 				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
 				'charges'              => (object) [
