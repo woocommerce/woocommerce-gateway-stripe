@@ -1,3 +1,4 @@
+import { applyFilters } from '@wordpress/hooks';
 import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
 
 /**
@@ -131,6 +132,10 @@ export const normalizeOrderDataForBlocksAPI = ( event, paymentMethodId ) => {
 		payment_data: buildBlocksAPIPaymentData(
 			event?.expressPaymentType,
 			paymentMethodId
+		),
+		extensions: applyFilters(
+			'wcstripe.express-checkout.cart-place-order-extension-data',
+			{}
 		),
 	};
 };
