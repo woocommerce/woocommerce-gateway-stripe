@@ -132,7 +132,6 @@ export const normalizeOrderDataForBlocksAPI = ( event, paymentMethodId ) => {
 			event?.expressPaymentType,
 			paymentMethodId
 		),
-		...extractOrderAttributionData(),
 	};
 };
 

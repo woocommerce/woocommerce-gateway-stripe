@@ -1,5 +1,6 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import { applyFilters } from '@wordpress/hooks';
 import apiFetch from '@wordpress/api-fetch';
 import {
 	getExpressCheckoutData,
@@ -549,6 +550,10 @@ export default class WCStripeAPI {
 	expressCheckoutECECreateOrderForBlocksAPI( paymentData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+			extensions: applyFilters(
+				'wcstripe.express-checkout.cart-place-order-extension-data',
+				{}
+			),
 		} );
 	}
 

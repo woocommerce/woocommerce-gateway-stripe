@@ -16,6 +16,7 @@ import {
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
+import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 
 export const useExpressCheckout = ( {
 	api,
