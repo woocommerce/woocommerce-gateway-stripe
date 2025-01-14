@@ -243,9 +243,9 @@ class WC_Stripe_Intent_Controller {
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
 				[
-					'customer'       => $customer->get_id(),
-					'confirm'        => 'true',
-					'payment_method' => $source_id,
+					'customer'             => $customer->get_id(),
+					'confirm'              => 'true',
+					'payment_method'       => $source_id,
 					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
@@ -694,6 +694,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function create_and_confirm_payment_intent( $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
+		// TODO amazon-pay-ece: If using confirmation token, we do not have the payment method.
 		$required_params = [
 			'amount',
 			'capture_method',
@@ -702,12 +703,15 @@ class WC_Stripe_Intent_Controller {
 			'level3',
 			'metadata',
 			'order',
-			'payment_method',
 			'save_payment_method_to_store',
 			'shipping',
 		];
 
-		$non_empty_params = [ 'payment_method' ];
+		$non_empty_params = [];
+		if ( empty( $payment_information['confirmation_token'] ) ) {
+			$required_params[]  = 'payment_method';
+			$non_empty_params[] = 'payment_method';
+		}
 
 		$instance_params = [ 'order' => 'WC_Order' ];
 
@@ -761,6 +765,11 @@ class WC_Stripe_Intent_Controller {
 			null // $prepared_source parameter is not necessary for adding mandate information.
 		);
 
+		// TODO amazon-pay-ece: Add confirmation token???
+		// payment_intent_unexpected_state
+		// "You cannot confirm this PaymentIntent because it's missing a payment method. You can either update the PaymentIntent with a payment method and then confirm it again, or confirm it again directly with a payment method or ConfirmationToken."
+		// "You cannot provide both a confirmation_token and mandate_data because they both contain payment method information."
+		// "The provided payment_method_types (["card", "link"]) does not match the expected payment_method_types (["card", "amazon_pay"]). Try confirming with the same parameters in both the API and Stripe Elements."
 		$payment_intent = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
@@ -871,7 +880,7 @@ class WC_Stripe_Intent_Controller {
 			}
 		}
 
-		$shopper_error_message = __( 'There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
+		$shopper_error_message = __( 'validate_payment_intent_required_params: There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
 
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
@@ -916,12 +925,19 @@ class WC_Stripe_Intent_Controller {
 
 		$request = [
 			'capture_method' => $payment_information['capture_method'],
-			'payment_method' => $payment_information['payment_method'],
 			'shipping'       => $payment_information['shipping'],
 		];
 
+		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
+		if ( $is_using_confirmation_token ) {
+			$request['confirmation_token'] = $payment_information['confirmation_token'];
+		} else {
+			$request['payment_method'] = $payment_information['payment_method'];
+		}
+
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+		// Confirmation token and mandate data are incompatible.
+		if ( ! $is_using_confirmation_token && $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -1121,7 +1137,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
-				$notice  = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
+				$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
 			}
 
 			wc_add_notice( $notice );

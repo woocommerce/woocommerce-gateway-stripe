@@ -75,9 +75,14 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton ) => {
-			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
-				eceButton.mount( '#wc-stripe-express-checkout-element' );
+		renderButton: ( eceButton, isManualPMCreation = true ) => {
+			if (
+				$( '#wc-stripe-express-checkout-element-pm' ).length &&
+				isManualPMCreation
+			) {
+				eceButton.mount( '#wc-stripe-express-checkout-element-pm' );
+			} else if ( $( '#wc-stripe-express-checkout-element-ct' ).length ) {
+				eceButton.mount( '#wc-stripe-express-checkout-element-ct' );
 			}
 		},
 
@@ -92,7 +97,7 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {Object} options ECE options.
 		 */
-		startExpressCheckoutElement: ( options ) => {
+		createExpressCheckoutElement: ( options ) => {
 			const getShippingRates = () => {
 				if ( ! options.requestShipping ) {
 					return [];
@@ -122,14 +127,24 @@ jQuery( function ( $ ) {
 				return;
 			}
 
+			let paymentMethodTypes = [];
+			if ( options.isManualPMCreation ) {
+				paymentMethodTypes = getExpressPaymentMethodTypes().filter(
+					( type ) => type !== 'amazon_pay'
+				);
+			} else {
+				paymentMethodTypes = [ 'amazon_pay' ];
+			}
 			const elements = api.getStripe().elements( {
 				mode: options.mode ? options.mode : 'payment',
 				amount: options.total,
 				currency: options.currency,
-				paymentMethodCreation: 'manual',
+				...( options.isManualPMCreation && {
+					paymentMethodCreation: 'manual',
+				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
 				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-				paymentMethodTypes: getExpressPaymentMethodTypes(),
+				paymentMethodTypes,
 			} );
 
 			const eceButton = wcStripeECE.createButton(
@@ -137,7 +152,7 @@ jQuery( function ( $ ) {
 				getExpressCheckoutButtonStyleSettings()
 			);
 
-			wcStripeECE.renderButton( eceButton );
+			wcStripeECE.renderButton( eceButton, options.isManualPMCreation );
 
 			eceButton.on( 'loaderror', () => {
 				wcStripeECEError = __(
@@ -267,6 +282,20 @@ jQuery( function ( $ ) {
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.attachProductPageEventListeners( elements );
 			}
+		},
+
+		startExpressCheckoutElement: ( options ) => {
+			// We have to render these two groups separately, because
+			// Amazon Pay does not support manual payment method creation.
+			wcStripeECE.createExpressCheckoutElement( {
+				...options,
+				isManualPMCreation: true,
+			} );
+
+			wcStripeECE.createExpressCheckoutElement( {
+				...options,
+				isManualPMCreation: false,
+			} );
 		},
 
 		/**

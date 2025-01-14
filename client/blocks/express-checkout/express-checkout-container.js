@@ -11,7 +11,9 @@ export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
 	const options = {
 		mode: 'payment',
-		paymentMethodCreation: 'manual',
+		...( expressPaymentMethod !== 'amazonPay' && {
+			paymentMethodCreation: 'manual',
+		} ),
 		amount: billing.cartTotal.value,
 		currency: billing.currency.code.toLowerCase(),
 		paymentMethodTypes: getPaymentMethodTypesForExpressMethod(

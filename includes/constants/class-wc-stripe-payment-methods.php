@@ -7,6 +7,7 @@ class WC_Stripe_Payment_Methods {
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
+	const AMAZON_PAY        = 'amazon_pay';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';

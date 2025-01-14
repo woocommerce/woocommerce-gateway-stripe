@@ -1,11 +1,16 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
-import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
+import {
+	isAmazonPayEnabled,
+	isLinkEnabled,
+	getPaymentMethodTypes,
+} from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 export * from './normalize';
@@ -61,11 +66,11 @@ export const displayLoginConfirmation = ( expressPaymentType ) => {
 	}
 
 	const paymentTypesMap = {
+		amazon_pay: 'Amazon Pay',
 		apple_pay: 'Apple Pay',
 		google_pay: 'Google Pay',
-		amazon_pay: 'Amazon Pay',
-		paypal: 'PayPal',
 		link: 'Link',
+		paypal: 'PayPal',
 	};
 	let message = loginConfirmation.message;
 
@@ -136,11 +141,11 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 
 	return {
 		paymentMethods: {
+			amazonPay: 'auto',
 			applePay: 'always',
 			googlePay: 'always',
 			link: 'auto',
 			paypal: 'never',
-			amazonPay: 'never',
 		},
 		layout: { overflow: 'never' },
 		buttonTheme: {
@@ -271,12 +276,14 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
 	const expressPaymentMethodTypes = getPaymentMethodTypes(
 		paymentMethodType
-	).filter( ( type ) =>
-		[ 'paypal', 'amazon_pay', PAYMENT_METHOD_CARD ].includes( type )
-	);
+	).filter( ( type ) => [ 'paypal', PAYMENT_METHOD_CARD ].includes( type ) );
 
 	if ( isLinkEnabled() ) {
 		expressPaymentMethodTypes.push( PAYMENT_METHOD_LINK );
+	}
+
+	if ( isAmazonPayEnabled() ) {
+		expressPaymentMethodTypes.push( PAYMENT_METHOD_AMAZON_PAY );
 	}
 
 	return expressPaymentMethodTypes;
@@ -299,7 +306,14 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 		return paymentMethodTypes;
 	}
 
-	// All express payment methods require 'card' payments. Add it if it's enabled.
+	if (
+		paymentMethodType === 'amazonPay' &&
+		isAmazonPayEnabled( paymentMethodsConfig )
+	) {
+		return [ PAYMENT_METHOD_AMAZON_PAY ];
+	}
+
+	// Apple Pay, Google Pay and Link require 'card' payments. Add it if it's enabled.
 	if ( paymentMethodsConfig?.card !== undefined ) {
 		paymentMethodTypes.push( PAYMENT_METHOD_CARD );
 	}

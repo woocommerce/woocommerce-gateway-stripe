@@ -6,6 +6,7 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_AFTERPAY,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_LINK,
@@ -16,8 +17,9 @@ import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
-	expressCheckoutElementsGooglePay,
+	expressCheckoutElementsAmazonPay,
 	expressCheckoutElementsApplePay,
+	expressCheckoutElementsGooglePay,
 	expressCheckoutElementsStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
@@ -43,6 +45,7 @@ const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 Object.entries( paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_LINK )
+	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_AMAZON_PAY )
 	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_GIROPAY ) // Skip giropay as it was deprecated by Jun, 30th 2024.
 	.forEach( ( [ upeName, upeConfig ] ) => {
 		let iconName = upeName;
@@ -110,8 +113,9 @@ Object.entries( paymentMethodsConfig )
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementsAmazonPay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementsStripeLink( api ) );
 } else {
 	// Register Stripe Payment Request.

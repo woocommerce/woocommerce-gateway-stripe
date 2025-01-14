@@ -53,20 +53,15 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 	}
 };
 
-export const onConfirmHandler = async (
+const handleManualPaymentMethodFlow = async (
 	api,
 	stripe,
 	elements,
 	completePayment,
 	abortPayment,
 	event,
-	order = 0 // Order ID for the pay for order flow.
+	order = 0
 ) => {
-	const submitResponse = await elements.submit();
-	if ( submitResponse?.error ) {
-		return abortPayment( event, submitResponse?.error?.message );
-	}
-
 	const { paymentMethod, error } = await stripe.createPaymentMethod( {
 		elements,
 	} );
@@ -120,6 +115,104 @@ export const onConfirmHandler = async (
 		}
 		return abortPayment( event, errorMessage );
 	}
+};
+
+const handleConfirmationTokenFlow = async (
+	api,
+	stripe,
+	elements,
+	completePayment,
+	abortPayment,
+	event,
+	order = 0
+) => {
+	// 1. Create confirmation token.
+	// 2. Create the order.
+	// 3. Create the payment intent.
+	// 4. Confirm the payment intent.
+
+	// Create a ConfirmationToken using the details collected by the Express Checkout Element
+	const { error, confirmationToken } = await stripe.createConfirmationToken( {
+		elements,
+		// TODO amazon-pay-ece: Add the payment method data, if necessary.
+		params: {
+			// 	payment_method_data: {
+			// 		billing_details: {
+			// 		name: 'Jenny Rosen',
+			// 		}
+			// 	},
+			return_url: window.location.href,
+		},
+	} );
+
+	// confirmationToken.id, e.g. "ctoken_1QhcKbIMUtoK6Gfh256uyYm9"
+
+	if ( error ) {
+		// This point is only reached if there's an immediate error when
+		// confirming the payment. Show the error to your customer (for example, payment details incomplete)
+		// handleError(error); // TODO amazon-pay-ece: Implement handleError
+		return;
+	}
+
+	let orderResponse;
+	if ( ! order ) {
+		orderResponse = await api.expressCheckoutECECreateOrder(
+			normalizeOrderData( event, null, confirmationToken.id )
+		);
+	} else {
+		orderResponse = await api.expressCheckoutECEPayForOrder(
+			order,
+			normalizePayForOrderData( event, null, confirmationToken.id )
+		);
+	}
+
+	if ( orderResponse.result !== 'success' ) {
+		return abortPayment(
+			event,
+			getErrorMessageFromNotice( orderResponse.messages ),
+			true
+		);
+	}
+
+	completePayment( orderResponse.redirect );
+};
+
+export const onConfirmHandler = async (
+	api,
+	stripe,
+	elements,
+	completePayment,
+	abortPayment,
+	event,
+	order = 0 // Order ID for the pay for order flow.
+) => {
+	const submitResponse = await elements.submit();
+	if ( submitResponse?.error ) {
+		return abortPayment( event, submitResponse?.error?.message );
+	}
+
+	// Amazon Pay does not support manual payment method creation.
+	if ( event.expressPaymentType === 'amazon_pay' ) {
+		return handleConfirmationTokenFlow(
+			api,
+			stripe,
+			elements,
+			completePayment,
+			abortPayment,
+			event,
+			order
+		);
+	}
+
+	return handleManualPaymentMethodFlow(
+		api,
+		stripe,
+		elements,
+		completePayment,
+		abortPayment,
+		event,
+		order
+	);
 };
 
 export const onReadyHandler = function ( { availablePaymentMethods } ) {

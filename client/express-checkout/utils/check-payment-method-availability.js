@@ -21,19 +21,25 @@ export const checkPaymentMethodIsAvailable = memoize(
 				stripe={ api.loadStripe() }
 				options={ {
 					mode: 'payment',
-					paymentMethodCreation: 'manual',
 					amount: Number( cart.cartTotals.total_price ),
 					currency: cart.cartTotals.currency_code.toLowerCase(),
 					paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
 						paymentMethod
 					),
+					//paymentMethodCreation: 'manual',
+					...( paymentMethod !== 'amazonPay' && {
+						paymentMethodCreation: 'manual',
+					} ),
 				} }
 			>
 				<ExpressCheckoutElement
 					onLoadError={ () => resolve( false ) }
 					options={ {
 						paymentMethods: {
-							amazonPay: 'never',
+							amazonPay:
+								paymentMethod === 'amazonPay'
+									? 'auto'
+									: 'never',
 							applePay:
 								paymentMethod === 'applePay'
 									? 'always'

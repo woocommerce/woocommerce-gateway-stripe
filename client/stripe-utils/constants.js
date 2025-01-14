@@ -21,6 +21,7 @@ export const PAYMENT_METHOD_CLEARPAY = 'clearpay';
 export const PAYMENT_METHOD_WECHAT_PAY = 'wechat_pay';
 export const PAYMENT_METHOD_CASHAPP = 'cashapp';
 export const PAYMENT_METHOD_LINK = 'link';
+export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
 
 /**
  * Payment method names constants with the `stripe` prefix

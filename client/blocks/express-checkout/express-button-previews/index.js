@@ -1,6 +1,7 @@
 import classNames from 'classnames';
-import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
+import amazonPayIcon from '../../../payment-method-icons/amazon-pay/icon.svg';
 import applePayIcon from '../../../payment-method-icons/apple-pay/icon-white.svg';
+import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
 import stripeLinkIcon from '../../../payment-method-icons/link/icon-black.svg';
 import './style.scss';
 
@@ -56,5 +57,17 @@ export const StripeLinkPreview = () => (
 	<PaymentButtonPreview
 		icon={ stripeLinkIcon }
 		className="wc-stripe-link-preview"
+	/>
+);
+
+/**
+ * AmazonPayPreview Component
+ *
+ * @return {JSX.Element} The rendered component.
+ */
+export const AmazonPayPreview = () => (
+	<PaymentButtonPreview
+		icon={ amazonPayIcon }
+		className="wc-stripe-amazon-pay-preview"
 	/>
 );

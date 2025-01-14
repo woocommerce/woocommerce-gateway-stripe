@@ -363,7 +363,10 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$express_checkout_type = wc_clean( wp_unslash( $_POST['express_checkout_type'] ) );
 
-		if ( 'apple_pay' === $express_checkout_type ) {
+		if ( 'amazon_pay' === $express_checkout_type ) {
+			$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+			$order->save();
+		} elseif ( 'apple_pay' === $express_checkout_type ) {
 			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
 			$order->save();
 		} elseif ( 'google_pay' === $express_checkout_type ) {
@@ -402,6 +405,7 @@ class WC_Stripe_Express_Checkout_Element {
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
 			if ( 'Apple Pay (Stripe)' === $method_title
 				|| 'Google Pay (Stripe)' === $method_title
+				|| 'Amazon Pay (Stripe)' === $method_title
 			) {
 				return $method_title;
 			}
@@ -430,7 +434,12 @@ class WC_Stripe_Express_Checkout_Element {
 
 		?>
 		<div id="wc-stripe-express-checkout-element" style="margin-top: 1em;clear:both;display:none;">
-			<!-- A Stripe Element will be inserted here. -->
+			<div id="wc-stripe-express-checkout-element-pm">
+				<!-- A Stripe Element will be inserted here. -->
+			</div>
+			<div id="wc-stripe-express-checkout-element-ct">
+				<!-- A Stripe Element will be inserted here. -->
+			</div>
 		</div>
 		<?php
 

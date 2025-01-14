@@ -25,11 +25,16 @@ export const normalizeLineItems = ( displayItems ) => {
  * Normalize order data from Stripe's object to the expected format for WC.
  *
  * @param {Object} event Stripe's event object.
- * @param {string} paymentMethodId Stripe's payment method id.
+ * @param {string} paymentMethodId Payment method ID from Stripe, if using manual payment method flow.
+ * @param {string} confirmationTokenId Confirmation token ID from Stripe, if using confirmation token flow.
  *
  * @return {Object} Order object in the format WooCommerce expects.
  */
-export const normalizeOrderData = ( event, paymentMethodId ) => {
+export const normalizeOrderData = (
+	event,
+	paymentMethodId,
+	confirmationTokenId = null
+) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
@@ -71,6 +76,7 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 		ship_to_different_address: 1,
 		terms: 1,
 		'wc-stripe-payment-method': paymentMethodId,
+		'wc-stripe-confirmation-token': confirmationTokenId, // TODO amazon-pay-ece: Is this necessary?
 		express_checkout_type: event?.expressPaymentType,
 		express_payment_type: event?.expressPaymentType,
 		'wc-stripe-is-deferred-intent': true,

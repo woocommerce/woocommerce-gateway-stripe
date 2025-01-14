@@ -4,6 +4,7 @@ import { Card, CheckboxControl } from '@wordpress/components';
 import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
+import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';
 import {
@@ -15,6 +16,7 @@ import './styles.scss';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
@@ -54,6 +56,25 @@ const PaymentRequestSection = () => {
 		availablePaymentMethodIds.includes( PAYMENT_METHOD_LINK );
 	const isStripeLinkEnabled = enabledMethodIds.includes(
 		PAYMENT_METHOD_LINK
+	);
+
+	const updateIsAmazonPayEnabled = ( isEnabled ) => {
+		// Add/remove Stripe Link from the list of enabled payment methods.
+		if ( isEnabled ) {
+			updateEnabledMethodIds( [
+				...enabledMethodIds,
+				PAYMENT_METHOD_AMAZON_PAY,
+			] );
+		} else {
+			updateEnabledMethodIds( [
+				...enabledMethodIds.filter(
+					( id ) => id !== PAYMENT_METHOD_AMAZON_PAY
+				),
+			] );
+		}
+	};
+	const isAmazonPayEnabled = enabledMethodIds.includes(
+		PAYMENT_METHOD_AMAZON_PAY
 	);
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
@@ -141,6 +162,80 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
+					<li className="express-checkout has-icon-border">
+						<div className="express-checkout__checkbox loadable-checkbox label-hidden">
+							<CheckboxControl
+								label={ __(
+									'Amazon Pay',
+									'woocommerce-gateway-stripe'
+								) }
+								checked={ isAmazonPayEnabled }
+								onChange={ updateIsAmazonPayEnabled }
+							/>
+						</div>
+						<div className="express-checkout__icon">
+							<AmazonPayIcon size="medium" />
+						</div>
+						<div className="express-checkout__label-container">
+							<div className="express-checkout__label">
+								{ __(
+									'Amazon Pay',
+									'woocommerce-gateway-stripe'
+								) }
+							</div>
+							<div className="express-checkout__description">
+								{
+									/* eslint-disable jsx-a11y/anchor-has-content */
+									interpolateComponents( {
+										mixedString: __(
+											'Amazon Pay is a fast, easy, and secure way for customers to pay online. ' +
+												'By enabling this feature, you agree to the ' +
+												'{{stripeLinkTerms}}Amazon Pay terms{{/stripeLinkTerms}}, ' +
+												'and {{privacyPolicy}}Privacy Policy{{/privacyPolicy}}.',
+											'woocommerce-gateway-stripe'
+										),
+										components: {
+											stripeLinkTerms: (
+												<a
+													target="_blank"
+													rel="noreferrer"
+													href="https://link.com/terms"
+												/>
+											),
+											privacyPolicy: (
+												<a
+													target="_blank"
+													rel="noreferrer"
+													href="https://link.com/privacy"
+												/>
+											),
+										},
+									} )
+									/* eslint-enable jsx-a11y/anchor-has-content */
+								}
+							</div>
+						</div>
+						<div className="express-checkout__link">
+							{
+								/* eslint-disable jsx-a11y/anchor-has-content */
+								interpolateComponents( {
+									mixedString: __(
+										'{{linkDocs}}Read more{{/linkDocs}}',
+										'woocommerce-gateway-stripe'
+									),
+									components: {
+										linkDocs: (
+											<a
+												target="_blank"
+												rel="noreferrer"
+												href="https://woocommerce.com/document/stripe/customer-experience/express-checkouts/#amazon-pay"
+											/>
+										),
+									},
+								} )
+							}
+						</div>
+					</li>
 					{ displayLinkPaymentMethod && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox loadable-checkbox label-hidden">

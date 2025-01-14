@@ -126,6 +126,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 */
 	private function get_card_wallet_type_title( $express_payment_type ) {
 		$express_payment_titles = [
+			'amazon_pay' => 'Amazon Pay',
 			'apple_pay'  => 'Apple Pay',
 			'google_pay' => 'Google Pay',
 		];

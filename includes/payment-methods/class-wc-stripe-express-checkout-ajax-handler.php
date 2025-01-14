@@ -351,6 +351,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function ajax_pay_for_order() {
 		check_ajax_referer( 'wc-stripe-pay-for-order' );
 
+		// TODO amazon-pay-ece
 		if (
 			! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method']
 			|| ! isset( $_POST['order'] ) || ! intval( $_POST['order'] )
