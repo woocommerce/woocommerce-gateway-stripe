@@ -24,7 +24,7 @@ services:
     container_name: woocommerce_stripe_mysql
     image: mariadb:latest
     ports:
-      - "5678:3306"
+      - "5668:3306"
     env_file:
       - default.env
     volumes:
