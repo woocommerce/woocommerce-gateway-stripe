@@ -1910,7 +1910,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$intent = $this->stripe_request( 'payment_intents/' . $existing_intent->id );
 
 				// If the intent is already successful, return it to prevent duplicate charges
-				if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::SUCCEEDED, WC_Stripe_Intent_Status::REQUIRES_CAPTURE, WC_Stripe_Intent_Status::PROCESSING ], true ) ) {
+				if ( in_array( $intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 					return $intent;
 				}
 			}
