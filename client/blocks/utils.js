@@ -52,6 +52,12 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		options.country = 'US';
 	}
 
+	// Reunion Island (RE) is a FR territory supported by Stripe.
+	// It's considered like FR by Stripe.
+	if ( options.country === 'RE' ) {
+		options.country = 'FR';
+	}
+
 	return stripe.paymentRequest( options );
 };
 
