@@ -890,7 +890,7 @@ jQuery( function($ ) {
 			}
 
 			// Correctly sets the insufficient funds message.
-			if ( 'card_declined' === result.error.code && 'insufficient_funds' === result.error.decline_code ) {
+			if ( 'card_declined' === result.error.code && 'insufficient_funds' === result.error?.decline_code ) {
 				message = wc_stripe_params.insufficient_funds;
 			}
 
