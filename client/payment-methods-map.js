@@ -239,4 +239,11 @@ export default {
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
 	},
+	bacs_debit: {
+		id: 'bacs_debit',
+		label: 'Bacs',
+		description: 'Bacs Debit description',
+		Icon: icons.card,
+		currencies: [ 'GBP' ],
+	},
 };

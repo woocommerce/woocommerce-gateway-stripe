@@ -21,6 +21,7 @@ export const PAYMENT_METHOD_CLEARPAY = 'clearpay';
 export const PAYMENT_METHOD_WECHAT_PAY = 'wechat_pay';
 export const PAYMENT_METHOD_CASHAPP = 'cashapp';
 export const PAYMENT_METHOD_LINK = 'link';
+export const PAYMENT_METHOD_BACS = 'bacs_debit';
 
 /**
  * Payment method names constants with the `stripe` prefix
@@ -43,6 +44,7 @@ export const PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY =
 	'stripe_afterpay_clearpay';
 export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
+export const PAYMENT_METHOD_STRIPE_BACS = 'stripe_bacs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -63,6 +65,7 @@ export function getPaymentMethodsConstants() {
 		afterpay_clearpay: PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY,
 		wechat_pay: PAYMENT_METHOD_STRIPE_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
+		bacs_debit: PAYMENT_METHOD_STRIPE_BACS,
 	};
 }
 
