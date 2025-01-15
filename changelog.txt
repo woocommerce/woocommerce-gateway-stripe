@@ -2,6 +2,7 @@
 
 = 9.2.0 - xxxx-xx-xx =
 * Fix - Adds support for the Reunion country when checking out using the new checkout experience.
+* Add - Support zero-amount refunds.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
