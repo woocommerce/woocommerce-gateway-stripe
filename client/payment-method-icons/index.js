@@ -36,4 +36,5 @@ export default {
 	oxxo: OxxoIcon,
 	wechat_pay: WechatPayIcon,
 	cashapp: CashAppIcon,
+	us_bank_account: CashAppIcon,
 };

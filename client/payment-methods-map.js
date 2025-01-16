@@ -16,6 +16,16 @@ export default {
 		currencies: [],
 		allows_manual_capture: true,
 	},
+	us_bank_account: {
+		id: 'us_bank_account',
+		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'ACH lets you accept payments from customers with a US bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.cashapp,
+		currencies: [ 'USD' ],
+	},
 	giropay: {
 		id: 'giropay',
 		label: __( 'giropay', 'woocommerce-gateway-stripe' ),

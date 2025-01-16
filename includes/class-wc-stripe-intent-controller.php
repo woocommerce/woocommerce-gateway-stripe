@@ -243,9 +243,9 @@ class WC_Stripe_Intent_Controller {
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
 				[
-					'customer'       => $customer->get_id(),
-					'confirm'        => 'true',
-					'payment_method' => $source_id,
+					'customer'             => $customer->get_id(),
+					'confirm'              => 'true',
+					'payment_method'       => $source_id,
 					'payment_method_types' => [ $source_object->type ],
 				],
 				'setup_intents'
@@ -950,7 +950,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
+		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::ACH, WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
 			return true;
 		}
 
@@ -1121,7 +1121,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
-				$notice  = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
+				$notice = __( 'Payment method updated for all your current subscriptions.', 'woocommerce-gateway-stripe' );
 			}
 
 			wc_add_notice( $notice );
