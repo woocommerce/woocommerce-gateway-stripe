@@ -132,7 +132,7 @@
     "xdebug:start": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "xdebug:stop": "docker compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
     "wp": "docker run -it --env-file default.env --rm --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
-    "listen": "stripe listen --forward-to 'http://localhost:8082/?wc-api=wc_stripe'",
+    "listen": "stripe listen --forward-to 'http://localhost:8072/?wc-api=wc_stripe'",
     "presass": "rm -f $npm_package_config_assets_styles_css",
     "sass": "node_modules/.bin/sass $npm_package_config_assets_styles_cssfolder:$npm_package_config_assets_styles_cssfolder --style compressed",
     "watchsass": "node_modules/.bin/node-sass $npm_package_config_assets_styles_sass --output $npm_package_config_assets_styles_cssfolder --output-style compressed --watch",
