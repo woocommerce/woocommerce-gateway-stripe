@@ -28,8 +28,9 @@ class WC_Stripe_Settings_Controller {
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Account $account Stripe account
+	 * @param WC_Stripe_Payment_Gateway|null $gateway Stripe gateway
 	 */
-	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway = null ) {
+	public function __construct( WC_Stripe_Account $account, ?WC_Stripe_Payment_Gateway $gateway = null ) {
 		$this->account = $account;
 		$this->gateway = $gateway;
 
