@@ -234,15 +234,15 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-				return await onConfirmHandler(
+				return await onConfirmHandler( {
 					api,
-					api.getStripe(),
+					stripe: api.getStripe(),
 					elements,
-					wcStripeECE.completePayment,
-					wcStripeECE.abortPayment,
+					completePayment: wcStripeECE.completePayment,
+					abortPayment: wcStripeECE.abortPayment,
 					event,
-					order
-				);
+					order,
+				} );
 			} );
 
 			eceButton.on( 'cancel', () => {

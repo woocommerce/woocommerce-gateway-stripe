@@ -373,3 +373,17 @@ export const expressCheckoutNoticeDelay = async () => {
 		setTimeout( resolve, EXPRESS_CHECKOUT_NOTICE_DELAY )
 	);
 };
+
+export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
+	if ( expressPaymentType === 'amazon_pay' ) {
+		return false;
+	}
+
+	// WEOOOW WEEEEOOOOW WEEEEOOOOW! 🚨🚨🚨
+	// TODO: Remove before merge! For testing only!
+	if ( expressPaymentType === 'google_pay' ) {
+		return false;
+	}
+
+	return true;
+};
