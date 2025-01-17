@@ -12,6 +12,7 @@ import {
 	useGetAvailablePaymentMethodIds,
 } from '../../data';
 import './styles.scss';
+import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -216,6 +217,67 @@ const PaymentRequestSection = () => {
 										},
 									} )
 								}
+							</div>
+						</li>
+					) }
+					{ displayLinkPaymentMethod && (
+						<li className="express-checkout has-icon-border">
+							<div className="express-checkout__checkbox loadable-checkbox label-hidden">
+								<CheckboxControl
+									label={ __(
+										'Amazon Pay',
+										'woocommerce-gateway-stripe'
+									) }
+									checked={ isStripeLinkEnabled }
+									onChange={ updateStripeLinkCheckout }
+								/>
+							</div>
+							<div className="express-checkout__icon">
+								<AmazonPayIcon size="medium" />
+							</div>
+							<div className="express-checkout__label-container">
+								<div className="express-checkout__label">
+									{ __(
+										'Amazon Pay',
+										'woocommerce-gateway-stripe'
+									) }
+								</div>
+								<div className="express-checkout__description">
+									{
+										/* eslint-disable jsx-a11y/anchor-has-content */
+										interpolateComponents( {
+											mixedString: __(
+												'Enhance sales by providing a quick, straightforward, and secure checkout experience. ' +
+													'By activating this feature, you accept the terms of use ' +
+													'for {{stripeLink}}Stripe{{/stripeLink}} and {{amazonLink}}Amazon{{/amazonLink}}.',
+												'woocommerce-gateway-stripe'
+											),
+											components: {
+												stripeLink: (
+													<a
+														target="_blank"
+														rel="noreferrer"
+														href="https://stripe.com/legal/ssa"
+													/>
+												),
+												amazonLink: (
+													<a
+														target="_blank"
+														rel="noreferrer"
+														href="https://stripe.com/legal/amazon-pay"
+													/>
+												),
+											},
+										} )
+										/* eslint-enable jsx-a11y/anchor-has-content */
+									}
+								</div>
+							</div>
+							<div className="express-checkout__link">
+								{ __(
+									'Customize',
+									'woocommerce-gateway-stripe'
+								) }
 							</div>
 						</li>
 					) }
