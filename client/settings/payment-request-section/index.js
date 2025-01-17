@@ -230,6 +230,7 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
+<<<<<<< HEAD
 					{ isECEEnabled && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox">
@@ -240,6 +241,18 @@ const PaymentRequestSection = () => {
 									) }
 									checked={ isAmazonPayEnabled }
 									onChange={ updateIsAmazonPayEnabled }
+=======
+					{ displayLinkPaymentMethod && (
+						<li className="express-checkout has-icon-border">
+							<div className="express-checkout__checkbox loadable-checkbox label-hidden">
+								<CheckboxControl
+									label={ __(
+										'Amazon Pay',
+										'woocommerce-gateway-stripe'
+									) }
+									checked={ isStripeLinkEnabled }
+									onChange={ updateStripeLinkCheckout }
+>>>>>>> a40d9103 (Add the short blurb)
 								/>
 							</div>
 							<div className="express-checkout__icon">
@@ -283,7 +296,11 @@ const PaymentRequestSection = () => {
 									}
 								</div>
 							</div>
+<<<<<<< HEAD
 							<div className="express-checkout__amazon">
+=======
+							<div className="express-checkout__link">
+>>>>>>> a40d9103 (Add the short blurb)
 								{ __(
 									'Customize',
 									'woocommerce-gateway-stripe'
