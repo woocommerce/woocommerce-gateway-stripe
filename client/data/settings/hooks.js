@@ -140,6 +140,9 @@ export const useEnabledPaymentMethodIds = makeSettingsHook(
 export const usePaymentRequestEnabledSettings = makeSettingsHook(
 	'is_payment_request_enabled'
 );
+export const useAmazonPayEnabledSettings = makeSettingsHook(
+	'is_amazon_pay_enabled'
+);
 export const usePaymentRequestButtonSize = makeSettingsHook(
 	'payment_request_button_size',
 	''
