@@ -6,6 +6,8 @@ import {
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
+	normalizeOrderDataForBlocksAPI,
+	normalizePayForOrderDataForBlocksAPI,
 } from './utils';
 import {
 	trackExpressCheckoutButtonClick,
@@ -119,6 +121,93 @@ export const onConfirmHandler = async (
 			);
 		}
 		return abortPayment( event, errorMessage );
+	}
+};
+
+export const onConfirmHandlerForBlocksAPI = async (
+	api,
+	stripe,
+	elements,
+	completePayment,
+	abortPayment,
+	event,
+	order = 0 // Order ID for the pay for order flow.
+) => {
+	const submitResponse = await elements.submit();
+	if ( submitResponse?.error ) {
+		return abortPayment( event, submitResponse?.error?.message );
+	}
+
+	const { paymentMethod, error } = await stripe.createPaymentMethod( {
+		elements,
+	} );
+
+	if ( error ) {
+		return abortPayment( event, error.message );
+	}
+
+	try {
+		// Kick off checkout processing step.
+		let orderResponse;
+		if ( ! order ) {
+			orderResponse = await api.expressCheckoutECECreateOrderForBlocksAPI(
+				normalizeOrderDataForBlocksAPI( event, paymentMethod.id )
+			);
+		} else {
+			orderResponse = await api.expressCheckoutECEPayForOrderForBlocksAPI(
+				order,
+				normalizePayForOrderDataForBlocksAPI( event, paymentMethod.id )
+			);
+		}
+
+		if ( orderResponse.payment_result.payment_status !== 'success' ) {
+			return abortPayment(
+				event,
+				getErrorMessageFromNotice(
+					orderResponse.payment_result?.payment_details.find(
+						( detail ) => detail.key === 'errorMessage'
+					)?.value
+				),
+				true
+			);
+		}
+
+		const confirmationRequest = api.confirmIntent(
+			orderResponse.payment_result.redirect_url
+		);
+
+		// `true` means there is no intent to confirm.
+		if ( confirmationRequest === true ) {
+			completePayment( orderResponse.payment_result.redirect_url );
+		} else {
+			const { request } = confirmationRequest;
+			const redirectUrl = await request;
+
+			completePayment( redirectUrl );
+		}
+	} catch ( e ) {
+		let errorMessage;
+		if ( e.message ) {
+			errorMessage = e.message;
+		} else {
+			const paymentDetailsErrorMessage = e.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value;
+			if ( paymentDetailsErrorMessage ) {
+				errorMessage = paymentDetailsErrorMessage;
+			}
+		}
+		if ( ! errorMessage ) {
+			errorMessage = __(
+				'There was a problem processing the order.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+		return abortPayment(
+			event,
+			getErrorMessageFromNotice( errorMessage ),
+			true
+		);
 	}
 };
 
