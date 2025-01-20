@@ -399,7 +399,6 @@ describe( 'Express checkout normalization', () => {
 					state: 'NY',
 				},
 				customer_note: undefined,
-				extensions: {},
 				payment_data: [
 					{
 						key: 'payment_method',
@@ -458,7 +457,6 @@ describe( 'Express checkout normalization', () => {
 					state: '',
 				},
 				customer_note: undefined,
-				extensions: {},
 				payment_data: [
 					{
 						key: 'payment_method',
@@ -521,7 +519,6 @@ describe( 'Express checkout normalization', () => {
 					state: '',
 				},
 				customer_note: undefined,
-				extensions: {},
 				payment_data: [
 					{
 						key: 'payment_method',

@@ -113,5 +113,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.2.0 - xxxx-xx-xx =
 * Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
 * Tweak - Process ECE orders using the Blocks API.
+* Fix - Fixes incorrect error message for card failures due insufficient funds on the shortcode checkout page (legacy).
+* Fix - Fixes deprecation warnings related to nullable method parameters when using PHP 8.4, and increases the minimum PHP version Code Sniffer considers to 7.4.
+* Fix - Adds support for the Reunion country when checking out using the new checkout experience.
+* Add - Support zero-amount refunds.
+* Fix - A potential fix to prevent duplicate charges.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

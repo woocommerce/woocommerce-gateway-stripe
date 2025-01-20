@@ -4,7 +4,7 @@ Docker can be used to setup a local development environment:
 
 - Ensure Docker is installed ([Docker Desktop](https://www.docker.com/products/docker-desktop) is a good option for developers)
 - From the root of this project, run `npm run up`
-- The fully configured site can now be accessed on <http://localhost:8082>
+- The fully configured site can now be accessed on <http://localhost:8072>
 - The prompt to run the setup wizard can be dismissed unless there is something specific you would like to configure
 
 To shutdown:
