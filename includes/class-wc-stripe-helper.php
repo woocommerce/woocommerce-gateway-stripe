@@ -265,6 +265,7 @@ class WC_Stripe_Helper {
 				'tax_id_invalid'                        => __( 'Invalid Tax Id, please try again with a valid tax id', 'woocommerce-gateway-stripe' ),
 				'invalid_wallet_type'                   => __( 'Invalid wallet payment type, please try again or use an alternative method.', 'woocommerce-gateway-stripe' ),
 				'payment_intent_authentication_failure' => __( 'We are unable to authenticate your payment method. Please choose a different payment method and try again.', 'woocommerce-gateway-stripe' ),
+				'insufficient_funds'                    => __( 'Your card has insufficient funds.', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}
