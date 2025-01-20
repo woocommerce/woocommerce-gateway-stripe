@@ -8,6 +8,7 @@ import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';
 import {
 	usePaymentRequestEnabledSettings,
+	useAmazonPayEnabledSettings,
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from '../../data';
@@ -23,6 +24,11 @@ const PaymentRequestSection = () => {
 		isPaymentRequestEnabled,
 		updateIsPaymentRequestEnabled,
 	] = usePaymentRequestEnabledSettings();
+
+	const [
+		isAmazonPayEnabled,
+		updateIsAmazonPayEnabled,
+	] = useAmazonPayEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
@@ -220,16 +226,12 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
-					{ displayLinkPaymentMethod && (
+					{ displayExpressPaymentMethods && (
 						<li className="express-checkout has-icon-border">
-							<div className="express-checkout__checkbox loadable-checkbox label-hidden">
+							<div className="express-checkout__checkbox">
 								<CheckboxControl
-									label={ __(
-										'Amazon Pay',
-										'woocommerce-gateway-stripe'
-									) }
-									checked={ isStripeLinkEnabled }
-									onChange={ updateStripeLinkCheckout }
+									checked={ isAmazonPayEnabled }
+									onChange={ updateIsAmazonPayEnabled }
 								/>
 							</div>
 							<div className="express-checkout__icon">
@@ -273,7 +275,7 @@ const PaymentRequestSection = () => {
 									}
 								</div>
 							</div>
-							<div className="express-checkout__link">
+							<div className="express-checkout__amazon">
 								{ __(
 									'Customize',
 									'woocommerce-gateway-stripe'
