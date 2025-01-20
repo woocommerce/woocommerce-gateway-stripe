@@ -1355,6 +1355,15 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Returns whether Stripe express checkout element should use the Blocks API.
+	 *
+	 * @return boolean
+	 */
+	public function use_blocks_api() {
+		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
+	}
+
+	/**
 	 * Restores the shipping methods previously chosen for each recurring cart after shipping was reset and recalculated
 	 * during the express checkout get_shipping_options flow.
 	 *

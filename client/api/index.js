@@ -1,5 +1,6 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
@@ -536,6 +537,49 @@ export default class WCStripeAPI {
 			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
 			order,
 			...paymentData,
+		} );
+	}
+
+	/**
+	 * Creates order based on Express Checkout ECE payment method.
+	 *
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECreateOrderForBlocksAPI( paymentData ) {
+		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
+			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+		} );
+	}
+
+	/**
+	 * Pays for an order based on the Express Checkout payment method.
+	 *
+	 * @param {number} order The order ID.
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECEPayForOrderForBlocksAPI( order, paymentData ) {
+		return this.postToBlocksAPI( `/wc/store/v1/checkout/${ order }`, {
+			...paymentData,
+		} );
+	}
+
+	/**
+	 * Posts data to the Blocks API.
+	 *
+	 * @param {string} path The path to post to.
+	 * @param {Object} data The data to post.
+	 * @return {Promise} The promise for the request to the server.
+	 */
+	postToBlocksAPI( path, data ) {
+		return apiFetch( {
+			method: 'POST',
+			path,
+			headers: {
+				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			},
+			data,
 		} );
 	}
 

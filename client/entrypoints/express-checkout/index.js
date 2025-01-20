@@ -19,12 +19,14 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
+	onConfirmHandlerForBlocksAPI,
 	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 
 jQuery( function ( $ ) {
@@ -233,7 +235,17 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-
+				if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
+					return await onConfirmHandlerForBlocksAPI(
+						api,
+						api.getStripe(),
+						elements,
+						wcStripeECE.completePayment,
+						wcStripeECE.abortPayment,
+						event,
+						order
+					);
+				}
 				return await onConfirmHandler(
 					api,
 					api.getStripe(),
