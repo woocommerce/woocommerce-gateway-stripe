@@ -230,6 +230,10 @@ const PaymentRequestSection = () => {
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox">
 								<CheckboxControl
+									label={ __(
+										'Amazon Pay Input',
+										'woocommerce-gateway-stripe'
+									) }
 									checked={ isAmazonPayEnabled }
 									onChange={ updateIsAmazonPayEnabled }
 								/>
