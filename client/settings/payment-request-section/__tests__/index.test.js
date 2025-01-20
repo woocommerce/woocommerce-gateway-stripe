@@ -22,10 +22,6 @@ const getMockPaymentRequestEnabledSettings = (
 	isEnabled,
 	updateIsPaymentRequestEnabledHandler
 ) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
-const getMockAmazonPayEnabledSettings = (
-	isEnabled,
-	updateIsAmazonPayEnabledHandler
-) => [ isEnabled, updateIsAmazonPayEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
 	const globalValues = global.wc_stripe_settings_params;
