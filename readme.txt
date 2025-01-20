@@ -114,5 +114,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
 * Fix - Payment request button fails to display when the legacy checkout experience is enabled.
 * Fix - Resolves the payment element loading issue in the legacy checkout experience.
+* Add - Add Amazon Pay to settings express checkout section.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
