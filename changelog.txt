@@ -1,6 +1,21 @@
 *** Changelog ***
 
-= 9.1.0 - xxxx-xx-xx =
+= 9.2.0 - xxxx-xx-xx =
+* Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
+* Tweak - Process ECE orders using the Blocks API.
+* Fix - Fixes incorrect error message for card failures due insufficient funds on the shortcode checkout page (legacy).
+* Fix - Fixes deprecation warnings related to nullable method parameters when using PHP 8.4, and increases the minimum PHP version Code Sniffer considers to 7.4.
+* Fix - Adds support for the Reunion country when checking out using the new checkout experience.
+* Add - Support zero-amount refunds.
+* Fix - A potential fix to prevent duplicate charges.
+
+= 9.1.1 - 2025-01-10 =
+* Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
+* Fix - Payment request button fails to display when the legacy checkout experience is enabled.
+* Fix - Resolves the payment element loading issue in the legacy checkout experience.
+
+= 9.1.0 - 2025-01-09 =
+* Fix - Fixes the new checkout experience not being enabled by default due to conflict with a migration.
 * Fix - Prevents duplicated credit cards to be added to the customer's account through the My Account page, the shortcode checkout and the block checkout.
 * Fix - Return to the correct page when redirect-based payment method fails.
 * Fix - Show default recipient for Payment Authentication Requested email.

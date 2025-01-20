@@ -744,12 +744,12 @@ class WC_Stripe_Customer {
 	 * Given a WC_Order or WC_Customer, returns an array representing a Stripe customer object.
 	 * At least one parameter has to not be null.
 	 *
-	 * @param WC_Order    $wc_order    The Woo order to parse.
-	 * @param WC_Customer $wc_customer The Woo customer to parse.
+	 * @param WC_Order|null    $wc_order    The Woo order to parse.
+	 * @param WC_Customer|null $wc_customer The Woo customer to parse.
 	 *
 	 * @return array Customer data.
 	 */
-	public static function map_customer_data( WC_Order $wc_order = null, WC_Customer $wc_customer = null ) {
+	public static function map_customer_data( ?WC_Order $wc_order = null, ?WC_Customer $wc_customer = null ) {
 		if ( null === $wc_customer && null === $wc_order ) {
 			return [];
 		}
