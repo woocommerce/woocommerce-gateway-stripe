@@ -4,6 +4,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	usePaymentRequestEnabledSettings,
+	useAmazonPayEnabledSettings,
 } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -14,12 +15,17 @@ jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
+	useAmazonPayEnabledSettings: jest.fn(),
 } ) );
 
 const getMockPaymentRequestEnabledSettings = (
 	isEnabled,
 	updateIsPaymentRequestEnabledHandler
 ) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
+const getMockAmazonPayEnabledSettings = (
+	isEnabled,
+	updateIsAmazonPayEnabledHandler
+) => [ isEnabled, updateIsAmazonPayEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
@@ -34,6 +40,9 @@ describe( 'PaymentRequestSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_LINK,
 		] );
+		useAmazonPayEnabledSettings.mockReturnValue(
+			getMockAmazonPayEnabledSettings( true, jest.fn() )
+		);
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -101,5 +110,41 @@ describe( 'PaymentRequestSection', () => {
 			name: /Link by Stripe Input/i,
 		} );
 		expect( linkCheckbox ).not.toBeChecked();
+	} );
+
+	it( 'hide Amazon Pay if card payment method is inactive', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [ PAYMENT_METHOD_LINK ] );
+
+		render( <PaymentRequestSection /> );
+
+		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
+	} );
+
+	it( 'show Amazon Pay if card payment method is active', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [ PAYMENT_METHOD_CARD ] );
+
+		render( <PaymentRequestSection /> );
+
+		expect( screen.queryByText( 'Amazon Pay' ) ).toBeInTheDocument();
+	} );
+
+	it( 'test Amazon Pay checkbox checked', () => {
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).toBeChecked();
+	} );
+
+	it( 'test Amazon Pay checkbox not checked', () => {
+		useAmazonPayEnabledSettings.mockReturnValue(
+			getMockAmazonPayEnabledSettings( false, jest.fn() )
+		);
+
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).not.toBeChecked();
 	} );
 } );
