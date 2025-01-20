@@ -2148,6 +2148,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
 
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
 			'payment_method'               => 'stripe',
@@ -2161,9 +2163,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
-			->expects( $this->once() )
+			->expects( $this->exactly( 2 ) )
 			->method( 'get_intent_from_order' )
 			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->withConsecutive(
+				[ 'payment_methods/pm_mock' ],
+				[ 'payment_intents/' . $mock_intent->id ]
+			)
+			->willReturnOnConsecutiveCalls(
+				$mock_payment_method,
+				$mock_intent
+			);
 
 		$this->mock_gateway
 			->expects( $this->once() )
@@ -2174,6 +2188,177 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
+	}
+
+
+	/**
+	 * Test that a successful payment intent is reused instead of creating a new one.
+	 * This prevents duplicate charges when the shopper retries a payment after
+	 * a successful charge but failed order completion.
+	 *
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
+	public function test_process_payment_reuses_successful_payment_intent() {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'id'                   => 'pi_mock',
+				'payment_method'       => 'pm_mock',
+				'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+				'charges'              => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
+					],
+				],
+				'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
+		// Set the appropriate POST flag to trigger a deferred intent request.
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-is-deferred-intent' => '1',
+		];
+
+		// Mock that we find an existing successful intent on the order
+		$this->mock_gateway
+			->expects( $this->exactly( 1 ) )
+			->method( 'get_intent_from_order' )
+			->willReturn( $mock_intent );
+
+		// Mock both the payment method retrieval and payment intent retrieval
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->withConsecutive(
+				[ 'payment_methods/pm_mock' ],
+				[ "payment_intents/{$mock_intent->id}", null, null, 'POST' ]
+			)
+			->willReturnOnConsecutiveCalls(
+				$mock_payment_method,
+				$mock_intent
+			);
+
+		// We should never try to create a new intent since we have a successful one
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		// Verify the response indicates success
+		$this->assertEquals( 'success', $response['result'] );
+	}
+
+	/**
+	 * Test that a failed payment intent is not reused and a new one is created instead.
+	 *
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
+	public function test_process_payment_creates_new_intent_when_existing_intent_failed() {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+
+		// Create a mock failed payment intent that would be attached to the order
+		$mock_failed_intent = (object) wp_parse_args(
+			[
+				'id'                  => 'pi_mock_failed',
+				'payment_method'      => 'pm_mock',
+				'status'              => WC_Stripe_Intent_Status::CANCELED,
+				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
+				'charges'             => (object) [
+					'data' => [],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		// Create a mock successful payment intent that will be created
+		$mock_success_intent = (object) wp_parse_args(
+			[
+				'id'                  => 'pi_mock_new',
+				'payment_method'      => 'pm_mock',
+				'status'              => WC_Stripe_Intent_Status::SUCCEEDED,
+				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
+				'charges'             => (object) [
+					'data' => [
+						(object) [
+							'id'       => 'ch_mock',
+							'captured' => true,
+							'status'   => 'succeeded',
+						],
+					],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		// Set the appropriate POST flag to trigger a deferred intent request
+		$_POST = [
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
+			'wc-stripe-is-deferred-intent' => '1',
+		];
+
+		// Save the failed intent ID to the order
+		$order->update_meta_data( '_stripe_intent_id', $mock_failed_intent->id );
+		$order->save();
+
+		// Mock that we find an existing failed intent on the order
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'get_intent_from_order' )
+			->willReturn( $mock_failed_intent );
+
+		// Mock both the payment method retrieval and payment intent retrieval
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->withConsecutive(
+				[ 'payment_methods/pm_mock' ],
+				[ "payment_intents/{$mock_failed_intent->id}", null, null, 'POST' ]
+			)
+			->willReturnOnConsecutiveCalls(
+				$mock_payment_method,
+				$mock_failed_intent
+			);
+
+		// We should create a new intent since the existing one failed
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_success_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		// Verify the response indicates success
+		$this->assertEquals( 'success', $response['result'] );
 	}
 
 	/**

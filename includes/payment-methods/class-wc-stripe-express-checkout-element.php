@@ -197,6 +197,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
 				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
+				'wc_store_api'              => wp_create_nonce( 'wc_store_api' ),
 			],
 			'i18n'                   => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -213,6 +214,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'product'                => $this->express_checkout_helper->get_product_data(),
 			'is_cart_page'           => is_cart(),
 			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'use_blocks_api'         => $this->express_checkout_helper->use_blocks_api(),
 		];
 	}
 
