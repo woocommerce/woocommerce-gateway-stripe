@@ -22,10 +22,6 @@ const getMockPaymentRequestEnabledSettings = (
 	isEnabled,
 	updateIsPaymentRequestEnabledHandler
 ) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
-const getMockAmazonPayEnabledSettings = (
-	isEnabled,
-	updateIsAmazonPayEnabledHandler
-) => [ isEnabled, updateIsAmazonPayEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
@@ -40,9 +36,7 @@ describe( 'PaymentRequestSection', () => {
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_LINK,
 		] );
-		useAmazonPayEnabledSettings.mockReturnValue(
-			getMockAmazonPayEnabledSettings( true, jest.fn() )
-		);
+		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -128,23 +122,21 @@ describe( 'PaymentRequestSection', () => {
 		expect( screen.queryByText( 'Amazon Pay' ) ).toBeInTheDocument();
 	} );
 
-	it( 'test Amazon Pay checkbox checked', () => {
-		const container = render( <PaymentRequestSection /> );
-		const amazonPayCheckbox = container.getByRole( 'checkbox', {
-			name: /Amazon Pay Input/i,
-		} );
-		expect( amazonPayCheckbox ).toBeChecked();
-	} );
-
 	it( 'test Amazon Pay checkbox not checked', () => {
-		useAmazonPayEnabledSettings.mockReturnValue(
-			getMockAmazonPayEnabledSettings( false, jest.fn() )
-		);
-
 		const container = render( <PaymentRequestSection /> );
 		const amazonPayCheckbox = container.getByRole( 'checkbox', {
 			name: /Amazon Pay Input/i,
 		} );
 		expect( amazonPayCheckbox ).not.toBeChecked();
+	} );
+
+	it( 'test Amazon Pay checkbox checked', () => {
+		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+
+		const container = render( <PaymentRequestSection /> );
+		const amazonPayCheckbox = container.getByRole( 'checkbox', {
+			name: /Amazon Pay Input/i,
+		} );
+		expect( amazonPayCheckbox ).toBeChecked();
 	} );
 } );
