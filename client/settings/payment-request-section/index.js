@@ -68,6 +68,12 @@ const PaymentRequestSection = () => {
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',
 	} );
+	const customizeAmazonPayAppearanceURL = addQueryArgs(
+		window.location.href,
+		{
+			area: 'amazon_pay',
+		}
+	);
 
 	const isECEEnabled = wc_stripe_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
@@ -284,10 +290,12 @@ const PaymentRequestSection = () => {
 								</div>
 							</div>
 							<div className="express-checkout__amazon">
-								{ __(
-									'Customize',
-									'woocommerce-gateway-stripe'
-								) }
+								<a href={ customizeAmazonPayAppearanceURL }>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</a>
 							</div>
 						</li>
 					) }
