@@ -538,8 +538,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 		$this->assertEquals( $expected_balance_transaction_id, $this->gateway->get_balance_transaction_id_from_charge( $charge_expanded ) );
 
-		$charge_non_expanded             = (object) [
-			'id' => 'ch_test123',
+		$charge_non_expanded = (object) [
+			'id'                  => 'ch_test123',
 			'balance_transaction' => $expected_balance_transaction_id,
 		];
 		$this->assertEquals( $expected_balance_transaction_id, $this->gateway->get_balance_transaction_id_from_charge( $charge_non_expanded ) );
@@ -672,4 +672,75 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$dup_locked = $this->gateway->lock_order_payment( $dup_order );
 		$this->assertTrue( $dup_locked ); // Confirms lock from $order_4 prevents payment on $dup_order.
 	}
+
+	/**
+	 * Tests zero amount refunds.
+	 */
+	public function test_process_refund_on_zero_amount() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_transaction_id( 'ch_123' ); // Set the charge ID as transaction ID
+		$order->save();
+		$order_id = $order->get_id();
+
+		$result = $this->gateway->process_refund( $order_id, 0 );
+		$this->assertSame( true, $result );
+	}
+
+	/**
+	 * Tests that process_refund returns false for negative amounts.
+	 */
+	public function test_process_refund_fails_on_negative_amount() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_transaction_id( 'ch_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		$result = $this->gateway->process_refund( $order_id, -10 );
+		$this->assertSame( null, $result );
+	}
+
+	/**
+	 * Tests successful refund processing with a positive amount.
+	 */
+	public function test_process_refund_success() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->set_transaction_id( 'ch_123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Mock the Stripe API refund response
+		$callback = function( $preempt, $request_args, $url ) {
+			if ( strpos( $url, 'refunds' ) !== false ) {
+				$response = [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'       => 're_123',
+							'object'   => 'refund',
+							'amount'   => 1000, // $10.00
+							'currency' => 'usd',
+							'charge'   => 'ch_123',
+							'status'   => 'succeeded',
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+				return $response;
+			}
+			return $preempt;
+		};
+
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
+		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
 }
