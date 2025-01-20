@@ -17,6 +17,7 @@
 * Fix - Adds support for the Reunion country when checking out using the new checkout experience.
 * Add - Support zero-amount refunds.
 * Fix - A potential fix to prevent duplicate charges.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
 * Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
 * Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
