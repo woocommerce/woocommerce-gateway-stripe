@@ -423,6 +423,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
+			$stripe_params['orderId']    = $order_id;
+
 			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
 			if ( is_a( $order, 'WC_Order' ) ) {
 				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
@@ -440,7 +442,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return $stripe_params;
 			}
 
-			$stripe_params['orderId']    = $order_id;
 			$stripe_params['isOrderPay'] = true;
 
 			// Additional params for order pay page, when the order was successfully loaded.
