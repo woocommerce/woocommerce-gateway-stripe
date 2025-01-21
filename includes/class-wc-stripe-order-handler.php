@@ -29,7 +29,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
 
-		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_order' ] );
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
 	}
 
 	/**
