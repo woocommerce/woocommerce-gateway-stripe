@@ -28,6 +28,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
+
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_order' ] );
 	}
 
 	/**
@@ -38,6 +40,30 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public static function get_instance() {
 		return self::$_this;
+	}
+
+	/**
+	 * Shows a warning message about editing uncaptured orders.
+	 *
+	 * @param $order_id
+	 */
+	public function show_warning_for_uncaptured_orders( $order_id ) {
+		$order = wc_get_order( $order_id );
+		// Bail if payment method is not manual capture supporting stripe method.
+		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
+			return $editable;
+		}
+
+		try {
+			$intent = $this->get_intent_from_order( $order );
+			if ( $intent && 'requires_capture' === $intent->status ) {
+				$capture_notice = __( "Attempting to capture more than the authorized amount will fail with an error.", 'woocommerce-gateway-stripe' );
+				$capture_tooltip = __( "You may edit the order to have a total less than or equal to the original authorized amount.", 'woocommerce-gateway-stripe' );
+				echo esc_html( $capture_notice ) . wc_help_tip( $capture_tooltip );
+			}
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
+		}
 	}
 
 	/**
