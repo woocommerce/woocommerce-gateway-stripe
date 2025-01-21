@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
+	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 
 	const LPM_ACH_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_ach';
 
