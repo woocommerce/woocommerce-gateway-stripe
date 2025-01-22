@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
 * Add - Adds a new filter to allow changing the user attributed to an order when paying for it through the Order Pay page.
 * Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
 * Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
