@@ -1,5 +1,5 @@
-/*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
+import { addAction, removeAction } from '@wordpress/hooks';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
@@ -12,8 +12,10 @@ import {
 	getExpressCheckoutData,
 	getExpressPaymentMethodTypes,
 	normalizeLineItems,
+	setExpressCheckoutData,
 } from 'wcstripe/express-checkout/utils';
 import {
+	getCartApiHandler,
 	onAbortPaymentHandler,
 	onCancelHandler,
 	onClickHandler,
@@ -27,6 +29,42 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
+import ExpressCheckoutCartApi from 'wcstripe/express-checkout/cart-api';
+import {
+	transformCartDataForDisplayItems,
+	transformCartDataForShippingRates,
+	transformPrice,
+} from 'wcstripe/express-checkout/transformers/wc-to-stripe';
+
+const getServerSideExpressCheckoutProductData = () => {
+	const requestShipping =
+		getExpressCheckoutData( 'product' )?.needs_shipping ?? false;
+	const displayItems = (
+		getExpressCheckoutData( 'product' )?.displayItems ?? []
+	).map( ( { label, amount } ) => ( {
+		name: label,
+		amount,
+	} ) );
+	const shippingRates = requestShipping
+		? [
+				{
+					id: 'pending',
+					displayName: __( 'Pending', 'woocommerce-payments' ),
+					amount: 0,
+				},
+		  ]
+		: undefined;
+
+	return {
+		total: getExpressCheckoutData( 'product' )?.total.amount,
+		currency: getExpressCheckoutData( 'product' )?.currency,
+		requestShipping,
+		shippingRates,
+		requestPhone:
+			getExpressCheckoutData( 'checkout' )?.needs_payer_phone ?? false,
+		displayItems,
+	};
+};
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -38,12 +76,33 @@ jQuery( function ( $ ) {
 	}
 
 	const publishableKey = getExpressCheckoutData( 'stripe' ).publishable_key;
-	const quantityInputSelector = '.quantity .qty[type=number]';
 
 	if ( ! publishableKey ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
 	}
+
+	let cachedCartData = null;
+	const noop = () => null;
+	const fetchNewCartData = async () => {
+		if ( getExpressCheckoutData( 'button_context' ) !== 'product' ) {
+			return await getCartApiHandler().getCart();
+		}
+
+		// creating a new cart and clearing it afterward,
+		// to avoid scenarios where the stock for a product with limited (or low) availability is added to the cart,
+		// preventing other customers from purchasing.
+		const temporaryCart = new ExpressCheckoutCartApi();
+		temporaryCart.useSeparateCart();
+
+		const cartData = await temporaryCart.addProductToCart();
+
+		// no need to wait for the request to end, it can be done asynchronously.
+		// using `.finally( noop )` to avoid annoying IDE warnings.
+		temporaryCart.emptyCart().finally( noop );
+
+		return cartData;
+	};
 
 	const api = new WCStripeAPI(
 		getStripeServerData(),
@@ -205,11 +264,11 @@ jQuery( function ( $ ) {
 					}
 
 					// Add products to the cart if everything is right.
-					wcStripeECE.addToCart();
+					wcStripeECE.addToCart(); // @todo
 				}
 
 				const clickOptions = {
-					lineItems: normalizeLineItems( options.displayItems ),
+					lineItems: normalizeLineItems( options.displayItems ), // @todo
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
@@ -223,30 +282,35 @@ jQuery( function ( $ ) {
 			eceButton.on(
 				'shippingaddresschange',
 				async ( event ) =>
-					await shippingAddressChangeHandler( api, event, elements )
+					await shippingAddressChangeHandler( event, elements )
 			);
 
 			eceButton.on(
 				'shippingratechange',
 				async ( event ) =>
-					await shippingRateChangeHandler( api, event, elements )
+					await shippingRateChangeHandler( event, elements )
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
-				const order = options.order ? options.order : 0;
 				return await onConfirmHandler(
 					api,
 					api.getStripe(),
 					elements,
 					wcStripeECE.completePayment,
 					wcStripeECE.abortPayment,
-					event,
-					order
+					event
 				);
 			} );
 
 			eceButton.on( 'cancel', () => {
 				wcStripeECE.paymentAborted = true;
+				if (
+					getExpressCheckoutData( 'button_context' ) === 'product'
+				) {
+					// clearing the cart to avoid issues with products with low or limited availability
+					// being held hostage by customers cancelling the ECE.
+					getCartApiHandler().emptyCart();
+				}
 				onCancelHandler();
 			} );
 
@@ -267,57 +331,152 @@ jQuery( function ( $ ) {
 			if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.attachProductPageEventListeners( elements );
 			}
+
+			removeAction(
+				'wcstripe.express-checkout.update-button-data',
+				'automattic/wcstripe/express-checkout'
+			);
+			addAction(
+				'wcstripe.express-checkout.update-button-data',
+				'automattic/wcstripe/express-checkout',
+				async () => {
+					// if the product cannot be added to cart (because of missing variation selection, etc),
+					// don't try to add it to the cart to get new data - the call will likely fail.
+					if (
+						getExpressCheckoutData( 'button_context' ) === 'product'
+					) {
+						const addToCartButton = $(
+							'.single_add_to_cart_button'
+						);
+
+						// First check if product can be added to cart.
+						if ( addToCartButton.is( '.disabled' ) ) {
+							return;
+						}
+					}
+
+					try {
+						wcStripeECE.blockExpressCheckoutButton();
+
+						cachedCartData = await fetchNewCartData();
+						// checking if items needed shipping, before assigning new cart data.
+						const didItemsNeedShipping = options.requestShipping;
+
+						/**
+						 * If the customer aborted the payment request, we need to re init the payment request button to ensure the shipping
+						 * options are re-fetched. If the customer didn't abort the payment request, and the product's shipping status is
+						 * consistent, we can simply update the payment request button with the new total and display items.
+						 */
+						if (
+							! wcStripeECE.paymentAborted &&
+							didItemsNeedShipping ===
+								cachedCartData.needs_shipping
+						) {
+							elements.update( {
+								total: {
+									label: getExpressCheckoutData(
+										'total_label'
+									),
+									amount: transformPrice(
+										parseInt(
+											cachedCartData.totals.total_price,
+											10
+										) -
+											parseInt(
+												cachedCartData.totals
+													.total_refund || 0,
+												10
+											),
+										cachedCartData.totals
+									),
+								},
+								displayItems: transformCartDataForDisplayItems(
+									cachedCartData
+								),
+							} );
+						} else {
+							// the cachedCartData from the Store API will be used from now on,
+							// instead of the `product` attributes.
+							setExpressCheckoutData( 'product', null );
+
+							await wcStripeECE.init();
+						}
+
+						wcStripeECE.unblockExpressCheckoutButton();
+					} catch ( e ) {
+						wcStripeECE.hide();
+					}
+				}
+			);
 		},
 
 		/**
 		 * Initialize event handlers and UI state
 		 */
-		init: () => {
-			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
-				const {
-					total: { amount: total },
-					displayItems,
-					order,
-				} = wcStripeExpressCheckoutPayForOrderParams;
+		init: async () => {
+			// on product pages, we should be able to have `getExpressCheckoutData( 'product' )` from the backend,
+			// which saves us some AJAX calls.
+			if ( ! getExpressCheckoutData( 'product' ) && ! cachedCartData ) {
+				try {
+					cachedCartData = await fetchNewCartData();
+				} catch ( e ) {
+					// if something fails here, we can likely fall back on `getExpressCheckoutData( 'product' )`.
+				}
+			}
 
-				wcStripeECE.startExpressCheckoutElement( {
-					mode: 'payment',
-					total,
-					currency: getExpressCheckoutData( 'checkout' )
-						.currency_code,
-					appearance: getExpressCheckoutButtonAppearance(),
-					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-					displayItems,
-					order,
-				} );
-			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				wcStripeECE.startExpressCheckoutElement( {
-					mode: 'payment',
-					total: getExpressCheckoutData( 'product' )?.total.amount,
-					currency: getExpressCheckoutData( 'product' )?.currency,
-					requestShipping:
-						getExpressCheckoutData( 'product' )?.requestShipping ??
-						false,
-					requestPhone:
-						getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone ?? false,
-					displayItems: getExpressCheckoutData( 'product' )
-						.displayItems,
-				} );
-			} else {
-				// Cart and Checkout page specific initialization.
-				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					wcStripeECE.startExpressCheckoutElement( {
-						mode: 'payment',
-						total: cart.order_data.total.amount,
-						currency: getExpressCheckoutData( 'checkout' )
-							?.currency_code,
-						requestShipping: cart.shipping_required === true,
-						requestPhone: getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone,
-						displayItems: cart.order_data.displayItems,
+			// once (and if) cart data has been fetched, we can safely clear product data from the backend.
+			if ( cachedCartData ) {
+				setExpressCheckoutData( 'product', undefined );
+			}
+
+			if ( getExpressCheckoutData( 'button_context' ) === 'product' ) {
+				// on product pages, we need to interact with an anonymous cart to check out the product,
+				// so that we don't affect the products in the main cart.
+				// On cart, checkout, place order pages we instead use the cart itself.
+				getCartApiHandler().useSeparateCart();
+			}
+
+			if ( cachedCartData ) {
+				// If this is the cart page, or checkout page, or pay-for-order page, we need to request the cart details.
+				// but if the data is not available, we can't render the button.
+				const total = transformPrice(
+					parseInt( cachedCartData.totals.total_price, 10 ) -
+						parseInt( cachedCartData.totals.total_refund || 0, 10 ),
+					cachedCartData.totals
+				);
+				if ( total === 0 ) {
+					wcStripeECE.hide();
+					wcStripeECE.getButtonSeparator().hide();
+				} else {
+					await wcStripeECE.startExpressCheckoutElement( {
+						total,
+						currency: cachedCartData.totals.currency_code.toLowerCase(),
+						// pay-for-order should never display the shipping selection.
+						requestShipping:
+							getExpressCheckoutData( 'button_context' ) !==
+								'pay_for_order' &&
+							cachedCartData.needs_shipping,
+						shippingRates: transformCartDataForShippingRates(
+							cachedCartData
+						),
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone ?? false,
+						displayItems: transformCartDataForDisplayItems(
+							cachedCartData
+						),
 					} );
-				} );
+				}
+			} else if (
+				getExpressCheckoutData( 'button_context' ) === 'product' &&
+				getExpressCheckoutData( 'product' )
+			) {
+				await wcStripeECE.startExpressCheckoutElement(
+					getServerSideExpressCheckoutProductData()
+				);
+			} else {
+				wcStripeECE.hide();
+				wcStripeECE.getButtonSeparator().hide();
 			}
 
 			// After initializing a new express checkout button, we need to reset the paymentAborted flag.
@@ -349,104 +508,6 @@ jQuery( function ( $ ) {
 				chosenCount: chosen,
 				data,
 			};
-		},
-
-		getSelectedProductData: () => {
-			let productId = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
-					.val();
-			}
-
-			// WC Bookings Support.
-			if ( $( '.wc-bookings-booking-form' ).length ) {
-				productId = $( '.wc-booking-product-id' ).val();
-			}
-
-			const addons =
-				$( '#product-addons-total' ).data( 'price_data' ) || [];
-			const addonValue = addons.reduce(
-				( sum, addon ) => sum + addon.cost,
-				0
-			);
-
-			// WC Deposits Support.
-			const depositObject = {};
-			if ( $( 'input[name=wc_deposit_option]' ).length ) {
-				depositObject.wc_deposit_option = $(
-					'input[name=wc_deposit_option]:checked'
-				).val();
-			}
-			if ( $( 'input[name=wc_deposit_payment_plan]' ).length ) {
-				depositObject.wc_deposit_payment_plan = $(
-					'input[name=wc_deposit_payment_plan]:checked'
-				).val();
-			}
-
-			const data = {
-				product_id: productId,
-				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
-					: [],
-				addon_value: addonValue,
-				...depositObject,
-			};
-
-			return api.expressCheckoutGetSelectedProductData( data );
-		},
-
-		/**
-		 * Adds the item to the cart and return cart details.
-		 *
-		 * @return {Promise} Promise for the request to the server.
-		 */
-		addToCart: () => {
-			let productId = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
-					.val();
-			}
-
-			if ( $( '.wc-bookings-booking-form' ).length ) {
-				productId = $( '.wc-booking-product-id' ).val();
-			}
-
-			const data = {
-				product_id: productId,
-				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
-					: [],
-			};
-
-			// Add extension data to the POST body
-			const formData = $( 'form.cart' ).serializeArray();
-			$.each( formData, ( i, field ) => {
-				if ( /^(addon-|wc_)/.test( field.name ) ) {
-					if ( /\[\]$/.test( field.name ) ) {
-						const fieldName = field.name.substring(
-							0,
-							field.name.length - 2
-						);
-						if ( data[ fieldName ] ) {
-							data[ fieldName ].push( field.value );
-						} else {
-							data[ fieldName ] = [ field.value ];
-						}
-					} else {
-						data[ field.name ] = field.value;
-					}
-				}
-			} );
-
-			return api.expressCheckoutAddToCart( data );
 		},
 
 		/**

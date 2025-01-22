@@ -1,53 +1,78 @@
 import { __ } from '@wordpress/i18n';
-import {
-	getErrorMessageFromNotice,
-	normalizeOrderData,
-	normalizeShippingAddress,
-	normalizeLineItems,
-	getExpressCheckoutData,
-} from './utils';
+import { applyFilters } from '@wordpress/hooks';
+import { getErrorMessageFromNotice, getExpressCheckoutData } from './utils';
 import {
 	trackExpressCheckoutButtonClick,
 	trackExpressCheckoutButtonLoad,
 } from './tracking';
+import ExpressCheckoutCartApi from 'wcstripe/express-checkout/cart-api';
+import {
+	transformStripePaymentMethodForStoreApi,
+	transformStripeShippingAddressForStoreApi,
+} from 'wcstripe/express-checkout/transformers/stripe-to-wc';
+import {
+	transformCartDataForDisplayItems,
+	transformCartDataForShippingRates,
+	transformPrice,
+} from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
-export const shippingAddressChangeHandler = async ( api, event, elements ) => {
+let cartApi = new ExpressCheckoutCartApi();
+export const setCartApiHandler = ( handler ) => ( cartApi = handler );
+
+export const getCartApiHandler = () => cartApi;
+
+export const shippingAddressChangeHandler = async ( event, elements ) => {
 	try {
-		const response = await api.expressCheckoutECECalculateShippingOptions(
-			normalizeShippingAddress( event.address )
-		);
+		const cartData = await cartApi.updateCustomer( {
+			shipping_address: transformStripeShippingAddressForStoreApi(
+				event.name,
+				event.address
+			),
+		} );
 
-		if ( response.result === 'success' ) {
-			elements.update( {
-				amount: response.total.amount,
-			} );
-			event.resolve( {
-				shippingRates: response.shipping_options,
-				lineItems: normalizeLineItems( response.displayItems ),
-			} );
-		} else {
+		const shippingRates = transformCartDataForShippingRates( cartData );
+
+		// when no shipping options are returned, the API still returns a 200 status code.
+		// We need to ensure that shipping options are present - otherwise the ECE dialog won't update correctly.
+		if ( shippingRates.length === 0 ) {
 			event.reject();
 		}
+
+		elements.update( {
+			amount: transformPrice(
+				parseInt( cartData.totals.total_price, 10 ) -
+					parseInt( cartData.totals.total_refund || 0, 10 ),
+				cartData.totals
+			),
+		} );
+
+		event.resolve( {
+			shippingRates: transformCartDataForShippingRates( cartData ),
+			lineItems: transformCartDataForDisplayItems( cartData ),
+		} );
 	} catch ( e ) {
 		event.reject();
 	}
 };
 
-export const shippingRateChangeHandler = async ( api, event, elements ) => {
+export const shippingRateChangeHandler = async ( event, elements ) => {
 	try {
-		const response = await api.expressCheckoutUpdateShippingDetails(
-			event.shippingRate
-		);
+		const cartData = await cartApi.selectShippingRate( {
+			package_id: 0,
+			rate_id: event.shippingRate.id,
+		} );
 
-		if ( response.result === 'success' ) {
-			elements.update( { amount: response.total.amount } );
-			event.resolve( {
-				lineItems: normalizeLineItems( response.displayItems ),
-			} );
-		} else {
-			event.reject();
-		}
-	} catch ( e ) {
+		elements.update( {
+			amount: transformPrice(
+				parseInt( cartData.totals.total_price, 10 ) -
+					parseInt( cartData.totals.total_refund || 0, 10 ),
+				cartData.totals
+			),
+		} );
+		event.resolve( {
+			lineItems: transformCartDataForDisplayItems( cartData ),
+		} );
+	} catch ( error ) {
 		event.reject();
 	}
 };
@@ -58,8 +83,7 @@ export const onConfirmHandler = async (
 	elements,
 	completePayment,
 	abortPayment,
-	event,
-	order = 0 // Order ID for the pay for order flow.
+	event
 ) => {
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
@@ -76,17 +100,18 @@ export const onConfirmHandler = async (
 
 	try {
 		// Kick off checkout processing step.
-		let orderResponse;
-		if ( ! order ) {
-			orderResponse = await api.expressCheckoutECECreateOrder(
-				normalizeOrderData( event, paymentMethod.id )
-			);
-		} else {
-			orderResponse = await api.expressCheckoutECEPayForOrder(
-				order,
-				normalizeOrderData( event, paymentMethod.id )
-			);
-		}
+		const orderResponse = await cartApi.placeOrder( {
+			// adding extension data as a separate action,
+			// so that we make it harder for external plugins to modify or intercept checkout data.
+			...transformStripePaymentMethodForStoreApi(
+				event,
+				paymentMethod.id
+			),
+			extensions: applyFilters(
+				'wcstripe.express-checkout.cart-place-order-extension-data',
+				{}
+			),
+		} );
 
 		if ( orderResponse.payment_result?.payment_status !== 'success' ) {
 			return abortPayment(

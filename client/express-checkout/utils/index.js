@@ -8,8 +8,6 @@ import {
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
 
-export * from './normalize';
-
 /**
  * Get error messages from WooCommerce notice.
  *
@@ -31,6 +29,14 @@ export const getErrorMessageFromNotice = ( notice ) => {
 export const getExpressCheckoutData = ( key ) =>
 	// eslint-disable-next-line camelcase
 	wc_stripe_express_checkout_params[ key ] ?? null;
+
+export const setExpressCheckoutData = ( key, value ) => {
+	// eslint-disable-next-line camelcase
+	if ( wc_stripe_express_checkout_params[ key ] ?? null ) {
+		// eslint-disable-next-line camelcase
+		wc_stripe_express_checkout_params[ key ] = value;
+	}
+};
 
 /**
  * Construct Express Checkout AJAX endpoint URL.
