@@ -413,6 +413,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ECE feature flag
 		$stripe_params['isECEEnabled'] = WC_Stripe_Feature_Flags::is_stripe_ece_enabled();
 
+		// ACH LPM Feature flag.
+		$stripe_params['is_ach_enabled'] = WC_Stripe_Feature_Flags::is_ach_lpm_enabled();
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
@@ -422,6 +425,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
+
+			$stripe_params['orderId']    = $order_id;
 
 			// Make billing country available for subscriptions as well, so country-restricted payment methods can be shown.
 			if ( is_a( $order, 'WC_Order' ) ) {
@@ -440,7 +445,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return $stripe_params;
 			}
 
-			$stripe_params['orderId']    = $order_id;
 			$stripe_params['isOrderPay'] = true;
 
 			// Additional params for order pay page, when the order was successfully loaded.

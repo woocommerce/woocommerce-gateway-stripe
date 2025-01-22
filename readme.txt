@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
 * Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
 * Tweak - Process ECE orders using the Blocks API.
 * Fix - Fixes incorrect error message for card failures due insufficient funds on the shortcode checkout page (legacy).
@@ -119,5 +120,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Support zero-amount refunds.
 * Fix - A potential fix to prevent duplicate charges.
 * Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
+* Fix - Improve product page caching when Express Payment buttons are not enabled.
+* Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
