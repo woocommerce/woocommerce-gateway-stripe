@@ -299,8 +299,11 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 
 	/**
 	 * Create order. Security is handled by WC.
+	 *
+	 * @deprecated 9.2.0 Payment is processed using the Blocks API by default.
 	 */
 	public function ajax_create_order() {
+		_deprecated_function( __METHOD__, '9.2.0' );
 		try {
 			if ( WC()->cart->is_empty() ) {
 				wp_send_json_error( __( 'Empty cart', 'woocommerce-gateway-stripe' ) );
