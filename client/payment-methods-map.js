@@ -3,8 +3,9 @@ import icons from './payment-method-icons';
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
+const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 
-export default {
+const paymentMethods = {
 	card: {
 		id: 'card',
 		label: __( 'Credit card / debit card', 'woocommerce-gateway-stripe' ),
@@ -15,16 +16,6 @@ export default {
 		Icon: icons.card,
 		currencies: [],
 		allows_manual_capture: true,
-	},
-	us_bank_account: {
-		id: 'us_bank_account',
-		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'ACH lets you accept payments from customers with a US bank account.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.us_bank_account,
-		currencies: [ 'USD' ],
 	},
 	giropay: {
 		id: 'giropay',
@@ -250,3 +241,18 @@ export default {
 		capability: 'cashapp_payments',
 	},
 };
+
+if ( isAchEnabled ) {
+	paymentMethods.us_bank_account = {
+		id: 'us_bank_account',
+		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'ACH lets you accept payments from customers with a US bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.us_bank_account,
+		currencies: [ 'USD' ],
+	};
+}
+
+export default paymentMethods;
