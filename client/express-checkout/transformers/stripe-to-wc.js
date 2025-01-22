@@ -71,27 +71,23 @@ export const transformStripePaymentMethodForStoreApi = (
 					phone: billingPhone,
 			  }
 			: undefined,
-		payment_method: 'woocommerce_payments',
+		payment_method: 'stripe',
 		payment_data: [
 			{
 				key: 'payment_method',
-				value: 'card',
+				value: 'stripe',
 			},
 			{
-				key: 'payment_request_type',
-				value: paymentData.expressPaymentType,
-			},
-			{
-				key: 'wcpay-fraud-prevention-token',
-				value: window.wcpayFraudPreventionToken ?? '',
-			},
-			{
-				key: 'wcpay-payment-method',
+				key: 'wc-stripe-payment-method',
 				value: paymentMethodId,
 			},
 			{
 				key: 'express_payment_type',
 				value: paymentData.expressPaymentType,
+			},
+			{
+				key: 'wc-stripe-is-deferred-intent',
+				value: true,
 			},
 		],
 	};
