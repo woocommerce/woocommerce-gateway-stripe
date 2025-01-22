@@ -23,7 +23,7 @@ export default {
 			'ACH lets you accept payments from customers with a US bank account.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.cashapp,
+		Icon: icons.us_bank_account,
 		currencies: [ 'USD' ],
 	},
 	giropay: {
