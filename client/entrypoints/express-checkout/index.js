@@ -11,7 +11,6 @@ import {
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	getExpressPaymentMethodTypes,
-	normalizeLineItems,
 	setExpressCheckoutData,
 } from 'wcstripe/express-checkout/utils';
 import {
@@ -264,15 +263,18 @@ jQuery( function ( $ ) {
 					}
 
 					// Add products to the cart if everything is right.
-					wcStripeECE.addToCart(); // @todo
+					await getCartApiHandler().addProductToCart();
 				}
 
 				const clickOptions = {
-					lineItems: normalizeLineItems( options.displayItems ), // @todo
+					lineItems: options.displayItems,
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
 					shippingRates,
+					allowedShippingCountries: getExpressCheckoutData(
+						'checkout'
+					).allowed_shipping_countries,
 				};
 
 				onClickHandler( event );
