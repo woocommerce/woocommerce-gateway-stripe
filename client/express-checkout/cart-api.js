@@ -32,17 +32,7 @@ export default class ExpressCheckoutCartApi {
 			} ),
 			headers: {
 				// the Store API nonce, which could later be overwritten in subsequent requests.
-				Nonce: getExpressCheckoutData( 'nonce' ).store_api_nonce,
-				// needed for validation of address data, etc.
-				'X-WooPayments-Tokenized-Cart-Nonce':
-					getExpressCheckoutData( 'nonce' ).tokenized_cart_nonce ||
-					undefined,
-				// necessary to validate any request made to the backend from the PDP.
-				'X-WooPayments-Tokenized-Cart-Session-Nonce':
-					getExpressCheckoutData( 'button_context' ) === 'product'
-						? getExpressCheckoutData( 'nonce' )
-								.tokenized_cart_session_nonce
-						: undefined,
+				Nonce: getExpressCheckoutData( 'nonce' ).wc_store_api,
 				...this.cartRequestHeaders,
 				...options.headers,
 			},
@@ -51,10 +41,6 @@ export default class ExpressCheckoutCartApi {
 		this.cartRequestHeaders = {
 			// used as a reference on shortcode cart/checkout pages, where the Nonce might not be automatically added to the request.
 			Nonce: response.headers.get( 'Nonce' ),
-			// saving the received value as a cart reference for future usage. This value could be updated multiple times.
-			'X-WooPayments-Tokenized-Cart-Session': response.headers.get(
-				'X-WooPayments-Tokenized-Cart-Session'
-			),
 		};
 
 		return response.json();
@@ -64,6 +50,7 @@ export default class ExpressCheckoutCartApi {
 	 * Creates an order from the cart object.
 	 * See https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/src/StoreApi/docs/checkout.md#process-order-and-payment
 	 *
+	 * @param {number} order The order ID (if paying for an existing order),
 	 * @param {{
 	 *          billing_address: Object,
 	 *          shipping_address: Object,
@@ -73,12 +60,15 @@ export default class ExpressCheckoutCartApi {
 	 *        }} paymentData Additional payment data to place the order.
 	 * @return {Promise} Result of the order creation request.
 	 */
-	async placeOrder( paymentData ) {
+	async placeOrder( order, paymentData ) {
+		const path =
+			order > 0
+				? `/wc/store/v1/checkout/${ order }`
+				: '/wc/store/v1/checkout';
 		return await this._request( {
 			method: 'POST',
-			path: '/wc/store/v1/checkout',
+			path,
 			headers: {
-				'X-WooPayments-Tokenized-Cart': true,
 				...this.cartRequestHeaders,
 			},
 			data: paymentData,
@@ -102,10 +92,7 @@ export default class ExpressCheckoutCartApi {
 	 * Creates and returns a new cart object. The response type is the same as `getCart()`.
 	 */
 	useSeparateCart() {
-		this.cartRequestHeaders = {
-			// sending an empty value w/ the next request, so that the custom session handler is leveraged to create a separate cart.
-			'X-WooPayments-Tokenized-Cart-Session': '',
-		};
+		this.cartRequestHeaders = {};
 	}
 
 	/**
@@ -122,10 +109,7 @@ export default class ExpressCheckoutCartApi {
 		return await this._request( {
 			method: 'POST',
 			path: '/wc/store/v1/cart/update-customer',
-			headers: {
-				'X-WooPayments-Tokenized-Cart': true,
-				...this.cartRequestHeaders,
-			},
+			headers: this.cartRequestHeaders,
 			data: customerData,
 		} );
 	}
@@ -164,7 +148,7 @@ export default class ExpressCheckoutCartApi {
 			method: 'POST',
 			path: '/wc/store/v1/cart/add-item',
 			data: applyFilters(
-				'wcpay.express-checkout.cart-add-item',
+				'wcstripe.express-checkout.cart-add-item',
 				productData
 			),
 		} );

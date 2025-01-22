@@ -83,7 +83,8 @@ export const onConfirmHandler = async (
 	elements,
 	completePayment,
 	abortPayment,
-	event
+	event,
+	order = 0 // Order ID for the pay for order flow.
 ) => {
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
@@ -100,7 +101,7 @@ export const onConfirmHandler = async (
 
 	try {
 		// Kick off checkout processing step.
-		const orderResponse = await cartApi.placeOrder( {
+		const orderResponse = await cartApi.placeOrder( order, {
 			// adding extension data as a separate action,
 			// so that we make it harder for external plugins to modify or intercept checkout data.
 			...transformStripePaymentMethodForStoreApi(
