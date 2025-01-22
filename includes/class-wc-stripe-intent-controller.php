@@ -950,7 +950,18 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
+		if ( in_array(
+				$selected_payment_type,
+				[
+					WC_Stripe_Payment_Methods::SEPA_DEBIT,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::SOFORT,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::ACSS_DEBIT,
+				],
+				true
+		) ) {
 			return true;
 		}
 

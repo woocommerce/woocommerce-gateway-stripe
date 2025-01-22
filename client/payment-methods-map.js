@@ -239,4 +239,17 @@ export default {
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
 	},
+	acss_debit: {
+		id: 'acss_debit',
+		label: __(
+			'Canadian Pre-Authorized Debit',
+			'woocommerce-gateway-stripe'
+		),
+		description: __(
+			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.card,
+		currencies: [ 'CAD' ],
+	},
 };
