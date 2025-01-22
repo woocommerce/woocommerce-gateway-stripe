@@ -242,7 +242,7 @@ const paymentMethodsMap = {
 };
 
 // Enable Bacs according to feature flag value
-if ( window.wc_stripe_settings_params.is_bacs_enabled ) {
+if ( window.wc_stripe_settings_params?.is_bacs_enabled ) {
 	paymentMethodsMap.bacs_debit = {
 		id: 'bacs_debit',
 		label: 'Bacs Direct Debit',
