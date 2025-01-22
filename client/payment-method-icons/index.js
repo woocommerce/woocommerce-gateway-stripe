@@ -1,4 +1,5 @@
 import AlipayIcon from './alipay';
+import ACHIcon from './ach';
 import CreditCardIcon from './cards';
 import GiropayIcon from './giropay';
 import KlarnaIcon from './klarna';
@@ -36,5 +37,5 @@ export default {
 	oxxo: OxxoIcon,
 	wechat_pay: WechatPayIcon,
 	cashapp: CashAppIcon,
-	us_bank_account: CashAppIcon,
+	ach: ACHIcon,
 };

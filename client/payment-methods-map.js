@@ -250,7 +250,7 @@ if ( isAchEnabled ) {
 			'ACH lets you accept payments from customers with a US bank account.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.us_bank_account,
+		Icon: icons.ach,
 		currencies: [ 'USD' ],
 	};
 }
