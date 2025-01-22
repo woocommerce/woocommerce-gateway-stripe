@@ -5,7 +5,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
-	const ECE_FEATURE_FLAG_NAME = '_wcstripe_feature_ece';
+	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
+
+	const LPM_ACH_FEATURE_FLAG_NAME  = '_wcstripe_feature_lpm_ach';
+	const LPM_BACS_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_bacs';
+
+	/**
+	 * Checks whether ACH LPM (Local Payment Method) feature flag is enabled.
+	 * ACH LPM is a feature that allows merchants to enable/disable the ACH payment method.
+	 *
+	 * @return bool
+	 */
+	public static function is_ach_lpm_enabled() {
+		return 'yes' === get_option( self::LPM_ACH_FEATURE_FLAG_NAME, 'no' );
+	}
+
+	/**
+	 * Checks whether Bacs LPM (Local Payment Method) feature flag is enabled.
+	 * Alows the merchant to enable/disable Bacs payment method.
+	 *
+	 * @return bool
+	 */
+	public static function is_bacs_lpm_enabled(): bool {
+		return 'yes' === get_option( self::LPM_BACS_FEATURE_FLAG_NAME, 'no' );
+	}
 
 	/**
 	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
