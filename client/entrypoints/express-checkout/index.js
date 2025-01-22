@@ -49,7 +49,7 @@ const getServerSideExpressCheckoutProductData = () => {
 		? [
 				{
 					id: 'pending',
-					displayName: __( 'Pending', 'woocommerce-payments' ),
+					displayName: __( 'Pending', 'woocommerce-gateway-stripe' ),
 					amount: 0,
 				},
 		  ]

@@ -66,7 +66,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( taxAmount ) {
 		displayItems.push( {
 			amount: transformPrice( taxAmount, cartData.totals ),
-			name: __( 'Tax', 'woocommerce-payments' ),
+			name: __( 'Tax', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -77,7 +77,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( shippingAmount ) {
 		displayItems.push( {
 			amount: transformPrice( shippingAmount, cartData.totals ),
-			name: __( 'Shipping', 'woocommerce-payments' ),
+			name: __( 'Shipping', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -85,7 +85,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( refundAmount ) {
 		displayItems.push( {
 			amount: -transformPrice( refundAmount, cartData.totals ),
-			name: __( 'Refund', 'woocommerce-payments' ),
+			name: __( 'Refund', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
