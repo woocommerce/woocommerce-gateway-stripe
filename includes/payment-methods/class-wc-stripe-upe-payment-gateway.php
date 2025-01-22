@@ -150,6 +150,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
+			// Show ACH only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+				continue;
+			}
+
 			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
