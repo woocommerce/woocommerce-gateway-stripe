@@ -4,7 +4,7 @@ import icons from './payment-method-icons';
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
 
-export default {
+const paymentMethodsMap = {
 	card: {
 		id: 'card',
 		label: __( 'Credit card / debit card', 'woocommerce-gateway-stripe' ),
@@ -239,11 +239,17 @@ export default {
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
 	},
-	bacs_debit: {
+};
+
+// Enable Bacs according to feature flag value
+if ( window.wc_stripe_settings_params.is_bacs_enabled ) {
+	paymentMethodsMap.bacs_debit = {
 		id: 'bacs_debit',
 		label: 'Bacs',
 		description: 'Bacs Debit description',
 		Icon: icons.card,
 		currencies: [ 'GBP' ],
-	},
-};
+	};
+}
+
+export default paymentMethodsMap;

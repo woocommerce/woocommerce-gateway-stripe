@@ -39,4 +39,12 @@ class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
 	public function get_retrievable_type() {
 		return $this->get_id();
 	}
+
+	public function is_enabled_at_checkout( $order_id = null, $account_domestic_currency = null ) {
+		if ( ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+			return false;
+		}
+
+		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
+	}
 }
