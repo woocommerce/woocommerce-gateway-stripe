@@ -2,7 +2,6 @@ import { __ } from '@wordpress/i18n';
 import {
 	getErrorMessageFromNotice,
 	normalizeOrderData,
-	normalizePayForOrderData,
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
@@ -85,11 +84,11 @@ export const onConfirmHandler = async (
 		} else {
 			orderResponse = await api.expressCheckoutECEPayForOrder(
 				order,
-				normalizePayForOrderData( event, paymentMethod.id )
+				normalizeOrderData( event, paymentMethod.id )
 			);
 		}
 
-		if ( orderResponse.payment_result.payment_status !== 'success' ) {
+		if ( orderResponse.payment_result?.payment_status !== 'success' ) {
 			return abortPayment(
 				event,
 				getErrorMessageFromNotice(
