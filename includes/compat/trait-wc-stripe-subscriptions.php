@@ -979,10 +979,6 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) last 4 digits of SEPA Direct Debit */
 							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
 							break 3;
-						case WC_Stripe_Payment_Methods::BACS_DEBIT:
-							/* translators: 1) last 4 digits of SEPA Direct Debit */
-							$payment_method_to_display = 'Via Bacs Direct Debit';
-							break 3;
 						case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 							/* translators: 1) Cash App Cashtag */
 							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
