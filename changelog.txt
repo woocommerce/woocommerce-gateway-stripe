@@ -11,6 +11,7 @@
 * Add - Support zero-amount refunds.
 * Fix - A potential fix to prevent duplicate charges.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
+* Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 
 = 9.1.1 - 2025-01-10 =
