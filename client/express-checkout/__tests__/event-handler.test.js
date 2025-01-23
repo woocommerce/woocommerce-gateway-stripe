@@ -271,14 +271,14 @@ describe( 'Express checkout event handlers', () => {
 				error: { message: 'Submit error' },
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
 			expect( elements.submit ).toHaveBeenCalled();
 			expect( abortPayment ).toHaveBeenCalledWith(
@@ -294,14 +294,14 @@ describe( 'Express checkout event handlers', () => {
 				error: { message: 'Payment method error' },
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
 			expect( elements.submit ).toHaveBeenCalled();
 			expect( stripe.createPaymentMethod ).toHaveBeenCalledWith( {
@@ -331,16 +331,19 @@ describe( 'Express checkout event handlers', () => {
 				},
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
-			const expectedOrderData = normalizeOrderData( event, 'pm_123' );
+			const expectedOrderData = normalizeOrderData( {
+				event,
+				paymentMethodId: 'pm_123',
+			} );
 			expect( api.expressCheckoutECECreateOrder ).toHaveBeenCalledWith(
 				expectedOrderData
 			);
@@ -365,14 +368,14 @@ describe( 'Express checkout event handlers', () => {
 			} );
 			api.confirmIntent.mockReturnValue( true );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -400,14 +403,14 @@ describe( 'Express checkout event handlers', () => {
 				),
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -435,14 +438,14 @@ describe( 'Express checkout event handlers', () => {
 				),
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
-				event
-			);
+				event,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -472,17 +475,17 @@ describe( 'Express checkout event handlers', () => {
 				},
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
 				event,
-				order
-			);
+				order,
+			} );
 
-			const expectedOrderData = normalizeOrderData( event, 'pm_123' );
+			const expectedOrderData = normalizeOrderData( { event, paymentMethodId: 'pm_123' } );
 			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
 				expectedOrderData
@@ -508,15 +511,15 @@ describe( 'Express checkout event handlers', () => {
 			} );
 			api.confirmIntent.mockReturnValue( true );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
 				event,
-				order
-			);
+				order,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -544,15 +547,15 @@ describe( 'Express checkout event handlers', () => {
 				),
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
 				event,
-				order
-			);
+				order,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'
@@ -580,15 +583,15 @@ describe( 'Express checkout event handlers', () => {
 				),
 			} );
 
-			await onConfirmHandler(
+			await onConfirmHandler( {
 				api,
 				stripe,
 				elements,
 				completePayment,
 				abortPayment,
 				event,
-				order
-			);
+				order,
+			} );
 
 			expect( api.confirmIntent ).toHaveBeenCalledWith(
 				'https://example.com/redirect'

@@ -26,15 +26,15 @@ export const normalizeLineItems = ( displayItems ) => {
  *
  * @param {Object} params
  * @param {Object} params.event Stripe's event object.
- * @param {string|null} params.paymentMethodId Payment method ID from Stripe, if using manual payment method flow.
- * @param {string|null} params.confirmationTokenId Confirmation token ID from Stripe, if using confirmation token flow.*
+ * @param {string} params.paymentMethodId Payment method ID from Stripe, if using manual payment method flow.
+ * @param {string} params.confirmationTokenId Confirmation token ID from Stripe, if using confirmation token flow.*
  *
  * @return {Object} Order object in the format WooCommerce expects.
  */
 export const normalizeOrderData = ( {
 	event,
-	paymentMethodId,
-	confirmationTokenId,
+	paymentMethodId = '',
+	confirmationTokenId = '',
 } ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
@@ -75,7 +75,7 @@ export const normalizeOrderData = ( {
 			postcode: shipping?.address?.postal_code ?? '',
 			method: [ event?.shippingRate?.id ?? null ],
 		},
-		customer_note: event.order_comments,
+		customer_note: event?.order_comments,
 		payment_method: 'stripe',
 		payment_data: buildBlocksAPIPaymentData( {
 			expressPaymentType: event?.expressPaymentType,
@@ -129,8 +129,8 @@ export const normalizeShippingAddress = ( shippingAddress ) => {
  */
 const buildBlocksAPIPaymentData = ( {
 	expressPaymentType,
-	paymentMethodId,
-	confirmationTokenId,
+	paymentMethodId = '',
+	confirmationTokenId = '',
 } ) => {
 	return [
 		{
