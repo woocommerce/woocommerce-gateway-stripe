@@ -77,7 +77,7 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( expressPaymentType, eceButton ) => {
+		renderButton: ( eceButton, expressPaymentType ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
 				$( '#wc-stripe-express-checkout-element' ).append(
@@ -128,6 +128,10 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
+			// For each supported express payment type, create their own
+			// express checkout element. This is necessary as some express payment types
+			// may require different options or configurations, e.g. Amazon Pay
+			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [ 'applePay', 'googlePay', 'link' ];
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -173,7 +177,7 @@ jQuery( function ( $ ) {
 				},
 			} );
 
-			wcStripeECE.renderButton( expressPaymentType, eceButton );
+			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
 			eceButton.on( 'loaderror', () => {
 				wcStripeECEError = __(

@@ -932,7 +932,6 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		// TODO "You cannot provide both a confirmation_token and mandate_data because they both contain payment method information."
 		if ( ! $is_using_confirmation_token && $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = $this->add_mandate_data( $request );
 		}

@@ -530,7 +530,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} The promise for the request to the server.
 	 */
 	postToBlocksAPI( path, data ) {
-		console.log( 'data', data );
 		return apiFetch( {
 			method: 'POST',
 			path,

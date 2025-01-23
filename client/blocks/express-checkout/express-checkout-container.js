@@ -10,7 +10,6 @@ import {
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
-
 	const options = {
 		mode: 'payment',
 		...( isManualPaymentMethodCreation( expressPaymentMethod ) && {
