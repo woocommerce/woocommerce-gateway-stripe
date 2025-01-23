@@ -1,5 +1,3 @@
-/* global wc_stripe_amazon_pay_settings_params */
-
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
@@ -10,9 +8,7 @@ import {
 	Notice,
 } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import AmazonPayButtonPreview from './amazon-pay-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
 	useAmazonPayEnabledSettings,
@@ -71,7 +67,6 @@ const AmazonPaySettingsSection = () => {
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const isECEEnabled = wc_stripe_amazon_pay_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -175,16 +170,10 @@ const AmazonPaySettingsSection = () => {
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					{ isECEEnabled ? (
-						<ExpressCheckoutPreviewComponent
-							stripe={ stripePromise }
-							size={ size }
-						/>
-					) : (
-						<Elements stripe={ stripePromise }>
-							<AmazonPayButtonPreview />
-						</Elements>
-					) }
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>

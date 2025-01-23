@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AmazonPaySettingsSection from '../amazon-pay-settings-section';
-import AmazonPayButtonPreview from '../amazon-pay-button-preview';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
@@ -21,9 +20,6 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 } ) );
-
-jest.mock( '../amazon-pay-button-preview' );
-AmazonPayButtonPreview.mockImplementation( () => '<></>' );
 
 describe( 'AmazonPaySettingsSection', () => {
 	const globalValues = global.wc_stripe_amazon_pay_settings_params;
