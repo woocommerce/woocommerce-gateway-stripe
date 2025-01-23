@@ -121,7 +121,7 @@ const AmazonPaySettingsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h4>
-				<ul className="amazon-pay-settings__location">
+				<ul className="payment-request-settings__location">
 					<li>
 						<CheckboxControl
 							disabled={ ! isAmazonPayEnabled }
