@@ -56,7 +56,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		try {
 			$intent = $this->get_intent_from_order( $order );
-			if ( $intent && 'requires_capture' === $intent->status ) {
+			if ( $intent && WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
 				$capture_notice = __( "Attempting to capture more than the authorized amount will fail with an error.", 'woocommerce-gateway-stripe' );
 				$capture_tooltip = __( "You may edit the order to have a total less than or equal to the original authorized amount.", 'woocommerce-gateway-stripe' );
 				echo esc_html( $capture_notice ) . wc_help_tip( $capture_tooltip );
