@@ -17,9 +17,7 @@ import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
-	useAmazonPayButtonType,
 	useAmazonPayButtonSize,
-	useAmazonPayButtonTheme,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
@@ -67,69 +65,9 @@ const buttonSizeOptions = [
 		value: 'large',
 	},
 ];
-const buttonActionOptions = [
-	{
-		label: __( 'Only icon', 'woocommerce-gateway-stripe' ),
-		value: 'default',
-	},
-	{
-		label: __( 'Buy', 'woocommerce-gateway-stripe' ),
-		value: 'buy',
-	},
-	{
-		label: __( 'Donate', 'woocommerce-gateway-stripe' ),
-		value: 'donate',
-	},
-	{
-		label: __( 'Book', 'woocommerce-gateway-stripe' ),
-		value: 'book',
-	},
-];
-
-const makeButtonThemeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			br: <br />,
-			helpText: (
-				<span className="amazon-pay-settings__option-help-text" />
-			),
-		},
-	} );
-const buttonThemeOptions = [
-	{
-		label: makeButtonThemeText(
-			__(
-				'Dark {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'dark',
-	},
-	{
-		label: makeButtonThemeText(
-			__(
-				'Light {{br/}}{{helpText}}Recommended for dark or colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'light',
-	},
-	{
-		label: makeButtonThemeText(
-			__(
-				'Outline {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with insufficient contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'light-outline',
-	},
-];
 
 const AmazonPaySettingsSection = () => {
-	const [ buttonType, setButtonType ] = useAmazonPayButtonType();
 	const [ size, setSize ] = useAmazonPayButtonSize();
-	const [ theme, setTheme ] = useAmazonPayButtonTheme();
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
@@ -224,24 +162,6 @@ const AmazonPaySettingsSection = () => {
 						/>
 					</li>
 				</ul>
-				<h4>
-					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }
-				</h4>
-				<RadioControl
-					className="amazon-pay-settings__cta-selection" //@emma
-					label={ __(
-						'Call to action',
-						'woocommerce-gateway-stripe'
-					) }
-					// ideLabelFromVision
-					help={ __(
-						'Select a button label that fits best with the flow of purchase or payment experience on your store.',
-						'woocommerce-gateway-stripe'
-					) }
-					selected={ buttonType }
-					options={ buttonActionOptions }
-					onChange={ setButtonType }
-				/>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
 				<RadioControl
 					help={ __(
@@ -253,19 +173,11 @@ const AmazonPaySettingsSection = () => {
 					options={ buttonSizeOptions }
 					onChange={ setSize }
 				/>
-				<RadioControl
-					label={ __( 'Theme', 'woocommerce-gateway-stripe' ) }
-					selected={ theme }
-					options={ buttonThemeOptions }
-					onChange={ setTheme }
-				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
 					{ isECEEnabled ? (
 						<ExpressCheckoutPreviewComponent
 							stripe={ stripePromise }
-							buttonType={ buttonType }
-							theme={ theme }
 							size={ size }
 						/>
 					) : (
