@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Fixes processing of orders through the Pay for Order page when using ECE with Blocks (Store) API.
 * Add - Enables the use of Blocks API for Express Checkout Element orders by default.
 * Add - Adds a new filter to allow changing the user attributed to an order when paying for it through the Order Pay page.
 * Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
