@@ -899,7 +899,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
-				&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
+					&& ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url );
 				if ( ! $contains_wallet_or_voucher_method && ! $contains_redirect_next_action ) {
 					// Return the payment method used to process the payment so the block checkout can save the payment method.
 					$response_args['payment_method'] = $payment_information['payment_method'];
@@ -941,7 +941,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$response_args
 			);
 		} catch ( WC_Stripe_Exception $e ) {
-			$this->handle_process_payment_error( $e, $order );
+			return $this->handle_process_payment_error( $e, $order );
 		}
 	}
 
@@ -982,7 +982,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'redirect' => $return_url,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
-			$this->handle_process_payment_error( $e, $order );
+			return $this->handle_process_payment_error( $e, $order );
 		}
 	}
 
