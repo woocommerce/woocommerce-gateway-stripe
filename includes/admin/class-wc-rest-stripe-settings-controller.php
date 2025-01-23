@@ -88,6 +88,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'amazon_pay_button_size'        => [
+						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( isset( $form_fields['amazon_pay_button_size']['options'] ) ? $form_fields['amazon_pay_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'amazon_pay_button_locations'   => [
+						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_payment_request_enabled'         => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -237,6 +252,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 				/* Settings > Express checkouts */
 				'is_amazon_pay_enabled'                 => 'yes' === $this->gateway->get_option( 'amazon_pay' ),
+				'amazon_pay_button_size'                => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
+				'amazon_pay_button_locations'           => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
 				'payment_request_button_type'           => $this->gateway->get_validated_option( 'payment_request_button_type' ),
 				'payment_request_button_theme'          => $this->gateway->get_validated_option( 'payment_request_button_theme' ),
@@ -271,9 +288,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_individual_payment_method_settings( $request );
 
 		/* Settings > Express checkouts */
-		$this->update_is_amazon_pay_enabled( $request );
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_settings( $request );
+		$this->update_is_amazon_pay_enabled( $request );
+		$this->update_amazon_pay_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -495,6 +513,27 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+	}
+
+	/**
+	 * Updates appearance attributes of the Amazon Pay button.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_amazon_pay_settings( WP_REST_Request $request ) {
+		$attributes = [
+			'amazon_pay_button_size'      => 'amazon_pay_button_size',
+			'amazon_pay_button_locations' => 'amazon_pay_button_locations',
+		];
+
+		foreach ( $attributes as $request_key => $attribute ) {
+			if ( null === $request->get_param( $request_key ) ) {
+				continue;
+			}
+
+			$value = $request->get_param( $request_key );
+			$this->gateway->update_validated_option( $attribute, $value );
+		}
 	}
 
 	/**
