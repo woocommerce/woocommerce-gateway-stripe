@@ -7,6 +7,7 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
+export * from './normalize';
 
 /**
  * Get error messages from WooCommerce notice.
