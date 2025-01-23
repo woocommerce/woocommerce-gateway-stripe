@@ -349,15 +349,17 @@ class WC_Stripe_Intent_Controller {
 
 		$currency       = get_woocommerce_currency();
 		$capture        = $gateway->is_automatic_capture_enabled();
-		$payment_intent = WC_Stripe_API::request(
-			[
-				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
-				'currency'             => strtolower( $currency ),
-				'payment_method_types' => $enabled_payment_methods,
-				'capture_method'       => $capture ? 'automatic' : 'manual',
-			],
-			'payment_intents'
-		);
+		$request        = [
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+			'currency'             => strtolower( $currency ),
+			'payment_method_types' => $enabled_payment_methods,
+			'capture_method'       => $capture ? 'automatic' : 'manual',
+		];
+
+		// Conditionally add ACSS Debit mandate options if 'acss_debit' is present.
+		$request = $this->maybe_add_acss_mandate_options( $request, $enabled_payment_methods );
+
+		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
 		if ( ! empty( $payment_intent->error ) ) {
 			throw new Exception( $payment_intent->error->message );
@@ -367,6 +369,34 @@ class WC_Stripe_Intent_Controller {
 			'id'            => $payment_intent->id,
 			'client_secret' => $payment_intent->client_secret,
 		];
+	}
+
+	/**
+	 * Conditionally adds ACSS Debit mandate options to the Stripe payment_intent request array.
+	 *
+	 * @param array $request                 The Stripe request body that will be sent to the /payment_intents endpoint.
+	 * @param array $enabled_payment_methods The payment method types that will be used for this PaymentIntent.
+	 *
+	 * @return array The updated $request with ACSS Debit mandate options, if applicable.
+	 */
+	private function maybe_add_acss_mandate_options( $request, $enabled_payment_methods ) {
+		if ( ! in_array( 'acss_debit', $enabled_payment_methods, true ) ) {
+			return $request;
+		}
+
+		if ( ! isset( $request['payment_method_options'] ) ) {
+			$request['payment_method_options'] = [];
+		}
+
+		$request['payment_method_options']['acss_debit'] = [
+			'mandate_options' => [
+				'payment_schedule'     => 'interval',
+				'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
+				'transaction_type'     => 'personal',
+			],
+		];
+
+		return $request;
 	}
 
 	/**
@@ -950,7 +980,18 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 
-		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::BANCONTACT, WC_Stripe_Payment_Methods::IDEAL, WC_Stripe_Payment_Methods::SOFORT, WC_Stripe_Payment_Methods::LINK ], true ) ) {
+		if ( in_array(
+				$selected_payment_type,
+				[
+					WC_Stripe_Payment_Methods::SEPA_DEBIT,
+					WC_Stripe_Payment_Methods::BANCONTACT,
+					WC_Stripe_Payment_Methods::IDEAL,
+					WC_Stripe_Payment_Methods::SOFORT,
+					WC_Stripe_Payment_Methods::LINK,
+					WC_Stripe_Payment_Methods::ACSS_DEBIT,
+				],
+				true
+		) ) {
 			return true;
 		}
 
