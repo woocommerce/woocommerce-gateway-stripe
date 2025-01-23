@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add total tax amount to metadata.
 * Update - Update the translation for payment requests settings section notice.
 * Add - Add Amazon Pay to settings express checkout section.
+* Add - Add Amazon Pay customize express checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
