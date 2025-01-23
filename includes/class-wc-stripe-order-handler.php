@@ -51,7 +51,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 		// Bail if payment method is not manual capture supporting stripe method.
 		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			return $editable;
+			return;
 		}
 
 		try {
