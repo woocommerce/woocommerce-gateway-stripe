@@ -958,6 +958,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
 
+			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
+
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
 			if ( $this->is_payment_needed( $order->get_id() ) ) {
@@ -972,7 +974,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$selected_payment_type = $payment_information['selected_payment_type'];
 
-			// TODO: We want to set the payment method title to 'Amazon Pay', if applicable.
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
 
 			$return_url = $this->get_return_url( $order );
