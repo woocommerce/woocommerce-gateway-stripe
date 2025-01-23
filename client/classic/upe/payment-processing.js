@@ -20,6 +20,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
+	PAYMENT_METHOD_ACSS_DEBIT,
 } from 'wcstripe/stripe-utils/constants';
 
 const gatewayUPEComponents = {};
@@ -57,7 +58,7 @@ function blockUI( jQueryForm ) {
  * @return {Promise} Promise for the checkout submission.
  */
 export function validateElements( elements ) {
-	return elements.submit().then( ( result ) => {
+	return elements?.submit().then( ( result ) => {
 		if ( result.error ) {
 			throw new Error( result.error.message );
 		}
@@ -272,6 +273,13 @@ export const processPayment = (
 	}
 
 	blockUI( jQueryForm );
+
+	// ACSS Debit requires different handling without the Payment Element.
+	// TODO: We should probably refactor this into a separate method.
+	if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
+		confirmAcssDebitPayment( api, jQueryForm );
+		return false;
+	}
 
 	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
 
@@ -609,6 +617,64 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout( error.message );
 	} finally {
 		jQueryForm.removeClass( 'processing' ).unblock();
+		unblockBlockCheckout();
+		resetBlockCheckoutPaymentState();
+	}
+};
+
+/**
+ * Handles displaying the ACSS Debit authorization modal/flows to the customer and then redirecting
+ * them to the order received page once they authenticate the payment or once micro-deposit verification is triggered.
+ *
+ * @param {Object} api        The API object used to make requests (createIntent, confirmAcssDebitPayment, etc).
+ * @param {Object} jQueryForm The jQuery form object representing your checkout/order form.
+ */
+export const confirmAcssDebitPayment = async ( api, jQueryForm ) => {
+	const isOrderPay = getStripeServerData()?.isOrderPay;
+
+	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
+	if ( isOrderPay ) {
+		blockUI( jQueryForm );
+	}
+
+	try {
+		const acssIntent = await api.createIntent();
+
+		const firstName = document.querySelector( '#billing_first_name' )?.value || '';
+		const lastName  = document.querySelector( '#billing_last_name' )?.value || '';
+		const email     = document.querySelector( '#billing_email' )?.value || '';
+		const billingDetails = {
+			name: ( firstName + ' ' + lastName ).trim(),
+			email,
+		};
+
+		const { paymentIntent, error } = await api.getStripe().confirmAcssDebitPayment(
+			acssIntent.client_secret,
+			{
+				payment_method: {
+					billing_details: billingDetails,
+				},
+			}
+		);
+
+		if ( error ) {
+			// TODO: Handle errors more gracefully.
+			throw new Error( error.message );
+		}
+
+		// Similar to `appendSetupIntentToForm`, we need to pass the intent ID back to the order.
+		const hiddenInput = document.createElement( 'input' );
+		hiddenInput.type = 'hidden';
+		hiddenInput.name = 'wc_stripe_payment_intent';
+		hiddenInput.value = paymentIntent.id;
+		jQueryForm[0].appendChild( hiddenInput );
+		hasCheckoutCompleted = true;
+		submitForm( jQueryForm );
+	} catch ( err ) {
+		jQueryForm.removeClass( 'processing' ).unblock();
+		hasCheckoutCompleted = false;
+		showErrorCheckout( err?.message || __( 'ACSS Debit payment failed.', 'woocommerce-gateway-stripe' ) );
+	} finally {
 		unblockBlockCheckout();
 		resetBlockCheckoutPaymentState();
 	}

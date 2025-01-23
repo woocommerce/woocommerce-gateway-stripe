@@ -25,6 +25,13 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
 			'woocommerce-gateway-stripe'
 		);
+
+		$this->is_deferred_intent = false;
+	}
+
+	public function get_testing_instructions() {
+		return __( 'Use the following test account details:', 'woocommerce-gateway-stripe' ) . '<br>' .
+			__( 'Account number: 000123456789', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
