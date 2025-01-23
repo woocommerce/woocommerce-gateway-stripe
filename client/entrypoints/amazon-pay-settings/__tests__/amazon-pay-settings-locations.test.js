@@ -25,36 +25,16 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 jest.mock( '../amazon-pay-button-preview' );
 AmazonPayButtonPreview.mockImplementation( () => '<></>' );
 
-const getMockAmazonPayEnabledSettings = (
-	isEnabled,
-	updateIsAmazonPayEnabledHandler
-) => [ isEnabled, updateIsAmazonPayEnabledHandler ];
-
-const getMockAmazonPayLocations = (
-	isCheckoutEnabled,
-	isProductPageEnabled,
-	isCartEnabled,
-	updateAmazonPayLocationsHandler
-) => [
-	[
-		isCheckoutEnabled && 'checkout',
-		isProductPageEnabled && 'product',
-		isCartEnabled && 'cart',
-	].filter( Boolean ),
-	updateAmazonPayLocationsHandler,
-];
-
 describe( 'AmazonPaySettingsSection', () => {
 	const globalValues = global.wc_stripe_amazon_pay_settings_params;
 
 	beforeEach( () => {
-		useAmazonPayEnabledSettings.mockReturnValue(
-			getMockAmazonPayEnabledSettings( true, jest.fn() )
-		);
+		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
-		useAmazonPayLocations.mockReturnValue(
-			getMockAmazonPayLocations( true, true, true, jest.fn() )
-		);
+		useAmazonPayLocations.mockReturnValue( [
+			[ 'checkout', 'product', 'cart' ],
+			jest.fn(),
+		] );
 
 		global.wc_stripe_amazon_pay_settings_params = {
 			...globalValues,
@@ -89,14 +69,10 @@ describe( 'AmazonPaySettingsSection', () => {
 	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', () => {
 		const updateAmazonPayLocationsHandler = jest.fn();
 		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		useAmazonPayLocations.mockReturnValue(
-			getMockAmazonPayLocations(
-				true,
-				true,
-				true,
-				updateAmazonPayLocationsHandler
-			)
-		);
+		useAmazonPayLocations.mockReturnValue( [
+			[ 'checkout', 'product', 'cart' ],
+			updateAmazonPayLocationsHandler,
+		] );
 
 		render( <AmazonPaySettingsSection /> );
 
@@ -123,14 +99,10 @@ describe( 'AmazonPaySettingsSection', () => {
 	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
 		const updateAmazonPayLocationsHandler = jest.fn();
 		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		useAmazonPayLocations.mockReturnValue(
-			getMockAmazonPayLocations(
-				false,
-				false,
-				false,
-				updateAmazonPayLocationsHandler
-			)
-		);
+		useAmazonPayLocations.mockReturnValue( [
+			[],
+			updateAmazonPayLocationsHandler,
+		] );
 
 		render( <AmazonPaySettingsSection /> );
 

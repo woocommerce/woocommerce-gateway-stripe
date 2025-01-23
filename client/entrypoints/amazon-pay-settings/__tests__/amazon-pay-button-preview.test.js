@@ -15,7 +15,9 @@ jest.mock( realPathToA11yModule, () => ( {
 jest.mock( '@stripe/react-stripe-js', () => ( {
 	PaymentRequestButtonElement: jest
 		.fn()
-		.mockReturnValue( <button type="submit">Stripe button mock</button> ),
+		.mockReturnValue(
+			<button type="submit">Amazon Pay Button Mock</button>
+		),
 	useStripe: jest.fn(),
 } ) );
 
@@ -39,35 +41,13 @@ describe( 'AmazonPayButtonPreview', () => {
 		jest.clearAllMocks();
 	} );
 
-	// it( 'displays Amazon Pay button when the page is in Safari', async () => {
-	// 	render( <AmazonPayButtonPreview /> );
-
-	// 	expect(
-	// 		await screen.findByText(
-	// 			'To preview the Google Pay button, view this page in the Google Chrome browser.'
-	// 		)
-	// 	).toBeInTheDocument();
-	// 	expect( screen.queryByText( /Safari/ ) ).not.toBeInTheDocument();
-	// } );
-
-	// it( 'displays Amazon Pay button when the page is in Google Chrome', async () => {
-	// 	render( <AmazonPayButtonPreview /> );
-
-	// 	expect(
-	// 		await screen.findByText(
-	// 			'To preview the Apple Pay button, view this page in the Safari browser.'
-	// 		)
-	// 	).toBeInTheDocument();
-	// 	expect( screen.queryByText( /Google Chrome/ ) ).not.toBeInTheDocument();
-	// } );
-
 	it( 'displays an info notice if stripe is falsy', async () => {
 		useStripe.mockReturnValue( null );
 
 		render( <AmazonPayButtonPreview /> );
 
 		expect(
-			screen.queryByText( 'Stripe button mock' )
+			screen.queryByText( 'Amazon Pay Button Mock' )
 		).not.toBeInTheDocument();
 		expect(
 			await screen.findByText(
@@ -86,7 +66,7 @@ describe( 'AmazonPayButtonPreview', () => {
 			)
 		).toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Stripe button mock' )
+			screen.queryByText( 'Amazon Pay Button Mock' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -94,7 +74,7 @@ describe( 'AmazonPayButtonPreview', () => {
 		render( <AmazonPayButtonPreview /> );
 
 		expect(
-			await screen.findByText( 'Stripe button mock' )
+			await screen.findByText( 'Amazon Pay Button Mock' )
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText(

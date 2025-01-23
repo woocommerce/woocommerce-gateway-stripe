@@ -25,43 +25,15 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 jest.mock( '../amazon-pay-button-preview' );
 AmazonPayButtonPreview.mockImplementation( () => '<></>' );
 
-// jest.mock( '../utils/utils', () => ( {
-// 	getAmazonPayData: jest.fn().mockReturnValue( {
-// 		publishableKey: 'pk_test_123',
-// 		accountId: '0001',
-// 		locale: 'en',
-// 	} ),
-// } ) );
-
-const getMockAmazonPayEnabledSettings = (
-	isEnabled,
-	updateIsAmazonPayEnabledHandler
-) => [ isEnabled, updateIsAmazonPayEnabledHandler ];
-
-const getMockAmazonPayLocations = (
-	isCheckoutEnabled,
-	isProductPageEnabled,
-	isCartEnabled,
-	updateAmazonPayLocationsHandler
-) => [
-	[
-		isCheckoutEnabled && 'checkout',
-		isProductPageEnabled && 'product',
-		isCartEnabled && 'cart',
-	].filter( Boolean ),
-	updateAmazonPayLocationsHandler,
-];
-
 describe( 'AmazonPaySettingsSection', () => {
 	const globalValues = global.wc_stripe_amazon_pay_settings_params;
 	beforeEach( () => {
-		useAmazonPayEnabledSettings.mockReturnValue(
-			getMockAmazonPayEnabledSettings( true, jest.fn() )
-		);
+		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
-		useAmazonPayLocations.mockReturnValue(
-			getMockAmazonPayLocations( true, true, true, jest.fn() )
-		);
+		useAmazonPayLocations.mockReturnValue( [
+			[ 'checkout', 'product', 'cart' ],
+			jest.fn(),
+		] );
 
 		global.wc_stripe_amazon_pay_settings_params = {
 			...globalValues,
