@@ -19,10 +19,8 @@ import {
 	useDebugLog,
 	useManualCapture,
 	useAmazonPayEnabledSettings,
-	useAmazonPayButtonTheme,
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
-	useAmazonPayButtonType,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import {
@@ -326,18 +324,6 @@ describe( 'Settings hooks tests', () => {
 			hook: useAmazonPayButtonSize,
 			storeKey: 'amazon_pay_button_size',
 			testedValue: 'large',
-			fallbackValue: '',
-		},
-		useAmazonPayButtonType: {
-			hook: useAmazonPayButtonType,
-			storeKey: 'amazon_pay_button_type',
-			testedValue: '',
-			fallbackValue: '',
-		},
-		useAmazonPayButtonTheme: {
-			hook: useAmazonPayButtonTheme,
-			storeKey: 'amazon_pay_button_theme',
-			testedValue: 'dark',
 			fallbackValue: '',
 		},
 		useAmazonPayLocations: {

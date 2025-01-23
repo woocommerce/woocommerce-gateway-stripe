@@ -5,11 +5,7 @@ import {
 	useStripe,
 } from '@stripe/react-stripe-js';
 import InlineNotice from 'wcstripe/components/inline-notice';
-import {
-	useAmazonPayButtonType,
-	useAmazonPayButtonSize,
-	useAmazonPayButtonTheme,
-} from 'wcstripe/data';
+import { useAmazonPayButtonSize } from 'wcstripe/data';
 
 /**
  * stripePromise is used to pass into <Elements>'s stripe props.
@@ -28,9 +24,7 @@ const AmazonPayButtonPreview = () => {
 	const stripe = useStripe();
 	const [ amazonPay, setAmazonPay ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
-	const [ buttonType ] = useAmazonPayButtonType();
 	const [ size ] = useAmazonPayButtonSize();
-	const [ theme ] = useAmazonPayButtonTheme();
 
 	useEffect( () => {
 		// when `stripe` is falsy, it means that it didn't load because of some error (like: the website wasn't loaded with HTTPS).
@@ -87,7 +81,6 @@ const AmazonPayButtonPreview = () => {
 		<>
 			<div className="payment-method-settings__preview">
 				<PaymentRequestButtonElement
-					key={ `${ buttonType }-${ theme }-${ size }` }
 					onClick={ ( e ) => {
 						e.preventDefault();
 					} }
@@ -95,8 +88,6 @@ const AmazonPayButtonPreview = () => {
 						amazonPay,
 						style: {
 							paymentRequestButton: {
-								type: buttonType,
-								theme,
 								height: `${
 									buttonSizeToPxMap[ size ] ||
 									buttonSizeToPxMap.default

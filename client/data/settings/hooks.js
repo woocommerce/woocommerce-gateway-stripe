@@ -159,16 +159,8 @@ export const usePaymentRequestLocations = makeSettingsHook(
 export const useAmazonPayEnabledSettings = makeSettingsHook(
 	'is_amazon_pay_enabled'
 );
-export const useAmazonPayButtonType = makeSettingsHook(
-	'amazon_pay_button_type',
-	''
-);
 export const useAmazonPayButtonSize = makeSettingsHook(
 	'amazon_pay_button_size',
-	''
-);
-export const useAmazonPayButtonTheme = makeSettingsHook(
-	'amazon_pay_button_theme',
 	''
 );
 export const useAmazonPayLocations = makeSettingsHook(
