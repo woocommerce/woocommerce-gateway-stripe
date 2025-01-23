@@ -34,6 +34,7 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 				spacingUnit: '6px',
 			},
 		},
+		paymentMethodTypes: [ 'amazon_pay' ],
 	};
 
 	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.default;
