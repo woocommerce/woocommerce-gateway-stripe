@@ -2153,8 +2153,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
 			$payment_information['payment_method_options']       = $this->get_payment_method_options(
-				$order,
 				$selected_payment_type,
+				$order,
 				$payment_method_details
 			);
 		} else {
@@ -2173,7 +2173,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		return $payment_information;
 	}
 
-	private function get_payment_method_options( $order, $selected_payment_type, $payment_method_details ) {
+	/**
+	 * Returns the payment method options for the selected payment type.
+	 *
+	 * @param string   $selected_payment_type  The selected payment type, e.g. 'klarna'
+	 * @param WC_Order $order                  The WC Order we are processing a payment for.
+	 * @param stdClass $payment_method_details The payment method details.
+	 */
+	private function get_payment_method_options( $selected_payment_type, $order, $payment_method_details ) {
 		$payment_method_options = [];
 
 		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
