@@ -5,7 +5,6 @@ import {
 	normalizeLineItems,
 	normalizeShippingAddress,
 	normalizeOrderData,
-	normalizePayForOrderData,
 } from '../utils';
 import {
 	onConfirmHandler,
@@ -483,10 +482,7 @@ describe( 'Express checkout event handlers', () => {
 				order
 			);
 
-			const expectedOrderData = normalizePayForOrderData(
-				event,
-				'pm_123'
-			);
+			const expectedOrderData = normalizeOrderData( event, 'pm_123' );
 			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
 				expectedOrderData
