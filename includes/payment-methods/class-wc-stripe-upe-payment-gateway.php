@@ -2131,7 +2131,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'amount'                        => $amount,
 			'currency'                      => $currency,
 			'customer'                      => $this->get_customer_id_for_order( $order ),
-			'capture_method'                => $capture_method,
 			'is_using_saved_payment_method' => $is_using_saved_payment_method,
 			'level3'                        => $this->get_level3_data_from_order( $order ),
 			'metadata'                      => $this->get_metadata_from_order( $order ),
@@ -2157,11 +2156,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
+			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
 			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = false;
+			$payment_information['payment_method_options']       = [
+				$selected_payment_type => [
+					'capture_method' => $capture_method,
+				],
+			];
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.

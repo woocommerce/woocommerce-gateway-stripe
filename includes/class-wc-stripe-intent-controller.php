@@ -696,7 +696,6 @@ class WC_Stripe_Intent_Controller {
 		// Throws a WC_Stripe_Exception if required information is missing.
 		$required_params = [
 			'amount',
-			'capture_method',
 			'currency',
 			'customer',
 			'level3',
@@ -710,7 +709,9 @@ class WC_Stripe_Intent_Controller {
 
 		// The payment method is not required if we're using the confirmation token flow.
 		if ( empty( $payment_information['confirmation_token'] ) ) {
-			$required_params[]  = 'payment_method';
+			$required_params[] = 'payment_method';
+			$required_params[] = 'capture_method';
+
 			$non_empty_params[] = 'payment_method';
 		}
 
@@ -816,8 +817,6 @@ class WC_Stripe_Intent_Controller {
 	public function update_and_confirm_payment_intent( $payment_intent, $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
 		$required_params = [
-			'capture_method',
-			'payment_method',
 			'shipping',
 			'selected_payment_type',
 			'payment_method_types',
@@ -825,6 +824,12 @@ class WC_Stripe_Intent_Controller {
 			'order',
 			'save_payment_method_to_store',
 		];
+
+		// The payment method is not required if we're using the confirmation token flow.
+		if ( empty( $payment_information['confirmation_token'] ) ) {
+			$required_params[] = 'payment_method';
+			$required_params[] = 'capture_method';
+		}
 
 		$instance_params = [ 'order' => 'WC_Order' ];
 
@@ -920,8 +925,7 @@ class WC_Stripe_Intent_Controller {
 		$payment_method_types  = $payment_information['payment_method_types'];
 
 		$request = [
-			'capture_method' => $payment_information['capture_method'],
-			'shipping'       => $payment_information['shipping'],
+			'shipping' => $payment_information['shipping'],
 		];
 
 		$is_using_confirmation_token = ! empty( $payment_information['confirmation_token'] );
@@ -929,6 +933,8 @@ class WC_Stripe_Intent_Controller {
 			$request['confirmation_token'] = $payment_information['confirmation_token'];
 		} else {
 			$request['payment_method'] = $payment_information['payment_method'];
+			$request['capture_method'] = $payment_information['capture_method'];
+
 		}
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
