@@ -25,6 +25,9 @@ trait WC_Stripe_Fingerprint_Trait {
 	 * @param string $fingerprint The fingerprint.
 	 */
 	public function set_fingerprint( string $fingerprint ) {
+		if ( null === $fingerprint ) {
+			$fingerprint = '';  // Set empty string instead of null
+		}
 		$this->set_prop( 'fingerprint', $fingerprint );
 	}
 }

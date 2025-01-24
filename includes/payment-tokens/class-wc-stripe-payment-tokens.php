@@ -183,11 +183,13 @@ class WC_Stripe_Payment_Tokens {
 									$token->set_last4( $source->card->last4 );
 									$token->set_expiry_month( $source->card->exp_month );
 									$token->set_expiry_year( $source->card->exp_year );
-									if ( isset( $source->card->fingerprint ) ) {
-										$token->set_fingerprint( $source->card->fingerprint );
-									}
+								
+								}
+								if (null === $source->fingerprint) {
+									$source->fingerprint = ''; // or return early if you prefer
 								}
 
+								$token->set_fingerprint( $source->fingerprint );
 								$token->set_user_id( $customer_id );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
