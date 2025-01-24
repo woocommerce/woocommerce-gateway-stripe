@@ -7,7 +7,10 @@ import {
 	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -189,7 +192,8 @@ export default class WCStripeAPI {
 			}
 
 			if (
-				response.data.status === 'requires_action' &&
+				response.data.status ===
+					PAYMENT_INTENT_STATUS_REQUIRES_ACTION &&
 				response.data.next_action.type === 'redirect_to_url'
 			) {
 				window.location.href =
