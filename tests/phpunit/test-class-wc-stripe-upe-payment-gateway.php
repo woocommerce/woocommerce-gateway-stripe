@@ -46,6 +46,23 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for ACH Direct Debit payment method.
+	 */
+	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
+		'id'                           => 'pm_mock_payment_method_ach',
+		'type'                         => WC_Stripe_Payment_Methods::ACH,
+		WC_Stripe_Payment_Methods::ACH => [
+			'account_holder_type' => 'individual',
+			'account_type'        => 'checking',
+			'bank_name'           => 'TEST BANK',
+			'fingerprint'         => 'Ih3foEnRvLXShyfB',
+			'last4'               => '1000',
+			'payment_reference'   => '091000015001234',
+			'routing_number'      => '110000000',
+		],
+	];
+
+	/**
 	 * Base template for SEPA Direct Debit payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
@@ -117,6 +134,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
+
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
 			->getMock();
@@ -179,6 +198,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue( 'cus_mock' )
 			);
+	}
+
+	public function tear_down() {
+		parent::tear_down();
+		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -256,6 +280,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'US',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Affirm::STRIPE_ID,
@@ -1026,7 +1051,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => [
-				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				'type'                                => WC_Stripe_Payment_Methods::BANCONTACT,
 				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
@@ -2283,11 +2308,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Create a mock failed payment intent that would be attached to the order
 		$mock_failed_intent = (object) wp_parse_args(
 			[
-				'id'                  => 'pi_mock_failed',
-				'payment_method'      => 'pm_mock',
-				'status'              => WC_Stripe_Intent_Status::CANCELED,
+				'id'                   => 'pi_mock_failed',
+				'payment_method'       => 'pm_mock',
+				'status'               => WC_Stripe_Intent_Status::CANCELED,
 				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
-				'charges'             => (object) [
+				'charges'              => (object) [
 					'data' => [],
 				],
 			],
@@ -2297,11 +2322,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Create a mock successful payment intent that will be created
 		$mock_success_intent = (object) wp_parse_args(
 			[
-				'id'                  => 'pi_mock_new',
-				'payment_method'      => 'pm_mock',
-				'status'              => WC_Stripe_Intent_Status::SUCCEEDED,
+				'id'                   => 'pi_mock_new',
+				'payment_method'       => 'pm_mock',
+				'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
 				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
-				'charges'             => (object) [
+				'charges'              => (object) [
 					'data' => [
 						(object) [
 							'id'       => 'ch_mock',
