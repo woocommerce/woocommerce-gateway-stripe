@@ -246,8 +246,10 @@ if ( window.wc_stripe_settings_params?.is_bacs_enabled ) {
 	paymentMethodsMap.bacs_debit = {
 		id: 'bacs_debit',
 		label: 'Bacs Direct Debit',
-		description:
+		description: __(
 			'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.',
+			'woocommerce-gateway-stripe'
+		),
 		Icon: icons.card,
 		currencies: [ 'GBP' ],
 	};
