@@ -273,6 +273,7 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
+				const orderDetails = options.orderDetails ?? {};
 				return await onConfirmHandler( {
 					api,
 					stripe: api.getStripe(),
@@ -281,6 +282,7 @@ jQuery( function ( $ ) {
 					abortPayment: wcStripeECE.abortPayment,
 					event,
 					order,
+					orderDetails,
 				} );
 			} );
 
@@ -313,11 +315,29 @@ jQuery( function ( $ ) {
 		 */
 		init: () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
+				if (
+					typeof wcStripeExpressCheckoutPayForOrderParams ===
+					'undefined'
+				) {
+					return;
+				}
+
 				const {
 					total: { amount: total },
 					displayItems,
 					order,
+					orderDetails,
 				} = wcStripeExpressCheckoutPayForOrderParams;
+
+				// When paying as guest, the order key and billing email are required by the
+				// Blocks API Pay for Order endpoint, which ECE uses.
+				// These fields are both present when the user is logged in.
+				if (
+					! orderDetails?.orderKey ||
+					! orderDetails?.billingEmail
+				) {
+					return;
+				}
 
 				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
@@ -328,6 +348,7 @@ jQuery( function ( $ ) {
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems,
 					order,
+					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				wcStripeECE.startExpressCheckout( {

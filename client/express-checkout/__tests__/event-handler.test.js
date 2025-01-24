@@ -491,6 +491,7 @@ describe( 'Express checkout event handlers', () => {
 			} );
 			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
+				{},
 				expectedOrderData
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(

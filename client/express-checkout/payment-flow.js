@@ -34,6 +34,7 @@ export const handleManualPaymentMethodFlow = async ( {
 	abortPayment,
 	event,
 	order = 0,
+	orderDetails = {},
 } ) => {
 	const { paymentMethod, error } = await stripe.createPaymentMethod( {
 		elements,
@@ -50,6 +51,7 @@ export const handleManualPaymentMethodFlow = async ( {
 			event,
 			paymentMethodId: paymentMethod.id,
 			order,
+			orderDetails,
 		} );
 
 		if ( result !== 'success' ) {
@@ -84,6 +86,7 @@ export const handleConfirmationTokenFlow = async ( {
 	abortPayment,
 	event,
 	order = 0,
+	orderDetails = {},
 } ) => {
 	// Create a ConfirmationToken that we can use later to create and confirm the payment intent.
 	const { error, confirmationToken } = await stripe.createConfirmationToken( {
@@ -109,6 +112,7 @@ export const handleConfirmationTokenFlow = async ( {
 			event,
 			confirmationTokenId: confirmationToken.id,
 			order,
+			orderDetails,
 		} );
 
 		if ( result !== 'success' ) {
@@ -141,11 +145,13 @@ const processOrder = async ( {
 	paymentMethodId,
 	confirmationTokenId,
 	order = 0,
+	orderDetails = {},
 } ) => {
 	let orderResponse;
 	if ( order ) {
 		orderResponse = await api.expressCheckoutECEPayForOrder(
 			order,
+			orderDetails,
 			normalizeOrderData( {
 				event,
 				paymentMethodId,
