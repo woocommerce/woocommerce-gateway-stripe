@@ -1,8 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import {
-	getErrorMessageFromNotice,
-	normalizeOrderData,
-} from './utils';
+import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	let errorMessage;
@@ -52,7 +49,7 @@ export const handleManualPaymentMethodFlow = async ( {
 			api,
 			event,
 			paymentMethodId: paymentMethod.id,
-			order
+			order,
 		} );
 
 		if ( result !== 'success' ) {

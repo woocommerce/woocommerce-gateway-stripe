@@ -218,9 +218,9 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect(
-				normalizeOrderData( { event, paymentMethodId } )
-			).toEqual( expectedNormalizedData );
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedData
+			);
 
 			const confirmationTokenId = 'ctoken_123456';
 			const expectedNormalizedDataWithConfirmationToken = {
@@ -312,9 +312,9 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect(
-				normalizeOrderData( { event, paymentMethodId } )
-			).toEqual( expectedNormalizedData );
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedData
+			);
 		} );
 
 		test( 'should normalize order data with minimum required fields', () => {
@@ -379,9 +379,9 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect(
-				normalizeOrderData( { event, paymentMethodId } )
-			).toEqual( expectedNormalizedData );
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedData
+			);
 		} );
 	} );
 

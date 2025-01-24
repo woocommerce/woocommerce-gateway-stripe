@@ -1,9 +1,4 @@
 import {
-<<<<<<< HEAD
-	getErrorMessageFromNotice,
-	normalizeOrderData,
-=======
->>>>>>> dc53ad3e (Add payment flow using confirmation tokens)
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
@@ -59,7 +54,7 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 	}
 };
 
-export const onConfirmHandlerForBlocksAPI = async ( params ) => {
+export const onConfirmHandler = async ( params ) => {
 	const { abortPayment, elements, event } = params;
 
 	const submitResponse = await elements.submit();
