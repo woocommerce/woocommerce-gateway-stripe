@@ -1,6 +1,7 @@
 /**
  * External dependencies
  */
+/* eslint-disable no-console */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
 import { __ } from '@wordpress/i18n';
 import {
@@ -135,6 +136,20 @@ const PaymentProcessor = ( {
 		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
+
+	useEffect( () => {
+		console.log( 'PaymentProcessor Debug:', {
+			stripeInstance: stripe,
+			elementsInstance: elements,
+			activePaymentMethod,
+			paymentMethodId,
+			upeMethods,
+			isBlockEditor: window?.wp?.blockEditor !== undefined,
+			config: getBlocksConfiguration(),
+			paymentMethodsConfig: getBlocksConfiguration()
+				?.paymentMethodsConfig,
+		} );
+	}, [ stripe, elements, activePaymentMethod, paymentMethodId, upeMethods ] );
 
 	// Make sure shouldSavePayment is set to true if the cart contains a subscription.
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
@@ -291,6 +306,21 @@ const PaymentProcessor = ( {
 		setIsPaymentElementComplete( complete );
 	};
 
+	const getStripeElementOptionsWithDebug = () => {
+		const options = getStripeElementOptions();
+		console.log( 'Stripe Element Options:', options );
+
+		if ( isLinkEnabled() ) {
+			console.log( 'Link Debug:', {
+				emailElement: document.getElementById( 'email' ),
+				billingPhone: document.getElementById( 'billing-phone' ),
+				shippingPhone: document.getElementById( 'shipping-phone' ),
+			} );
+		}
+
+		return options;
+	};
+
 	return (
 		<>
 			<p
@@ -306,9 +336,30 @@ const PaymentProcessor = ( {
 				} }
 			/>
 			<PaymentElement
-				options={ getStripeElementOptions() }
-				onChange={ onSelectedPaymentMethodChange }
+				options={ getStripeElementOptionsWithDebug() }
+				onChange={ ( event ) => {
+					console.log( 'PaymentElement onChange:', event );
+					onSelectedPaymentMethodChange( event );
+				} }
 				className="wcstripe-payment-element"
+				onLoaderStart={ ( element ) => {
+					console.log( 'PaymentElement Debug - LOADER START:', {
+						element,
+						timestamp: new Date().toISOString(),
+					} );
+				} }
+				onLoadError={ ( event ) => {
+					console.error( 'PaymentElement Debug - LOAD ERROR:', {
+						error: event,
+						timestamp: new Date().toISOString(),
+					} );
+				} }
+				onReady={ ( element ) => {
+					console.log( 'PaymentElement Debug - READY:', {
+						element,
+						timestamp: new Date().toISOString(),
+					} );
+				} }
 			/>
 		</>
 	);
