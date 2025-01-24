@@ -1358,8 +1358,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Returns whether Stripe express checkout element should use the Blocks API.
 	 *
 	 * @return boolean
+	 *
+	 * @deprecated 9.2.0 Feature flag enable by default.
 	 */
 	public function use_blocks_api() {
+		_deprecated_function( __METHOD__, '9.2.0' );
 		return isset( $this->stripe_settings['express_checkout_use_blocks_api'] ) && 'yes' === $this->stripe_settings['express_checkout_use_blocks_api'];
 	}
 
