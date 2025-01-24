@@ -83,24 +83,6 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 };
 
 /**
- * Normalize Pay for Order data from Stripe's object to the expected format for WC (when using Blocks API).
- *
- * @param {Object} event Stripe's event object.
- * @param {string} paymentMethodId Stripe's payment method id.
- *
- * @return {Object} Order object in the format WooCommerce expects.
- */
-export const normalizePayForOrderData = ( event, paymentMethodId ) => {
-	return {
-		payment_method: 'stripe',
-		payment_data: buildBlocksAPIPaymentData(
-			event?.expressPaymentType,
-			paymentMethodId
-		),
-	};
-};
-
-/**
  * Normalize shipping address information from Stripe's address object to
  * the cart shipping address object shape.
  *
