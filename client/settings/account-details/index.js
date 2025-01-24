@@ -37,8 +37,7 @@ const Label = styled.p`
 `;
 
 const AccountDetailsError = styled.p`
-	@import '../../styles/abstracts/colors';
-	color: $alert-red;
+	color: #d63638;
 `;
 
 const useIsCardPaymentsEnabled = () => {
