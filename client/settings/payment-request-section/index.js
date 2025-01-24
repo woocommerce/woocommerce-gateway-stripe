@@ -1,3 +1,5 @@
+/* global wc_stripe_settings_params */
+
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { Card, CheckboxControl } from '@wordpress/components';
@@ -66,6 +68,8 @@ const PaymentRequestSection = () => {
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',
 	} );
+
+	const isECEEnabled = wc_stripe_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	return (
 		<Card className="express-checkouts">
@@ -226,7 +230,7 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
-					{ displayExpressPaymentMethods && (
+					{ isECEEnabled && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox">
 								<CheckboxControl

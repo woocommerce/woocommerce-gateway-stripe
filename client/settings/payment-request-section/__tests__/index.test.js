@@ -24,6 +24,8 @@ const getMockPaymentRequestEnabledSettings = (
 ) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
+	const globalValues = global.wc_stripe_settings_params;
+
 	beforeEach( () => {
 		usePaymentRequestEnabledSettings.mockReturnValue(
 			getMockPaymentRequestEnabledSettings( true, jest.fn() )
@@ -37,6 +39,15 @@ describe( 'PaymentRequestSection', () => {
 			PAYMENT_METHOD_LINK,
 		] );
 		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_ece_enabled: true,
+		};
+	} );
+
+	afterEach( () => {
+		jest.clearAllMocks();
+		global.wc_stripe_settings_params = globalValues;
 	} );
 
 	it( 'renders settings with defaults', () => {
@@ -106,20 +117,15 @@ describe( 'PaymentRequestSection', () => {
 		expect( linkCheckbox ).not.toBeChecked();
 	} );
 
-	it( 'hide Amazon Pay if card payment method is inactive', () => {
-		useEnabledPaymentMethodIds.mockReturnValue( [ PAYMENT_METHOD_LINK ] );
+	it( 'hide Amazon Pay if ECE is disabled', () => {
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_ece_enabled: false,
+		};
 
 		render( <PaymentRequestSection /> );
 
 		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
-	} );
-
-	it( 'show Amazon Pay if card payment method is active', () => {
-		useEnabledPaymentMethodIds.mockReturnValue( [ PAYMENT_METHOD_CARD ] );
-
-		render( <PaymentRequestSection /> );
-
-		expect( screen.queryByText( 'Amazon Pay' ) ).toBeInTheDocument();
 	} );
 
 	it( 'test Amazon Pay checkbox not checked', () => {
