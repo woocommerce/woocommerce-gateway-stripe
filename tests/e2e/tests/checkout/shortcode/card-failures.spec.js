@@ -22,7 +22,7 @@ const testCard = async ( page, cardKey ) => {
 	const card = config.get( cardKey );
 
 	await fillCreditCardDetailsShortcode( page, card );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 	expect
 		.soft( await page.innerText( '.woocommerce-error' ) )

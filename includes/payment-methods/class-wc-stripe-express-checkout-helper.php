@@ -626,7 +626,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			! $this->is_pay_for_order_page() &&
 			(
 				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
-				( ( is_cart() || is_checkout() ) && ! WC()->cart->needs_shipping() )
+				( ( is_cart() || is_checkout() ) && ( ! WC()->cart || ! WC()->cart->needs_shipping() ) )
 			) &&
 			wc_tax_enabled() &&
 			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
