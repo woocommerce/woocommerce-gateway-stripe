@@ -4,7 +4,7 @@
 set -e
 
 WP_CONTAINER=${1-woocommerce_stripe_wordpress}
-SITE_URL=${WP_URL-"localhost:8082"}
+SITE_URL=${WP_URL-"localhost:8072"}
 
 redirect_output() {
 	if [[ -z "$DEBUG" ]]; then

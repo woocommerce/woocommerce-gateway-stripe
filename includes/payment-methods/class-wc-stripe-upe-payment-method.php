@@ -536,12 +536,31 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns the UPE Payment Method settings option.
 	 *
-	 * Overrides @see WC:Settings_API::get_option_key() to use the same option key as the main Stripe gateway.
-	 *
 	 * @return string
 	 */
 	public function get_option_key() {
-		return 'woocommerce_stripe_settings';
+		return 'woocommerce_stripe_' . $this->stripe_id . '_settings';
+	}
+
+	/**
+	 * Get option from the main Stripe gateway if it exists.
+	 *
+	 * @param string $key Option key.
+	 * @param mixed  $default Value when empty.
+	 * @return string The value specified for the option or a default value for the option.
+	 */
+	public function get_option( $key, $default = null ) {
+		$main_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		if ( empty( $main_settings ) ) {
+			return $default;
+		}
+
+		if ( ! is_null( $default ) && '' === $main_settings[ $key ] ) {
+			return $default;
+		}
+
+		return $main_settings[ $key ];
 	}
 
 	/**
