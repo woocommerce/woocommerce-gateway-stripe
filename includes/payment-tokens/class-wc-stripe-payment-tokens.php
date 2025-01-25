@@ -29,6 +29,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID,
 	];
 
 	/**

@@ -40,6 +40,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Link::class,
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
+		WC_Stripe_UPE_Payment_Method_Bacs::class,
 	];
 
 	/**
@@ -156,11 +157,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->payment_methods = [];
 
-		if ( WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
-		}
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
@@ -177,6 +173,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Show giropay only on the orders page to allow refunds. It was deprecated.
 			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
+				continue;
+			}
+
+			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 

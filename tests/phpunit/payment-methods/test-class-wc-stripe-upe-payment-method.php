@@ -158,6 +158,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->mock_payment_methods = [];
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			// Bacs is under flag, remove when is enabled by default.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class ) {
+				continue;
+			}
+
 			$mocked_methods = [
 				'get_capabilities_response',
 				'get_woocommerce_currency',
