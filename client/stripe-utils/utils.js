@@ -299,6 +299,12 @@ export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	);
 };
 
+export const appendPaymentIntentIdToForm = ( form, paymentIntentId ) => {
+	form.append(
+		`<input type="hidden" id="wc_payment_intent_id" name="wc_payment_intent_id" value="${ paymentIntentId }" />`
+	);
+};
+
 export const appendSetupIntentToForm = ( form, setupIntent ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-setup-intent" name="wc-stripe-setup-intent" value="${ setupIntent.id }" />`

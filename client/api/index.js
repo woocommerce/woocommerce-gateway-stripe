@@ -133,12 +133,14 @@ export default class WCStripeAPI {
 	 * Creates an intent based on a payment method.
 	 *
 	 * @param {number} orderId The id of the order if creating the intent on Order Pay page.
+	 * @param {boolean} isAcssDebit Whether the payment method is ACSS Debit.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
 	 */
-	createIntent( orderId ) {
+	createIntent( orderId, isAcssDebit = false ) {
 		return this.request( this.getAjaxUrl( 'create_payment_intent' ), {
 			stripe_order_id: orderId,
+			is_acss_debit: isAcssDebit,
 			_ajax_nonce: this.options?.createPaymentIntentNonce,
 		} )
 			.then( ( response ) => {

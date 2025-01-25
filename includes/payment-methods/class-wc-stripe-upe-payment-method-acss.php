@@ -28,20 +28,4 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 
 		$this->is_deferred_intent = false;
 	}
-
-	public function get_testing_instructions() {
-		return __( 'Use the following test account details:', 'woocommerce-gateway-stripe' ) . '<br>' .
-			__( 'Account number: 000123456789', 'woocommerce-gateway-stripe' );
-	}
-
-	/**
-	 * Returns whether the payment method is available for the Stripe account's country.
-	 *
-	 * Canadian Pre-Authorized Debit is only available for domestic transactions in the United States or Canada.
-	 *
-	 * @return bool True if the payment method is available for the account's country, false otherwise.
-	 */
-	// public function is_available_for_account_country() {
-	// 	return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
-	// }
 }

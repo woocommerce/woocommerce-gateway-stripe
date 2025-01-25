@@ -1,6 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
+	appendPaymentIntentIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 	isLinkEnabled,
@@ -22,6 +23,8 @@ import {
 	PAYMENT_METHOD_WECHAT_PAY,
 	PAYMENT_METHOD_ACSS_DEBIT,
 } from 'wcstripe/stripe-utils/constants';
+
+let paymentIntentId, clientSecret;
 
 const gatewayUPEComponents = {};
 
@@ -66,28 +69,44 @@ export function validateElements( elements ) {
 }
 
 /**
- * Creates a Stripe payment element with the specified payment method type and options. The function
- * retrieves the necessary data from the UPE configuration and initializes the appearance. It then creates the
- * Stripe elements and the Stripe payment element, which is attached to the gatewayUPEComponents object afterward.
+ * Creates a Stripe payment element with the specified payment method type and options.
  *
- * @todo Make paymentMethodType required when Split is implemented.
+ * If the user is NOT deferring (e.g. ACSS Debit), we call our server to create a PaymentIntent
+ * and then pass its client_secret to the Payment Element on initialization.
  *
  * @param {Object} api The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
-function createStripePaymentElement( api, paymentMethodType = null ) {
+async function createStripePaymentElement( api, paymentMethodType = null ) {
 	const amount = Number( getStripeServerData()?.cartTotal );
 	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
-	const options = {
-		mode: amount < 1 ? 'setup' : 'payment',
-		currency: getStripeServerData()?.currency.toLowerCase(),
-		amount,
-		paymentMethodCreation: 'manual',
-		paymentMethodTypes,
-		appearance: initializeUPEAppearance( api ),
-		fonts: getFontRulesFromPage(),
-	};
+	let options;
+
+	// ACSS doesn't support deferred intent, so we need to create a PaymentIntent first.
+	if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
+		const response = await api.createIntent( paymentMethodType, true );
+
+		clientSecret = response.client_secret;
+		paymentIntentId = response.id;
+
+		options = {
+			appearance: initializeUPEAppearance( api ),
+			paymentMethodCreation: 'manual',
+			fonts: getFontRulesFromPage(),
+			clientSecret: clientSecret,
+		};
+	} else {
+		options = {
+			mode: amount < 1 ? 'setup' : 'payment',
+			currency: getStripeServerData()?.currency.toLowerCase(),
+			amount,
+			paymentMethodCreation: 'manual',
+			paymentMethodTypes,
+			appearance: initializeUPEAppearance( api ),
+			fonts: getFontRulesFromPage(),
+		};
+	}
 
 	const elements = api.getStripe().elements( options );
 
@@ -274,13 +293,6 @@ export const processPayment = (
 
 	blockUI( jQueryForm );
 
-	// ACSS Debit requires different handling without the Payment Element.
-	// TODO: We should probably refactor this into a separate method.
-	if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
-		confirmAcssDebitPayment( api, jQueryForm );
-		return false;
-	}
-
 	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
 
 	const getErrorMessage = ( err ) => {
@@ -327,6 +339,13 @@ export const processPayment = (
 	( async () => {
 		try {
 			await validateElements( elements );
+
+			// TODO: Refactor this in the right place.
+			// ACSS Debit requires different handling.
+			if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
+				// Attach payment intent ID to form.
+				appendPaymentIntentIdToForm( jQueryForm, paymentIntentId );
+			}
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
@@ -622,60 +641,3 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 	}
 };
 
-/**
- * Handles displaying the ACSS Debit authorization modal/flows to the customer and then redirecting
- * them to the order received page once they authenticate the payment or once micro-deposit verification is triggered.
- *
- * @param {Object} api        The API object used to make requests (createIntent, confirmAcssDebitPayment, etc).
- * @param {Object} jQueryForm The jQuery form object representing your checkout/order form.
- */
-export const confirmAcssDebitPayment = async ( api, jQueryForm ) => {
-	const isOrderPay = getStripeServerData()?.isOrderPay;
-
-	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
-	if ( isOrderPay ) {
-		blockUI( jQueryForm );
-	}
-
-	try {
-		const acssIntent = await api.createIntent();
-
-		const firstName = document.querySelector( '#billing_first_name' )?.value || '';
-		const lastName  = document.querySelector( '#billing_last_name' )?.value || '';
-		const email     = document.querySelector( '#billing_email' )?.value || '';
-		const billingDetails = {
-			name: ( firstName + ' ' + lastName ).trim(),
-			email,
-		};
-
-		const { paymentIntent, error } = await api.getStripe().confirmAcssDebitPayment(
-			acssIntent.client_secret,
-			{
-				payment_method: {
-					billing_details: billingDetails,
-				},
-			}
-		);
-
-		if ( error ) {
-			// TODO: Handle errors more gracefully.
-			throw new Error( error.message );
-		}
-
-		// Similar to `appendSetupIntentToForm`, we need to pass the intent ID back to the order.
-		const hiddenInput = document.createElement( 'input' );
-		hiddenInput.type = 'hidden';
-		hiddenInput.name = 'wc_stripe_payment_intent';
-		hiddenInput.value = paymentIntent.id;
-		jQueryForm[0].appendChild( hiddenInput );
-		hasCheckoutCompleted = true;
-		submitForm( jQueryForm );
-	} catch ( err ) {
-		jQueryForm.removeClass( 'processing' ).unblock();
-		hasCheckoutCompleted = false;
-		showErrorCheckout( err?.message || __( 'ACSS Debit payment failed.', 'woocommerce-gateway-stripe' ) );
-	} finally {
-		unblockBlockCheckout();
-		resetBlockCheckoutPaymentState();
-	}
-};

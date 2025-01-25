@@ -307,7 +307,9 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// If paying from order, we need to get the total from the order instead of the cart.
-			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
+			$order_id     = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
+			// Check if is_acss_debit is set and true.
+			$is_acss_debit = isset( $_POST['is_acss_debit'] ) && filter_var( $_POST['is_acss_debit'], FILTER_VALIDATE_BOOLEAN );
 
 			if ( $order_id ) {
 				$order = wc_get_order( $order_id );
@@ -316,7 +318,7 @@ class WC_Stripe_Intent_Controller {
 				}
 			}
 
-			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
+			wp_send_json_success( $this->create_payment_intent( $order_id, $is_acss_debit ), 200 );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
 			// Send back error so it can be displayed to the customer.
@@ -337,7 +339,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception - If the create intent call returns with an error.
 	 * @return array
 	 */
-	public function create_payment_intent( $order_id = null ) {
+	public function create_payment_intent( $order_id = null, $is_acss_debit = false ) {
 		$amount = WC()->cart->get_total( false );
 		$order  = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
@@ -345,7 +347,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		$enabled_payment_methods = $is_acss_debit ? [ 'acss_debit' ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
 		$currency       = get_woocommerce_currency();
 		$capture        = $gateway->is_automatic_capture_enabled();
@@ -356,8 +358,17 @@ class WC_Stripe_Intent_Controller {
 			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
 
-		// Conditionally add ACSS Debit mandate options if 'acss_debit' is present.
-		$request = $this->maybe_add_acss_mandate_options( $request, $enabled_payment_methods );
+		if ( $is_acss_debit ) {
+			$request['payment_method_options'] = [
+				'acss_debit' => [
+					'mandate_options' => [
+						'payment_schedule'     => 'interval',
+						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
+						'transaction_type'     => 'personal',
+					],
+				],
+			];
+		}
 
 		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
@@ -369,34 +380,6 @@ class WC_Stripe_Intent_Controller {
 			'id'            => $payment_intent->id,
 			'client_secret' => $payment_intent->client_secret,
 		];
-	}
-
-	/**
-	 * Conditionally adds ACSS Debit mandate options to the Stripe payment_intent request array.
-	 *
-	 * @param array $request                 The Stripe request body that will be sent to the /payment_intents endpoint.
-	 * @param array $enabled_payment_methods The payment method types that will be used for this PaymentIntent.
-	 *
-	 * @return array The updated $request with ACSS Debit mandate options, if applicable.
-	 */
-	private function maybe_add_acss_mandate_options( $request, $enabled_payment_methods ) {
-		if ( ! in_array( 'acss_debit', $enabled_payment_methods, true ) ) {
-			return $request;
-		}
-
-		if ( ! isset( $request['payment_method_options'] ) ) {
-			$request['payment_method_options'] = [];
-		}
-
-		$request['payment_method_options']['acss_debit'] = [
-			'mandate_options' => [
-				'payment_schedule'     => 'interval',
-				'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
-				'transaction_type'     => 'personal',
-			],
-		];
-
-		return $request;
 	}
 
 	/**
