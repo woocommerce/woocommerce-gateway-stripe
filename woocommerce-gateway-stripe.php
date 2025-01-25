@@ -215,6 +215,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-bacs-payment-token.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-currency-code.php';
