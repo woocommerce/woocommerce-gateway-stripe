@@ -150,7 +150,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			self::$UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
+			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
 		}
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
