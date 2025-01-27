@@ -349,11 +349,5 @@ export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
 		return false;
 	}
 
-	// TODO: Uncomment me to test Google Pay on confirmation token flow.
-	// Remove me before merging to production.
-	// if ( [ 'googlePay', 'google_pay' ].includes( expressPaymentType ) ) {
-	// 	return false;
-	// }
-
 	return true;
 };
