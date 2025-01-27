@@ -5,7 +5,6 @@ import {
 	normalizeLineItems,
 	normalizeShippingAddress,
 	normalizeOrderData,
-	normalizePayForOrderData,
 } from '../utils';
 import {
 	onConfirmHandler,
@@ -321,8 +320,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECECreateOrder.mockResolvedValue( {
-				result: 'error',
-				messages: 'Order creation error',
+				payment_result: {
+					payment_status: 'error',
+					payment_details: [
+						{
+							key: 'errorMessage',
+							value: 'Order creation error',
+						},
+					],
+				},
 			} );
 
 			await onConfirmHandler(
@@ -352,8 +358,10 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECECreateOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( true );
 
@@ -381,14 +389,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECECreateOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( {
 				request: Promise.resolve(
 					'https://example.com/confirmation_redirect'
 				),
-				isOrderPage: false,
 			} );
 
 			await onConfirmHandler(
@@ -415,14 +424,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECECreateOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( {
 				request: Promise.reject(
 					new Error( 'Intent confirmation error' )
 				),
-				isOrderPage: false,
 			} );
 
 			await onConfirmHandler(
@@ -439,7 +449,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error'
+				'Intent confirmation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );
@@ -450,8 +461,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
-				result: 'error',
-				messages: 'Order creation error',
+				payment_result: {
+					payment_status: 'error',
+					payment_details: [
+						{
+							key: 'errorMessage',
+							value: 'Order creation error',
+						},
+					],
+				},
 			} );
 
 			await onConfirmHandler(
@@ -464,10 +482,7 @@ describe( 'Express checkout event handlers', () => {
 				order
 			);
 
-			const expectedOrderData = normalizePayForOrderData(
-				event,
-				'pm_123'
-			);
+			const expectedOrderData = normalizeOrderData( event, 'pm_123' );
 			expect( api.expressCheckoutECEPayForOrder ).toHaveBeenCalledWith(
 				123,
 				expectedOrderData
@@ -486,8 +501,10 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( true );
 
@@ -516,14 +533,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( {
 				request: Promise.resolve(
 					'https://example.com/confirmation_redirect'
 				),
-				isOrderPage: false,
 			} );
 
 			await onConfirmHandler(
@@ -551,14 +569,15 @@ describe( 'Express checkout event handlers', () => {
 				paymentMethod: { id: 'pm_123' },
 			} );
 			api.expressCheckoutECEPayForOrder.mockResolvedValue( {
-				result: 'success',
-				redirect: 'https://example.com/redirect',
+				payment_result: {
+					payment_status: 'success',
+					redirect_url: 'https://example.com/redirect',
+				},
 			} );
 			api.confirmIntent.mockReturnValue( {
 				request: Promise.reject(
 					new Error( 'Intent confirmation error' )
 				),
-				isOrderPage: false,
 			} );
 
 			await onConfirmHandler(
@@ -576,7 +595,8 @@ describe( 'Express checkout event handlers', () => {
 			);
 			expect( abortPayment ).toHaveBeenCalledWith(
 				event,
-				'Intent confirmation error'
+				'Intent confirmation error',
+				true
 			);
 			expect( completePayment ).not.toHaveBeenCalled();
 		} );

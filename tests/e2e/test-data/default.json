@@ -153,7 +153,9 @@
 			"label": "Visa ending in 0002",
 			"error": [
 				"The card was declined.",
-				"Your card was declined."
+				"Your card was declined.",
+				"The card has been declined.",
+				"Your card has been declined."
 			]
 		},
 		"declined-funds": {
@@ -190,7 +192,7 @@
 			},
 			"cvc": "626",
 			"label": "Visa ending in 0069",
-			"error": [ "The card has expired.", "Your card has expired." ]
+			"error": [ "The card has expired.", "Your card has expired.", "Your card is expired." ]
 		},
 		"declined-cvc": {
 			"number": "4000000000000127",
@@ -202,7 +204,8 @@
 			"label": "Visa ending in 0127",
 			"error": [
 				"The card's security code is incorrect.",
-				"Your card's security code is incorrect."
+				"Your card's security code is incorrect.",
+				"Your card.s CVC is incorrect."
 			]
 		},
 		"declined-processing": {
@@ -215,7 +218,7 @@
 			"label": "Visa ending in 0119",
 			"error": [
 				"An error occurred while processing the card.",
-				"An error occurred while processing your card. Try again in a little bit."
+				"An error occurred while processing your card."
 			]
 		},
 		"declined-3ds": {
@@ -244,6 +247,15 @@
 			},
 			"cvc": "11",
 			"label": "Visa ending in 4242"
+		},
+		"no-3ds": {
+			"number": "378282246310005",
+			"expires": {
+				"month": "06",
+				"year": "29"
+			},
+			"cvc": "626",
+			"label": "3DS not supported"
 		}
 	}
 }

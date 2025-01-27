@@ -885,8 +885,13 @@ jQuery( function($ ) {
 				message = wc_stripe_params.invalid_request_error;
 			}
 
-			if ( wc_stripe_params.hasOwnProperty(result.error.code) ) {
+			if ( wc_stripe_params.hasOwnProperty( result.error.code ) ) {
 				message = wc_stripe_params[ result.error.code ];
+			}
+
+			// Correctly sets the insufficient funds message.
+			if ( 'card_declined' === result.error.code && 'insufficient_funds' === result.error?.decline_code ) {
+				message = wc_stripe_params.insufficient_funds;
 			}
 
 			wc_stripe_form.reset();
