@@ -15,6 +15,7 @@ import {
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
+import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 
 export const useExpressCheckout = ( {
 	api,
@@ -116,7 +117,7 @@ export const useExpressCheckout = ( {
 	);
 
 	const onConfirm = async ( event ) => {
-		await onConfirmHandler(
+		return await onConfirmHandler(
 			api,
 			stripe,
 			elements,

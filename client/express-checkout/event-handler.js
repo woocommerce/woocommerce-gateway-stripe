@@ -2,7 +2,6 @@ import { __ } from '@wordpress/i18n';
 import {
 	getErrorMessageFromNotice,
 	normalizeOrderData,
-	normalizePayForOrderData,
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
@@ -85,23 +84,29 @@ export const onConfirmHandler = async (
 		} else {
 			orderResponse = await api.expressCheckoutECEPayForOrder(
 				order,
-				normalizePayForOrderData( event, paymentMethod.id )
+				normalizeOrderData( event, paymentMethod.id )
 			);
 		}
 
-		if ( orderResponse.result !== 'success' ) {
+		if ( orderResponse.payment_result?.payment_status !== 'success' ) {
 			return abortPayment(
 				event,
-				getErrorMessageFromNotice( orderResponse.messages ),
+				getErrorMessageFromNotice(
+					orderResponse.payment_result?.payment_details.find(
+						( detail ) => detail.key === 'errorMessage'
+					)?.value
+				),
 				true
 			);
 		}
 
-		const confirmationRequest = api.confirmIntent( orderResponse.redirect );
+		const confirmationRequest = api.confirmIntent(
+			orderResponse.payment_result.redirect_url
+		);
 
 		// `true` means there is no intent to confirm.
 		if ( confirmationRequest === true ) {
-			completePayment( orderResponse.redirect );
+			completePayment( orderResponse.payment_result.redirect_url );
 		} else {
 			const { request } = confirmationRequest;
 			const redirectUrl = await request;
@@ -113,12 +118,24 @@ export const onConfirmHandler = async (
 		if ( e.message ) {
 			errorMessage = e.message;
 		} else {
+			const paymentDetailsErrorMessage = e.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value;
+			if ( paymentDetailsErrorMessage ) {
+				errorMessage = paymentDetailsErrorMessage;
+			}
+		}
+		if ( ! errorMessage ) {
 			errorMessage = __(
 				'There was a problem processing the order.',
 				'woocommerce-gateway-stripe'
 			);
 		}
-		return abortPayment( event, errorMessage );
+		return abortPayment(
+			event,
+			getErrorMessageFromNotice( errorMessage ),
+			true
+		);
 	}
 };
 

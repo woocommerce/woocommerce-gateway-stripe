@@ -90,16 +90,19 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 */
 	private function get_subscription_to_migrate( $subscription_id ) {
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The Legacy experience is enabled.', $subscription_id ) );
 		}
 
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. The WooCommerce Subscriptions extension is not active.', $subscription_id ) );
 		}
 
 		$subscription = wcs_get_subscription( $subscription_id );
 
 		if ( ! $subscription ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription not found.', $subscription_id ) );
 		}
 
@@ -121,6 +124,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out if the subscription is already using a pm_.
 		if ( 0 !== strpos( $source_id, 'src_' ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( 'The subscription is not using a Stripe Source for renewals.', $subscription->get_id() ) );
 		}
 
@@ -129,11 +133,13 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 
 		// Bail out, if the source object isn't expected to be migrated. eg Card sources are not migrated.
 		if ( isset( $source_object->type ) && 'card' === $source_object->type ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( 'Skipping migration of Source for subscription #%d. Source is a card.', $subscription->get_id() ) );
 		}
 
 		// Bail out if the src_ hasn't been migrated to pm_ yet.
 		if ( ! isset( $source_object->metadata->migrated_payment_method ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( 'The Source has not been migrated to PaymentMethods on the Stripe account.', $subscription->get_id() ) );
 		}
 
@@ -153,6 +159,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	private function set_subscription_updated_payment_gateway_id( WC_Subscription $subscription ) {
 		// The subscription is not using the legacy SEPA gateway ID.
 		if ( WC_Gateway_Stripe_Sepa::ID !== $subscription->get_payment_method() ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
 			throw new \Exception( sprintf( '---- Skipping migration of subscription #%d. Subscription is not using the legacy SEPA payment method.', $subscription->get_id() ) );
 		}
 

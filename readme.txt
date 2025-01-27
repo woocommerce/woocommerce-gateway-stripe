@@ -110,10 +110,25 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.1.1 - 2025-01-10 =
-* Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
-* Fix - Payment request button fails to display when the legacy checkout experience is enabled.
-* Fix - Resolves the payment element loading issue in the legacy checkout experience.
+= 9.2.0 - xxxx-xx-xx =
+* Dev - Adds new logs to identify why express payment methods are not being displayed.
+* Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
+* Fix - Fixes processing of orders through the Pay for Order page when using ECE with Blocks (Store) API.
+* Add - Enables the use of Blocks API for Express Checkout Element orders by default.
+* Add - Adds a new filter to allow changing the user attributed to an order when paying for it through the Order Pay page.
+* Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
+* Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
+* Tweak - Process ECE orders using the Blocks API.
+* Fix - Fixes incorrect error message for card failures due insufficient funds on the shortcode checkout page (legacy).
+* Fix - Fixes deprecation warnings related to nullable method parameters when using PHP 8.4, and increases the minimum PHP version Code Sniffer considers to 7.4.
+* Fix - Adds support for the Reunion country when checking out using the new checkout experience.
+* Add - Support zero-amount refunds.
+* Fix - A potential fix to prevent duplicate charges.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
+* Fix - Improve product page caching when Express Payment buttons are not enabled.
+* Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
+* Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
+* Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
 * Update - Update the translation for payment requests settings section notice.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

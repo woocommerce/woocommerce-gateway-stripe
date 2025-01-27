@@ -25,6 +25,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 
 jQuery( function ( $ ) {
@@ -233,7 +234,6 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-
 				return await onConfirmHandler(
 					api,
 					api.getStripe(),
