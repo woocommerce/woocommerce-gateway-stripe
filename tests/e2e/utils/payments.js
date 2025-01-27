@@ -188,9 +188,13 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
-				[ 'state', 'country', 'state_iso', 'country_iso' ].includes(
-					fieldName
-				)
+				[
+					'state',
+					'country',
+					'state_iso',
+					'country_iso',
+					'company',
+				].includes( fieldName )
 			) {
 				continue;
 			}
