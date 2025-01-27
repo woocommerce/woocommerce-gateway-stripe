@@ -567,12 +567,14 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions
 			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
 			return false;
 		}
 
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		if ( ! isset( $available_gateways['stripe'] ) ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout requires the Stripe gateway to be enabled.' );
 			return false;
 		}
 
@@ -582,26 +584,31 @@ class WC_Stripe_Express_Checkout_Helper {
 			WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			&& ! $this->allowed_items_in_cart()
 		) {
+			WC_Stripe_Logger::log( 'Some items in cart are not compatible with Stripe Express Checkout. ' );
 			return false;
 		}
 
 		// Don't show on cart if disabled.
 		if ( is_cart() && ! $this->should_show_ece_on_cart_page() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on cart is disabled. ' );
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
 		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
 
 		// Don't show if product page ECE is disabled.
 		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
 			return false;
 		}
 
 		// Don't show if product on current page is not supported.
 		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $this->get_product()->get_id() );
 			return false;
 		}
 
@@ -610,6 +617,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
 			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
 		) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
 			return false;
 		}
 
@@ -617,6 +625,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product variations being out of stock. Product ID: ' . $this->get_product()->get_id() );
 				return false;
 			}
 		}
@@ -631,6 +640,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			wc_tax_enabled() &&
 			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
 		) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
 			return false;
 		}
 
