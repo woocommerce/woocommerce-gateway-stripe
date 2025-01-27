@@ -2165,11 +2165,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_information['confirmation_token']           = $confirmation_token_id;
 			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = false;
-			$payment_information['payment_method_options']       = [
-				$selected_payment_type => [
-					'capture_method' => $capture_method,
-				],
-			];
+
+			// When using confirmation tokens with manual capture, we need to
+			// set the capture_method parameter under payment method options.
+			if ( 'manual' === $capture_method ) {
+				$payment_information['payment_method_options'] = [
+					$selected_payment_type => [
+						'capture_method' => 'manual',
+					],
+				];
+			} else {
+				$payment_information['capture_method'] = $capture_method;
+			}
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
