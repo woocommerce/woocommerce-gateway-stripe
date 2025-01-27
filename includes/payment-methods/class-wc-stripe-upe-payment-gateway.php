@@ -2629,7 +2629,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if this is for an express payment
 		if ( ! empty( $express_payment_type ) ) {
 			switch ( $express_payment_type ) {
-				case 'link':
+				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
 				case 'google_pay':
 				case 'apple_pay':
