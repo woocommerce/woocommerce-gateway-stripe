@@ -492,9 +492,9 @@ jQuery( function ( $ ) {
 			}
 
 			const data = {
-				product_id: productId,
+				id: productId,
 				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
+				variation: $( '.variations_form' ).length
 					? wcStripeECE.getAttributes().data
 					: [],
 			};
