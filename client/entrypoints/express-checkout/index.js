@@ -354,6 +354,12 @@ jQuery( function ( $ ) {
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
+				const displayItems = (
+					getExpressCheckoutData( 'product' )?.displayItems ?? []
+				).map( ( { label, amount } ) => ( {
+					name: label,
+					amount,
+				} ) );
 				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
 					total: getExpressCheckoutData( 'product' )?.total.amount,
@@ -364,8 +370,7 @@ jQuery( function ( $ ) {
 					requestPhone:
 						getExpressCheckoutData( 'checkout' )
 							?.needs_payer_phone ?? false,
-					displayItems: getExpressCheckoutData( 'product' )
-						.displayItems,
+					displayItems,
 				} );
 			} else {
 				// Cart and Checkout page specific initialization.
