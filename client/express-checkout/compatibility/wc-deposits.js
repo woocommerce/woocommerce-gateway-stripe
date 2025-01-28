@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { addFilter, doAction } from '@wordpress/hooks';
 
 jQuery( ( $ ) => {

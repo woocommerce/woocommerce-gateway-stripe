@@ -27,6 +27,8 @@ import {
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
+import 'wcstripe/express-checkout/compatibility/wc-deposits';
+import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import './styles.scss';
 
 jQuery( function ( $ ) {
