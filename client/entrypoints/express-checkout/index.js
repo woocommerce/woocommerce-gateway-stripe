@@ -29,6 +29,7 @@ import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 import {
 	transformCartDataForDisplayItems,
+	transformLabeledDisplayItems,
 	transformPrice,
 } from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
@@ -349,17 +350,13 @@ jQuery( function ( $ ) {
 						.currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-					displayItems,
+					displayItems: transformLabeledDisplayItems(
+						displayItems ?? []
+					),
 					order,
 					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
-				const displayItems = (
-					getExpressCheckoutData( 'product' )?.displayItems ?? []
-				).map( ( { label, amount } ) => ( {
-					name: label,
-					amount,
-				} ) );
 				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
 					total: getExpressCheckoutData( 'product' )?.total.amount,
@@ -370,7 +367,9 @@ jQuery( function ( $ ) {
 					requestPhone:
 						getExpressCheckoutData( 'checkout' )
 							?.needs_payer_phone ?? false,
-					displayItems,
+					displayItems: transformLabeledDisplayItems(
+						getExpressCheckoutData( 'product' )?.displayItems ?? []
+					),
 				} );
 			} else {
 				// Cart and Checkout page specific initialization.

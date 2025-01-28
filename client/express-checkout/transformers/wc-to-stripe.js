@@ -88,3 +88,10 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 
 	return displayItems;
 };
+
+export const transformLabeledDisplayItems = ( displayItems ) => {
+	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
+		name: label,
+		amount,
+	} ) );
+};
