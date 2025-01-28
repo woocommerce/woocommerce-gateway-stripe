@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Add - Add new payment processing flow using confirmation tokens.
 * Dev - Adds new logs to identify why express payment methods are not being displayed.
 * Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
 * Fix - Fixes processing of orders through the Pay for Order page when using ECE with Blocks (Store) API.

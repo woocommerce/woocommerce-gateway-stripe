@@ -130,7 +130,7 @@ describe( 'Express checkout normalization', () => {
 	} );
 
 	describe( 'normalizeOrderData', () => {
-		test( 'should normalize order data with complete event and paymentMethodId', () => {
+		test( 'should normalize order data with complete event and paymentMethodId/confirmationTokenId', () => {
 			const event = {
 				billingDetails: {
 					name: 'John Doe',
@@ -190,6 +190,10 @@ describe( 'Express checkout normalization', () => {
 						value: 'pm_123456',
 					},
 					{
+						key: 'wc-stripe-confirmation-token',
+						value: '',
+					},
+					{
 						key: 'express_payment_type',
 						value: 'express',
 					},
@@ -214,9 +218,40 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect( normalizeOrderData( event, paymentMethodId ) ).toEqual(
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
 				expectedNormalizedData
 			);
+
+			const confirmationTokenId = 'ctoken_123456';
+			const expectedNormalizedDataWithConfirmationToken = {
+				...expectedNormalizedData,
+				payment_data: [
+					{
+						key: 'payment_method',
+						value: 'stripe',
+					},
+					{
+						key: 'wc-stripe-payment-method',
+						value: '',
+					},
+					{
+						key: 'wc-stripe-confirmation-token',
+						value: 'ctoken_123456',
+					},
+					{
+						key: 'express_payment_type',
+						value: 'express',
+					},
+					{
+						key: 'wc-stripe-is-deferred-intent',
+						value: true,
+					},
+				],
+			};
+
+			expect(
+				normalizeOrderData( { event, confirmationTokenId } )
+			).toEqual( expectedNormalizedDataWithConfirmationToken );
 		} );
 
 		test( 'should normalize order data with missing optional event fields', () => {
@@ -249,6 +284,10 @@ describe( 'Express checkout normalization', () => {
 						value: 'pm_123456',
 					},
 					{
+						key: 'wc-stripe-confirmation-token',
+						value: '',
+					},
+					{
 						key: 'express_payment_type',
 						value: undefined,
 					},
@@ -273,7 +312,7 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect( normalizeOrderData( event, paymentMethodId ) ).toEqual(
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
 				expectedNormalizedData
 			);
 		} );
@@ -312,6 +351,10 @@ describe( 'Express checkout normalization', () => {
 						value: 'pm_123456',
 					},
 					{
+						key: 'wc-stripe-confirmation-token',
+						value: '',
+					},
+					{
 						key: 'express_payment_type',
 						value: undefined,
 					},
@@ -336,7 +379,7 @@ describe( 'Express checkout normalization', () => {
 				},
 			};
 
-			expect( normalizeOrderData( event, paymentMethodId ) ).toEqual(
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
 				expectedNormalizedData
 			);
 		} );
