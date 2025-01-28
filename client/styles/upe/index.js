@@ -15,12 +15,24 @@ const appearanceSelectors = {
 		appendTarget: '.woocommerce-billing-fields__field-wrapper',
 		upeThemeInputSelector: '#billing_first_name',
 		upeThemeLabelSelector: '.woocommerce-checkout .form-row label',
+		upeThemeTextSelectors: [
+			'#payment .payment_methods li .payment_box fieldset',
+			'.woocommerce-checkout .form-row',
+		],
 		rowElement: 'p',
 		validClasses: [ 'form-row' ],
 		invalidClasses: [
 			'form-row',
 			'woocommerce-invalid',
 			'woocommerce-invalid-required-field',
+		],
+		backgroundSelectors: [
+			'li.wc_payment_method .wc-payment-form',
+			'li.wc_payment_method .payment_box',
+			'#payment',
+			'#order_review',
+			'form.checkout',
+			'body',
 		],
 	},
 	blocksCheckout: {
