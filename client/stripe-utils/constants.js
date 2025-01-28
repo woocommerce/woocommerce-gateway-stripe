@@ -2,7 +2,6 @@
  * Payment method name constants without the `stripe` prefix
  */
 export const PAYMENT_METHOD_CARD = 'card';
-export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_GIROPAY = 'giropay';
 export const PAYMENT_METHOD_EPS = 'eps';
 export const PAYMENT_METHOD_IDEAL = 'ideal';
