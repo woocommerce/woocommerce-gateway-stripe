@@ -3,6 +3,7 @@ import {
 	generateHoverRules,
 	generateOutlineStyle,
 	getBackgroundColor,
+	isColorLight,
 } from './utils.js';
 
 const appearanceSelectors = {
@@ -359,8 +360,7 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 	const backgroundColor = getBackgroundColor( selectors.backgroundSelectors );
 	const blockRules = getFieldStyles(
 		selectors.upeThemeLabelSelector,
-		'.Block',
-		backgroundColor
+		'.Block'
 	);
 
 	const labelRules = getFieldStyles(
@@ -389,13 +389,16 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 
 	const globalRules = {
 		colorBackground: backgroundColor,
-		colorText: paragraphRules.color,
+		colorText: isColorLight( backgroundColor )
+			? inputRules.color
+			: paragraphRules.color,
 		fontFamily: paragraphRules.fontFamily,
 		fontSizeBase: paragraphRules.fontSize,
 	};
 
 	const appearance = {
 		variables: globalRules,
+		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
 		rules: {
 			'.Input': inputRules,
 			'.Input:focus': inputFocusRules,

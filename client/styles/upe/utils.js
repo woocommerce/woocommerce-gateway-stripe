@@ -114,3 +114,13 @@ export const getBackgroundColor = ( selectors ) => {
 	}
 	return color || defaultColor;
 };
+
+/**
+ * Determines whether background color is light or dark.
+ *
+ * @param {string} color CSS color value.
+ * @return {boolean} True, if background is light; false, if background is dark.
+ */
+export const isColorLight = ( color ) => {
+	return tinycolor( color ).isLight();
+};
