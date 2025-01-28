@@ -28,23 +28,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
-	 * Base template for ACH Direct Debit payment method.
-	 */
-	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
-		'id'                           => 'pm_mock_payment_method_ach',
-		'type'                         => WC_Stripe_Payment_Methods::ACH,
-		WC_Stripe_Payment_Methods::ACH => [
-			'account_holder_type' => 'individual',
-			'account_type'        => 'checking',
-			'bank_name'           => 'TEST BANK',
-			'fingerprint'         => 'Ih3foEnRvLXShyfB',
-			'last4'               => '1000',
-			'payment_reference'   => '091000015001234',
-			'routing_number'      => '110000000',
-		],
-	];
-
-	/**
 	 * Base template for Stripe link payment method.
 	 */
 	const MOCK_LINK_PAYMENT_METHOD_TEMPLATE = [
