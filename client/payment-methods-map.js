@@ -5,7 +5,7 @@ const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 
-const paymentMethods = {
+const paymentMethodsMap = {
 	card: {
 		id: 'card',
 		label: __( 'Credit card / debit card', 'woocommerce-gateway-stripe' ),
@@ -243,7 +243,7 @@ const paymentMethods = {
 };
 
 if ( isAchEnabled ) {
-	paymentMethods.us_bank_account = {
+	paymentMethodsMap.us_bank_account = {
 		id: 'us_bank_account',
 		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
@@ -255,4 +255,18 @@ if ( isAchEnabled ) {
 	};
 }
 
-export default paymentMethods;
+// Enable Bacs according to feature flag value
+if ( window.wc_stripe_settings_params?.is_bacs_enabled ) {
+	paymentMethodsMap.bacs_debit = {
+		id: 'bacs_debit',
+		label: 'Bacs Direct Debit',
+		description: __(
+			'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.card,
+		currencies: [ 'GBP' ],
+	};
+}
+
+export default paymentMethodsMap;
