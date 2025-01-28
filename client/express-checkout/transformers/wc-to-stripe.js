@@ -34,7 +34,7 @@ export const transformPrice = ( price, priceObject ) => {
 export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	// allowing extensions to manipulate the individual items returned by the backend.
 	const cartData = applyFilters(
-		'wcpay.express-checkout.map-line-items',
+		'wcstripe.express-checkout.map-line-items',
 		rawCartData
 	);
 

@@ -10,7 +10,6 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
-	normalizeLineItems,
 	isManualPaymentMethodCreation,
 	getPaymentMethodTypesForExpressMethod,
 } from 'wcstripe/express-checkout/utils';
@@ -254,7 +253,7 @@ jQuery( function ( $ ) {
 				}
 
 				const clickOptions = {
-					lineItems: normalizeLineItems( options.displayItems ),
+					lineItems: options.displayItems,
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
