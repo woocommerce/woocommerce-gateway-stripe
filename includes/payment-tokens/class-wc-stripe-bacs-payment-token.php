@@ -29,7 +29,16 @@ class WC_Payment_Token_Bacs extends WC_Payment_Token implements WC_Stripe_Paymen
 		$this->set_prop( 'last4', $last4 );
 	}
 
+	public function get_last4( $context = 'view' ) {
+		return $this->get_prop( 'last4', $context );
+	}
+
 	public function set_payment_method_type( $type ) {
 		$this->set_prop( 'payment_method_type', $type );
 	}
+
+	public function get_payment_method_type( $context = 'view' ) {
+		return $this->get_prop( 'payment_method_type', $context );
+	}
 }
+

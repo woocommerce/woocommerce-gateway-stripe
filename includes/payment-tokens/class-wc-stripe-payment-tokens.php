@@ -407,6 +407,10 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 				break;
+			case WC_Stripe_Payment_Methods::BACS_DEBIT:
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
+				break;
 			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
@@ -534,6 +538,13 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
 
+			case WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID:
+				$token = new WC_Payment_Token_Bacs();
+				$token->set_token( $payment_method->id );
+				$token->set_last4( $payment_method->bacs_debit->last4 );
+				$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
+				$token->set_payment_method_type( $payment_method_type );
+				break;
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( $payment_method->link->email );
