@@ -12,6 +12,6 @@ const Wrapper = styled( IconWithShell )`
 	}
 `;
 
-const ACHIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
+const BankDebitIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
 
-export default ACHIcon;
+export default BankDebitIcon;
