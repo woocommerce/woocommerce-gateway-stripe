@@ -30,6 +30,10 @@ import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import 'wcstripe/express-checkout/compatibility/wc-deposits';
 import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import './styles.scss';
+import {
+	transformCartDataForDisplayItems,
+	transformPrice,
+} from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -369,15 +373,20 @@ jQuery( function ( $ ) {
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+					const total = transformPrice(
+						parseInt( cart.totals.total_price, 10 ) -
+							parseInt( cart.totals.total_refund || 0, 10 ),
+						cart.totals
+					);
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
-						total: cart.order_data.total.amount,
+						total,
 						currency: getExpressCheckoutData( 'checkout' )
 							?.currency_code,
-						requestShipping: cart.shipping_required === true,
+						requestShipping: cart.needs_shipping === true,
 						requestPhone: getExpressCheckoutData( 'checkout' )
 							?.needs_payer_phone,
-						displayItems: cart.order_data.displayItems,
+						displayItems: transformCartDataForDisplayItems( cart ),
 					} );
 				} );
 			}
