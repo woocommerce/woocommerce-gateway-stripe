@@ -54,6 +54,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		// Bail if the order is already captured or if manual capture is disabled.
+		if ( 'yes' === $order->get_meta( '_stripe_charge_captured', true ) || $gateway->is_automatic_capture_enabled() ) {
+			return;
+		}
+
 		try {
 			$intent = $this->get_intent_from_order( $order );
 			if ( $intent && WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
