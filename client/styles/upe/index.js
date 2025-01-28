@@ -1,5 +1,9 @@
 import { upeRestrictedProperties } from './upe-styles';
-import { generateHoverRules, generateOutlineStyle } from './utils.js';
+import {
+	generateHoverRules,
+	generateOutlineStyle,
+	getBackgroundColor,
+} from './utils.js';
 
 const appearanceSelectors = {
 	default: {
@@ -22,14 +26,28 @@ const appearanceSelectors = {
 	blocksCheckout: {
 		appendTarget: '#billing.wc-block-components-address-form',
 		upeThemeInputSelector: '#billing-first_name',
-		upeThemeLabelSelector: '.wc-block-components-text-input label',
+		upeThemeLabelSelector:
+			'.wc-block-components-checkout-step__description',
+		upeThemeTextSelectors: [
+			'.wc-block-components-checkout-step__description',
+			'.wc-block-components-text-input',
+		],
 		rowElement: 'div',
 		validClasses: [ 'wc-block-components-text-input' ],
 		invalidClasses: [ 'wc-block-components-text-input', 'has-error' ],
 		alternateSelectors: {
 			appendTarget: '#shipping.wc-block-components-address-form',
 			upeThemeInputSelector: '#shipping-first_name',
+			upeThemeLabelSelector:
+				'.wc-block-components-checkout-step__description',
 		},
+		backgroundSelectors: [
+			'#payment-method .wc-block-components-radio-control-accordion-option',
+			'#payment-method',
+			'form.wc-block-checkout__form',
+			'.wc-block-checkout',
+			'body',
+		],
 	},
 
 	/**
@@ -326,6 +344,13 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		'.Input'
 	);
 
+	const backgroundColor = getBackgroundColor( selectors.backgroundSelectors );
+	const blockRules = getFieldStyles(
+		selectors.upeThemeLabelSelector,
+		'.Block',
+		backgroundColor
+	);
+
 	const labelRules = getFieldStyles(
 		selectors.upeThemeLabelSelector,
 		'.Label'
@@ -345,11 +370,25 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		color: selectedTabRules.color,
 	};
 
+	const paragraphRules = getFieldStyles(
+		selectors.upeThemeTextSelectors,
+		'.Text'
+	);
+
+	const globalRules = {
+		colorBackground: backgroundColor,
+		colorText: paragraphRules.color,
+		fontFamily: paragraphRules.fontFamily,
+		fontSizeBase: paragraphRules.fontSize,
+	};
+
 	const appearance = {
+		variables: globalRules,
 		rules: {
 			'.Input': inputRules,
 			'.Input:focus': inputFocusRules,
 			'.Input--invalid': inputInvalidRules,
+			'.Block': blockRules,
 			'.Label': labelRules,
 			'.Tab': tabRules,
 			'.Tab:hover': tabHoverRules,
