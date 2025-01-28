@@ -24,12 +24,18 @@ export const normalizeLineItems = ( displayItems ) => {
 /**
  * Normalize order data from Stripe's object to the expected format for WC (when using the Blocks API).
  *
- * @param {Object} event Stripe's event object.
- * @param {string} paymentMethodId Stripe's payment method id.
+ * @param {Object} params
+ * @param {Object} params.event Stripe's event object.
+ * @param {string} params.paymentMethodId Payment method ID from Stripe, if using manual payment method flow.
+ * @param {string} params.confirmationTokenId Confirmation token ID from Stripe, if using confirmation token flow.*
  *
  * @return {Object} Order object in the format WooCommerce expects.
  */
-export const normalizeOrderData = ( event, paymentMethodId ) => {
+export const normalizeOrderData = ( {
+	event,
+	paymentMethodId = '',
+	confirmationTokenId = '',
+} ) => {
 	const name = event?.billingDetails?.name;
 	const email = event?.billingDetails?.email ?? '';
 	const billing = event?.billingDetails?.address ?? {};
@@ -69,12 +75,13 @@ export const normalizeOrderData = ( event, paymentMethodId ) => {
 			postcode: shipping?.address?.postal_code ?? '',
 			method: [ event?.shippingRate?.id ?? null ],
 		},
-		customer_note: event.order_comments,
+		customer_note: event?.order_comments,
 		payment_method: 'stripe',
-		payment_data: buildBlocksAPIPaymentData(
-			event?.expressPaymentType,
-			paymentMethodId
-		),
+		payment_data: buildBlocksAPIPaymentData( {
+			expressPaymentType: event?.expressPaymentType,
+			paymentMethodId,
+			confirmationTokenId,
+		} ),
 		extensions: applyFilters(
 			'wcstripe.express-checkout.cart-place-order-extension-data',
 			{}
@@ -113,11 +120,18 @@ export const normalizeShippingAddress = ( shippingAddress ) => {
 /**
  * Builds the payment data for the Blocks API.
  *
- * @param {string} expressPaymentType The express payment type.
- * @param {string} paymentMethodId The payment method ID.
+ * @param {Object} params
+ * @param {string} params.expressPaymentType The express payment type.
+ * @param {string} params.paymentMethodId The payment method ID.
+ * @param {string} params.confirmationTokenId The confirmation token ID.
+ *
  * @return {Array} The payment data.
  */
-const buildBlocksAPIPaymentData = ( expressPaymentType, paymentMethodId ) => {
+const buildBlocksAPIPaymentData = ( {
+	expressPaymentType,
+	paymentMethodId = '',
+	confirmationTokenId = '',
+} ) => {
 	return [
 		{
 			key: 'payment_method',
@@ -126,6 +140,10 @@ const buildBlocksAPIPaymentData = ( expressPaymentType, paymentMethodId ) => {
 		{
 			key: 'wc-stripe-payment-method',
 			value: paymentMethodId,
+		},
+		{
+			key: 'wc-stripe-confirmation-token',
+			value: confirmationTokenId,
 		},
 		{
 			key: 'express_payment_type',

@@ -287,6 +287,10 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$data['order']          = $order->get_id();
+		$data['orderDetails']   = [
+			'orderKey'     => $order->get_order_key(),
+			'billingEmail' => $order->get_billing_email(),
+		];
 		$data['displayItems']   = $items;
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [

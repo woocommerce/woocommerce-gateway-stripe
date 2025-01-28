@@ -5,13 +5,16 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutData,
 	getPaymentMethodTypesForExpressMethod,
+	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
 
 export const ExpressCheckoutContainer = ( props ) => {
 	const { stripe, billing, expressPaymentMethod } = props;
 	const options = {
 		mode: 'payment',
-		paymentMethodCreation: 'manual',
+		...( isManualPaymentMethodCreation( expressPaymentMethod ) && {
+			paymentMethodCreation: 'manual',
+		} ),
 		amount: billing.cartTotal.value,
 		currency: billing.currency.code.toLowerCase(),
 		paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
