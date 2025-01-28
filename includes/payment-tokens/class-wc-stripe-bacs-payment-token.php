@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.Files.FileName
 
-class WC_Payment_Token_Bacs extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
+class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	use WC_Stripe_Fingerprint_Trait;
 
 	protected $type = WC_Stripe_Payment_Methods::BACS_DEBIT;

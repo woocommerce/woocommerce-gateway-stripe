@@ -107,7 +107,7 @@ class WC_Helper_Order {
 
 		// Set payment gateway.
 		$payment_gateways = WC()->payment_gateways->payment_gateways();
-		$order->set_payment_method( $payment_gateways['bacs'] );
+		$order->set_payment_method( $payment_gateways['bacs_debit'] );
 
 		// Set totals.
 		$order->set_shipping_total( 10 );

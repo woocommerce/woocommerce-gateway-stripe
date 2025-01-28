@@ -159,7 +159,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			// Bacs is under flag, remove when is enabled by default.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class ) {
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class ) {
 				continue;
 			}
 

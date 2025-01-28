@@ -29,7 +29,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 	];
 
 	/**
@@ -537,9 +537,8 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
-
-			case WC_Stripe_UPE_Payment_Method_Bacs::STRIPE_ID:
-				$token = new WC_Payment_Token_Bacs();
+			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
+				$token = new WC_Payment_Token_Bacs_Debit();
 				$token->set_token( $payment_method->id );
 				$token->set_last4( $payment_method->bacs_debit->last4 );
 				$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );

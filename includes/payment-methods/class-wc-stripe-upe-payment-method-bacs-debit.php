@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The Bacs Direct Debit Payment Method class extending UPE base class.
  */
-class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
+class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * The Stripe ID for the payment method.
 	 */
@@ -55,7 +55,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		$token = new WC_Payment_Token_Bacs();
+		$token = new WC_Payment_Token_Bacs_Debit();
 		$token->set_token( $payment_method->id );
 		$token->set_gateway_id( $this->id );
 		$token->set_last4( $payment_method->bacs_debit->last4 );
