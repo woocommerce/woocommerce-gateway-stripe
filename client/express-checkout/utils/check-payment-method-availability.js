@@ -1,7 +1,10 @@
 import ReactDOM from 'react-dom';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
-import { getPaymentMethodTypesForExpressMethod } from 'wcstripe/express-checkout/utils';
+import {
+	getPaymentMethodTypesForExpressMethod,
+	isManualPaymentMethodCreation,
+} from 'wcstripe/express-checkout/utils';
 import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 export const checkPaymentMethodIsAvailable = memoize(
@@ -21,7 +24,9 @@ export const checkPaymentMethodIsAvailable = memoize(
 				stripe={ api.loadStripe() }
 				options={ {
 					mode: 'payment',
-					paymentMethodCreation: 'manual',
+					...( isManualPaymentMethodCreation( paymentMethod ) && {
+						paymentMethodCreation: 'manual',
+					} ),
 					amount: Number( cart.cartTotals.total_price ),
 					currency: cart.cartTotals.currency_code.toLowerCase(),
 					paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
