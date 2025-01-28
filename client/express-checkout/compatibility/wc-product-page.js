@@ -31,9 +31,9 @@ jQuery( ( $ ) => {
 	$quantityInput.on(
 		'input',
 		'.qty',
-		debounce( 250, async () => {
+		debounce( async () => {
 			doAction( 'wcstripe.express-checkout.update-button-data' );
-		} )
+		}, 250 )
 	);
 } );
 
