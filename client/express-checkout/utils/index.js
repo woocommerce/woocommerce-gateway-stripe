@@ -1,7 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
-import { isLinkEnabled, getPaymentMethodTypes } from 'wcstripe/stripe-utils';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	PAYMENT_METHOD_CARD,
@@ -260,29 +259,6 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 };
 
 /**
- * Get array of payment method types to use with intent. Filtering out the method types not part of Express Checkout.
- *
- * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
- * supported and which ones are required by each Express Checkout method.
- *
- * @param {string} paymentMethodType Payment method type Stripe ID.
- * @return {Array} Array of payment method types to use with intent, for Express Checkout.
- */
-export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
-	const expressPaymentMethodTypes = getPaymentMethodTypes(
-		paymentMethodType
-	).filter( ( type ) =>
-		[ 'paypal', 'amazon_pay', PAYMENT_METHOD_CARD ].includes( type )
-	);
-
-	if ( isLinkEnabled() ) {
-		expressPaymentMethodTypes.push( PAYMENT_METHOD_LINK );
-	}
-
-	return expressPaymentMethodTypes;
-};
-
-/**
  * Fetches the payment method types required to process a payment for an Express method.
  *
  * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
@@ -292,23 +268,11 @@ export const getExpressPaymentMethodTypes = ( paymentMethodType = null ) => {
  * @return {Array} Array of payment method types necessary to process a payment for an Express method.
  */
 export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
-	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
-	const paymentMethodTypes = [];
-
-	if ( ! paymentMethodsConfig ) {
-		return paymentMethodTypes;
-	}
-
-	// All express payment methods require 'card' payments. Add it if it's enabled.
-	if ( paymentMethodsConfig?.card !== undefined ) {
-		paymentMethodTypes.push( PAYMENT_METHOD_CARD );
-	}
+	// Google Pay, Apple Pay and Link use the 'card' payment method.
+	const paymentMethodTypes = [ PAYMENT_METHOD_CARD ];
 
 	// Add 'link' payment method type if enabled and requested.
-	if (
-		paymentMethodType === PAYMENT_METHOD_LINK &&
-		isLinkEnabled( paymentMethodsConfig )
-	) {
+	if ( paymentMethodType === PAYMENT_METHOD_LINK && isLinkEnabled() ) {
 		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}
 
@@ -372,4 +336,18 @@ export const expressCheckoutNoticeDelay = async () => {
 	await new Promise( ( resolve ) =>
 		setTimeout( resolve, EXPRESS_CHECKOUT_NOTICE_DELAY )
 	);
+};
+
+/**
+ * Determine if the express payment type should use manual payment method creation.
+ *
+ * @param {string} expressPaymentType The express payment type, e.g 'googlePay' or 'google_pay'
+ * @return {boolean} True if manual payment method creation should be used, false otherwise.
+ */
+export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
+	if ( [ 'amazonPay', 'amazon_pay' ].includes( expressPaymentType ) ) {
+		return false;
+	}
+
+	return true;
 };

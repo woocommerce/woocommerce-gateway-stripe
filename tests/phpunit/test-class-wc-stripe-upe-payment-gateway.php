@@ -360,8 +360,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test basic checkout process_payment flow with deferred intent.
+	 *
+	 * @dataProvider provide_process_payment_deferred_intent_returns_valid_response
 	 */
-	public function test_process_payment_deferred_intent_returns_valid_response() {
+	public function test_process_payment_deferred_intent_returns_valid_response( $post_vars ) {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();
 		$currency    = $order->get_currency();
@@ -384,11 +386,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		);
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
-		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
-		];
+		$_POST = $post_vars;
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
@@ -408,6 +406,30 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( self::MOCK_RETURN_URL, $response['redirect'] );
+	}
+
+	/**
+	 * Provider for `test_process_payment_deferred_intent_returns_valid_response`.
+	 */
+	public function provide_process_payment_deferred_intent_returns_valid_response() {
+		return [
+			'with-payment-method'     => [
+				[
+					'payment_method'               => 'stripe',
+					'wc-stripe-payment-method'     => 'pm_mock',
+					'wc-stripe-confirmation-token' => '',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+			'with-confirmation-token' => [
+				[
+					'payment_method'               => 'stripe',
+					'wc-stripe-payment-method'     => '',
+					'wc-stripe-confirmation-token' => 'ctoken_mock',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+		];
 	}
 
 	/**
@@ -591,8 +613,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 	/**
 	 * Exception handling of the process_payment flow with deferred intent.
+	 *
+	 * @dataProvider provide_process_payment_deferred_intent_handles_exception
 	 */
-	public function test_process_payment_deferred_intent_handles_exception() {
+	public function test_process_payment_deferred_intent_handles_exception( $post_vars ) {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
@@ -611,11 +635,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$_POST = [
-			'payment_method'               => 'stripe',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
-		];
+		$_POST = $post_vars;
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
@@ -639,7 +659,34 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $processed_order->get_status() );
 	}
 
-	public function test_process_payment_deferred_intent_bails_with_empty_payment_type() {
+	/**
+	 * Provider for `test_process_payment_deferred_intent_handles_exception`.
+	 */
+	public function provide_process_payment_deferred_intent_handles_exception() {
+		return [
+			'with-payment-method'     => [
+				[
+					'payment_method'               => 'stripe',
+					'wc-stripe-payment-method'     => 'pm_mock',
+					'wc-stripe-confirmation-token' => '',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+			'with-confirmation-token' => [
+				[
+					'payment_method'               => 'stripe',
+					'wc-stripe-payment-method'     => '',
+					'wc-stripe-confirmation-token' => 'ctoken_mock',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_process_payment_deferred_intent_bails_with_empty_payment_type
+	 */
+	public function test_process_payment_deferred_intent_bails_with_empty_payment_type( $post_vars ) {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
@@ -658,11 +705,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$_POST = [
-			'payment_method'               => '',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
-		];
+		$_POST = $post_vars;
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
@@ -685,7 +728,34 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $processed_order->get_status() );
 	}
 
-	public function test_process_payment_deferred_intent_bails_with_invalid_payment_type() {
+	/**
+	 * Provider for `test_process_payment_deferred_intent_bails_with_empty_payment_type`.
+	 */
+	public function provide_process_payment_deferred_intent_bails_with_empty_payment_type() {
+		return [
+			'with-payment-method'     => [
+				[
+					'payment_method'               => '',
+					'wc-stripe-payment-method'     => 'pm_mock',
+					'wc-stripe-confirmation-token' => '',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+			'with-confirmation-token' => [
+				[
+					'payment_method'               => '',
+					'wc-stripe-payment-method'     => '',
+					'wc-stripe-confirmation-token' => 'ctoken_mock',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_process_payment_deferred_intent_bails_with_invalid_payment_type
+	 */
+	public function test_process_payment_deferred_intent_bails_with_invalid_payment_type( $post_vars ) {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
@@ -704,11 +774,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$_POST = [
-			'payment_method'               => 'some_invalid_type',
-			'wc-stripe-payment-method'     => 'pm_mock',
-			'wc-stripe-is-deferred-intent' => '1',
-		];
+		$_POST = $post_vars;
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
@@ -729,6 +795,30 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$processed_order = wc_get_order( $order_id );
 		$this->assertEquals( 'failed', $processed_order->get_status() );
+	}
+
+	/**
+	 * Provider for `test_process_payment_deferred_intent_bails_with_invalid_payment_type`.
+	 */
+	public function provide_process_payment_deferred_intent_bails_with_invalid_payment_type() {
+		return [
+			'with-payment-method'     => [
+				[
+					'payment_method'               => 'some_invalid_type',
+					'wc-stripe-payment-method'     => 'pm_mock',
+					'wc-stripe-confirmation-token' => '',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+			'with-confirmation-token' => [
+				[
+					'payment_method'               => 'some_invalid_type',
+					'wc-stripe-payment-method'     => '',
+					'wc-stripe-confirmation-token' => 'ctoken_mock',
+					'wc-stripe-is-deferred-intent' => '1',
+				],
+			],
+		];
 	}
 
 	/**
@@ -1028,7 +1118,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'captured'               => true,
 			'status'                 => 'succeeded',
 			'payment_method_details' => [
-				'type'       => WC_Stripe_Payment_Methods::BANCONTACT,
+				'type'                                => WC_Stripe_Payment_Methods::BANCONTACT,
 				WC_Stripe_Payment_Methods::BANCONTACT => [
 					'generated_sepa_debit' => $generated_payment_method_id,
 				],
@@ -2285,11 +2375,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Create a mock failed payment intent that would be attached to the order
 		$mock_failed_intent = (object) wp_parse_args(
 			[
-				'id'                  => 'pi_mock_failed',
-				'payment_method'      => 'pm_mock',
-				'status'              => WC_Stripe_Intent_Status::CANCELED,
+				'id'                   => 'pi_mock_failed',
+				'payment_method'       => 'pm_mock',
+				'status'               => WC_Stripe_Intent_Status::CANCELED,
 				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
-				'charges'             => (object) [
+				'charges'              => (object) [
 					'data' => [],
 				],
 			],
@@ -2299,11 +2389,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Create a mock successful payment intent that will be created
 		$mock_success_intent = (object) wp_parse_args(
 			[
-				'id'                  => 'pi_mock_new',
-				'payment_method'      => 'pm_mock',
-				'status'              => WC_Stripe_Intent_Status::SUCCEEDED,
+				'id'                   => 'pi_mock_new',
+				'payment_method'       => 'pm_mock',
+				'status'               => WC_Stripe_Intent_Status::SUCCEEDED,
 				'payment_method_types' => [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ],
-				'charges'             => (object) [
+				'charges'              => (object) [
 					'data' => [
 						(object) [
 							'id'       => 'ch_mock',
