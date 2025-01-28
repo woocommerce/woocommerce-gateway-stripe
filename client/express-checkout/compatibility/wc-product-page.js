@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { debounce } from 'lodash';
 import { addFilter, doAction } from '@wordpress/hooks';
 
