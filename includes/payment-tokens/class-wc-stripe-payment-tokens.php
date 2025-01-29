@@ -539,7 +539,6 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
 				$token = new WC_Payment_Token_Bacs_Debit();
-				$token->set_token( $payment_method->id );
 				$token->set_last4( $payment_method->bacs_debit->last4 );
 				$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
 				$token->set_payment_method_type( $payment_method_type );
