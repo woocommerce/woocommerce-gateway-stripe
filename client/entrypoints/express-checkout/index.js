@@ -168,7 +168,8 @@ jQuery( function ( $ ) {
 			const eceButton = wcStripeECE.createButton( elements, {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
-					amazonPay: 'never',
+					amazonPay:
+						expressPaymentType === 'amazonPay' ? 'auto' : 'never',
 					googlePay:
 						expressPaymentType === 'googlePay' ? 'always' : 'never',
 					applePay:
