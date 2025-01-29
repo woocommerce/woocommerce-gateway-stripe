@@ -117,14 +117,14 @@ export const useExpressCheckout = ( {
 	);
 
 	const onConfirm = async ( event ) => {
-		return await onConfirmHandler(
+		return await onConfirmHandler( {
 			api,
 			stripe,
 			elements,
 			completePayment,
 			abortPayment,
-			event
-		);
+			event,
+		} );
 	};
 
 	return {
