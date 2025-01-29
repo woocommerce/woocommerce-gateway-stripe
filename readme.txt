@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.2.0 - xxxx-xx-xx =
 * Dev - Introduces new payment intent status constants for the frontend.
+* Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
 * Dev - Adds new logs to identify why express payment methods are not being displayed.
 * Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
