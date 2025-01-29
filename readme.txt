@@ -134,5 +134,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
+* Add - Add total tax amount to metadata.
+* Update - Update the translation for payment requests settings section notice.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
