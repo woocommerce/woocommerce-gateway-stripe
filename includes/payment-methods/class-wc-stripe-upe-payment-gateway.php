@@ -2441,7 +2441,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 
-		return $customer->update_or_create_customer();
+		// Pass the order object so we can retrieve billing details
+		// in payment flows where it is not present in the request.
+		$args = [ 'order' => $order ];
+		return $customer->update_or_create_customer( $args );
 	}
 
 	/**
