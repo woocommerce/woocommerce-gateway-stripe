@@ -85,8 +85,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	);
 	if ( discountAmount ) {
 		displayItems.push( {
-			key: 'total_discount',
-			amount: transformPrice( discountAmount, cartData.totals ),
+			amount: -transformPrice( discountAmount, cartData.totals ),
 			name: __( 'Discount', 'woocommerce-gateway-stripe' ),
 		} );
 	}
