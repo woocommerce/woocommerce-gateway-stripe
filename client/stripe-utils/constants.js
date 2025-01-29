@@ -96,3 +96,16 @@ export const errorCodes = {
 	MISSING: 'missing',
 	PROCESSING_ERROR: 'processing_error',
 };
+
+/**
+ * Payment intent status constants
+ */
+export const PAYMENT_INTENT_STATUS_CANCELED = 'canceled';
+export const PAYMENT_INTENT_STATUS_PROCESSING = 'processing';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CONFIRMATION =
+	'requires_confirmation';
+export const PAYMENT_INTENT_STATUS_REQUIRES_ACTION = 'requires_action';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE = 'requires_capture';
+export const PAYMENT_INTENT_STATUS_REQUIRES_PAYMENT_METHOD =
+	'requires_payment_method';
+export const PAYMENT_INTENT_STATUS_SUCCEEDED = 'succeeded';
