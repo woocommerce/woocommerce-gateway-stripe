@@ -73,8 +73,21 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	);
 	if ( shippingAmount ) {
 		displayItems.push( {
+			key: 'total_shipping',
 			amount: transformPrice( shippingAmount, cartData.totals ),
 			name: __( 'Shipping', 'woocommerce-gateway-stripe' ),
+		} );
+	}
+
+	const discountAmount = parseInt(
+		cartData.totals.total_discount || '0',
+		10
+	);
+	if ( discountAmount ) {
+		displayItems.push( {
+			key: 'total_discount',
+			amount: transformPrice( discountAmount, cartData.totals ),
+			name: __( 'Discount', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -89,6 +102,12 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	return displayItems;
 };
 
+/**
+ * Transforms the `displayItems` from the Stripe ECE to the format expected by the Store API.
+ *
+ * @param {Array} displayItems
+ * @return {Array} The transformed display items.
+ */
 export const transformLabeledDisplayItems = ( displayItems ) => {
 	return ( displayItems ?? [] ).map( ( { label, amount } ) => ( {
 		name: label,

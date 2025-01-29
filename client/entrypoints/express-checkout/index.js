@@ -124,9 +124,9 @@ jQuery( function ( $ ) {
 				return options.displayItems
 					.filter( ( i ) => i.key && i.key === 'total_shipping' )
 					.map( ( i ) => ( {
-						id: `rate-shipping`,
+						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: i.label,
+						displayName: i.name,
 					} ) );
 			};
 
