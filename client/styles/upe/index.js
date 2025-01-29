@@ -387,6 +387,8 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		'.Text'
 	);
 
+	const darkParagraphRules = getFieldStyles( selectors.hiddenInput, '.Text' );
+
 	const globalRules = {
 		colorBackground: backgroundColor,
 		colorText: isColorLight( backgroundColor )
@@ -410,8 +412,12 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 			'.Tab--selected': selectedTabRules,
 			'.TabIcon:hover': tabIconHoverRules,
 			'.TabIcon--selected': selectedTabIconRules,
-			'.Text': paragraphRules,
-			'.Text--redirect': paragraphRules,
+			'.Text': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
+			'.Text--redirect': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
 			'.CheckboxInput': {
 				backgroundColor: 'var(--colorBackground)',
 				borderRadius: 'min(5px, var(--borderRadius))',
