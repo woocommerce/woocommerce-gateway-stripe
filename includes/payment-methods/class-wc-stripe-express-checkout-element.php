@@ -219,7 +219,6 @@ class WC_Stripe_Express_Checkout_Element {
 			'product'                => $this->express_checkout_helper->get_product_data(),
 			'is_cart_page'           => is_cart(),
 			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
-			'use_blocks_api'         => $this->express_checkout_helper->use_blocks_api(),
 		];
 	}
 
@@ -288,6 +287,10 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$data['order']          = $order->get_id();
+		$data['orderDetails']   = [
+			'orderKey'     => $order->get_order_key(),
+			'billingEmail' => $order->get_billing_email(),
+		];
 		$data['displayItems']   = $items;
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [

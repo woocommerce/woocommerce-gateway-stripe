@@ -504,34 +504,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
-		} );
-	}
-
-	/**
-	 * Pays for an order based on the Express Checkout payment method.
-	 *
-	 * @param {number} order The order ID.
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECEPayForOrder( order, paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
-			order,
-			...paymentData,
-		} );
-	}
-
-	/**
-	 * Creates order based on Express Checkout ECE payment method.
-	 *
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECECreateOrderForBlocksAPI( paymentData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
 		} );
@@ -541,13 +513,15 @@ export default class WCStripeAPI {
 	 * Pays for an order based on the Express Checkout payment method.
 	 *
 	 * @param {number} order The order ID.
+	 * @param {Object} orderDetails Order details, including order key and billing email.
 	 * @param {Object} paymentData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECEPayForOrderForBlocksAPI( order, paymentData ) {
-		return this.postToBlocksAPI( `/wc/store/v1/checkout/${ order }`, {
-			...paymentData,
-		} );
+	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+		const billingEmail = orderDetails.billingEmail ?? '';
+		const key = orderDetails.orderKey ?? '';
+		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
+		return this.postToBlocksAPI( url, paymentData );
 	}
 
 	/**

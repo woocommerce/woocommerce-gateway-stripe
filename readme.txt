@@ -111,6 +111,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Add - Add new payment processing flow using confirmation tokens.
+* Dev - Adds new logs to identify why express payment methods are not being displayed.
+* Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
+* Fix - Fixes processing of orders through the Pay for Order page when using ECE with Blocks (Store) API.
+* Add - Enables the use of Blocks API for Express Checkout Element orders by default.
 * Add - Adds a new filter to allow changing the user attributed to an order when paying for it through the Order Pay page.
 * Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
 * Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
@@ -122,6 +127,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - A potential fix to prevent duplicate charges.
 * Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
+* Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
+* Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
+* Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
