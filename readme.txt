@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
 * Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
+* Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
 
