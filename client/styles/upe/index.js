@@ -410,6 +410,8 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 			'.Tab--selected': selectedTabRules,
 			'.TabIcon:hover': tabIconHoverRules,
 			'.TabIcon--selected': selectedTabIconRules,
+			'.Text': paragraphRules,
+			'.Text--redirect': paragraphRules,
 			'.CheckboxInput': {
 				backgroundColor: 'var(--colorBackground)',
 				borderRadius: 'min(5px, var(--borderRadius))',
