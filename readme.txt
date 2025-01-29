@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
+* Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
