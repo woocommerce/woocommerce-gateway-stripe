@@ -154,13 +154,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
 		}
 
+		/**
+		 * TODO: Once ACH is public available, remove this check and add the ACH class to the UPE_AVAILABLE_METHODS array.
+		 */
+		if ( WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_ACH::class;
+		}
+
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-
-			// Show ACH only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
-				continue;
-			}
-
 			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
