@@ -37,6 +37,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		$upe_helper = new UPE_Test_Helper();
 
+		// Enable Bacs for tests.
+		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
+
 		// All tests assume UPE is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
 		$upe_helper->enable_upe();
@@ -58,6 +61,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
+	}
+
+	public function tear_down() {
+		parent::tear_down();
+
+		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -222,6 +231,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 													->setMethods(
 														[
 															'get_cached_account_data',
+															'get_account_country',
 														]
 													)
 													->getMock();
@@ -243,6 +253,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				],
 			]
 		);
+
+		WC_Stripe::get_instance()->account->method( 'get_account_country' )->willReturn( 'US' );
+
 		$response = $this->rest_get_settings();
 
 		$expected_method_ids  = array_keys( $this->get_gateway()->payment_methods );
