@@ -191,6 +191,7 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'            => WC_STRIPE_VERSION,
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'is_ece_enabled'            => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
