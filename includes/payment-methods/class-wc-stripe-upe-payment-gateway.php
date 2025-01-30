@@ -2173,7 +2173,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
-				$payment_information['capture_method']           = $capture_method;
+			$payment_information['capture_method']           = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
