@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Introduces new payment intent status constants for the frontend.
+* Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
 * Dev - Adds new logs to identify why express payment methods are not being displayed.
 * Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
@@ -128,8 +130,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
 * Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
+* Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
 * Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
+* Add - Add total tax amount to metadata.
+* Update - Update the translation for payment requests settings section notice.
+* Add - Add Amazon Pay to settings express checkout section.
+* Add - Add Amazon Pay customize express checkout page.
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
