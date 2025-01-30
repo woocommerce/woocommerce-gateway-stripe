@@ -429,6 +429,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ACH LPM Feature flag.
 		$stripe_params['is_ach_enabled'] = WC_Stripe_Feature_Flags::is_ach_lpm_enabled();
 
+		// ACSS LPM Feature flag.
+		$stripe_params['is_acss_enabled'] = WC_Stripe_Feature_Flags::is_acss_lpm_enabled();
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
@@ -1855,6 +1858,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
 			'signature'      => $this->get_order_signature( $order ),
+			'tax_amount'     => WC_Stripe_Helper::get_stripe_amount( $order->get_total_tax(), strtolower( $order->get_currency() ) ),
 		];
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
@@ -2448,7 +2452,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 
-		return $customer->update_or_create_customer();
+		// Pass the order object so we can retrieve billing details
+		// in payment flows where it is not present in the request.
+		$args = [ 'order' => $order ];
+		return $customer->update_or_create_customer( $args );
 	}
 
 	/**

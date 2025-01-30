@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_settings_params */
-
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
@@ -10,17 +8,13 @@ import {
 	Notice,
 } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
-import PaymentRequestButtonPreview from './payment-request-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
-	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
-	usePaymentRequestButtonType,
-	usePaymentRequestButtonSize,
-	usePaymentRequestButtonTheme,
+	useAmazonPayEnabledSettings,
+	useAmazonPayLocations,
+	useAmazonPayButtonSize,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
@@ -35,7 +29,7 @@ const makeButtonSizeText = ( string ) =>
 		mixedString: string,
 		components: {
 			helpText: (
-				<span className="payment-method-settings__option-muted-text" />
+				<span className="amazon-pay-settings__option-muted-text" />
 			),
 		},
 	} );
@@ -68,74 +62,12 @@ const buttonSizeOptions = [
 		value: 'large',
 	},
 ];
-const buttonActionOptions = [
-	{
-		label: __( 'Only icon', 'woocommerce-gateway-stripe' ),
-		value: 'default',
-	},
-	{
-		label: __( 'Buy', 'woocommerce-gateway-stripe' ),
-		value: 'buy',
-	},
-	{
-		label: __( 'Donate', 'woocommerce-gateway-stripe' ),
-		value: 'donate',
-	},
-	{
-		label: __( 'Book', 'woocommerce-gateway-stripe' ),
-		value: 'book',
-	},
-];
 
-const makeButtonThemeText = ( string ) =>
-	interpolateComponents( {
-		mixedString: string,
-		components: {
-			br: <br />,
-			helpText: (
-				<span className="payment-method-settings__option-help-text" />
-			),
-		},
-	} );
-const buttonThemeOptions = [
-	{
-		label: makeButtonThemeText(
-			__(
-				'Dark {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'dark',
-	},
-	{
-		label: makeButtonThemeText(
-			__(
-				'Light {{br/}}{{helpText}}Recommended for dark or colored backgrounds with high contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'light',
-	},
-	{
-		label: makeButtonThemeText(
-			__(
-				'Outline {{br/}}{{helpText}}Recommended for white or light-colored backgrounds with insufficient contrast.{{/helpText}}',
-				'woocommerce-gateway-stripe'
-			)
-		),
-		value: 'light-outline',
-	},
-];
-
-const PaymentRequestsSettingsSection = () => {
-	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
-	const [ size, setSize ] = usePaymentRequestButtonSize();
-	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
+const AmazonPaySettingsSection = () => {
+	const [ size, setSize ] = useAmazonPayButtonSize();
 	const accountId = useAccount().data?.account?.id;
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
-	const isECEEnabled =
-		wc_stripe_payment_request_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 
 	const stripePromise = useMemo( () => {
 		return loadStripe(
@@ -147,22 +79,19 @@ const PaymentRequestsSettingsSection = () => {
 		);
 	}, [ testPublishableKey, publishableKey, accountId ] );
 
-	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+	const [ isAmazonPayEnabled ] = useAmazonPayEnabledSettings();
 
 	const [
-		paymentRequestLocations,
-		updatePaymentRequestLocations,
-	] = usePaymentRequestLocations();
+		amazonPayLocations,
+		updateAmazonPayLocations,
+	] = useAmazonPayLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
-			updatePaymentRequestLocations( [
-				...paymentRequestLocations,
-				location,
-			] );
+			updateAmazonPayLocations( [ ...amazonPayLocations, location ] );
 		} else {
-			updatePaymentRequestLocations(
-				paymentRequestLocations.filter( ( name ) => name !== location )
+			updateAmazonPayLocations(
+				amazonPayLocations.filter( ( name ) => name !== location )
 			);
 		}
 	};
@@ -173,7 +102,6 @@ const PaymentRequestsSettingsSection = () => {
 			box-shadow: none;
 		}
 	`;
-
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
@@ -181,7 +109,8 @@ const PaymentRequestsSettingsSection = () => {
 					{ interpolateComponents( {
 						mixedString: __(
 							'Some appearance settings may be overridden by the express payment section of the ' +
-								'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
+								'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}. ' +
+								'Follow the instructions there and check back soon.',
 							'woocommerce-gateway-stripe'
 						),
 						components: {
@@ -210,10 +139,10 @@ const PaymentRequestsSettingsSection = () => {
 				<ul className="payment-request-settings__location">
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isAmazonPayEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'checkout' )
+								isAmazonPayEnabled &&
+								amazonPayLocations.includes( 'checkout' )
 							}
 							onChange={ makeLocationChangeHandler( 'checkout' ) }
 							label={ __(
@@ -224,10 +153,10 @@ const PaymentRequestsSettingsSection = () => {
 					</li>
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isAmazonPayEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'product' )
+								isAmazonPayEnabled &&
+								amazonPayLocations.includes( 'product' )
 							}
 							onChange={ makeLocationChangeHandler( 'product' ) }
 							label={ __(
@@ -238,34 +167,16 @@ const PaymentRequestsSettingsSection = () => {
 					</li>
 					<li>
 						<CheckboxControl
-							disabled={ ! isPaymentRequestEnabled }
+							disabled={ ! isAmazonPayEnabled }
 							checked={
-								isPaymentRequestEnabled &&
-								paymentRequestLocations.includes( 'cart' )
+								isAmazonPayEnabled &&
+								amazonPayLocations.includes( 'cart' )
 							}
 							onChange={ makeLocationChangeHandler( 'cart' ) }
 							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
 						/>
 					</li>
 				</ul>
-				<h4>
-					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }
-				</h4>
-				<RadioControl
-					className="payment-method-settings__cta-selection"
-					label={ __(
-						'Call to action',
-						'woocommerce-gateway-stripe'
-					) }
-					// ideLabelFromVision
-					help={ __(
-						'Select a button label that fits best with the flow of purchase or payment experience on your store.',
-						'woocommerce-gateway-stripe'
-					) }
-					selected={ buttonType }
-					options={ buttonActionOptions }
-					onChange={ setButtonType }
-				/>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
 				<RadioControl
 					help={ __(
@@ -277,30 +188,16 @@ const PaymentRequestsSettingsSection = () => {
 					options={ buttonSizeOptions }
 					onChange={ setSize }
 				/>
-				<RadioControl
-					label={ __( 'Theme', 'woocommerce-gateway-stripe' ) }
-					selected={ theme }
-					options={ buttonThemeOptions }
-					onChange={ setTheme }
-				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<LoadableAccountSection numLines={ 7 }>
-					{ isECEEnabled ? (
-						<ExpressCheckoutPreviewComponent
-							stripe={ stripePromise }
-							buttonType={ buttonType }
-							theme={ theme }
-							size={ size }
-						/>
-					) : (
-						<Elements stripe={ stripePromise }>
-							<PaymentRequestButtonPreview />
-						</Elements>
-					) }
+					<ExpressCheckoutPreviewComponent
+						stripe={ stripePromise }
+						size={ size }
+					/>
 				</LoadableAccountSection>
 			</CardBody>
 		</Card>
 	);
 };
 
-export default PaymentRequestsSettingsSection;
+export default AmazonPaySettingsSection;

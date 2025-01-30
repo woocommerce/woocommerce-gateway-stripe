@@ -112,6 +112,14 @@ describe( 'Getting styles for automated theming', () => {
 
 		const appearance = upeStyles.getAppearance();
 		expect( appearance ).toEqual( {
+			theme: 'stripe',
+			variables: {
+				colorBackground: '#ffffff',
+				colorText: 'rgb(109, 109, 109)',
+				fontFamily:
+					'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				fontSizeBase: undefined,
+			},
 			rules: {
 				'.Input': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -171,6 +179,9 @@ describe( 'Getting styles for automated theming', () => {
 					color: 'rgb(109, 109, 109)',
 					fontFamily:
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				},
+				'.Block': {
+					backgroundColor: 'rgba(0, 0, 0, 0)',
 				},
 				'.CheckboxInput': {
 					backgroundColor: 'var(--colorBackground)',
