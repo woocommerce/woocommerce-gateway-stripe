@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
 * Dev - Introduces new payment intent status constants for the frontend.
 * Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.

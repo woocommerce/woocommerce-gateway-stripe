@@ -205,6 +205,19 @@ class WC_Stripe_Intent_Controller {
 			return;
 		}
 
+		// similar rate limiter is present in WC Core, but it's executed on page submission (and not on AJAX calls).
+		$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
+		if( WC_Rate_Limiter::retried_too_soon( $wc_add_payment_method_rate_limit_id ) ) {
+			echo wp_json_encode( [
+				'status' => 'error',
+				'error'  => [
+					'type'    => 'setup_intent_error',
+					'message' => __( 'Failed to save payment method.', 'woocommerce-gateway-stripe' ),
+				],
+			] );
+			exit;
+		}
+
 		try {
 			$source_id = wc_clean( wp_unslash( $_POST['stripe_source_id'] ) );
 
