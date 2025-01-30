@@ -45,6 +45,7 @@ export const PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY =
 export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS_DEBIT = 'stripe_acss_debit';
+export const PAYMENT_METHOD_STRIPE_BACS = 'stripe_bacs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -66,6 +67,7 @@ export function getPaymentMethodsConstants() {
 		wechat_pay: PAYMENT_METHOD_STRIPE_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS_DEBIT,
+		bacs_debit: PAYMENT_METHOD_STRIPE_BACS,
 	};
 }
 
@@ -97,3 +99,16 @@ export const errorCodes = {
 	MISSING: 'missing',
 	PROCESSING_ERROR: 'processing_error',
 };
+
+/**
+ * Payment intent status constants
+ */
+export const PAYMENT_INTENT_STATUS_CANCELED = 'canceled';
+export const PAYMENT_INTENT_STATUS_PROCESSING = 'processing';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CONFIRMATION =
+	'requires_confirmation';
+export const PAYMENT_INTENT_STATUS_REQUIRES_ACTION = 'requires_action';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE = 'requires_capture';
+export const PAYMENT_INTENT_STATUS_REQUIRES_PAYMENT_METHOD =
+	'requires_payment_method';
+export const PAYMENT_INTENT_STATUS_SUCCEEDED = 'succeeded';

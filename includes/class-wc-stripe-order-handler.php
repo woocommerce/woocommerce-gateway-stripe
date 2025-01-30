@@ -29,7 +29,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_cancel_unpaid_order', [ $this, 'prevent_cancelling_orders_awaiting_action' ], 10, 2 );
 
-		add_filter( 'wc_order_is_editable', [ $this, 'disable_edit_for_uncaptured_orders' ], 10, 2 );
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'show_warning_for_uncaptured_orders' ] );
 	}
 
 	/**
@@ -43,77 +43,34 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Disables the ability to edit for orders with uncaptured payment.
+	 * Shows a warning message about editing uncaptured orders.
 	 *
-	 * @param $editable boolean The current editability of the order.
-	 * @param $order WC_Order The order object.
-	 * @return boolean false if the order has uncaptured payment, true otherwise.
+	 * @param $order_id
 	 */
-	public function disable_edit_for_uncaptured_orders( $editable, $order ) {
+	public function show_warning_for_uncaptured_orders( $order_id ) {
+		$order = wc_get_order( $order_id );
 		// Bail if payment method is not manual capture supporting stripe method.
 		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			return $editable;
+			return;
+		}
+
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		// Bail if the order is already captured or if manual capture is disabled.
+		if ( 'yes' === $order->get_meta( '_stripe_charge_captured', true ) || $gateway->is_automatic_capture_enabled() ) {
+			return;
 		}
 
 		try {
 			$intent = $this->get_intent_from_order( $order );
-
-			if ( $intent && 'requires_capture' === $intent->status ) {
-				$editable = false;
-
-				// add hooks to change text about the reason when order items cannot be edited
-				add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'maybe_attach_gettext_callback' ] );
-				add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'maybe_unattach_gettext_callback' ] );
+			if ( $intent && WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
+				$capture_notice = __( 'Attempting to capture more than the authorized amount will fail with an error.', 'woocommerce-gateway-stripe' );
+				$capture_tooltip = __( 'You may edit the order to have a total less than or equal to the original authorized amount.', 'woocommerce-gateway-stripe' );
+				echo esc_html( $capture_notice ) . wc_help_tip( $capture_tooltip );
 			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
 		}
-
-		return $editable;
-	}
-
-	/**
-	 * Only attach the gettext callback when on admin edit order screen.
-	 */
-	public function maybe_attach_gettext_callback() {
-
-		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
-			$screen = get_current_screen();
-
-			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
-				// Hook to gettext callback to change the tooltip text
-				add_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10, 3 );
-			}
-		}
-	}
-
-	/**
-	 * Unattach the gettext callback.
-	 */
-	public function maybe_unattach_gettext_callback() {
-
-		if ( is_admin() && function_exists( 'get_current_screen' ) ) {
-			$screen = get_current_screen();
-
-			if ( is_object( $screen ) && in_array( $screen->id, [ 'woocommerce_page_wc-orders', 'edit-shop_order' ], true ) ) {
-				// Unhook gettext callback to prevent extra call impact
-				remove_filter( 'gettext', [ $this, 'change_order_item_editable_text_tooltip' ], 10 );
-			}
-		}
-	}
-
-	/**
-	* When order items are not editable due to the charge being authorized to capture the current amount,
-	* change the tooltip to explain the reason.
-	*/
-	public function change_order_item_editable_text_tooltip( $translated_text, $text, $domain ) {
-		switch ( $text ) {
-			case 'To edit this order change the status back to "Pending payment"':
-				$translated_text = __( 'This order is no longer editable because the charge has been authorized for this amount.', 'woocommerce-gateway-stripe' );
-				break;
-		}
-
-		return $translated_text;
 	}
 
 	/**

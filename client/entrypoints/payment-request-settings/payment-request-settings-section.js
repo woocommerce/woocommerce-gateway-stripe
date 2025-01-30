@@ -12,6 +12,7 @@ import {
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import styled from '@emotion/styled';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
 import {
@@ -166,20 +167,39 @@ const PaymentRequestsSettingsSection = () => {
 		}
 	};
 
-	const checkoutPageUrl = `${ ADMIN_URL }post.php?post=${
-		getSetting( 'storePages' )?.checkout?.id
-	}&action=edit`;
+	const StyledLink = styled.a`
+		&:focus,
+		&:visited {
+			box-shadow: none;
+		}
+	`;
 
 	return (
 		<Card className="express-checkout-settings">
 			<CardBody>
 				<Notice status="warning" isDismissible={ false }>
-					{ __(
-						'Some appearance settings may be overridden by the express payment section of the'
-					) }{ ' ' }
-					<a href={ checkoutPageUrl }>
-						{ __( 'Cart & Checkout blocks.' ) }
-					</a>
+					{ interpolateComponents( {
+						mixedString: __(
+							'Some appearance settings may be overridden by the express payment section of the ' +
+								'{{checkoutPageLink}}Cart & Checkout blocks{{/checkoutPageLink}}.',
+							'woocommerce-gateway-stripe'
+						),
+						components: {
+							checkoutPageLink: (
+								<StyledLink
+									href={ `${ ADMIN_URL }post.php?post=${
+										getSetting( 'storePages' )?.checkout?.id
+									}&action=edit` }
+									target="_blank"
+									rel="noreferrer"
+									onClick={ ( ev ) => {
+										// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+										ev.stopPropagation();
+									} }
+								/>
+							),
+						},
+					} ) }
 				</Notice>
 				<h4>
 					{ __(

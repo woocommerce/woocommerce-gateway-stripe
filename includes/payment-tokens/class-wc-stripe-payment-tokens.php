@@ -183,9 +183,11 @@ class WC_Stripe_Payment_Tokens {
 									$token->set_last4( $source->card->last4 );
 									$token->set_expiry_month( $source->card->exp_month );
 									$token->set_expiry_year( $source->card->exp_year );
+									if ( isset( $source->card->fingerprint ) ) {
+										$token->set_fingerprint( $source->card->fingerprint );
+									}
 								}
 
-								$token->set_fingerprint( $source->fingerprint );
 								$token->set_user_id( $customer_id );
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
@@ -221,7 +223,9 @@ class WC_Stripe_Payment_Tokens {
 								$token->set_gateway_id( WC_Gateway_Stripe_Sepa::ID );
 								$token->set_last4( $source->sepa_debit->last4 );
 								$token->set_user_id( $customer_id );
-								$token->set_fingerprint( $source->fingerprint );
+								if ( isset( $source->sepa_debit->fingerprint ) ) {
+									$token->set_fingerprint( $source->sepa_debit->fingerprint );
+								}
 								$token->save();
 								$tokens[ $token->get_id() ] = $token;
 							} else {

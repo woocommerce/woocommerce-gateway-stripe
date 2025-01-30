@@ -16,6 +16,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
+	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -609,7 +610,7 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 
 		// Do not redirect to the order received page if the modal is closed without payment.
 		// Otherwise redirect to the order received page.
-		if ( intentObject.status !== 'requires_action' ) {
+		if ( intentObject.status !== PAYMENT_INTENT_STATUS_REQUIRES_ACTION ) {
 			if ( ! isChangingPayment ) {
 				window.location.href = returnURL;
 			}

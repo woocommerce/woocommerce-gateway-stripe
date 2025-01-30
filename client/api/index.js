@@ -6,7 +6,11 @@ import {
 	getExpressCheckoutAjaxURL,
 	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
+import {
+	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -190,7 +194,8 @@ export default class WCStripeAPI {
 			}
 
 			if (
-				response.data.status === 'requires_action' &&
+				response.data.status ===
+					PAYMENT_INTENT_STATUS_REQUIRES_ACTION &&
 				response.data.next_action.type === 'redirect_to_url'
 			) {
 				window.location.href =
@@ -311,28 +316,12 @@ export default class WCStripeAPI {
 		const clientSecret = partials[ 3 ];
 		const nonce = partials[ 4 ];
 
-		const orderPayIndex = redirectUrl.indexOf( 'order-pay' );
-		const isOrderPage = orderPayIndex > -1;
-		const isChangingPayment =
-			isOrderPage &&
-			document.querySelectorAll( '#wc-stripe-change-payment-method' )
-				.length > 0;
+		const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 		// If we're on the Pay for Order page, get the order ID
-		// directly from the URL instead of relying on the hash.
-		// The checkout URL does not contain the string 'order-pay'.
-		// The Pay for Order page contains the string 'order-pay' and
-		// can have these formats:
-		// Plain permalinks:
-		// /?page_id=7&order-pay=189&pay_for_order=true&key=wc_order_key
-		// Non-plain permalinks:
-		// /checkout/order-pay/189/
-		// Match for consecutive digits after the string 'order-pay' to get the order ID.
-		const orderIdPartials =
-			isOrderPage &&
-			redirectUrl.substring( orderPayIndex ).match( /\d+/ );
-		if ( orderIdPartials ) {
-			orderId = orderIdPartials[ 0 ];
+		// directly from the server data instead of relying on the hash.
+		if ( isChangingPayment ) {
+			orderId = getStripeServerData().orderId;
 		}
 
 		// After processing the intent, trigger the appropriate AJAX action.
@@ -387,7 +376,7 @@ export default class WCStripeAPI {
 
 		return {
 			request,
-			isOrderPage,
+			isChangingPayment,
 		};
 	}
 
@@ -521,34 +510,6 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
-		} );
-	}
-
-	/**
-	 * Pays for an order based on the Express Checkout payment method.
-	 *
-	 * @param {number} order The order ID.
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECEPayForOrder( order, paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
-			order,
-			...paymentData,
-		} );
-	}
-
-	/**
-	 * Creates order based on Express Checkout ECE payment method.
-	 *
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECECreateOrderForBlocksAPI( paymentData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
 		} );
@@ -558,13 +519,15 @@ export default class WCStripeAPI {
 	 * Pays for an order based on the Express Checkout payment method.
 	 *
 	 * @param {number} order The order ID.
+	 * @param {Object} orderDetails Order details, including order key and billing email.
 	 * @param {Object} paymentData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECEPayForOrderForBlocksAPI( order, paymentData ) {
-		return this.postToBlocksAPI( `/wc/store/v1/checkout/${ order }`, {
-			...paymentData,
-		} );
+	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+		const billingEmail = orderDetails.billingEmail ?? '';
+		const key = orderDetails.orderKey ?? '';
+		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
+		return this.postToBlocksAPI( url, paymentData );
 	}
 
 	/**

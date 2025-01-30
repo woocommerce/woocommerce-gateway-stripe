@@ -37,4 +37,5 @@ export default {
 	wechat_pay: WechatPayIcon,
 	cashapp: CashAppIcon,
 	acss_debit: CreditCardIcon,
+	bacs_debit: CreditCardIcon,
 };

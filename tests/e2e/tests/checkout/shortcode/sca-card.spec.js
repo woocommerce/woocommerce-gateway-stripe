@@ -17,7 +17,7 @@ test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 		config.get( 'addresses.customer.billing' )
 	);
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.3ds' ) );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
 	// Wait until the SCA frame is available
 	while (

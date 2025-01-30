@@ -25,6 +25,7 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 	const CARD_PRESENT      = 'card_present';
 	const ACSS_DEBIT        = 'acss_debit';
+	const BACS_DEBIT        = 'bacs_debit';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.

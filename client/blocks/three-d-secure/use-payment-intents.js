@@ -1,4 +1,8 @@
 import { useEffect } from '@wordpress/element';
+import {
+	PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE,
+	PAYMENT_INTENT_STATUS_SUCCEEDED,
+} from 'wcstripe/stripe-utils/constants';
 
 /**
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
@@ -45,8 +49,8 @@ const openIntentModal = ( {
 			const intent =
 				response[ isSetupIntent ? 'setupIntent' : 'paymentIntent' ];
 			if (
-				intent.status !== 'requires_capture' &&
-				intent.status !== 'succeeded'
+				intent.status !== PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE &&
+				intent.status !== PAYMENT_INTENT_STATUS_SUCCEEDED
 			) {
 				return checkoutResponse;
 			}
