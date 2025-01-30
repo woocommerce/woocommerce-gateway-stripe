@@ -62,7 +62,7 @@ function blockUI( jQueryForm ) {
  * @return {Promise} Promise for the checkout submission.
  */
 export function validateElements( elements ) {
-	return elements?.submit().then( ( result ) => {
+	return elements.submit().then( ( result ) => {
 		if ( result.error ) {
 			throw new Error( result.error.message );
 		}
@@ -95,7 +95,7 @@ async function createStripePaymentElement( api, paymentMethodType = null ) {
 			appearance: initializeUPEAppearance( api ),
 			paymentMethodCreation: 'manual',
 			fonts: getFontRulesFromPage(),
-			clientSecret: clientSecret,
+			clientSecret,
 		};
 	} else {
 		options = {

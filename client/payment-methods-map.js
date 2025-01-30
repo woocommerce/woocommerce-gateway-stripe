@@ -242,7 +242,7 @@ const paymentMethodsMap = {
 	acss_debit: {
 		id: 'acss_debit',
 		label: __(
-			'Canadian Pre-Authorized Debit',
+			'Pre-Authorized Debit',
 			'woocommerce-gateway-stripe'
 		),
 		description: __(
