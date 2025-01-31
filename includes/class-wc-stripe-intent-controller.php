@@ -307,9 +307,8 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// If paying from order, we need to get the total from the order instead of the cart.
-			$order_id     = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
-			// Check if is_acss_debit is set and true.
-			$is_acss_debit = isset( $_POST['is_acss_debit'] ) && filter_var( $_POST['is_acss_debit'], FILTER_VALIDATE_BOOLEAN );
+			$order_id            = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
+			$payment_method_type = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
 
 			if ( $order_id ) {
 				$order = wc_get_order( $order_id );
@@ -318,7 +317,7 @@ class WC_Stripe_Intent_Controller {
 				}
 			}
 
-			wp_send_json_success( $this->create_payment_intent( $order_id, $is_acss_debit ), 200 );
+			wp_send_json_success( $this->create_payment_intent( $order_id, $payment_method_type ), 200 );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
 			// Send back error so it can be displayed to the customer.
@@ -335,11 +334,13 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Creates payment intent using current cart or order and store details.
 	 *
-	 * @param {int} $order_id The id of the order if intent created from Order.
+	 * @param int|null    $order_id The id of the order if intent created from Order.
+	 * @param string|null $payment_method_type The type of payment method to use for the intent.
+	 *
 	 * @throws Exception - If the create intent call returns with an error.
 	 * @return array
 	 */
-	public function create_payment_intent( $order_id = null, $is_acss_debit = false ) {
+	public function create_payment_intent( $order_id = null, $payment_method_type = null ) {
 		$amount = WC()->cart->get_total( false );
 		$order  = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
@@ -347,7 +348,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $is_acss_debit ? [ 'acss_debit' ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
 		$currency       = get_woocommerce_currency();
 		$capture        = $gateway->is_automatic_capture_enabled();
@@ -358,17 +359,7 @@ class WC_Stripe_Intent_Controller {
 			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
 
-		if ( $is_acss_debit ) {
-			$request['payment_method_options'] = [
-				'acss_debit' => [
-					'mandate_options' => [
-						'payment_schedule'     => 'interval',
-						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
-						'transaction_type'     => 'personal',
-					],
-				],
-			];
-		}
+		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 
 		$payment_intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
@@ -817,6 +808,31 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * Adds mandate options to the request if required.
+	 *
+	 * @param array       $request              The request array to add the mandate options to.
+	 * @param string|null $payment_method_type  The type of payment method to use for the intent.
+	 *
+	 * @return array
+	 */
+	private function maybe_add_mandate_options( $request, $payment_method_type ) {
+		// Add required mandate options for ACSS.
+		if ( $payment_method_type === WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID ) {
+			$request['payment_method_options'] = [
+				'acss_debit' => [
+					'mandate_options' => [
+						'payment_schedule'     => 'interval',
+						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
+						'transaction_type'     => 'personal',
+					],
+				],
+			];
+		}
+
+		return $request;
+	}
+
+	/**
 	 * Updates and confirm a payment intent with the given payment information.
 	 * Used for dPE.
 	 *
@@ -970,7 +986,7 @@ class WC_Stripe_Intent_Controller {
 	 * Determines if mandate data is required for deferred intent UPE payment.
 	 *
 	 * A mandate must be provided before a deferred intent UPE payment can be processed.
-	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App and Link payment methods.
+	 * This applies to SEPA, Bancontact, iDeal, Sofort, Cash App, Link payment methods and ACSS Debit.
 	 * https://docs.stripe.com/payments/finalize-payments-on-the-server
 	 *
 	 * @param string $selected_payment_type         The name of the selected UPE payment type.

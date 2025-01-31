@@ -25,14 +25,12 @@ import {
 	PAYMENT_METHOD_ACSS_DEBIT,
 } from 'wcstripe/stripe-utils/constants';
 
-let paymentIntentId, clientSecret;
-
 const gatewayUPEComponents = {};
-
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 for ( const paymentMethodType in paymentMethodsConfig ) {
 	gatewayUPEComponents[ paymentMethodType ] = {
+		intentId: null,
 		elements: null,
 		upeElement: null,
 	};
@@ -84,18 +82,17 @@ async function createStripePaymentElement( api, paymentMethodType = null ) {
 	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 	let options;
 
-	// ACSS doesn't support deferred intent, so we need to create a PaymentIntent first.
-	if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
-		const response = await api.createIntent( paymentMethodType, true );
-
-		clientSecret = response.client_secret;
-		paymentIntentId = response.id;
+	// If the payment method doesn't support deferred intent, the intent must be created here.
+	const { supportsDeferredIntent } = paymentMethodsConfig[ paymentMethodType ] || {};
+	if ( ! supportsDeferredIntent ) {
+		const intent = await api.createIntent( null, paymentMethodType );
+		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
 		options = {
 			appearance: initializeUPEAppearance( api ),
 			paymentMethodCreation: 'manual',
 			fonts: getFontRulesFromPage(),
-			clientSecret,
+			clientSecret: intent.client_secret,
 		};
 	} else {
 		options = {
@@ -341,13 +338,6 @@ export const processPayment = (
 		try {
 			await validateElements( elements );
 
-			// TODO: Refactor this in the right place.
-			// ACSS Debit requires different handling.
-			if ( paymentMethodType === PAYMENT_METHOD_ACSS_DEBIT ) {
-				// Attach payment intent ID to form.
-				appendPaymentIntentIdToForm( jQueryForm, paymentIntentId );
-			}
-
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
 				elements,
@@ -358,6 +348,11 @@ export const processPayment = (
 			appendPaymentMethodIdToForm(
 				jQueryForm,
 				paymentMethodObject.paymentMethod.id
+			);
+
+			appendPaymentIntentIdToForm(
+				jQueryForm,
+				gatewayUPEComponents[ paymentMethodType ].intentId
 			);
 
 			let stopFormSubmission = false;
