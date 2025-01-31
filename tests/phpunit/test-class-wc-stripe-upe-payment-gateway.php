@@ -213,6 +213,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_id     = $order->get_id();
 		$order_number = $order->get_order_number();
 		$order_key    = $order->get_order_key();
+		$total_tax    = $order->get_total_tax();
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
 		$metadata     = [
@@ -223,6 +224,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'order_key'      => $order_key,
 			'payment_type'   => 'single',
 			'signature'      => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
+			'tax_amount'     => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
 		];
 		return [ $amount, $description, $metadata ];
 	}
