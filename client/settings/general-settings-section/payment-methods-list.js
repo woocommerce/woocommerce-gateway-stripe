@@ -273,7 +273,12 @@ const GeneralSettingsSection = ( {
 					Icon,
 					label,
 					allows_manual_capture: isAllowingManualCapture,
-				} = PaymentMethodsMap[ method ];
+				} = PaymentMethodsMap[ method ] || {};
+
+				// Skip if there are no mapped fields for the payment method.
+				if ( ! Icon || ! label ) {
+					return null;
+				}
 
 				return (
 					<DraggableListElement
@@ -320,7 +325,12 @@ const GeneralSettingsSection = ( {
 					Icon,
 					label,
 					allows_manual_capture: isAllowingManualCapture,
-				} = PaymentMethodsMap[ method ];
+				} = PaymentMethodsMap[ method ] || {};
+
+				// Skip if there are no mapped fields for the payment method.
+				if ( ! Icon || ! label ) {
+					return null;
+				}
 
 				// Remove APMs (legacy checkout) due deprecation by Stripe on Oct 31st, 2024.
 				const deprecated =

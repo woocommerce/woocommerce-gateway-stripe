@@ -10,8 +10,9 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
-	getExpressPaymentMethodTypes,
 	normalizeLineItems,
+	isManualPaymentMethodCreation,
+	getPaymentMethodTypesForExpressMethod,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -25,6 +26,7 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
+import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 
 jQuery( function ( $ ) {
@@ -75,9 +77,22 @@ jQuery( function ( $ ) {
 			wcStripeECE.getButtonSeparator().hide();
 		},
 
-		renderButton: ( eceButton ) => {
+		renderButton: ( eceButton, expressPaymentType ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
-				eceButton.mount( '#wc-stripe-express-checkout-element' );
+				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
+				$( '#wc-stripe-express-checkout-element' ).append(
+					`<div id="${ containerName }"></div>`
+				);
+
+				eceButton.mount( `#${ containerName }` );
+
+				// If the express payment type, e.g. Apple Pay, is not available,
+				// remove the container.
+				eceButton.on( 'ready', ( { availablePaymentMethods } ) => {
+					if ( ! availablePaymentMethods ) {
+						$( `#${ containerName }` ).remove();
+					}
+				} );
 			}
 		},
 
@@ -92,7 +107,7 @@ jQuery( function ( $ ) {
 		 *
 		 * @param {Object} options ECE options.
 		 */
-		startExpressCheckoutElement: ( options ) => {
+		startExpressCheckout: ( options ) => {
 			const getShippingRates = () => {
 				if ( ! options.requestShipping ) {
 					return [];
@@ -113,12 +128,26 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
+			// For each supported express payment type, create their own
+			// express checkout element. This is necessary as some express payment types
+			// may require different options or configurations, e.g. Amazon Pay
+			// does not support paymentMethodCreation: 'manual'.
+			const expressPaymentTypes = [ 'applePay', 'googlePay', 'link' ];
+			expressPaymentTypes.forEach( ( expressPaymentType ) => {
+				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
+					...options,
+					shippingRates,
+				} );
+			} );
+		},
+
+		createExpressCheckoutElement: ( expressPaymentType, options ) => {
 			// This is a bit of a hack, but we need some way to get the shipping information before rendering the button, and
 			// since we don't have any address information at this point it seems best to rely on what came with the cart response.
 			// Relying on what's provided in the cart response seems safest since it should always include a valid shipping
 			// rate if one is required and available.
 			// If no shipping rate is found we can't render the button so we just exit.
-			if ( options.requestShipping && ! shippingRates ) {
+			if ( options.requestShipping && ! options.shippingRates ) {
 				return;
 			}
 
@@ -126,18 +155,29 @@ jQuery( function ( $ ) {
 				mode: options.mode ? options.mode : 'payment',
 				amount: options.total,
 				currency: options.currency,
-				paymentMethodCreation: 'manual',
+				...( isManualPaymentMethodCreation( expressPaymentType ) && {
+					paymentMethodCreation: 'manual',
+				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
 				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-				paymentMethodTypes: getExpressPaymentMethodTypes(),
+				paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
+					expressPaymentType
+				),
 			} );
 
-			const eceButton = wcStripeECE.createButton(
-				elements,
-				getExpressCheckoutButtonStyleSettings()
-			);
+			const eceButton = wcStripeECE.createButton( elements, {
+				...getExpressCheckoutButtonStyleSettings(),
+				paymentMethods: {
+					amazonPay: 'never',
+					googlePay:
+						expressPaymentType === 'googlePay' ? 'always' : 'never',
+					applePay:
+						expressPaymentType === 'applePay' ? 'always' : 'never',
+					link: expressPaymentType === 'link' ? 'auto' : 'never',
+				},
+			} );
 
-			wcStripeECE.renderButton( eceButton );
+			wcStripeECE.renderButton( eceButton, expressPaymentType );
 
 			eceButton.on( 'loaderror', () => {
 				wcStripeECEError = __(
@@ -212,7 +252,7 @@ jQuery( function ( $ ) {
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
-					shippingRates,
+					shippingRates: options.shippingRates,
 				};
 
 				onClickHandler( event );
@@ -233,16 +273,17 @@ jQuery( function ( $ ) {
 
 			eceButton.on( 'confirm', async ( event ) => {
 				const order = options.order ? options.order : 0;
-
-				return await onConfirmHandler(
+				const orderDetails = options.orderDetails ?? {};
+				return await onConfirmHandler( {
 					api,
-					api.getStripe(),
+					stripe: api.getStripe(),
 					elements,
-					wcStripeECE.completePayment,
-					wcStripeECE.abortPayment,
+					completePayment: wcStripeECE.completePayment,
+					abortPayment: wcStripeECE.abortPayment,
 					event,
-					order
-				);
+					order,
+					orderDetails,
+				} );
 			} );
 
 			eceButton.on( 'cancel', () => {
@@ -274,13 +315,31 @@ jQuery( function ( $ ) {
 		 */
 		init: () => {
 			if ( getExpressCheckoutData( 'is_pay_for_order' ) ) {
+				if (
+					typeof wcStripeExpressCheckoutPayForOrderParams ===
+					'undefined'
+				) {
+					return;
+				}
+
 				const {
 					total: { amount: total },
 					displayItems,
 					order,
+					orderDetails,
 				} = wcStripeExpressCheckoutPayForOrderParams;
 
-				wcStripeECE.startExpressCheckoutElement( {
+				// When paying as guest, the order key and billing email are required by the
+				// Blocks API Pay for Order endpoint, which ECE uses.
+				// These fields are both present when the user is logged in.
+				if (
+					! orderDetails?.orderKey ||
+					! orderDetails?.billingEmail
+				) {
+					return;
+				}
+
+				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
 					total,
 					currency: getExpressCheckoutData( 'checkout' )
@@ -289,13 +348,14 @@ jQuery( function ( $ ) {
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems,
 					order,
+					orderDetails,
 				} );
 			} else if ( getExpressCheckoutData( 'is_product_page' ) ) {
 				const isProductSupported =
 					getExpressCheckoutData( 'product' )
 						?.validVariationSelected ?? true;
 				if ( isProductSupported ) {
-					wcStripeECE.startExpressCheckoutElement( {
+					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total: getExpressCheckoutData( 'product' )?.total
 							.amount,
@@ -313,7 +373,7 @@ jQuery( function ( $ ) {
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
-					wcStripeECE.startExpressCheckoutElement( {
+					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total: cart.order_data.total.amount,
 						currency: getExpressCheckoutData( 'checkout' )

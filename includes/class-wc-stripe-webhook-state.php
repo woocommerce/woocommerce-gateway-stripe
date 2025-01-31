@@ -27,6 +27,7 @@ class WC_Stripe_Webhook_State {
 	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
 	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
 	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
+	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS  = 'duplicate_webhooks';
 	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
 	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 
@@ -170,7 +171,7 @@ class WC_Stripe_Webhook_State {
 		}
 
 		if ( self::VALIDATION_FAILED_EMPTY_SECRET === $last_error ) {
-			return( __( 'The webhook secret is not set in the store', 'woocommerce-gateway-stripe' ) );
+			return( __( 'The webhook secret is not set in the store. Please configure the webhooks', 'woocommerce-gateway-stripe' ) );
 		}
 
 		// Legacy failure reason. Removed in 8.6.0.
@@ -180,6 +181,10 @@ class WC_Stripe_Webhook_State {
 
 		if ( self::VALIDATION_FAILED_SIGNATURE_INVALID == $last_error ) {
 			return( __( 'The webhook signature was missing or was incorrectly formatted', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_DUPLICATE_WEBHOOKS == $last_error ) {
+			return( __( 'Multiple webhooks exist for this site. Please remove the duplicate webhooks or re-configure the webhooks', 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( self::VALIDATION_FAILED_TIMESTAMP_MISMATCH == $last_error ) {

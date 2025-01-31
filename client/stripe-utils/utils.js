@@ -518,7 +518,7 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 
 	// If appearance is empty, get a fresh copy and save it in a transient.
 	if ( ! appearance ) {
-		appearance = getAppearance();
+		appearance = getAppearance( isBlockCheckout === 'true' );
 		api.saveAppearance( appearance, isBlockCheckout );
 	}
 

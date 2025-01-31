@@ -28,8 +28,9 @@ class WC_Stripe_Settings_Controller {
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Account $account Stripe account
+	 * @param WC_Stripe_Payment_Gateway|null $gateway Stripe gateway
 	 */
-	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway = null ) {
+	public function __construct( WC_Stripe_Account $account, ?WC_Stripe_Payment_Gateway $gateway = null ) {
 		$this->account = $account;
 		$this->gateway = $gateway;
 
@@ -180,6 +181,9 @@ class WC_Stripe_Settings_Controller {
 			'time'                      => time(),
 			'i18n_out_of_sync'          => $message,
 			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'is_ach_enabled'            => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
+			'is_acss_enabled'           => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
+			'is_bacs_enabled'           => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
 			'stripe_test_oauth_url'     => $test_oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
@@ -187,6 +191,7 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'            => WC_STRIPE_VERSION,
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'is_ece_enabled'            => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
