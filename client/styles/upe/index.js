@@ -1,5 +1,10 @@
 import { upeRestrictedProperties } from './upe-styles';
-import { generateHoverRules, generateOutlineStyle } from './utils.js';
+import {
+	generateHoverRules,
+	generateOutlineStyle,
+	getBackgroundColor,
+	isColorLight,
+} from './utils.js';
 
 const appearanceSelectors = {
 	default: {
@@ -11,6 +16,10 @@ const appearanceSelectors = {
 		appendTarget: '.woocommerce-billing-fields__field-wrapper',
 		upeThemeInputSelector: '#billing_first_name',
 		upeThemeLabelSelector: '.woocommerce-checkout .form-row label',
+		upeThemeTextSelectors: [
+			'#payment .payment_methods li .payment_box fieldset',
+			'.woocommerce-checkout .form-row',
+		],
 		rowElement: 'p',
 		validClasses: [ 'form-row' ],
 		invalidClasses: [
@@ -18,18 +27,40 @@ const appearanceSelectors = {
 			'woocommerce-invalid',
 			'woocommerce-invalid-required-field',
 		],
+		backgroundSelectors: [
+			'li.wc_payment_method .wc-payment-form',
+			'li.wc_payment_method .payment_box',
+			'#payment',
+			'#order_review',
+			'form.checkout',
+			'body',
+		],
 	},
 	blocksCheckout: {
 		appendTarget: '#billing.wc-block-components-address-form',
 		upeThemeInputSelector: '#billing-first_name',
-		upeThemeLabelSelector: '.wc-block-components-text-input label',
+		upeThemeLabelSelector:
+			'.wc-block-components-checkout-step__description',
+		upeThemeTextSelectors: [
+			'.wc-block-components-checkout-step__description',
+			'.wc-block-components-text-input',
+		],
 		rowElement: 'div',
 		validClasses: [ 'wc-block-components-text-input' ],
 		invalidClasses: [ 'wc-block-components-text-input', 'has-error' ],
 		alternateSelectors: {
 			appendTarget: '#shipping.wc-block-components-address-form',
 			upeThemeInputSelector: '#shipping-first_name',
+			upeThemeLabelSelector:
+				'.wc-block-components-checkout-step__description',
 		},
+		backgroundSelectors: [
+			'#payment-method .wc-block-components-radio-control-accordion-option',
+			'#payment-method',
+			'form.wc-block-checkout__form',
+			'.wc-block-checkout',
+			'body',
+		],
 	},
 
 	/**
@@ -326,6 +357,12 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		'.Input'
 	);
 
+	const backgroundColor = getBackgroundColor( selectors.backgroundSelectors );
+	const blockRules = getFieldStyles(
+		selectors.upeThemeLabelSelector,
+		'.Block'
+	);
+
 	const labelRules = getFieldStyles(
 		selectors.upeThemeLabelSelector,
 		'.Label'
@@ -345,19 +382,42 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		color: selectedTabRules.color,
 	};
 
+	const paragraphRules = getFieldStyles(
+		selectors.upeThemeTextSelectors,
+		'.Text'
+	);
+
+	const darkParagraphRules = getFieldStyles( selectors.hiddenInput, '.Text' );
+
+	const globalRules = {
+		colorBackground: backgroundColor,
+		colorText: isColorLight( backgroundColor )
+			? inputRules.color
+			: paragraphRules.color,
+		fontFamily: paragraphRules.fontFamily,
+		fontSizeBase: paragraphRules.fontSize,
+	};
+
 	const appearance = {
+		variables: globalRules,
+		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
 		rules: {
 			'.Input': inputRules,
 			'.Input:focus': inputFocusRules,
 			'.Input--invalid': inputInvalidRules,
+			'.Block': blockRules,
 			'.Label': labelRules,
 			'.Tab': tabRules,
 			'.Tab:hover': tabHoverRules,
 			'.Tab--selected': selectedTabRules,
 			'.TabIcon:hover': tabIconHoverRules,
 			'.TabIcon--selected': selectedTabIconRules,
-			'.Text': labelRules,
-			'.Text--redirect': labelRules,
+			'.Text': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
+			'.Text--redirect': isColorLight( backgroundColor )
+				? darkParagraphRules
+				: paragraphRules,
 			'.CheckboxInput': {
 				backgroundColor: 'var(--colorBackground)',
 				borderRadius: 'min(5px, var(--borderRadius))',
