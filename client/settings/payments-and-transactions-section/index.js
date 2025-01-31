@@ -18,6 +18,7 @@ import {
 	useSeparateCardForm,
 	useEnabledPaymentMethodIds,
 	useIsShortAccountStatementEnabled,
+	useSepaTokensForOtherMethods,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
@@ -39,6 +40,10 @@ const StatementDescriptorInputWrapper = styled.div`
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
+	const [
+		isSepaTokensForOtherMethodsEnabled,
+		setIsSepaTokensForOtherMethodsEnabled,
+	] = useSepaTokensForOtherMethods();
 	const [
 		isSeparateCardFormEnabled,
 		setIsSeparateCardFormEnabled,
@@ -90,6 +95,18 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 					help={ __(
 						'If enabled, users will be able to pay with a saved card during checkout. Card details are saved on Stripe servers, not on your store.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+				<CheckboxControl
+					checked={ isSepaTokensForOtherMethodsEnabled }
+					onChange={ setIsSepaTokensForOtherMethodsEnabled }
+					label={ __(
+						'Enable SEPA Direct Debit tokens for other methods',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
