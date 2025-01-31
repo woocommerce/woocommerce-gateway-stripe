@@ -23,6 +23,7 @@ class WC_Stripe_Payment_Tokens {
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID           => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID          => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
@@ -527,6 +528,21 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
 				break;
+			case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
+				$token = new WC_Payment_Token_ACH();
+				if ( isset( $payment_method->us_bank_account->last4 ) ) {
+					$token->set_last4( $payment_method->us_bank_account->last4 );
+				}
+				if ( isset( $payment_method->us_bank_account->fingerprint ) ) {
+					$token->set_fingerprint( $payment_method->us_bank_account->fingerprint );
+				}
+				if ( isset( $payment_method->us_bank_account->account_type ) ) {
+					$token->set_account_type( $payment_method->us_bank_account->account_type );
+				}
+				if ( isset( $payment_method->us_bank_account->bank_name ) ) {
+					$token->set_bank_name( $payment_method->us_bank_account->bank_name );
+				}
+				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_CashApp();
 
@@ -679,7 +695,7 @@ class WC_Stripe_Payment_Tokens {
 			/**
 			 * Token object.
 			 *
-			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA $token
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH $token
 			 */
 			if ( $token->is_equal_payment_method( $payment_method ) ) {
 				return $token;
