@@ -590,6 +590,7 @@ jQuery( function ( $ ) {
 										response
 									);
 								}
+								wcStripeECE.show();
 							}
 						} )
 						.catch( () => {
