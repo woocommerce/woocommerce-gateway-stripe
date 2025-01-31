@@ -617,6 +617,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Returns true if the SEPA tokens for other methods (Bancontact and iDEAL) feature is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+	}
+
+	/**
 	 * Determines if this payment method should show the save to account checkbox.
 	 *
 	 * @return bool
