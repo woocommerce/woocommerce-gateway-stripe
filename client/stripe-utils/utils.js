@@ -550,7 +550,7 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
  *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {boolean} Whether the payment method is restricted to selected billing country.
- **/
+ */
 export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
 	const paymentMethodsConfig =
 		getStripeServerData()?.paymentMethodsConfig || {};
@@ -559,8 +559,21 @@ export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
 };
 
 /**
+ * Determines if the payment method supports deferred intent.
+ *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
- **/
+ * @return {boolean} Whether the payment method supports deferred intent.
+ */
+export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	return !! paymentMethodsConfig[ paymentMethodType ]?.supportsDeferredIntent;
+}
+
+/**
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ */
 export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const paymentMethodsConfig =
 		getStripeServerData()?.paymentMethodsConfig || {};
@@ -581,6 +594,16 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 		upeContainer.style.display = 'block';
 	} else {
 		upeContainer.style.display = 'none';
+		// Also uncheck the radio button if it's selected.
+		const radioButton = document.querySelector(
+			'input[name="payment_method"][value="stripe_' + paymentMethodType + '"]'
+		);
+
+		console.log( radioButton );
+
+		if ( radioButton ) {
+			radioButton.checked = false;
+		}
 	}
 };
 

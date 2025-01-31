@@ -502,12 +502,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
-				'isReusable'          => $payment_method->is_reusable(),
-				'title'               => $payment_method->get_title(),
-				'description'         => $payment_method->get_description(),
-				'testingInstructions' => $payment_method->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_available_billing_countries(),
+				'isReusable'             => $payment_method->is_reusable(),
+				'title'                  => $payment_method->get_title(),
+				'description'            => $payment_method->get_description(),
+				'testingInstructions'    => $payment_method->get_testing_instructions(),
+				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
+				'countries'              => $payment_method->get_available_billing_countries(),
 			];
 		}
 

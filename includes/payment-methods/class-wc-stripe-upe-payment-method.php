@@ -725,4 +725,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 		return parent::get_transaction_url( $order );
 	}
+
+	/**
+	 * Whether this payment method supports deferred intent creation.
+	 *
+	 * @return bool
+	 */
+	public function supports_deferred_intent() {
+		return $this->supports_deferred_intent;
+	}
 }
