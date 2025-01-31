@@ -294,7 +294,7 @@ function woocommerce_gateway_stripe() {
 					if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
-					} else if ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] ) {
+					} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 						new WC_Stripe_Amazon_Pay_Controller();
 					} else {
