@@ -67,7 +67,10 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 		} );
 	}
 
-	if ( cartData.totals?.total_shipping ) {
+	if (
+		cartData?.needs_shipping === true &&
+		cartData.totals?.total_shipping
+	) {
 		const shippingAmount = parseInt(
 			cartData.totals.total_shipping || '0',
 			10
