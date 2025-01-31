@@ -175,7 +175,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
 				continue;
 			}
-			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ( WC_Stripe::get_instance()->account->get_account_country() !== 'UK' || ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) ) {
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ( WC_Stripe::get_instance()->account->get_account_country() !== 'GB' || ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) ) {
 				continue;
 			}
 
