@@ -21,6 +21,7 @@ import {
 	useAmazonPayEnabledSettings,
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
+	useSepaTokensForOtherMethods,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import {
@@ -281,6 +282,12 @@ describe( 'Settings hooks tests', () => {
 		useSavedCards: {
 			hook: useSavedCards,
 			storeKey: 'is_saved_cards_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useSepaTokensForOtherMethods: {
+			hook: useSepaTokensForOtherMethods,
+			storeKey: 'is_sepa_tokens_for_other_methods_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
