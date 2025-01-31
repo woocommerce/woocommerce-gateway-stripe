@@ -1048,9 +1048,13 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception If the AJAX request is missing the required data or if there's an error creating and confirming the setup intent.
 	 */
 	public function create_and_confirm_setup_intent_ajax() {
-		$setup_intent = null;
-
 		try {
+			// similar rate limiter is present in WC Core, but it's executed on page submission (and not on AJAX calls).
+			$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
+			if ( WC_Rate_Limiter::retried_too_soon( $wc_add_payment_method_rate_limit_id ) ) {
+				throw new WC_Stripe_Exception( 'Failed to save payment method.', __( 'You cannot add a new payment method so soon after the previous one.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
 
 			if ( ! $is_nonce_valid ) {
