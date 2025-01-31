@@ -546,21 +546,21 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Get option from the main Stripe gateway if it exists.
 	 *
 	 * @param string $key Option key.
-	 * @param mixed  $default Value when empty.
+	 * @param mixed  $empty_value Value when empty.
 	 * @return string The value specified for the option or a default value for the option.
 	 */
-	public function get_option( $key, $default = null ) {
+	public function get_option( $key, $empty_value = null ) {
 		$main_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		if ( empty( $main_settings ) ) {
-			return $default;
+			return $empty_value;
 		}
 
-		if ( ! is_null( $default ) && '' === $main_settings[ $key ] ) {
-			return $default;
+		if ( ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
+			return $empty_value;
 		}
 
-		return $main_settings[ $key ];
+		return $main_settings[ $key ] ?? $empty_value;
 	}
 
 	/**

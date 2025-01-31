@@ -36,4 +36,12 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
 	}
+
+	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 */
+	public function get_retrievable_type() {
+		return WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+	}
 }
