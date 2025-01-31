@@ -967,6 +967,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type, $is_using_saved_payment_method = false ) {
 		$payment_methods_with_mandates = [
+			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::BANCONTACT,

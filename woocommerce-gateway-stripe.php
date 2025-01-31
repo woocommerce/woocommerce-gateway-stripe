@@ -222,6 +222,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
