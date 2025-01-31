@@ -67,11 +67,11 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 		} );
 	}
 
-	const shippingAmount = parseInt(
-		cartData.totals.total_shipping || '0',
-		10
-	);
-	if ( shippingAmount ) {
+	if ( cartData.totals?.total_shipping ) {
+		const shippingAmount = parseInt(
+			cartData.totals.total_shipping || '0',
+			10
+		);
 		displayItems.push( {
 			key: 'total_shipping',
 			amount: transformPrice( shippingAmount, cartData.totals ),
