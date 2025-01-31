@@ -228,6 +228,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
+
+		// Add hooks for clearing appearance transients when theme is updated
+		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
+		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 	}
 
 	/**
@@ -2822,5 +2826,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Clears the appearance transients when a Block theme is updated or customized.
+	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 */
+	public function clear_appearance_transients_block_theme( $post_id, $post ) {
+		if ( in_array( $post->post_type, [ 'wp_global_styles' ], true ) ) {
+			delete_transient( $this->get_appearance_transient_key( true ) );
+		}
+	}
+
+	/**
+	 * Clears the appearance transients when a classic theme is updated or customized.
+	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 */
+	public function clear_appearance_transients() {
+		delete_transient( $this->get_appearance_transient_key() );
 	}
 }
