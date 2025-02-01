@@ -55,8 +55,8 @@ jQuery( function ( $ ) {
 		maybeMountStripePaymentElement();
 	}
 
-	// Maybe mount the Payment Element when selecting the payment method.
-	// This is needed for payment methods that don't support deferred intents.
+
+	// For payment methods that don't support deferred intents, we mount the Payment Element only when it's selected.
 	$( 'form.checkout' ).on( 'change', 'input[name="payment_method"]', () => {
 		maybeMountStripePaymentElement();
 	} );

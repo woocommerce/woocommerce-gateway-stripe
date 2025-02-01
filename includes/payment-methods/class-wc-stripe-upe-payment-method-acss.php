@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id                    = self::STRIPE_ID;
-		$this->title                        = __( 'Canadian Pre-Autorized Debit', 'woocommerce-gateway-stripe' );
+		$this->title                        = __( 'Pre-Autorized Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR ]; // The US dollar is supported, but has a high risk of failure since only a few Canadian bank accounts support it.
 		$this->supported_countries          = [ 'CA' ];

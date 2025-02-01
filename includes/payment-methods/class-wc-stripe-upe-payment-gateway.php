@@ -652,14 +652,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
-		$payment_intent_id = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order             = wc_get_order( $order_id );
-
-		// TODO: Refactor this into the right place.
-		// If payment method is ACSS debit, handle accordingly.
+		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order                 = wc_get_order( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
-		if ( $selected_payment_type === WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID ) {
-			// Attach payment intent to order.
+
+		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
 			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 		}
 
