@@ -118,6 +118,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'cashapp_payments'             => 'active',
 		'wechat_pay_payments'          => 'active',
 		'us_bank_account_ach_payments' => 'active',
+		'acss_debit_payments'          => 'active',
 	];
 
 	/**
@@ -595,7 +596,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
 			$account_currency = null;
 
-			if ( $payment_method->has_domestic_transactions_restrictions() ) {
+			if ( $payment_method->has_domestic_transactions_restrictions() || WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id ) {
 				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
