@@ -16,6 +16,7 @@ import BoletoIcon from './boleto';
 import OxxoIcon from './oxxo';
 import WechatPayIcon from './wechat-pay';
 import CashAppIcon from './cashapp';
+import BankDebitIcon from './bank-debit';
 
 export default {
 	alipay: AlipayIcon,
@@ -36,5 +37,6 @@ export default {
 	oxxo: OxxoIcon,
 	wechat_pay: WechatPayIcon,
 	cashapp: CashAppIcon,
-	bacs_debit: CreditCardIcon,
+	us_bank_account: BankDebitIcon,
+	bacs_debit: BankDebitIcon,
 };
