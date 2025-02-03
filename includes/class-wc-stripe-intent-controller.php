@@ -832,7 +832,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function maybe_add_mandate_options( $request, $payment_method_type ) {
 		// Add required mandate options for ACSS.
-		if ( $payment_method_type === WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID ) {
+		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
 				'acss_debit' => [
 					'mandate_options' => [
