@@ -12,9 +12,10 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 
 jest.mock( 'wcstripe/stripe-utils', () => ( {
+	isAmazonPayEnabled: jest.fn(),
 	isLinkEnabled: jest.fn(),
 } ) );
 
@@ -120,14 +121,20 @@ describe( 'Express checkout utils', () => {
 				PAYMENT_METHOD_LINK,
 			] );
 		} );
-		test( 'Amazon Pay', () => {
+		test( 'Amazon Pay, disabled', () => {
 			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
 				'amazonPay'
 			);
-			expect( paymentMethodTypes ).toEqual( [
-				PAYMENT_METHOD_CARD,
-				'amazon_pay',
-			] );
+			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
+		} );
+		test( 'Amazon Pay, enabled', () => {
+			isAmazonPayEnabled.mockReturnValue( {
+				amazonPay: {},
+			} );
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				'amazonPay'
+			);
+			expect( paymentMethodTypes ).toEqual( [ 'amazon_pay' ] );
 		} );
 	} );
 } );
