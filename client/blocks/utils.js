@@ -1,6 +1,11 @@
 /* global wc */
 
-import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+import { camelCase } from 'lodash';
+import {
+	PAYMENT_METHOD_APPLE_PAY,
+	PAYMENT_METHOD_GOOGLE_PAY,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 export const getBlocksConfiguration = () => {
 	const stripeServerData = wc?.wcSettings?.getSetting( 'stripe_data', null );
@@ -30,7 +35,11 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 
 	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
 	if ( ! getBlocksConfiguration()?.stripe?.is_payment_request_enabled ) {
-		disableWallets.push( 'applePay', 'googlePay' );
+		[ PAYMENT_METHOD_APPLE_PAY, PAYMENT_METHOD_GOOGLE_PAY ]
+			.map( camelCase )
+			.forEach( function ( wallet ) {
+				disableWallets.push( wallet );
+			} );
 	}
 
 	const options = {

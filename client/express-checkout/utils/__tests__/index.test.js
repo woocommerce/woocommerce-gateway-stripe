@@ -2,6 +2,7 @@
  * Internal dependencies
  */
 import { screen, render } from '@testing-library/react';
+import { camelCase } from 'lodash';
 import {
 	displayExpressCheckoutNotice,
 	getErrorMessageFromNotice,
@@ -9,6 +10,7 @@ import {
 	getPaymentMethodTypesForExpressMethod,
 } from '..';
 import {
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
@@ -123,7 +125,7 @@ describe( 'Express checkout utils', () => {
 		} );
 		test( 'Amazon Pay, disabled', () => {
 			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
-				'amazonPay'
+				camelCase( PAYMENT_METHOD_AMAZON_PAY )
 			);
 			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
 		} );
@@ -132,9 +134,11 @@ describe( 'Express checkout utils', () => {
 				amazonPay: {},
 			} );
 			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
-				'amazonPay'
+				camelCase( PAYMENT_METHOD_AMAZON_PAY )
 			);
-			expect( paymentMethodTypes ).toEqual( [ 'amazon_pay' ] );
+			expect( paymentMethodTypes ).toEqual( [
+				PAYMENT_METHOD_AMAZON_PAY,
+			] );
 		} );
 	} );
 } );

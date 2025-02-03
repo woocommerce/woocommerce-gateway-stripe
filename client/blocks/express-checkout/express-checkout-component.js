@@ -1,10 +1,15 @@
 import { ExpressCheckoutElement } from '@stripe/react-stripe-js';
+import { camelCase } from 'lodash';
 import { useExpressCheckout } from './hooks';
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
+import {
+	PAYMENT_METHOD_APPLE_PAY,
+	PAYMENT_METHOD_GOOGLE_PAY,
+} from 'wcstripe/stripe-utils/constants';
 
 const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	const allDisabled = {
@@ -15,9 +20,9 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 		paypal: 'never',
 	};
 
-	const enabledParam = [ 'applePay', 'googlePay' ].includes(
-		enabledPaymentMethod
-	)
+	const enabledParam = [ PAYMENT_METHOD_APPLE_PAY, PAYMENT_METHOD_GOOGLE_PAY ]
+		.map( camelCase )
+		.includes( enabledPaymentMethod )
 		? 'always'
 		: 'auto';
 
@@ -33,14 +38,14 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 	// Apple Pay has a nearly imperceptible height difference. We increase it by 1px here.
 	if ( buttonOptions.buttonTheme.applePay === 'black' ) {
-		if ( expressPaymentMethod === 'applePay' ) {
+		if ( expressPaymentMethod === camelCase( PAYMENT_METHOD_APPLE_PAY ) ) {
 			buttonOptions.buttonHeight = buttonOptions.buttonHeight + 0.4;
 		}
 	}
 
 	// GooglePay with the white theme has a 2px height difference due to its border.
 	if (
-		expressPaymentMethod === 'googlePay' &&
+		expressPaymentMethod === camelCase( PAYMENT_METHOD_GOOGLE_PAY ) &&
 		buttonOptions.buttonTheme.googlePay === 'white'
 	) {
 		buttonOptions.buttonHeight = buttonOptions.buttonHeight - 2;

@@ -1,6 +1,6 @@
 /*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
-import { debounce } from 'lodash';
+import { camelCase, debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
@@ -28,6 +28,12 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
+import {
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY,
+	PAYMENT_METHOD_GOOGLE_PAY,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -133,11 +139,11 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				'applePay',
-				'googlePay',
-				'amazonPay',
-				'link',
-			];
+				PAYMENT_METHOD_APPLE_PAY,
+				PAYMENT_METHOD_GOOGLE_PAY,
+				PAYMENT_METHOD_AMAZON_PAY,
+				PAYMENT_METHOD_LINK,
+			].map( camelCase );
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
@@ -174,11 +180,20 @@ jQuery( function ( $ ) {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
 					amazonPay:
-						expressPaymentType === 'amazonPay' ? 'auto' : 'never',
+						expressPaymentType ===
+						camelCase( PAYMENT_METHOD_AMAZON_PAY )
+							? 'auto'
+							: 'never',
 					googlePay:
-						expressPaymentType === 'googlePay' ? 'always' : 'never',
+						expressPaymentType ===
+						camelCase( PAYMENT_METHOD_GOOGLE_PAY )
+							? 'always'
+							: 'never',
 					applePay:
-						expressPaymentType === 'applePay' ? 'always' : 'never',
+						expressPaymentType ===
+						camelCase( PAYMENT_METHOD_APPLE_PAY )
+							? 'always'
+							: 'never',
 					link: expressPaymentType === 'link' ? 'auto' : 'never',
 				},
 			} );

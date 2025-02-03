@@ -1,9 +1,13 @@
 /* global wc_stripe_express_checkout_params */
+import { camelCase } from 'lodash';
 import jQuery from 'jquery';
 import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_APPLE_PAY,
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_GOOGLE_PAY,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -118,7 +122,7 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			case 'light':
 				return 'white';
 			case 'light-outline':
-				if ( buttonType === 'googlePay' ) {
+				if ( buttonType === camelCase( PAYMENT_METHOD_GOOGLE_PAY ) ) {
 					return 'white';
 				}
 
@@ -144,11 +148,11 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		layout: { overflow: 'never' },
 		buttonTheme: {
 			googlePay: mapButtonSettingToStripeButtonTheme(
-				'googlePay',
+				camelCase( PAYMENT_METHOD_GOOGLE_PAY ),
 				buttonSettings?.theme ?? 'black'
 			),
 			applePay: mapButtonSettingToStripeButtonTheme(
-				'applePay',
+				camelCase( PAYMENT_METHOD_APPLE_PAY ),
 				buttonSettings?.theme ?? 'black'
 			),
 		},
@@ -277,8 +281,11 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	}
 
 	// Add 'amazon_pay' payment method type if enabled and requested.
-	if ( paymentMethodType === 'amazonPay' && isAmazonPayEnabled() ) {
-		return [ 'amazon_pay' ];
+	if (
+		paymentMethodType === camelCase( PAYMENT_METHOD_AMAZON_PAY ) &&
+		isAmazonPayEnabled()
+	) {
+		return [ PAYMENT_METHOD_AMAZON_PAY ];
 	}
 
 	return paymentMethodTypes;
@@ -350,9 +357,8 @@ export const expressCheckoutNoticeDelay = async () => {
  * @return {boolean} True if manual payment method creation should be used, false otherwise.
  */
 export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
-	if ( [ 'amazonPay', 'amazon_pay' ].includes( expressPaymentType ) ) {
-		return false;
-	}
-
-	return true;
+	return ! [
+		camelCase( PAYMENT_METHOD_AMAZON_PAY ),
+		PAYMENT_METHOD_AMAZON_PAY,
+	].includes( expressPaymentType );
 };

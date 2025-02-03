@@ -1,11 +1,15 @@
 import ReactDOM from 'react-dom';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
-import { memoize } from 'lodash';
+import { camelCase, memoize } from 'lodash';
 import {
 	getPaymentMethodTypesForExpressMethod,
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
-import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_APPLE_PAY,
+	PAYMENT_METHOD_GOOGLE_PAY,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart, resolve ) => {
@@ -40,11 +44,13 @@ export const checkPaymentMethodIsAvailable = memoize(
 						paymentMethods: {
 							amazonPay: 'never',
 							applePay:
-								paymentMethod === 'applePay'
+								paymentMethod ===
+								camelCase( PAYMENT_METHOD_APPLE_PAY )
 									? 'always'
 									: 'never',
 							googlePay:
-								paymentMethod === 'googlePay'
+								paymentMethod ===
+								camelCase( PAYMENT_METHOD_GOOGLE_PAY )
 									? 'always'
 									: 'never',
 							link:

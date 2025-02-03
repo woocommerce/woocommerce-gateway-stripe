@@ -1,5 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 
+import { camelCase } from 'lodash';
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { ExpressCheckoutContainer } from './express-checkout-container';
 import {
@@ -10,7 +11,11 @@ import {
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
-import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_APPLE_PAY,
+	PAYMENT_METHOD_GOOGLE_PAY,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 const stripePromise = loadStripe();
 
@@ -43,7 +48,12 @@ const expressCheckoutElementsGooglePay = ( api ) => ( {
 		}
 
 		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'googlePay', api, cart, resolve );
+			checkPaymentMethodIsAvailable(
+				camelCase( PAYMENT_METHOD_GOOGLE_PAY ),
+				api,
+				cart,
+				resolve
+			);
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
@@ -73,7 +83,12 @@ const expressCheckoutElementsApplePay = ( api ) => ( {
 		}
 
 		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'applePay', api, cart, resolve );
+			checkPaymentMethodIsAvailable(
+				camelCase( PAYMENT_METHOD_APPLE_PAY ),
+				api,
+				cart,
+				resolve
+			);
 		} );
 	},
 	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
