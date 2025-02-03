@@ -667,7 +667,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
-			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+			// Adds customer and metadata to PaymentIntent.
+			// These parameters cannot be added upon updating the intent via the `/confirm` API.
+			$this->intent_controller->update_payment_intent( $payment_intent_id, $order_id );
 		}
 
 		// Flag for using a deferred intent. To be removed.
