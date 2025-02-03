@@ -1,12 +1,5 @@
 /* global wc_stripe_payment_request_params, Stripe */
-import { camelCase } from 'lodash';
-import {
-	PAYMENT_METHOD_APPLE_PAY,
-	PAYMENT_METHOD_GOOGLE_PAY,
-	PAYMENT_METHOD_LINK,
-} from 'wcstripe/stripe-utils/constants';
-
-jQuery( function($ ) {
+jQuery( function( $ ) {
 	'use strict';
 
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
@@ -427,14 +420,12 @@ jQuery( function($ ) {
 
 			// Prevent displaying Link in the PRBs if disabled in the plugin settings.
 			if ( ! wc_stripe_payment_request_params?.stripe?.is_link_enabled ) {
-				disableWallets.push( PAYMENT_METHOD_LINK );
+				disableWallets.push( 'link' );
 			}
 
 			// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
 			if ( ! wc_stripe_payment_request_params?.stripe?.is_payment_request_enabled ) {
-				[ PAYMENT_METHOD_APPLE_PAY, PAYMENT_METHOD_GOOGLE_PAY ].map( camelCase ).forEach( function( wallet ) {
-					disableWallets.push( wallet );
-				} );
+				disableWallets.push( 'applePay', 'googlePay' );
 			}
 
 			options.disableWallets = disableWallets;
