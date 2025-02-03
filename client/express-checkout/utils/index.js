@@ -1,6 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	PAYMENT_METHOD_CARD,
@@ -264,7 +264,7 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
  * @see https://docs.stripe.com/elements/express-checkout-element/accept-a-payment#enable-payment-methods - lists the method types
  * supported and which ones are required by each Express Checkout method.
  *
- * @param {*} paymentMethodType The express payment method type. eg 'link', 'googlePay', or 'applePay'.
+ * @param {*} paymentMethodType The express payment method type. eg 'link', 'googlePay', 'applePay', or 'amazonPay'.
  * @return {Array} Array of payment method types necessary to process a payment for an Express method.
  */
 export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
@@ -274,6 +274,11 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	// Add 'link' payment method type if enabled and requested.
 	if ( paymentMethodType === PAYMENT_METHOD_LINK && isLinkEnabled() ) {
 		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
+	}
+
+	// Add 'amazon_pay' payment method type if enabled and requested.
+	if ( paymentMethodType === 'amazonPay' && isAmazonPayEnabled() ) {
+		return [ 'amazon_pay' ];
 	}
 
 	return paymentMethodTypes;

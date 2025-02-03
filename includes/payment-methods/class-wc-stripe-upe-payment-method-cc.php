@@ -41,8 +41,9 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		if ( $payment_details && isset( $payment_details->card->wallet->type ) ) {
-			return $this->get_card_wallet_type_title( $payment_details->card->wallet->type );
+		$wallet_type = WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ? WC_Stripe_Payment_Methods::AMAZON_PAY : ( $payment_details->card->wallet->type ?? null );
+		if ( $payment_details && $wallet_type ) {
+			return $this->get_card_wallet_type_title( $wallet_type );
 		}
 
 		return parent::get_title();
@@ -120,14 +121,15 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * Returns the title for the card wallet type.
 	 * This is used to display the title for Apple Pay and Google Pay.
 	 *
-	 * @param $express_payment_type The type of express payment method.
+	 * @param $express_payment_type string The type of express payment method.
 	 *
 	 * @return string The title for the card wallet type.
 	 */
 	private function get_card_wallet_type_title( $express_payment_type ) {
 		$express_payment_titles = [
-			'apple_pay'  => 'Apple Pay',
-			'google_pay' => 'Google Pay',
+			'apple_pay'                           => 'Apple Pay',
+			'google_pay'                          => 'Google Pay',
+			WC_Stripe_Payment_Methods::AMAZON_PAY => 'Amazon Pay',
 		];
 
 		$payment_method_title = $express_payment_titles[ $express_payment_type ] ?? false;

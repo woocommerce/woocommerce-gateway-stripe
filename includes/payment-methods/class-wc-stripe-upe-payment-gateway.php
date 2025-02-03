@@ -990,7 +990,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$selected_payment_type = $payment_information['selected_payment_type'];
 
-			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+			// Retrieve the payment method object from Stripe.
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
 
 			$return_url = $this->get_return_url( $order );
 
@@ -2652,11 +2655,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			switch ( $express_payment_type ) {
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
+				case WC_Stripe_Payment_Methods::AMAZON_PAY:
+					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 				case 'google_pay':
 				case 'apple_pay':
-					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-				case 'amazon_pay':
-					return [ 'amazon_pay' ];
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}

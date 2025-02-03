@@ -6,7 +6,18 @@ import {
 	displayExpressCheckoutNotice,
 	getErrorMessageFromNotice,
 	getExpressCheckoutData,
+	getPaymentMethodTypesForExpressMethod,
 } from '..';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
+import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
+
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	isAmazonPayEnabled: jest.fn(),
+	isLinkEnabled: jest.fn(),
+} ) );
 
 describe( 'Express checkout utils', () => {
 	test( 'getExpressCheckoutData returns null for missing option', () => {
@@ -81,6 +92,49 @@ describe( 'Express checkout utils', () => {
 			}
 			render( <App /> );
 			expect( screen.queryByRole( 'note' ) ).toBeInTheDocument();
+		} );
+	} );
+
+	describe( 'getPaymentMethodTypesForExpressMethod', () => {
+		test( 'default', () => {
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				PAYMENT_METHOD_CARD
+			);
+			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
+		} );
+		test( 'Link, disabled', () => {
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				PAYMENT_METHOD_LINK
+			);
+			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
+		} );
+		test( 'Link, enabled', () => {
+			isLinkEnabled.mockReturnValue( {
+				card: {},
+				link: {},
+			} );
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				PAYMENT_METHOD_LINK
+			);
+			expect( paymentMethodTypes ).toEqual( [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_LINK,
+			] );
+		} );
+		test( 'Amazon Pay, disabled', () => {
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				'amazonPay'
+			);
+			expect( paymentMethodTypes ).toEqual( [ PAYMENT_METHOD_CARD ] );
+		} );
+		test( 'Amazon Pay, enabled', () => {
+			isAmazonPayEnabled.mockReturnValue( {
+				amazonPay: {},
+			} );
+			const paymentMethodTypes = getPaymentMethodTypesForExpressMethod(
+				'amazonPay'
+			);
+			expect( paymentMethodTypes ).toEqual( [ 'amazon_pay' ] );
 		} );
 	} );
 } );

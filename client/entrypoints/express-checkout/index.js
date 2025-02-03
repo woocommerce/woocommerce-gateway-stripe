@@ -132,7 +132,12 @@ jQuery( function ( $ ) {
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
-			const expressPaymentTypes = [ 'applePay', 'googlePay', 'link' ];
+			const expressPaymentTypes = [
+				'applePay',
+				'googlePay',
+				'amazonPay',
+				'link',
+			];
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
@@ -168,7 +173,8 @@ jQuery( function ( $ ) {
 			const eceButton = wcStripeECE.createButton( elements, {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
-					amazonPay: 'never',
+					amazonPay:
+						expressPaymentType === 'amazonPay' ? 'auto' : 'never',
 					googlePay:
 						expressPaymentType === 'googlePay' ? 'always' : 'never',
 					applePay:
@@ -244,7 +250,7 @@ jQuery( function ( $ ) {
 					}
 
 					// Add products to the cart if everything is right.
-					wcStripeECE.addToCart();
+					await wcStripeECE.addToCart();
 				}
 
 				const clickOptions = {
