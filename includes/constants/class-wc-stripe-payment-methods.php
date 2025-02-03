@@ -4,6 +4,8 @@
  * Class WC_Stripe_Payment_Methods
  */
 class WC_Stripe_Payment_Methods {
+
+	const ACH               = 'us_bank_account';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
