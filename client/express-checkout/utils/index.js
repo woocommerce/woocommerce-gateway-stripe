@@ -1,6 +1,6 @@
 /* global wc_stripe_express_checkout_params */
 import jQuery from 'jquery';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
 	PAYMENT_METHOD_CARD,
@@ -277,7 +277,7 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	}
 
 	// Add 'amazon_pay' payment method type if enabled and requested.
-	if ( paymentMethodType === 'amazonPay' ) {
+	if ( paymentMethodType === 'amazonPay' && isAmazonPayEnabled() ) {
 		return [ 'amazon_pay' ];
 	}
 
