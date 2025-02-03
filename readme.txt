@@ -111,6 +111,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
+* Add - New Amazon Pay payment method in the Stripe Express Checkout Element for the classic, shortcode (classic) checkout, product, and cart pages.
 * Dev - Introduces new payment intent status constants for the frontend.
 * Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
@@ -135,5 +138,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
 * Add - Add total tax amount to metadata.
 * Update - Update the translation for payment requests settings section notice.
+* Add - Add Amazon Pay to settings express checkout section.
+* Add - Add Amazon Pay customize express checkout page.
+* Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
+* Fix - Hide ECE button for synced subscription variations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

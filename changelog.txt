@@ -1,6 +1,9 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
+* Add - New Amazon Pay payment method in the Stripe Express Checkout Element for the classic, shortcode (classic) checkout, product, and cart pages.
 * Dev - Introduces new payment intent status constants for the frontend.
 * Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
@@ -17,6 +20,7 @@
 * Fix - Adds support for the Reunion country when checking out using the new checkout experience.
 * Add - Support zero-amount refunds.
 * Fix - A potential fix to prevent duplicate charges.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
 * Fix - Improve product page caching when Express Payment buttons are not enabled.
 * Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
 * Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
@@ -24,6 +28,10 @@
 * Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
 * Add - Add total tax amount to metadata.
 * Update - Update the translation for payment requests settings section notice.
+* Add - Add Amazon Pay to settings express checkout section.
+* Add - Add Amazon Pay customize express checkout page.
+* Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
+* Fix - Hide ECE button for synced subscription variations.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.

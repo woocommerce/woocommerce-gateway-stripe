@@ -117,6 +117,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
+
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
 			->getMock();
@@ -179,6 +181,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue( 'cus_mock' )
 			);
+	}
+
+	public function tear_down() {
+		parent::tear_down();
+		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -258,6 +265,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'US',
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Affirm::STRIPE_ID,

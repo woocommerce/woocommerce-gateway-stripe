@@ -222,6 +222,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
@@ -294,6 +295,9 @@ function woocommerce_gateway_stripe() {
 					if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
+					} else if ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
+						new WC_Stripe_Amazon_Pay_Controller();
 					} else {
 						new WC_Stripe_Settings_Controller( $this->account );
 					}

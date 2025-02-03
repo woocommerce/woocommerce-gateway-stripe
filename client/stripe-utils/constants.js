@@ -27,6 +27,7 @@ export const PAYMENT_METHOD_ACSS_DEBIT = 'acss_debit';
  * Payment method names constants with the `stripe` prefix
  */
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
+export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
 export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
@@ -50,6 +51,7 @@ export const PAYMENT_METHOD_STRIPE_BACS = 'stripe_bacs_debit';
 export function getPaymentMethodsConstants() {
 	return {
 		card: PAYMENT_METHOD_STRIPE_CARD,
+		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
 		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,

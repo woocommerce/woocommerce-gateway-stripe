@@ -231,6 +231,18 @@ export const isLinkEnabled = ( paymentMethodsConfig ) => {
 };
 
 /**
+ * Check whether Amazon Pay is enabled.
+ *
+ * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
+ * @return {boolean} True, if enabled; false otherwise.
+ */
+export const isAmazonPayEnabled = ( paymentMethodsConfig ) => {
+	paymentMethodsConfig =
+		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
+	return paymentMethodsConfig?.amazonPay !== undefined;
+};
+
+/**
  * Get array of payment method types to use with intent.
  *
  * @todo Make paymentMethodType required when Split is implemented.
@@ -524,7 +536,7 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 
 	// If appearance is empty, get a fresh copy and save it in a transient.
 	if ( ! appearance ) {
-		appearance = getAppearance();
+		appearance = getAppearance( isBlockCheckout === 'true' );
 		api.saveAppearance( appearance, isBlockCheckout );
 	}
 

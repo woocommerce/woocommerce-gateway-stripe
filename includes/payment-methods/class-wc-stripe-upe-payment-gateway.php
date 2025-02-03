@@ -22,6 +22,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::class,
+		WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
@@ -156,6 +157,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
+			// Show ACH only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+				continue;
+			}
+
 			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
@@ -229,6 +235,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'wc_ajax_wc_stripe_save_appearance', [ $this, 'save_appearance_ajax' ] );
 
 		add_filter( 'woocommerce_saved_payment_methods_list', [ $this, 'filter_saved_payment_methods_list' ], 10, 2 );
+
+		// Add hooks for clearing appearance transients when theme is updated
+		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
+		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 	}
 
 	/**
@@ -988,7 +998,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$selected_payment_type = $payment_information['selected_payment_type'];
 
-			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+			// Retrieve the payment method object from Stripe.
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
 
 			$return_url = $this->get_return_url( $order );
 
@@ -2160,6 +2173,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
 		];
 
+		if ( 'us_bank_account' === $selected_payment_type ) {
+			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
+		}
+
 		if ( ! empty( $payment_method_id ) ) {
 			$payment_method_details                              = WC_Stripe_API::get_payment_method( $payment_method_id );
 			$payment_information['payment_method']               = $payment_method_id;
@@ -2171,7 +2188,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']               = $capture_method;
+			$payment_information['capture_method']           = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
@@ -2646,11 +2663,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			switch ( $express_payment_type ) {
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
+				case WC_Stripe_Payment_Methods::AMAZON_PAY:
+					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 				case 'google_pay':
 				case 'apple_pay':
-					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-				case 'amazon_pay':
-					return [ 'amazon_pay' ];
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}
@@ -2830,5 +2846,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Clears the appearance transients when a Block theme is updated or customized.
+	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 */
+	public function clear_appearance_transients_block_theme( $post_id, $post ) {
+		if ( in_array( $post->post_type, [ 'wp_global_styles' ], true ) ) {
+			delete_transient( $this->get_appearance_transient_key( true ) );
+		}
+	}
+
+	/**
+	 * Clears the appearance transients when a classic theme is updated or customized.
+	 * This ensures the UPE appearance is regenerated with the new theme colors.
+	 */
+	public function clear_appearance_transients() {
+		delete_transient( $this->get_appearance_transient_key() );
 	}
 }

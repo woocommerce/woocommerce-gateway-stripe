@@ -410,9 +410,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( 'Apple Pay (Stripe)' === $method_title
-				|| 'Google Pay (Stripe)' === $method_title
-			) {
+			if ( in_array( $method_title, [ 'Apple Pay (Stripe)', 'Google Pay (Stripe)', 'Amazon Pay (Stripe)' ], true ) ) {
 				return $method_title;
 			}
 		}

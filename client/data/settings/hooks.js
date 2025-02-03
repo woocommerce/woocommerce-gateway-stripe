@@ -156,6 +156,17 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	'payment_request_button_locations',
 	EMPTY_ARR
 );
+export const useAmazonPayEnabledSettings = makeSettingsHook(
+	'is_amazon_pay_enabled'
+);
+export const useAmazonPayButtonSize = makeSettingsHook(
+	'amazon_pay_button_size',
+	''
+);
+export const useAmazonPayLocations = makeSettingsHook(
+	'amazon_pay_button_locations',
+	EMPTY_ARR
+);
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
