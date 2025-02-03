@@ -42,6 +42,7 @@ describe( 'PaymentRequestSection', () => {
 		global.wc_stripe_settings_params = {
 			...globalValues,
 			is_ece_enabled: true,
+			is_amazon_pay_available: true,
 		};
 	} );
 
@@ -121,6 +122,19 @@ describe( 'PaymentRequestSection', () => {
 		global.wc_stripe_settings_params = {
 			...globalValues,
 			is_ece_enabled: false,
+			is_amazon_pay_available: true,
+		};
+
+		render( <PaymentRequestSection /> );
+
+		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
+	} );
+
+	it( 'hide Amazon Pay if feature flag is off', () => {
+		global.wc_stripe_settings_params = {
+			...globalValues,
+			is_ece_enabled: true,
+			is_amazon_pay_available: false,
 		};
 
 		render( <PaymentRequestSection /> );
