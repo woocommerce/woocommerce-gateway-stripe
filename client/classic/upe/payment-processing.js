@@ -70,20 +70,22 @@ export function validateElements( elements ) {
 /**
  * Creates a Stripe payment element with the specified payment method type and options.
  *
- * If the user is NOT deferring (e.g. ACSS Debit), we call our server to create a PaymentIntent
- * and then pass its client_secret to the Payment Element on initialization.
+ * If the payment method doesn't support deferred intent, the intent must be created first.
+ * Then, the payment element is created with the intent's client secret.
+ *
+ * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
  * @param {Object} api The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
-async function createStripePaymentElement( api, paymentMethodType = null ) {
+async function createStripePaymentElement( api, paymentMethodType ) {
 	const amount = Number( getStripeServerData()?.cartTotal );
 	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
+	const { supportsDeferredIntent } = paymentMethodsConfig[ paymentMethodType ] || {};
 	let options;
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
-	const { supportsDeferredIntent } = paymentMethodsConfig[ paymentMethodType ] || {};
 	if ( ! supportsDeferredIntent ) {
 		const intent = await api.createIntent( null, paymentMethodType );
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;

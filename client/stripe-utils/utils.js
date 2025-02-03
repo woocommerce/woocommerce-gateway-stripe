@@ -599,8 +599,6 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 			'input[name="payment_method"][value="stripe_' + paymentMethodType + '"]'
 		);
 
-		console.log( radioButton );
-
 		if ( radioButton ) {
 			radioButton.checked = false;
 		}
