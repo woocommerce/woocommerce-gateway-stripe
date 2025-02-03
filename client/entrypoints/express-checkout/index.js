@@ -503,12 +503,22 @@ jQuery( function ( $ ) {
 				productId = $( '.wc-booking-product-id' ).val();
 			}
 
+			const variation = [];
+			if ( $( '.variations_form' ).length ) {
+				for ( const [ key, value ] of Object.entries(
+					wcStripeECE.getAttributes().data
+				) ) {
+					variation.push( {
+						attribute: key.replace( 'attribute_', '' ),
+						value,
+					} );
+				}
+			}
+
 			const data = {
 				id: productId,
 				qty: $( quantityInputSelector ).val(),
-				variation: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
-					: [],
+				variation,
 			};
 
 			// Add extension data to the POST body
