@@ -93,6 +93,10 @@ jQuery( function ( $ ) {
 						$( `#${ containerName }` ).remove();
 					}
 				} );
+
+				eceButton.on( 'loaderror', () => {
+					$( `#${ containerName }` ).remove();
+				} );
 			}
 		},
 
@@ -184,13 +188,6 @@ jQuery( function ( $ ) {
 			} );
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
-
-			eceButton.on( 'loaderror', () => {
-				wcStripeECEError = __(
-					'The cart is incompatible with express checkout.',
-					'woocommerce-gateway-stripe'
-				);
-			} );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
