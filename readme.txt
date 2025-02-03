@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
 * Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
