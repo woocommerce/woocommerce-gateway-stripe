@@ -173,11 +173,36 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `filter_gateway_title`.
 	 *
+	 * @param string $title    The title to filter.
+	 * @param string $expected The expected title.
 	 * @return void
+	 * @dataProvider provide_test_filter_gateway_title
 	 */
-	public function test_filter_gateway_title() {
-		$actual = $this->element->filter_gateway_title( 'test', 'stripe' );
-		$this->assertSame( 'test', $actual );
+	public function test_filter_gateway_title( $title, $expected ) {
+		global $theorder;
+
+		$theorder = WC_Helper_Order::create_order();
+		$actual = $this->element->filter_gateway_title( $title, 'stripe' );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_filter_gateway_title`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_filter_gateway_title() {
+		return [
+			'random title' => [
+				'title'    => 'test',
+				'expected' => 'test',
+			],
+			'Amazon Pay'   => [
+				'title'    => 'Amazon Pay (Stripe)',
+				'expected' => 'Amazon Pay (Stripe)',
+			],
+		];
 	}
 
 	/**
