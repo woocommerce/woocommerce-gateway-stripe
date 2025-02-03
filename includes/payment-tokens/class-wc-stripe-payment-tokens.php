@@ -385,7 +385,7 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Controls the output for SEPA and Cash App on the my account page.
+	 * Controls the output for some payment methods on the my account page.
 	 *
 	 * @since 4.8.0
 	 * @param array            $item          Individual list item from woocommerce_saved_payment_methods_list.
@@ -401,6 +401,9 @@ class WC_Stripe_Payment_Tokens {
 				break;
 			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
+				break;
+			case WC_Stripe_Payment_Methods::ACH:
+				$item['method']['brand'] = esc_html__( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
