@@ -278,7 +278,7 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 
 	// Add 'amazon_pay' payment method type if enabled and requested.
 	if ( paymentMethodType === 'amazonPay' ) {
-		paymentMethodTypes.push( 'amazon_pay' );
+		return [ 'amazon_pay' ];
 	}
 
 	return paymentMethodTypes;

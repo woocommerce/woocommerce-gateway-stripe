@@ -2656,7 +2656,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
 				case WC_Stripe_Payment_Methods::AMAZON_PAY:
-					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_Payment_Methods::AMAZON_PAY ];
+					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 				case 'google_pay':
 				case 'apple_pay':
 				default:
