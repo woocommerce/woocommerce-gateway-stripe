@@ -22,7 +22,6 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
-	PAYMENT_METHOD_ACSS_DEBIT,
 } from 'wcstripe/stripe-utils/constants';
 
 const gatewayUPEComponents = {};
@@ -82,7 +81,8 @@ export function validateElements( elements ) {
 async function createStripePaymentElement( api, paymentMethodType ) {
 	const amount = Number( getStripeServerData()?.cartTotal );
 	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
-	const { supportsDeferredIntent } = paymentMethodsConfig[ paymentMethodType ] || {};
+	const { supportsDeferredIntent } =
+		paymentMethodsConfig[ paymentMethodType ] || {};
 	let options;
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
@@ -638,4 +638,3 @@ export const confirmWalletPayment = async ( api, jQueryForm ) => {
 		resetBlockCheckoutPaymentState();
 	}
 };
-

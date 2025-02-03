@@ -242,10 +242,7 @@ const paymentMethodsMap = {
 	},
 	acss_debit: {
 		id: 'acss_debit',
-		label: __(
-			'Pre-Authorized Debit',
-			'woocommerce-gateway-stripe'
-		),
+		label: __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
 			'woocommerce-gateway-stripe'

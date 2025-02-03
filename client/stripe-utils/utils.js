@@ -581,7 +581,7 @@ export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
 		getStripeServerData()?.paymentMethodsConfig || {};
 	const paymentMethodType = upeElement.dataset.paymentMethodType;
 	return !! paymentMethodsConfig[ paymentMethodType ]?.supportsDeferredIntent;
-}
+};
 
 /**
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
@@ -608,7 +608,9 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 		upeContainer.style.display = 'none';
 		// Also uncheck the radio button if it's selected.
 		const radioButton = document.querySelector(
-			'input[name="payment_method"][value="stripe_' + paymentMethodType + '"]'
+			'input[name="payment_method"][value="stripe_' +
+				paymentMethodType +
+				'"]'
 		);
 
 		if ( radioButton ) {

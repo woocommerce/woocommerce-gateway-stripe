@@ -55,7 +55,6 @@ jQuery( function ( $ ) {
 		maybeMountStripePaymentElement();
 	}
 
-
 	// For payment methods that don't support deferred intents, we mount the Payment Element only when it's selected.
 	$( 'form.checkout' ).on( 'change', 'input[name="payment_method"]', () => {
 		maybeMountStripePaymentElement();
@@ -91,7 +90,7 @@ jQuery( function ( $ ) {
 		}
 
 		const selectedMethod = getSelectedUPEGatewayPaymentMethod();
-		for ( const upeElement of $( '.wc-stripe-upe-element').toArray() ) {
+		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
 			// Don't mount if it's already mounted.
 			if ( $( upeElement ).children().length ) {
 				continue;
