@@ -403,7 +403,7 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::ACH:
-				$item['method']['brand'] = esc_html__( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
+				$item['method']['brand'] = $payment_token->get_display_name();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(

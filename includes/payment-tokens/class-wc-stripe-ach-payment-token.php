@@ -49,8 +49,8 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	 */
 	public function get_display_name( $deprecated = '' ) {
 		$display = sprintf(
-			/* translators: last 4 digits of IBAN account */
-			__( '%1$s %2$s account ending in %3$s', 'woocommerce-gateway-stripe' ),
+			/* translators: bank name, account type (checking, savings), last 4 digits of account. */
+			__( '%2$s account ending in %3$s (%1$s)', 'woocommerce-gateway-stripe' ),
 			$this->get_bank_name(),
 			$this->get_account_type(),
 			$this->get_last4()

@@ -61,10 +61,10 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$payment_token->set_gateway_id( $this->get_id() );
 		$payment_token->set_user_id( $user_id );
 		$payment_token->set_token( $payment_method->id );
-		$payment_token->set_last4( $payment_method->last4 );
-		$payment_token->set_bank_name( $payment_method->bank_name );
-		$payment_token->set_account_type( $payment_method->account_holder_type );
-		$payment_token->set_fingerprint( $payment_method->fingerprint );
+		$payment_token->set_last4( $payment_method->us_bank_account->last4 );
+		$payment_token->set_bank_name( $payment_method->us_bank_account->bank_name );
+		$payment_token->set_account_type( $payment_method->us_bank_account->account_type );
+		$payment_token->set_fingerprint( $payment_method->us_bank_account->fingerprint );
 		$payment_token->save();
 
 		return $payment_token;
