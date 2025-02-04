@@ -3,6 +3,7 @@
 import { PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT } from './constants';
 import { ExpressCheckoutContainer } from './express-checkout-container';
 import {
+	AmazonPayPreview,
 	ApplePayPreview,
 	GooglePayPreview,
 	StripeLinkPreview,
@@ -114,8 +115,38 @@ const expressCheckoutElementsStripeLink = ( api ) => ( {
 	supports,
 } );
 
+const expressCheckoutElementsAmazonPay = ( api ) => ( {
+	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_amazonPay',
+	title: 'WooCommerce Stripe - Amazon Pay',
+	content: (
+		<ExpressCheckoutContainer
+			api={ api }
+			stripe={ stripePromise }
+			expressPaymentMethod="amazonPay"
+		/>
+	),
+	edit: <AmazonPayPreview />,
+	canMakePayment: ( { cart } ) => {
+		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
+			return false;
+		}
+
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
+			return false;
+		}
+
+		return new Promise( ( resolve ) => {
+			checkPaymentMethodIsAvailable( 'amazonPay', api, cart, resolve );
+		} );
+	},
+	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+	supports,
+} );
+
 export {
-	expressCheckoutElementsGooglePay,
+	expressCheckoutElementsAmazonPay,
 	expressCheckoutElementsApplePay,
+	expressCheckoutElementsGooglePay,
 	expressCheckoutElementsStripeLink,
 };
