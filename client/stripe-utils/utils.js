@@ -1,4 +1,4 @@
-/* global wc_stripe_upe_params, wc */
+/* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
@@ -233,13 +233,11 @@ export const isLinkEnabled = ( paymentMethodsConfig ) => {
 /**
  * Check whether Amazon Pay is enabled.
  *
- * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
  * @return {boolean} True, if enabled; false otherwise.
  */
-export const isAmazonPayEnabled = ( paymentMethodsConfig ) => {
-	paymentMethodsConfig =
-		paymentMethodsConfig || getStripeServerData()?.paymentMethodsConfig;
-	return paymentMethodsConfig?.amazonPay !== undefined;
+export const isAmazonPayEnabled = () => {
+	// eslint-disable-next-line camelcase, no-undef
+	return !! wc_stripe_express_checkout_params?.stripe?.is_amazon_pay_enabled;
 };
 
 /**
