@@ -14,6 +14,7 @@ import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
 import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
+import { initializeCheckoutIcons } from './checkout-icons';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
 	expressCheckoutElementsGooglePay,
@@ -38,6 +39,10 @@ const api = new WCStripeAPI(
 	}
 );
 
+// Initialize checkout icons
+const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
+const checkoutIcons = initializeCheckoutIcons( isAdmin );
+
 const upeMethods = getPaymentMethodsConstants();
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
@@ -55,7 +60,9 @@ Object.entries( paymentMethodsConfig )
 					: PAYMENT_METHOD_AFTERPAY;
 		}
 
-		const Icon = Icons[ iconName ];
+		// Use checkout icons if available, otherwise fallback to default Icons
+		const Icon =
+			( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
 		const supports = {
 			// Use `false` as fallback values in case server provided configuration is missing.
 			showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
