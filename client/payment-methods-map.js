@@ -267,7 +267,7 @@ if ( isAcssEnabled ) {
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.card,
+		Icon: icons.acss_debit,
 		currencies: [ 'CAD' ],
 	};
 }
