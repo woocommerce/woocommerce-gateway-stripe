@@ -225,6 +225,14 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
+		'sepa_tokens_for_other_methods'       => [
+			'title'       => __( 'SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'yes',
+			'desc_tip'    => true,
+		],
 		'logging'                             => [
 			'title'       => __( 'Logging', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Log debug messages', 'woocommerce-gateway-stripe' ),
@@ -233,7 +241,7 @@ $stripe_settings = apply_filters(
 			'default'     => 'no',
 			'desc_tip'    => true,
 		],
-		'amazon_pay_button_locations'    => [
+		'amazon_pay_button_locations'         => [
 			'title'             => __( 'Amazon Pay Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
 			'description'       => __( 'Select where you would like Amazon Pay Button to be displayed', 'woocommerce-gateway-stripe' ),
