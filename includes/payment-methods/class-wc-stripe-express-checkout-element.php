@@ -190,6 +190,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
+				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
 			],
 			'nonce'                  => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
@@ -410,9 +411,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( 'Apple Pay (Stripe)' === $method_title
-				|| 'Google Pay (Stripe)' === $method_title
-			) {
+			if ( in_array( $method_title, [ 'Apple Pay (Stripe)', 'Google Pay (Stripe)', 'Amazon Pay (Stripe)' ], true ) ) {
 				return $method_title;
 			}
 		}

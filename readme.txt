@@ -113,7 +113,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.2.0 - xxxx-xx-xx =
 * Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
+* Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
+* Add - New Amazon Pay payment method in the Stripe Express Checkout Element for the classic, shortcode (classic) checkout, product, and cart pages.
 * Dev - Introduces new payment intent status constants for the frontend.
 * Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
@@ -141,5 +144,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Amazon Pay to settings express checkout section.
 * Add - Add Amazon Pay customize express checkout page.
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
+* Fix - Hide ECE button for synced subscription variations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

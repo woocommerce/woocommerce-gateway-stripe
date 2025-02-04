@@ -226,10 +226,10 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		$data     = [];
-		$items    = [];
-		$price    = $this->get_product_price( $product );
-		$currency = get_woocommerce_currency();
+		$data      = [];
+		$items     = [];
+		$price     = $this->get_product_price( $product );
+		$currency  = get_woocommerce_currency();
 		$total_tax = 0;
 
 		$items[] = [
@@ -259,8 +259,8 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$data['displayItems'] = $items;
 		$data['total']        = [
-			'label'  => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
+			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $price + $total_tax, $currency ),
 			'pending' => true,
 		];
 
@@ -1160,12 +1160,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function get_button_settings() {
 		$button_type = $this->get_button_type();
 		return [
-			'type'         => $button_type,
-			'theme'        => $this->get_button_theme(),
-			'height'       => $this->get_button_height(),
-			'radius'       => $this->get_button_radius(),
+			'type'   => $button_type,
+			'theme'  => $this->get_button_theme(),
+			'height' => $this->get_button_height(),
+			'radius' => $this->get_button_radius(),
 			// Default format is en_US.
-			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
+			'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
 	}
 
@@ -1320,7 +1320,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$message      = __( 'To complete your transaction with **the selected payment method**, you must log in or create an account with our site.', 'woocommerce-gateway-stripe' );
 		$redirect_url = add_query_arg(
 			[
-				'_wpnonce'                               => wp_create_nonce( 'wc-stripe-set-redirect-url' ),
+				'_wpnonce'                                => wp_create_nonce( 'wc-stripe-set-redirect-url' ),
 				'wc_stripe_express_checkout_redirect_url' => rawurlencode( home_url( add_query_arg( [] ) ) ), // Current URL to redirect to after login.
 			],
 			home_url()
@@ -1362,6 +1362,16 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_express_checkout_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
+	}
+
+	/**
+	 * Returns whether Amazon Pay is enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_amazon_pay_enabled() {
+		return WC_Stripe_Feature_Flags::is_amazon_pay_available() &&
+			isset( $this->stripe_settings['amazon_pay'] ) && 'yes' === $this->stripe_settings['amazon_pay'];
 	}
 
 	/**
