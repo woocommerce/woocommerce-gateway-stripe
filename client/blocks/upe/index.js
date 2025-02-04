@@ -110,8 +110,12 @@ Object.entries( paymentMethodsConfig )
 	} );
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
-	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+	// Register Express Checkout Elements.
+
+	// Hide behind feature flag so the editor does not show the button.
+	if ( getBlocksConfiguration()?.isAmazonPayAvailable ) {
+		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+	}
 	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );

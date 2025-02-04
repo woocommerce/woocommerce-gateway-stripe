@@ -437,6 +437,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ECE feature flag
 		$stripe_params['isECEEnabled'] = WC_Stripe_Feature_Flags::is_stripe_ece_enabled();
 
+		// Amazon Pay feature flag.
+		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
+
 		// ACH LPM Feature flag.
 		$stripe_params['is_ach_enabled'] = WC_Stripe_Feature_Flags::is_ach_lpm_enabled();
 
@@ -2197,7 +2200,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']           = $capture_method;
+			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
