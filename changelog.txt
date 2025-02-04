@@ -34,6 +34,7 @@
 * Add - Add Amazon Pay customize express checkout page.
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 * Fix - Hide ECE button for synced subscription variations.
+* Tweak -Payment method logo visibility in checkout page.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
