@@ -1,13 +1,14 @@
 /* global wc_stripe_express_checkout_params */
-import { camelCase } from 'lodash';
 import jQuery from 'jquery';
 import { isAmazonPayEnabled, isLinkEnabled } from 'wcstripe/stripe-utils';
 import { EXPRESS_CHECKOUT_NOTICE_DELAY } from 'wcstripe/data/constants';
 import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_APPLE_PAY,
 	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_GOOGLE_PAY,
 	PAYMENT_METHOD_LINK,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -122,7 +123,9 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 			case 'light':
 				return 'white';
 			case 'light-outline':
-				if ( buttonType === camelCase( PAYMENT_METHOD_GOOGLE_PAY ) ) {
+				if (
+					buttonType === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
+				) {
 					return 'white';
 				}
 
@@ -148,11 +151,11 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 		layout: { overflow: 'never' },
 		buttonTheme: {
 			googlePay: mapButtonSettingToStripeButtonTheme(
-				camelCase( PAYMENT_METHOD_GOOGLE_PAY ),
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				buttonSettings?.theme ?? 'black'
 			),
 			applePay: mapButtonSettingToStripeButtonTheme(
-				camelCase( PAYMENT_METHOD_APPLE_PAY ),
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 				buttonSettings?.theme ?? 'black'
 			),
 		},
@@ -276,13 +279,16 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 	const paymentMethodTypes = [ PAYMENT_METHOD_CARD ];
 
 	// Add 'link' payment method type if enabled and requested.
-	if ( paymentMethodType === PAYMENT_METHOD_LINK && isLinkEnabled() ) {
+	if (
+		paymentMethodType === EXPRESS_PAYMENT_METHOD_SETTING_LINK &&
+		isLinkEnabled()
+	) {
 		paymentMethodTypes.push( PAYMENT_METHOD_LINK );
 	}
 
 	// Add 'amazon_pay' payment method type if enabled and requested.
 	if (
-		paymentMethodType === camelCase( PAYMENT_METHOD_AMAZON_PAY ) &&
+		paymentMethodType === EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY &&
 		isAmazonPayEnabled()
 	) {
 		return [ PAYMENT_METHOD_AMAZON_PAY ];
@@ -358,7 +364,7 @@ export const expressCheckoutNoticeDelay = async () => {
  */
 export const isManualPaymentMethodCreation = ( expressPaymentType ) => {
 	return ! [
-		camelCase( PAYMENT_METHOD_AMAZON_PAY ),
+		EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 		PAYMENT_METHOD_AMAZON_PAY,
 	].includes( expressPaymentType );
 };

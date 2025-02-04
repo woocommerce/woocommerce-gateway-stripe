@@ -4,12 +4,11 @@ import { __ } from '@wordpress/i18n';
 import { useState, useMemo } from 'react';
 import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { camelCase } from 'lodash';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
 import {
-	PAYMENT_METHOD_APPLE_PAY,
-	PAYMENT_METHOD_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 const buttonSizeToPxMap = {
@@ -51,7 +50,7 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 				return 'white';
 			case 'light-outline':
 				if (
-					paymentMethod === camelCase( PAYMENT_METHOD_GOOGLE_PAY )
+					paymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
 				) {
 					return 'white';
 				}
@@ -67,11 +66,11 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 		buttonTheme: {
 			googlePay: mapThemeConfigToButtonTheme(
-				camelCase( PAYMENT_METHOD_GOOGLE_PAY ),
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 				theme
 			),
 			applePay: mapThemeConfigToButtonTheme(
-				camelCase( PAYMENT_METHOD_APPLE_PAY ),
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 				theme
 			),
 		},

@@ -1,6 +1,6 @@
 /*global wcStripeExpressCheckoutPayForOrderParams */
 import { __ } from '@wordpress/i18n';
-import { camelCase, debounce } from 'lodash';
+import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
@@ -29,10 +29,10 @@ import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 import {
-	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_APPLE_PAY,
-	PAYMENT_METHOD_GOOGLE_PAY,
-	PAYMENT_METHOD_LINK,
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
 
 jQuery( function ( $ ) {
@@ -139,11 +139,11 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				PAYMENT_METHOD_APPLE_PAY,
-				PAYMENT_METHOD_GOOGLE_PAY,
-				PAYMENT_METHOD_AMAZON_PAY,
-				PAYMENT_METHOD_LINK,
-			].map( camelCase );
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+			];
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
@@ -181,17 +181,17 @@ jQuery( function ( $ ) {
 				paymentMethods: {
 					amazonPay:
 						expressPaymentType ===
-						camelCase( PAYMENT_METHOD_AMAZON_PAY )
+						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
 							? 'auto'
 							: 'never',
 					googlePay:
 						expressPaymentType ===
-						camelCase( PAYMENT_METHOD_GOOGLE_PAY )
+						EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
 							? 'always'
 							: 'never',
 					applePay:
 						expressPaymentType ===
-						camelCase( PAYMENT_METHOD_APPLE_PAY )
+						EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
 							? 'always'
 							: 'never',
 					link: expressPaymentType === 'link' ? 'auto' : 'never',

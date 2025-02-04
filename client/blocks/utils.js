@@ -1,10 +1,9 @@
 /* global wc */
 
-import { camelCase } from 'lodash';
 import {
-	PAYMENT_METHOD_APPLE_PAY,
-	PAYMENT_METHOD_GOOGLE_PAY,
-	PAYMENT_METHOD_LINK,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 } from 'wcstripe/stripe-utils/constants';
 
 export const getBlocksConfiguration = () => {
@@ -30,16 +29,17 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 
 	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
 	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
-		disableWallets.push( PAYMENT_METHOD_LINK );
+		disableWallets.push( EXPRESS_PAYMENT_METHOD_SETTING_LINK );
 	}
 
 	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
 	if ( ! getBlocksConfiguration()?.stripe?.is_payment_request_enabled ) {
-		[ PAYMENT_METHOD_APPLE_PAY, PAYMENT_METHOD_GOOGLE_PAY ]
-			.map( camelCase )
-			.forEach( function ( wallet ) {
-				disableWallets.push( wallet );
-			} );
+		[
+			EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+			EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+		].forEach( function ( wallet ) {
+			disableWallets.push( wallet );
+		} );
 	}
 
 	const options = {
