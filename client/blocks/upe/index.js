@@ -16,10 +16,10 @@ import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
-	expressCheckoutElementsAmazonPay,
-	expressCheckoutElementsApplePay,
-	expressCheckoutElementsGooglePay,
-	expressCheckoutElementsStripeLink,
+	expressCheckoutElementAmazonPay,
+	expressCheckoutElementApplePay,
+	expressCheckoutElementGooglePay,
+	expressCheckoutElementStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -111,10 +111,10 @@ Object.entries( paymentMethodsConfig )
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementsAmazonPay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementsStripeLink( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 } else {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );

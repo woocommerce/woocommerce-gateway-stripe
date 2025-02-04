@@ -11,88 +11,72 @@ import {
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
-import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+
+/** @typedef {import('react')} React */
 
 const stripePromise = loadStripe();
 
-const supports = {
-	features: getBlocksConfiguration()?.supports ?? [],
+/**
+ * Get the title for the express payment method.
+ *
+ * @param {string} expressPaymentMethod
+ * @return {string} The title.
+ */
+const getTitle = ( expressPaymentMethod ) => {
+	switch ( expressPaymentMethod ) {
+		case 'amazonPay':
+			return 'WooCommerce Stripe - Amazon Pay';
+		case 'applePay':
+			return 'WooCommerce Stripe - Apple Pay';
+		case 'googlePay':
+			return 'WooCommerce Stripe - Google Pay';
+		case 'link':
+			return 'WooCommerce Stripe - Link by Stripe';
+		default:
+			return '';
+	}
 };
-if ( getBlocksConfiguration().isAdmin ?? false ) {
-	supports.style = getBlocksConfiguration()?.style ?? [];
-}
 
-const expressCheckoutElementsGooglePay = ( api ) => ( {
-	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_googlePay',
-	title: 'WooCommerce Stripe - Google Pay',
-	content: (
+/**
+ * Get the editor element for the express payment method.
+ *
+ * @param {string} expressPaymentMethod
+ * @return {React.ReactNode} The React element for the editor.
+ */
+const getEditorElement = ( expressPaymentMethod ) => {
+	switch ( expressPaymentMethod ) {
+		case 'amazonPay':
+			return <AmazonPayPreview />;
+		case 'applePay':
+			return <ApplePayPreview />;
+		case 'googlePay':
+			return <GooglePayPreview />;
+		case 'link':
+			return <StripeLinkPreview />;
+		default:
+			return null;
+	}
+};
+
+/**
+ *
+ * @param {string} expressPaymentMethod
+ * @param {Object} api The Stripe API object.
+ * @return {Object} The express payment method configuration.
+ */
+const expressCheckoutElement = ( expressPaymentMethod, api ) => {
+	const name =
+		PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_' + expressPaymentMethod;
+	const title = getTitle( expressPaymentMethod );
+	const content = (
 		<ExpressCheckoutContainer
 			api={ api }
 			stripe={ stripePromise }
-			expressPaymentMethod="googlePay"
+			expressPaymentMethod={ expressPaymentMethod }
 		/>
-	),
-	edit: <GooglePayPreview />,
-	canMakePayment: ( { cart } ) => {
-		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
-			return false;
-		}
-
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
-			return false;
-		}
-
-		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'googlePay', api, cart, resolve );
-		} );
-	},
-	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	gatewayId: 'stripe',
-	supports,
-} );
-
-const expressCheckoutElementsApplePay = ( api ) => ( {
-	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_applePay',
-	title: 'WooCommerce Stripe - Apple Pay',
-	content: (
-		<ExpressCheckoutContainer
-			api={ api }
-			stripe={ stripePromise }
-			expressPaymentMethod="applePay"
-		/>
-	),
-	edit: <ApplePayPreview />,
-	canMakePayment: ( { cart } ) => {
-		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
-			return false;
-		}
-
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
-			return false;
-		}
-
-		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'applePay', api, cart, resolve );
-		} );
-	},
-	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	gatewayId: 'stripe',
-	supports,
-} );
-
-const expressCheckoutElementsStripeLink = ( api ) => ( {
-	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_link',
-	content: (
-		<ExpressCheckoutContainer
-			api={ api }
-			stripe={ stripePromise }
-			expressPaymentMethod="link"
-		/>
-	),
-	edit: <StripeLinkPreview />,
-	canMakePayment: ( { cart } ) => {
+	);
+	const edit = getEditorElement( expressPaymentMethod );
+	const canMakePayment = ( { cart } ) => {
 		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
 			return false;
 		}
@@ -104,49 +88,45 @@ const expressCheckoutElementsStripeLink = ( api ) => ( {
 
 		return new Promise( ( resolve ) => {
 			checkPaymentMethodIsAvailable(
-				PAYMENT_METHOD_LINK,
+				expressPaymentMethod,
 				api,
 				cart,
 				resolve
 			);
 		} );
-	},
-	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	supports,
-} );
+	};
 
-const expressCheckoutElementsAmazonPay = ( api ) => ( {
-	name: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT + '_amazonPay',
-	title: 'WooCommerce Stripe - Amazon Pay',
-	content: (
-		<ExpressCheckoutContainer
-			api={ api }
-			stripe={ stripePromise }
-			expressPaymentMethod="amazonPay"
-		/>
-	),
-	edit: <AmazonPayPreview />,
-	canMakePayment: ( { cart } ) => {
-		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
-			return false;
-		}
+	const supports = {
+		features: getBlocksConfiguration()?.supports ?? [],
+		...( getBlocksConfiguration()?.isAdmin && {
+			style: getBlocksConfiguration()?.style ?? [],
+		} ),
+	};
 
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_express_checkout_params === 'undefined' ) {
-			return false;
-		}
+	return {
+		name,
+		title,
+		content,
+		edit,
+		canMakePayment,
+		paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
+		gatewayId: 'stripe',
+		supports,
+	};
+};
 
-		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable( 'amazonPay', api, cart, resolve );
-		} );
-	},
-	paymentMethodId: PAYMENT_METHOD_EXPRESS_CHECKOUT_ELEMENT,
-	supports,
-} );
+const expressCheckoutElementAmazonPay = ( api ) =>
+	expressCheckoutElement( 'amazonPay', api );
+const expressCheckoutElementApplePay = ( api ) =>
+	expressCheckoutElement( 'applePay', api );
+const expressCheckoutElementGooglePay = ( api ) =>
+	expressCheckoutElement( 'googlePay', api );
+const expressCheckoutElementStripeLink = ( api ) =>
+	expressCheckoutElement( 'link', api );
 
 export {
-	expressCheckoutElementsAmazonPay,
-	expressCheckoutElementsApplePay,
-	expressCheckoutElementsGooglePay,
-	expressCheckoutElementsStripeLink,
+	expressCheckoutElementAmazonPay,
+	expressCheckoutElementApplePay,
+	expressCheckoutElementGooglePay,
+	expressCheckoutElementStripeLink,
 };
