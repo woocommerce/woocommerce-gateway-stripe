@@ -505,6 +505,19 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Get cart items and total amount (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetailsLegacy() {
+		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
+			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
+		} );
+	}
+
+	/**
 	 * Add product to cart from product page.
 	 *
 	 * @param {Object} productData Product data.
@@ -516,6 +529,21 @@ export default class WCStripeAPI {
 			productData
 		);
 		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
+	}
+
+	/**
+	 * Add product to cart from product page (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCartLegacy( productData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			...productData,
+		} );
 	}
 
 	/**

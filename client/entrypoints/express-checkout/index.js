@@ -12,6 +12,7 @@ import {
 	getExpressCheckoutData,
 	isManualPaymentMethodCreation,
 	getPaymentMethodTypesForExpressMethod,
+	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -65,6 +66,14 @@ jQuery( function ( $ ) {
 		'There was an error getting the product information.',
 		'woocommerce-gateway-stripe'
 	);
+
+	/**
+	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
+	 * StoreAPI will support this form correctly only after WC 9.7.0.
+	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
+	 */
+	const useLegacyCartEndpoints = $( '.variations_form' ).length > 0;
+
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
@@ -126,7 +135,7 @@ jQuery( function ( $ ) {
 					.map( ( i ) => ( {
 						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: i.name,
+						displayName: useLegacyCartEndpoints ? i.label : i.name,
 					} ) );
 			};
 
@@ -258,7 +267,9 @@ jQuery( function ( $ ) {
 				}
 
 				const clickOptions = {
-					lineItems: options.displayItems,
+					lineItems: useLegacyCartEndpoints
+						? normalizeLineItems( options.displayItems )
+						: options.displayItems,
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
@@ -367,6 +378,8 @@ jQuery( function ( $ ) {
 					getExpressCheckoutData( 'product' )
 						?.validVariationSelected ?? true;
 				if ( isProductSupported ) {
+					const displayItems =
+						getExpressCheckoutData( 'product' ).displayItems ?? [];
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total: getExpressCheckoutData( 'product' )?.total
@@ -378,10 +391,9 @@ jQuery( function ( $ ) {
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone ?? false,
-						displayItems: transformLabeledDisplayItems(
-							getExpressCheckoutData( 'product' )?.displayItems ??
-								[]
-						),
+						displayItems: useLegacyCartEndpoints
+							? displayItems
+							: transformLabeledDisplayItems( displayItems ),
 					} );
 				}
 			} else {
@@ -503,23 +515,17 @@ jQuery( function ( $ ) {
 				productId = $( '.wc-booking-product-id' ).val();
 			}
 
-			const variation = [];
-			if ( $( '.variations_form' ).length ) {
-				for ( const [ key, value ] of Object.entries(
-					wcStripeECE.getAttributes().data
-				) ) {
-					variation.push( {
-						attribute: key.replace( 'attribute_', '' ),
-						value,
-					} );
-				}
-			}
-
 			const data = {
-				id: productId,
 				qty: $( quantityInputSelector ).val(),
-				variation,
 			};
+
+			if ( useLegacyCartEndpoints ) {
+				data.product_id = productId;
+				data.attributes = wcStripeECE.getAttributes().data;
+			} else {
+				data.id = productId;
+				data.variation = [];
+			}
 
 			// Add extension data to the POST body
 			const formData = $( 'form.cart' ).serializeArray();
@@ -540,6 +546,10 @@ jQuery( function ( $ ) {
 					}
 				}
 			} );
+
+			if ( useLegacyCartEndpoints ) {
+				return api.expressCheckoutAddToCartLegacy( data );
+			}
 
 			return api.expressCheckoutAddToCart( data );
 		},
