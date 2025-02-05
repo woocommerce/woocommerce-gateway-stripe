@@ -21,35 +21,5 @@ describe( 'ECE product page compatibility', () => {
 
 			expect( cartAddItemData ).toStrictEqual( { id: 123 } );
 		} );
-
-		it( 'adds extension data to POST body', () => {
-			function App() {
-				return (
-					<form className="cart">
-						<input name="addon-1" defaultValue="addon-1-value" />
-						<input name="wc_field" defaultValue="wc-field-value" />
-						<input
-							name="wc_field[]"
-							defaultValue="wc-field-value-1"
-						/>
-						<input
-							name="wc_field[]"
-							defaultValue="wc-field-value-2"
-						/>
-					</form>
-				);
-			}
-			render( <App /> );
-
-			const cartAddItemData = applyFilters(
-				'wcstripe.express-checkout.cart-add-item',
-				{}
-			);
-
-			expect( cartAddItemData ).toStrictEqual( {
-				'addon-1': 'addon-1-value',
-				wc_field: [ 'wc-field-value-1', 'wc-field-value-2' ],
-			} );
-		} );
 	} );
 } );

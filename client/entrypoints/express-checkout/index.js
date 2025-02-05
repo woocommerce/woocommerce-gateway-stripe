@@ -525,6 +525,26 @@ jQuery( function ( $ ) {
 				productId = $( '.wc-booking-product-id' ).val();
 			}
 
+			// Add extension data to the POST body
+			const formData = $( 'form.cart' ).serializeArray();
+			$.each( formData, ( i, field ) => {
+				if ( /^(addon-|wc_)/.test( field.name ) ) {
+					if ( /\[\]$/.test( field.name ) ) {
+						const fieldName = field.name.substring(
+							0,
+							field.name.length - 2
+						);
+						if ( data[ fieldName ] ) {
+							data[ fieldName ].push( field.value );
+						} else {
+							data[ fieldName ] = [ field.value ];
+						}
+					} else {
+						data[ field.name ] = field.value;
+					}
+				}
+			} );
+
 			// Legacy support for variations.
 			if ( useLegacyCartEndpoints ) {
 				data.product_id = productId;
