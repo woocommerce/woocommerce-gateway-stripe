@@ -11,6 +11,11 @@ import {
 import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	PAYMENT_METHOD_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 /** @typedef {import('react')} React */
 
@@ -26,11 +31,11 @@ const getTitle = ( expressPaymentMethod ) => {
 	switch ( expressPaymentMethod ) {
 		case 'amazonPay':
 			return 'WooCommerce Stripe - Amazon Pay';
-		case 'applePay':
+		case EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY:
 			return 'WooCommerce Stripe - Apple Pay';
-		case 'googlePay':
+		case EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY:
 			return 'WooCommerce Stripe - Google Pay';
-		case 'link':
+		case PAYMENT_METHOD_LINK:
 			return 'WooCommerce Stripe - Link by Stripe';
 		default:
 			return '';
@@ -47,11 +52,11 @@ const getEditorElement = ( expressPaymentMethod ) => {
 	switch ( expressPaymentMethod ) {
 		case 'amazonPay':
 			return <AmazonPayPreview />;
-		case 'applePay':
+		case EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY:
 			return <ApplePayPreview />;
-		case 'googlePay':
+		case EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY:
 			return <GooglePayPreview />;
-		case 'link':
+		case PAYMENT_METHOD_LINK:
 			return <StripeLinkPreview />;
 		default:
 			return null;
@@ -118,11 +123,11 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 const expressCheckoutElementAmazonPay = ( api ) =>
 	expressCheckoutElement( 'amazonPay', api );
 const expressCheckoutElementApplePay = ( api ) =>
-	expressCheckoutElement( 'applePay', api );
+	expressCheckoutElement( EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY, api );
 const expressCheckoutElementGooglePay = ( api ) =>
-	expressCheckoutElement( 'googlePay', api );
+	expressCheckoutElement( EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY, api );
 const expressCheckoutElementStripeLink = ( api ) =>
-	expressCheckoutElement( 'link', api );
+	expressCheckoutElement( PAYMENT_METHOD_LINK, api );
 
 export {
 	expressCheckoutElementAmazonPay,

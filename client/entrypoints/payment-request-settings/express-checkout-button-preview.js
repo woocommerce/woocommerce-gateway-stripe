@@ -6,6 +6,10 @@ import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+} from 'wcstripe/stripe-utils/constants';
 
 const buttonSizeToPxMap = {
 	small: 40,
@@ -45,10 +49,11 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 			case 'light':
 				return 'white';
 			case 'light-outline':
-				if ( paymentMethod === 'googlePay' ) {
+				if (
+					paymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
+				) {
 					return 'white';
 				}
-
 				return 'white-outline';
 			default:
 				return 'black';
@@ -60,8 +65,14 @@ const ExpressCheckoutPreviewComponent = ( { buttonType, theme, size } ) => {
 	const buttonOptions = {
 		buttonHeight: Math.min( Math.max( height, 40 ), 55 ),
 		buttonTheme: {
-			googlePay: mapThemeConfigToButtonTheme( 'googlePay', theme ),
-			applePay: mapThemeConfigToButtonTheme( 'applePay', theme ),
+			googlePay: mapThemeConfigToButtonTheme(
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				theme
+			),
+			applePay: mapThemeConfigToButtonTheme(
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				theme
+			),
 		},
 		buttonType: {
 			googlePay: type,
