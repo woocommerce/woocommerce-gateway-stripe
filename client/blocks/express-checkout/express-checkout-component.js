@@ -5,6 +5,10 @@ import {
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+} from 'wcstripe/stripe-utils/constants';
 
 const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 	const allDisabled = {
@@ -15,9 +19,10 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 		paypal: 'never',
 	};
 
-	const enabledParam = [ 'applePay', 'googlePay' ].includes(
-		enabledPaymentMethod
-	)
+	const enabledParam = [
+		EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+		EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	].includes( enabledPaymentMethod )
 		? 'always'
 		: 'auto';
 
@@ -33,14 +38,16 @@ const getPaymentMethodsOverride = ( enabledPaymentMethod ) => {
 const adjustButtonHeights = ( buttonOptions, expressPaymentMethod ) => {
 	// Apple Pay has a nearly imperceptible height difference. We increase it by 1px here.
 	if ( buttonOptions.buttonTheme.applePay === 'black' ) {
-		if ( expressPaymentMethod === 'applePay' ) {
+		if (
+			expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+		) {
 			buttonOptions.buttonHeight = buttonOptions.buttonHeight + 0.4;
 		}
 	}
 
 	// GooglePay with the white theme has a 2px height difference due to its border.
 	if (
-		expressPaymentMethod === 'googlePay' &&
+		expressPaymentMethod === EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY &&
 		buttonOptions.buttonTheme.googlePay === 'white'
 	) {
 		buttonOptions.buttonHeight = buttonOptions.buttonHeight - 2;
