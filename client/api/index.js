@@ -595,6 +595,8 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+		paymentData.shipping_address = orderDetails.shippingAddress;
+
 		const billingEmail = orderDetails.billingEmail ?? '';
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;

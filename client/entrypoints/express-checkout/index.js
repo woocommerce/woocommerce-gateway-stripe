@@ -29,6 +29,12 @@ import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
 import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+} from 'wcstripe/stripe-utils/constants';
+import {
 	transformCartDataForDisplayItems,
 	transformLabeledDisplayItems,
 	transformPrice,
@@ -150,10 +156,10 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				'applePay',
-				'googlePay',
-				'amazonPay',
-				'link',
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			];
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -191,11 +197,20 @@ jQuery( function ( $ ) {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
 					amazonPay:
-						expressPaymentType === 'amazonPay' ? 'auto' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+							? 'auto'
+							: 'never',
 					googlePay:
-						expressPaymentType === 'googlePay' ? 'always' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
+							? 'always'
+							: 'never',
 					applePay:
-						expressPaymentType === 'applePay' ? 'always' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+							? 'always'
+							: 'never',
 					link: expressPaymentType === 'link' ? 'auto' : 'never',
 				},
 			} );
