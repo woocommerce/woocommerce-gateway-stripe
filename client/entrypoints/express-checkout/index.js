@@ -515,19 +515,26 @@ jQuery( function ( $ ) {
 		 * @return {Promise} Promise for the request to the server.
 		 */
 		addToCart: () => {
+			let productId = $( '.single_add_to_cart_button' ).val();
+
 			const data = {
 				qty: $( quantityInputSelector ).val(),
 			};
 
+			if ( $( '.wc-bookings-booking-form' ).length ) {
+				productId = $( '.wc-booking-product-id' ).val();
+			}
+
 			// Legacy support for variations.
 			if ( useLegacyCartEndpoints ) {
-				data.product_id = $( '.single_add_to_cart_button' ).val();
+				data.product_id = productId;
 				data.attributes = wcStripeECE.getAttributes().data;
 
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
 
 			// BlocksAPI partial support (lacking support for variations).
+			data.id = productId;
 			data.variation = [];
 
 			return api.expressCheckoutAddToCart( data );

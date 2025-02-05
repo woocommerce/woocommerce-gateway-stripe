@@ -1,7 +1,7 @@
 import { addFilter } from '@wordpress/hooks';
 
 /**
- * Sets the product ID when using the BlocksAPI and variations are present.
+ * Sets the product ID when using the BlocksAPI and single variation form is present.
  */
 addFilter(
 	'wcstripe.express-checkout.cart-add-item',
