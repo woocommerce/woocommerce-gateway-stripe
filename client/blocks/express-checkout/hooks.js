@@ -16,6 +16,7 @@ import {
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
+import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
 export const useExpressCheckout = ( {
 	api,
