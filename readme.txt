@@ -111,9 +111,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
 * Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
-* Tweak - Process ECE cart requests using the Blocks (Store) API. 
+* Tweak - Process ECE cart requests using the Blocks (Store) API.
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
 * Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
