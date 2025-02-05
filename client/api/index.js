@@ -1,6 +1,7 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
+import { applyFilters } from '@wordpress/hooks';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
@@ -496,9 +497,81 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutGetCartDetails() {
+		return apiFetch( {
+			method: 'GET',
+			path: '/wc/store/v1/cart',
+			security: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+		} );
+	}
+
+	/**
+	 * Get cart items and total amount (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetailsLegacy() {
 		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
 			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
 		} );
+	}
+
+	/**
+	 * Add product to cart from product page.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCart( productData ) {
+		const data = applyFilters(
+			'wcstripe.express-checkout.cart-add-item',
+			productData
+		);
+		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
+	}
+
+	/**
+	 * Add product to cart from product page (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCartLegacy( productData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
+			...productData,
+		} );
+	}
+
+	/**
+	 * Empty the cart.
+	 *
+	 * @param {number} bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	async expressCheckoutEmptyCart( bookingId ) {
+		try {
+			const cartData = await apiFetch( {
+				method: 'GET',
+				path: '/wc/store/v1/cart',
+				headers: {
+					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+				},
+			} );
+			const removeItemsPromises = cartData.items.map( ( item ) => {
+				return this.postToBlocksAPI( '/wc/store/v1/cart/remove-item', {
+					key: item.key,
+					booking_id: bookingId,
+				} );
+			} );
+
+			await Promise.all( removeItemsPromises );
+		} catch ( e ) {
+			// let's ignore the error, it's likely not going to be relevant.
+		}
 	}
 
 	/**
@@ -547,19 +620,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Add product to cart from product page.
-	 *
-	 * @param {Object} productData Product data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutAddToCart( productData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
-			...productData,
-		} );
-	}
-
-	/**
 	 * Get selected product data from variable product page.
 	 *
 	 * @param {Object} productData Product data.
@@ -574,18 +634,5 @@ export default class WCStripeAPI {
 				...productData,
 			}
 		);
-	}
-
-	/**
-	 * Empty the cart.
-	 *
-	 * @param {number} bookingId Booking ID.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutEmptyCart( bookingId ) {
-		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
-			booking_id: bookingId,
-		} );
 	}
 }
