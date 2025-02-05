@@ -41,7 +41,37 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+	}
 
+	/**
+	 * Returns a list of the payment method titles.
+	 *
+	 * @param bool $include_link Whether to include the Link payment method.
+	 * @return array
+	 */
+	public static function get_payment_method_titles( $include_link = false ) {
+		$titles = [
+			'apple_pay'                           => WC_Stripe_Express_Payment_Titles::APPLE_PAY,
+			'google_pay'                          => WC_Stripe_Express_Payment_Titles::GOOGLE_PAY,
+			WC_Stripe_Payment_Methods::AMAZON_PAY => WC_Stripe_Express_Payment_Titles::AMAZON_PAY,
+		];
+		if ( $include_link ) {
+			$titles[ WC_Stripe_Payment_Methods::LINK ] = WC_Stripe_Express_Payment_Titles::LINK;
+		}
+		return $titles;
+	}
+
+	/**
+	 * Returns the suffix set for the express payment method titles.
+	 *
+	 * @return mixed
+	 */
+	public static function get_payment_method_title_suffix() {
+		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
+		if ( ! empty( $suffix ) ) {
+			$suffix = " ($suffix)";
+		}
+		return $suffix;
 	}
 
 	/**
