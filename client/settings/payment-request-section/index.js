@@ -238,7 +238,7 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
-					{ isAmazonPayAvailable && displayAmazonPayPaymentMethod && (
+					{ isAmazonPayAvailable && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox">
 								<CheckboxControl
