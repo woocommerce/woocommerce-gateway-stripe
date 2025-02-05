@@ -50,10 +50,10 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	public function get_display_name( $deprecated = '' ) {
 		$display = sprintf(
 			/* translators: bank name, account type (checking, savings), last 4 digits of account. */
-			__( '%2$s account ending in %3$s (%1$s)', 'woocommerce-gateway-stripe' ),
-			$this->get_bank_name(),
-			$this->get_account_type(),
-			$this->get_last4()
+			__( '%1$s account ending in %2$s (%3$s)', 'woocommerce-gateway-stripe' ),
+			ucfirst( $this->get_account_type() ),
+			$this->get_last4(),
+			$this->get_bank_name()
 		);
 
 		return $display;
@@ -84,6 +84,7 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 			return false;
 		}
 
+		// TODO: check all the properties.
 		if ( ! $this->get_last4( 'edit' ) ) {
 			return false;
 		}
@@ -158,25 +159,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
-	}
-
-	/**
-	 * Set Stripe payment method type.
-	 *
-	 * @param string $type Payment method type.
-	 */
-	public function set_payment_method_type( $type ) {
-		$this->set_prop( 'payment_method_type', $type );
-	}
-
-	/**
-	 * Returns Stripe payment method type.
-	 *
-	 * @param string $context What the value is for. Valid values are view and edit.
-	 * @return string $payment_method_type
-	 */
-	public function get_payment_method_type( $context = 'view' ) {
-		return $this->get_prop( 'payment_method_type', $context );
 	}
 
 	/**
