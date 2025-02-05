@@ -1,3 +1,4 @@
+import jQuery from 'jquery';
 import { addFilter } from '@wordpress/hooks';
 
 /**
@@ -30,7 +31,7 @@ addFilter(
 	'automattic/wcstripe/express-checkout',
 	( productData ) => {
 		const formData = jQuery( 'form.cart' ).serializeArray();
-		const data = {};
+		const data = [];
 		jQuery.each( formData, ( i, field ) => {
 			if ( /^(addon-|wc_)/.test( field.name ) ) {
 				if ( /\[\]$/.test( field.name ) ) {
@@ -38,7 +39,7 @@ addFilter(
 						0,
 						field.name.length - 2
 					);
-					if ( data[ fieldName ] ) {
+					if ( Array.isArray( data[ fieldName ] ) ) {
 						data[ fieldName ].push( field.value );
 					} else {
 						data[ fieldName ] = [ field.value ];
