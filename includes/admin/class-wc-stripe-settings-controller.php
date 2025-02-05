@@ -146,7 +146,7 @@ class WC_Stripe_Settings_Controller {
 	 *
 	 * @return bool True if OAuth URLs are needed
 	 */
-	private function needs_oauth_urls() {
+	public function needs_oauth_urls() {
 		$settings      = WC_Stripe_Helper::get_stripe_settings();
 		$has_live_keys = ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] );
 		$has_test_keys = ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] );
