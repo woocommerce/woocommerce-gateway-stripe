@@ -10,9 +10,9 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
-	normalizeLineItems,
 	isManualPaymentMethodCreation,
 	getPaymentMethodTypesForExpressMethod,
+	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import {
 	onAbortPaymentHandler,
@@ -28,6 +28,17 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
 import './styles.scss';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+} from 'wcstripe/stripe-utils/constants';
+import {
+	transformCartDataForDisplayItems,
+	transformLabeledDisplayItems,
+	transformPrice,
+} from 'wcstripe/express-checkout/transformers/wc-to-stripe';
 
 jQuery( function ( $ ) {
 	// Don't load if blocks checkout is being loaded.
@@ -61,6 +72,14 @@ jQuery( function ( $ ) {
 		'There was an error getting the product information.',
 		'woocommerce-gateway-stripe'
 	);
+
+	/**
+	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
+	 * StoreAPI will support this form correctly only after WC 9.7.0.
+	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
+	 */
+	const useLegacyCartEndpoints = $( '.variations_form' ).length > 0;
+
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
@@ -93,6 +112,10 @@ jQuery( function ( $ ) {
 						$( `#${ containerName }` ).remove();
 					}
 				} );
+
+				eceButton.on( 'loaderror', () => {
+					$( `#${ containerName }` ).remove();
+				} );
 			}
 		},
 
@@ -120,9 +143,9 @@ jQuery( function ( $ ) {
 				return options.displayItems
 					.filter( ( i ) => i.key && i.key === 'total_shipping' )
 					.map( ( i ) => ( {
-						id: `rate-shipping`,
+						id: 'rate-shipping',
 						amount: i.amount,
-						displayName: i.label,
+						displayName: useLegacyCartEndpoints ? i.label : i.name,
 					} ) );
 			};
 
@@ -133,10 +156,10 @@ jQuery( function ( $ ) {
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				'applePay',
-				'googlePay',
-				'amazonPay',
-				'link',
+				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			];
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
@@ -174,23 +197,25 @@ jQuery( function ( $ ) {
 				...getExpressCheckoutButtonStyleSettings(),
 				paymentMethods: {
 					amazonPay:
-						expressPaymentType === 'amazonPay' ? 'auto' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+							? 'auto'
+							: 'never',
 					googlePay:
-						expressPaymentType === 'googlePay' ? 'always' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
+							? 'always'
+							: 'never',
 					applePay:
-						expressPaymentType === 'applePay' ? 'always' : 'never',
+						expressPaymentType ===
+						EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
+							? 'always'
+							: 'never',
 					link: expressPaymentType === 'link' ? 'auto' : 'never',
 				},
 			} );
 
 			wcStripeECE.renderButton( eceButton, expressPaymentType );
-
-			eceButton.on( 'loaderror', () => {
-				wcStripeECEError = __(
-					'The cart is incompatible with express checkout.',
-					'woocommerce-gateway-stripe'
-				);
-			} );
 
 			eceButton.on( 'click', async function ( event ) {
 				// If login is required for checkout, display redirect confirmation dialog.
@@ -254,7 +279,9 @@ jQuery( function ( $ ) {
 				}
 
 				const clickOptions = {
-					lineItems: normalizeLineItems( options.displayItems ),
+					lineItems: useLegacyCartEndpoints
+						? normalizeLineItems( options.displayItems )
+						: options.displayItems,
 					emailRequired: true,
 					shippingAddressRequired: options.requestShipping,
 					phoneNumberRequired: options.requestPhone,
@@ -352,7 +379,9 @@ jQuery( function ( $ ) {
 						.currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-					displayItems,
+					displayItems: transformLabeledDisplayItems(
+						displayItems ?? []
+					),
 					order,
 					orderDetails,
 				} );
@@ -361,6 +390,8 @@ jQuery( function ( $ ) {
 					getExpressCheckoutData( 'product' )
 						?.validVariationSelected ?? true;
 				if ( isProductSupported ) {
+					const displayItems =
+						getExpressCheckoutData( 'product' ).displayItems ?? [];
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total: getExpressCheckoutData( 'product' )?.total
@@ -372,22 +403,28 @@ jQuery( function ( $ ) {
 						requestPhone:
 							getExpressCheckoutData( 'checkout' )
 								?.needs_payer_phone ?? false,
-						displayItems: getExpressCheckoutData( 'product' )
-							.displayItems,
+						displayItems: useLegacyCartEndpoints
+							? displayItems
+							: transformLabeledDisplayItems( displayItems ),
 					} );
 				}
 			} else {
 				// Cart and Checkout page specific initialization.
 				api.expressCheckoutGetCartDetails().then( ( cart ) => {
+					const total = transformPrice(
+						parseInt( cart.totals.total_price, 10 ) -
+							parseInt( cart.totals.total_refund || 0, 10 ),
+						cart.totals
+					);
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
-						total: cart.order_data.total.amount,
+						total,
 						currency: getExpressCheckoutData( 'checkout' )
 							?.currency_code,
-						requestShipping: cart.shipping_required === true,
+						requestShipping: cart.needs_shipping === true,
 						requestPhone: getExpressCheckoutData( 'checkout' )
 							?.needs_payer_phone,
-						displayItems: cart.order_data.displayItems,
+						displayItems: transformCartDataForDisplayItems( cart ),
 					} );
 				} );
 			}
@@ -491,12 +528,16 @@ jQuery( function ( $ ) {
 			}
 
 			const data = {
-				product_id: productId,
 				qty: $( quantityInputSelector ).val(),
-				attributes: $( '.variations_form' ).length
-					? wcStripeECE.getAttributes().data
-					: [],
 			};
+
+			if ( useLegacyCartEndpoints ) {
+				data.product_id = productId;
+				data.attributes = wcStripeECE.getAttributes().data;
+			} else {
+				data.id = productId;
+				data.variation = [];
+			}
 
 			// Add extension data to the POST body
 			const formData = $( 'form.cart' ).serializeArray();
@@ -517,6 +558,10 @@ jQuery( function ( $ ) {
 					}
 				}
 			} );
+
+			if ( useLegacyCartEndpoints ) {
+				return api.expressCheckoutAddToCartLegacy( data );
+			}
 
 			return api.expressCheckoutAddToCart( data );
 		},

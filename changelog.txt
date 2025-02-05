@@ -1,6 +1,9 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
+* Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
+* Tweak - Process ECE cart requests using the Blocks (Store) API. 
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
 * Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
@@ -34,6 +37,7 @@
 * Add - Add Amazon Pay customize express checkout page.
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 * Fix - Hide ECE button for synced subscription variations.
+* Fix - Use the original shipping address for Amazon Pay pay for orders.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.

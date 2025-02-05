@@ -289,8 +289,20 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$data['order']          = $order->get_id();
 		$data['orderDetails']   = [
-			'orderKey'     => $order->get_order_key(),
-			'billingEmail' => $order->get_billing_email(),
+			'orderKey'        => $order->get_order_key(),
+			'billingEmail'    => $order->get_billing_email(),
+			'shippingAddress' => [
+				'first_name' => $order->get_shipping_first_name(),
+				'last_name'  => $order->get_shipping_last_name(),
+				'company'    => $order->get_shipping_company(),
+				'address_1'  => $order->get_shipping_address_1(),
+				'address_2'  => $order->get_shipping_address_2(),
+				'city'       => $order->get_shipping_city(),
+				'state'      => $order->get_shipping_state(),
+				'postcode'   => $order->get_shipping_postcode(),
+				'country'    => $order->get_shipping_country(),
+				'phone'      => $order->get_shipping_phone(),
+			],
 		];
 		$data['displayItems']   = $items;
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
