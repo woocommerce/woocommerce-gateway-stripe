@@ -602,6 +602,7 @@ class WC_Stripe_Payment_Tokens {
 	public static function get_token_label_overrides_for_checkout() {
 		$label_overrides      = [];
 		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
@@ -717,6 +718,9 @@ class WC_Stripe_Payment_Tokens {
 	public function woocommerce_payment_token_class( $class, $type ) {
 		if ( WC_Payment_Token_CC::class === $class ) {
 			return WC_Stripe_Payment_Token_CC::class;
+		}
+		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $type ) {
+			return WC_Payment_Token_ACH::class;
 		}
 		return $class;
 	}
