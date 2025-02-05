@@ -111,6 +111,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
+* Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
+* Tweak - Process ECE cart requests using the Blocks (Store) API. 
+* Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
+* Add - Wrap Amazon Pay in feature flag.
+* Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
+* Add - New Amazon Pay payment method in the Stripe Express Checkout Element for the classic, shortcode (classic) checkout, product, and cart pages.
 * Dev - Introduces new payment intent status constants for the frontend.
 * Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
 * Add - Add new payment processing flow using confirmation tokens.
@@ -138,5 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Amazon Pay to settings express checkout section.
 * Add - Add Amazon Pay customize express checkout page.
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
+* Fix - Hide ECE button for synced subscription variations.
+* Fix - Use the original shipping address for Amazon Pay pay for orders.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

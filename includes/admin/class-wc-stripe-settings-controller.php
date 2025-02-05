@@ -192,6 +192,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_ece_enabled'            => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
+			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

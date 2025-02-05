@@ -6,6 +6,7 @@ import { Elements, ExpressCheckoutElement } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { getDefaultBorderRadius } from 'wcstripe/express-checkout/utils';
 import InlineNotice from 'components/inline-notice';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const buttonSizeToPxMap = {
 	small: 40,
@@ -34,7 +35,7 @@ const ExpressCheckoutPreviewComponent = ( { size } ) => {
 				spacingUnit: '6px',
 			},
 		},
-		paymentMethodTypes: [ 'amazon_pay' ],
+		paymentMethodTypes: [ PAYMENT_METHOD_AMAZON_PAY ],
 	};
 
 	const height = buttonSizeToPxMap[ size ] || buttonSizeToPxMap.default;

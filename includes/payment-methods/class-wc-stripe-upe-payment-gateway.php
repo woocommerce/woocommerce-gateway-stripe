@@ -94,6 +94,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $saved_cards;
 
 	/**
+	 * Should SEPA tokens be used for other payment methods (iDEAL and Bancontact)
+	 *
+	 * @var bool
+	 */
+	public $sepa_tokens_for_other_methods;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -192,15 +199,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
-		$this->title                = $this->payment_methods['card']->get_title();
-		$this->description          = $this->payment_methods['card']->get_description();
-		$this->enabled              = $this->get_option( 'enabled' );
-		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
-		$this->testmode             = WC_Stripe_Mode::is_test();
-		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$main_settings                       = WC_Stripe_Helper::get_stripe_settings();
+		$this->title                         = $this->payment_methods['card']->get_title();
+		$this->description                   = $this->payment_methods['card']->get_description();
+		$this->enabled                       = $this->get_option( 'enabled' );
+		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
+		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		$this->testmode                      = WC_Stripe_Mode::is_test();
+		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
@@ -990,7 +998,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$selected_payment_type = $payment_information['selected_payment_type'];
 
-			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
+			// Retrieve the payment method object from Stripe.
+			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
 
 			$return_url = $this->get_return_url( $order );
 
@@ -1702,6 +1713,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function is_saved_cards_enabled() {
 		return $this->saved_cards;
+	}
+
+	/**
+	 * Checks if the setting to allow the saving of SEPA tokens for other payment methods (iDEAL and Bancontact) is enabled.
+	 *
+	 * @return bool Whether the setting to allow SEPA tokens for other payment methods is enabled.
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		return $this->sepa_tokens_for_other_methods;
 	}
 
 	/**
@@ -2652,11 +2672,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			switch ( $express_payment_type ) {
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
+				case WC_Stripe_Payment_Methods::AMAZON_PAY:
+					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 				case 'google_pay':
 				case 'apple_pay':
-					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-				case 'amazon_pay':
-					return [ 'amazon_pay' ];
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}
