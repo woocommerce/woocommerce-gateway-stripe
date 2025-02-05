@@ -51,12 +51,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public static function get_payment_method_titles( $include_link = false ) {
 		$titles = [
-			'apple_pay'                           => WC_Stripe_Express_Payment_Titles::APPLE_PAY,
-			'google_pay'                          => WC_Stripe_Express_Payment_Titles::GOOGLE_PAY,
-			WC_Stripe_Payment_Methods::AMAZON_PAY => WC_Stripe_Express_Payment_Titles::AMAZON_PAY,
+			WC_Stripe_Express_Payment_Methods::APPLE_PAY  => WC_Stripe_Express_Payment_Titles::APPLE_PAY,
+			WC_Stripe_Express_Payment_Methods::GOOGLE_PAY => WC_Stripe_Express_Payment_Titles::GOOGLE_PAY,
+			WC_Stripe_Express_Payment_Methods::AMAZON_PAY => WC_Stripe_Express_Payment_Titles::AMAZON_PAY,
 		];
 		if ( $include_link ) {
-			$titles[ WC_Stripe_Payment_Methods::LINK ] = WC_Stripe_Express_Payment_Titles::LINK;
+			$titles[ WC_Stripe_Express_Payment_Methods::LINK ] = WC_Stripe_Express_Payment_Titles::LINK;
 		}
 		return $titles;
 	}

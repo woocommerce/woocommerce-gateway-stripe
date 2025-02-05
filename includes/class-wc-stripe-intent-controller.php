@@ -988,13 +988,13 @@ class WC_Stripe_Intent_Controller {
 			WC_Stripe_Payment_Methods::BANCONTACT,
 			WC_Stripe_Payment_Methods::IDEAL,
 			WC_Stripe_Payment_Methods::SOFORT,
-			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Express_Payment_Methods::LINK,
 		];
 		if ( in_array( $selected_payment_type, $payment_methods_with_mandates, true ) ) {
 			return true;
 		}
 
-		return WC_Stripe_Payment_Methods::CARD === $selected_payment_type && in_array( WC_Stripe_Payment_Methods::LINK, $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
+		return WC_Stripe_Payment_Methods::CARD === $selected_payment_type && in_array( WC_Stripe_Express_Payment_Methods::LINK, $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
 	}
 
 	/**

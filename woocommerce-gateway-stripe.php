@@ -218,6 +218,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-currency-code.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-payment-methods.php';
+				require_once __DIR__ . '/includes/constants/class-wc-stripe-express-payment-methods.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-intent-status.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-express-payment-titles.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';

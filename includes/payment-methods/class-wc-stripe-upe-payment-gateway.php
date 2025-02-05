@@ -1745,13 +1745,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method    = $this->payment_methods[ $payment_method_type ];
 		$payment_method_id = $payment_method instanceof WC_Stripe_UPE_Payment_Method_CC ? $this->id : $payment_method->id;
-		$is_stripe_link    = WC_Stripe_Payment_Methods::LINK === $payment_method_type ||
-			( isset( $stripe_payment_method->type ) && WC_Stripe_Payment_Methods::LINK === $stripe_payment_method->type );
+		$is_stripe_link    = WC_Stripe_Express_Payment_Methods::LINK === $payment_method_type ||
+			( isset( $stripe_payment_method->type ) && WC_Stripe_Express_Payment_Methods::LINK === $stripe_payment_method->type );
 
 		// Stripe Link uses the main gateway to process payments, however Link payments should use the title of the Link payment method.
-		if ( $is_stripe_link && isset( $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ] ) ) {
+		if ( $is_stripe_link && isset( $this->payment_methods[ WC_Stripe_Express_Payment_Methods::LINK ] ) ) {
 			$payment_method_id    = $this->id;
-			$payment_method_title = $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ]->get_title( $stripe_payment_method );
+			$payment_method_title = $this->payment_methods[ WC_Stripe_Express_Payment_Methods::LINK ]->get_title( $stripe_payment_method );
 		} else {
 			$payment_method_title = $payment_method->get_title( $stripe_payment_method );
 		}
@@ -2394,7 +2394,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer->clear_cache();
 
 		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
-		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
+		if ( isset( $payment_method_object->type ) && WC_Stripe_Express_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_instance = $this->payment_methods['link'];
 		} else {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
@@ -2675,10 +2675,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			switch ( $express_payment_type ) {
 				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
-				case WC_Stripe_Payment_Methods::AMAZON_PAY:
-					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
-				case 'google_pay':
-				case 'apple_pay':
+				case WC_Stripe_Express_Payment_Methods::AMAZON_PAY:
+					return [ WC_Stripe_Express_Payment_Methods::AMAZON_PAY ];
+				case WC_Stripe_Express_Payment_Methods::GOOGLE_PAY:
+				case WC_Stripe_Express_Payment_Methods::APPLE_PAY:
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}
@@ -2732,7 +2732,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$token_gateway_type = $payment_method->get_retrievable_type();
 
 		if ( WC_Stripe_Payment_Methods::CARD === $token_gateway_type ||
-			WC_Stripe_Payment_Methods::LINK === $token_gateway_type ) {
+			WC_Stripe_Express_Payment_Methods::LINK === $token_gateway_type ) {
 			return $this->id;
 		}
 

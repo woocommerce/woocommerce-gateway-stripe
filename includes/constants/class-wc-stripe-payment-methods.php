@@ -1,5 +1,9 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Class WC_Stripe_Payment_Methods
  */
@@ -17,7 +21,6 @@ class WC_Stripe_Payment_Methods {
 	const GIROPAY           = 'giropay';
 	const IDEAL             = 'ideal';
 	const KLARNA            = 'klarna';
-	const LINK              = 'link';
 	const MULTIBANCO        = 'multibanco';
 	const OXXO              = 'oxxo';
 	const P24               = 'p24';
@@ -27,7 +30,20 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 	const CARD_PRESENT      = 'card_present';
 	const BACS_DEBIT        = 'bacs_debit';
-	const AMAZON_PAY        = 'amazon_pay';
+
+	/**
+	 * Use WC_Stripe_Express_Payment_Methods::LINK instead.
+	 *
+	 * @deprecated 9.2.0
+	 */
+	const LINK = 'link';
+
+	/**
+	 * Use WC_Stripe_Express_Payment_Methods::AMAZON_PAY instead.
+	 *
+	 * @deprecated 9.2.0
+	 */
+	const AMAZON_PAY = 'amazon_pay';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.
