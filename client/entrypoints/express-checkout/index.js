@@ -1,4 +1,6 @@
-/*global wcStripeExpressCheckoutPayForOrderParams */
+/* global wcStripeExpressCheckoutPayForOrderParams */
+/* global wc_stripe_express_checkout_params */
+
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -150,16 +152,28 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
+			const isPaymentRequestEnabled =
+				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
+					?.is_payment_request_enabled;
+			const isAmazonPayEnabled =
+				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
+					?.is_amazon_pay_enabled;
+			const isLinkEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_link_enabled; // eslint-disable-line camelcase
+
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-			];
+				isPaymentRequestEnabled &&
+					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isPaymentRequestEnabled &&
+					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isAmazonPayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+			].filter( Boolean );
+
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
