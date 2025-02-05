@@ -16,6 +16,12 @@ import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { checkPaymentMethodIsAvailable } from 'wcstripe/express-checkout/utils/check-payment-method-availability';
 import { ExpressCheckoutContainer } from 'wcstripe/blocks/express-checkout/express-checkout-container';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/blocks/load-stripe' );
 jest.mock( 'wcstripe/blocks/utils' );
@@ -56,25 +62,25 @@ describe( 'expressCheckoutElement', () => {
 	const testCases = [
 		{
 			fn: expressCheckoutElementAmazonPay,
-			paymentMethod: 'amazonPay',
+			paymentMethod: EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 			editorElement: AmazonPayPreview,
 			title: 'WooCommerce Stripe - Amazon Pay',
 		},
 		{
 			fn: expressCheckoutElementApplePay,
-			paymentMethod: 'applePay',
+			paymentMethod: EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 			editorElement: ApplePayPreview,
 			title: 'WooCommerce Stripe - Apple Pay',
 		},
 		{
 			fn: expressCheckoutElementGooglePay,
-			paymentMethod: 'googlePay',
+			paymentMethod: EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 			editorElement: GooglePayPreview,
 			title: 'WooCommerce Stripe - Google Pay',
 		},
 		{
 			fn: expressCheckoutElementStripeLink,
-			paymentMethod: 'link',
+			paymentMethod: EXPRESS_PAYMENT_METHOD_SETTING_LINK,
 			editorElement: StripeLinkPreview,
 			title: 'WooCommerce Stripe - Link by Stripe',
 		},
