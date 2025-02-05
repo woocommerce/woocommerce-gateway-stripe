@@ -46,6 +46,7 @@
 * Tweak - Improve settings page load by delaying oauth URL generation.
 * Tweak - Update the Woo logo in the Configure connection modal
 * Add - Add currency restriction pill on Amazon Pay.
+* Fix - Express checkout methods dependency.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
