@@ -1608,19 +1608,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Retrieves the payment intent, associated with an order.
 	 *
 	 * @since 4.2
-	 * @param WC_Stripe_Order $order The order to retrieve an intent for.
-	 * @return obect|bool            Either the intent object or `false`.
+	 * @param WC_Order $order The order to retrieve an intent for.
+	 * @return object|bool    Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
-		$intent_id = $order->get_intent_id();
-
+		$intent_id = $order instanceof WC_Stripe_Order ? $order->get_intent_id() : $order->get_meta( '_stripe_intent_id' );
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );
 		}
 
-		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = $order->get_setup_intent();
-
+		$intent_id = $order instanceof WC_Stripe_Order ? $order->get_setup_intent() : $order->get_meta( '_stripe_setup_intent' );
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
 		}
