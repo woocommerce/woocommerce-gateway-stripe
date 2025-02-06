@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.2.0 - xxxx-xx-xx =
 * Dev - Add new E2E tests for Link express checkout.
+* Add - Add Amazon Pay to block cart and block checkout.
+* Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
+* Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
 * Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
 * Tweak - Process ECE cart requests using the Blocks (Store) API.
