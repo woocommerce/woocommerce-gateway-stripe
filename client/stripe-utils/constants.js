@@ -22,6 +22,9 @@ export const PAYMENT_METHOD_WECHAT_PAY = 'wechat_pay';
 export const PAYMENT_METHOD_CASHAPP = 'cashapp';
 export const PAYMENT_METHOD_LINK = 'link';
 export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
+export const PAYMENT_METHOD_ACH = 'us_bank_account';
+export const PAYMENT_METHOD_ACSS = 'acss_debit';
+export const PAYMENT_METHOD_BACS = 'bacs_debit';
 
 /**
  * Payment method names constants with the `stripe` prefix
