@@ -131,7 +131,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'link_payments'                => 'active',
 		'cashapp_payments'             => 'active',
 		'wechat_pay_payments'          => 'active',
-		'us_bank_account_ach_payments' => 'active',
+		'us_bank_account_payments'     => 'active',
 	];
 
 	/**
@@ -140,11 +140,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		WC_Stripe_Helper::delete_main_stripe_settings();
+		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
 		WC_Stripe_Helper::delete_main_stripe_settings();
+		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -366,7 +368,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACH, $ach_method->get_id() );
 		$this->assertEquals( 'ACH Direct Debit', $ach_method->get_label() );
 		$this->assertEquals( 'ACH Direct Debit', $ach_method->get_title() );
-		$this->assertFalse( $ach_method->is_reusable() ); // Currently non-reusable; future improvement may change this.
+		$this->assertTrue( $ach_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACH, $ach_method->get_retrievable_type() );
 		$this->assertEquals( '', $ach_method->get_testing_instructions() );
 	}
@@ -606,7 +608,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
+			$store_currency   = in_array( $payment_method_id, [ WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] ) ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
