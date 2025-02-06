@@ -16,11 +16,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                                    = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled']                         = 'yes';
-		$stripe_settings['testmode']                        = 'yes';
-		$stripe_settings['test_publishable_key']            = 'pk_test_key';
-		$stripe_settings['test_secret_key']                 = 'sk_test_key';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['testmode']             = 'yes';
+		$stripe_settings['test_publishable_key'] = 'pk_test_key';
+		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
@@ -310,5 +310,25 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'expected'    => '12345',
 			],
 		];
+	}
+
+	/**
+	 * Test for `get_payment_method_titles`.
+	 *
+	 * @return void
+	 */
+	public function test_get_payment_method_titles() {
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$actual               = $wc_stripe_ece_helper->get_payment_method_titles( true );
+
+		$this->assertEquals(
+			[
+				'apple_pay'                           => WC_Stripe_Express_Payment_Titles::APPLE_PAY,
+				'google_pay'                          => WC_Stripe_Express_Payment_Titles::GOOGLE_PAY,
+				WC_Stripe_Payment_Methods::AMAZON_PAY => WC_Stripe_Express_Payment_Titles::AMAZON_PAY,
+				WC_Stripe_Payment_Methods::LINK       => WC_Stripe_Express_Payment_Titles::LINK,
+			],
+			$actual
+		);
 	}
 }
