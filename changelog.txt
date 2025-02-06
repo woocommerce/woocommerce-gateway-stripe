@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
