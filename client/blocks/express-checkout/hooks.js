@@ -10,7 +10,6 @@ import {
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
-	expressCheckoutNoticeDelay,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
@@ -100,8 +99,6 @@ export const useExpressCheckout = ( {
 					'info',
 					[ 'ece-taxes-info' ]
 				);
-				// Wait for the notice to be displayed before proceeding.
-				await expressCheckoutNoticeDelay();
 			}
 
 			// Global click event handler to ECE.

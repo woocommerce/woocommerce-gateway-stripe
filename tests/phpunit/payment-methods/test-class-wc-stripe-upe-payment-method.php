@@ -305,7 +305,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_label() );
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_title() );
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_title( $mock_bancontact_details ) );
-		$this->assertTrue( $bancontact_method->is_reusable() );
+		$this->assertFalse( $bancontact_method->is_reusable() ); // Bancontact is not reusable if "SEPA tokens for other methods" setting is not enabled.
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $bancontact_method->get_retrievable_type() );
 		$this->assertEquals( '', $bancontact_method->get_testing_instructions() );
 
@@ -313,7 +313,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'iDEAL', $ideal_method->get_label() );
 		$this->assertEquals( 'iDEAL', $ideal_method->get_title() );
 		$this->assertEquals( 'iDEAL', $ideal_method->get_title( $mock_ideal_details ) );
-		$this->assertTrue( $ideal_method->is_reusable() );
+		$this->assertFalse( $ideal_method->is_reusable() ); // iDEAL is not reusable if "SEPA tokens for other methods" setting is not enabled.
 		$this->assertEquals( WC_Stripe_Payment_Methods::SEPA_DEBIT, $ideal_method->get_retrievable_type() );
 		$this->assertEquals( '', $ideal_method->get_testing_instructions() );
 
