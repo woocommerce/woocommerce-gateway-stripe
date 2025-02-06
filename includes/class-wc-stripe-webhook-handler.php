@@ -393,7 +393,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = __( 'A dispute was created for this order.', 'woocommerce-gateway-stripe' );
 		}
 
-		if ( ! $order->has_status( 'cancelled' ) && ! $order->status_final() ) {
+		if ( ! $order->has_status( 'cancelled' ) && ! $order->is_status_final() ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -597,7 +597,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} else {
 			$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
 		}
-		if ( ! $order->status_final() ) {
+		if ( ! $order->is_status_final() ) {
 			$order->update_status( 'failed', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -634,7 +634,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
-		if ( ! $order->has_status( 'cancelled' ) && ! $order->status_final() ) {
+		if ( ! $order->has_status( 'cancelled' ) && ! $order->is_status_final() ) {
 			$order->update_status( 'cancelled', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -832,7 +832,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			esc_html( $notification->data->object->reason )
 		);
 
-		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->status_final() ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->is_status_final() ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -868,7 +868,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Only change the status if the charge was captured, status is not final, the order is on-hold and the review was approved.
 		if ( $order->charge_captured() &&
-			! $order->status_final() &&
+			! $order->is_status_final() &&
 			$order->has_status( 'on-hold' ) &&
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
@@ -1004,7 +1004,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
-				$is_awaiting_action    = $order->upe_waiting_for_redirect();
+				$is_awaiting_action    = $order->is_upe_waiting_for_redirect();
 
 				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
@@ -1044,7 +1044,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 				$status_update = [];
-				if ( ! $order->status_final() ) {
+				if ( ! $order->is_status_final() ) {
 					$status_update['from'] = $order->get_status();
 					$status_update['to']   = 'failed';
 					$order->update_status( 'failed', $message );
@@ -1098,7 +1098,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
 			$status_update = [];
-			if ( ! $order->status_final() ) {
+			if ( ! $order->is_status_final() ) {
 				$status_update['from'] = $order->get_status();
 				$status_update['to']   = 'failed';
 				$order->update_status( 'failed', $message );

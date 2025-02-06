@@ -293,7 +293,7 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @return bool Whether the payment is awaiting action.
 	 */
-	public function payment_awaiting_action() {
+	public function is_payment_awaiting_action() {
 		return wc_string_to_bool( $this->get_meta( '_stripe_payment_awaiting_action' ) );
 	}
 
@@ -419,7 +419,7 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @return bool The value of the flag.
 	 */
-	public function upe_redirect_processed() {
+	public function is_upe_redirect_processed() {
 		return (bool) $this->get_meta( '_stripe_upe_redirect_processed' );
 	}
 
@@ -469,7 +469,7 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @return bool
 	 */
-	public function upe_waiting_for_redirect() {
+	public function is_upe_waiting_for_redirect() {
 		return (bool) $this->get_meta( '_stripe_upe_waiting_for_redirect' );
 	}
 
@@ -696,7 +696,7 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @return bool
 	 */
-	public function status_final() {
+	public function is_status_final() {
 		return (bool) $this->get_meta( '_stripe_status_final' );
 	}
 
