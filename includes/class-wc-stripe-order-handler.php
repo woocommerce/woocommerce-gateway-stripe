@@ -285,7 +285,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
-			$captured           = $order->charge_captured();
+			$captured           = $order->is_charge_captured();
 			$is_stripe_captured = false;
 
 			if ( $charge && ! $captured ) {
@@ -392,7 +392,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			if ( ! $order->charge_captured() ) {
+			if ( ! $order->is_charge_captured() ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}

@@ -677,7 +677,7 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @return bool
 	 */
-	public function charge_captured() {
+	public function is_charge_captured() {
 		return wc_string_to_bool( $this->get_meta( '_stripe_charge_captured' ) );
 	}
 

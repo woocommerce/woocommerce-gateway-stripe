@@ -1067,7 +1067,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		$order_currency = $order->get_currency();
-		$captured       = $order->charge_captured();
+		$captured       = $order->is_charge_captured();
 		$charge_id      = $order->get_transaction_id();
 
 		if ( ! $charge_id ) {

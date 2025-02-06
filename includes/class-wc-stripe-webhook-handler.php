@@ -474,7 +474,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge   = $order->get_transaction_id();
-			$captured = $order->charge_captured();
+			$captured = $order->is_charge_captured();
 
 			if ( $charge && ! $captured ) {
 				$order->set_charge_captured( 'yes' );
@@ -668,7 +668,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
 			$charge        = $order->get_transaction_id();
-			$captured      = $order->charge_captured();
+			$captured      = $order->is_charge_captured();
 			$refund_id     = $order->get_refund_id();
 			$currency      = $order->get_currency();
 			$raw_amount    = $refund_object->amount;
@@ -867,7 +867,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
 		// Only change the status if the charge was captured, status is not final, the order is on-hold and the review was approved.
-		if ( $order->charge_captured() &&
+		if ( $order->is_charge_captured() &&
 			! $order->is_status_final() &&
 			$order->has_status( 'on-hold' ) &&
 			( ! empty( $notification->data->object->closed_reason ) && 'approved' === $notification->data->object->closed_reason ) &&

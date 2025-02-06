@@ -1278,7 +1278,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Order::get_by_id( $order_id ) );
 		$test_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertFalse( $test_order->charge_captured() );
+		$this->assertFalse( $test_order->is_charge_captured() );
 		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
 		$this->assertEquals( 'on-hold', $test_order->get_status() );
 
@@ -1288,7 +1288,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Order::get_by_id( $order_id ) );
 		$test_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertTrue( $test_order->charge_captured() );
+		$this->assertTrue( $test_order->is_charge_captured() );
 		$this->assertEquals( 'processing', $test_order->get_status() );
 
 		// Test charge pending.
@@ -1297,7 +1297,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), WC_Stripe_Order::get_by_id( $order_id ) );
 		$test_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertTrue( $test_order->charge_captured() );
+		$this->assertTrue( $test_order->is_charge_captured() );
 		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
 		$this->assertEquals( 'on-hold', $test_order->get_status() );
 
