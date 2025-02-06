@@ -13,6 +13,11 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	const STRIPE_ID = WC_Stripe_Payment_Methods::BACS_DEBIT;
 
 	/**
+	 * List of countries where the merchant’s Stripe account can be located to support this payment method.
+	 */
+	public static $supported_countries_list = [ 'GB' ];
+
+	/**
 	 * Constructor for Bacs Direct Debit payment method.
 	 */
 	public function __construct() {
@@ -22,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->title                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = true;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::POUND_STERLING ];
-		$this->supported_countries          = [ 'GB' ];
+		$this->supported_countries          = self::$supported_countries_list;
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );

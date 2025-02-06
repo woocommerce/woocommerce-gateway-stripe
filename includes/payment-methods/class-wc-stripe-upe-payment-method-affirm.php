@@ -11,6 +11,11 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	const STRIPE_ID = WC_Stripe_Payment_Methods::AFFIRM;
 
 	/**
+	 * List of countries where the merchant’s Stripe account can be located to support this payment method.
+	 */
+	public static $supported_countries_list = [ 'US', 'CA' ];
+
+	/**
 	 * Constructor for Affirm payment method
 	 */
 	public function __construct() {
@@ -19,7 +24,7 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 		$this->title                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->is_reusable                  = false;
 		$this->supported_currencies         = [ WC_Stripe_Currency_Code::CANADIAN_DOLLAR, WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
-		$this->supported_countries          = [ 'US', 'CA' ];
+		$this->supported_countries          = self::$supported_countries_list;
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Affirm', 'woocommerce-gateway-stripe' );
 		$this->description                  = __(

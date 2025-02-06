@@ -118,17 +118,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		parent::set_up();
 
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
 
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
-			->disableOriginalConstructor()
-			->getMock();
-
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setConstructorArgs( [ $mock_account ] )
+			->setConstructorArgs( [] )
 			->setMethods(
 				[
 					'create_and_confirm_intent_for_off_session',
@@ -190,6 +187,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		parent::tear_down();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -244,7 +242,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider get_upe_available_payment_methods_provider
 	 */
 	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
-		$this->set_stripe_account_data( [ 'country' => $country ] );
+		$this->set_stripe_account_data( [ 'country' => $country ] ); // TODO: Verify if the country is actually changing in the gateway.
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
 	}
 
