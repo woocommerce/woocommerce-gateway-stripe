@@ -1,13 +1,19 @@
 const { test, expect } = require( '@playwright/test' );
 
-const addProductToCart = async ( page ) => {
+const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	// Add a product to the cart
-	await page.goto( '/product/beanie' );
+	await page.goto( `/product/${ productSlug }` );
 
-	await page
-		.getByRole( 'button', { name: 'Add to cart' } )
-		.dispatchEvent( 'click' );
-	await page.waitForNavigation();
+	const addToCartButton = await page.getByRole( 'button', {
+		name: 'Add to cart',
+	} );
+	await expect( addToCartButton ).toBeEnabled();
+	await addToCartButton.dispatchEvent( 'click' );
+
+	// Wait for the cart update to complete - look for success message or cart count update
+	await expect(
+		page.getByText( 'has been added to your cart' )
+	).toBeVisible();
 };
 
 const testLink = async ( page, navigateTo, isBlockPage = false ) => {
