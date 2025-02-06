@@ -44,6 +44,9 @@ class WC_Stripe_Settings_Controller {
 		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
 
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
+
+		// Add AJAX handler for OAuth URLs
+		add_action( 'wp_ajax_wc_stripe_get_oauth_urls', [ $this, 'ajax_get_oauth_urls' ] );
 	}
 
 	/**
@@ -116,6 +119,53 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
+	 * AJAX handler to get OAuth URLs for the configuration modal
+	 */
+	public function ajax_get_oauth_urls() {
+		// Check nonce and capabilities
+		if ( ! check_ajax_referer( 'wc_stripe_get_oauth_urls', 'nonce', false ) ||
+			! current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( [ 'message' => __( 'You do not have permission to do this.', 'woocommerce-gateway-stripe' ) ] );
+			return;
+		}
+
+		$oauth_url      = woocommerce_gateway_stripe()->connect->get_oauth_url();
+		$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
+
+		wp_send_json_success(
+			[
+				'oauth_url'      => is_wp_error( $oauth_url ) ? '' : $oauth_url,
+				'test_oauth_url' => is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url,
+			]
+		);
+	}
+
+	/**
+	 * Determines if OAuth URLs need to be generated.
+	 * URLs are needed for new accounts or accounts not connected via OAuth.
+	 *
+	 * @return bool True if OAuth URLs are needed
+	 */
+	public function needs_oauth_urls() {
+		$settings      = WC_Stripe_Helper::get_stripe_settings();
+		$has_live_keys = ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] );
+		$has_test_keys = ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] );
+
+		// If no keys at all, we need OAuth URLs for new account setup
+		if ( ! $has_live_keys && ! $has_test_keys ) {
+			return true;
+		}
+
+		$stripe_connect = woocommerce_gateway_stripe()->connect;
+
+		// Check each mode only if it has keys
+		$needs_live_oauth = $has_live_keys && ! $stripe_connect->is_connected_via_oauth( 'live' );
+		$needs_test_oauth = $has_test_keys && ! $stripe_connect->is_connected_via_oauth( 'test' );
+
+		return $needs_live_oauth || $needs_test_oauth;
+	}
+
+	/**
 	 * Load admin scripts.
 	 */
 	public function admin_scripts( $hook_suffix ) {
@@ -138,8 +188,6 @@ class WC_Stripe_Settings_Controller {
 			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_boleto' ) ) ) {
 			return;
 		}
-
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
 		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
@@ -164,11 +212,17 @@ class WC_Stripe_Settings_Controller {
 			$script_asset['version']
 		);
 
-		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-		$oauth_url = is_wp_error( $oauth_url ) ? '' : $oauth_url;
+		$oauth_url      = '';
+		$test_oauth_url = '';
 
-		$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
-		$test_oauth_url = is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url;
+		// Get URLs at page load only if account doesn't exist or if account exists but not connected via OAuth
+		if ( $this->needs_oauth_urls() ) {
+			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
+			$oauth_url = is_wp_error( $oauth_url ) ? '' : $oauth_url;
+
+			$test_oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url( '', 'test' );
+			$test_oauth_url = is_wp_error( $test_oauth_url ) ? '' : $test_oauth_url;
+		}
 
 		$message = sprintf(
 		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
@@ -193,6 +247,7 @@ class WC_Stripe_Settings_Controller {
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_ece_enabled'            => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
+			'oauth_nonce'               => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
