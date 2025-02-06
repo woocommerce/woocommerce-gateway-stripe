@@ -513,7 +513,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
 
 		// Grab the latest order note and verify the content.
-		$notes = wc_get_order_notes( [ 'order_id' => $updated_order->get_id(), 'limit' => 1 ] );
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $updated_order->get_id(),
+				'limit'    => 1,
+			]
+		);
 		$this->assertCount( 1, $notes );
 		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
 	}
