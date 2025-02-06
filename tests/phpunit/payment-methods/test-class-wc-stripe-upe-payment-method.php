@@ -39,6 +39,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe ACH payment method.
+	 */
+	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
+		'id'                            => 'pm_mock_payment_method_id',
+		'type'                          => WC_Stripe_Payment_Methods::ACH,
+		WC_Stripe_Payment_Methods::ACH  => [
+			'last4'       => '6789',
+			'bank_name'   => 'Test Bank',
+			'account_type' => 'checking',
+			'fingerprint' => 'fp_test_123',
+		],
+	];
+
+	/**
 	 * Base template for Stripe SEPA payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
@@ -696,6 +710,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token                        = $payment_method->create_payment_token_for_user( $user_id, $cash_app_payment_method_mock );
 					$this->assertTrue( WC_Payment_Token_CashApp::class === get_class( $token ) );
 					$this->assertSame( $token->get_cashtag(), $cash_app_payment_method_mock->cashapp->cashtag );
+					break;
+				case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
+					$ach_payment_method_mock = $this->array_to_object( self::MOCK_ACH_PAYMENT_METHOD_TEMPLATE );
+					$token                   = $payment_method->create_payment_token_for_user( $user_id, $ach_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_ACH::class === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->last4 );
+					$this->assertSame( $token->get_token(), $ach_payment_method_mock->id );
+					$this->assertSame( $token->get_bank_name(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->bank_name );
+					$this->assertSame( $token->get_account_type(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->account_type );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );

@@ -55,8 +55,13 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 	 * @param stdClass $payment_method The payment method object.
 	 *
 	 * @return WC_Payment_Token_ACH The payment token created.
+	 * @throws Exception If the payment method object is invalid.
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		if ( ! isset( $payment_method->id ) || ! isset( $payment_method->us_bank_account ) ) {
+			throw new Exception( __( 'Invalid payment method object.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$payment_token = new WC_Payment_Token_ACH();
 		$payment_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
 		$payment_token->set_user_id( $user_id );
