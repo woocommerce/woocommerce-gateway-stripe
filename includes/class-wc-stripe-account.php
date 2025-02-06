@@ -267,6 +267,7 @@ class WC_Stripe_Account {
 		$request = [
 			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
 			'enabled_events' => [
+				'account.updated',
 				'source.chargeable',
 				'source.canceled',
 				'charge.succeeded',
