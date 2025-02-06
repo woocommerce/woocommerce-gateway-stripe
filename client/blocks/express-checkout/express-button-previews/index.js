@@ -1,6 +1,7 @@
 import classNames from 'classnames';
-import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
+import amazonPayIcon from '../../../payment-method-icons/amazon-pay/icon.svg';
 import applePayIcon from '../../../payment-method-icons/apple-pay/icon-white.svg';
+import googlePayIcon from '../../../payment-method-icons/google-pay/icon-white.svg';
 import stripeLinkIcon from '../../../payment-method-icons/link/icon-black.svg';
 import './style.scss';
 
@@ -24,14 +25,14 @@ const PaymentButtonPreview = ( { icon, className } ) => (
 );
 
 /**
- * GooglePayPreview Component
+ * AmazonPayPreview Component
  *
  * @return {JSX.Element} The rendered component.
  */
-export const GooglePayPreview = () => (
+export const AmazonPayPreview = () => (
 	<PaymentButtonPreview
-		icon={ googlePayIcon }
-		className="wc-stripe-google-pay-preview"
+		icon={ amazonPayIcon }
+		className="wc-stripe-amazon-pay-preview"
 	/>
 );
 
@@ -44,6 +45,18 @@ export const ApplePayPreview = () => (
 	<PaymentButtonPreview
 		icon={ applePayIcon }
 		className="wc-stripe-apple-pay-preview"
+	/>
+);
+
+/**
+ * GooglePayPreview Component
+ *
+ * @return {JSX.Element} The rendered component.
+ */
+export const GooglePayPreview = () => (
+	<PaymentButtonPreview
+		icon={ googlePayIcon }
+		className="wc-stripe-google-pay-preview"
 	/>
 );
 

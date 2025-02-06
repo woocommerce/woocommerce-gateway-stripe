@@ -326,6 +326,11 @@ class WC_Stripe_Payment_Tokens {
 				// Retrieve the real APM behind SEPA PaymentMethods.
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
+				// The corresponding method for the payment method type is not enabled, skipping.
+				if ( ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
+					continue;
+				}
+
 				// Create a new token when:
 				// - The payment method doesn't have an associated token in WooCommerce.
 				// - The payment method is a valid PaymentMethodID (i.e. only support IDs starting with "src_" when using the card payment method type.

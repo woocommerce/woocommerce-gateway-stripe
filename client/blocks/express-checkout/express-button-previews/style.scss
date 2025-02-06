@@ -12,6 +12,13 @@
 		cursor: pointer;
 		filter: opacity(0.7);
 	}
+	/* Amazon Pay Overrides */
+	&.wc-stripe-amazon-pay-preview {
+		background-color: #ffd814;
+		img {
+			height: 40px;
+		}
+	}
 	/* Stripe Link Overrides */
 	&.wc-stripe-link-preview {
 		background-color: #00d66f;
