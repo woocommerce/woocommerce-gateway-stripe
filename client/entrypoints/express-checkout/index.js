@@ -6,7 +6,6 @@ import WCStripeAPI from '../../api';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
-	expressCheckoutNoticeDelay,
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
@@ -233,8 +232,6 @@ jQuery( function ( $ ) {
 						'info',
 						[ 'ece-taxes-info' ]
 					);
-					// Wait for the notice to be displayed before proceeding.
-					await expressCheckoutNoticeDelay();
 				}
 
 				if ( getExpressCheckoutData( 'is_product_page' ) ) {
