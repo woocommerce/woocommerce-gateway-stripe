@@ -84,8 +84,19 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 			return false;
 		}
 
-		// TODO: check all the properties.
 		if ( ! $this->get_last4( 'edit' ) ) {
+			return false;
+		}
+
+		if ( ! $this->get_bank_name( 'edit' ) ) {
+			return false;
+		}
+
+		if ( ! $this->get_account_type( 'edit' ) ) {
+			return false;
+		}
+
+		if ( ! $this->get_fingerprint( 'edit' ) ) {
 			return false;
 		}
 
