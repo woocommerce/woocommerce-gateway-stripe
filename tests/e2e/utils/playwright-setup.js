@@ -329,6 +329,7 @@ const getServerCredentialsFromEnv = () => {
  * @returns The promise for the SSH connection.
  */
 export const setupWoo = async () => {
+	console.log( 'Setting up WooCommerce, with shipping zones' );
 	const shortcodeCartPostContent = fs
 		.readFileSync(
 			path.resolve( E2E_ROOT, './test-data/cart-shortcode-content.html' ),

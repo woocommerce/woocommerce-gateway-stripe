@@ -1,48 +1,70 @@
 const { test, expect } = require( '@playwright/test' );
 
-test.describe( 'enable express payment methods', () => {
-	test( 'enable Link', async ( { browser } ) => {
-		const adminContext = await browser.newContext( {
-			storageState: process.env.ADMINSTATE,
-		} );
-		const page = await adminContext.newPage();
+const addProductToCart = async ( page ) => {
+	// Add a product to the cart
+	await page.goto( '/product/beanie' );
 
-		await page.goto(
-			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+	await page
+		.getByRole( 'button', { name: 'Add to cart' } )
+		.dispatchEvent( 'click' );
+	await page.waitForNavigation();
+};
+
+const testLink = async ( page, navigateTo, isBlockPage = false ) => {
+	await page.goto( navigateTo );
+
+	let frameLocator;
+	if ( isBlockPage ) {
+		frameLocator = await page.frameLocator(
+			'#express-payment-method-express_checkout_element_link iframe[name^="__privateStripeFrame"]'
 		);
-		await page.getByLabel( 'Link by Stripe Input' ).check();
-		await page.click( 'text=Save changes' );
-
-		await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
-		await expect( page.getByLabel( 'Link by Stripe Input' ) ).toBeChecked();
-	} );
-} );
-
-test.describe( 'customer can use express checkout', () => {
-	test( 'Link is available inside the product page', async ( { page } ) => {
-		// Navigate to a product page
-		await page.goto( '/product/beanie' );
-
-		const linkFrame = await page.frameLocator(
+	} else {
+		frameLocator = await page.frameLocator(
 			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
 		);
+	}
+	const linkButton = await frameLocator.getByRole( 'button', {
+		name: 'Pay with Link',
+	} );
+	await expect( linkButton ).toBeEnabled();
 
-		// Wait for the button and verify it's visible
-		const linkButton = linkFrame.locator( '.LinkButton' );
+	const context = await page.context();
+	const [ popup ] = await Promise.all( [
+		context.waitForEvent( 'page' ),
+		linkButton.dispatchEvent( 'click' ),
+	] );
 
-		const context = await page.context();
-		const [ popup ] = await Promise.all( [
-			context.waitForEvent( 'page', { timeout: 4000 } ),
-			linkButton.dispatchEvent( 'click' ),
-		] );
+	// Check that the payment modal gets loaded.
+	await popup.waitForLoadState();
 
-		// Check that the popup gets loaded.
-		await popup.waitForLoadState();
+	// Back in the main window, check that Link's "Continue payment" button is visible.
+	const continuePaymentButton = await page.getByRole( 'button', {
+		name: 'Continue payment',
+	} );
+	await expect( continuePaymentButton ).toBeVisible();
+};
 
-		// Back in the main window, check that the "Continue payment" button is visible.
-		const continuePaymentButton = await page.getByRole( 'button', {
-			name: 'Continue payment',
-		} );
-		await expect( continuePaymentButton ).toBeVisible();
+test.describe( 'customer can use Link express checkout', () => {
+	test( 'inside the product page', async ( { page } ) =>
+		await testLink( page, '/product/beanie' ) );
+
+	test( 'inside the cart page (classic)', async ( { page } ) => {
+		await addProductToCart( page );
+		await testLink( page, '/cart-shortcode', false );
+	} );
+
+	test( 'inside the checkout page (classic)', async ( { page } ) => {
+		await addProductToCart( page );
+		await testLink( page, '/checkout-shortcode', false );
+	} );
+
+	test( 'inside the cart page (block)', async ( { page } ) => {
+		await addProductToCart( page );
+		await testLink( page, '/cart', true );
+	} );
+
+	test( 'inside the checkout page (block)', async ( { page } ) => {
+		await addProductToCart( page );
+		await testLink( page, '/checkout', true );
 	} );
 } );
