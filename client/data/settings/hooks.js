@@ -156,9 +156,23 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	'payment_request_button_locations',
 	EMPTY_ARR
 );
+export const useAmazonPayEnabledSettings = makeSettingsHook(
+	'is_amazon_pay_enabled'
+);
+export const useAmazonPayButtonSize = makeSettingsHook(
+	'amazon_pay_button_size',
+	''
+);
+export const useAmazonPayLocations = makeSettingsHook(
+	'amazon_pay_button_locations',
+	EMPTY_ARR
+);
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
+export const useSepaTokensForOtherMethods = makeSettingsHook(
+	'is_sepa_tokens_for_other_methods_enabled'
+);
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
 export const useSeparateCardForm = makeSettingsHook(
 	'is_separate_card_form_enabled'

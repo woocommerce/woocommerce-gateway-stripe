@@ -83,6 +83,26 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_amazon_pay_enabled'              => [
+						'description'       => __( 'If Amazon Pay should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'amazon_pay_button_size'        => [
+						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => array_keys( isset( $form_fields['amazon_pay_button_size']['options'] ) ? $form_fields['amazon_pay_button_size']['options'] : [] ),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'amazon_pay_button_locations'   => [
+						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_payment_request_enabled'         => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -123,6 +143,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					],
 					'is_saved_cards_enabled'             => [
 						'description'       => __( 'If "Saved cards" should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_sepa_tokens_for_other_methods_enabled' => [
+						'description'       => __( 'If "SEPA tokens for other methods" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -221,31 +246,35 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
-				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
-				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
+				'is_stripe_enabled'                        => $this->gateway->is_enabled(),
+				'is_test_mode_enabled'                     => $this->gateway->is_in_test_mode(),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
-				'available_payment_method_ids'          => $available_payment_method_ids,
-				'ordered_payment_method_ids'            => array_values( array_diff( $ordered_payment_method_ids, [ WC_Stripe_Payment_Methods::LINK ] ) ), // exclude Link from this list as it is a express methods.
-				'individual_payment_method_settings'    => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
+				'enabled_payment_method_ids'               => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
+				'available_payment_method_ids'             => $available_payment_method_ids,
+				'ordered_payment_method_ids'               => array_values( array_diff( $ordered_payment_method_ids, [ WC_Stripe_Payment_Methods::LINK ] ) ), // exclude Link from this list as it is a express methods.
+				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
-				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
-				'payment_request_button_type'           => $this->gateway->get_validated_option( 'payment_request_button_type' ),
-				'payment_request_button_theme'          => $this->gateway->get_validated_option( 'payment_request_button_theme' ),
-				'payment_request_button_size'           => $this->gateway->get_validated_option( 'payment_request_button_size' ),
-				'payment_request_button_locations'      => $this->gateway->get_validated_option( 'payment_request_button_locations' ),
+				'is_amazon_pay_enabled'                    => 'yes' === $this->gateway->get_option( 'amazon_pay' ),
+				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
+				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
+				'is_payment_request_enabled'               => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'payment_request_button_type'              => $this->gateway->get_validated_option( 'payment_request_button_type' ),
+				'payment_request_button_theme'             => $this->gateway->get_validated_option( 'payment_request_button_theme' ),
+				'payment_request_button_size'              => $this->gateway->get_validated_option( 'payment_request_button_size' ),
+				'payment_request_button_locations'         => $this->gateway->get_validated_option( 'payment_request_button_locations' ),
 
 				/* Settings > Payments & transactions */
-				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
-				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
-				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
-				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
+				'is_manual_capture_enabled'                => ! $this->gateway->is_automatic_capture_enabled(),
+				'is_saved_cards_enabled'                   => 'yes' === $this->gateway->get_option( 'saved_cards' ),
+				'is_sepa_tokens_for_other_methods_enabled' => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods' ),
+				'is_separate_card_form_enabled'            => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
+				'is_short_statement_descriptor_enabled'    => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
 
 				/* Settings > Advanced settings */
-				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_upe_enabled'                        => $is_upe_enabled,
+				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
+				'is_upe_enabled'                           => $is_upe_enabled,
 			]
 		);
 	}
@@ -267,10 +296,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_settings( $request );
+		$this->update_is_amazon_pay_enabled( $request );
+		$this->update_amazon_pay_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
 		$this->update_is_saved_cards_enabled( $request );
+		$this->update_is_sepa_tokens_for_other_methods_enabled( $request );
 		$this->update_is_separate_card_form_enabled( $request );
 		$this->update_is_short_account_statement_enabled( $request );
 
@@ -352,6 +384,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
+	 * Updates the "Amazon Pay" enable/disable settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_amazon_pay_enabled( WP_REST_Request $request ) {
+		$is_amazon_pay_enabled = $request->get_param( 'is_amazon_pay_enabled' );
+
+		if ( null === $is_amazon_pay_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'amazon_pay', $is_amazon_pay_enabled ? 'yes' : 'no' );
+	}
+
+	/**
 	 * Updates the "payment request" enable/disable settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -397,6 +444,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
+	 * Updates "SEPA tokens for other methods" feature.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_sepa_tokens_for_other_methods_enabled( WP_REST_Request $request ) {
+		$is_sepa_tokens_for_other_methods_enabled = $request->get_param( 'is_sepa_tokens_for_other_methods_enabled' );
+
+		if ( null === $is_sepa_tokens_for_other_methods_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'sepa_tokens_for_other_methods', $is_sepa_tokens_for_other_methods_enabled ? 'yes' : 'no' );
+	}
+
+	/**
 	 * Updates "saved cards" feature.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -439,7 +501,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'logging', $is_debug_log_enabled ? 'yes' : 'no' );
-
 	}
 
 	/**
@@ -474,6 +535,27 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+	}
+
+	/**
+	 * Updates appearance attributes of the Amazon Pay button.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_amazon_pay_settings( WP_REST_Request $request ) {
+		$attributes = [
+			'amazon_pay_button_size'      => 'amazon_pay_button_size',
+			'amazon_pay_button_locations' => 'amazon_pay_button_locations',
+		];
+
+		foreach ( $attributes as $request_key => $attribute ) {
+			if ( null === $request->get_param( $request_key ) ) {
+				continue;
+			}
+
+			$value = $request->get_param( $request_key );
+			$this->gateway->update_validated_option( $attribute, $value );
+		}
 	}
 
 	/**

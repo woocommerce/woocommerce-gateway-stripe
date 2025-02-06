@@ -21,11 +21,13 @@ export const PAYMENT_METHOD_CLEARPAY = 'clearpay';
 export const PAYMENT_METHOD_WECHAT_PAY = 'wechat_pay';
 export const PAYMENT_METHOD_CASHAPP = 'cashapp';
 export const PAYMENT_METHOD_LINK = 'link';
+export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
 
 /**
  * Payment method names constants with the `stripe` prefix
  */
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
+export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
 export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
@@ -43,10 +45,12 @@ export const PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY =
 	'stripe_afterpay_clearpay';
 export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
+export const PAYMENT_METHOD_STRIPE_BACS = 'stripe_bacs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
 		card: PAYMENT_METHOD_STRIPE_CARD,
+		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
 		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,
@@ -63,6 +67,7 @@ export function getPaymentMethodsConstants() {
 		afterpay_clearpay: PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY,
 		wechat_pay: PAYMENT_METHOD_STRIPE_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
+		bacs_debit: PAYMENT_METHOD_STRIPE_BACS,
 	};
 }
 
@@ -94,3 +99,24 @@ export const errorCodes = {
 	MISSING: 'missing',
 	PROCESSING_ERROR: 'processing_error',
 };
+
+/**
+ * Payment intent status constants
+ */
+export const PAYMENT_INTENT_STATUS_CANCELED = 'canceled';
+export const PAYMENT_INTENT_STATUS_PROCESSING = 'processing';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CONFIRMATION =
+	'requires_confirmation';
+export const PAYMENT_INTENT_STATUS_REQUIRES_ACTION = 'requires_action';
+export const PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE = 'requires_capture';
+export const PAYMENT_INTENT_STATUS_REQUIRES_PAYMENT_METHOD =
+	'requires_payment_method';
+export const PAYMENT_INTENT_STATUS_SUCCEEDED = 'succeeded';
+
+/**
+ * Express payment methods setting constants
+ */
+export const EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY = 'amazonPay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY = 'applePay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';

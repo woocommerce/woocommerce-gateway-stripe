@@ -19,7 +19,7 @@ test( 'customer can checkout with a normal credit card @smoke', async ( {
 		config.get( 'addresses.customer.billing' )
 	);
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
-	await page.locator( 'text=Place order' ).click();
+	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 	await page.waitForNavigation();
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

@@ -124,17 +124,7 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	protected function generate_customer_request( $args = [] ) {
-		$billing_email  = isset( $_POST['billing_email'] ) ? filter_var( wp_unslash( $_POST['billing_email'] ), FILTER_SANITIZE_EMAIL ) : '';
-		$user           = $this->get_user();
-		$address_fields = [
-			'line1'       => 'billing_address_1',
-			'line2'       => 'billing_address_2',
-			'postal_code' => 'billing_postcode',
-			'city'        => 'billing_city',
-			'state'       => 'billing_state',
-			'country'     => 'billing_country',
-		];
-
+		$user = $this->get_user();
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
@@ -162,8 +152,9 @@ class WC_Stripe_Customer {
 				$defaults['name'] = $billing_full_name;
 			}
 		} else {
-			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
-			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+			$billing_email      = $this->get_billing_data_field( 'billing_email', $args );
+			$billing_first_name = $this->get_billing_data_field( 'billing_first_name', $args );
+			$billing_last_name  = $this->get_billing_data_field( 'billing_last_name', $args );
 
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
@@ -184,15 +175,84 @@ class WC_Stripe_Customer {
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
 		// Add customer address default values.
+		$address_fields = [
+			'line1'       => 'billing_address_1',
+			'line2'       => 'billing_address_2',
+			'postal_code' => 'billing_postcode',
+			'city'        => 'billing_city',
+			'state'       => 'billing_state',
+			'country'     => 'billing_country',
+		];
 		foreach ( $address_fields as $key => $field ) {
 			if ( $user ) {
 				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
 			} else {
-				$defaults['address'][ $key ] = isset( $_POST[ $field ] ) ? filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_SPECIAL_CHARS ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+				$defaults['address'][ $key ] = $this->get_billing_data_field( $field, $args );
 			}
 		}
 
 		return wp_parse_args( $args, $defaults );
+	}
+
+	/**
+	 * Get value of billing data field, either from POST or order object.
+	 *
+	 * @param string $field Field name.
+	 * @param array  $args  Additional arguments (optional).
+	 *
+	 * @return string
+	 */
+	private function get_billing_data_field( $field, $args = [] ) {
+		$valid_fields = [
+			'billing_email',
+			'billing_first_name',
+			'billing_last_name',
+			'billing_address_1',
+			'billing_address_2',
+			'billing_postcode',
+			'billing_city',
+			'billing_state',
+			'billing_country',
+		];
+
+		// Restrict field parameter to list of known billing fields.
+		if ( ! in_array( $field, $valid_fields, true ) ) {
+			return '';
+		}
+
+		// Prioritize POST data, if available.
+		if ( isset( $_POST[ $field ] ) ) {
+			if ( 'billing_email' === $field ) {
+				return filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_EMAIL ); // phpcs:ignore WordPress.Security.NonceVerification
+			}
+
+			return filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_SPECIAL_CHARS ); // phpcs:ignore WordPress.Security.NonceVerification
+		} elseif ( isset( $args['order'] ) && $args['order'] instanceof WC_Order ) {
+			switch ( $field ) {
+				case 'billing_email':
+					return $args['order']->get_billing_email();
+				case 'billing_first_name':
+					return $args['order']->get_billing_first_name();
+				case 'billing_last_name':
+					return $args['order']->get_billing_last_name();
+				case 'billing_address_1':
+					return $args['order']->get_billing_address_1();
+				case 'billing_address_2':
+					return $args['order']->get_billing_address_2();
+				case 'billing_postcode':
+					return $args['order']->get_billing_postcode();
+				case 'billing_city':
+					return $args['order']->get_billing_city();
+				case 'billing_state':
+					return $args['order']->get_billing_state();
+				case 'billing_country':
+					return $args['order']->get_billing_country();
+				default:
+					return '';
+			}
+		}
+
+		return '';
 	}
 
 	/**
@@ -328,7 +388,7 @@ class WC_Stripe_Customer {
 	 */
 	public function update_or_create_customer( $args = [], $is_retry = false ) {
 		if ( empty( $this->get_id() ) ) {
-			return $this->recreate_customer();
+			return $this->recreate_customer( $args );
 		} else {
 			return $this->update_customer( $args, true );
 		}
@@ -391,28 +451,31 @@ class WC_Stripe_Customer {
 						$wc_token->set_token( $response->id );
 						$wc_token->set_gateway_id( 'stripe_sepa' );
 						$wc_token->set_last4( $response->sepa_debit->last4 );
+						$wc_token->set_fingerprint( $response->sepa_debit->fingerprint );
 						break;
 					default:
 						if ( WC_Stripe_Helper::is_card_payment_method( $response ) ) {
-							$wc_token = new WC_Payment_Token_CC();
+							$wc_token = new WC_Stripe_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
 							$wc_token->set_card_type( strtolower( $response->card->brand ) );
 							$wc_token->set_last4( $response->card->last4 );
 							$wc_token->set_expiry_month( $response->card->exp_month );
 							$wc_token->set_expiry_year( $response->card->exp_year );
+							$wc_token->set_fingerprint( $response->card->fingerprint );
 						}
 						break;
 				}
 			} else {
 				// Legacy.
-				$wc_token = new WC_Payment_Token_CC();
+				$wc_token = new WC_Stripe_Payment_Token_CC();
 				$wc_token->set_token( $response->id );
 				$wc_token->set_gateway_id( 'stripe' );
 				$wc_token->set_card_type( strtolower( $response->brand ) );
 				$wc_token->set_last4( $response->last4 );
 				$wc_token->set_expiry_month( $response->exp_month );
 				$wc_token->set_expiry_year( $response->exp_year );
+				$wc_token->set_fingerprint( $response->fingerprint );
 			}
 
 			$wc_token->set_user_id( $this->get_user_id() );
@@ -673,11 +736,13 @@ class WC_Stripe_Customer {
 	/**
 	 * Recreates the customer for this user.
 	 *
+	 * @param array $args Additional arguments for the request (optional).
+	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer() {
+	private function recreate_customer( $args = [] ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer();
+		return $this->create_customer( $args );
 	}
 
 	/**
@@ -741,12 +806,12 @@ class WC_Stripe_Customer {
 	 * Given a WC_Order or WC_Customer, returns an array representing a Stripe customer object.
 	 * At least one parameter has to not be null.
 	 *
-	 * @param WC_Order    $wc_order    The Woo order to parse.
-	 * @param WC_Customer $wc_customer The Woo customer to parse.
+	 * @param WC_Order|null    $wc_order    The Woo order to parse.
+	 * @param WC_Customer|null $wc_customer The Woo customer to parse.
 	 *
 	 * @return array Customer data.
 	 */
-	public static function map_customer_data( WC_Order $wc_order = null, WC_Customer $wc_customer = null ) {
+	public static function map_customer_data( ?WC_Order $wc_order = null, ?WC_Customer $wc_customer = null ) {
 		if ( null === $wc_customer && null === $wc_order ) {
 			return [];
 		}

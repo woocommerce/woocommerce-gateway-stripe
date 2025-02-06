@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.0.0
+Stable tag: 9.1.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,30 +110,48 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.1.0 - xxxx-xx-xx =
-* Fix - Fix ECE crash in classic cart and checkout pages for non-English language sites.
-* Fix - Correctly handles UK postcodes redacted by Apple Pay.
-* Tweak - Avoid re-sending Processing Order customer email when merchant wins dispute.
-* Fix - Allow the saving of iDEAL tokens when SEPA is disabled.
-* Fix - Fixes the incompatibility notice in editor due missing style property when instantiating Stripe payment methods.
-* Dev - Updates the GitHub caching action (`actions/cache`) to v4 due deprecation.
-* Fix - Don't update canceled order status to on-hold when a dispute is opened.
-* Fix - Correctly sets the dispute opened note when a dispute does not require any further action.
-* Add - Display Multibanco payment instruction details in Order Received page and Order Confirmation email.
-* Tweak - Add the transaction limit information to the Afterpay/Clearpay method when listing payment methods.
-* Tweak - Add transaction threshold information to Affirm when listing payment methods.
-* Fix - Handles additional fields when checking out using ECE on the block checkout.
-* Dev - Introduces new payment method name constants for the frontend.
-* Dev - Improves the missing intent params error log by appending the payment information array.
-* Tweak - Improve error message displayed when payment method creation fails in classic checkout.
-* Tweak - Display email address for Link saved payment methods.
-* Fix - Only update order status for a Radar review closed event when the order was already captured.
-* Dev - Introduces a new class with payment intent statuses constants.
-* Add - Correctly handles charge expired webhook events, setting the order status to failed and adding a note.
-* Fix - Allow account creation on checkout, if enabled, when purchasing subscriptions using ECE.
-* Tweak - Add empty check for cart when checking for allowed products for express checkout.
-* Update - Prevent editing of orders awaiting payment capture.
-* Add - Introduce locking and unlocking in refund flow to prevent double refund due to race condition.
-* Fix - Check order currency on pay for order page to display supported payment methods.
+= 9.2.0 - xxxx-xx-xx =
+* Add - Add Amazon Pay to block cart and block checkout.
+* Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
+* Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
+* Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
+* Tweak - Process ECE cart requests using the Blocks (Store) API.
+* Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
+* Add - Wrap Amazon Pay in feature flag.
+* Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
+* Tweak - Use WC Core's rate limiter on "Add payment method" page.
+* Add - New Amazon Pay payment method in the Stripe Express Checkout Element for the classic, shortcode (classic) checkout, product, and cart pages.
+* Dev - Introduces new payment intent status constants for the frontend.
+* Fix - Fix Stripe customer creation when using the Blocks API for express checkout.
+* Add - Add new payment processing flow using confirmation tokens.
+* Dev - Adds new logs to identify why express payment methods are not being displayed.
+* Fix - Fixes a fatal error when editing the shortcode checkout page with an empty cart on PHP 8.4.
+* Fix - Fixes processing of orders through the Pay for Order page when using ECE with Blocks (Store) API.
+* Add - Enables the use of Blocks API for Express Checkout Element orders by default.
+* Add - Adds a new filter to allow changing the user attributed to an order when paying for it through the Order Pay page.
+* Fix - Fixes an error with the fingerprint property setting when using the legacy checkout.
+* Fix - Fixes order attribution data for the Express Checkout Element when using the Blocks API to process.
+* Tweak - Process ECE orders using the Blocks API.
+* Fix - Fixes incorrect error message for card failures due insufficient funds on the shortcode checkout page (legacy).
+* Fix - Fixes deprecation warnings related to nullable method parameters when using PHP 8.4, and increases the minimum PHP version Code Sniffer considers to 7.4.
+* Fix - Adds support for the Reunion country when checking out using the new checkout experience.
+* Add - Support zero-amount refunds.
+* Fix - A potential fix to prevent duplicate charges.
+* Fix - Prevent empty settings screen when cancelling changes to the payment methods display order.
+* Fix - Improve product page caching when Express Payment buttons are not enabled.
+* Fix - Allow editing uncaptured orders but show a warning about the possible failure scenario.
+* Fix - Fetch the payment intent status on order edit page only for unpaid orders if manual capture is enabled.
+* Fix - Error when changing subscription payment method to a 3D Secure card while using a custom checkout endpoint.
+* Fix - Fixes the webhook order retrieval by intent charges by adding an array check.
+* Add - Add total tax amount to metadata.
+* Update - Update the translation for payment requests settings section notice.
+* Add - Add Amazon Pay to settings express checkout section.
+* Add - Add Amazon Pay customize express checkout page.
+* Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
+* Fix - Hide ECE button for synced subscription variations.
+* Fix - Use the original shipping address for Amazon Pay pay for orders.
+* Tweak - Improve settings page load by delaying oauth URL generation.
+* Tweak - Update the Woo logo in the Configure connection modal
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

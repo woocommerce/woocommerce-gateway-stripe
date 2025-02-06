@@ -5,6 +5,10 @@ import {
 	createOrder,
 } from 'wcstripe/api/blocks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE,
+	PAYMENT_INTENT_STATUS_SUCCEEDED,
+} from 'wcstripe/stripe-utils/constants';
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
@@ -105,11 +109,11 @@ const getIntentFromConfirmation = ( intent, intentType ) => {
 };
 
 const doesIntentRequireCapture = ( intent ) => {
-	return intent.status === 'requires_capture';
+	return intent.status === PAYMENT_INTENT_STATUS_REQUIRES_CAPTURE;
 };
 
 const didIntentSucceed = ( intent ) => {
-	return intent.status === 'succeeded';
+	return intent.status === PAYMENT_INTENT_STATUS_SUCCEEDED;
 };
 
 /**

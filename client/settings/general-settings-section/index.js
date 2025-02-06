@@ -10,6 +10,7 @@ import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
+import { useGetOrderedPaymentMethodIds } from 'wcstripe/data';
 import './styles.scss';
 
 const AccountRefreshingOverlay = styled.div`
@@ -39,13 +40,30 @@ const GeneralSettingsSection = ( {
 	);
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
+	const {
+		orderedPaymentMethodIds,
+		setOrderedPaymentMethodIds,
+	} = useGetOrderedPaymentMethodIds();
+
+	const [ initialOrder, setInitialOrder ] = useState( [] );
 
 	const onChangeDisplayOrder = ( isChanging, data = null ) => {
-		setIsChangingDisplayOrder( isChanging );
-
-		if ( data ) {
+		if ( isChanging ) {
+			// Store the initial order before entering reorder mode
+			setInitialOrder( [ ...orderedPaymentMethodIds ] );
+		} else if ( ! data ) {
+			// This is a cancel action - restore the initial order
+			if ( initialOrder.length > 0 ) {
+				setOrderedPaymentMethodIds( initialOrder );
+			}
+			setInitialOrder( [] );
+		} else {
+			// This is a save action
 			onSaveChanges( 'ordered_payment_method_ids', data );
+			setInitialOrder( [] );
 		}
+
+		setIsChangingDisplayOrder( isChanging );
 	};
 
 	return (
@@ -78,6 +96,7 @@ const GeneralSettingsSection = ( {
 						<PaymentMethodsList
 							isChangingDisplayOrder={ isChangingDisplayOrder }
 							onSaveChanges={ onSaveChanges }
+							onCancel={ () => onChangeDisplayOrder( false ) }
 						/>
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }

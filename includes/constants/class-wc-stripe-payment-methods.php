@@ -4,6 +4,8 @@
  * Class WC_Stripe_Payment_Methods
  */
 class WC_Stripe_Payment_Methods {
+
+	const ACH               = 'us_bank_account';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
@@ -23,6 +25,9 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
+	const CARD_PRESENT      = 'card_present';
+	const BACS_DEBIT        = 'bacs_debit';
+	const AMAZON_PAY        = 'amazon_pay';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.

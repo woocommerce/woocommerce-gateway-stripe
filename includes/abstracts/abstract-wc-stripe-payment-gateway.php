@@ -337,6 +337,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return apply_filters(
 			'wc_stripe_payment_icons',
 			[
+				WC_Stripe_Payment_Methods::ACH         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 				WC_Stripe_Payment_Methods::ALIPAY      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
 				WC_Stripe_Payment_Methods::WECHAT_PAY  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
 				WC_Stripe_Payment_Methods::BANCONTACT  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
@@ -1095,6 +1096,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
+		// Refund without an amount is a no-op, but required to succeed
+		if ( '0.00' === sprintf( '%0.2f', $amount ?? 0 ) ) {
+			return true;
+		}
+
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 		$response = new stdClass();
@@ -1386,7 +1392,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$currency    = $order->get_currency();
 
 		$stripe_line_items = array_map(
-			function( $item ) use ( $currency ) {
+			function ( $item ) use ( $currency ) {
 				if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
 					$product_id = $item->get_variation_id()
 						? $item->get_variation_id()

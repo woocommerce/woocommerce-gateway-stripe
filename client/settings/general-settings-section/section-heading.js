@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
 import { useAccount } from 'wcstripe/data/account';
-import {
-	useGetAvailablePaymentMethodIds,
-	useGetOrderedPaymentMethodIds,
-} from 'wcstripe/data';
+import { useGetOrderedPaymentMethodIds } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledHeader = styled( CardHeader )`
@@ -52,10 +49,8 @@ const ActionItems = styled.div`
 
 const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const {
 		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
 		isSaving,
 		saveOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
@@ -64,7 +59,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 
 	const onChangeDisplayOrderCancel = () => {
 		onChangeDisplayOrder( false );
-		setOrderedPaymentMethodIds( upePaymentMethods );
 	};
 
 	const onChangeDisplayOrderSave = async () => {

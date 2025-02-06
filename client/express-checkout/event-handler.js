@@ -1,12 +1,13 @@
-import { __ } from '@wordpress/i18n';
 import {
-	getErrorMessageFromNotice,
-	normalizeOrderData,
-	normalizePayForOrderData,
 	normalizeShippingAddress,
 	normalizeLineItems,
 	getExpressCheckoutData,
+	isManualPaymentMethodCreation,
 } from './utils';
+import {
+	handleConfirmationTokenFlow,
+	handleManualPaymentMethodFlow,
+} from './payment-flow';
 import {
 	trackExpressCheckoutButtonClick,
 	trackExpressCheckoutButtonLoad,
@@ -53,73 +54,19 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 	}
 };
 
-export const onConfirmHandler = async (
-	api,
-	stripe,
-	elements,
-	completePayment,
-	abortPayment,
-	event,
-	order = 0 // Order ID for the pay for order flow.
-) => {
+export const onConfirmHandler = async ( params ) => {
+	const { abortPayment, elements, event } = params;
+
 	const submitResponse = await elements.submit();
 	if ( submitResponse?.error ) {
 		return abortPayment( event, submitResponse?.error?.message );
 	}
 
-	const { paymentMethod, error } = await stripe.createPaymentMethod( {
-		elements,
-	} );
-
-	if ( error ) {
-		return abortPayment( event, error.message );
+	if ( ! isManualPaymentMethodCreation( event.expressPaymentType ) ) {
+		return handleConfirmationTokenFlow( params );
 	}
 
-	try {
-		// Kick off checkout processing step.
-		let orderResponse;
-		if ( ! order ) {
-			orderResponse = await api.expressCheckoutECECreateOrder(
-				normalizeOrderData( event, paymentMethod.id )
-			);
-		} else {
-			orderResponse = await api.expressCheckoutECEPayForOrder(
-				order,
-				normalizePayForOrderData( event, paymentMethod.id )
-			);
-		}
-
-		if ( orderResponse.result !== 'success' ) {
-			return abortPayment(
-				event,
-				getErrorMessageFromNotice( orderResponse.messages ),
-				true
-			);
-		}
-
-		const confirmationRequest = api.confirmIntent( orderResponse.redirect );
-
-		// `true` means there is no intent to confirm.
-		if ( confirmationRequest === true ) {
-			completePayment( orderResponse.redirect );
-		} else {
-			const { request } = confirmationRequest;
-			const redirectUrl = await request;
-
-			completePayment( redirectUrl );
-		}
-	} catch ( e ) {
-		let errorMessage;
-		if ( e.message ) {
-			errorMessage = e.message;
-		} else {
-			errorMessage = __(
-				'There was a problem processing the order.',
-				'woocommerce-gateway-stripe'
-			);
-		}
-		return abortPayment( event, errorMessage );
-	}
+	return handleManualPaymentMethodFlow( params );
 };
 
 export const onReadyHandler = function ( { availablePaymentMethods } ) {

@@ -236,7 +236,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$currencies             = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) ) {
 			if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
-				$order          = wc_get_order( $order_id ? $order_id : absint( get_query_var( 'order-pay' ) ) );
+				$order          = WC_Stripe_Order::get_by_id( $order_id ? $order_id : absint( get_query_var( 'order-pay' ) ) );
 				$order_currency = $order->get_currency();
 				if ( ! in_array( $order_currency, $currencies, true ) ) {
 					return false;
@@ -374,6 +374,20 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$token->set_token( $payment_method->id );
 		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
+		$token->set_fingerprint( $payment_method->sepa_debit->fingerprint );
+		$token->save();
+		return $token;
+	}
+
+	/**
+	 * Updates a payment token.
+	 *
+	 * @param WC_Payment_Token $token   The token to update.
+	 * @param string $payment_method_id The new payment method ID.
+	 * @return WC_Payment_Token
+	 */
+	public function update_payment_token( $token, $payment_method_id ) {
+		$token->set_token( $payment_method_id );
 		$token->save();
 		return $token;
 	}
@@ -522,12 +536,31 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns the UPE Payment Method settings option.
 	 *
-	 * Overrides @see WC:Settings_API::get_option_key() to use the same option key as the main Stripe gateway.
-	 *
 	 * @return string
 	 */
 	public function get_option_key() {
-		return 'woocommerce_stripe_settings';
+		return 'woocommerce_stripe_' . $this->stripe_id . '_settings';
+	}
+
+	/**
+	 * Get option from the main Stripe gateway if it exists.
+	 *
+	 * @param string $key Option key.
+	 * @param mixed  $empty_value Value when empty.
+	 * @return string The value specified for the option or a default value for the option.
+	 */
+	public function get_option( $key, $empty_value = null ) {
+		$main_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		if ( empty( $main_settings ) ) {
+			return $empty_value;
+		}
+
+		if ( ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
+			return $empty_value;
+		}
+
+		return $main_settings[ $key ] ?? $empty_value;
 	}
 
 	/**
@@ -581,6 +614,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_saved_cards_enabled() {
 		return 'yes' === $this->get_option( 'saved_cards' );
+	}
+
+	/**
+	 * Returns true if the SEPA tokens for other methods (Bancontact and iDEAL) feature is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_sepa_tokens_for_other_methods_enabled() {
+		return 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
 	}
 
 	/**

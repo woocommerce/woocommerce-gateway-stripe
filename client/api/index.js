@@ -1,11 +1,17 @@
 /* global Stripe */
 import { __ } from '@wordpress/i18n';
+import apiFetch from '@wordpress/api-fetch';
+import { applyFilters } from '@wordpress/hooks';
 import {
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
+import {
+	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -187,7 +193,8 @@ export default class WCStripeAPI {
 			}
 
 			if (
-				response.data.status === 'requires_action' &&
+				response.data.status ===
+					PAYMENT_INTENT_STATUS_REQUIRES_ACTION &&
 				response.data.next_action.type === 'redirect_to_url'
 			) {
 				window.location.href =
@@ -308,28 +315,12 @@ export default class WCStripeAPI {
 		const clientSecret = partials[ 3 ];
 		const nonce = partials[ 4 ];
 
-		const orderPayIndex = redirectUrl.indexOf( 'order-pay' );
-		const isOrderPage = orderPayIndex > -1;
-		const isChangingPayment =
-			isOrderPage &&
-			document.querySelectorAll( '#wc-stripe-change-payment-method' )
-				.length > 0;
+		const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 		// If we're on the Pay for Order page, get the order ID
-		// directly from the URL instead of relying on the hash.
-		// The checkout URL does not contain the string 'order-pay'.
-		// The Pay for Order page contains the string 'order-pay' and
-		// can have these formats:
-		// Plain permalinks:
-		// /?page_id=7&order-pay=189&pay_for_order=true&key=wc_order_key
-		// Non-plain permalinks:
-		// /checkout/order-pay/189/
-		// Match for consecutive digits after the string 'order-pay' to get the order ID.
-		const orderIdPartials =
-			isOrderPage &&
-			redirectUrl.substring( orderPayIndex ).match( /\d+/ );
-		if ( orderIdPartials ) {
-			orderId = orderIdPartials[ 0 ];
+		// directly from the server data instead of relying on the hash.
+		if ( isChangingPayment ) {
+			orderId = getStripeServerData().orderId;
 		}
 
 		// After processing the intent, trigger the appropriate AJAX action.
@@ -384,7 +375,7 @@ export default class WCStripeAPI {
 
 		return {
 			request,
-			isOrderPage,
+			isChangingPayment,
 		};
 	}
 
@@ -506,36 +497,23 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutGetCartDetails() {
+		return apiFetch( {
+			method: 'GET',
+			path: '/wc/store/v1/cart',
+			security: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+		} );
+	}
+
+	/**
+	 * Get cart items and total amount (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutGetCartDetailsLegacy() {
 		return this.request( getExpressCheckoutAjaxURL( 'get_cart_details' ), {
 			security: getExpressCheckoutData( 'nonce' )?.get_cart_details,
-		} );
-	}
-
-	/**
-	 * Creates order based on Express Checkout ECE payment method.
-	 *
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECECreateOrder( paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
-		} );
-	}
-
-	/**
-	 * Pays for an order based on the Express Checkout payment method.
-	 *
-	 * @param {number} order The order ID.
-	 * @param {Object} paymentData Order data.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutECEPayForOrder( order, paymentData ) {
-		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
-			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
-			order,
-			...paymentData,
 		} );
 	}
 
@@ -546,9 +524,100 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutAddToCart( productData ) {
+		const data = applyFilters(
+			'wcstripe.express-checkout.cart-add-item',
+			productData
+		);
+		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
+	}
+
+	/**
+	 * Add product to cart from product page (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @param {Object} productData Product data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutAddToCartLegacy( productData ) {
 		return this.request( getExpressCheckoutAjaxURL( 'add_to_cart' ), {
 			security: getExpressCheckoutData( 'nonce' )?.add_to_cart,
 			...productData,
+		} );
+	}
+
+	/**
+	 * Empty the cart.
+	 *
+	 * @param {number} bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	async expressCheckoutEmptyCart( bookingId ) {
+		try {
+			const cartData = await apiFetch( {
+				method: 'GET',
+				path: '/wc/store/v1/cart',
+				headers: {
+					Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+				},
+			} );
+			const removeItemsPromises = cartData.items.map( ( item ) => {
+				return this.postToBlocksAPI( '/wc/store/v1/cart/remove-item', {
+					key: item.key,
+					booking_id: bookingId,
+				} );
+			} );
+
+			await Promise.all( removeItemsPromises );
+		} catch ( e ) {
+			// let's ignore the error, it's likely not going to be relevant.
+		}
+	}
+
+	/**
+	 * Creates order based on Express Checkout ECE payment method.
+	 *
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECreateOrder( paymentData ) {
+		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
+			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+		} );
+	}
+
+	/**
+	 * Pays for an order based on the Express Checkout payment method.
+	 *
+	 * @param {number} order The order ID.
+	 * @param {Object} orderDetails Order details, including order key and billing email.
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECEPayForOrder( order, orderDetails, paymentData ) {
+		paymentData.shipping_address = orderDetails.shippingAddress;
+
+		const billingEmail = orderDetails.billingEmail ?? '';
+		const key = orderDetails.orderKey ?? '';
+		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
+		return this.postToBlocksAPI( url, paymentData );
+	}
+
+	/**
+	 * Posts data to the Blocks API.
+	 *
+	 * @param {string} path The path to post to.
+	 * @param {Object} data The data to post.
+	 * @return {Promise} The promise for the request to the server.
+	 */
+	postToBlocksAPI( path, data ) {
+		return apiFetch( {
+			method: 'POST',
+			path,
+			headers: {
+				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+			},
+			data,
 		} );
 	}
 
@@ -567,18 +636,5 @@ export default class WCStripeAPI {
 				...productData,
 			}
 		);
-	}
-
-	/**
-	 * Empty the cart.
-	 *
-	 * @param {number} bookingId Booking ID.
-	 * @return {Promise} Promise for the request to the server.
-	 */
-	expressCheckoutEmptyCart( bookingId ) {
-		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
-			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
-			booking_id: bookingId,
-		} );
 	}
 }

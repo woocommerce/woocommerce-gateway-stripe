@@ -416,7 +416,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( $use_order_source ) {
 				$prepared_source = $this->prepare_order_source( $order );
 			} else {
-				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+				/**
+				 * Filters the user ID used to prepare the payment source.
+				 *
+				 * @since 9.2.0
+				 *
+				 * @param int     $user_id The user ID.
+				 * @param WC_Order $order  The order object.
+				 */
+				$user_id         = apply_filters( 'wc_stripe_process_payment_prepared_source_user', get_current_user_id(), $order );
+				$prepared_source = $this->prepare_source( $user_id, $force_save_source, $stripe_customer_id );
 			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );

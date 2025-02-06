@@ -128,7 +128,12 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return void
 	 */
 	public function set_session() {
-		if ( ! $this->express_checkout_helper->is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
+		// Don't set session cookies on product pages to allow for caching when payment request
+		// buttons are disabled. But keep cookies if there is already an active WC session in place.
+		if (
+			! ( $this->express_checkout_helper->is_product() && $this->express_checkout_helper->should_show_express_checkout_button() )
+			|| ( isset( WC()->session ) && WC()->session->has_session() )
+		) {
 			return;
 		}
 
@@ -185,6 +190,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'             => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
 				'is_express_checkout_enabled' => $this->express_checkout_helper->is_express_checkout_enabled(),
+				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
 			],
 			'nonce'                  => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
@@ -197,6 +203,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
 				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
+				'wc_store_api'              => wp_create_nonce( 'wc_store_api' ),
 			],
 			'i18n'                   => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -281,6 +288,22 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$data['order']          = $order->get_id();
+		$data['orderDetails']   = [
+			'orderKey'        => $order->get_order_key(),
+			'billingEmail'    => $order->get_billing_email(),
+			'shippingAddress' => [
+				'first_name' => $order->get_shipping_first_name(),
+				'last_name'  => $order->get_shipping_last_name(),
+				'company'    => $order->get_shipping_company(),
+				'address_1'  => $order->get_shipping_address_1(),
+				'address_2'  => $order->get_shipping_address_2(),
+				'city'       => $order->get_shipping_city(),
+				'state'      => $order->get_shipping_state(),
+				'postcode'   => $order->get_shipping_postcode(),
+				'country'    => $order->get_shipping_country(),
+				'phone'      => $order->get_shipping_phone(),
+			],
+		];
 		$data['displayItems']   = $items;
 		$data['needs_shipping'] = false; // This should be already entered/prepared.
 		$data['total']          = [
@@ -400,9 +423,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( 'Apple Pay (Stripe)' === $method_title
-				|| 'Google Pay (Stripe)' === $method_title
-			) {
+			if ( in_array( $method_title, [ 'Apple Pay (Stripe)', 'Google Pay (Stripe)', 'Amazon Pay (Stripe)' ], true ) ) {
 				return $method_title;
 			}
 		}

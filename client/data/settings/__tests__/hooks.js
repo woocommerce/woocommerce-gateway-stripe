@@ -18,6 +18,10 @@ import {
 	useIsShortAccountStatementEnabled,
 	useDebugLog,
 	useManualCapture,
+	useAmazonPayEnabledSettings,
+	useAmazonPayLocations,
+	useAmazonPayButtonSize,
+	useSepaTokensForOtherMethods,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import {
@@ -281,6 +285,12 @@ describe( 'Settings hooks tests', () => {
 			testedValue: true,
 			fallbackValue: false,
 		},
+		useSepaTokensForOtherMethods: {
+			hook: useSepaTokensForOtherMethods,
+			storeKey: 'is_sepa_tokens_for_other_methods_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
 		useManualCapture: {
 			hook: useManualCapture,
 			storeKey: 'is_manual_capture_enabled',
@@ -308,6 +318,24 @@ describe( 'Settings hooks tests', () => {
 		usePaymentRequestLocations: {
 			hook: usePaymentRequestLocations,
 			storeKey: 'payment_request_button_locations',
+			testedValue: [ 'checkout', 'cart' ],
+			fallbackValue: [],
+		},
+		useAmazonPayEnabledSettings: {
+			hook: useAmazonPayEnabledSettings,
+			storeKey: 'is_amazon_pay_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useAmazonPayButtonSize: {
+			hook: useAmazonPayButtonSize,
+			storeKey: 'amazon_pay_button_size',
+			testedValue: 'large',
+			fallbackValue: '',
+		},
+		useAmazonPayLocations: {
+			hook: useAmazonPayLocations,
+			storeKey: 'amazon_pay_button_locations',
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
