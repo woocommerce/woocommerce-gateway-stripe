@@ -415,4 +415,34 @@ class WC_Stripe_Account {
 			return false;
 		}
 	}
+
+	/**
+	 * Reconfigures webhooks during plugin update.
+	 * This ensures webhooks are updated with any new events that may have been added.
+	 *
+	 * @return void
+	 */
+	public function reconfigure_webhooks_on_update() {
+		WC_Stripe_Logger::log( 'Attempting to reconfigure webhooks after plugin update.' );
+
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$modes = [ 'live', 'test' ];
+
+		foreach ( $modes as $mode ) {
+			$secret_key_setting = 'live' === $mode ? 'secret_key' : 'test_secret_key';
+			$secret_key = $settings[ $secret_key_setting ] ?? '';
+
+			if ( empty( $secret_key ) ) {
+				WC_Stripe_Logger::log( "Skipping webhook reconfiguration for {$mode} mode - no API key available." );
+				continue;
+			}
+
+			try {
+				$this->configure_webhooks( $mode, $secret_key );
+				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::log( "Failed to reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+			}
+		}
+	}
 }
