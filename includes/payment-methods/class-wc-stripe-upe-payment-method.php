@@ -18,6 +18,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 	use WC_Stripe_Pre_Orders_Trait;
+	use WC_Stripe_Forced_Tokenization_Trait;
 
 	/**
 	 * Stripe key name

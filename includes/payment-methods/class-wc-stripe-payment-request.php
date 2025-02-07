@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Payment_Request {
 
 	use WC_Stripe_Pre_Orders_Trait;
+	use WC_Stripe_Forced_Tokenization_Trait;
 
 	/**
 	 * Enabled.
