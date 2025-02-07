@@ -116,7 +116,7 @@ export const PAYMENT_INTENT_STATUS_SUCCEEDED = 'succeeded';
 /**
  * Express payment methods setting constants
  */
-export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
-export const EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY = 'applePay';
-export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
 export const EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY = 'amazonPay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY = 'applePay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
+export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';

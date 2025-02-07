@@ -6,6 +6,7 @@ import {
 	isManualPaymentMethodCreation,
 } from 'wcstripe/express-checkout/utils';
 import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
 	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
@@ -42,7 +43,11 @@ export const checkPaymentMethodIsAvailable = memoize(
 					onLoadError={ () => resolve( false ) }
 					options={ {
 						paymentMethods: {
-							amazonPay: 'never',
+							amazonPay:
+								paymentMethod ===
+								EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+									? 'auto'
+									: 'never',
 							applePay:
 								paymentMethod ===
 								EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
