@@ -16,6 +16,7 @@ import {
 } from '../../data';
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
+import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -259,6 +260,13 @@ const PaymentRequestSection = () => {
 										'Amazon Pay',
 										'woocommerce-gateway-stripe'
 									) }
+									<PaymentMethodMissingCurrencyPill
+										id="amazon_pay"
+										label={ __(
+											'Amazon Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
 								</div>
 								<div className="express-checkout__description">
 									{
