@@ -441,7 +441,7 @@ class WC_Stripe_Account {
 	 *
 	 * @return object|false The webhook object if found, false otherwise.
 	 */
-	private function get_existing_webhook() {
+	public function get_existing_webhook() {
 		$webhooks = WC_Stripe_API::retrieve( 'webhook_endpoints' );
 
 		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) ) {
