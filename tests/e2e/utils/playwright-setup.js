@@ -463,3 +463,11 @@ export const setupStripe = ( page, baseUrl ) =>
 			reject();
 		} )();
 	} );
+
+export const enableFeatureFlags = async () => {
+	const featureFlags = [ '_wcstripe_feature_amazon_pay' ];
+	const setupCommands = featureFlags.map(
+		( flag ) => `wp option update ${ flag } yes`
+	);
+	return sshExecCommands( setupCommands );
+};

@@ -9,7 +9,7 @@ import {
 	setupWoo,
 	setupStripe,
 	installWooSubscriptionsFromRepo,
-	checkWooGutenbergProductsBlockVersion,
+	enableFeatureFlags,
 } from '../utils/playwright-setup';
 
 dotenv.config( {
@@ -105,6 +105,14 @@ module.exports = async ( config ) => {
 	} else {
 		console.log( 'Skipping Woo Setup.' );
 	}
+
+	await enableFeatureFlags().catch( ( e ) => {
+		console.error( e );
+		console.error(
+			'Cannot proceed e2e test, as we could not enable feature flags. Please check if the test site has been setup correctly.'
+		);
+		process.exit( 1 );
+	} );
 
 	let adminSetupReady = false;
 
