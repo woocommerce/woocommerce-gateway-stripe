@@ -20,6 +20,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	use WC_Stripe_Subscriptions_Trait;
 	use WC_Stripe_Pre_Orders_Trait;
+	use WC_Stripe_Forced_Tokenization_Trait;
 
 	/**
 	 * The delay between retries.

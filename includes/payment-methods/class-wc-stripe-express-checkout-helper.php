@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Express_Checkout_Helper {
 
 	use WC_Stripe_Pre_Orders_Trait;
+	use WC_Stripe_Forced_Tokenization_Trait;
 
 	/**
 	 * Stripe settings.
