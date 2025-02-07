@@ -606,9 +606,7 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 		upeContainer.style.display = 'none';
 		// Also uncheck the radio button if it's selected.
 		const radioButton = document.querySelector(
-			'input[name="payment_method"][value="stripe_' +
-				paymentMethodType +
-				'"]'
+			`input[name="payment_method"][value="stripe_${ paymentMethodType }"]`
 		);
 
 		if ( radioButton ) {
