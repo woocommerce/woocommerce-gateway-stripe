@@ -16,9 +16,10 @@ import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
-	expressCheckoutElementsGooglePay,
-	expressCheckoutElementsApplePay,
-	expressCheckoutElementsStripeLink,
+	expressCheckoutElementAmazonPay,
+	expressCheckoutElementApplePay,
+	expressCheckoutElementGooglePay,
+	expressCheckoutElementStripeLink,
 } from 'wcstripe/blocks/express-checkout';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -108,11 +109,19 @@ Object.entries( paymentMethodsConfig )
 		} );
 	} );
 
-if ( getBlocksConfiguration()?.isECEEnabled ) {
-	// Register Express Checkout Element.
-	registerExpressPaymentMethod( expressCheckoutElementsGooglePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementsApplePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementsStripeLink( api ) );
+// Register Express Checkout Elements.
+if (
+	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+	getBlocksConfiguration()?.isAmazonPayEnabled
+) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
+	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 } else {
 	// Register Stripe Payment Request.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
