@@ -460,7 +460,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Helper_Stripe_Api::$expected_request_call_params = [];
 
 		// Run the update
-		$this->account->reconfigure_webhooks_on_update();
+		$this->account->maybe_reconfigure_webhooks_on_update();
 
 		// Verify no webhook configuration was attempted
 		$this->assertEmpty(
@@ -496,7 +496,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			);
 
 		// Run the update
-		$this->account->reconfigure_webhooks_on_update();
+		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
 
 	/**
@@ -522,6 +522,6 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			->method( 'configure_webhooks' );
 
 		// Run the update
-		$this->account->reconfigure_webhooks_on_update();
+		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
 }

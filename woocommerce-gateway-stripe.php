@@ -368,7 +368,7 @@ function woocommerce_gateway_stripe() {
 
 					// Add webhook reconfiguration
 					$account = self::get_instance()->account;
-					$account->reconfigure_webhooks_on_update();
+					$account->maybe_reconfigure_webhooks_on_update();
 
 					// TODO: Remove this when we're reasonably sure most merchants have had their
 					// settings updated like this. ~80% of merchants is a good threshold.

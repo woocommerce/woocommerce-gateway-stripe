@@ -466,7 +466,7 @@ class WC_Stripe_Account {
 	 *
 	 * @return void
 	 */
-	public function reconfigure_webhooks_on_update() {
+	public function maybe_reconfigure_webhooks_on_update() {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$modes = [ 'live', 'test' ];
 
