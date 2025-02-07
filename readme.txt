@@ -111,9 +111,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Add - Add Amazon Pay to block cart and block checkout.
+* Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
+* Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
 * Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
-* Tweak - Process ECE cart requests using the Blocks (Store) API. 
+* Tweak - Process ECE cart requests using the Blocks (Store) API.
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
 * Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
@@ -148,5 +151,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 * Fix - Hide ECE button for synced subscription variations.
 * Fix - Use the original shipping address for Amazon Pay pay for orders.
+* Tweak - Improve slow query for legacy SEPA subscriptions on WC status tools page by caching the data.
+* Tweak - Improve settings page load by delaying oauth URL generation.
+* Tweak - Update the Woo logo in the Configure connection modal
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
