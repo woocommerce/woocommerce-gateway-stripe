@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Add new E2E tests for Link express checkout.
 * Add - Add Amazon Pay to block cart and block checkout.
 * Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
 * Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
@@ -156,5 +157,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update the Woo logo in the Configure connection modal
 * Add - Add currency restriction pill on Amazon Pay.
 * Tweak - Improve settings page load by avoid account cache clearing on every page load.
+* Fix - Express checkout methods dependency.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
