@@ -84,6 +84,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe Cash App Pay payment method.
+	 */
+	const MOCK_BACS_PAYMENT_METHOD_TEMPLATE = [
+		'id'                                  => 'pm_mock_payment_method_id',
+		'type'                                => WC_Stripe_Payment_Methods::BACS_DEBIT,
+		WC_Stripe_Payment_Methods::BACS_DEBIT => [
+			'last4'       => '4321',
+			'fingerprint' => 'F1ng3rpr1n7',
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
@@ -106,6 +118,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'link_payments'                => 'inactive',
 		'wechat_pay_payments'          => 'inactive',
 		'us_bank_account_ach_payments' => 'inactive',
+		'bacs_debit_payments'          => 'inactive',
 	];
 
 	/**
@@ -132,6 +145,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'cashapp_payments'             => 'active',
 		'wechat_pay_payments'          => 'active',
 		'us_bank_account_payments'     => 'active',
+		'bacs_debit_payments'          => 'active',
 	];
 
 	/**
@@ -141,12 +155,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		parent::set_up();
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -158,11 +174,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->mock_payment_methods = [];
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			// Bacs is under flag, remove when is enabled by default.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class ) {
-				continue;
-			}
-
 			$mocked_methods = [
 				'get_capabilities_response',
 				'get_woocommerce_currency',
@@ -613,7 +624,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$store_currency   = in_array( $payment_method_id, [ WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] ) ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
+			$store_currency = 'EUR';
+			if ( in_array( $payment_method_id, [ WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] ) {
+				$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
+			} elseif ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID === $payment_method_id ) {
+				$store_currency = WC_Stripe_Currency_Code::POUND_STERLING;
+			}
+
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
@@ -726,6 +743,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertSame( $token->get_token(), $ach_payment_method_mock->id );
 					$this->assertSame( $token->get_bank_name(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->bank_name );
 					$this->assertSame( $token->get_account_type(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->account_type );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
+					$bacs_payment_method_mock = $this->array_to_object( self::MOCK_BACS_PAYMENT_METHOD_TEMPLATE );
+					$token                    = $payment_method->create_payment_token_for_user( $user_id, $bacs_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_Bacs_Debit::class === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $bacs_payment_method_mock->bacs_debit->last4 );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
