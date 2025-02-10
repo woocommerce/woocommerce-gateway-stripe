@@ -249,6 +249,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Hide action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'filter_thankyou_order_received_text' ], 10, 2 );
 	}
 
 	/**
@@ -2898,5 +2899,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
+	}
+
+	/**
+	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
+	 *
+	 * @param string $text Default text.
+	 * @param WC_Order $order Order data.
+	 * @return string
+	 */
+	public function filter_thankyou_order_received_text( $text, $order ) {
+		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+			$text .= '<p class="woocommerce-info">';
+			$text .= esc_html( 'The payment is being processed and it might take a while before it\'s confirmed.' );
+			$text .= '</p>';
+		}
+		return $text;
 	}
 }

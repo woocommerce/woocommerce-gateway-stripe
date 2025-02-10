@@ -2808,4 +2808,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			$actual
 		);
 	}
+
+	/**
+	 * Test for `filter_thankyou_order_received_text`.
+	 *
+	 * @return void
+	 */
+	public function test_filter_thankyou_order_received_text() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( 'pending' );
+		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+
+		$default_text = 'Thank you. Your order has been received.';
+
+		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
+
+		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a while before it&#039;s confirmed.</p>';
+		$this->assertEquals( $expected, $actual );
+	}
 }
