@@ -1354,13 +1354,20 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns whether Stripe express checkout element is enabled.
-	 *
-	 * This option defines whether Apple Pay and Google Pay buttons are enabled.
+	 * Returns whether any of the Stripe express checkout element is enabled.=
 	 *
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
+		return $this->is_payment_request_enabled() || $this->is_amazon_pay_enabled() || WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
+	}
+
+	/**
+	 * Checks if Apple Pay and Google Pay buttons are enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_payment_request_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
 	}
 

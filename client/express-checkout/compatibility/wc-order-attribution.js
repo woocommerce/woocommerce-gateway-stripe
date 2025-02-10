@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import { addFilter } from '@wordpress/hooks';
 import { extractOrderAttributionData } from 'wcstripe/blocks/utils';
 
