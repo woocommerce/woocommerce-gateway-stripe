@@ -591,12 +591,12 @@ jQuery( function ( $ ) {
 
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
-			
-      // BlocksAPI partial support (lacking support for variations).
+
+			// BlocksAPI partial support (lacking support for variations).
 			data.id = productId;
 			data.variation = [];
-      
-      // Clear the cart, so items that are currently in it
+
+			// Clear the cart, so items that are currently in it
 			//  do not interfere with computed totals.
 			await api.expressCheckoutEmptyCart();
 
