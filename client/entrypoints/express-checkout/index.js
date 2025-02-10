@@ -524,7 +524,7 @@ jQuery( function ( $ ) {
 		 *
 		 * @return {Promise} Promise for the request to the server.
 		 */
-		addToCart: () => {
+		addToCart: async () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 
 			// Check if product is a variable product.
@@ -573,6 +573,10 @@ jQuery( function ( $ ) {
 			if ( useLegacyCartEndpoints ) {
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
+
+			// Clear the cart, so items that are currently in it
+			//  do not interfere with computed totals.
+			await api.expressCheckoutEmptyCart();
 
 			return api.expressCheckoutAddToCart( data );
 		},
