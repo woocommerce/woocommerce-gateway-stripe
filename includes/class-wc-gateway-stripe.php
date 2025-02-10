@@ -402,6 +402,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->process_pre_order( $order_id );
 			}
 
+			if ( $this->order_requires_order_payment_token( $order ) ) {
+				return $this->process_order_saving_order_token( $order_id );
+			}
+
 			// Check whether there is an existing intent.
 			$intent = $this->get_intent_from_order( $order );
 			if ( isset( $intent->object ) && 'setup_intent' === $intent->object ) {
