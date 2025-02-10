@@ -58,6 +58,11 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
+		// Subscription related checks.
+		if ( class_exists( 'WC_Subscriptions' ) && class_exists( 'WC_Subscription' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' ) ) {
+			$this->subscriptions_check_environment();
+		}
+
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
@@ -380,6 +385,59 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Environment check for subscriptions.
+	 *
+	 * @return void
+	 */
+	public function subscriptions_check_environment() {
+		$detached_messages = '';
+		$subscriptions     = wcs_get_subscriptions(
+			[
+				'subscriptions_per_page' => -1,
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+			]
+		);
+		foreach ( $subscriptions as $subscription ) {
+			$source_id = $subscription->get_meta( '_stripe_source_id' );
+			if ( $source_id ) {
+				$payment_method           = WC_Stripe_API::get_payment_method( $source_id );
+				$payment_method->customer = null;
+				if ( ! $payment_method->customer ) {
+					$customer_payment_method_link = sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( $subscription->get_change_payment_method_url() ),
+						esc_html(
+							/* translators: this is a text for a link pointing to the customer's payment method page */
+							__( 'this link &rarr;', 'woocommerce-gateway-stripe' )
+						)
+					);
+					$customer_stripe_page = sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( 'https://dashboard.stripe.com/customers/' . $subscription->get_meta( '_stripe_customer_id' ) ),
+						esc_html(
+							/* translators: this is a text for a link pointing to the customer's page on Stripe */
+							__( 'here &rarr;', 'woocommerce-gateway-stripe' )
+						)
+					);
+					$detached_messages .= sprintf(
+					/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
+						__( 'Subscription #%1$s\'s payment method is missing, <strong>preventing renewals</strong>. Share %2$s with the customer to update it or manually set the <strong>Stripe Payment Method ID</strong> meta field in the subscriptions details "Billing" section to another from %3$s.', 'woocommerce-gateway-stripe' ),
+						$subscription->get_id(),
+						$customer_payment_method_link,
+						$customer_stripe_page
+					);
+				}
+			}
+		}
+		$show_notice = get_option( 'wc_stripe_show_subscriptions_notice' );
+		if ( ! empty( $detached_messages ) && 'no' !== $show_notice ) {
+			$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
+		}
+	}
+
+	/**
 	 * Hides any admin notices.
 	 *
 	 * @since 4.0.0
@@ -421,8 +479,6 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'sofort':
 					update_option( 'wc_stripe_show_sofort_notice', 'no' );
-					break;
-				case 'sofort':
 					update_option( 'wc_stripe_show_sofort_upe_notice', 'no' );
 					break;
 				case 'sca':
@@ -436,6 +492,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'upe_payment_methods':
 					update_option( 'wc_stripe_show_upe_payment_methods_notice', 'no' );
+					break;
+				case 'subscriptions':
+					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
 					break;
 			}
 		}
