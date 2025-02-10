@@ -1,4 +1,6 @@
-/*global wcStripeExpressCheckoutPayForOrderParams */
+/* global wcStripeExpressCheckoutPayForOrderParams */
+/* global wc_stripe_express_checkout_params */
+
 import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
@@ -9,8 +11,8 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
-	isManualPaymentMethodCreation,
 	getPaymentMethodTypesForExpressMethod,
+	isManualPaymentMethodCreation,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import {
@@ -26,6 +28,7 @@ import {
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
+import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -150,16 +153,28 @@ jQuery( function ( $ ) {
 
 			const shippingRates = getShippingRates();
 
+			const isPaymentRequestEnabled =
+				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
+					?.is_payment_request_enabled;
+			const isAmazonPayEnabled =
+				wc_stripe_express_checkout_params?.stripe // eslint-disable-line camelcase
+					?.is_amazon_pay_enabled;
+			const isLinkEnabled =
+				wc_stripe_express_checkout_params?.stripe?.is_link_enabled; // eslint-disable-line camelcase
+
 			// For each supported express payment type, create their own
 			// express checkout element. This is necessary as some express payment types
 			// may require different options or configurations, e.g. Amazon Pay
 			// does not support paymentMethodCreation: 'manual'.
 			const expressPaymentTypes = [
-				EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
-				EXPRESS_PAYMENT_METHOD_SETTING_LINK,
-			];
+				isPaymentRequestEnabled &&
+					EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+				isPaymentRequestEnabled &&
+					EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+				isAmazonPayEnabled && EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+				isLinkEnabled && EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+			].filter( Boolean );
+
 			expressPaymentTypes.forEach( ( expressPaymentType ) => {
 				wcStripeECE.createExpressCheckoutElement( expressPaymentType, {
 					...options,
@@ -513,27 +528,12 @@ jQuery( function ( $ ) {
 		addToCart: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
-					.val();
-			}
-
-			if ( $( '.wc-bookings-booking-form' ).length ) {
-				productId = $( '.wc-booking-product-id' ).val();
-			}
-
 			const data = {
 				qty: $( quantityInputSelector ).val(),
 			};
 
-			if ( useLegacyCartEndpoints ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
-			} else {
-				data.id = productId;
-				data.variation = [];
+			if ( $( '.wc-bookings-booking-form' ).length ) {
+				productId = $( '.wc-booking-product-id' ).val();
 			}
 
 			// Add extension data to the POST body
@@ -556,9 +556,17 @@ jQuery( function ( $ ) {
 				}
 			} );
 
+			// Legacy support for variations.
 			if ( useLegacyCartEndpoints ) {
+				data.product_id = productId;
+				data.attributes = wcStripeECE.getAttributes().data;
+
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
+
+			// BlocksAPI partial support (lacking support for variations).
+			data.id = productId;
+			data.variation = [];
 
 			return api.expressCheckoutAddToCart( data );
 		},
