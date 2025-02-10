@@ -299,9 +299,22 @@ jQuery( function ( $ ) {
 				event.resolve( clickOptions );
 				onClickHandler( event );
 
+				// Call addToCart after event.resolve() so we don't hit the 1-second Stripe
+				// timeout for the click event. If addToCart fails, set a flag to prevent
+				// payment confirmation ('confirm' event) from being triggered.
 				if ( getExpressCheckoutData( 'is_product_page' ) ) {
-					// Add products to the cart if everything is right.
-					await wcStripeECE.addToCart();
+					wcStripeECE.cartError = true;
+					const response = await wcStripeECE.addToCart();
+					const isAddToCartSuccessful =
+						response && response?.items_count > 0;
+					const isLegacyAddToCartSuccessful =
+						response?.result === 'success';
+					if (
+						isAddToCartSuccessful ||
+						isLegacyAddToCartSuccessful
+					) {
+						wcStripeECE.cartError = false;
+					}
 				}
 			} );
 
@@ -318,6 +331,17 @@ jQuery( function ( $ ) {
 			);
 
 			eceButton.on( 'confirm', async ( event ) => {
+				if (
+					getExpressCheckoutData( 'is_product_page' ) &&
+					wcStripeECE.cartError
+				) {
+					const message = __(
+						'There was an error adding the product to the cart.',
+						'woocommerce-gateway-stripe'
+					);
+					return wcStripeECE.abortPayment( event, message );
+				}
+
 				const order = options.order ? options.order : 0;
 				const orderDetails = options.orderDetails ?? {};
 				return await onConfirmHandler( {
