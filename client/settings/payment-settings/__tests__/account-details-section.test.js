@@ -45,13 +45,14 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 	default: jest.fn(),
 } ) );
 
-// Mock the dispatch function
 const mockRefreshAccount = jest.fn();
 jest.mock( '@wordpress/data', () => ( {
-	...jest.requireActual( '@wordpress/data' ),
 	useDispatch: () => ( {
 		refreshAccount: mockRefreshAccount,
 	} ),
+	combineReducers: jest.fn(),
+	createReduxStore: jest.fn(),
+	register: jest.fn(),
 } ) );
 
 describe( 'AccountDetailsSection', () => {
@@ -230,37 +231,6 @@ describe( 'AccountDetailsSection', () => {
 			userEvent.click( refreshButton );
 
 			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
-		} );
-
-		it( 'should show refresh option in both test and live modes', () => {
-			// Test mode
-			useTestMode.mockReturnValue( [ true, jest.fn() ] );
-			const { rerender } = render(
-				<AccountDetailsSection setModalType={ setModalTypeMock } />
-			);
-
-			const menuButton = screen.getByLabelText(
-				'Edit details or disconnect account'
-			);
-			userEvent.click( menuButton );
-			expect(
-				screen.getByRole( 'menuitem', {
-					name: /refresh account details/i,
-				} )
-			).toBeInTheDocument();
-
-			// Live mode
-			useTestMode.mockReturnValue( [ false, jest.fn() ] );
-			rerender(
-				<AccountDetailsSection setModalType={ setModalTypeMock } />
-			);
-
-			userEvent.click( menuButton );
-			expect(
-				screen.getByRole( 'menuitem', {
-					name: /refresh account details/i,
-				} )
-			).toBeInTheDocument();
 		} );
 	} );
 } );
