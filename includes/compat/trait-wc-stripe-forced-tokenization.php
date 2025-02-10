@@ -43,7 +43,27 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'hide_save_payment_for_forced_tokenization' ] );
 
+		add_filter( 'pre_wc_checkout_tokenization_get_order_payment_token', [ $this, 'get_order_payment_token' ], 10, 2 );
+
 		self::$has_attached_forced_tokenization_integration_hooks = true;
+	}
+
+	public function get_order_payment_token( $token, $top_most_order ) {
+		if ( $top_most_order->payment_method !== $this->id ) {
+			return $token;
+		}
+
+		$intent = $this->get_intent_from_order( $top_most_order );
+
+		$token = array(
+			'gateway' => $this->id,
+			'token'   => $intent->id,
+			'data'    => array(
+				'intent' => $intent,
+			),
+		);
+
+		return $token;
 	}
 
 	/**
