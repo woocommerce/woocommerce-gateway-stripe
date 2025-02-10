@@ -474,6 +474,57 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test that when a PaymentIntent is in the `processing` status,
+	 * the order is updated to on-hold and the transaction ID is set.
+	 */
+	public function test_process_webhook_payment_intent_processing() {
+		$notification = (object) [
+			'type' => 'payment_intent.processing',
+			'data' => (object) [
+				'object' => (object) [
+					'id'      => 'pi_mock',
+					'charges' => (object) [
+						'data' => [
+							(object) [
+								'id' => 'ch_mock',
+							],
+						],
+					],
+				],
+			],
+		];
+
+		// Order must be previously set to pending and have at least the payment intent set.
+		$order = WC_Helper_Order::create_order();
+		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
+		$order->set_status( 'pending' );
+		$order->save();
+
+		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'lock_order_payment' ] )
+			->getMock();
+
+		$this->mock_webhook_handler->method( 'lock_order_payment' )->willReturn( false );
+
+		$this->mock_webhook_handler->process_payment_intent( $notification );
+
+		$updated_order = wc_get_order( $order->get_id() );
+		$this->assertEquals( 'on-hold', $updated_order->get_status() );
+		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
+
+		// Grab the latest order note and verify the content.
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $updated_order->get_id(),
+				'limit'    => 1,
+			]
+		);
+		$this->assertCount( 1, $notes );
+		$this->assertStringContainsString( 'Stripe charge awaiting payment: ch_mock.', $notes[0]->content );
+	}
+
+
+	/**
 	 * Provider for `test_process_payment_intent`.
 	 *
 	 * @return array

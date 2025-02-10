@@ -352,10 +352,13 @@ export const processPayment = (
 				paymentMethodObject.paymentMethod.id
 			);
 
-			appendPaymentIntentIdToForm(
-				jQueryForm,
-				gatewayUPEComponents[ paymentMethodType ].intentId
-			);
+			// Append the intent ID to the form if it was previously created through a non-deferred intent.
+			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+				appendPaymentIntentIdToForm(
+					jQueryForm,
+					gatewayUPEComponents[ paymentMethodType ].intentId
+				);
+			}
 
 			let stopFormSubmission = false;
 			await additionalActionsHandler(

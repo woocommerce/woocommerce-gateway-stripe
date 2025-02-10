@@ -995,9 +995,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
 			case 'payment_intent.processing':
 				$charge = $this->get_latest_charge_from_intent( $intent );
-				$order->set_transaction_id( $charge->id );
-				/* translators: transaction id */
-				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
+				if ( $charge ) {
+					$order->set_transaction_id( $charge->id );
+					/* translators: transaction id */
+					$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
+				}
 				break;
 			case 'payment_intent.requires_action':
 				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
