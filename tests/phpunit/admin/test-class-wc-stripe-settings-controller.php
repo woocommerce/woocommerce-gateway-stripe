@@ -109,4 +109,13 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringMatchesFormat( '%aclass="button button-disabled"%a', $output );
 	}
+
+	/**
+	 * Test that needs_oauth_urls returns true for new accounts with no keys
+	 */
+	public function test_needs_oauth_urls_new_account() {
+		WC_Stripe_Helper::delete_main_stripe_settings();
+
+		$this->assertTrue( $this->controller->needs_oauth_urls() );
+	}
 }

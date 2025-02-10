@@ -91,6 +91,9 @@ jQuery( function ( $ ) {
 
 		const selectedMethod = getSelectedUPEGatewayPaymentMethod();
 		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
+			// Maybe hide the payment method based on the billing country.
+			restrictPaymentMethodToLocation( upeElement );
+
 			// Don't mount if it's already mounted.
 			if ( $( upeElement ).children().length ) {
 				continue;
@@ -105,7 +108,6 @@ jQuery( function ( $ ) {
 			}
 
 			await mountStripePaymentElement( api, upeElement );
-			restrictPaymentMethodToLocation( upeElement );
 		}
 	}
 
