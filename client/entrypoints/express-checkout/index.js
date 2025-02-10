@@ -11,8 +11,8 @@ import {
 	getExpressCheckoutButtonAppearance,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
-	isManualPaymentMethodCreation,
 	getPaymentMethodTypesForExpressMethod,
+	isManualPaymentMethodCreation,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import {
@@ -28,6 +28,7 @@ import {
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import { getAddToCartVariationParams } from 'wcstripe/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
+import 'wcstripe/express-checkout/compatibility/wc-product-page';
 import './styles.scss';
 import {
 	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
@@ -527,27 +528,12 @@ jQuery( function ( $ ) {
 		addToCart: () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
 
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				productId = $( '.single_variation_wrap' )
-					.find( 'input[name="product_id"]' )
-					.val();
-			}
-
-			if ( $( '.wc-bookings-booking-form' ).length ) {
-				productId = $( '.wc-booking-product-id' ).val();
-			}
-
 			const data = {
 				qty: $( quantityInputSelector ).val(),
 			};
 
-			if ( useLegacyCartEndpoints ) {
-				data.product_id = productId;
-				data.attributes = wcStripeECE.getAttributes().data;
-			} else {
-				data.id = productId;
-				data.variation = [];
+			if ( $( '.wc-bookings-booking-form' ).length ) {
+				productId = $( '.wc-booking-product-id' ).val();
 			}
 
 			// Add extension data to the POST body
@@ -570,9 +556,17 @@ jQuery( function ( $ ) {
 				}
 			} );
 
+			// Legacy support for variations.
 			if ( useLegacyCartEndpoints ) {
+				data.product_id = productId;
+				data.attributes = wcStripeECE.getAttributes().data;
+
 				return api.expressCheckoutAddToCartLegacy( data );
 			}
+
+			// BlocksAPI partial support (lacking support for variations).
+			data.id = productId;
+			data.variation = [];
 
 			return api.expressCheckoutAddToCart( data );
 		},
