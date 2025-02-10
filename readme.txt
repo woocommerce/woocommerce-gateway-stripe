@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
 * Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
 * Tweak - Process ECE cart requests using the Blocks (Store) API. 
