@@ -402,8 +402,7 @@ class WC_Stripe_Admin_Notices {
 		foreach ( $subscriptions as $subscription ) {
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
-				$payment_method           = WC_Stripe_API::get_payment_method( $source_id );
-				$payment_method->customer = null;
+				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
 				if ( ! $payment_method->customer ) {
 					$customer_payment_method_link = sprintf(
 						'<a href="%s">%s</a>',
