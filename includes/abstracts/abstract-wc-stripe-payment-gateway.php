@@ -513,7 +513,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'signature' => $this->get_order_signature( $order ),
 		];
 
-		if ( $this->has_subscription( $order->get_id() ) ) {
+		if ( $this->has_subscription( $order->get_id() ) || $this->order_requires_order_payment_token( $order ) ) {
 			$metadata += [
 				'payment_type' => 'recurring',
 			];
@@ -1586,7 +1586,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request['payment_method_types'] = [ WC_Stripe_Payment_Methods::CARD ];
 
-		if ( $this->has_subscription( $order->get_id() ) ) {
+		if ( $this->has_subscription( $order->get_id() ) || $this->order_requires_order_payment_token( $order ) ) {
 			// If this is a failed subscription order payment, the intent should be
 			// prepared for future usage.
 			$request['setup_future_usage'] = 'off_session';
