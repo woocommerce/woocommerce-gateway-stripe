@@ -37,10 +37,21 @@ const AccountSettingsDropdownMenu = ( {
 	// @todo - deconstruct setModalType from useModalType custom hook
 	const [ isTestModeEnabled ] = useTestMode();
 	const { refreshAccount } = useDispatch( 'wc/stripe' );
+	const { createSuccessNotice } = useDispatch( 'core/notices' );
 	const [
 		isConfirmationModalVisible,
 		setIsConfirmationModalVisible,
 	] = useState( false );
+
+	const handleRefreshAccount = async () => {
+		await refreshAccount();
+		createSuccessNotice(
+			__(
+				'Account details reloaded successfully.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+	};
 
 	return (
 		<>
@@ -64,7 +75,7 @@ const AccountSettingsDropdownMenu = ( {
 							'Refresh account details',
 							'woocommerce-gateway-stripe'
 						),
-						onClick: () => refreshAccount(),
+						onClick: handleRefreshAccount,
 					},
 					{
 						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),

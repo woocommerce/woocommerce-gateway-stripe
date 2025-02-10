@@ -46,10 +46,17 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 } ) );
 
 const mockRefreshAccount = jest.fn();
+const mockCreateSuccessNotice = jest.fn();
 jest.mock( '@wordpress/data', () => ( {
-	useDispatch: () => ( {
-		refreshAccount: mockRefreshAccount,
-	} ),
+	useDispatch: ( store ) => {
+		if ( store === 'wc/stripe' ) {
+			return { refreshAccount: mockRefreshAccount };
+		}
+		if ( store === 'core/notices' ) {
+			return { createSuccessNotice: mockCreateSuccessNotice };
+		}
+		return {};
+	},
 	combineReducers: jest.fn(),
 	createReduxStore: jest.fn(),
 	register: jest.fn(),
@@ -193,6 +200,7 @@ describe( 'AccountDetailsSection', () => {
 				},
 			} );
 			mockRefreshAccount.mockClear();
+			mockCreateSuccessNotice.mockClear();
 		} );
 
 		it( 'should show refresh account option in dropdown menu', () => {
