@@ -15,4 +15,31 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function is_subscriptions_enabled() {
 		return class_exists( 'WC_Subscriptions' ) && class_exists( 'WC_Subscription' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
 	}
+
+	/**
+	 * Returns a list of subscriptions that are detached from the customer.
+	 *
+	 * @return array
+	 */
+	public static function get_detached_subscriptions() {
+		$detached_subscriptions = [];
+		$subscriptions          = wcs_get_subscriptions(
+			[
+				'subscriptions_per_page' => -1,
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+			]
+		);
+		foreach ( $subscriptions as $subscription ) {
+			$source_id = $subscription->get_meta( '_stripe_source_id' );
+			if ( $source_id ) {
+				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
+				if ( ! $payment_method->customer ) {
+					$detached_subscriptions[] = $subscription;
+				}
+			}
+		}
+		return $detached_subscriptions;
+	}
 }
