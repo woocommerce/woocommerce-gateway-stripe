@@ -119,6 +119,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 
+		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
 			->getMock();

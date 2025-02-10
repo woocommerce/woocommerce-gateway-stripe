@@ -109,15 +109,18 @@ Object.entries( paymentMethodsConfig )
 		} );
 	} );
 
-if ( getBlocksConfiguration()?.isECEEnabled ) {
-	// Register Express Checkout Elements.
-
-	// Hide behind feature flag so the editor does not show the button.
-	if ( getBlocksConfiguration()?.isAmazonPayAvailable ) {
-		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-	}
+// Register Express Checkout Elements.
+if (
+	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+	getBlocksConfiguration()?.isAmazonPayEnabled
+) {
+	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+}
+if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
 	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+}
+if ( getBlocksConfiguration()?.isLinkEnabled ) {
 	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
 } else {
 	// Register Stripe Payment Request.
