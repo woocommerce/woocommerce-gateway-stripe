@@ -5,6 +5,7 @@ import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_WECHAT_PAY,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 const accountCountry =
@@ -152,6 +153,7 @@ const getWechatPayCurrencies = () => {
 		'PT',
 		'ES',
 	];
+
 	if ( EuroSupportedCountries.includes( accountCountry ) ) {
 		upeCurrencies = [ 'EUR', 'CNY' ];
 	}
@@ -206,6 +208,15 @@ const getKlarnaCurrencies = () => {
 	);
 };
 
+const getAmazonPayCurrencies = () => {
+	switch ( accountCountry ) {
+		case 'US':
+			return [ 'USD' ];
+		default:
+			return [ 'USD' ];
+	}
+};
+
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
@@ -216,6 +227,8 @@ export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 			return getWechatPayCurrencies();
 		case PAYMENT_METHOD_KLARNA:
 			return getKlarnaCurrencies();
+		case PAYMENT_METHOD_AMAZON_PAY:
+			return getAmazonPayCurrencies();
 		default:
 			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 	}
