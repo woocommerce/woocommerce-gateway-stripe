@@ -59,7 +59,7 @@ class WC_Stripe_Admin_Notices {
 		$this->payment_methods_check_environment();
 
 		// Subscription related checks.
-		if ( class_exists( 'WC_Subscriptions' ) && class_exists( 'WC_Subscription' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' ) ) {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscriptions_check_environment();
 		}
 
