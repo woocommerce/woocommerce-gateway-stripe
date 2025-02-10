@@ -284,9 +284,6 @@ jQuery( function ( $ ) {
 						window.alert( wcStripeECEError );
 						return;
 					}
-
-					// Add products to the cart if everything is right.
-					await wcStripeECE.addToCart();
 				}
 
 				const clickOptions = {
@@ -299,8 +296,13 @@ jQuery( function ( $ ) {
 					shippingRates: options.shippingRates,
 				};
 
-				onClickHandler( event );
 				event.resolve( clickOptions );
+				onClickHandler( event );
+
+				if ( getExpressCheckoutData( 'is_product_page' ) ) {
+					// Add products to the cart if everything is right.
+					await wcStripeECE.addToCart();
+				}
 			} );
 
 			eceButton.on(
