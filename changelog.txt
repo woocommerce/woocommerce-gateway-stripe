@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.2.0 - xxxx-xx-xx =
+* Dev - Replaces part of the StoreAPI call code for the cart endpoints to use the newly introduced filter.
 * Dev - Add new E2E tests for Link express checkout.
 * Add - Add Amazon Pay to block cart and block checkout.
 * Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
