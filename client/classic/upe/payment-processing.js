@@ -79,17 +79,28 @@ export function validateElements( elements ) {
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
 async function createStripePaymentElement( api, paymentMethodType ) {
-	const amount = Number( getStripeServerData()?.cartTotal );
-	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
-	let options;
+	let intent, options;
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
-		// TODO: Gracefully handle errors related to the intent creation.
-		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
-		const intent = await api.createIntent( null, paymentMethodType );
+		try {
+			intent = await api.createIntent( null, paymentMethodType );
+		} catch ( error ) {
+			showErrorCheckout(
+				sprintf(
+					// translators: %s is the payment method title.
+					__(
+						'Failed to load %s payment method. Please refresh the page and try again.',
+						'woocommerce-gateway-stripe'
+					),
+					paymentMethodsConfig[ paymentMethodType ].title
+				)
+			);
+			return;
+		}
+
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
 		options = {
@@ -99,6 +110,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			clientSecret: intent.client_secret,
 		};
 	} else {
+		const amount = Number( getStripeServerData()?.cartTotal );
+		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
+
 		options = {
 			mode: amount < 1 ? 'setup' : 'payment',
 			currency: getStripeServerData()?.currency.toLowerCase(),
@@ -261,6 +275,12 @@ export async function mountStripePaymentElement( api, domElement ) {
 	const upeElement =
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
+
+	// Do nothing if there was an error creating the payment element.
+	if ( ! upeElement ) {
+		return;
+	}
+
 	upeElement.mount( domElement );
 
 	return gatewayUPEComponents[ paymentMethodType ];
