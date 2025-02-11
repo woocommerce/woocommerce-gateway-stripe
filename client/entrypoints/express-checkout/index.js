@@ -79,6 +79,9 @@ jQuery( function ( $ ) {
 	 * @todo Using the legacy endpoint (non-StoreAPI) and data format when variations are present.
 	 * StoreAPI will support this form correctly only after WC 9.7.0.
 	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
+	 *
+	 * @todo Using the legacy endpoint (non-StoreAPI) for booking products. Can be
+	 * removed once booking product flows have been fully migrated to StoreAPI.
 	 */
 	const useLegacyCartEndpoints =
 		$( '.variations_form' ).length > 0 ||
