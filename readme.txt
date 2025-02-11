@@ -113,7 +113,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.2.0 - xxxx-xx-xx =
 * Dev - Replaces part of the StoreAPI call code for the cart endpoints to use the newly introduced filter.
 * Fix - Clear cart first when using express checkout inside the product page.
-* Fix - Switch booking products back to using non-Store API (legacy) add to cart.
+* Fix - Avoid Stripe timeouts for the express checkout click event.
 * Dev - Add new E2E tests for Link express checkout.
 * Add - Add Amazon Pay to block cart and block checkout.
 * Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
