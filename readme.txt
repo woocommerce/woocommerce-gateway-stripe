@@ -157,6 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Improve settings page load by delaying oauth URL generation.
 * Tweak - Update the Woo logo in the Configure connection modal
 * Add - Add currency restriction pill on Amazon Pay.
+* Tweak - Improve settings page load by avoid account cache clearing on every page load.
 * Fix - Express checkout methods dependency.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
