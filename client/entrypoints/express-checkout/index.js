@@ -80,7 +80,9 @@ jQuery( function ( $ ) {
 	 * StoreAPI will support this form correctly only after WC 9.7.0.
 	 * See https://github.com/woocommerce/woocommerce-gateway-stripe/pull/3780#issuecomment-2632051359
 	 */
-	const useLegacyCartEndpoints = $( '.variations_form' ).length > 0;
+	const useLegacyCartEndpoints =
+		$( '.variations_form' ).length > 0 ||
+		$( '.wc-bookings-booking-form' ).length > 0;
 
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
@@ -782,7 +784,9 @@ jQuery( function ( $ ) {
 						response.displayItems;
 
 					// Empty the cart to avoid having 2 products in the cart when payment request is not used.
-					api.expressCheckoutEmptyCart( response.bookingId );
+					api.expressCheckoutEmptyCartLegacy( {
+						bookingId: response.bookingId,
+					} );
 
 					wcStripeECE.init();
 
