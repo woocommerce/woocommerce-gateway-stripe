@@ -149,18 +149,30 @@ jQuery( function ( $ ) {
 
 			// Wait for the addToCart operation to finish, checking
 			// that the product was successfully added to the cart.
-			wcStripeECE.addToCartError = true;
+			wcStripeECE.isAddToCartSuccessful = false;
 			const response = await addToCartPromise;
 			const isAddToCartSuccessful = response && response?.items_count > 0;
 			const isLegacyAddToCartSuccessful = response?.result === 'success';
 			if ( isAddToCartSuccessful || isLegacyAddToCartSuccessful ) {
-				wcStripeECE.addToCartError = false;
+				wcStripeECE.isAddToCartSuccessful = true;
 			}
 
 			return;
 		}
 
 		return resolveClickEvent( event, options );
+	};
+
+	const handleProductPageShippingAddressChange = async (
+		event,
+		elements
+	) => {
+		if ( ! wcStripeECE.isAddToCartSuccessful ) {
+			// wait 1s for the item to be added to the cart before proceeding
+			await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
+		}
+
+		return shippingAddressChangeHandler( api, event, elements );
 	};
 
 	const wcStripeECE = {
@@ -338,11 +350,19 @@ jQuery( function ( $ ) {
 				return await handleProductPageECEButtonClick( event, options );
 			} );
 
-			eceButton.on(
-				'shippingaddresschange',
-				async ( event ) =>
-					await shippingAddressChangeHandler( api, event, elements )
-			);
+			eceButton.on( 'shippingaddresschange', async ( event ) => {
+				if ( getExpressCheckoutData( 'is_product_page' ) ) {
+					return await handleProductPageShippingAddressChange(
+						event,
+						elements
+					);
+				}
+				return await shippingAddressChangeHandler(
+					api,
+					event,
+					elements
+				);
+			} );
 
 			eceButton.on(
 				'shippingratechange',
@@ -353,7 +373,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'confirm', async ( event ) => {
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
-					wcStripeECE.addToCartError
+					! wcStripeECE.isAddToCartSuccessful
 				) {
 					const message = __(
 						'There was an error adding the product to the cart.',
