@@ -366,6 +366,10 @@ function woocommerce_gateway_stripe() {
 					add_woocommerce_inbox_variant();
 					$this->update_plugin_version();
 
+					// Add webhook reconfiguration
+					$account = self::get_instance()->account;
+					$account->maybe_reconfigure_webhooks_on_update();
+
 					// TODO: Remove this when we're reasonably sure most merchants have had their
 					// settings updated like this. ~80% of merchants is a good threshold.
 					// - @reykjalin
