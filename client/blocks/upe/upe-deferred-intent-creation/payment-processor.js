@@ -219,7 +219,7 @@ const PaymentProcessor = ( {
 						meta: {
 							paymentMethodData: {
 								payment_method: upeMethods[ paymentMethodId ],
-								wc_payment_intent_id: paymentIntentId,
+								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,

@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { useEffect, useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { Elements } from '@stripe/react-stripe-js';
 /**
  * Internal dependencies
@@ -24,7 +25,12 @@ import { getFontRulesFromPage } from 'wcstripe/styles/upe';
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
-const PaymentElements = ( { api, supportsDeferredIntent, ...props } ) => {
+const PaymentElements = ( {
+	api,
+	supportsDeferredIntent,
+	components: { LoadingMask },
+	...props
+} ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
@@ -59,9 +65,18 @@ const PaymentElements = ( { api, supportsDeferredIntent, ...props } ) => {
 		supportsDeferredIntent,
 	] );
 
-	// If we require a client secret but don’t have one yet, return null early
+	// If a client secret is required, wait until it is available.
 	if ( ! supportsDeferredIntent && ! clientSecret ) {
-		return null;
+		return (
+			<LoadingMask
+				isLoading={ true }
+				showSpinner={ true }
+				screenReaderLabel={ __(
+					'Loading payment method…',
+					'woocommerce-gateway-stripe'
+				) }
+			/>
+		);
 	}
 
 	const stripe = api.getStripe();
