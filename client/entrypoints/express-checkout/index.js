@@ -784,9 +784,13 @@ jQuery( function ( $ ) {
 						response.displayItems;
 
 					// Empty the cart to avoid having 2 products in the cart when payment request is not used.
-					api.expressCheckoutEmptyCartLegacy( {
-						bookingId: response.bookingId,
-					} );
+					if ( useLegacyCartEndpoints ) {
+						api.expressCheckoutEmptyCartLegacy( {
+							bookingId: response.bookingId,
+						} );
+					} else {
+						api.expressCheckoutEmptyCart( response.bookingId );
+					}
 
 					wcStripeECE.init();
 
