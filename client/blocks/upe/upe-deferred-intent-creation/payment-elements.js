@@ -13,6 +13,7 @@ import {
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 /**
  * Renders a Stripe Payment elements component.
@@ -72,6 +73,7 @@ const PaymentElements = ( { api, supportsDeferredIntent, ...props } ) => {
 	const options = {
 		appearance,
 		paymentMethodCreation: 'manual',
+		fonts: getFontRulesFromPage(),
 		...( supportsDeferredIntent
 			? {
 					mode: amount < 1 ? 'setup' : 'payment',
