@@ -151,7 +151,7 @@ jQuery( function ( $ ) {
 			// that the product was successfully added to the cart.
 			wcStripeECE.isAddToCartSuccessful = false;
 			const response = await addToCartPromise;
-			const isAddToCartSuccessful = response && response?.items_count > 0;
+			const isAddToCartSuccessful = response?.items_count > 0;
 			const isLegacyAddToCartSuccessful = response?.result === 'success';
 			if ( isAddToCartSuccessful || isLegacyAddToCartSuccessful ) {
 				wcStripeECE.isAddToCartSuccessful = true;
@@ -160,6 +160,7 @@ jQuery( function ( $ ) {
 			return;
 		}
 
+		wcStripeECE.isAddToCartSuccessful = true;
 		return resolveClickEvent( event, options );
 	};
 
@@ -167,7 +168,7 @@ jQuery( function ( $ ) {
 		event,
 		elements
 	) => {
-		if ( ! wcStripeECE.isAddToCartSuccessful ) {
+		if ( wcStripeECE.isAddToCartSuccessful === false ) {
 			// wait 1s for the item to be added to the cart before proceeding
 			await new Promise( ( resolve ) => setTimeout( resolve, 1000 ) );
 		}
@@ -373,7 +374,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'confirm', async ( event ) => {
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
-					! wcStripeECE.isAddToCartSuccessful
+					wcStripeECE.isAddToCartSuccessful === false
 				) {
 					const message = __(
 						'There was an error adding the product to the cart.',
