@@ -2911,7 +2911,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function filter_thankyou_order_received_text( $text, $order ) {
 		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
 			$text .= '<p class="woocommerce-info">';
-			$text .= esc_html( 'The payment is being processed and it might take a while before it\'s confirmed.' );
+			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
 			$text .= '</p>';
 		}
 		return $text;

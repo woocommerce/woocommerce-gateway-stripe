@@ -2823,7 +2823,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
 
-		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a while before it&#039;s confirmed.</p>';
+		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a few minutes before it&#039;s confirmed.</p>';
 		$this->assertEquals( $expected, $actual );
 	}
 }
