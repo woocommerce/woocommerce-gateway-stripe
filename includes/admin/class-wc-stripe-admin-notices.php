@@ -17,6 +17,13 @@ class WC_Stripe_Admin_Notices {
 	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
 
 	/**
+	 * Stripe customer page base URL.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -410,7 +417,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$customer_stripe_page = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( 'https://dashboard.stripe.com/customers/' . $subscription['customer_id'] ),
+				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'here &rarr;', 'woocommerce-gateway-stripe' )
