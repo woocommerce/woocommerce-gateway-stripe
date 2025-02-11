@@ -87,6 +87,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
+		// TODO: Gracefully handle errors related to the intent creation.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
 		const intent = await api.createIntent( null, paymentMethodType );
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 

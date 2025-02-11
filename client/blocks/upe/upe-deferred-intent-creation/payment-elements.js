@@ -51,6 +51,7 @@ const PaymentElements = ( {
 				setPaymentIntentId( response.id );
 			} catch ( error ) {
 				// TODO: Gracefully handle errors.
+				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
 				console.log( 'error', error ); // eslint-disable-line no-console
 			}
 		}
