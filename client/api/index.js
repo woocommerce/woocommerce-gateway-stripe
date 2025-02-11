@@ -575,6 +575,22 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Empty the cart (legacy version, non-StoreAPI).
+	 *
+	 * @todo Remove this once WC 9.7.0 is the min. required version.
+	 *
+	 * @param {Object} params Parameters.
+	 * @param {number} params.bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
+		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			...( bookingId ? { booking_id: bookingId } : {} ),
+		} );
+	}
+
+	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
 	 * @param {Object} paymentData Order data.

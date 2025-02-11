@@ -84,6 +84,87 @@ jQuery( function ( $ ) {
 		$( '.variations_form' ).length > 0 ||
 		$( '#wc-bookings-booking-form' ).length > 0;
 
+	const resolveClickEvent = ( event, options ) => {
+		const clickOptions = {
+			lineItems: useLegacyCartEndpoints
+				? normalizeLineItems( options.displayItems )
+				: options.displayItems,
+			emailRequired: true,
+			shippingAddressRequired: options.requestShipping,
+			phoneNumberRequired: options.requestPhone,
+			shippingRates: options.shippingRates,
+		};
+
+		return event.resolve( clickOptions );
+	};
+
+	const handleProductPageECEButtonClick = async ( event, options ) => {
+		const addToCartButton = document.querySelector(
+			'.single_add_to_cart_button'
+		);
+
+		// First check if product can be added to cart.
+		if ( addToCartButton.classList.contains( 'disabled' ) ) {
+			const defaultMessage = __(
+				'Please select your product options before proceeding.',
+				'woocommerce-gateway-stripe'
+			);
+			let message;
+			if (
+				addToCartButton.classList.contains(
+					'wc-variation-is-unavailable'
+				)
+			) {
+				message =
+					getAddToCartVariationParams( 'i18n_unavailable_text' ) ||
+					__(
+						'Sorry, this product is unavailable. Please choose a different combination.',
+						'woocommerce-gateway-stripe'
+					);
+			}
+
+			// eslint-disable-next-line no-alert
+			window.alert( message || defaultMessage );
+			return;
+		}
+
+		if ( wcStripeECEError ) {
+			// eslint-disable-next-line no-alert
+			window.alert( wcStripeECEError );
+			return;
+		}
+
+		// Stripe requires event.resolve() to be called within 1s of the click event.
+		// Here, we enforce a timeout for the addToCart operation. If the operation
+		// takes longer, we will call event.resolve() immediately,
+		// and wait for the addToCart operation to finish after.
+		const addToCartPromise = wcStripeECE.addToCart();
+		const timeout = new Promise( ( resolve ) =>
+			setTimeout( () => {
+				resolve( 'timeout' );
+			}, 700 )
+		);
+		const result = await Promise.race( [ addToCartPromise, timeout ] );
+		if ( result === 'timeout' ) {
+			// Immediately resolve the click event to avoid the 1s timeout.
+			resolveClickEvent( event, options );
+
+			// Wait for the addToCart operation to finish, checking
+			// that the product was successfully added to the cart.
+			wcStripeECE.addToCartError = true;
+			const response = await addToCartPromise;
+			const isAddToCartSuccessful = response && response?.items_count > 0;
+			const isLegacyAddToCartSuccessful = response?.result === 'success';
+			if ( isAddToCartSuccessful || isLegacyAddToCartSuccessful ) {
+				wcStripeECE.addToCartError = false;
+			}
+
+			return;
+		}
+
+		return resolveClickEvent( event, options );
+	};
+
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
@@ -251,74 +332,12 @@ jQuery( function ( $ ) {
 					);
 				}
 
-				if ( getExpressCheckoutData( 'is_product_page' ) ) {
-					const addToCartButton = $( '.single_add_to_cart_button' );
-
-					// First check if product can be added to cart.
-					if ( addToCartButton.is( '.disabled' ) ) {
-						if (
-							addToCartButton.is( '.wc-variation-is-unavailable' )
-						) {
-							// eslint-disable-next-line no-alert
-							window.alert(
-								// eslint-disable-next-line camelcase
-								getAddToCartVariationParams(
-									'i18n_unavailable_text'
-								) ||
-									__(
-										'Sorry, this product is unavailable. Please choose a different combination.',
-										'woocommerce-gateway-stripe'
-									)
-							);
-						} else {
-							// eslint-disable-next-line no-alert
-							window.alert(
-								__(
-									'Please select your product options before proceeding.',
-									'woocommerce-gateway-stripe'
-								)
-							);
-						}
-						return;
-					}
-
-					if ( wcStripeECEError ) {
-						// eslint-disable-next-line no-alert
-						window.alert( wcStripeECEError );
-						return;
-					}
+				if ( ! getExpressCheckoutData( 'is_product_page' ) ) {
+					onClickHandler( event );
+					return resolveClickEvent( event, options );
 				}
 
-				const clickOptions = {
-					lineItems: useLegacyCartEndpoints
-						? normalizeLineItems( options.displayItems )
-						: options.displayItems,
-					emailRequired: true,
-					shippingAddressRequired: options.requestShipping,
-					phoneNumberRequired: options.requestPhone,
-					shippingRates: options.shippingRates,
-				};
-
-				event.resolve( clickOptions );
-				onClickHandler( event );
-
-				// Call addToCart after event.resolve() so we don't hit the 1-second Stripe
-				// timeout for the click event. If addToCart fails, set a flag to prevent
-				// payment confirmation ('confirm' event) from being triggered.
-				if ( getExpressCheckoutData( 'is_product_page' ) ) {
-					wcStripeECE.cartError = true;
-					const response = await wcStripeECE.addToCart();
-					const isAddToCartSuccessful =
-						response && response?.items_count > 0;
-					const isLegacyAddToCartSuccessful =
-						response?.result === 'success';
-					if (
-						isAddToCartSuccessful ||
-						isLegacyAddToCartSuccessful
-					) {
-						wcStripeECE.cartError = false;
-					}
-				}
+				return await handleProductPageECEButtonClick( event, options );
 			} );
 
 			eceButton.on(
@@ -336,7 +355,7 @@ jQuery( function ( $ ) {
 			eceButton.on( 'confirm', async ( event ) => {
 				if (
 					getExpressCheckoutData( 'is_product_page' ) &&
-					wcStripeECE.cartError
+					wcStripeECE.addToCartError
 				) {
 					const message = __(
 						'There was an error adding the product to the cart.',
@@ -598,7 +617,9 @@ jQuery( function ( $ ) {
 
 			// Clear the cart, so items that are currently in it
 			//  do not interfere with computed totals.
-			await api.expressCheckoutEmptyCart();
+			// Use the non-StoreAPI method as it is faster; Stripe requires
+			// the click event to be resolved within 1 second.
+			await api.expressCheckoutEmptyCartLegacy( {} );
 
 			return api.expressCheckoutAddToCart( data );
 		},
@@ -814,7 +835,9 @@ jQuery( function ( $ ) {
 						response.displayItems;
 
 					// Empty the cart to avoid having 2 products in the cart when payment request is not used.
-					api.expressCheckoutEmptyCart( response.bookingId );
+					api.expressCheckoutEmptyCartLegacy( {
+						bookingId: response.bookingId,
+					} );
 
 					wcStripeECE.init();
 
