@@ -264,7 +264,7 @@ if ( window.wc_stripe_settings_params?.is_bacs_enabled ) {
 			'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.card,
+		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
 	};
 }
