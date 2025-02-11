@@ -154,7 +154,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
-		$account_country         = WC_Stripe::get_instance()->account->get_account_country();
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
@@ -178,25 +177,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Show giropay only on the orders page to allow refunds. It was deprecated.
 			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
-				continue;
-			}
-
-			// Exclude Affirm, Cash App from the payment method list.
-			// TODO: Complete adding the supported_countries_list property to the remaining payment methods to exclude them based on the supported countries list.
-			if (
-				in_array(
-					$payment_method_class,
-					[
-						WC_Stripe_UPE_Payment_Method_Affirm::class,
-						WC_Stripe_UPE_Payment_Method_ACH::class,
-						WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
-						WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
-					],
-					true
-				)
-				&& property_exists( $payment_method_class, 'supported_countries_list' )
-				&& ! in_array( $account_country, $payment_method_class::$supported_countries_list )
-			) {
 				continue;
 			}
 
