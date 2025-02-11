@@ -694,6 +694,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Flag for using a deferred intent. To be removed.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3868
 		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
 			return $this->process_payment_with_deferred_intent( $order_id );
 		}
