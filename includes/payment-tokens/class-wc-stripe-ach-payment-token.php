@@ -12,8 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Representation of a payment token for ACH.
  *
  * @class    WC_Payment_Token_ACH
- * @version  4.0.0
- * @since    4.0.0
+ * @since    9.1.1
  */
 class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 
@@ -42,8 +41,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Get type to display to user.
 	 *
-	 * @since  4.0.0
-	 * @version 4.0.0
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
 	 * @return string
 	 */
@@ -61,9 +58,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 
 	/**
 	 * Hook prefix
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 */
 	protected function get_hook_prefix() {
 		return 'woocommerce_payment_token_ach_get_';
@@ -74,9 +68,10 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	 *
 	 * These fields are required by all ACH payment tokens:
 	 * last4  - string Last 4 digits of the Account Number
+	 * bank_name - string Name of the bank
+	 * account_type - string Type of account (checking, savings)
+	 * fingerprint - string Unique identifier for the bank account
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @return boolean True if the passed data is valid
 	 */
 	public function validate() {
@@ -106,8 +101,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Get the bank name.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param string $context What the value is for. Valid values are view and edit.
 	 * @return string
 	 */
@@ -118,8 +111,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the bank name.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param string $bank_name
 	 */
 	public function set_bank_name( $bank_name ) {
@@ -129,8 +120,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Get the account type.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param string $context What the value is for. Valid values are view and edit.
 	 * @return string
 	 */
@@ -141,8 +130,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the account type.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param string $account_type
 	 */
 	public function set_account_type( $account_type ) {
@@ -152,8 +139,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Returns the last four digits.
 	 *
-	 * @since  4.0.0
-	 * @version 4.0.0
 	 * @param  string $context What the value is for. Valid values are view and edit.
 	 * @return string Last 4 digits
 	 */
@@ -164,8 +149,6 @@ class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment
 	/**
 	 * Set the last four digits.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param string $last4
 	 */
 	public function set_last4( $last4 ) {
