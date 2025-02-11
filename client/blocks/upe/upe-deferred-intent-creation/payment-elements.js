@@ -92,7 +92,11 @@ const PaymentElements = ( { api, supportsDeferredIntent, ...props } ) => {
 
 	return (
 		<Elements stripe={ stripe } options={ options }>
-			<PaymentProcessor api={ api } { ...props } />
+			<PaymentProcessor
+				api={ api }
+				paymentIntentId={ paymentIntentId }
+				{ ...props }
+			/>
 		</Elements>
 	);
 };
