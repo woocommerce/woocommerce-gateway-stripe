@@ -24,6 +24,28 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	private static $gateway;
 
 	/**
+	 * Enable UPE and store gateway instance.
+	 *
+	 * We are doing this here because if we did it in set_up(), the method body would get called before every single test
+	 * however the REST controller is instantiated only once. If we reloaded gateways then, WC()->payment_gateways()
+	 * would contain another gateway instance than the controller.
+	 *
+	 * @see UPE_Test_Utils::reload_payment_gateways()
+	 */
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+
+		$upe_helper = new UPE_Test_Helper();
+
+		// All tests assume UPE is enabled.
+		update_option( '_wcstripe_feature_upe', 'yes' );
+		$upe_helper->enable_upe();
+		$upe_helper->reload_payment_gateways();
+		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+	}
+
+
+	/**
 	 * Pre-test setup
 	 */
 	public function set_up() {
