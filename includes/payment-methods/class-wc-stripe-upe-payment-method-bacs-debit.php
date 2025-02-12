@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The Bacs Direct Debit Payment Method class extending UPE base class.
+ *
+ * @since x.x.x
  */
 class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Method {
 	/**
