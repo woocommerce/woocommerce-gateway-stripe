@@ -24,8 +24,6 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
-		$this->supported_currencies = [ 'USD' ];
-		$this->supported_countries  = [ 'US' ];
 		$this->label                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description          = __( 'Pay directly from your US bank account via ACH.', 'woocommerce-gateway-stripe' );
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
