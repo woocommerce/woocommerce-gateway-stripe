@@ -18,6 +18,19 @@ function wcs_get_subscriptions_for_order( $order ) {
 }
 
 /**
+ * A function to mock wcs_get_subscriptions.
+ *
+ * @return array
+ */
+function wcs_get_subscriptions() {
+	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions ) {
+		return [];
+	}
+
+	return (array) WC_Subscriptions_Helpers::$wcs_get_subscriptions;
+}
+
+/**
  * A helper class for setting up mocks for WC_Subscriptions functions.
  */
 class WC_Subscriptions_Helpers {
@@ -28,4 +41,11 @@ class WC_Subscriptions_Helpers {
 	 * @var array
 	 */
 	public static $wcs_get_subscriptions_for_order = null;
+
+	/**
+	 * Mock for wcs_get_subscriptions.
+	 *
+	 * @var array
+	 */
+	public static $wcs_get_subscriptions = null;
 }
