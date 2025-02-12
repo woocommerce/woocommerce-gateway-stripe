@@ -21,6 +21,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @type WC_Stripe_UPE_Payment_Method[]
 	 */
 	const UPE_AVAILABLE_METHODS = [
+		WC_Stripe_UPE_Payment_Method_BLIK::class,
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
@@ -2210,7 +2211,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
 		];
 
-		if ( 'us_bank_account' === $selected_payment_type ) {
+		if ( in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::ACH, WC_Stripe_Payment_Methods::BLIK ] ) ) {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
 		}
 

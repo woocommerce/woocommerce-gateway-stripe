@@ -10,6 +10,7 @@ class WC_Stripe_Payment_Methods {
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
 	const BANCONTACT        = 'bancontact';
+	const BLIK 			    = 'blik';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
 	const CASHAPP_PAY       = 'cashapp';

@@ -30,6 +30,16 @@ const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 
 const paymentMethodsMap = {
+	blik: {
+		id: 'blik',
+		label: 'BLIK',
+		description: __(
+			'BLIK is a mobile payment method primarily used in Poland.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.card,
+		currencies: [ 'PLN' ],
+	},
 	card: {
 		id: PAYMENT_METHOD_CARD,
 		label: __( 'Credit card / debit card', 'woocommerce-gateway-stripe' ),

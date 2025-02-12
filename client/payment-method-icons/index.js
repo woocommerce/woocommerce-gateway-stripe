@@ -20,6 +20,7 @@ import BankDebitIcon from './bank-debit';
 
 export default {
 	alipay: AlipayIcon,
+	blik: CashAppIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
 	klarna: KlarnaIcon,
