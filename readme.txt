@@ -113,6 +113,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.2.0 - xxxx-xx-xx =
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
+* Fix - Fix the quantity parameter for the express checkout add-to-cart API call.
 * Dev - Replaces part of the StoreAPI call code for the cart endpoints to use the newly introduced filter.
 * Fix - Clear cart first when using express checkout inside the product page.
 * Fix - Avoid Stripe timeouts for the express checkout click event.
