@@ -306,6 +306,10 @@ function woocommerce_gateway_stripe() {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
+
+					// Initialize the class for handling the status page.
+					$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
+					$wcstripe_status->init_hooks();
 				}
 
 				// REMOVE IN THE FUTURE.
