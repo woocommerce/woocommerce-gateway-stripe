@@ -211,6 +211,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
 				require_once __DIR__ . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-ach-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';

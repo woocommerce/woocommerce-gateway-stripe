@@ -39,6 +39,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe ACH payment method.
+	 */
+	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
+		'id'                            => 'pm_mock_payment_method_id',
+		'type'                          => WC_Stripe_Payment_Methods::ACH,
+		WC_Stripe_Payment_Methods::ACH  => [
+			'last4'       => '6789',
+			'bank_name'   => 'Test Bank',
+			'account_type' => 'checking',
+			'fingerprint' => 'fp_test_123',
+		],
+	];
+
+	/**
 	 * Base template for Stripe SEPA payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
@@ -117,7 +131,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'link_payments'                => 'active',
 		'cashapp_payments'             => 'active',
 		'wechat_pay_payments'          => 'active',
-		'us_bank_account_ach_payments' => 'active',
+		'us_bank_account_payments'     => 'active',
 	];
 
 	/**
@@ -126,11 +140,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 		WC_Stripe_Helper::delete_main_stripe_settings();
+		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		$this->reset_payment_method_mocks();
 	}
 
 	public function tear_down() {
 		WC_Stripe_Helper::delete_main_stripe_settings();
+		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -352,7 +368,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACH, $ach_method->get_id() );
 		$this->assertEquals( 'ACH Direct Debit', $ach_method->get_label() );
 		$this->assertEquals( 'ACH Direct Debit', $ach_method->get_title() );
-		$this->assertFalse( $ach_method->is_reusable() ); // Currently non-reusable; future improvement may change this.
+		$this->assertTrue( $ach_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACH, $ach_method->get_retrievable_type() );
 		$this->assertEquals( '', $ach_method->get_testing_instructions() );
 	}
@@ -592,7 +608,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$store_currency   = WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
+			$store_currency   = in_array( $payment_method_id, [ WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] ) ? WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR : 'EUR';
 			$account_currency = null;
 
 			if ( $payment_method->has_domestic_transactions_restrictions() ) {
@@ -696,6 +712,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token                        = $payment_method->create_payment_token_for_user( $user_id, $cash_app_payment_method_mock );
 					$this->assertTrue( WC_Payment_Token_CashApp::class === get_class( $token ) );
 					$this->assertSame( $token->get_cashtag(), $cash_app_payment_method_mock->cashapp->cashtag );
+					break;
+				case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
+					$ach_payment_method_mock = $this->array_to_object( self::MOCK_ACH_PAYMENT_METHOD_TEMPLATE );
+					$token                   = $payment_method->create_payment_token_for_user( $user_id, $ach_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_ACH::class === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->last4 );
+					$this->assertSame( $token->get_token(), $ach_payment_method_mock->id );
+					$this->assertSame( $token->get_bank_name(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->bank_name );
+					$this->assertSame( $token->get_account_type(), $ach_payment_method_mock->{WC_Stripe_Payment_Methods::ACH}->account_type );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
