@@ -381,11 +381,18 @@ jQuery( function ( $ ) {
 					getExpressCheckoutData( 'is_product_page' ) &&
 					wcStripeECE.isAddToCartSuccessful === false
 				) {
-					const message = __(
-						'There was an error adding the product to the cart.',
-						'woocommerce-gateway-stripe'
+					// wait 1s for the item to be added to the cart before proceeding
+					await new Promise( ( resolve ) =>
+						setTimeout( resolve, 1000 )
 					);
-					return wcStripeECE.abortPayment( event, message );
+
+					if ( wcStripeECE.isAddToCartSuccessful === false ) {
+						const message = __(
+							'There was an error adding the product to the cart.',
+							'woocommerce-gateway-stripe'
+						);
+						return wcStripeECE.abortPayment( event, message );
+					}
 				}
 
 				const order = options.order ? options.order : 0;
