@@ -524,9 +524,17 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutAddToCart( productData ) {
+		// Rename qty to quantity to match StoreAPI expected parameter.
+		const { qty, ...rest } = productData;
+		const quantity = qty ?? 1;
+		const blocksApiProductData = {
+			...rest,
+			quantity,
+		};
+
 		const data = applyFilters(
 			'wcstripe.express-checkout.cart-add-item',
-			productData
+			blocksApiProductData
 		);
 		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
 	}
