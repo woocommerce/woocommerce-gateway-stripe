@@ -16,6 +16,7 @@ import {
 } from '../../data';
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
+import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -75,7 +76,6 @@ const PaymentRequestSection = () => {
 		}
 	);
 
-	const isECEEnabled = wc_stripe_settings_params.is_ece_enabled; // eslint-disable-line camelcase
 	const isAmazonPayAvailable =
 		wc_stripe_settings_params.is_amazon_pay_available; // eslint-disable-line camelcase
 
@@ -238,7 +238,7 @@ const PaymentRequestSection = () => {
 							</div>
 						</li>
 					) }
-					{ isAmazonPayAvailable && isECEEnabled && (
+					{ isAmazonPayAvailable && (
 						<li className="express-checkout has-icon-border">
 							<div className="express-checkout__checkbox">
 								<CheckboxControl
@@ -259,6 +259,13 @@ const PaymentRequestSection = () => {
 										'Amazon Pay',
 										'woocommerce-gateway-stripe'
 									) }
+									<PaymentMethodMissingCurrencyPill
+										id="amazon_pay"
+										label={ __(
+											'Amazon Pay',
+											'woocommerce-gateway-stripe'
+										) }
+									/>
 								</div>
 								<div className="express-checkout__description">
 									{

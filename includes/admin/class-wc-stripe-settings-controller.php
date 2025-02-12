@@ -41,8 +41,6 @@ class WC_Stripe_Settings_Controller {
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 
-		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
-
 		add_action( 'update_option_woocommerce_gateway_order', [ $this, 'set_stripe_gateways_in_list' ] );
 
 		// Add AJAX handler for OAuth URLs
@@ -245,7 +243,6 @@ class WC_Stripe_Settings_Controller {
 			'plugin_version'            => WC_STRIPE_VERSION,
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
-			'is_ece_enabled'            => WC_Stripe_Feature_Flags::is_stripe_ece_enabled(),
 			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'oauth_nonce'               => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 		];
@@ -295,29 +292,5 @@ class WC_Stripe_Settings_Controller {
 				}
 			}
 		}
-	}
-
-	/**
-	 * Updates the Stripe account data on the settings page.
-	 *
-	 * Some plugin settings (eg statement descriptions) require the latest update-to-date data from the Stripe Account to display
-	 * correctly. This function clears the account cache when the settings page is loaded to ensure the latest data is displayed.
-	 */
-	public function maybe_update_account_data() {
-
-		// Exit early if we're not on the payments settings page.
-		if ( ! isset( $_GET['page'], $_GET['tab'] ) || 'wc-settings' !== $_GET['page'] || 'checkout' !== $_GET['tab'] ) {
-			return;
-		}
-
-		if ( ! isset( $_GET['section'] ) || 'stripe' !== $_GET['section'] ) {
-			return;
-		}
-
-		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
-			return [];
-		}
-
-		$this->account->clear_cache();
 	}
 }
