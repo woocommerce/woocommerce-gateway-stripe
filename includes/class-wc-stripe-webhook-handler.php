@@ -1203,6 +1203,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook account updated event.
+	 * This is triggered when the account details are updated in Stripe's end.
+	 * We want to clear the cached account data to fetch fresh data on next request.
+	 *
+	 * @param object $notification The notification from Stripe
+	 */
+	public function process_account_updated( $notification ) {
+		WC_Stripe::get_instance()->account->clear_cache();
+		WC_Stripe_Logger::log( 'Cleared account cache after receiving account.updated webhook.' );
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -1213,6 +1225,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$notification = json_decode( $request_body );
 
 		switch ( $notification->type ) {
+			case 'account.updated':
+				$this->process_account_updated( $notification );
+				break;
+
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
 				break;

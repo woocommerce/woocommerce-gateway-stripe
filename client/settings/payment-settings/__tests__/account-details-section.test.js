@@ -45,6 +45,23 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 	default: jest.fn(),
 } ) );
 
+const mockRefreshAccount = jest.fn();
+const mockCreateSuccessNotice = jest.fn();
+jest.mock( '@wordpress/data', () => ( {
+	useDispatch: ( store ) => {
+		if ( store === 'wc/stripe' ) {
+			return { refreshAccount: mockRefreshAccount };
+		}
+		if ( store === 'core/notices' ) {
+			return { createSuccessNotice: mockCreateSuccessNotice };
+		}
+		return {};
+	},
+	combineReducers: jest.fn(),
+	createReduxStore: jest.fn(),
+	register: jest.fn(),
+} ) );
+
 describe( 'AccountDetailsSection', () => {
 	const setModalTypeMock = jest.fn();
 	beforeEach( () => {
@@ -164,5 +181,64 @@ describe( 'AccountDetailsSection', () => {
 
 		const stripeAccountId = screen.getByText( /acct_123/i );
 		expect( stripeAccountId ).toBeInTheDocument();
+	} );
+
+	describe( 'Refresh account functionality', () => {
+		beforeEach( () => {
+			useAccount.mockReturnValue( {
+				data: {
+					webhook_url: 'example.com',
+					account: {
+						id: 'acct_123',
+						email: 'test@example.com',
+						testmode: false,
+					},
+					configured_webhook_urls: {
+						live: 'example.com',
+						test: 'example.com',
+					},
+				},
+			} );
+			mockRefreshAccount.mockClear();
+			mockCreateSuccessNotice.mockClear();
+		} );
+
+		it( 'should show refresh account option in dropdown menu', () => {
+			render(
+				<AccountDetailsSection setModalType={ setModalTypeMock } />
+			);
+
+			// Open the dropdown menu
+			const menuButton = screen.getByLabelText(
+				'Edit details or disconnect account'
+			);
+			userEvent.click( menuButton );
+
+			// Check if refresh option exists
+			const refreshButton = screen.getByRole( 'menuitem', {
+				name: /refresh account details/i,
+			} );
+			expect( refreshButton ).toBeInTheDocument();
+		} );
+
+		it( 'should call refreshAccount when refresh option is clicked', async () => {
+			render(
+				<AccountDetailsSection setModalType={ setModalTypeMock } />
+			);
+
+			// Open the dropdown menu
+			const menuButton = screen.getByLabelText(
+				'Edit details or disconnect account'
+			);
+			userEvent.click( menuButton );
+
+			// Click the refresh option
+			const refreshButton = screen.getByRole( 'menuitem', {
+				name: /refresh account details/i,
+			} );
+			userEvent.click( refreshButton );
+
+			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
+		} );
 	} );
 } );

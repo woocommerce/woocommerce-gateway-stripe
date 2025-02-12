@@ -2759,4 +2759,71 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Unset the feature flag.
 		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
 	}
+
+	/**
+	 * Test for `filter_my_account_my_orders_actions`.
+	 *
+	 * @return void
+	 */
+	public function test_filter_my_account_my_orders_actions() {
+		add_filter(
+			'woocommerce_is_order_received_page',
+			function() {
+				return true;
+			}
+		);
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+		$order->set_status( 'pending' );
+
+		$actions = [
+			'pay'    => [
+				'url'        => $order->get_checkout_payment_url(),
+				'name'       => 'Pay',
+				'aria-label' => sprintf( 'Pay for order %s', $order->get_order_number() ),
+			],
+			'view'   => [
+				'url'        => $order->get_view_order_url(),
+				'name'       => 'View',
+				'aria-label' => sprintf( 'View order %s', $order->get_order_number() ),
+			],
+			'cancel' => [
+				'url'        => $order->get_cancel_order_url( wc_get_page_permalink( 'myaccount' ) ),
+				'name'       => 'Cancel',
+				'aria-label' => sprintf( 'Cancel order %s', $order->get_order_number() ),
+			],
+		];
+
+		$actual = $this->mock_gateway->filter_my_account_my_orders_actions( $actions, $order );
+
+		$this->assertEquals(
+			[
+				'view' => [
+					'url'        => $order->get_view_order_url(),
+					'name'       => 'View',
+					'aria-label' => sprintf( 'View order %s', $order->get_order_number() ),
+				],
+			],
+			$actual
+		);
+	}
+
+	/**
+	 * Test for `filter_thankyou_order_received_text`.
+	 *
+	 * @return void
+	 */
+	public function test_filter_thankyou_order_received_text() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( 'pending' );
+		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+
+		$default_text = 'Thank you. Your order has been received.';
+
+		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
+
+		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a few minutes before it&#039;s confirmed.</p>';
+		$this->assertEquals( $expected, $actual );
+	}
 }
