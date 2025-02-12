@@ -23,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
-		$this->is_reusable          = false; // Usually ACH requires verification per transaction.
+		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'USD' ];
 		$this->supported_countries  = [ 'US' ];
 		$this->label                = __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' );
