@@ -1330,8 +1330,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Try to retrieve from the charges array.
-		if ( ! empty( $intent->charges ) && is_array( $intent->charges ) ) {
-			$charge   = $intent->charges[0] ?? [];
+		if ( ! empty( $intent->charges ) ) {
+			if ( is_array( $intent->charges ) ) {
+				$charge   = $intent->charges[0] ?? [];
+			}
+			else {
+				$charge   = $intent->charges->data[0] ?? [];
+			}
 			$order_id = $charge->metadata->order_id ?? null;
 			return $order_id ? wc_get_order( $order_id ) : false;
 		}
