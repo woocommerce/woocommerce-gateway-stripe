@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Representation of a payment token for ACH.
  *
  * @class    WC_Payment_Token_ACH
- * @since    9.1.1
+ * @since    x.x.x
  */
 class WC_Payment_Token_ACH extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 
