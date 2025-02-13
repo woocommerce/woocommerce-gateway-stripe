@@ -1234,7 +1234,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 	}
 
 	/**
