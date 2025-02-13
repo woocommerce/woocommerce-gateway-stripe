@@ -4,6 +4,8 @@ import icons from './payment-method-icons';
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
+const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
+const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
@@ -242,6 +244,7 @@ const paymentMethodsMap = {
 	},
 };
 
+// Enable ACH according to feature flag value.
 if ( isAchEnabled ) {
 	paymentMethodsMap.us_bank_account = {
 		id: 'us_bank_account',
@@ -255,8 +258,22 @@ if ( isAchEnabled ) {
 	};
 }
 
-// Enable Bacs according to feature flag value
-if ( window.wc_stripe_settings_params?.is_bacs_enabled ) {
+// Enable ACSS according to feature flag value.
+if ( isAcssEnabled ) {
+	paymentMethodsMap.acss_debit = {
+		id: 'acss_debit',
+		label: __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.acss_debit,
+		currencies: [ 'CAD' ],
+	};
+}
+
+// Enable Bacs according to feature flag value.
+if ( isBacsEnabled ) {
 	paymentMethodsMap.bacs_debit = {
 		id: 'bacs_debit',
 		label: 'Bacs Direct Debit',

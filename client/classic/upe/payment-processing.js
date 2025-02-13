@@ -1,6 +1,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
+	appendPaymentIntentIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 	isLinkEnabled,
@@ -24,11 +25,11 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 const gatewayUPEComponents = {};
-
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 for ( const paymentMethodType in paymentMethodsConfig ) {
 	gatewayUPEComponents[ paymentMethodType ] = {
+		intentId: null,
 		elements: null,
 		upeElement: null,
 	};
@@ -66,28 +67,46 @@ export function validateElements( elements ) {
 }
 
 /**
- * Creates a Stripe payment element with the specified payment method type and options. The function
- * retrieves the necessary data from the UPE configuration and initializes the appearance. It then creates the
- * Stripe elements and the Stripe payment element, which is attached to the gatewayUPEComponents object afterward.
+ * Creates a Stripe payment element with the specified payment method type and options.
  *
- * @todo Make paymentMethodType required when Split is implemented.
+ * If the payment method doesn't support deferred intent, the intent must be created first.
+ * Then, the payment element is created with the intent's client secret.
+ *
+ * Finally, the payment element is mounted and attached to the gatewayUPEComponents object.
  *
  * @param {Object} api The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
-function createStripePaymentElement( api, paymentMethodType = null ) {
+async function createStripePaymentElement( api, paymentMethodType ) {
 	const amount = Number( getStripeServerData()?.cartTotal );
 	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
-	const options = {
-		mode: amount < 1 ? 'setup' : 'payment',
-		currency: getStripeServerData()?.currency.toLowerCase(),
-		amount,
-		paymentMethodCreation: 'manual',
-		paymentMethodTypes,
-		appearance: initializeUPEAppearance( api ),
-		fonts: getFontRulesFromPage(),
-	};
+	const { supportsDeferredIntent } =
+		paymentMethodsConfig[ paymentMethodType ] || {};
+	let options;
+
+	// If the payment method doesn't support deferred intent, the intent must be created here.
+	if ( ! supportsDeferredIntent ) {
+		const intent = await api.createIntent( null, paymentMethodType );
+		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
+
+		options = {
+			appearance: initializeUPEAppearance( api ),
+			paymentMethodCreation: 'manual',
+			fonts: getFontRulesFromPage(),
+			clientSecret: intent.client_secret,
+		};
+	} else {
+		options = {
+			mode: amount < 1 ? 'setup' : 'payment',
+			currency: getStripeServerData()?.currency.toLowerCase(),
+			amount,
+			paymentMethodCreation: 'manual',
+			paymentMethodTypes,
+			appearance: initializeUPEAppearance( api ),
+			fonts: getFontRulesFromPage(),
+		};
+	}
 
 	const elements = api.getStripe().elements( options );
 
@@ -332,6 +351,14 @@ export const processPayment = (
 				jQueryForm,
 				paymentMethodObject.paymentMethod.id
 			);
+
+			// Append the intent ID to the form if it was previously created through a non-deferred intent.
+			if ( gatewayUPEComponents[ paymentMethodType ].intentId ) {
+				appendPaymentIntentIdToForm(
+					jQueryForm,
+					gatewayUPEComponents[ paymentMethodType ].intentId
+				);
+			}
 
 			let stopFormSubmission = false;
 			await additionalActionsHandler(

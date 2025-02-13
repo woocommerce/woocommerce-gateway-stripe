@@ -10,6 +10,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Admin_Notices {
 	/**
+	 * Transient key for detached subscriptions.
+	 *
+	 * @var string
+	 */
+	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
+
+	/**
+	 * Stripe customer page base URL.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -390,12 +404,12 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscriptions_check_environment() {
-		$detached_messages      = '';
-		$detached_subscriptions = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
-		foreach ( $detached_subscriptions as $subscription ) {
+		$detached_messages = '';
+		$subscriptions     = $this->get_detached_subscriptions();
+		foreach ( $subscriptions as $subscription ) {
 			$customer_payment_method_link = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( $subscription->get_change_payment_method_url() ),
+				esc_url( $subscription['change_payment_method_url'] ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's payment method page */
 					__( 'this link &rarr;', 'woocommerce-gateway-stripe' )
@@ -403,7 +417,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$customer_stripe_page = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( 'https://dashboard.stripe.com/customers/' . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
 				esc_html(
 					/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'here &rarr;', 'woocommerce-gateway-stripe' )
@@ -412,7 +426,7 @@ class WC_Stripe_Admin_Notices {
 			$detached_messages .= sprintf(
 			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
 				__( 'Subscription #%1$s\'s payment method is missing, <strong>preventing renewals</strong>. Share %2$s with the customer to update it or manually set the <strong>Stripe Payment Method ID</strong> meta field in the subscriptions details "Billing" section to another from %3$s.', 'woocommerce-gateway-stripe' ),
-				$subscription->get_id(),
+				$subscription['id'],
 				$customer_payment_method_link,
 				$customer_stripe_page
 			);
@@ -514,6 +528,47 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
 			update_option( 'wc_stripe_show_sca_notice', 'no' );
 		}
+	}
+
+	/**
+	 * Returns a list of subscriptions without a payment method attached.
+	 *
+	 * @return array
+	 */
+	private function get_detached_subscriptions() {
+		// Check if we have a cached result.
+		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
+		if ( ! empty( $cached_subscriptions ) ) {
+			return $cached_subscriptions;
+		}
+
+		$detached_subscriptions = [];
+		$subscriptions          = wcs_get_subscriptions(
+			[
+				'subscriptions_per_page' => -1,
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+			]
+		);
+		foreach ( $subscriptions as $subscription ) {
+			$source_id = $subscription->get_meta( '_stripe_source_id' );
+			if ( $source_id ) {
+				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
+				if ( ! $payment_method->customer ) {
+					$detached_subscriptions[] = [
+						'id'                        => $subscription->get_id(),
+						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
+					];
+				}
+			}
+		}
+
+		// Cache the result for a day.
+		set_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY, $detached_subscriptions, DAY_IN_SECONDS );
+
+		return $detached_subscriptions;
 	}
 }
 
