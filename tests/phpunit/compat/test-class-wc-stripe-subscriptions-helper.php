@@ -54,17 +54,18 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->assertEquals(
+		$expected = [
 			[
-				[
-					'id'                        => $subscription_id,
-					'customer_id'               => $customer_id,
-					'change_payment_method_url' => $subscription->get_change_payment_method_url(),
-				],
+				'id'                        => $subscription_id,
+				'customer_id'               => $customer_id,
+				'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 			],
-			WC_Stripe_Subscriptions_Helper::get_detached_subscriptions()
-		);
+		];
+		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		// Test cached version
+		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 	}
 }
