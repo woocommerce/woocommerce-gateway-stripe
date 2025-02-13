@@ -77,7 +77,7 @@ class WC_Stripe_Status {
 			<tr>
 				<td data-export-label="Account Email"><?php esc_html_e( 'Account Email', 'woocommerce-gateway-stripe' ); ?>:</td>
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'The Stripe account email address.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
-				<td><?php echo esc_html( $account_data['email'] ?? '' ); ?></td>
+				<td><?php echo esc_html( $account_data['email'] ?? 'Unknown' ); ?></td>
 			</tr>
 			<tr>
 				<td data-export-label="Test Mode"><?php esc_html_e( 'Test Mode', 'woocommerce-gateway-stripe' ); ?>:</td>
