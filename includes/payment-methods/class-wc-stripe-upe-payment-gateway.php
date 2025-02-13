@@ -284,12 +284,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Hides refund through stripe when payment method does not allow refund
 	 *
-	 * @param WC_Stripe_Order $order
+	 * @param WC_Stripe_Order|WC_Order $order
 	 *
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = $order->get_upe_payment_type();
+		$upe_payment_type = $order instanceof WC_Stripe_Order ? $order->get_upe_payment_type() : $order->get_meta( '_stripe_upe_payment_type' );
 
 		if ( ! $upe_payment_type ) {
 			return true;
