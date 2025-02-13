@@ -106,17 +106,25 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public $testmode;
 
 	/**
+	 * Wether this payment method supports deferred intent creation.
+	 *
+	 * @var bool
+	 */
+	protected $supports_deferred_intent;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled    = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->id         = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
-		$this->has_fields = true;
-		$this->testmode   = WC_Stripe_Mode::is_test();
-		$this->supports   = [ 'products', 'refunds' ];
+		$this->enabled                  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] ), true ) ? 'yes' : 'no'; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->id                       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID; // @phpstan-ignore-line (STRIPE_ID is defined in classes using this class)
+		$this->has_fields               = true;
+		$this->testmode                 = WC_Stripe_Mode::is_test();
+		$this->supports                 = [ 'products', 'refunds' ];
+		$this->supports_deferred_intent = true;
 	}
 
 	/**
@@ -725,5 +733,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->view_transaction_url = WC_Stripe_Helper::get_transaction_url( $this->testmode );
 
 		return parent::get_transaction_url( $order );
+	}
+
+	/**
+	 * Whether this payment method supports deferred intent creation.
+	 *
+	 * @return bool
+	 */
+	public function supports_deferred_intent() {
+		return $this->supports_deferred_intent;
 	}
 }

@@ -40,6 +40,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Link::class,
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
+		WC_Stripe_UPE_Payment_Method_ACSS::class,
 	];
 
 	/**
@@ -156,15 +157,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->payment_methods = [];
 
-		if ( WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
-		}
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
 			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show ACSS only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show BACS only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 
@@ -531,12 +537,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
-				'isReusable'          => $payment_method->is_reusable(),
-				'title'               => $payment_method->get_title(),
-				'description'         => $payment_method->get_description(),
-				'testingInstructions' => $payment_method->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_available_billing_countries(),
+				'isReusable'             => $payment_method->is_reusable(),
+				'title'                  => $payment_method->get_title(),
+				'description'            => $payment_method->get_description(),
+				'testingInstructions'    => $payment_method->get_testing_instructions(),
+				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
+				'countries'              => $payment_method->get_available_billing_countries(),
 			];
 		}
 
@@ -671,16 +678,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Process the payment for a given order.
 	 *
-	 * @param int  $order_id Reference.
-	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_save_source Force save the payment source.
-	 * @param mix  $previous_error Any error message from previous request.
-	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
+	 * @param int   $order_id Reference.
+	 * @param bool  $retry Should we retry on fail.
+	 * @param bool  $force_save_source Force save the payment source.
+	 * @param mixed $previous_error Any error message from previous request.
+	 * @param bool  $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order                 = wc_get_order( $order_id );
+		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
+
+		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
+			// Adds customer and metadata to PaymentIntent.
+			// These parameters cannot be added upon updating the intent via the `/confirm` API.
+			$this->intent_controller->update_payment_intent( $payment_intent_id, $order_id );
+		}
+
 		// Flag for using a deferred intent. To be removed.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3868
 		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
 			return $this->process_payment_with_deferred_intent( $order_id );
 		}
@@ -693,8 +711,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $this->process_payment_with_saved_payment_method( $order_id );
 		}
 
-		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                     = wc_get_order( $order_id );
 		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
