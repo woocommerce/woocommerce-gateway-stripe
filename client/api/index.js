@@ -526,9 +526,17 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutAddToCart( productData ) {
+		// Rename qty to quantity to match StoreAPI expected parameter.
+		const { qty, ...rest } = productData;
+		const quantity = qty ?? 1;
+		const blocksApiProductData = {
+			...rest,
+			quantity,
+		};
+
 		const data = applyFilters(
 			'wcstripe.express-checkout.cart-add-item',
-			productData
+			blocksApiProductData
 		);
 		return this.postToBlocksAPI( '/wc/store/v1/cart/add-item', data );
 	}
@@ -574,6 +582,20 @@ export default class WCStripeAPI {
 		} catch ( e ) {
 			// let's ignore the error, it's likely not going to be relevant.
 		}
+	}
+
+	/**
+	 * Empty the cart (legacy version, non-StoreAPI).
+	 *
+	 * @param {Object} params Parameters.
+	 * @param {number} params.bookingId Booking ID.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutEmptyCartLegacy( { bookingId = null } ) {
+		return this.request( getExpressCheckoutAjaxURL( 'clear_cart' ), {
+			security: getExpressCheckoutData( 'nonce' )?.clear_cart,
+			...( bookingId ? { booking_id: bookingId } : {} ),
+		} );
 	}
 
 	/**
