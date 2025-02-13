@@ -1,5 +1,27 @@
 import { __ } from '@wordpress/i18n';
 import icons from './payment-method-icons';
+import {
+	PAYMENT_METHOD_ACH,
+	PAYMENT_METHOD_ACSS,
+	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_ALIPAY,
+	PAYMENT_METHOD_BACS,
+	PAYMENT_METHOD_BANCONTACT,
+	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_CASHAPP,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_IDEAL,
+	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_MULTIBANCO,
+	PAYMENT_METHOD_OXXO,
+	PAYMENT_METHOD_P24,
+	PAYMENT_METHOD_SEPA,
+	PAYMENT_METHOD_SOFORT,
+	PAYMENT_METHOD_WECHAT_PAY,
+} from 'wcstripe/stripe-utils/constants';
 
 const accountCountry =
 	window.wc_stripe_settings_params?.account_country || 'US';
@@ -9,7 +31,7 @@ const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
-		id: 'card',
+		id: PAYMENT_METHOD_CARD,
 		label: __( 'Credit card / debit card', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Let your customers pay with major credit and debit cards without leaving your store.',
@@ -20,7 +42,7 @@ const paymentMethodsMap = {
 		allows_manual_capture: true,
 	},
 	giropay: {
-		id: 'giropay',
+		id: PAYMENT_METHOD_GIROPAY,
 		label: __( 'giropay', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Expand your business with giropay — Germany’s second most popular payment system.',
@@ -30,7 +52,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	klarna: {
-		id: 'klarna',
+		id: PAYMENT_METHOD_KLARNA,
 		label: __( 'Klarna', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Allow customers to pay over time with Klarna.',
@@ -54,7 +76,7 @@ const paymentMethodsMap = {
 		allows_manual_capture: true,
 	},
 	affirm: {
-		id: 'affirm',
+		id: PAYMENT_METHOD_AFFIRM,
 		label: __( 'Affirm', 'woocommerce-gateway-stripe' ),
 		// translators: %s is the store currency.
 		description: __(
@@ -67,7 +89,7 @@ const paymentMethodsMap = {
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
-		id: 'afterpay_clearpay',
+		id: PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 		label:
 			accountCountry === 'GB'
 				? __( 'Clearpay', 'woocommerce-gateway-stripe' )
@@ -87,7 +109,7 @@ const paymentMethodsMap = {
 		allows_manual_capture: true,
 	},
 	sepa_debit: {
-		id: 'sepa_debit',
+		id: PAYMENT_METHOD_SEPA,
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
@@ -107,7 +129,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	sofort: {
-		id: 'sofort',
+		id: PAYMENT_METHOD_SOFORT,
 		label: __( 'Sofort', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
@@ -117,7 +139,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	eps: {
-		id: 'eps',
+		id: PAYMENT_METHOD_EPS,
 		label: __( 'EPS', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'EPS is an Austria-based payment method that allows customers to complete transactions online using their bank credentials.',
@@ -127,7 +149,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	bancontact: {
-		id: 'bancontact',
+		id: PAYMENT_METHOD_BANCONTACT,
 		label: __( 'Bancontact', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
@@ -137,7 +159,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	ideal: {
-		id: 'ideal',
+		id: PAYMENT_METHOD_IDEAL,
 		label: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
@@ -147,7 +169,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	p24: {
-		id: 'p24',
+		id: PAYMENT_METHOD_P24,
 		label: __( 'Przelewy24', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Przelewy24 is a Poland-based payment method aggregator that allows customers to complete transactions online using bank transfers and other methods.',
@@ -157,7 +179,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR', 'PLN' ],
 	},
 	boleto: {
-		id: 'boleto',
+		id: PAYMENT_METHOD_BOLETO,
 		label: __( 'Boleto', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
@@ -167,7 +189,7 @@ const paymentMethodsMap = {
 		currencies: [ 'BRL' ],
 	},
 	oxxo: {
-		id: 'oxxo',
+		id: PAYMENT_METHOD_OXXO,
 		label: __( 'OXXO', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
@@ -177,7 +199,7 @@ const paymentMethodsMap = {
 		currencies: [ 'MXN' ],
 	},
 	alipay: {
-		id: 'alipay',
+		id: PAYMENT_METHOD_ALIPAY,
 		label: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
@@ -198,7 +220,7 @@ const paymentMethodsMap = {
 		],
 	},
 	multibanco: {
-		id: 'multibanco',
+		id: PAYMENT_METHOD_MULTIBANCO,
 		label: __( 'Multibanco', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
@@ -208,7 +230,7 @@ const paymentMethodsMap = {
 		currencies: [ 'EUR' ],
 	},
 	wechat_pay: {
-		id: 'wechat_pay',
+		id: PAYMENT_METHOD_WECHAT_PAY,
 		label: __( 'WeChat Pay', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'WeChat Pay is a popular mobile payment and digital wallet service by WeChat in China.',
@@ -232,7 +254,7 @@ const paymentMethodsMap = {
 		],
 	},
 	cashapp: {
-		id: 'cashapp',
+		id: PAYMENT_METHOD_CASHAPP,
 		label: __( 'Cash App Pay', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Cash App is a popular consumer app in the US that allows customers to bank, invest, send, and receive money using their digital wallet.',
@@ -247,7 +269,7 @@ const paymentMethodsMap = {
 // Enable ACH according to feature flag value.
 if ( isAchEnabled ) {
 	paymentMethodsMap.us_bank_account = {
-		id: 'us_bank_account',
+		id: PAYMENT_METHOD_ACH,
 		label: __( 'ACH Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'ACH lets you accept payments from customers with a US bank account.',
@@ -261,7 +283,7 @@ if ( isAchEnabled ) {
 // Enable ACSS according to feature flag value.
 if ( isAcssEnabled ) {
 	paymentMethodsMap.acss_debit = {
-		id: 'acss_debit',
+		id: PAYMENT_METHOD_ACSS,
 		label: __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Canadian Pre-Authorized Debit is a payment method that allows customers to pay using their Canadian bank account.',
@@ -275,7 +297,7 @@ if ( isAcssEnabled ) {
 // Enable Bacs according to feature flag value.
 if ( isBacsEnabled ) {
 	paymentMethodsMap.bacs_debit = {
-		id: 'bacs_debit',
+		id: PAYMENT_METHOD_BACS,
 		label: 'Bacs Direct Debit',
 		description: __(
 			'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.',
