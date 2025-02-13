@@ -2774,9 +2774,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `filter_my_account_my_orders_actions`.
 	 *
-	 * @return void
+	 * @dataProvider payment_method_titles_provider
 	 */
-	public function test_filter_my_account_my_orders_actions() {
+	public function test_filter_my_account_my_orders_actions( $payment_method_title ) {
 		add_filter(
 			'woocommerce_is_order_received_page',
 			function() {
@@ -2785,7 +2785,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		);
 
 		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+		$order->set_payment_method_title( $payment_method_title );
 		$order->set_status( 'pending' );
 
 		$actions = [
@@ -2818,6 +2818,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			$actual
 		);
+	}
+
+	/**
+	 * Data provider for `test_filter_my_account_my_orders_actions`.
+	 *
+	 * @return array
+	 */
+	public function payment_method_titles_provider() {
+		return [
+			'Amazon' => [ 'Amazon Pay (Stripe)' ],
+			'Bacs' => [ 'Bacs Direct Debit' ],
+		];
 	}
 
 	/**
