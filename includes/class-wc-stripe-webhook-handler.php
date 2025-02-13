@@ -991,6 +991,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 
 		switch ( $notification->type ) {
+			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
+			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
+			case 'payment_intent.processing':
+				$charge = $this->get_latest_charge_from_intent( $intent );
+				if ( $charge ) {
+					$order->set_transaction_id( $charge->id );
+					/* translators: transaction id */
+					$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
+				}
+				break;
 			case 'payment_intent.requires_action':
 				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
 
@@ -1274,6 +1284,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_review_closed( $notification );
 				break;
 
+			case 'payment_intent.processing':
 			case 'payment_intent.succeeded':
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
