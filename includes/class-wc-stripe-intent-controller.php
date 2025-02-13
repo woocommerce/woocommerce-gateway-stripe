@@ -883,6 +883,13 @@ class WC_Stripe_Intent_Controller {
 
 		$order = $payment_information['order'];
 
+		$request['payment_method_options'] = [
+			WC_Stripe_Payment_Methods::BLIK => [
+				'code' => '123456',
+				// 'blik_code' => sanitize_text_field( wp_unslash( $_POST['wc-stripe-blik-code'] ?? '' ) ), // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			],
+		];
+
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
@@ -1227,7 +1234,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto, Oxxo or Multibanco. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
-		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ WC_Stripe_Payment_Methods::BLIK, WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::BOLETO, WC_Stripe_Payment_Methods::OXXO, WC_Stripe_Payment_Methods::MULTIBANCO, WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
 	}
 
 	/**
