@@ -38,6 +38,7 @@ class WC_Stripe_Account {
 		'charge.refund.updated',
 		'review.opened',
 		'review.closed',
+		'payment_intent.processing',
 		'payment_intent.succeeded',
 		'payment_intent.payment_failed',
 		'payment_intent.amount_capturable_updated',

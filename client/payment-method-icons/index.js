@@ -40,4 +40,5 @@ export default {
 	cashapp: CashAppIcon,
 	us_bank_account: BankDebitIcon,
 	bacs_debit: BacsDebitIcon,
+	acss_debit: BankDebitIcon,
 };

@@ -6,6 +6,7 @@
 class WC_Stripe_Payment_Methods {
 
 	const ACH               = 'us_bank_account';
+	const ACSS_DEBIT        = 'acss_debit';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';

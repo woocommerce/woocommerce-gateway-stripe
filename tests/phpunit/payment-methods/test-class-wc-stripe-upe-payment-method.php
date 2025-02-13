@@ -125,27 +125,28 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Mock capabilities object from Stripe response--all active.
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'              => 'active',
-		'bancontact_payments'          => 'active',
-		'card_payments'                => 'active',
-		'eps_payments'                 => 'active',
-		'giropay_payments'             => 'active',
-		'klarna_payments'              => 'active',
-		'affirm_payments'              => 'active',
-		'clearpay_afterpay_payments'   => 'active',
-		'ideal_payments'               => 'active',
-		'p24_payments'                 => 'active',
-		'sepa_debit_payments'          => 'active',
-		'sofort_payments'              => 'active',
-		'transfers'                    => 'active',
-		'multibanco_payments'          => 'active',
-		'boleto_payments'              => 'active',
-		'oxxo_payments'                => 'active',
-		'link_payments'                => 'active',
-		'cashapp_payments'             => 'active',
-		'wechat_pay_payments'          => 'active',
-		'us_bank_account_payments'     => 'active',
-		'bacs_debit_payments'          => 'active',
+		'alipay_payments'            => 'active',
+		'bancontact_payments'        => 'active',
+		'card_payments'              => 'active',
+		'eps_payments'               => 'active',
+		'giropay_payments'           => 'active',
+		'klarna_payments'            => 'active',
+		'affirm_payments'            => 'active',
+		'clearpay_afterpay_payments' => 'active',
+		'ideal_payments'             => 'active',
+		'p24_payments'               => 'active',
+		'sepa_debit_payments'        => 'active',
+		'sofort_payments'            => 'active',
+		'transfers'                  => 'active',
+		'multibanco_payments'        => 'active',
+		'boleto_payments'            => 'active',
+		'oxxo_payments'              => 'active',
+		'link_payments'              => 'active',
+		'cashapp_payments'           => 'active',
+		'wechat_pay_payments'        => 'active',
+		'acss_debit_payments'        => 'active',
+		'us_bank_account_payments'   => 'active',
+		'bacs_debit_payments'        => 'active',
 	];
 
 	/**
@@ -266,6 +267,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_wechat_pay_details = [
 			'type' => WC_Stripe_Payment_Methods::WECHAT_PAY,
 		];
+		$mock_acss_details       = [
+			'type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
+		];
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$alipay_method     = $this->mock_payment_methods['alipay'];
@@ -280,6 +284,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$oxxo_method       = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
 		$ach_method        = $this->mock_payment_methods['us_bank_account'];
+		$acss_method       = $this->mock_payment_methods['acss_debit'];
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -387,6 +392,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertTrue( $ach_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACH, $ach_method->get_retrievable_type() );
 		$this->assertEquals( '', $ach_method->get_testing_instructions() );
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::ACSS_DEBIT, $acss_method->get_id() );
+		$this->assertEquals( 'Pre-Authorized Debit', $acss_method->get_label() );
+		$this->assertEquals( 'Pre-Authorized Debit', $acss_method->get_title() );
+		$this->assertEquals( 'Pre-Authorized Debit', $acss_method->get_title( $mock_acss_details ) );
+		$this->assertTrue( $acss_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::ACSS_DEBIT, $acss_method->get_retrievable_type() );
+		$this->assertEquals( '', $acss_method->get_testing_instructions() );
 	}
 
 	/**
@@ -418,6 +431,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$oxxo_method              = $this->mock_payment_methods['oxxo'];
 		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
 		$ach_method               = $this->mock_payment_methods['us_bank_account'];
+		$acss_method              = $this->mock_payment_methods['acss_debit'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
@@ -434,6 +448,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $ach_method->is_enabled_at_checkout() );
+		$this->assertFalse( $acss_method->is_enabled_at_checkout() );
 	}
 
 	/**
@@ -633,7 +648,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			$account_currency = null;
 
-			if ( $payment_method->has_domestic_transactions_restrictions() ) {
+			// Use different currencies for ACSS or payment methods that have domestic transactions restrictions.
+			if ( $payment_method->has_domestic_transactions_restrictions() || WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id ) {
 				$store_currency   = $payment_method->get_supported_currencies()[0];
 				$account_currency = $store_currency;
 			}
@@ -656,6 +672,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function test_payment_methods_support_custom_name_and_description() {
 		$payment_method_ids = [
 			WC_Stripe_Payment_Methods::ACH,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
