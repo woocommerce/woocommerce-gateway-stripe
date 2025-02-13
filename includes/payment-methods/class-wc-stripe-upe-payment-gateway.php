@@ -252,6 +252,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Add hooks for clearing appearance transients when theme is updated
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
+
+		// Hide action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'filter_thankyou_order_received_text' ], 10, 2 );
 	}
 
 	/**
@@ -694,6 +698,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		// Flag for using a deferred intent. To be removed.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3868
 		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
 			return $this->process_payment_with_deferred_intent( $order_id );
 		}
@@ -2896,5 +2901,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function clear_appearance_transients() {
 		delete_transient( $this->get_appearance_transient_key() );
+	}
+
+	/**
+	 * Hide "Pay" and "Cancel" action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+	 *
+	 * @param $actions array An array with the default actions.
+	 * @param $order WC_Order The order.
+	 * @return array
+	 */
+	public function filter_my_account_my_orders_actions( $actions, $order ) {
+		if ( is_order_received_page() && $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+			unset( $actions['pay'], $actions['cancel'] );
+		}
+		return $actions;
+	}
+
+	/**
+	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
+	 *
+	 * @param string $text Default text.
+	 * @param WC_Order $order Order data.
+	 * @return string
+	 */
+	public function filter_thankyou_order_received_text( $text, $order ) {
+		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+			$text .= '<p class="woocommerce-info">';
+			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
+			$text .= '</p>';
+		}
+		return $text;
 	}
 }
