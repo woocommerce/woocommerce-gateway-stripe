@@ -128,15 +128,21 @@ export async function fillCreditCardDetailsShortcode( page, card ) {
  */
 export async function fillCreditCardDetailsLegacy( page, card ) {
 	await page
-		.frameLocator( '#wc-stripe-card-number-element iframe' )
+		.frameLocator(
+			'#wc-stripe-card-number-element iframe[name^="__privateStripeFrame"]'
+		)
 		.locator( 'input[name="cardnumber"]' )
 		.fill( card.number );
 	await page
-		.frameLocator( '#wc-stripe-card-expiry-element iframe' )
+		.frameLocator(
+			'#wc-stripe-card-expiry-element iframe[name^="__privateStripeFrame"]'
+		)
 		.locator( 'input[name="exp-date"]' )
 		.fill( card.expires.month + card.expires.year );
 	await page
-		.frameLocator( '#wc-stripe-card-code-element iframe' )
+		.frameLocator(
+			'#wc-stripe-card-code-element iframe[name^="__privateStripeFrame"]'
+		)
 		.locator( 'input[name="cvc"]' )
 		.fill( card.cvc );
 }
@@ -188,9 +194,13 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
-				[ 'state', 'country', 'state_iso', 'country_iso' ].includes(
-					fieldName
-				)
+				[
+					'state',
+					'country',
+					'state_iso',
+					'country_iso',
+					'company',
+				].includes( fieldName )
 			) {
 				continue;
 			}

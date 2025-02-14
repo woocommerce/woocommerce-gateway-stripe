@@ -1,8 +1,16 @@
 import ReactDOM from 'react-dom';
 import { ExpressCheckoutElement, Elements } from '@stripe/react-stripe-js';
 import { memoize } from 'lodash';
-import { getPaymentMethodTypesForExpressMethod } from 'wcstripe/express-checkout/utils';
-import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
+import {
+	getPaymentMethodTypesForExpressMethod,
+	isManualPaymentMethodCreation,
+} from 'wcstripe/express-checkout/utils';
+import {
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+} from 'wcstripe/stripe-utils/constants';
 
 export const checkPaymentMethodIsAvailable = memoize(
 	( paymentMethod, api, cart, resolve ) => {
@@ -21,7 +29,9 @@ export const checkPaymentMethodIsAvailable = memoize(
 				stripe={ api.loadStripe() }
 				options={ {
 					mode: 'payment',
-					paymentMethodCreation: 'manual',
+					...( isManualPaymentMethodCreation( paymentMethod ) && {
+						paymentMethodCreation: 'manual',
+					} ),
 					amount: Number( cart.cartTotals.total_price ),
 					currency: cart.cartTotals.currency_code.toLowerCase(),
 					paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
@@ -33,17 +43,24 @@ export const checkPaymentMethodIsAvailable = memoize(
 					onLoadError={ () => resolve( false ) }
 					options={ {
 						paymentMethods: {
-							amazonPay: 'never',
+							amazonPay:
+								paymentMethod ===
+								EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY
+									? 'auto'
+									: 'never',
 							applePay:
-								paymentMethod === 'applePay'
+								paymentMethod ===
+								EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY
 									? 'always'
 									: 'never',
 							googlePay:
-								paymentMethod === 'googlePay'
+								paymentMethod ===
+								EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY
 									? 'always'
 									: 'never',
 							link:
-								paymentMethod === PAYMENT_METHOD_LINK
+								paymentMethod ===
+								EXPRESS_PAYMENT_METHOD_SETTING_LINK
 									? 'auto'
 									: 'never',
 							paypal: 'never',

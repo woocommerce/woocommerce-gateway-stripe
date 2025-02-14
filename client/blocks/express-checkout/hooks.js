@@ -7,16 +7,15 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
-	onConfirmHandlerForBlocksAPI,
 } from 'wcstripe/express-checkout/event-handler';
 import {
 	displayExpressCheckoutNotice,
-	expressCheckoutNoticeDelay,
 	getExpressCheckoutButtonStyleSettings,
 	getExpressCheckoutData,
 	normalizeLineItems,
 } from 'wcstripe/express-checkout/utils';
 import 'wcstripe/express-checkout/compatibility/wc-order-attribution';
+import 'wcstripe/express-checkout/compatibility/wc-product-page';
 
 export const useExpressCheckout = ( {
 	api,
@@ -101,8 +100,6 @@ export const useExpressCheckout = ( {
 					'info',
 					[ 'ece-taxes-info' ]
 				);
-				// Wait for the notice to be displayed before proceeding.
-				await expressCheckoutNoticeDelay();
 			}
 
 			// Global click event handler to ECE.
@@ -118,24 +115,14 @@ export const useExpressCheckout = ( {
 	);
 
 	const onConfirm = async ( event ) => {
-		if ( getExpressCheckoutData( 'use_blocks_api' ) ) {
-			return await onConfirmHandlerForBlocksAPI(
-				api,
-				stripe,
-				elements,
-				completePayment,
-				abortPayment,
-				event
-			);
-		}
-		return await onConfirmHandler(
+		return await onConfirmHandler( {
 			api,
 			stripe,
 			elements,
 			completePayment,
 			abortPayment,
-			event
-		);
+			event,
+		} );
 	};
 
 	return {

@@ -991,6 +991,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$is_wallet_payment  = in_array( $payment_type_meta, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 
 		switch ( $notification->type ) {
+			// Asynchronous payment methods such as bank debits will only provide a charge ID at `payment_intent.processing`, once the required actions are taken by the customer.
+			// We need to update the order transaction ID, so that the `payment_intent.succeeded` webhook is able to process the order.
+			case 'payment_intent.processing':
+				$charge = $this->get_latest_charge_from_intent( $intent );
+				if ( $charge ) {
+					$order->set_transaction_id( $charge->id );
+					/* translators: transaction id */
+					$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $charge->id ) );
+				}
+				break;
 			case 'payment_intent.requires_action':
 				do_action( 'wc_gateway_stripe_process_payment_intent_requires_action', $order, $notification->data->object );
 
@@ -1203,6 +1213,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook account updated event.
+	 * This is triggered when the account details are updated in Stripe's end.
+	 * We want to clear the cached account data to fetch fresh data on next request.
+	 *
+	 * @param object $notification The notification from Stripe
+	 */
+	public function process_account_updated( $notification ) {
+		WC_Stripe::get_instance()->account->clear_cache();
+		WC_Stripe_Logger::log( 'Cleared account cache after receiving account.updated webhook.' );
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -1213,6 +1235,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$notification = json_decode( $request_body );
 
 		switch ( $notification->type ) {
+			case 'account.updated':
+				$this->process_account_updated( $notification );
+				break;
+
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
 				break;
@@ -1258,6 +1284,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_review_closed( $notification );
 				break;
 
+			case 'payment_intent.processing':
 			case 'payment_intent.succeeded':
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
@@ -1314,7 +1341,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Try to retrieve from the charges array.
-		if ( ! empty( $intent->charges ) ) {
+		if ( ! empty( $intent->charges ) && is_array( $intent->charges ) ) {
 			$charge   = $intent->charges[0] ?? [];
 			$order_id = $charge->metadata->order_id ?? null;
 			return $order_id ? wc_get_order( $order_id ) : false;

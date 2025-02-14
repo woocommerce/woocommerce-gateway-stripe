@@ -225,6 +225,14 @@ $stripe_settings = apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		],
+		'sepa_tokens_for_other_methods'       => [
+			'title'       => __( 'SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable SEPA Direct Debit tokens for other methods', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will be able to pay with iDEAL or Bancontact and save the method as a SEPA Direct Debit method.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'yes',
+			'desc_tip'    => true,
+		],
 		'logging'                             => [
 			'title'       => __( 'Logging', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Log debug messages', 'woocommerce-gateway-stripe' ),
@@ -232,6 +240,34 @@ $stripe_settings = apply_filters(
 			'description' => __( 'Save debug messages to the WooCommerce System Status log.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'no',
 			'desc_tip'    => true,
+		],
+		'amazon_pay_button_locations'         => [
+			'title'             => __( 'Amazon Pay Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'              => 'multiselect',
+			'description'       => __( 'Select where you would like Amazon Pay Button to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'          => true,
+			'class'             => 'wc-enhanced-select',
+			'options'           => [
+				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+			],
+			'default'           => [ 'product', 'cart' ],
+			'custom_attributes' => [
+				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
+			],
+		],
+		'amazon_pay_button_size'         => [
+			'title'       => __( 'Amazon Pay Button Size', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'default',
+			'desc_tip'    => true,
+			'options'     => [
+				'small' => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default'  => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
+				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
+			],
 		],
 	]
 );

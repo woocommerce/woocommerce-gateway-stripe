@@ -6,8 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
+	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
 
 	const LPM_ACH_FEATURE_FLAG_NAME  = '_wcstripe_feature_lpm_ach';
+	const LPM_ACSS_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_bacs';
 
 	/**
@@ -18,6 +20,25 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_ach_lpm_enabled() {
 		return 'yes' === get_option( self::LPM_ACH_FEATURE_FLAG_NAME, 'no' );
+	}
+
+	/**
+	 * Checks whether ACSS LPM (Local Payment Method) feature flag is enabled.
+	 * ACSS LPM is a feature that allows merchants to enable/disable the ACSS payment method.
+	 *
+	 * @return bool
+	 */
+	public static function is_acss_lpm_enabled() {
+		return 'yes' === get_option( self::LPM_ACSS_FEATURE_FLAG_NAME, 'no' );
+	}
+
+	/**
+	 * Feature flag to control Amazon Pay feature availability.
+	 *
+	 * @return bool
+	 */
+	public static function is_amazon_pay_available() {
+		return 'yes' === get_option( self::AMAZON_PAY_FEATURE_FLAG_NAME, 'no' );
 	}
 
 	/**

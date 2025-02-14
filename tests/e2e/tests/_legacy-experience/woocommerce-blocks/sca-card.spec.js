@@ -35,7 +35,7 @@ test( 'customer can checkout with a SCA card @smoke @blocks', async ( {
 			name: 'stripe-challenge-frame',
 		} )
 		.getByRole( 'button', { name: 'Complete' } )
-		.click();
+		.dispatchEvent( 'click' );
 
 	await page.waitForURL( '**/checkout/order-received/**' );
 
