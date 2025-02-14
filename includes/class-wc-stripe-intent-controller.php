@@ -812,7 +812,7 @@ class WC_Stripe_Intent_Controller {
 		$ip_address = WC_Geolocation::get_ip_address();
 		WC_Stripe_Helper::maybe_log_ip_issues( $ip_address );
 
-		$mandate_data = [
+		$request['mandate_data'] = [
 			'customer_acceptance' => [
 				'type'   => 'online',
 				'online' => [
@@ -821,8 +821,6 @@ class WC_Stripe_Intent_Controller {
 				],
 			],
 		];
-
-		$request['mandate_data'] = apply_filters( 'wc_stripe_mandate_data', $mandate_data, $request );
 
 		return $request;
 	}
