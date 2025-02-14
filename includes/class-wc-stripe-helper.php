@@ -1616,13 +1616,16 @@ class WC_Stripe_Helper {
 	 */
 	public static function maybe_log_ip_issues( $ip_address ) {
 		if ( rest_is_ip_address( $ip_address ) === false ) {
-			$log_data = [
-				'WC_Geolocation::get_ip_address()' => $ip_address,
-				'rest_is_ip_address'               => rest_is_ip_address( $ip_address ),
-				'HTTP_X_REAL_IP'                   => isset( $_SERVER['HTTP_X_REAL_IP'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) ) : 'not set',
-				'HTTP_X_FORWARDED_FOR'             => isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : 'not set',
-				'REMOTE_ADDR'                      => isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'not set',
+			$log_data = [ 'WC_Geolocation::get_ip_address()' => $ip_address ];
+			$headers  = [
+				'HTTP_X_REAL_IP',
+				'HTTP_X_FORWARDED_FOR',
+				'REMOTE_ADDR',
 			];
+			foreach ( $headers as $header ) {
+				$log_data[ $header ] = isset( $_SERVER[ $header ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) : 'not set';
+			}
+
 			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
 		}
 	}
