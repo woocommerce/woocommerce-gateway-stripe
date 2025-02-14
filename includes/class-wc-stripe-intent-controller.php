@@ -365,9 +365,9 @@ class WC_Stripe_Intent_Controller {
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency       = get_woocommerce_currency();
-		$capture        = $gateway->is_automatic_capture_enabled();
-		$request        = [
+		$currency = get_woocommerce_currency();
+		$capture  = $gateway->is_automatic_capture_enabled();
+		$request  = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
@@ -809,15 +809,20 @@ class WC_Stripe_Intent_Controller {
 	 * @return array The request with mandate data added.
 	*/
 	private function add_mandate_data( $request ) {
-		$request['mandate_data'] = [
+		$ip_address = WC_Geolocation::get_ip_address();
+		WC_Stripe_Helper::maybe_log_ip_issues( $ip_address );
+
+		$mandate_data = [
 			'customer_acceptance' => [
 				'type'   => 'online',
 				'online' => [
-					'ip_address' => WC_Geolocation::get_ip_address(),
+					'ip_address' => $ip_address,
 					'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
 				],
 			],
 		];
+
+		$request['mandate_data'] = apply_filters( 'wc_stripe_mandate_data', $mandate_data, $request );
 
 		return $request;
 	}
