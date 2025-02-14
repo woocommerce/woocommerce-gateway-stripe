@@ -610,6 +610,13 @@ jQuery( function ( $ ) {
 				qty: $( quantityInputSelector ).val(),
 			};
 
+			// Check if product is a variable product.
+			if ( $( '.single_variation_wrap' ).length ) {
+				productId = $( '.single_variation_wrap' )
+					.find( 'input[name="product_id"]' )
+					.val();
+			}
+
 			if ( $( '.wc-bookings-booking-form' ).length ) {
 				productId = $( '.wc-booking-product-id' ).val();
 			}
