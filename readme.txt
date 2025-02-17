@@ -116,5 +116,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
+* Fix - Fix error when processing a subscription via Amazon Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
