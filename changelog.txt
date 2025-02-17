@@ -5,6 +5,7 @@
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
+* Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.

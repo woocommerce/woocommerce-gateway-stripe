@@ -115,5 +115,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
+* Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
