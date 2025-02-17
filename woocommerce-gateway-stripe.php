@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.1.1
+ * Version: 9.2.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.1.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.2.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -211,6 +211,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/trait-wc-stripe-fingerprint.php';
 				require_once __DIR__ . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-ach-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
@@ -241,6 +242,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
