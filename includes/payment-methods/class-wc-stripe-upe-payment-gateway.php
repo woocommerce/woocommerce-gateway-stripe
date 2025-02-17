@@ -2241,6 +2241,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} else {
 				$payment_information['capture_method'] = $capture_method;
 			}
+
+			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
+			if ( $payment_information['has_subscription'] ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
+			}
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
