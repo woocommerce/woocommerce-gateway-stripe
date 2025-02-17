@@ -33,7 +33,7 @@ const getStripeServerData = () => {
 		typeof wc.wcSettings !== 'undefined'
 	) {
 		// 'getSetting' has this data value on block checkout only.
-		data = wc.wcSettings?.getSetting( 'getSetting' ) || null;
+		data = wc.wcSettings?.getSetting( 'stripe_data' ) || null;
 	}
 
 	if ( ! data ) {
