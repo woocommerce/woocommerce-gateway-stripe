@@ -425,7 +425,7 @@ class WC_Stripe_Admin_Notices {
 			);
 			$detached_messages .= sprintf(
 			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
-				__( 'Subscription #%1$s\'s payment method is missing, <strong>preventing renewals</strong>. Share %2$s with the customer to update it or manually set the <strong>Stripe Payment Method ID</strong> meta field in the subscriptions details "Billing" section to another from %3$s.', 'woocommerce-gateway-stripe' ),
+				__( 'Subscription #%1$s\'s payment method is missing, <strong>preventing renewals</strong>. Share %2$s with the customer to update it or manually set the <strong>Stripe Payment Method ID</strong> meta field in the subscriptions details "Billing" section to another from %3$s.<br/>', 'woocommerce-gateway-stripe' ),
 				$subscription['id'],
 				$customer_payment_method_link,
 				$customer_stripe_page
