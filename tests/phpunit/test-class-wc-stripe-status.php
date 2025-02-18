@@ -42,9 +42,9 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$status->render_status_report_section();
 		$output = ob_get_clean();
 
-		$this->assertContains( 'WooCommerce Stripe Payment Gateway', $output );
-		$this->assertContains( 'acct_123', $output );
-		$this->assertContains( 'john.doe@example.com', $output );
-		$this->assertContains( 'card', $output );
+		$this->assertStringContainsString( 'WooCommerce Stripe Payment Gateway', $output );
+		$this->assertStringContainsString( 'acct_123', $output );
+		$this->assertStringContainsString( 'john.doe@example.com', $output );
+		$this->assertStringContainsString( 'card', $output );
 	}
 }
