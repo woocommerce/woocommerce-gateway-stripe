@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.3.0 - xxxx-xx-xx =
 * Dev - Moves the method to check if the subscriptions extension is enabled to a new helper class.
+* Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
