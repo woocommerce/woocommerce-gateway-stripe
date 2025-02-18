@@ -118,6 +118,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		parent::set_up();
 
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
+
+		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()
@@ -186,6 +191,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		parent::tear_down();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -281,6 +287,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 			[
@@ -295,6 +302,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
 		];
@@ -337,7 +345,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'metadata'    => $metadata,
 		];
 
-		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
+		$_POST = [
+			'payment_method'       => 'stripe',
+			'wc_payment_intent_id' => $payment_intent_id,
+		];
 
 		$this->mock_gateway->expects( $this->any() )
 			->method( 'get_stripe_customer_from_order' )
@@ -1778,7 +1789,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'setup_future_usage' => 'off_session',
 		];
 
-		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
+		$_POST = [
+			'payment_method'       => 'stripe',
+			'wc_payment_intent_id' => $payment_intent_id,
+		];
 
 		$this->mock_gateway->expects( $this->any() )
 			->method( 'is_subscriptions_enabled' )
@@ -1827,7 +1841,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order->set_total( 0 );
 		$order->save();
 
-		$_POST = [ 'wc_payment_intent_id' => $setup_intent_id ];
+		$_POST = [
+			'payment_method'       => 'stripe',
+			'wc_payment_intent_id' => $setup_intent_id,
+		];
 
 		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_subscription' )
@@ -2803,5 +2820,23 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			$actual
 		);
+	}
+
+	/**
+	 * Test for `filter_thankyou_order_received_text`.
+	 *
+	 * @return void
+	 */
+	public function test_filter_thankyou_order_received_text() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( 'pending' );
+		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+
+		$default_text = 'Thank you. Your order has been received.';
+
+		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
+
+		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a few minutes before it&#039;s confirmed.</p>';
+		$this->assertEquals( $expected, $actual );
 	}
 }

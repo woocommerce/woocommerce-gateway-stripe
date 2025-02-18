@@ -40,6 +40,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Link::class,
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
+		WC_Stripe_UPE_Payment_Method_ACSS::class,
 	];
 
 	/**
@@ -156,15 +157,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->payment_methods = [];
 
-		if ( WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$this->UPE_AVAILABLE_METHODS[] = WC_Stripe_UPE_Payment_Method_Bacs::class;
-		}
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
 			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show ACSS only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show BACS only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 
@@ -249,6 +255,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Hide action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
+		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'filter_thankyou_order_received_text' ], 10, 2 );
 	}
 
 	/**
@@ -414,6 +421,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+
 		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
@@ -431,6 +440,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
+		$stripe_params['isPaymentRequestEnabled']          = $express_checkout_helper->is_payment_request_enabled();
+		$stripe_params['isAmazonPayEnabled']               = $express_checkout_helper->is_amazon_pay_enabled();
+		$stripe_params['isLinkEnabled']                    = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
 
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );
@@ -439,6 +451,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// ECE feature flag
 		$stripe_params['isECEEnabled'] = WC_Stripe_Feature_Flags::is_stripe_ece_enabled();
+
+		// Amazon Pay feature flag.
+		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
 
 		// ACH LPM Feature flag.
 		$stripe_params['is_ach_enabled'] = WC_Stripe_Feature_Flags::is_ach_lpm_enabled();
@@ -522,12 +537,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
-				'isReusable'          => $payment_method->is_reusable(),
-				'title'               => $payment_method->get_title(),
-				'description'         => $payment_method->get_description(),
-				'testingInstructions' => $payment_method->get_testing_instructions(),
-				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $payment_method ),
-				'countries'           => $payment_method->get_available_billing_countries(),
+				'isReusable'             => $payment_method->is_reusable(),
+				'title'                  => $payment_method->get_title(),
+				'description'            => $payment_method->get_description(),
+				'testingInstructions'    => $payment_method->get_testing_instructions(),
+				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
+				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
+				'countries'              => $payment_method->get_available_billing_countries(),
 			];
 		}
 
@@ -662,16 +678,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Process the payment for a given order.
 	 *
-	 * @param int  $order_id Reference.
-	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_save_source Force save the payment source.
-	 * @param mix  $previous_error Any error message from previous request.
-	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
+	 * @param int   $order_id Reference.
+	 * @param bool  $retry Should we retry on fail.
+	 * @param bool  $force_save_source Force save the payment source.
+	 * @param mixed $previous_error Any error message from previous request.
+	 * @param bool  $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order                 = wc_get_order( $order_id );
+		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
+
+		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
+			// Adds customer and metadata to PaymentIntent.
+			// These parameters cannot be added upon updating the intent via the `/confirm` API.
+			$this->intent_controller->update_payment_intent( $payment_intent_id, $order_id );
+		}
+
 		// Flag for using a deferred intent. To be removed.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3868
 		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
 			return $this->process_payment_with_deferred_intent( $order_id );
 		}
@@ -684,8 +711,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $this->process_payment_with_saved_payment_method( $order_id );
 		}
 
-		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                     = wc_get_order( $order_id );
 		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -918,11 +943,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
-			$return_url = $this->get_return_url( $order );
-
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
-				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
@@ -938,9 +960,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
 				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 				$order->save();
-			} else {
-				$redirect = $return_url;
 
+				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
+			} else {
 				if ( $payment_needed ) {
 					// Use the last charge within the intent to proceed.
 					$charge = $this->get_latest_charge_from_intent( $payment_intent );
@@ -956,6 +978,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->mark_order_as_pre_ordered( $order );
 					}
 				}
+				$redirect = $this->get_return_url( $order );
 			}
 
 			$this->unlock_order_payment( $order );
@@ -2200,7 +2223,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']           = $capture_method;
+			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
@@ -2891,5 +2914,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
+	}
+
+	/**
+	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
+	 *
+	 * @param string $text Default text.
+	 * @param WC_Order $order Order data.
+	 * @return string
+	 */
+	public function filter_thankyou_order_received_text( $text, $order ) {
+		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+			$text .= '<p class="woocommerce-info">';
+			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
+			$text .= '</p>';
+		}
+		return $text;
 	}
 }

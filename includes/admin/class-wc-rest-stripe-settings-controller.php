@@ -66,7 +66,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'enabled_payment_method_ids'       => [
+					'enabled_payment_method_ids'         => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -88,18 +88,18 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_size'        => [
+					'amazon_pay_button_size'             => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'enum'              => array_keys( isset( $form_fields['amazon_pay_button_size']['options'] ) ? $form_fields['amazon_pay_button_size']['options'] : [] ),
+						'enum'              => array_keys( $form_fields['amazon_pay_button_size']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_locations'   => [
+					'amazon_pay_button_locations'        => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ),
+							'enum' => array_keys( $form_fields['amazon_pay_button_locations']['options'] ?? [] ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],

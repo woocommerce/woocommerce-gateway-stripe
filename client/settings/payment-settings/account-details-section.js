@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { React, useState } from 'react';
 import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
@@ -35,10 +36,22 @@ const AccountSettingsDropdownMenu = ( {
 } ) => {
 	// @todo - deconstruct setModalType from useModalType custom hook
 	const [ isTestModeEnabled ] = useTestMode();
+	const { refreshAccount } = useDispatch( 'wc/stripe' );
+	const { createSuccessNotice } = useDispatch( 'core/notices' );
 	const [
 		isConfirmationModalVisible,
 		setIsConfirmationModalVisible,
 	] = useState( false );
+
+	const handleRefreshAccount = async () => {
+		await refreshAccount();
+		createSuccessNotice(
+			__(
+				'Account details reloaded successfully.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+	};
 
 	return (
 		<>
@@ -56,6 +69,13 @@ const AccountSettingsDropdownMenu = ( {
 						),
 						onClick: () =>
 							setModalType( isTestModeEnabled ? 'test' : 'live' ),
+					},
+					{
+						title: __(
+							'Refresh account details',
+							'woocommerce-gateway-stripe'
+						),
+						onClick: handleRefreshAccount,
 					},
 					{
 						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),

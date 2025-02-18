@@ -1,12 +1,29 @@
 *** Changelog ***
 
-= 9.2.0 - xxxx-xx-xx =
+= 9.3.0 - xxxx-xx-xx =
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
+* Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
+* Dev - Adds the payment method constants to the payment methods map file (frontend side).
+* Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
+* Fix - Prepare the redirect URL at the end of 'process_payment' method. 
+* Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
+
+= 9.2.0 - 2025-02-13 =
+* Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
+* Fix - Fix the quantity parameter for the express checkout add-to-cart API call.
+* Dev - Replaces part of the StoreAPI call code for the cart endpoints to use the newly introduced filter.
+* Fix - Clear cart first when using express checkout inside the product page.
+* Fix - Avoid Stripe timeouts for the express checkout click event.
+* Fix - Switch booking products back to using non-StoreAPI add-to-cart methods.
+* Dev - Add new E2E tests for Link express checkout.
+* Add - Add Amazon Pay to block cart and block checkout.
+* Fix - Remove intentional delay when displaying tax-related notice for express checkout, causing click event to time out.
+* Fix - Fixes an issue when saving Bancontact and iDEAL methods with SEPA Direct Debit disabled.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay.
 * Fix - Prevent an express checkout element's load errors from affecting other express checkout elements.
-* Tweak - Process ECE cart requests using the Blocks (Store) API. 
+* Tweak - Process ECE cart requests using the Blocks (Store) API.
 * Add - Adds a new setting to toggle saving of Bancontact and iDEAL methods as SEPA Debit.
 * Add - Wrap Amazon Pay in feature flag.
 * Fix - Allow the saving of Bancontact tokens when SEPA is disabled.
@@ -41,6 +58,12 @@
 * Fix - Improve the appearance of Stripe elements in checkout pages to match the store theme.
 * Fix - Hide ECE button for synced subscription variations.
 * Fix - Use the original shipping address for Amazon Pay pay for orders.
+* Tweak - Improve slow query for legacy SEPA subscriptions on WC status tools page by caching the data.
+* Tweak - Improve settings page load by delaying oauth URL generation.
+* Tweak - Update the Woo logo in the Configure connection modal
+* Add - Add currency restriction pill on Amazon Pay.
+* Tweak - Improve settings page load by avoid account cache clearing on every page load.
+* Fix - Express checkout methods dependency.
 
 = 9.1.1 - 2025-01-10 =
 * Fix - Fixes the webhook order retrieval by intent charges. The processed event is an object, not an array.
