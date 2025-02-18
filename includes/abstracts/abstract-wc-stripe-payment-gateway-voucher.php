@@ -223,7 +223,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 		$stripe_params = parent::javascript_params();
 
 		if ( $this->is_valid_pay_for_order_endpoint() ) {
-			$order_id = absint( get_query_var( 'order-pay' ) );
+			$order_id                          = absint( get_query_var( 'order-pay' ) );
 			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? wc_get_order( $order_id )->get_order_key() : null;
 		}
 
