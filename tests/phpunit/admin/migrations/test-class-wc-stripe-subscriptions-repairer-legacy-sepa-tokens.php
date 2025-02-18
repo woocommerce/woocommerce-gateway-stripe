@@ -130,7 +130,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		$expected_items_per_page = 20;
 
-		$expected_ids_first_page = array_slice( $expected_ids, 0, $expected_items_per_page );
+		$expected_ids_first_page  = array_slice( $expected_ids, 0, $expected_items_per_page );
 		$expected_ids_second_page = array_slice( $expected_ids, $expected_items_per_page );
 
 		// Confirm the number of items on each page are the expected ones.
@@ -390,7 +390,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 				// Create subscriptions with other payment methods.
 				if ( $this->legacy_sepa_gateway_id !== $payment_method_id ) {
-					$source_id   = array_rand( $sources[ $customer_id ] );
+					$source_id    = array_rand( $sources[ $customer_id ] );
 					$subscription = $this->create_subscription( $payment_method_id, $customer_id, $source_id );
 				}
 

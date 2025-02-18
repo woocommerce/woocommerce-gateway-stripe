@@ -163,8 +163,8 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		];
 
 		$payment_method_ach = [
-			'id'   => 'pm_mock_payment_method_id',
-			'type' => WC_Stripe_Payment_Methods::ACH,
+			'id'                           => 'pm_mock_payment_method_id',
+			'type'                         => WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACH => (object) [
 				'last4'        => '6789',
 				'bank_name'    => 'Test Bank',
@@ -194,7 +194,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 				'payment method' => (object) $payment_method_link,
 				'expected'       => false,
 			],
-			'existing ACH' => [
+			'existing ACH'     => [
 				'payment method' => (object) $payment_method_ach,
 				'expected'       => true,
 			],
