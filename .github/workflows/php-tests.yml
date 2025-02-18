@@ -77,13 +77,14 @@ jobs:
           thresholds: '60 80'
 
       - name: Get Changed Files
+        if: ${{ matrix.php == '8.1' && matrix.wordpress == '6.6' && matrix.woocommerce == '9.1.2' }} # Run only on the latest versions
         id: get-changed-files
         uses: jitterbit/get-changed-files@v1
         with:
           format: 'space-delimited'
           
       - name: Filter Changed Files in Coverage
-        if: ${{ steps.get-changed-files.outputs.all }}
+        if: ${{ steps.get-changed-files.outputs.all && matrix.php == '8.1' && matrix.wordpress == '6.6' && matrix.woocommerce == '9.1.2' }} # Run only on the latest versions
         run: |
           ls -lh
           touch code-coverage-results-filtered.md
