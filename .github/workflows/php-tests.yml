@@ -86,11 +86,11 @@ jobs:
       - name: Filter Changed Files in Coverage
         if: ${{ steps.get-changed-files.outputs.all && matrix.php == '8.1' && matrix.wordpress == '6.6' && matrix.woocommerce == '9.1.2' }} # Run only on the latest versions
         run: |
-          ls -lh
           touch code-coverage-results-filtered.md
           for changed_file in ${{ steps.get-changed-files.outputs.all }}; do
             cat code-coverage-results.md | grep ${changed_file} >> code-coverage-results-filtered.md
           done
+          ls -lh
       
       - name: Add Coverage PR Comment
         if: ${{ steps.get-changed-files.outputs.all && matrix.php == '8.1' && matrix.wordpress == '6.6' && matrix.woocommerce == '9.1.2' }} # Run only on the latest versions
