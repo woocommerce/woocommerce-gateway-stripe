@@ -28,7 +28,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
-		$this->supports[]                   = 'tokenization';
 	}
 
 	/**
