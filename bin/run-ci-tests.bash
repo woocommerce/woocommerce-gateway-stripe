@@ -6,7 +6,6 @@ IFS=$'\n\t'
 
 # set environment variables
 WC_STRIPE_DIR="$GITHUB_WORKSPACE"
-XDEBUG_MODE="coverage"
 
 echo 'Updating composer version & Install dependencies...'
 composer self-update 2.0.6 && composer install --no-progress
