@@ -85,6 +85,7 @@ jobs:
       - name: Filter Changed Files in Coverage
         if: ${{ steps.get-changed-files.outputs.all }}
         run: |
+          echo "" >> code-coverage-results-filtered.md
           for changed_file in ${{ steps.get-changed-files.outputs.all }}; do
             cat code-coverage-results.md | grep ${changed_file} >> code-coverage-results-filtered.md
           done
