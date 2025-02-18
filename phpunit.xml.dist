@@ -13,7 +13,7 @@
 			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
-	<coverage cacheDirectory=".phpunit.cache/code-coverage" processUncoveredFiles="false">
+	<coverage cacheDirectory=".phpunit.cache/code-coverage">
 		<include>
 			<file>./woocommerce-gateway-stripe.php</file>
 			<directory>./includes</directory>
