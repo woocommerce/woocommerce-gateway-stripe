@@ -3,6 +3,7 @@
 	bootstrap="tests/phpunit/bootstrap.php"
 	backupGlobals="false"
 	colors="true"
+	verbose="true"
 	convertErrorsToExceptions="true"
 	convertNoticesToExceptions="true"
 	convertWarningsToExceptions="true"
@@ -13,10 +14,15 @@
 			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist>
+	<coverage cacheDirectory=".phpunit.cache/code-coverage" processUncoveredFiles="true">
+		<include>
 			<file>./woocommerce-gateway-stripe.php</file>
 			<directory>./includes</directory>
-		</whitelist>
-	</filter>
+		</include>
+		<report>
+			<cobertura outputFile="cobertura.xml"/>
+			<html outputDirectory="phpunit-html"/>
+			<text outputFile="php://stdout"/>
+		</report>
+	</coverage>
 </phpunit>
