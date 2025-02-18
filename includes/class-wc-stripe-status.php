@@ -54,7 +54,10 @@ class WC_Stripe_Status {
 			<thead>
 			<tr>
 				<th colspan="3" data-export-label="WooCommerce Stripe Payment Gateway">
-					<h2>WooCommerce Stripe Payment Gateway</h2>
+					<h2>
+						WooCommerce Stripe Payment Gateway
+						<span class="woocommerce-help-tip" tabindex="0" aria-label="This section shows any information about the Stripe Payment Gateway."></span>
+					</h2>
 				</th>
 			</tr>
 			</thead>
