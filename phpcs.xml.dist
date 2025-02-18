@@ -35,12 +35,6 @@
 		</properties>
 	</rule>
 
-	<rule ref="WordPress.Security.EscapeOutput">
-		<properties>
-			<property name="customEscapingFunctions" type="array" value="WC_Payments_Utils,esc_interpolated_html" />
-		</properties>
-	</rule>
-
 	<rule ref="PHPCompatibility">
 		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
