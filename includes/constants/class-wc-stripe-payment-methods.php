@@ -30,6 +30,10 @@ class WC_Stripe_Payment_Methods {
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
 
+	// Payment method labels
+	const AMAZON_PAY_LABEL = 'Amazon Pay (Stripe)';
+	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
+
 	/**
 	 * Payment methods that are considered as voucher payment methods.
 	 *
@@ -60,5 +64,13 @@ class WC_Stripe_Payment_Methods {
 	const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
+	];
+
+	/**
+	 * Payment methods we need to hide the action buttons from the order page.
+	 */
+	const PAYMENT_METHODS_WITH_DELAYED_VERIFICATION = [
+		self::AMAZON_PAY_LABEL,
+		self::BACS_DEBIT_LABEL,
 	];
 }
