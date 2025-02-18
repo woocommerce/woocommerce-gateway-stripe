@@ -19,7 +19,6 @@
 
 	<!-- Rules -->
 	<rule ref="WooCommerce-Core" >
-		<exclude name="Generic.Commenting.Todo.TaskFound"/>
 		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
 
 		<!-- The rules are ignored for now, they will be activated in a future PR -->
