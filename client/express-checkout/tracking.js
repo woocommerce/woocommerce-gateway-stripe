@@ -4,8 +4,9 @@ import { recordEvent } from 'wcstripe/tracking';
 // Track the button click event.
 export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
 	const expressPaymentTypeEvents = {
-		google_pay: 'gpay_button_click',
+		amazon_pay: 'amazonpay_button_click',
 		apple_pay: 'applepay_button_click',
+		google_pay: 'gpay_button_click',
 		link: 'link_button_click',
 	};
 
@@ -21,8 +22,9 @@ export const trackExpressCheckoutButtonClick = ( paymentMethod, source ) => {
 export const trackExpressCheckoutButtonLoad = debounce(
 	( { paymentMethods, source } ) => {
 		const expressPaymentTypeEvents = {
-			googlePay: 'gpay_button_load',
+			amazonPay: 'amazonpay_button_load',
 			applePay: 'applepay_button_load',
+			googlePay: 'gpay_button_load',
 			link: 'link_button_load',
 		};
 

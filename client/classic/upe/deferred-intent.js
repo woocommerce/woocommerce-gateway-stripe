@@ -6,6 +6,7 @@ import {
 	getStripeServerData,
 	isPaymentMethodRestrictedToLocation,
 	isUsingSavedPaymentMethod,
+	paymentMethodSupportsDeferredIntent,
 	togglePaymentMethodForCountry,
 } from '../../stripe-utils';
 import './style.scss';
@@ -54,6 +55,11 @@ jQuery( function ( $ ) {
 		maybeMountStripePaymentElement();
 	}
 
+	// For payment methods that don't support deferred intents, we mount the Payment Element only when it's selected.
+	$( 'form.checkout' ).on( 'change', 'input[name="payment_method"]', () => {
+		maybeMountStripePaymentElement();
+	} );
+
 	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
 		return processPayment(
@@ -76,20 +82,32 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// If the card element selector doesn't exist, then do nothing.
-	// For example, when a 100% discount coupon is applied).
-	// We also don't re-mount if already mounted in DOM.
 	async function maybeMountStripePaymentElement() {
-		if (
-			$( '.wc-stripe-upe-element' ).length &&
-			! $( '.wc-stripe-upe-element' ).children().length
-		) {
-			for ( const upeElement of $(
-				'.wc-stripe-upe-element'
-			).toArray() ) {
-				await mountStripePaymentElement( api, upeElement );
-				restrictPaymentMethodToLocation( upeElement );
+		// If the card element selector doesn't exist, do nothing.
+		// For example, when a 100% discount coupon is applied.
+		if ( ! $( '.wc-stripe-upe-element' ).length ) {
+			return;
+		}
+
+		const selectedMethod = getSelectedUPEGatewayPaymentMethod();
+		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
+			// Maybe hide the payment method based on the billing country.
+			restrictPaymentMethodToLocation( upeElement );
+
+			// Don't mount if it's already mounted.
+			if ( $( upeElement ).children().length ) {
+				continue;
 			}
+
+			// Payment methods that don't support deferred intents don't need to be mounted unless they are selected.
+			if (
+				upeElement.dataset.paymentMethodType !== selectedMethod &&
+				! paymentMethodSupportsDeferredIntent( upeElement )
+			) {
+				continue;
+			}
+
+			await mountStripePaymentElement( api, upeElement );
 		}
 	}
 
@@ -97,7 +115,7 @@ jQuery( function ( $ ) {
 		if ( isPaymentMethodRestrictedToLocation( upeElement ) ) {
 			togglePaymentMethodForCountry( upeElement );
 
-			// this event only applies to the checkout form, but not "place order" or "add payment method" pages.
+			// This event only applies to the checkout form, but not "pay for order" or "add payment method" pages.
 			$( '#billing_country' ).on( 'change', function () {
 				togglePaymentMethodForCountry( upeElement );
 			} );

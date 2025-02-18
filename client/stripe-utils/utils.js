@@ -1,4 +1,4 @@
-/* global wc_stripe_upe_params, wc */
+/* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
@@ -33,7 +33,7 @@ const getStripeServerData = () => {
 		typeof wc.wcSettings !== 'undefined'
 	) {
 		// 'getSetting' has this data value on block checkout only.
-		data = wc.wcSettings?.getSetting( 'getSetting' ) || null;
+		data = wc.wcSettings?.getSetting( 'stripe_data' ) || null;
 	}
 
 	if ( ! data ) {
@@ -231,6 +231,16 @@ export const isLinkEnabled = ( paymentMethodsConfig ) => {
 };
 
 /**
+ * Check whether Amazon Pay is enabled.
+ *
+ * @return {boolean} True, if enabled; false otherwise.
+ */
+export const isAmazonPayEnabled = () => {
+	// eslint-disable-next-line camelcase, no-undef
+	return !! wc_stripe_express_checkout_params?.stripe?.is_amazon_pay_enabled;
+};
+
+/**
  * Get array of payment method types to use with intent.
  *
  * @todo Make paymentMethodType required when Split is implemented.
@@ -296,6 +306,12 @@ export const generateCheckoutEventNames = () => {
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
+	);
+};
+
+export const appendPaymentIntentIdToForm = ( form, paymentIntentId ) => {
+	form.append(
+		`<input type="hidden" id="wc_payment_intent_id" name="wc_payment_intent_id" value="${ paymentIntentId }" />`
 	);
 };
 
@@ -544,7 +560,7 @@ export const getPaymentMethodName = ( paymentMethodType ) => {
  *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
  * @return {boolean} Whether the payment method is restricted to selected billing country.
- **/
+ */
 export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
 	const paymentMethodsConfig =
 		getStripeServerData()?.paymentMethodsConfig || {};
@@ -553,8 +569,21 @@ export const isPaymentMethodRestrictedToLocation = ( upeElement ) => {
 };
 
 /**
+ * Determines if the payment method supports deferred intent.
+ *
  * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
- **/
+ * @return {boolean} Whether the payment method supports deferred intent.
+ */
+export const paymentMethodSupportsDeferredIntent = ( upeElement ) => {
+	const paymentMethodsConfig =
+		getStripeServerData()?.paymentMethodsConfig || {};
+	const paymentMethodType = upeElement.dataset.paymentMethodType;
+	return !! paymentMethodsConfig[ paymentMethodType ]?.supportsDeferredIntent;
+};
+
+/**
+ * @param {Object} upeElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ */
 export const togglePaymentMethodForCountry = ( upeElement ) => {
 	const paymentMethodsConfig =
 		getStripeServerData()?.paymentMethodsConfig || {};
@@ -575,6 +604,14 @@ export const togglePaymentMethodForCountry = ( upeElement ) => {
 		upeContainer.style.display = 'block';
 	} else {
 		upeContainer.style.display = 'none';
+		// Also uncheck the radio button if it's selected.
+		const radioButton = document.querySelector(
+			`input[name="payment_method"][value="stripe_${ paymentMethodType }"]`
+		);
+
+		if ( radioButton ) {
+			radioButton.checked = false;
+		}
 	}
 };
 
