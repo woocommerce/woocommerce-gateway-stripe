@@ -2828,7 +2828,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function payment_method_titles_provider() {
 		return [
 			'Amazon' => [ 'Amazon Pay (Stripe)' ],
-			'Bacs' => [ 'Bacs Direct Debit' ],
+			'Bacs'   => [ 'Bacs Direct Debit' ],
 		];
 	}
 

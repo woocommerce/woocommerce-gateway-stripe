@@ -1732,7 +1732,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
 
 		if ( $existing_lock ) {
-			$expiration    = (int) $existing_lock;
+			$expiration = (int) $existing_lock;
 
 			// If the lock is still active, return true.
 			if ( time() <= $expiration ) {

@@ -302,8 +302,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'cashapp',
 		];
 
-		$response = $this->rest_get_settings();
-		$ordered_method_ids  = $response->get_data()['ordered_payment_method_ids'];
+		$response           = $this->rest_get_settings();
+		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
 
 		$this->assertEquals(
 			$expected_method_ids,

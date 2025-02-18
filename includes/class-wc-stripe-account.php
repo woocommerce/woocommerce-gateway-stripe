@@ -292,8 +292,8 @@ class WC_Stripe_Account {
 	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
 		$request = [
 			'enabled_events' => self::WEBHOOK_EVENTS,
-			'url'           => WC_Stripe_Helper::get_webhook_url(),
-			'api_version'   => WC_Stripe_API::STRIPE_API_VERSION,
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
 		// If a secret key is provided, use it to configure the webhooks.
@@ -469,11 +469,11 @@ class WC_Stripe_Account {
 	 */
 	public function maybe_reconfigure_webhooks_on_update() {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
-		$modes = [ 'live', 'test' ];
+		$modes    = [ 'live', 'test' ];
 
 		foreach ( $modes as $mode ) {
 			$secret_key_setting = 'live' === $mode ? 'secret_key' : 'test_secret_key';
-			$secret_key = $settings[ $secret_key_setting ] ?? '';
+			$secret_key         = $settings[ $secret_key_setting ] ?? '';
 
 			if ( empty( $secret_key ) ) {
 				continue;
