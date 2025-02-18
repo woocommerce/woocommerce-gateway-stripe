@@ -62,7 +62,7 @@ jobs:
         run: wget https://phar.phpunit.de/phpunit-9.5.13.phar && mv phpunit-9.5.13.phar phpunit.phar
         
       - name: Run CI checks
-        run: bash bin/run-ci-tests.bash && ls -lh
+        run: bash bin/run-ci-tests.bash && cat cobertura.xml
         
       - name: Code Coverage Report
         if: ${{ matrix.php == '8.1' && matrix.wordpress == '6.6' && matrix.woocommerce == '9.1.2' }} # Run only on the latest versions
@@ -71,7 +71,7 @@ jobs:
           filename: cobertura.xml
           format: markdown
           hide_branch_rate: false
-          hide_complexity: false
+          hide_complexity: true
           indicators: true
           output: both
           thresholds: '60 80'
