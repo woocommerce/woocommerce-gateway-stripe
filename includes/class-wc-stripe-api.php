@@ -128,7 +128,7 @@ class WC_Stripe_API {
 		$headers         = self::get_headers();
 		$idempotency_key = '';
 
-		if ( 'charges' === $api && 'POST' === $method ) {
+		if ( in_array( $api, [ 'charges', 'payment_intents' ], true ) && 'POST' === $method && ! empty( $request['metadata']['order_id'] ) ) {
 			$customer        = ! empty( $request['customer'] ) ? $request['customer'] : '';
 			$source          = ! empty( $request['source'] ) ? $request['source'] : $customer;
 			$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', $request['metadata']['order_id'] . '-' . $source, $request );
