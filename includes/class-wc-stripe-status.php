@@ -88,9 +88,10 @@ class WC_Stripe_Status {
 				<td>
 					<?php
 					$is_test = WC_Stripe_Mode::is_test();
-					$class   = $is_test ? 'yes' : 'no';
+					$class   = $is_test ? 'error' : 'yes';
+					$icon    = $is_test ? 'no' : 'yes';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $class; ?>"></span>
+					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $icon; ?>"></span>
 					<?php
 					$is_test ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' );
 					?>
@@ -135,25 +136,30 @@ class WC_Stripe_Status {
 			<?php if ( ! WC_Stripe_Feature_Flags::is_stripe_ece_enabled() || ! $express_checkout_helper->is_express_checkout_enabled() ) : ?>
 			<tr>
 				<td data-export-label="Express Checkout"><?php esc_html_e( 'Express Checkout', 'woocommerce-gateway-stripe' ); ?>:</td>
-				<td class="help">
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether Express Checkout is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td>
+					<mark class="error"><span class="dashicons dashicons-no"></span>
 					<?php
-					echo __( 'Express Checkout is not enabled.', 'woocommerce-gateway-stripe' ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */
+					echo __( 'Disabled', 'woocommerce-gateway-stripe' ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */
 					?>
+					</mark>
 				</td>
 			</tr>
-		<?php else : ?>
+			<?php else : ?>
 			<tr>
 				<td data-export-label="Express Checkout"><?php esc_html_e( 'Express Checkout', 'woocommerce-gateway-stripe' ); ?>:</td>
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether Express Checkout is enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
+					<mark class="yes"><span class="dashicons dashicons-yes"></span>
 					<?php
 					$express_checkout_enabled_locations = $express_checkout_helper->get_button_locations();
 					$express_checkout_enabled_locations = empty( $express_checkout_enabled_locations ) ? 'no locations enabled' : implode( ',', $express_checkout_enabled_locations );
 					echo __( 'Enabled', 'woocommerce-gateway-stripe' ) . ' (' . $express_checkout_enabled_locations . ')';
 					?>
+					</mark>
 				</td>
 			</tr>
-		<?php endif; ?>
+			<?php endif; ?>
 			<tr>
 				<td data-export-label="Auth and Capture"><?php esc_html_e( 'Auth and Capture Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the store has the Auth & Capture feature enabled.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
