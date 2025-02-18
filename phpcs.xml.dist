@@ -22,9 +22,6 @@
 		<exclude name="Generic.Commenting.Todo.TaskFound"/>
 		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
 
-		<!-- This rule is currently generating some false positives, it would be worth retrying after PHPCS upgrades -->
-		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
-
 		<!-- The rules are ignored for now, they will be activated in a future PR -->
 		<exclude name="Squiz.Commenting"/>
 		<exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
