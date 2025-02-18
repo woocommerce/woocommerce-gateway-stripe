@@ -88,7 +88,6 @@ jobs:
         run: |
           touch code-coverage-results-filtered.md
           for changed_file in ${{ steps.get-changed-files.outputs.all }}; do
-            grep ${changed_file} code-coverage-results.md >> code-coverage-results-filtered.md
           done
       
       - name: Add Coverage PR Comment
