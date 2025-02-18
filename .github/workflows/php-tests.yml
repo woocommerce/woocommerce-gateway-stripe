@@ -71,7 +71,7 @@ jobs:
           filename: cobertura.xml
           format: markdown
           hide_branch_rate: false
-          hide_complexity: true
+          hide_complexity: false
           indicators: true
           output: both
           thresholds: '60 80'
