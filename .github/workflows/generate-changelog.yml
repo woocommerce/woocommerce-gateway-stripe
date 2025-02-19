@@ -24,7 +24,7 @@ jobs:
 
       - name: 'Collect changelog data from PR description'
         run: |
-          DO_NOT_REQUIRE_CHANGELOG=$(grep -E -o '.{0,3} This Pull Request does not require a changelog entry' <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}')
+          DO_NOT_REQUIRE_CHANGELOG=$(grep -E -o '.{0,3} This Pull Request does not require a changelog entry' <<< "${{ github.event.pull_request.body }}" | awk '{print substr($0,2,1)}')
           if [[ $DO_NOT_REQUIRE_CHANGELOG == 'x' ]]; then
           echo "This PR does not require a changelog entry. Exiting."
           exit 0
@@ -32,7 +32,7 @@ jobs:
           
           declare -A TYPES=( ["Fix"]="Fix" ["Add"]="Add" ["Update"]="Update" ["Dev"]="Dev" ["Tweak"]="Tweak" )
           for TYPE in "${!TYPES[@]}"; do
-          if [[ $(grep -E -o ".{0,3} $TYPE - " <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}') == 'x' ]]; then
+          if [[ $(grep -E -o ".{0,3} $TYPE - " <<< "${{ github.event.pull_request.body }}" | awk '{print substr($0,2,1)}') == 'x' ]]; then
           CHANGELOG_TYPE=${TYPES[$TYPE]}
           break
           fi
@@ -43,7 +43,7 @@ jobs:
           exit 0
           fi
           
-          CHANGELOG_CONTENT=$(grep -wns '#### Message <!-- Add a changelog message here -->' <<< "${{ github.event.pull_request.description }}" -A2 | tail -1 | awk '{print substr($0,index($0," - ")+4)}')
+          CHANGELOG_CONTENT=$(grep -wns '#### Message <!-- Add a changelog message here -->' <<< "${{ github.event.pull_request.body }}" -A2 | tail -1 | awk '{print substr($0,index($0," - ")+4)}')
           if [[ $CHANGELOG_CONTENT == '</details>' ]]; then
           echo "This PR does not contain a changelog entry. Exiting."
           exit 0
