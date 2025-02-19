@@ -1,4 +1,4 @@
-name: PHP tests
+name: PHP Code Coverage
 
 on:
   pull_request
@@ -6,11 +6,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
-    name: PHP Code Coverage
-    env:
-      PHP_VERSION: '8.1' 
-      WP_VERSION: '6.6'
-      WC_VERSION: '9.1.2'
     steps:
       - name: Checking out
         uses: actions/checkout@v2

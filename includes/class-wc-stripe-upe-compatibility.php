@@ -15,4 +15,8 @@ class WC_Stripe_UPE_Compatibility {
 	public static function is_wc_supported() {
 		return version_compare( WC_VERSION, self::MIN_WC_VERSION, '>=' );
 	}
+
+	public static function random_change() {
+		return true;
+	}
 }
