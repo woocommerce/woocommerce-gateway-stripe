@@ -21,6 +21,7 @@ runs:
 
           const token = 'xxxx-xx-xx =';
           const filename = '${{ inputs.FILENAME }}';
+          const changelogEntry = `${{ inputs.CHANGELOG_ENTRY }}`.trim();
 
           try {
             const changelog = fs.readFileSync(filename, 'utf-8');
@@ -30,7 +31,7 @@ runs:
               throw new Error('Could not find changelog token in file');
             }
 
-            changelog_parts[1] = '\n' + '${{ inputs.CHANGELOG_ENTRY }}' + changelog_parts[1];
+            changelog_parts[1] = '\n' + changelogEntry + changelog_parts[1];
 
             const updatedChangelog = changelog_parts.join(token);
 
