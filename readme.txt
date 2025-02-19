@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Test changelog entry 5.
 * Fix -
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
