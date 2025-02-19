@@ -16,6 +16,9 @@ jobs:
     permissions:
       pull-requests: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: 'Collect changelog data from PR description'
         run: |
           DO_NOT_REQUIRE_CHANGELOG=$(grep -E -o '.{0,3} This Pull Request does not require a changelog entry' <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}')
