@@ -111,6 +111,32 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Generates the idempotency key for the request.
+	 *
+	 * @param string $api The API endpoint.
+	 * @param string $method The HTTP method.
+	 * @param array  $request The request parameters.
+	 * @return string|null The idempotency key.
+	 */
+	public static function get_idempotency_key( $api, $method, $request ) {
+		if ( 'charges' === $api && 'POST' === $method ) {
+			$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+			$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
+			return $request['metadata']['order_id'] . '-' . $source;
+		} elseif ( 'payment_intents' === $api && 'POST' === $method ) {
+			if ( empty( $request['metadata']['order_id'] ) ||
+				empty( $request['payment_method'] ) ||
+				empty( $request['metadata']['signature'] )
+			) {
+				return null;
+			}
+			return $request['metadata']['order_id'] . '-' . $request['payment_method'] . '-' . $request['metadata']['signature'];
+		}
+
+		return null;
+	}
+
+	/**
 	 * Send the request to Stripe's API
 	 *
 	 * @since 3.1.0
@@ -125,14 +151,10 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
 
-		$headers         = self::get_headers();
-		$idempotency_key = '';
+		$headers = self::get_headers();
 
-		if ( in_array( $api, [ 'charges', 'payment_intents' ], true ) && 'POST' === $method && ! empty( $request['metadata']['order_id'] ) ) {
-			$customer        = ! empty( $request['customer'] ) ? $request['customer'] : '';
-			$source          = ! empty( $request['source'] ) ? $request['source'] : $customer;
-			$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', $request['metadata']['order_id'] . '-' . $source, $request );
-
+		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
+		if ( $idempotency_key ) {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
