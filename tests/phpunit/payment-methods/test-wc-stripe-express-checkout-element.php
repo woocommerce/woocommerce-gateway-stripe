@@ -182,7 +182,7 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		global $theorder;
 
 		$theorder = WC_Helper_Order::create_order();
-		$actual = $this->element->filter_gateway_title( $title, 'stripe' );
+		$actual   = $this->element->filter_gateway_title( $title, 'stripe' );
 
 		$this->assertSame( $expected, $actual );
 	}

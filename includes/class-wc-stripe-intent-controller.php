@@ -365,9 +365,9 @@ class WC_Stripe_Intent_Controller {
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency       = get_woocommerce_currency();
-		$capture        = $gateway->is_automatic_capture_enabled();
-		$request        = [
+		$currency = get_woocommerce_currency();
+		$capture  = $gateway->is_automatic_capture_enabled();
+		$request  = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
