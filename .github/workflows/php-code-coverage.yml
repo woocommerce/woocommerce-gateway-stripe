@@ -30,7 +30,7 @@ jobs:
         uses: hanseltimeindustries/get-changed-files@v1
         with:
           format: 'space-delimited'
-          filter: '*.php'
+          filter: 'includes/**/*.php'
           
       - name: Run CI checks
         if: ${{ steps.get-changed-files.outputs.all }}
