@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.3.0 - xxxx-xx-xx =
 * Dev - Fix automated changelog generation script.
+* Dev - Fix automated changelog generation script.
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
