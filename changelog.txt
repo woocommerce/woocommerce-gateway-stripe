@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix -
 
 
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
