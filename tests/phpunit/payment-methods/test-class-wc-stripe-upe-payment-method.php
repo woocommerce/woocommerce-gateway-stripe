@@ -42,13 +42,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Base template for Stripe ACH payment method.
 	 */
 	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
-		'id'                            => 'pm_mock_payment_method_id',
-		'type'                          => WC_Stripe_Payment_Methods::ACH,
-		WC_Stripe_Payment_Methods::ACH  => [
-			'last4'       => '6789',
-			'bank_name'   => 'Test Bank',
+		'id'                           => 'pm_mock_payment_method_id',
+		'type'                         => WC_Stripe_Payment_Methods::ACH,
+		WC_Stripe_Payment_Methods::ACH => [
+			'last4'        => '6789',
+			'bank_name'    => 'Test Bank',
 			'account_type' => 'checking',
-			'fingerprint' => 'fp_test_123',
+			'fingerprint'  => 'fp_test_123',
 		],
 	];
 

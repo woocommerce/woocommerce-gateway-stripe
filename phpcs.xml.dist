@@ -2,16 +2,20 @@
 <ruleset name="WordPress Coding Standards">
 	<description>WooCommerce dev PHP_CodeSniffer ruleset.</description>
 
-    <!-- Exclude paths -->
+	<!-- Exclude paths -->
+	<exclude-pattern>./build/*</exclude-pattern>
 	<exclude-pattern>./dist/*</exclude-pattern>
 	<exclude-pattern>./docker/*</exclude-pattern>
 	<exclude-pattern>./node_modules/*</exclude-pattern>
 	<exclude-pattern>./vendor/*</exclude-pattern>
+	<exclude-pattern>./release/*</exclude-pattern>
 	<exclude-pattern>*\.(?!php$)</exclude-pattern>
 
 	<!-- Configs -->
-	<config name="minimum_supported_wp_version" value="5.6" />
-	<config name="testVersion" value="7.4" />
+	<config name="minimum_supported_wp_version" value="6.3" />
+	<config name="testVersion" value="7.4-" />	
+	<arg name="parallel" value="8" />	
+	<arg value="ps" />
 
 	<!-- Rules -->
 	<rule ref="WooCommerce-Core" >
