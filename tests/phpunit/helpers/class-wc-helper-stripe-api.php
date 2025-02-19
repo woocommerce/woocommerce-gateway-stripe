@@ -47,11 +47,11 @@ class WC_Helper_Stripe_Api {
 	 * Reset the helper.
 	 */
 	public static function reset() {
-		self::$retrieve_response = [
+		self::$retrieve_response            = [
 			'id'    => '1234',
 			'email' => 'test@example.com',
 		];
-		self::$request_response = [];
+		self::$request_response             = [];
 		self::$expected_request_call_params = null;
 	}
 

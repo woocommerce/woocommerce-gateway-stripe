@@ -9,7 +9,7 @@ class WC_Stripe_UPE_Payment_Method_ACH_Test extends WP_UnitTestCase {
 	 */
 	public function test_create_payment_token_for_user() {
 		$payment_method = (object) [
-			'id'               => 'pm_test_ach_123',
+			'id'                           => 'pm_test_ach_123',
 			WC_Stripe_Payment_Methods::ACH => (object) [
 				'last4'        => '6789',
 				'bank_name'    => 'Test Bank',

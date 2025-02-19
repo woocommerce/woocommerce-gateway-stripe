@@ -618,7 +618,7 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
 		$payment_method_settings = [];
-		$available_gateways = $gateway->get_upe_available_payment_methods();
+		$available_gateways      = $gateway->get_upe_available_payment_methods();
 
 		foreach ( $available_gateways as $gateway ) {
 			$individual_gateway_settings = get_option( 'woocommerce_stripe_' . $gateway . '_settings', [] );
@@ -737,7 +737,7 @@ class WC_Stripe_Helper {
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
-			$key            = $payment_method_id . '_payments';
+			$key = $payment_method_id . '_payments';
 			// Check if the payment method has capabilities set in the account data.
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
