@@ -24,22 +24,22 @@ jobs:
 
       - name: 'Collect changelog data from PR description'
         run: |
-          chmod +x .github/scripts/generate-changelog.sh
-          .github/scripts/generate-changelog.sh -p "${{ github.event.pull_request.body }}" -o $GITHUB_OUTPUT
+          chmod +x .github/actions/add-changelog-entry/generate-changelog.sh
+          .github/actions/add-changelog-entry/generate-changelog.sh -p "${{ github.event.pull_request.body }}" -o $GITHUB_OUTPUT
         id: collect_changelog_data
-        
+
       - name: 'Add changelog entry to changelog.txt'
         uses: ./.github/actions/add-changelog-entry
         with:
           CHANGELOG_ENTRY: ${{ steps.collect_changelog_data.outputs.CHANGELOG_ENTRY }}
           FILENAME: './changelog.txt'
-          
+
       - name: 'Add changelog entry to readme.txt'
         uses: ./.github/actions/add-changelog-entry
         with:
           CHANGELOG_ENTRY: ${{ steps.collect_changelog_data.outputs.CHANGELOG_ENTRY }}
           FILENAME: './readme.txt'
-          
+
       - name: 'Commit changes'
         run: |
             git config user.name "bot-wc-stripe"
@@ -49,4 +49,3 @@ jobs:
             git commit -m "Add changelog entry for PR ${{ github.event.pull_request.number }}"
             git push origin HEAD:${{ github.event.pull_request.head.ref }}
         id: commit_changes
-        
