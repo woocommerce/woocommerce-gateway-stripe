@@ -43,8 +43,12 @@ jobs:
           exit 0
           fi
           
-          CHANGELOG_CONTENT=$(grep -wns '#### Message <!-- Add a changelog message here -->' <<< "${{ github.event.pull_request.body }}" -A2 | tail -1 | awk '{print substr($0,index($0," - ")+4)}')
-          if [[ $CHANGELOG_CONTENT == '</details>' ]]; then
+          # Extract the message between the Message header and the closing details tag
+          MESSAGE_SECTION=$(sed -n '/#### Message <!-- Add a changelog message here -->/,/<\/details>/p' <<< "${{ github.event.pull_request.body }}")
+          # Get the first non-empty line after the header that's not a closing tag
+          CHANGELOG_CONTENT=$(echo "$MESSAGE_SECTION" | grep -v "^$" | grep -v "#### Message" | grep -v "</details>" | head -n 1)
+          
+          if [[ -z $CHANGELOG_CONTENT ]]; then
           echo "This PR does not contain a changelog entry. Exiting."
           exit 0
           fi
