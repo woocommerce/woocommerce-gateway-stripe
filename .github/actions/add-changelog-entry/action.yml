@@ -12,11 +12,10 @@ description: 'Add a changelog entry to a file'
 runs:
   using: composite
   steps:
+    - name: 'Make script executable'
+      shell: bash
+      run: chmod +x ${{ github.action_path }}/add-changelog.sh
+
     - name: 'Add changelog entry to a file'
-      id: add_changelog_entry
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const path = require('path');
-          const scriptPath = path.join(__dirname, 'add-changelog.js');
-          require(scriptPath);
+      shell: bash
+      run: ${{ github.action_path }}/add-changelog.sh -e "${{ inputs.CHANGELOG_ENTRY }}" -f "${{ inputs.FILENAME }}"
