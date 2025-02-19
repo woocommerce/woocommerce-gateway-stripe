@@ -17,25 +17,6 @@ runs:
       uses: actions/github-script@v6
       with:
         script: |
-          const fs = require('fs');
-
-          const token = 'xxxx-xx-xx =';
-          const filename = '${{ inputs.FILENAME }}';
-          const changelogEntry = `${{ inputs.CHANGELOG_ENTRY }}`.trim();
-
-          try {
-            const changelog = fs.readFileSync(filename, 'utf-8');
-            const changelog_parts = changelog.split(token);
-
-            if (changelog_parts.length < 2) {
-              throw new Error('Could not find changelog token in file');
-            }
-
-            changelog_parts[1] = '\n' + changelogEntry + changelog_parts[1];
-
-            const updatedChangelog = changelog_parts.join(token);
-
-            fs.writeFileSync(filename, updatedChangelog);
-          } catch (err) {
-            core.setFailed(`Unable to update changelog entries in ${filename}: ${err.message}`);
-          }
+          const path = require('path');
+          const scriptPath = path.join(__dirname, 'add-changelog.js');
+          require(scriptPath);
