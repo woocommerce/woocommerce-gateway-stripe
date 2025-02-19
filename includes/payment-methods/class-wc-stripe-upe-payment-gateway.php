@@ -1012,7 +1012,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
-			if ( $this->is_payment_needed( $order->get_id() ) ) {
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			if ( $payment_needed ) {
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
 				// TODO: add confirmation token support, if possible.
@@ -1028,6 +1030,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
+
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
+			}
 
 			$return_url = $this->get_return_url( $order );
 
