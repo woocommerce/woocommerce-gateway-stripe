@@ -15,9 +15,13 @@ jobs:
     runs-on: ubuntu-20.04
     permissions:
       pull-requests: write
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
       - name: 'Collect changelog data from PR description'
         run: |
           DO_NOT_REQUIRE_CHANGELOG=$(grep -E -o '.{0,3} This Pull Request does not require a changelog entry' <<< "${{ github.event.pull_request.description }}" | awk '{print substr($0,2,1)}')
@@ -68,6 +72,6 @@ jobs:
             git add changelog.txt
             git add readme.txt
             git commit -m "Add changelog entry for PR ${{ github.event.pull_request.number }}"
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
         id: commit_changes
         
