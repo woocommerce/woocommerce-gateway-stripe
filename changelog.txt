@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.3.0 - xxxx-xx-xx =
+* Dev - Fix automated changelog generation script.
 * Dev - Test changelog entry 5.
 * Fix - Test changelog entry 5.
 * Fix -
