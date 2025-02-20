@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.3.0 - xxxx-xx-xx =
 * Dev - Fix automated changelog generation script.
+* Add - Adds Stripe specific information to the System Status Report data.
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
@@ -119,5 +120,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 * Fix - Fix error when processing a subscription via Amazon Pay.
+* Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
