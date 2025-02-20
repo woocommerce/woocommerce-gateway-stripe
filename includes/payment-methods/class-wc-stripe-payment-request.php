@@ -672,7 +672,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		$is_invalid      = true;
+		$is_invalid = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
 			$products = $product->get_available_variations( 'object' );

@@ -249,7 +249,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				if ( ! in_array( $order_currency, $currencies, true ) ) {
 					return false;
 				}
-			} else if ( ! in_array( $current_store_currency, $currencies, true ) ) {
+			} elseif ( ! in_array( $current_store_currency, $currencies, true ) ) {
 				return false;
 			}
 		}

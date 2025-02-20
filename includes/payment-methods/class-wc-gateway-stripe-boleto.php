@@ -183,7 +183,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 				WC_Stripe_Payment_Methods::BOLETO => [
 					'tax_id' => isset( $_POST['stripe_boleto_tax_id'] ) ? wc_clean( wp_unslash( $_POST['stripe_boleto_tax_id'] ) ) : null,
 				],
-				'billing_details' => [
+				'billing_details'                 => [
 					'name'    => $order->get_formatted_billing_full_name(),
 					'email'   => $order->get_billing_email(),
 					'address' => [

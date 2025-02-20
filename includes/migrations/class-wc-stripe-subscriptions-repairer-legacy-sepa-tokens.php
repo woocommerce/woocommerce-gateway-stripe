@@ -287,7 +287,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			}
 
 			$action_counts = [
-				'pending' => (int) $store->query_actions(
+				'pending'  => (int) $store->query_actions(
 					[
 						'hook'   => $this->repair_hook,
 						'status' => ActionScheduler_Store::STATUS_PENDING,
@@ -349,7 +349,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 			return $cached_legacy_sepa_subscriptions_count > 0;
 		}
 
-		$subscriptions = wc_get_orders(
+		$subscriptions       = wc_get_orders(
 			[
 				'return'         => 'ids',
 				'type'           => 'shop_subscription',

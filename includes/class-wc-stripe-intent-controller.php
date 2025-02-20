@@ -365,9 +365,9 @@ class WC_Stripe_Intent_Controller {
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
-		$currency       = get_woocommerce_currency();
-		$capture        = $gateway->is_automatic_capture_enabled();
-		$request        = [
+		$currency = get_woocommerce_currency();
+		$capture  = $gateway->is_automatic_capture_enabled();
+		$request  = [
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
@@ -990,7 +990,9 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		if ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) {
+		// If the customer is saving the payment method to the store or has a subscription, we should set the setup_future_usage to off_session.
+		// Only exception is when using a confirmation token. For confirmations tokens, the setup_future_usage is set within the payment method.
+		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
