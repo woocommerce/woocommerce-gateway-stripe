@@ -1,4 +1,4 @@
-name: PHP Code Coverage
+name: PHP code coverage
 
 on:
   pull_request
@@ -6,6 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    name: PHP=8.1, WP=6.6, WC=9.1.2
     env:
       PHP_VERSION: '8.1'
       WP_VERSION: '6.6'
