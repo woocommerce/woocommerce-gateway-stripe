@@ -20,4 +20,8 @@ class WC_Stripe_Co_Branded_CC_Compatibility {
 	public static function is_wc_supported() {
 		return 'beta' !== WC_VERSION && version_compare( WC_VERSION, self::MIN_WC_VERSION, '>' );
 	}
+
+	public static function random_method() {
+		return true;
+	}
 }

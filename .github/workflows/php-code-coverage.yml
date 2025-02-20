@@ -43,9 +43,21 @@ jobs:
           output: both
           thresholds: '60 80'
           
+      - name: Get Changed Files
+        id: get-changed-files
+        uses: hanseltimeindustries/get-changed-files@v1
+        with:
+          format: 'space-delimited'
+          filter: '**/includes/**/*'
+          
+      - name: Filter Changed Files in Report
+        run: |
+          grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md > code-coverage-results-filtered.md
+      
       - name: Add Coverage PR Comment
+        if: ${{ steps.get-changed-files.outputs.all }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           recreate: true
-          path: code-coverage-results.md
+          path: code-coverage-results-filtered.md
           
