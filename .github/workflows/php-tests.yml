@@ -23,7 +23,7 @@ jobs:
           - wordpress_support_policy: L
             wordpress: '6.7.2'
           - wordpress_support_policy: L-1
-            wordpress: '6.5.5'
+            wordpress: '6.6'
           # PHP
           - php_support_policy: L
             php: '8.4'
