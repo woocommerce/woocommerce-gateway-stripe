@@ -91,7 +91,7 @@ class WC_Stripe_Status {
 					$class   = $is_test ? 'error' : 'yes';
 					$icon    = $is_test ? 'no' : 'yes';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $icon; ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>"></span>
 					<?php
 					$is_test ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' );
 					?>
@@ -108,7 +108,7 @@ class WC_Stripe_Status {
 					$oauth_connected = (bool) $stripe_connect->is_connected_via_oauth( $mode );
 					$class           = $oauth_connected ? 'yes' : 'no';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $class; ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
 					<?php $oauth_connected ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' ); ?>
 					</mark>
 				</td>
@@ -121,7 +121,7 @@ class WC_Stripe_Status {
 					$legacy_checkout_enabled = ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 					$class                   = $legacy_checkout_enabled ? 'no' : 'yes';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $class; ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
 					<?php
 					WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ? esc_html_e( 'No', 'woocommerce-gateway-stripe' ) : esc_html_e( 'Yes', 'woocommerce-gateway-stripe' );
 					?>
@@ -154,7 +154,7 @@ class WC_Stripe_Status {
 					<?php
 					$express_checkout_enabled_locations = $express_checkout_helper->get_button_locations();
 					$express_checkout_enabled_locations = empty( $express_checkout_enabled_locations ) ? 'no locations enabled' : implode( ',', $express_checkout_enabled_locations );
-					echo __( 'Enabled', 'woocommerce-gateway-stripe' ) . ' (' . $express_checkout_enabled_locations . ')';
+					echo esc_html__( 'Enabled', 'woocommerce-gateway-stripe' ) . ' (' . esc_html( $express_checkout_enabled_locations ) . ')';
 					?>
 					</mark>
 				</td>
@@ -168,7 +168,7 @@ class WC_Stripe_Status {
 					$auth_capture_enabled = $this->gateway->is_automatic_capture_enabled();
 					$class                = $auth_capture_enabled ? 'yes' : 'no';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $class; ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
 					<?php
 					echo $auth_capture_enabled ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' );
 					?>
@@ -183,7 +183,7 @@ class WC_Stripe_Status {
 					$can_log = WC_Stripe_Logger::can_log();
 					$class   = $can_log ? 'yes' : 'no';
 					?>
-					<mark class="<?php echo $class; ?>"><span class="dashicons dashicons-<?php echo $class; ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
 					<?php
 					$can_log ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' );
 					?>
