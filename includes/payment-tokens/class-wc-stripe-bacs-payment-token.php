@@ -5,6 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.Files.FileName
 
+/**
+ * WooCommerce Stripe Bacs Direct Debit Payment Token.
+ *
+ * Token for Bacs Direct Debit.
+ *
+ * @since x.x.x
+ */
 class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	use WC_Stripe_Fingerprint_Trait;
 
@@ -48,6 +55,13 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
+	}
+
+	/**
+	 * Hook prefix
+	 */
+	protected function get_hook_prefix() {
+		return 'woocommerce_payment_token_bacs_get_';
 	}
 
 	/**

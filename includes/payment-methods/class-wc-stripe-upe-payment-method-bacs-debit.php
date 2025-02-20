@@ -72,7 +72,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_Bacs_Debit();
 		$token->set_token( $payment_method->id );
-		$token->set_gateway_id( $this->id );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
 		$token->set_last4( $payment_method->bacs_debit->last4 );
 		$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
 		$token->set_payment_method_type( $this->get_id() );
