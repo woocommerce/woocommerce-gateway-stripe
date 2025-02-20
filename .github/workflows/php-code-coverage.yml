@@ -53,6 +53,7 @@ jobs:
       - name: Filter Changed Files in Report
         if: ${{ steps.get-changed-files.outputs.all }} # Only run if there are changed files
         run: |
+          echo -e "### 📈PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
           echo -e "Package | Line Rate | Health" > code-coverage-results-filtered.md 
           echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
           grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
