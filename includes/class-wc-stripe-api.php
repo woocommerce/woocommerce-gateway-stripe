@@ -246,6 +246,15 @@ class WC_Stripe_API {
 			$api
 		);
 
+		// Check for amount_too_small error - if found, return immediately without retrying
+		if (
+			isset( $result->error ) &&
+			isset( $result->error->code ) &&
+			'amount_too_small' === $result->error->code
+		) {
+			return $result;
+		}
+
 		$is_level3_param_not_allowed = (
 			isset( $result->error )
 			&& isset( $result->error->code )
