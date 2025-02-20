@@ -29,19 +29,10 @@ jobs:
       - name: Set up PHPUnit 9.5 for compatibility
         run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
         
-      - name: Get Changed Files
-        id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1
-        with:
-          format: 'space-delimited'
-          filter: '**/includes/**/*'
-          
       - name: Run CI checks
-        if: ${{ steps.get-changed-files.outputs.all }}
-        run: bash bin/run-ci-tests.bash ${{ steps.get-changed-files.outputs.all }}
+        run: bash bin/run-ci-tests.bash
         
       - name: Code Coverage Report
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
           filename: cobertura.xml
@@ -53,7 +44,6 @@ jobs:
           thresholds: '60 80'
           
       - name: Add Coverage PR Comment
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           recreate: true
