@@ -119,5 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 * Fix - Fix error when processing a subscription via Amazon Pay.
+* Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
