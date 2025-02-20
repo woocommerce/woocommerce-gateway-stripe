@@ -237,13 +237,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
 
 		$test_account = [
-			'id'      => 'acct_test-1234',
-			'email'   => 'john@example.com',
+			'id'    => 'acct_test-1234',
+			'email' => 'john@example.com',
 		];
 
 		$live_account = [
-			'id'      => 'acct_live-1234',
-			'email'   => 'john@example.com',
+			'id'    => 'acct_live-1234',
+			'email' => 'john@example.com',
 		];
 		set_transient( 'wcstripe_account_data_test', $test_account );
 		set_transient( 'wcstripe_account_data_live', $live_account );
@@ -429,7 +429,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'GET' ],
 		];
-		WC_Helper_Stripe_Api::$request_response = (object) [
+		WC_Helper_Stripe_Api::$request_response             = (object) [
 			'id'     => 'wh_123_test',
 			'status' => 'enabled',
 		];
@@ -443,5 +443,85 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	private function clear_webhook_status_cache() {
 		delete_transient( WC_Stripe_Account::TEST_WEBHOOK_STATUS_OPTION );
 		delete_transient( WC_Stripe_Account::LIVE_WEBHOOK_STATUS_OPTION );
+	}
+
+	/**
+	 * Test webhook reconfiguration on update with no existing webhooks.
+	 */
+	public function test_reconfigure_webhooks_on_update_no_existing_webhooks() {
+		// Mock that no existing webhook is found
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setMethods( [ 'get_existing_webhook' ] )
+			->getMock();
+		$this->account->method( 'get_existing_webhook' )->willReturn( false );
+
+		// Set up expectations that no webhook configuration will be attempted
+		WC_Helper_Stripe_Api::$expected_request_call_params = [];
+
+		// Run the update
+		$this->account->maybe_reconfigure_webhooks_on_update();
+
+		// Verify no webhook configuration was attempted
+		$this->assertEmpty(
+			WC_Helper_Stripe_Api::$expected_request_call_params,
+			'Should not configure webhooks when no existing webhooks found'
+		);
+	}
+
+	/**
+	 * Test webhook reconfiguration on update with existing webhooks that need updating.
+	 */
+	public function test_reconfigure_webhooks_on_update_with_outdated_webhooks() {
+		// Mock an existing webhook with different events
+		$outdated_webhook = (object) [
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => [ 'charge.succeeded', 'charge.failed' ],
+			'status'         => 'enabled',
+		];
+
+		// Setup the account mock
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->getMock();
+
+		$this->account->method( 'get_existing_webhook' )->willReturn( $outdated_webhook );
+		$this->account->expects( $this->once() )
+			->method( 'configure_webhooks' )
+			->with(
+				$this->equalTo( 'test' ),
+				$this->equalTo( 'sk_test_key' )
+			);
+
+		// Run the update
+		$this->account->maybe_reconfigure_webhooks_on_update();
+	}
+
+	/**
+	 * Test webhook reconfiguration on update with existing webhooks that are up to date.
+	 */
+	public function test_reconfigure_webhooks_on_update_with_current_webhooks() {
+		// Mock an existing webhook with current events
+		$current_webhook = (object) [
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
+			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
+			'status'         => 'enabled',
+		];
+
+		// Setup the account mock
+		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
+			->getMock();
+
+		$this->account->method( 'get_existing_webhook' )->willReturn( $current_webhook );
+		$this->account->expects( $this->never() )
+			->method( 'configure_webhooks' );
+
+		// Run the update
+		$this->account->maybe_reconfigure_webhooks_on_update();
 	}
 }

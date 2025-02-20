@@ -21,3 +21,19 @@ setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 		page.getByTestId( 'legacy-checkout-experience-checkbox' )
 	).not.toBeChecked();
 } );
+
+setup( 'enable Link', async ( { browser } ) => {
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+	const page = await adminContext.newPage();
+
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+	);
+	await page.getByLabel( 'Link by Stripe Input' ).check();
+	await page.click( 'text=Save changes' );
+
+	await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
+	await expect( page.getByLabel( 'Link by Stripe Input' ) ).toBeChecked();
+} );

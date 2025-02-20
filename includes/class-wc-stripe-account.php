@@ -22,6 +22,32 @@ class WC_Stripe_Account {
 	const STATUS_RESTRICTED      = 'restricted';
 
 	/**
+	 * List of webhook events that this plugin listens to.
+	 * Based on WC_Stripe_Webhook_Handler::process_webhook()
+	 */
+	const WEBHOOK_EVENTS = [
+		'account.updated',
+		'source.chargeable',
+		'source.canceled',
+		'charge.succeeded',
+		'charge.failed',
+		'charge.captured',
+		'charge.dispute.created',
+		'charge.dispute.closed',
+		'charge.refunded',
+		'charge.refund.updated',
+		'review.opened',
+		'review.closed',
+		'payment_intent.processing',
+		'payment_intent.succeeded',
+		'payment_intent.payment_failed',
+		'payment_intent.amount_capturable_updated',
+		'payment_intent.requires_action',
+		'setup_intent.succeeded',
+		'setup_intent.setup_failed',
+	];
+
+	/**
 	 * The Stripe connect instance.
 	 *
 	 * @var WC_Stripe_Connect
@@ -265,26 +291,7 @@ class WC_Stripe_Account {
 	 */
 	public function configure_webhooks( $mode = 'live', $secret_key = '' ) {
 		$request = [
-			// The list of events we listen to based on WC_Stripe_Webhook_Handler::process_webhook()
-			'enabled_events' => [
-				'source.chargeable',
-				'source.canceled',
-				'charge.succeeded',
-				'charge.failed',
-				'charge.captured',
-				'charge.dispute.created',
-				'charge.dispute.closed',
-				'charge.refunded',
-				'charge.refund.updated',
-				'review.opened',
-				'review.closed',
-				'payment_intent.succeeded',
-				'payment_intent.payment_failed',
-				'payment_intent.amount_capturable_updated',
-				'payment_intent.requires_action',
-				'setup_intent.succeeded',
-				'setup_intent.setup_failed',
-			],
+			'enabled_events' => self::WEBHOOK_EVENTS,
 			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'api_version'    => WC_Stripe_API::STRIPE_API_VERSION,
 		];
@@ -412,6 +419,96 @@ class WC_Stripe_Account {
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Unable to determine webhook status: .;' . $e->getMessage() );
 			return false;
+		}
+	}
+
+	/**
+	 * Checks if the enabled events in an existing webhook differ from our desired events.
+	 *
+	 * @param object $existing_webhook The existing webhook object from Stripe.
+	 * @return bool True if events differ, false if they match.
+	 */
+	private function do_webhook_events_differ( $existing_webhook ) {
+		$desired_events = self::WEBHOOK_EVENTS;
+		sort( $desired_events );
+		$existing_events = $existing_webhook->enabled_events;
+		sort( $existing_events );
+
+		return $desired_events !== $existing_events;
+	}
+
+	/**
+	 * Gets the existing webhook for the site's URL.
+	 *
+	 * @return object|false The webhook object if found, false otherwise.
+	 */
+	public function get_existing_webhook() {
+		$webhooks = WC_Stripe_API::retrieve( 'webhook_endpoints' );
+
+		if ( is_wp_error( $webhooks ) || ! isset( $webhooks->data ) ) {
+			return false;
+		}
+
+		$webhook_url = WC_Stripe_Helper::get_webhook_url();
+
+		foreach ( $webhooks->data as $webhook ) {
+			if ( isset( $webhook->url ) && WC_Stripe_Helper::is_webhook_url( $webhook->url, $webhook_url ) ) {
+				return $webhook;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Reconfigures webhooks during plugin update.
+	 * This ensures webhooks are updated with any new events that may have been added.
+	 * Only reconfigures if there's an existing webhook and its events differ from desired events.
+	 *
+	 * @return void
+	 */
+	public function maybe_reconfigure_webhooks_on_update() {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$modes    = [ 'live', 'test' ];
+
+		foreach ( $modes as $mode ) {
+			$secret_key_setting = 'live' === $mode ? 'secret_key' : 'test_secret_key';
+			$secret_key         = $settings[ $secret_key_setting ] ?? '';
+
+			if ( empty( $secret_key ) ) {
+				continue;
+			}
+
+			try {
+				// Set the API key for this mode
+				$previous_secret = WC_Stripe_API::get_secret_key();
+				WC_Stripe_API::set_secret_key( $secret_key );
+
+				// Check for existing webhook
+				$existing_webhook = $this->get_existing_webhook();
+
+				if ( ! $existing_webhook ) {
+					continue;
+				}
+
+				// Check if events differ
+				if ( ! $this->do_webhook_events_differ( $existing_webhook ) ) {
+					continue;
+				}
+
+				// Events differ, reconfigure webhook
+				WC_Stripe_Logger::log( "Webhook events need updating for {$mode} mode - reconfiguring." );
+				$this->configure_webhooks( $mode, $secret_key );
+				WC_Stripe_Logger::log( "Successfully reconfigured webhooks for {$mode} mode after plugin update." );
+
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::log( "Failed to check/reconfigure webhooks for {$mode} mode: " . $e->getMessage() );
+			} finally {
+				// Restore the previous secret key if we changed it
+				if ( isset( $previous_secret ) ) {
+					WC_Stripe_API::set_secret_key( $previous_secret );
+				}
+			}
 		}
 	}
 }

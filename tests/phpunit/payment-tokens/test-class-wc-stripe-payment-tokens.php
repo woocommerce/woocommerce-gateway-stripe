@@ -51,7 +51,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		// CashApp token.
 		$token = new WC_Payment_Token_CashApp();
 		$token->set_cashtag( '$test_cashtag' );
-		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID ] );
 		$token->set_token( 'pm_1234' );
 		$token->set_user_id( 1 );
 		$token->save();
@@ -59,7 +59,7 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		// SEPA token.
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_token( 'pm_1234' );
-		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ] );
 		$token->set_last4( '1234' );
 		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
 		$token->set_user_id( 1 );
@@ -73,7 +73,18 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$token->set_user_id( 1 );
 		$token->save();
 
-		$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
+		// ACH token.
+		$token = new WC_Payment_Token_ACH();
+		$token->set_last4( '6789' );
+		$token->set_bank_name( 'Test Bank' );
+		$token->set_account_type( 'checking' );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] );
+		$token->set_token( 'pm_1234' );
+		$token->set_user_id( 1 );
+		$token->save();
+
+		$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method->type ];
 
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method, 1, $gateway_id );
 		if ( $instance_expected ) {
@@ -151,6 +162,17 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			],
 		];
 
+		$payment_method_ach = [
+			'id'                           => 'pm_mock_payment_method_id',
+			'type'                         => WC_Stripe_Payment_Methods::ACH,
+			WC_Stripe_Payment_Methods::ACH => (object) [
+				'last4'        => '6789',
+				'bank_name'    => 'Test Bank',
+				'account_type' => 'checking',
+				'fingerprint'  => 'Fxxxxxxxxxxxxxxx',
+			],
+		];
+
 		return [
 			'existing CC'      => [
 				'payment method' => (object) $payment_method_cc,
@@ -171,6 +193,10 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			'existing Link'    => [
 				'payment method' => (object) $payment_method_link,
 				'expected'       => false,
+			],
+			'existing ACH'     => [
+				'payment method' => (object) $payment_method_ach,
+				'expected'       => true,
 			],
 		];
 	}
