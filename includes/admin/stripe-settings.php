@@ -212,8 +212,8 @@ $stripe_settings = apply_filters(
 			'default'     => 'default',
 			'desc_tip'    => true,
 			'options'     => [
-				'small' => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
-				'default'  => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
+				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
@@ -257,15 +257,15 @@ $stripe_settings = apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'amazon_pay_button_size'         => [
+		'amazon_pay_button_size'              => [
 			'title'       => __( 'Amazon Pay Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'default',
 			'desc_tip'    => true,
 			'options'     => [
-				'small' => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
-				'default'  => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
+				'small'   => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default' => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
