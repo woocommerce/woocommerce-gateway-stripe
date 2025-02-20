@@ -50,6 +50,8 @@ Please follow the following guidelines when writing testing instructions:
 
 -   [ ] This Pull Request does not require a changelog entry. (Comment required below)
 
+<details>
+
 <summary>Changelog Entry Comment</summary>
 
 #### Comment <!-- If your Pull Request doesn't require a changelog entry, a comment explaining why is required instead -->
