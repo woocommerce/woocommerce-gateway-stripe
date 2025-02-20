@@ -21,8 +21,16 @@ jobs:
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
-            const exemptionPattern = /- \[x\] This Pull Request does not require a changelog entry/i;
+            
+            // Debug output
+            console.log('PR Body:', prBody);
+            
+            const exemptionPattern = /- *\[x\] *This Pull Request does not require a changelog entry/i;
             const isExempt = exemptionPattern.test(prBody);
+            
+            // Debug output
+            console.log('Is exempt:', isExempt);
+            console.log('Pattern:', exemptionPattern);
             
             if (isExempt) {
               console.log('PR is marked as not requiring changelog entry');
@@ -43,6 +51,11 @@ jobs:
             
             const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
             const readmeUpdated = files.some(file => file.filename === 'readme.txt');
+            
+            // Debug output
+            console.log('Files checked:', files.map(f => f.filename).join(', '));
+            console.log('Changelog updated:', changelogUpdated);
+            console.log('Readme updated:', readmeUpdated);
             
             if (!changelogUpdated || !readmeUpdated) {
               core.setFailed(
