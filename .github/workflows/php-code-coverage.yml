@@ -51,6 +51,7 @@ jobs:
           filter: '**/includes/**/*'
           
       - name: Filter Changed Files in Report
+        if: ${{ steps.get-changed-files.outputs.all }} # Only run if there are changed files
         run: |
           echo -e "Package | Line Rate | Health" > code-coverage-results-filtered.md 
           echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
