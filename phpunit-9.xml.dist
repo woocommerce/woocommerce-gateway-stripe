@@ -13,10 +13,14 @@
 			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist>
+	<coverage cacheDirectory=".phpunit.cache/code-coverage">
+		<include>
 			<file>./woocommerce-gateway-stripe.php</file>
 			<directory>./includes</directory>
-		</whitelist>
-	</filter>
+		</include>
+		<report>
+			<cobertura outputFile="cobertura.xml"/>
+			<html outputDirectory="phpunit-html"/>
+		</report>
+	</coverage>
 </phpunit>
