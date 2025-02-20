@@ -51,8 +51,9 @@ jobs:
           filter: '**/includes/**/*'
           
       - name: Filter Changed Files in Report
-        run: |          
-          echo -e "Package | Line Rate | Health\n-------- | --------- | ------" > code-coverage-results-filtered.md
+        run: |
+          echo -e "Package | Line Rate | Health" > code-coverage-results-filtered.md 
+          echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
           grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
       
