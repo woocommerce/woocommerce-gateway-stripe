@@ -24,4 +24,4 @@ echo 'Setting up test environment...'
 bash bin/install-wp-tests.sh woocommerce_test root root localhost $WP_VERSION $WC_VERSION false
 
 echo 'Running the tests...'
-bash bin/phpunit.sh $*
+bash bin/phpunit.sh
