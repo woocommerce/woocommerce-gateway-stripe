@@ -4,8 +4,20 @@ on:
   pull_request
 
 jobs:
+  validate:
+    runs-on: ubuntu-22.04
+    name: Check for changed files
+    steps:
+      - name: Get Changed Files
+        id: get-changed-files
+        uses: hanseltimeindustries/get-changed-files@v1
+        with:
+          format: 'space-delimited'
+          filter: '**/includes/**/*'
+    
   test:
     runs-on: ubuntu-22.04
+    if: ${{ steps.get-changed-files.outputs.all }} # Only run if there are changed files
     name: PHP=8.1, WP=6.6, WC=9.1.2
     env:
       PHP_VERSION: '8.1'
@@ -44,15 +56,7 @@ jobs:
           output: both
           thresholds: '60 80'
           
-      - name: Get Changed Files
-        id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1
-        with:
-          format: 'space-delimited'
-          filter: '**/includes/**/*'
-          
       - name: Filter Changed Files in Report
-        if: ${{ steps.get-changed-files.outputs.all }} # Only run if there are changed files
         run: |
           echo "### 📈 PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
           echo "Package | Line Rate | Health" >> code-coverage-results-filtered.md 
@@ -61,7 +65,6 @@ jobs:
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
       
       - name: Add Coverage PR Comment
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: code-coverage
