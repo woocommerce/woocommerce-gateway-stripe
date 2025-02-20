@@ -32,14 +32,10 @@ jobs:
             console.log('Is exempt:', isExempt);
             console.log('Pattern:', exemptionPattern);
             
-            if (isExempt) {
-              console.log('PR is marked as not requiring changelog entry');
-              return 'exempt';
-            }
-            return 'needs_changelog';
+            core.setOutput('is_exempt', isExempt.toString());
 
       - name: Check for changelog updates
-        if: steps.check_exemption.outputs.result == 'needs_changelog'
+        if: steps.check_exemption.outputs.is_exempt != 'true'
         uses: actions/github-script@v7
         with:
           script: |
