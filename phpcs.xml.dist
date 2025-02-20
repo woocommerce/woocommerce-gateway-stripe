@@ -19,15 +19,10 @@
 
 	<!-- Rules -->
 	<rule ref="WooCommerce-Core" >
-		<exclude name="Generic.Commenting.Todo.TaskFound"/>
 		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
-
-		<!-- This rule is currently generating some false positives, it would be worth retrying after PHPCS upgrades -->
-		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
 
 		<!-- The rules are ignored for now, they will be activated in a future PR -->
 		<exclude name="Squiz.Commenting"/>
-		<exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
 		<exclude name="WordPress.Security.NonceVerification.Missing"/>
 	</rule>
 
@@ -37,12 +32,6 @@
 	<rule ref="WordPress.WP.I18n">
 		<properties>
 			<property name="text_domain" type="array" value="woocommerce-gateway-stripe" />
-		</properties>
-	</rule>
-
-	<rule ref="WordPress.Security.EscapeOutput">
-		<properties>
-			<property name="customEscapingFunctions" type="array" value="WC_Payments_Utils,esc_interpolated_html" />
 		</properties>
 	</rule>
 
