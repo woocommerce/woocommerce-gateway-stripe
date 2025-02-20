@@ -85,9 +85,15 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	# If specified version is 'beta', fetch the latest beta version from WordPress.org API
 	if [[ $WC_VERSION == 'beta' ]]; then
 		WC_VERSION=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r '.versions | with_entries(select(.key|match("beta";"i"))) | keys[-1]' --sort-keys)
+	elif [[ $WC_VERSION == 'rc' ]]; then
+		WC_VERSION=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r '.versions | with_entries(select(.key|match("rc";"i"))) | keys[-1]' --sort-keys)
 	fi
 	step "Installing WooCommerce ${WC_VERSION}"
-	redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+	if [[ $(cli wp plugin get woocommerce) ]]; then
+		redirect_output cli wp plugin update woocommerce --version="$WC_VERSION"
+	else
+		redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
+	fi
 else
 	step "Installing WooCommerce"
 	redirect_output cli wp plugin install woocommerce --activate
