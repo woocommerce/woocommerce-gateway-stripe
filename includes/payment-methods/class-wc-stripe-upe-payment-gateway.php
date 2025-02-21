@@ -1168,18 +1168,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['confirm'] = 'true';
 
 					// SEPA setup intents require mandate data.
-					$ip_address = WC_Geolocation::get_ip_address();
-					WC_Stripe_Helper::maybe_log_ip_issues( $ip_address );
 					if ( in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, array_values( $enabled_payment_methods ), true ) ) {
-						$request['mandate_data'] = [
-							'customer_acceptance' => [
-								'type'   => 'online',
-								'online' => [
-									'ip_address' => $ip_address,
-									'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', // @codingStandardsIgnoreLine
-								],
-							],
-						];
+						$request = WC_Stripe_Helper::add_mandate_data( $request );
 					}
 				}
 
