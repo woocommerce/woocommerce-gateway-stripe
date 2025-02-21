@@ -29,7 +29,7 @@ class WC_Stripe_Feature_Flags {
 	/**
 	 * Retrieve all defined feature flags with their default values.
 	 *
-	 * @return array array( 'flag_name' => 'yes' or 'no', ...)
+	 * @return array
 	 */
 	public static function get_all_feature_flags_with_defaults() {
 		return self::$feature_flags;
