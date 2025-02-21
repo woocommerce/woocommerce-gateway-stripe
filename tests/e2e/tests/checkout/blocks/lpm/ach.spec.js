@@ -67,31 +67,6 @@ test.describe( 'ACH payment tests @blocks', () => {
 		await adminContext.close();
 	} );
 
-	test.beforeEach( async ( { page } ) => {
-		await emptyCart( page );
-		await setupCart( page );
-		await setupBlocksCheckout(
-			page,
-			config.get( 'addresses.customer.billing' )
-		);
-
-		// Select ACH payment method
-		await page
-			.locator( 'label' )
-			.filter( { hasText: 'ACH Direct Debit' } )
-			.click();
-
-		await page.pause();
-
-		// Click "Enter bank details manually"
-		await page
-			.frameLocator(
-				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[title="Secure payment input frame"]'
-			)
-			.getByRole( 'button', { name: 'Enter bank details manually' } )
-			.click();
-	} );
-
 	const fillBankDetails = async (
 		page,
 		accountNumber,
@@ -135,7 +110,7 @@ test.describe( 'ACH payment tests @blocks', () => {
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
-		await page.pause();
+		await setupACHCheckout( page );
 		await fillBankDetails( page, '000123456789' );
 		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
@@ -153,7 +128,8 @@ test.describe( 'ACH payment tests @blocks', () => {
 			username,
 			config.get( 'users.customer.password' )
 		);
-		await page.goto( '/checkout/' );
+
+		await setupACHCheckout( page );
 
 		await fillBankDetails( page, '000123456789' );
 
@@ -168,4 +144,68 @@ test.describe( 'ACH payment tests @blocks', () => {
 			'Order received'
 		);
 	} );
+
+	const failureTests = [
+		{
+			name: 'closed account',
+			accountNumber: '000111111113',
+			expectedError: 'The payment fails because the account is closed',
+		},
+		{
+			name: 'non-existent account',
+			accountNumber: '000111111116',
+			expectedError: 'The payment fails because no account is found',
+		},
+		{
+			name: 'insufficient funds',
+			accountNumber: '000222222227',
+			expectedError: 'The payment fails due to insufficient funds',
+		},
+		{
+			name: 'unauthorized debits',
+			accountNumber: '000333333335',
+			expectedError: "The payment fails because debits aren't authorized",
+		},
+		{
+			name: 'weekly limit exceeded',
+			accountNumber: '000777777771',
+			expectedError:
+				'The payment fails due to payment amount causing the account to exceed its weekly payment volume limit',
+		},
+	];
+
+	for ( const testCase of failureTests ) {
+		test.skip( `shows error for ${ testCase.name }`, async ( { page } ) => {
+			await fillBankDetails( page, testCase.accountNumber );
+			await page.locator( 'text=Place order' ).click();
+			await expect(
+				page.locator( '.wc-block-components-notice-banner.is-error' )
+			).toContainText( testCase.expectedError );
+		} );
+	}
 } );
+
+const setupACHCheckout = async ( page ) => {
+	await emptyCart( page );
+	await setupCart( page );
+	await setupBlocksCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
+
+	// Select ACH payment method
+	await page
+		.locator( 'label' )
+		.filter( { hasText: 'ACH Direct Debit' } )
+		.click();
+
+	await page.pause();
+
+	// Click "Enter bank details manually"
+	await page
+		.frameLocator(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[title="Secure payment input frame"]'
+		)
+		.getByRole( 'button', { name: 'Enter bank details manually' } )
+		.click();
+};
