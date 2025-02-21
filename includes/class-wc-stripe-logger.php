@@ -93,7 +93,7 @@ class WC_Stripe_Logger {
 	 *
 	 * @return boolean
 	 */
-	private static function can_log(): bool {
+	public static function can_log(): bool {
 		if ( ! class_exists( 'WC_Logger' ) ) {
 			return false;
 		}
