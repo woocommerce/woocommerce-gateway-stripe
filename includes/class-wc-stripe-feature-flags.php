@@ -28,6 +28,7 @@ class WC_Stripe_Feature_Flags {
 
 	/**
 	 * Retrieve all defined feature flags with their default values.
+	 * Note: This method is intended for use in the dev tools.
 	 *
 	 * @return array
 	 */
