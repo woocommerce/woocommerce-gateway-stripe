@@ -55,6 +55,7 @@ require $_tests_dir . '/includes/bootstrap.php';
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';
 require_once __DIR__ . '/helpers/class-wc-helper-product.php';
+require_once __DIR__ . '/helpers/class-wc-helper-rest-server.php';
 require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
 require_once __DIR__ . '/helpers/class-wc-helper-order.php';
 require_once __DIR__ . '/helpers/class-wc-helper-subscription.php';

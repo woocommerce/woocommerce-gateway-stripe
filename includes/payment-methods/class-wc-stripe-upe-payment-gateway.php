@@ -596,6 +596,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_available_payment_methods() {
+		error_log('upe gateway get_upe_available_payment_methods');
 		$available_payment_methods = [];
 
 		foreach ( $this->payment_methods as $payment_method ) {

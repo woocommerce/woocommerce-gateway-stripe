@@ -35,4 +35,14 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	public function get_retrievable_type() {
 		return $this->get_id();
 	}
+
+	/**
+	 * Checks if ACH is available for the Stripe account's country.
+	 *
+	 * @return bool True if US-based account; false otherwise.
+	 */
+	public function is_available_for_account_country() {
+		error_log('ACSS is_available_for_account_country');
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
+	}
 }

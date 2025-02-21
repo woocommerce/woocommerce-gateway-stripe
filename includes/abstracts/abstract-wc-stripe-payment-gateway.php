@@ -39,6 +39,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string[]
 	 */
 	public function get_upe_available_payment_methods() {
+		error_log('get_upe_available_payment_methods aqui?');
 		return [ WC_Stripe_Payment_Methods::CARD ];
 	}
 
