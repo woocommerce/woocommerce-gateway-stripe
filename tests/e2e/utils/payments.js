@@ -235,6 +235,15 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 	};
 
 	if ( billingDetails ) {
+		// Make sure "Use same address for billing" is checked
+		const sameAddressCheckbox = page.locator(
+			'.wc-block-checkout__use-address-for-billing input[type="checkbox"]'
+		);
+		const isChecked = await sameAddressCheckbox.isChecked();
+		if ( ! isChecked ) {
+			await sameAddressCheckbox.click();
+		}
+
 		await page
 			.getByLabel( 'Country/Region' )
 			.selectOption( { label: billingDetails[ 'country' ] } );
