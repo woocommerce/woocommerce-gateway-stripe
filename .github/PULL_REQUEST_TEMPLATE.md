@@ -42,8 +42,21 @@ Please follow the following guidelines when writing testing instructions:
 ---
 
 -   [ ] Covered with tests (or have a good reason not to test in description ☝️)
--   [ ] Added changelog entry **in both** `changelog.txt` and `readme.txt` (or does not apply)
 -   [ ] Tested on mobile (or does not apply)
+
+### Changelog entry
+
+<!-- If no changelog entry is required for this PR, you can specify that below and provide a comment explaining why. This cannot be used if you selected the option to automatically create a changelog entry above. -->
+
+-   [ ] This Pull Request does not require a changelog entry. (Comment required below)
+
+<details>
+
+<summary>Changelog Entry Comment</summary>
+
+#### Comment <!-- If your Pull Request doesn't require a changelog entry, a comment explaining why is required instead -->
+
+</details>
 
 **Post merge**
 

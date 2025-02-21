@@ -27,7 +27,7 @@ class WC_Stripe_Webhook_State {
 	const VALIDATION_FAILED_EMPTY_SECRET       = 'empty_secret';
 	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
 	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
-	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS  = 'duplicate_webhooks';
+	const VALIDATION_FAILED_DUPLICATE_WEBHOOKS = 'duplicate_webhooks';
 	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
 	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
 

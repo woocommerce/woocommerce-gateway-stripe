@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.1.1
+ * Version: 9.2.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.1.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.2.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
@@ -216,6 +216,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-apple-pay-registration.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-status.php';
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-currency-code.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-payment-methods.php';
@@ -307,6 +308,10 @@ function woocommerce_gateway_stripe() {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
+
+					// Initialize the class for handling the status page.
+					$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
+					$wcstripe_status->init_hooks();
 				}
 
 				// REMOVE IN THE FUTURE.

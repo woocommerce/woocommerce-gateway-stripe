@@ -943,11 +943,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Save the preferred card brand on the order.
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
-			$return_url = $this->get_return_url( $order );
-
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
-				$redirect                          = $this->get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed );
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
@@ -963,9 +960,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
 				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 				$order->save();
-			} else {
-				$redirect = $return_url;
 
+				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
+			} else {
 				if ( $payment_needed ) {
 					// Use the last charge within the intent to proceed.
 					$charge = $this->get_latest_charge_from_intent( $payment_intent );
@@ -981,6 +978,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$this->mark_order_as_pre_ordered( $order );
 					}
 				}
+				$redirect = $this->get_return_url( $order );
 			}
 
 			$this->unlock_order_payment( $order );
@@ -1014,7 +1012,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
-			if ( $this->is_payment_needed( $order->get_id() ) ) {
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			if ( $payment_needed ) {
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
 				// TODO: add confirmation token support, if possible.
@@ -1030,6 +1030,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
+
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
+			}
 
 			$return_url = $this->get_return_url( $order );
 
@@ -2242,6 +2251,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 			} else {
 				$payment_information['capture_method'] = $capture_method;
+			}
+
+			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
+			if ( $payment_information['has_subscription'] ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
 			}
 		}
 
