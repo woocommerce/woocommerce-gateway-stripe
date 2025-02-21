@@ -622,6 +622,7 @@ class WC_Stripe_Payment_Tokens {
 			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {

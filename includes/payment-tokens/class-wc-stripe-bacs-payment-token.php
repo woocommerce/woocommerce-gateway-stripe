@@ -92,5 +92,22 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	public function get_payment_method_type( $context = 'view' ) {
 		return $this->get_prop( 'payment_method_type', $context );
 	}
+
+	/**
+	 * Get type to display to user.
+	 *
+	 * @param  string $deprecated Deprecated since WooCommerce 3.0
+	 * @return string
+	 */
+	public function get_display_name( $deprecated = '' ) {
+		$display = sprintf(
+			/* translators: Bacs Direct Debit label, last 4 digits of payment method. */
+			__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
+			$this->get_last4(),
+		);
+
+		return $display;
+	}
 }
 
