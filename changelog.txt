@@ -12,6 +12,7 @@
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
 * Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
 * Dev - Fix changelog action
+* Dev - Fix QIT Tests GitHub workflow.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
