@@ -235,6 +235,18 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 	};
 
 	if ( billingDetails ) {
+		// Check if address form is collapsed (if Edit button exists)
+		const editButton = page.locator(
+			'#shipping-fields .wc-block-components-address-card__edit'
+		);
+		const isCollapsed = await editButton.isVisible();
+
+		if ( isCollapsed ) {
+			await editButton.click();
+			// Wait for form to expand
+			await page.waitForSelector( '#shipping-fields #shipping-country' );
+		}
+
 		// Make sure "Use same address for billing" is checked
 		const sameAddressCheckbox = page.locator(
 			'.wc-block-checkout__use-address-for-billing input[type="checkbox"]'
@@ -253,9 +265,13 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.selectOption( { label: billingDetails[ 'state' ] } );
 
 		// Expand the address 2 field.
-		await page
-			.locator( '.wc-block-components-address-form__address_2-toggle' )
-			.click();
+		if ( ! isCollapsed ) {
+			await page
+				.locator(
+					'.wc-block-components-address-form__address_2-toggle'
+				)
+				.click();
+		}
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
