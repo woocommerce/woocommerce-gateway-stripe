@@ -301,35 +301,53 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 /**
  * Set up the checkout page for ACH payment.
  * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
  */
-export const setupACHCheckout = async ( page ) => {
+export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupBlocksCheckout(
-		page,
-		config.get( 'addresses.customer.billing' )
-	);
 
-	// Select ACH payment method
-	await page
-		.locator( 'label' )
-		.filter( { hasText: 'ACH Direct Debit' } )
-		.click();
+	if ( checkoutType === 'blocks' ) {
+		await setupBlocksCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+		// Select ACH in blocks checkout
+		await page
+			.locator( 'label' )
+			.filter( { hasText: 'ACH Direct Debit' } )
+			.click();
 
-	// Click "Test Institution"
-	await page
-		.frameLocator(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
-		)
-		.getByText( 'Test Institution' )
-		.click();
+		// Click "Test Institution"
+		await page
+			.frameLocator(
+				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+			)
+			.getByText( 'Test Institution' )
+			.click();
+	} else {
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+		// Select ACH in shortcode checkout
+		await page.getByText( 'ACH Direct Debit' ).click();
+
+		// Click "Test Institution"
+		await page
+			.frameLocator(
+				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+			)
+			.getByTestId( 'featured-institution-default' )
+			.click();
+	}
 };
 
 /**
  * Interact with the Stripe Elements iframe to fill in the bank details.
  * @param {Page} page Playwright page fixture.
  */
-export const fillBankDetails = async ( page ) => {
+export const fillACHBankDetails = async ( page ) => {
 	const frame = page
 		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
 		.first();
@@ -344,5 +362,8 @@ export const fillBankDetails = async ( page ) => {
 	await frame.getByTestId( 'select-button' ).click();
 
 	// Skip link registration
-	await frame.getByRole( 'button', { name: 'Continue' } ).click();
+	await frame.getByTestId( 'link-not-now-button' ).click();
+
+	// Click "Done" button.
+	await frame.getByTestId( 'done-button' ).click();
 };
