@@ -13,6 +13,7 @@
 * Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
 * Dev - Fix changelog action
 * Dev - Fix QIT Tests GitHub workflow.
+* Fix - Fix issue where payment methods do not refresh after address changes.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
