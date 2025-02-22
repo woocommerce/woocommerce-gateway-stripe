@@ -92,14 +92,7 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 			return false;
 		}
 
-		return new Promise( ( resolve ) => {
-			checkPaymentMethodIsAvailable(
-				expressPaymentMethod,
-				api,
-				cart,
-				resolve
-			);
-		} );
+		return checkPaymentMethodIsAvailable( expressPaymentMethod, api, cart );
 	};
 
 	const supports = {
