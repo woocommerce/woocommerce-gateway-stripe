@@ -8,7 +8,6 @@ import {
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-	installWooSubscriptionsFromRepo,
 	checkWooGutenbergProductsBlockVersion,
 } from '../utils/playwright-setup';
 
@@ -21,6 +20,7 @@ const {
 	ADMIN_USER,
 	ADMIN_PASSWORD,
 	PLUGIN_VERSION,
+	PLUGIN_REPOSITORY,
 	WOO_SETUP,
 	STRIPE_SETUP,
 	STRIPE_PUB_KEY,
@@ -36,6 +36,34 @@ function wait( milliseconds ) {
 	return new Promise( ( resolve ) => {
 		setTimeout( resolve, milliseconds );
 	} );
+}
+
+/**
+ * Install plugins from the respective repositories.
+ *
+ * @param {Page} page Playwright page fixture.
+ *
+ * @returns {Promise<unknown>}
+ */
+async function installPlugins( page ) {
+	let pluginSlug;
+
+	try {
+		// Install WooCommerce Subscriptions.
+		pluginSlug = 'woocommerce-subscriptions';
+		await installPluginFromRepository(
+			page,
+			`woocommerce/${ pluginSlug }`,
+			pluginSlug
+		);
+	} catch ( e ) {
+		console.error( e );
+		console.error(
+			`Cannot proceed e2e test, as we could not install ${ pluginSlug }.`,
+			'Please check if the GITHUB_TOKEN env variable is valid.'
+		);
+		process.exit( 1 );
+	}
 }
 
 module.exports = async ( config ) => {
@@ -125,13 +153,13 @@ module.exports = async ( config ) => {
 	} )
 		.then( async () => {
 			const apiTokensPage = await adminContext.newPage();
-			const updatePluginPage = await adminContext.newPage();
-			const wooSubscriptionsInstallPage = await adminContext.newPage();
+			const pluginsInstallPage01 = await adminContext.newPage();
+			const pluginsInstallPage02 = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
 			let restApiKeysFinished = false;
 			let pluginUpdateFinished = false;
-			let wooSubscriptionsInstallFinished = false;
+			let pluginsInstallFinished = false;
 			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
@@ -146,7 +174,12 @@ module.exports = async ( config ) => {
 				} );
 
 			if ( PLUGIN_VERSION ) {
-				installPluginFromRepository( updatePluginPage )
+				installPluginFromRepository(
+					pluginsInstallPage01,
+					PLUGIN_REPOSITORY,
+					'woocommerce-gateway-stripe',
+					PLUGIN_VERSION
+				)
 					.then( () => {
 						pluginUpdateFinished = true;
 					} )
@@ -165,22 +198,14 @@ module.exports = async ( config ) => {
 			}
 
 			if ( WOO_SETUP && GITHUB_TOKEN ) {
-				installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
-					.then( () => {
-						wooSubscriptionsInstallFinished = true;
-					} )
-					.catch( ( e ) => {
-						console.error( e );
-						console.error(
-							'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
-						);
-						process.exit( 1 );
-					} );
+				installPlugins( pluginsInstallPage02 ).then( () => {
+					pluginsInstallFinished = true;
+				} );
 			} else {
 				console.log(
 					'Skipping WC Subscriptions setup. The version already installed on the test site will be used if needed.'
 				);
-				wooSubscriptionsInstallFinished = true;
+				pluginsInstallFinished = true;
 			}
 
 			if ( STRIPE_SETUP ) {
@@ -210,7 +235,7 @@ module.exports = async ( config ) => {
 				! pluginUpdateFinished ||
 				! restApiKeysFinished ||
 				! stripeSetupFinished ||
-				! wooSubscriptionsInstallFinished
+				! pluginsInstallFinished
 			) {
 				await wait( 1000 );
 			}
