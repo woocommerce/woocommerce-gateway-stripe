@@ -55,6 +55,13 @@ async function installPlugins( page ) {
 			`woocommerce/${ pluginSlug }`,
 			pluginSlug
 		);
+		// Install WooCommerce Pre-Orders.
+		pluginSlug = 'woocommerce-pre-orders';
+		await installPluginFromRepository(
+			page,
+			`woocommerce/${ pluginSlug }`,
+			pluginSlug
+		);
 	} catch ( e ) {
 		console.error( e );
 		console.error(
