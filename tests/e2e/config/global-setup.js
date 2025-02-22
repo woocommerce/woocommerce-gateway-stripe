@@ -192,7 +192,8 @@ module.exports = async ( config ) => {
 					.catch( ( e ) => {
 						console.error( e );
 						console.error(
-							'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
+							'Cannot proceed with e2e tests, as the plugin could not be installed.',
+							'Please check if the site has been setup correctly.'
 						);
 						process.exit( 1 );
 					} );
@@ -209,7 +210,8 @@ module.exports = async ( config ) => {
 				} );
 			} else {
 				console.log(
-					'Skipping WC Subscriptions setup. The version already installed on the test site will be used if needed.'
+					'Skipping plugins installation.',
+					'The plugin versions pre-installed on the site will be used, if needed.'
 				);
 				pluginsInstallFinished = true;
 			}
