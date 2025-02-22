@@ -3,6 +3,13 @@ volumes:
   dockerdirectory:
 
 services:
+  stripe:
+    container_name: wcstripe-e2e-stripe-listener
+    image: stripe/stripe-cli
+    restart: unless-stopped
+    depends_on:
+      - wordpress
+    command: "listen --api-key=${STRIPE_SECRET_KEY} --forward-to http://wordpress/?wc-api=wc_stripe"
   wordpress:
     build: .
     image: wordpress
