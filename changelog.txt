@@ -12,6 +12,7 @@
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
 * Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
 * Dev - Fix changelog action
+* Tweak - Map feature flags into a standard array for easier maintenance.
 * Dev - Fix QIT Tests GitHub workflow.
 * Fix - Fix issue where payment methods do not refresh after address changes.
 
