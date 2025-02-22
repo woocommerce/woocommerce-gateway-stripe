@@ -297,3 +297,52 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		)
 		.click();
 }
+
+/**
+ * Set up the checkout page for ACH payment.
+ * @param {Page} page Playwright page fixture.
+ */
+export const setupACHCheckout = async ( page ) => {
+	await emptyCart( page );
+	await setupCart( page );
+	await setupBlocksCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
+
+	// Select ACH payment method
+	await page
+		.locator( 'label' )
+		.filter( { hasText: 'ACH Direct Debit' } )
+		.click();
+
+	// Click "Test Institution"
+	await page
+		.frameLocator(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+		)
+		.getByText( 'Test Institution' )
+		.click();
+};
+
+/**
+ * Interact with the Stripe Elements iframe to fill in the bank details.
+ * @param {Page} page Playwright page fixture.
+ */
+export const fillBankDetails = async ( page ) => {
+	const frame = page
+		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+		.first();
+
+	// Agree and Continue
+	await frame.getByTestId( 'agree-button' ).click();
+
+	// Click "Success ••••" button
+	await frame.getByRole( 'button', { name: 'Success ••••' } ).click();
+
+	// Click "Connect Account" button.
+	await frame.getByTestId( 'select-button' ).click();
+
+	// Skip link registration
+	await frame.getByRole( 'button', { name: 'Continue' } ).click();
+};
