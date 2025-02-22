@@ -28,43 +28,6 @@ const {
 } = process.env;
 
 /**
- * Helper function to login a WP user and save the state on a given path.
- * @param {Page} page Playwright page object.
- * @param {string} username Username of the user to login.
- * @param {string} password Password of the user to login.
- * @param {string} statePath Path to save the state.
- * @param {number} retries Number of retries to login.
- * @return {Promise} Promise object represents the state of the operation.
- */
-export const loginCustomerAndSaveState = ( {
-	page,
-	username,
-	password,
-	statePath,
-	retries,
-} ) =>
-	new Promise( ( resolve ) => {
-		( async () => {
-			console.log( '- Trying to log-in as customer...' );
-			await user.login( page, username, password, retries );
-
-			await page.goto( `/my-account` );
-			await expect(
-				page.locator(
-					'.woocommerce-MyAccount-navigation-link--customer-logout'
-				)
-			).toBeVisible();
-			await expect(
-				page.locator( 'div.woocommerce-MyAccount-content > p >> nth=0' )
-			).toContainText( 'Hello' );
-
-			await page.context().storageState( { path: statePath } );
-			console.log( '\u2714 Logged-in as customer successfully.' );
-			resolve();
-		} )();
-	} );
-
-/**
  * Helper function to login a WP admin user and save the state on a given path.
  * @param {Page} page Playwright page object.
  * @param {string} username Username of the user to login.
