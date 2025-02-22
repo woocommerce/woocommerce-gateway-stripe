@@ -8,7 +8,6 @@ import {
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-	checkWooGutenbergProductsBlockVersion,
 } from '../utils/playwright-setup';
 
 dotenv.config( {
