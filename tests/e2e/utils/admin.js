@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 /**
  * Enable or disable ACH payment method in Stripe settings.
  * @param {Page} page Playwright page fixture.
