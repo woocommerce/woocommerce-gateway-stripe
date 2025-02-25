@@ -41,6 +41,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
 	];
 
 	/**
@@ -156,7 +157,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
 		$this->payment_methods = [];
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
@@ -169,8 +169,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				continue;
 			}
 
-			// Show BACS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+			// Consider Bacs only if the feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 
@@ -2925,7 +2925,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
-		if ( is_order_received_page() && $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), WC_Stripe_Payment_Methods::PAYMENT_METHODS_WITH_DELAYED_VERIFICATION ) && $order->has_status( 'pending' ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
