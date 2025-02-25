@@ -1607,28 +1607,4 @@ class WC_Stripe_Helper {
 
 		return $target_locale;
 	}
-
-	/**
-	 * Logs an invalid IP address.
-	 *
-	 * @param string $ip_address The IP address to log.
-	 * @return void
-	 */
-	public static function maybe_log_ip_issues( $ip_address ) {
-		// TODO: Remove me before merging!!!
-		$test = true;
-		if ( $test || rest_is_ip_address( $ip_address ) === false ) {
-			$log_data = [ 'WC_Geolocation::get_ip_address()' => $ip_address ];
-			$headers  = [
-				'HTTP_X_REAL_IP',
-				'HTTP_X_FORWARDED_FOR',
-				'REMOTE_ADDR',
-			];
-			foreach ( $headers as $header ) {
-				$log_data[ $header ] = isset( $_SERVER[ $header ] ) ? sanitize_text_field( wp_unslash( $_SERVER[ $header ] ) ) : 'not set';
-			}
-
-			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
-		}
-	}
 }

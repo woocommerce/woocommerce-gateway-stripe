@@ -809,14 +809,11 @@ class WC_Stripe_Intent_Controller {
 	 * @return array The request with mandate data added.
 	*/
 	private function add_mandate_data( $request ) {
-		$ip_address = WC_Geolocation::get_ip_address();
-		WC_Stripe_Helper::maybe_log_ip_issues( $ip_address );
-
 		$request['mandate_data'] = [
 			'customer_acceptance' => [
 				'type'   => 'online',
 				'online' => [
-					'ip_address' => $ip_address,
+					'ip_address' => WC_Geolocation::get_ip_address(),
 					'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
 				],
 			],
