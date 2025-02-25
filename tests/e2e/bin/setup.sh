@@ -158,9 +158,12 @@ redirect_output curl -sLJ \
 	--output $E2E_ROOT/woocommerce-pre-orders.zip \
 	https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/"$LATEST_RELEASE_ASSET_ID"
 
+echo " - Installing"
 redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-pre-orders.zip --force
+echo " - Removing lingering zip"
 rm -rf $E2E_ROOT/woocommerce-pre-orders.zip
 
+echo " - Activating"
 redirect_output cli wp plugin activate woocommerce-pre-orders
 
 echo
