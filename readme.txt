@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Add - Adds Stripe specific information to the System Status Report data.
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
@@ -121,5 +122,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix error when processing a subscription via Amazon Pay.
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
 * Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
+* Dev - Fix changelog action
+* Tweak - Map feature flags into a standard array for easier maintenance.
+* Dev - Fix QIT Tests GitHub workflow.
+* Fix - Fix issue where payment methods do not refresh after address changes.
+* Add - Bacs: Process Payment with Saved Bank Details
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
