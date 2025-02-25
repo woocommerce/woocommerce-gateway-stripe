@@ -246,7 +246,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Order::get_by_id( $notification->data->object->id );
+		$order = WC_Stripe_Order::get_by_source_id( $notification->data->object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $notification->data->object->id );
