@@ -2827,8 +2827,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function payment_method_titles_provider() {
 		return [
-			'Amazon' => [ WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL ],
-			'Bacs'   => [ WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL ],
+			'Amazon' => [ WC_Stripe_Express_Payment_Titles::AMAZON_PAY . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix() ],
+			'Bacs'   => [ WC_Stripe_Express_Payment_Titles::BACS_DEBIT ],
 		];
 	}
 
@@ -2838,9 +2838,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_filter_thankyou_order_received_text() {
+		$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( 'pending' );
-		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+		$order->set_payment_method_title( WC_Stripe_Express_Payment_Titles::AMAZON_PAY . $payment_method_suffix );
 
 		$default_text = 'Thank you. Your order has been received.';
 
