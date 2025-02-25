@@ -155,3 +155,14 @@ export const addOrderAttributionInputsIfNotExists = () => {
 	orderAttributionInputs.id = elementId;
 	document.body.appendChild( orderAttributionInputs );
 };
+
+/**
+ * Get the URL for a Stripe image asset.
+ *
+ * @param {string} imageName The name of the image file without extension
+ * @return {string} The full URL to the image
+ */
+export const getStripeImageUrl = ( imageName ) => {
+	const config = getBlocksConfiguration();
+	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
+};

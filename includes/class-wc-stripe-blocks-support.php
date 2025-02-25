@@ -189,6 +189,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			// Blocks-specific options
 			[
 				'icons'                           => $this->get_icons(),
+				'plugin_url'                      => WC_STRIPE_PLUGIN_URL,
 				'supports'                        => $this->get_supported_features(),
 				'showSavedCards'                  => $this->get_show_saved_cards(),
 				'showSaveOption'                  => $this->get_show_save_option(),
