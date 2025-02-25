@@ -4,7 +4,7 @@
 
 import { expect, test as setup } from '@playwright/test';
 
-setup.skip( 'Disable legacy checkout experience', async ( { browser } ) => {
+setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 	const adminContext = await browser.newContext( {
 		storageState: process.env.ADMINSTATE,
 	} );
@@ -24,7 +24,7 @@ setup.skip( 'Disable legacy checkout experience', async ( { browser } ) => {
 	await adminContext.close();
 } );
 
-setup.skip( 'enable Link', async ( { browser } ) => {
+setup( 'enable Link', async ( { browser } ) => {
 	const adminContext = await browser.newContext( {
 		storageState: process.env.ADMINSTATE,
 	} );
