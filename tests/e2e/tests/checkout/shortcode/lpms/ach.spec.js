@@ -91,6 +91,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 					config.get( 'addresses.customer.billing' )
 				);
 				await page.getByText( 'ACH Direct Debit' ).click();
+				await page.waitForTimeout( 1000 );
 				await page
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()

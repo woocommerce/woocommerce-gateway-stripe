@@ -330,8 +330,10 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			page,
 			config.get( 'addresses.customer.billing' )
 		);
+
 		// Select ACH in shortcode checkout
 		await page.getByText( 'ACH Direct Debit' ).click();
+		await page.waitForTimeout( 1000 );
 
 		// Click "Test Institution"
 		await page
