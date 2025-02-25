@@ -164,5 +164,5 @@ export const addOrderAttributionInputsIfNotExists = () => {
  */
 export const getStripeImageUrl = ( imageName ) => {
 	const config = getBlocksConfiguration();
-	return `${ config.plugin_url }/assets/images/${ imageName }.svg`;
+	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
 };
