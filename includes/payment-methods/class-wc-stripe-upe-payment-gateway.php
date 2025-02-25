@@ -49,7 +49,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @type array
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
 

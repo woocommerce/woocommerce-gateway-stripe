@@ -14,41 +14,42 @@ class WC_Stripe_Helper {
 	/**
 	 * Legacy meta key for Stripe fee.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const LEGACY_META_NAME_FEE = 'Stripe Fee';
+
 	/**
 	 * Legacy meta key for Stripe net.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
 	 * Meta key for Stripe fee.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const META_NAME_FEE = '_stripe_fee';
 
 	/**
 	 * Meta key for Stripe net.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const META_NAME_NET = '_stripe_net';
 
 	/**
 	 * Meta key for Stripe currency.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
 
 	/**
 	 * Meta key for payment awaiting action.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
@@ -99,10 +100,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @return string $currency
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_stripe_currency( $order = null ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_stripe_currency' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -117,9 +118,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @param string $currency
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -134,10 +136,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @return string $amount
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_stripe_fee( $order = null ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_fee' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -152,10 +154,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @param float  $amount
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_fee' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -169,10 +171,10 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param WC_Stripe_Order $order
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function delete_stripe_fee( $order = null ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::delete_fee' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::delete_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -187,10 +189,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @return string $amount
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_stripe_net( $order = null ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_net' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -205,10 +207,10 @@ class WC_Stripe_Helper {
 	 * @param WC_Stripe_Order $order
 	 * @param float  $amount
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_net' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -222,10 +224,10 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param WC_Stripe_Order $order
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function delete_stripe_net( $order = null ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::delete_net' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::delete_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -897,10 +899,10 @@ class WC_Stripe_Helper {
 	 * @version 4.0.0
 	 * @param string $source_id
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_order_by_source_id( $source_id ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_source_id' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_by_source_id' );
 		return WC_Stripe_Order::get_by_source_id( $source_id );
 	}
 
@@ -911,10 +913,10 @@ class WC_Stripe_Helper {
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_charge_id' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_by_charge_id' );
 		return WC_Stripe_Order::get_by_charge_id( $charge_id );
 	}
 
@@ -924,10 +926,10 @@ class WC_Stripe_Helper {
 	 * @since 7.5.0
 	 * @param string $refund_id
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_refund_id' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_by_refund_id' );
 		return WC_Stripe_Order::get_by_refund_id( $refund_id );
 	}
 
@@ -938,10 +940,10 @@ class WC_Stripe_Helper {
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_intent_id' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_by_intent_id' );
 		return WC_Stripe_Order::get_by_intent_id( $intent_id );
 	}
 
@@ -952,10 +954,10 @@ class WC_Stripe_Helper {
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_by_setup_intent_id' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_by_setup_intent_id' );
 		return WC_Stripe_Order::get_by_setup_intent_id( $intent_id );
 	}
 
@@ -1193,10 +1195,10 @@ class WC_Stripe_Helper {
 	 * @param $payment_intent_id
 	 * @param $order WC_Stripe_Order
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::add_payment_intent' );
+		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::add_payment_intent' );
 
 		$order->add_payment_intent_to_order( $payment_intent_id );
 	}
@@ -1333,10 +1335,10 @@ class WC_Stripe_Helper {
 	 *
 	 * @return void
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::set_payment_awaiting_action' );
+		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_payment_awaiting_action' );
 		$order->set_payment_awaiting_action( $save );
 	}
 
@@ -1348,10 +1350,10 @@ class WC_Stripe_Helper {
 	 *
 	 * @return void
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::remove_payment_awaiting_action' );
+		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::remove_payment_awaiting_action' );
 		$order->remove_payment_awaiting_action();
 	}
 

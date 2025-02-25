@@ -368,11 +368,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception If the order does not meet the minimum amount.
 	 *
 	 * @since 4.0.0
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 * @version 4.0.0
 	 */
 	public function validate_minimum_order_amount( $order ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Helper::validate_minimum_amount' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Helper::validate_minimum_amount' );
 		$order->validate_minimum_amount();
 	}
 
@@ -664,10 +664,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Stripe_Order $order
 	 * @return object $details
 	 *
-	 * @deprecated 9.1.0
+	 * @deprecated 9.3.0
 	 */
 	public function get_owner_details( $order ) {
-		_deprecated_function( __METHOD__, '9.1.0', 'WC_Stripe_Order::get_owner_details' );
+		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_owner_details' );
 		return $order->get_owner_details();
 	}
 
@@ -1655,13 +1655,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
 	 * @since 4.2
-	 * @deprecated 9.1.0 Use WC_Stripe_Order::lock_payment instead.
+	 * @deprecated 9.3.0 Use WC_Stripe_Order::lock_payment instead.
 	 * @param WC_Stripe_Order $order  The order that is being paid.
 	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
-		wc_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::lock_payment' );
+		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_payment' );
 		return $order->lock_payment( $intent );
 	}
 
@@ -1669,11 +1669,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Unlocks an order for processing by payment intents.
 	 *
 	 * @since 4.2
-	 * @deprecated 9.1.0 Use WC_Stripe_Order::unlock_payment instead.
+	 * @deprecated 9.3.0 Use WC_Stripe_Order::unlock_payment instead.
 	 * @param WC_Stripe_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		wc_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::unlock_payment' );
+		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_payment' );
 		$order->unlock_payment();
 	}
 
@@ -1684,10 +1684,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Stripe_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 *
-	 * @deprecated 9.1.0 Use WC_Stripe_Order::lock_refund instead.
+	 * @deprecated 9.3.0 Use WC_Stripe_Order::lock_refund instead.
 	 */
 	public function lock_order_refund( $order ) {
-		_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::lock_refund' );
+		_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_refund' );
 		return $order->lock_refund();
 	}
 
@@ -1697,10 +1697,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 9.1.0
 	 * @param WC_Stripe_Order $order The order that is being unlocked.
 	 *
-	 * @deprecated 9.1.0 Use WC_Stripe_Order::unlock_refund instead.
+	 * @deprecated 9.3.0 Use WC_Stripe_Order::unlock_refund instead.
 	 */
 	public function unlock_order_refund( $order ) {
-		_deprecated_function( __FUNCTION__, '9.1.0', 'WC_Stripe_Order::unlock_refund' );
+		_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_refund' );
 		$order->unlock_refund();
 	}
 
