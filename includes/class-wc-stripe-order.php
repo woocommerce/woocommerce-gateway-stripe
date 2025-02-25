@@ -711,17 +711,20 @@ class WC_Stripe_Order extends WC_Order {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = self::query(
-				[
-					'limit'      => 1,
-					'meta_query' => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
-						[
-							'key'   => $meta_key,
-							'value' => $meta_value,
-						],
+			$params = [ 'limit' => 1 ];
+			// Check if the meta key is a transaction ID. If so, use the transaction ID to query the order, instead of the meta when HPOS is enabled.
+			if ( '_transaction_id' === $meta_key ) {
+				$params['transaction_id'] = $meta_value;
+			} else {
+				$params['meta_query'] = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					[
+						'key'   => $meta_key,
+						'value' => $meta_value,
 					],
-				]
-			);
+				];
+			}
+
+			$orders   = self::query( $params );
 			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
 		} else {
 			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $meta_value, $meta_key ) );
