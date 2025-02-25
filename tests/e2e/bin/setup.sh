@@ -155,8 +155,6 @@ rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
 
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
-redirect_output docker ps
-
 echo
 echo "============================================================"
 echo "WordPress     => $(cli wp core version)"
