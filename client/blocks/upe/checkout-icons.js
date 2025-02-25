@@ -10,7 +10,7 @@ import { getStripeImageUrl } from '../utils';
 const createIconComponent = ( iconName ) => ( props ) => {
 	const iconSrc = getStripeImageUrl( iconName );
 
-	return <BaseIcon { ...props } size="medium" src={ iconSrc } />;
+	return <BaseIcon { ...props } src={ iconSrc } />;
 };
 
 /**
