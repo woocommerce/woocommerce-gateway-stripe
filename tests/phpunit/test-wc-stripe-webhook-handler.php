@@ -496,7 +496,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Order must be previously set to pending and have at least the payment intent set.
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
+		$order->add_payment_intent_to_order( $notification->data->object->id );
 		$order->set_status( 'pending' );
 		$order->save();
 
