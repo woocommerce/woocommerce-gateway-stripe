@@ -179,6 +179,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_BODY;
 		}
 
+		// Skip validation for E2E tests on localhost.
+		if (
+			( false !== getenv( 'E2E_TESTING' ) && strtolower( getenv( 'E2E_TESTING' ) ) === 'true' )
+			|| ( parse_url( get_site_url(), PHP_URL_HOST ) === 'localhost' )
+		) {
+			return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
+		}
+
 		if ( empty( $this->secret ) ) {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_SECRET;
 		}

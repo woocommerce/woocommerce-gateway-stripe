@@ -22,6 +22,8 @@ services:
       - "8088:80"
     env_file:
       - default.env
+    environment:
+      - E2E_TESTING=true
     volumes:
       - ./docker/wordpress:/var/www/html/
       - ./docker/logs/apache2/:/var/log/apache2
