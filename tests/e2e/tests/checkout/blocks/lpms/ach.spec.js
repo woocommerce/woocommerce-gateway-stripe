@@ -39,6 +39,8 @@ test.describe( 'ACH payment tests @blocks', () => {
 		} );
 	} );
 
+	test.describe.configure( { mode: 'parallel' } );
+
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
@@ -51,59 +53,43 @@ test.describe( 'ACH payment tests @blocks', () => {
 		);
 	} );
 
-	test( 'customer can save ACH payment method for future use @smoke', async ( {
+	test( 'customer can save and reuse ACH payment method @smoke', async ( {
 		page,
 	} ) => {
-		await test.step( 'Login and setup checkout', async () => {
-			await user.login(
-				page,
-				username,
-				config.get( 'users.customer.password' )
-			);
-			await setupACHCheckout( page, 'blocks' );
-		} );
-
+		// First order - Save the payment method
 		await test.step(
-			'Connect bank account and save payment information',
+			'Save payment method during first checkout',
 			async () => {
+				await user.login(
+					page,
+					username,
+					config.get( 'users.customer.password' )
+				);
+				await setupACHCheckout( page, 'blocks' );
 				await fillACHBankDetails( page );
 				await page
 					.locator(
 						'.wc-block-components-payment-methods__save-card-info'
 					)
 					.click();
+				await page.locator( 'text=Place order' ).click();
+				await page.waitForURL( '**/checkout/order-received/**' );
+				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+					'Order received'
+				);
 			}
 		);
 
-		await test.step( 'Complete order', async () => {
-			await page.locator( 'text=Place order' ).click();
-			await page.waitForURL( '**/checkout/order-received/**' );
-			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-				'Order received'
-			);
-		} );
-	} );
-
-	test( 'customer can reuse ACH payment method @smoke', async ( {
-		page,
-	} ) => {
-		await test.step( 'Login and setup checkout', async () => {
-			await user.login(
-				page,
-				username,
-				config.get( 'users.customer.password' )
-			);
-			await emptyCart( page );
-			await setupCart( page );
-			await setupBlocksCheckout(
-				page,
-				config.get( 'addresses.customer.billing' )
-			);
-		} );
-
+		// Second order - Use saved payment method
 		await test.step(
-			'Complete order with saved payment method',
+			'Use saved payment method for second checkout',
 			async () => {
+				await emptyCart( page );
+				await setupCart( page );
+				await setupBlocksCheckout(
+					page,
+					config.get( 'addresses.customer.billing' )
+				);
 				await page
 					.locator( 'label' )
 					.filter( { hasText: 'Checking account ending in' } )
