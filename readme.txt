@@ -122,5 +122,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix error when processing a subscription via Amazon Pay.
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
 * Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
+* Dev - Fix changelog action
+* Tweak - Map feature flags into a standard array for easier maintenance.
+* Dev - Fix QIT Tests GitHub workflow.
+* Fix - Fix issue where payment methods do not refresh after address changes.
+* Add - Bacs: Process Payment with Saved Bank Details
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

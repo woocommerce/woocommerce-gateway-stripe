@@ -303,7 +303,7 @@ if ( isBacsEnabled ) {
 			'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.card,
+		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
 	};
 }
