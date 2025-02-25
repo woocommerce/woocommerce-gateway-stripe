@@ -19,36 +19,30 @@ jobs:
         uses: hanseltimeindustries/get-changed-files@v1
         with:
           format: 'space-delimited'
-          filter: '**/includes/**/*'
+          filter: '**/*.php'
       
       - name: Checking out
-        if: ${{ steps.get-changed-files.outputs.all }} # Only run if there are changed files
         uses: actions/checkout@v2
 
       - name: Set up dependencies caching
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: actions/cache@v4
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
       - name: Set up PHP
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           coverage:    xdebug
 
       - name: Set up PHPUnit 9.5
-        if: ${{ steps.get-changed-files.outputs.all }}
         run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
         
       - name: Run CI checks
-        if: ${{ steps.get-changed-files.outputs.all }}
         run: bash bin/run-ci-tests.bash
         
       - name: Code Coverage Report
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
           filename: php-coverage.xml
@@ -60,7 +54,6 @@ jobs:
           thresholds: '60 80'
           
       - name: Filter Changed Files in Report
-        if: ${{ steps.get-changed-files.outputs.all }}
         run: |
           echo "### 📈 PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
           echo "Package | Line Rate | Health" >> code-coverage-results-filtered.md 
@@ -69,7 +62,6 @@ jobs:
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
       
       - name: Add Coverage PR Comment
-        if: ${{ steps.get-changed-files.outputs.all }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: code-coverage
