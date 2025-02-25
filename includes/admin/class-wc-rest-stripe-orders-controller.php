@@ -188,7 +188,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 
 			// Check for amount_too_small error
 			if ( ! empty( $result->error ) && 'amount_too_small' === $result->error->code ) {
-				$currency = strtoupper( $order->get_currency() );
+				$currency       = strtoupper( $order->get_currency() );
 				$minimum_amount = isset( self::$minimum_amounts[ $currency ] ) ? self::$minimum_amounts[ $currency ] : null;
 
 				$message = wp_json_encode(
