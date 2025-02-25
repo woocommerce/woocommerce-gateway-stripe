@@ -318,6 +318,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.filter( { hasText: 'ACH Direct Debit' } )
 			.click();
 
+		// Wait for the iframe to be ready
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+		);
+		await page.waitForTimeout( 1000 );
+
 		// Click "Test Institution"
 		await page
 			.frameLocator(
@@ -333,6 +339,12 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 		// Select ACH in shortcode checkout
 		await page.getByText( 'ACH Direct Debit' ).click();
+		await page.waitForTimeout( 1000 );
+
+		// Wait for the iframe to be ready
+		await page.waitForSelector(
+			'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+		);
 		await page.waitForTimeout( 1000 );
 
 		// Click "Test Institution"
