@@ -6,12 +6,16 @@
 class WC_Stripe_Payment_Methods {
 
 	const ACH               = 'us_bank_account';
+	const ACSS_DEBIT        = 'acss_debit';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
+	const AMAZON_PAY        = 'amazon_pay';
+	const BACS_DEBIT        = 'bacs_debit';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
+	const CARD_PRESENT      = 'card_present';
 	const CASHAPP_PAY       = 'cashapp';
 	const EPS               = 'eps';
 	const GIROPAY           = 'giropay';
@@ -25,10 +29,10 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
-	const CARD_PRESENT      = 'card_present';
-	const ACSS_DEBIT        = 'acss_debit';
-	const BACS_DEBIT        = 'bacs_debit';
-	const AMAZON_PAY        = 'amazon_pay';
+
+	// Payment method labels
+	const AMAZON_PAY_LABEL = 'Amazon Pay (Stripe)';
+	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.

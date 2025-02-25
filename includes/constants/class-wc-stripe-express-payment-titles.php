@@ -35,4 +35,11 @@ class WC_Stripe_Express_Payment_Titles {
 	 * @string
 	 */
 	const LINK = 'Link';
+
+	/**
+	 * Default title for Bacs Direct Debit.
+	 *
+	 * @string
+	 */
+	const BACS_DEBIT = 'Bacs Direct Debit';
 }

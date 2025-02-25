@@ -215,7 +215,9 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-bacs-payment-token.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-apple-pay-registration.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-status.php';
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-currency-code.php';
 				require_once __DIR__ . '/includes/constants/class-wc-stripe-payment-methods.php';
@@ -226,7 +228,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
-				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php';
@@ -308,6 +310,10 @@ function woocommerce_gateway_stripe() {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
+
+					// Initialize the class for handling the status page.
+					$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
+					$wcstripe_status->init_hooks();
 				}
 
 				// REMOVE IN THE FUTURE.

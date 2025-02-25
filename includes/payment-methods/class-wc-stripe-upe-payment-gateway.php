@@ -41,6 +41,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
 	];
 
 	/**
@@ -156,7 +157,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
 		$this->payment_methods = [];
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
@@ -169,8 +169,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				continue;
 			}
 
-			// Show BACS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+			// Consider Bacs only if the feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 
@@ -1012,7 +1012,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
-			if ( $this->is_payment_needed( $order->get_id() ) ) {
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			if ( $payment_needed ) {
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
 				// TODO: add confirmation token support, if possible.
@@ -1028,6 +1030,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
+
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
+			}
 
 			$return_url = $this->get_return_url( $order );
 
@@ -2241,6 +2252,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} else {
 				$payment_information['capture_method'] = $capture_method;
 			}
+
+			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
+			if ( $payment_information['has_subscription'] ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
+			}
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -2910,7 +2926,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
 		$amazon_pay_title = WC_Stripe_Express_Payment_Titles::AMAZON_PAY . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		if ( is_order_received_page() && $order->get_payment_method_title() === $amazon_pay_title && $order->has_status( 'pending' ) ) {
+		$bacs_debit_title = WC_Stripe_Express_Payment_Titles::BACS_DEBIT . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), [ $amazon_pay_title, $bacs_debit_title ], true ) && $order->has_status( 'pending' ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;

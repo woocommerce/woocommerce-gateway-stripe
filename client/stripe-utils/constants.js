@@ -49,7 +49,7 @@ export const PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY =
 export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
-export const PAYMENT_METHOD_STRIPE_BACS = 'stripe_bacs_debit';
+export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -72,7 +72,7 @@ export function getPaymentMethodsConstants() {
 		wechat_pay: PAYMENT_METHOD_STRIPE_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
-		bacs_debit: PAYMENT_METHOD_STRIPE_BACS,
+		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
 	};
 }
 
