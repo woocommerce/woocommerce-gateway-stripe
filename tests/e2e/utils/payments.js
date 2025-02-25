@@ -153,24 +153,43 @@ export async function fillCreditCardDetailsLegacy( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
-	await page
-		.frameLocator(
-			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="number"]' )
-		.fill( card.number );
-	await page
-		.frameLocator(
-			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="expiry"]' )
+	let frameContainerSelector;
+	let cardNumberSelector;
+	let cardExpirySelector;
+
+	if (
+		await page
+			.isVisible(
+				'#stripe-card-element iframe[name^="__privateStripeFrame"]'
+			)
+			.catch( () => false )
+	) {
+		frameContainerSelector =
+			'#stripe-card-element iframe[name^="__privateStripeFrame"]';
+		cardNumberSelector = '[name="cardnumber"]';
+		cardExpirySelector = '[name="exp-date"]';
+	} else if (
+		await page
+			.isVisible(
+				'#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]'
+			)
+			.catch( () => false )
+	) {
+		frameContainerSelector =
+			'#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]';
+		cardNumberSelector = '[name="number"]';
+		cardExpirySelector = '[name="expiry"]';
+	} else {
+		throw new Error( 'Could not find the frame container' );
+	}
+
+	const frameLocator = page.frameLocator( frameContainerSelector );
+
+	await frameLocator.locator( cardNumberSelector ).fill( card.number );
+	await frameLocator
+		.locator( cardExpirySelector )
 		.fill( card.expires.month + card.expires.year );
-	await page
-		.frameLocator(
-			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cvc"]' )
-		.fill( card.cvc );
+	await frameLocator.locator( '[name="cvc"]' ).fill( card.cvc );
 }
 
 /**
