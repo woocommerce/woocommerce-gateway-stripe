@@ -155,19 +155,19 @@ export async function fillCreditCardDetailsLegacy( page, card ) {
 export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 	await page
 		.frameLocator(
-			'#stripe-card-element iframe[name^="__privateStripeFrame"]'
+			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
 		)
-		.locator( '[name="cardnumber"]' )
+		.locator( '[name="number"]' )
 		.fill( card.number );
 	await page
 		.frameLocator(
-			'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
+			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
 		)
-		.locator( '[name="exp-date"]' )
+		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await page
 		.frameLocator(
-			'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
+			'.wc-stripe-upe-element iframe[name^="__privateStripeFrame"]'
 		)
 		.locator( '[name="cvc"]' )
 		.fill( card.cvc );
