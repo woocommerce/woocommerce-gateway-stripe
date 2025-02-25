@@ -16,7 +16,7 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '9.1.2'
+            woocommerce: '9.2.3'
           - woocommerce_support_policy: L-1
             woocommerce: '9.0.2'
           - woocommerce_support_policy: L-2
