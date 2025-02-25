@@ -44,5 +44,5 @@ docker/logs
 .phpunit.result.cache
 
 # PHPUnit coverage results files
-cobertura.xml
+php-coverage.xml
 phpunit-html/

@@ -19,7 +19,7 @@
 			<directory>./includes</directory>
 		</include>
 		<report>
-			<cobertura outputFile="cobertura.xml"/>
+			<cobertura outputFile="php-coverage.xml"/>
 			<html outputDirectory="phpunit-html"/>
 		</report>
 	</coverage>
