@@ -124,13 +124,16 @@ class WC_Stripe_API {
 			$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 			return $request['metadata']['order_id'] . '-' . $source;
 		} elseif ( 'payment_intents' === $api && 'POST' === $method ) {
-			if ( empty( $request['metadata']['order_id'] ) ||
-				empty( $request['payment_method'] ) ||
-				empty( $request['metadata']['signature'] )
-			) {
+			if ( empty( $request['metadata']['signature'] ) ||
+				empty( $request['payment_method'] ) ) {
 				return null;
 			}
-			return $request['metadata']['order_id'] . '-' . $request['payment_method'] . '-' . $request['metadata']['signature'];
+			// Order signature is derived from the order id, order key, customer id,
+			// order total and currency. We add the payment method ID to the idempotency key
+			// to allow orders to be retried with a different payment method, e.g. card was
+			// declined, and the shopper retried using Klarna.
+			// TODO: check if billing/shipping details need to be added.
+			return $request['metadata']['signature'] . '-' . $request['payment_method'];
 		}
 
 		return null;
