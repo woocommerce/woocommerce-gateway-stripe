@@ -2223,22 +2223,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
 		}
 
+		// Initialize common and required payment method details.
+		$payment_information['payment_method']         = '';
+		$payment_information['payment_method_details'] = [];
+		$payment_information['payment_type']           = 'single'; // single | recurring.
+		$payment_information['capture_method']         = $capture_method;
+
 		if ( ! empty( $payment_method_id ) ) {
 			$payment_method_details                              = WC_Stripe_API::get_payment_method( $payment_method_id );
 			$payment_information['payment_method']               = $payment_method_id;
 			$payment_information['payment_method_details']       = $payment_method_details;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
 			$payment_information['payment_method_options']       = $this->get_payment_method_options(
 				$selected_payment_type,
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = false;
 
 			// When using confirmation tokens with manual capture, we need to
@@ -2249,8 +2252,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'capture_method' => 'manual',
 					],
 				];
-			} else {
-				$payment_information['capture_method'] = $capture_method;
 			}
 
 			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
