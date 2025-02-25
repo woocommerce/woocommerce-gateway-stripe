@@ -29,6 +29,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 	];
 
 	/**
@@ -406,6 +407,10 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 				break;
+			case WC_Stripe_Payment_Methods::BACS_DEBIT:
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
+				break;
 			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
@@ -532,7 +537,12 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
-
+			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
+				$token = new WC_Payment_Token_Bacs_Debit();
+				$token->set_last4( $payment_method->bacs_debit->last4 );
+				$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
+				$token->set_payment_method_type( $payment_method_type );
+				break;
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( $payment_method->link->email );
@@ -612,6 +622,7 @@ class WC_Stripe_Payment_Tokens {
 			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {
