@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user } from '../../../../utils';
-import { admin } from '../../../../utils';
+import { admin, payments, api, user } from '../../../../utils';
 
 const {
 	emptyCart,
@@ -32,12 +31,11 @@ test.describe( 'ACH payment tests @blocks', () => {
 			await api.create.customer( testUser );
 
 			// Enable ACH in admin
-			const adminContext = await browser.newContext( {
-				storageState: process.env.ADMINSTATE,
-			} );
-			const adminPage = await adminContext.newPage();
-			await admin.toggleACHPaymentMethod( adminPage, true );
-			await adminContext.close();
+			await admin.togglePaymentMethod(
+				browser,
+				'ACH Direct Debit',
+				true
+			);
 		} );
 	} );
 

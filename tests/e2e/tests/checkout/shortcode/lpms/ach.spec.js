@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user } from '../../../../utils';
+import { admin, payments, api, user } from '../../../../utils';
 
 const {
 	emptyCart,
@@ -31,23 +31,11 @@ test.describe( 'ACH payment tests @shortcode', () => {
 			await api.create.customer( testUser );
 
 			// Enable ACH in admin
-			const adminContext = await browser.newContext( {
-				storageState: process.env.ADMINSTATE,
-			} );
-			const adminPage = await adminContext.newPage();
-
-			await adminPage.goto(
-				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
+			await admin.togglePaymentMethod(
+				browser,
+				'ACH Direct Debit',
+				true
 			);
-			await adminPage
-				.getByRole( 'checkbox', { name: 'ACH Direct Debit' } )
-				.check();
-			await adminPage.click( 'text=Save changes' );
-
-			await expect(
-				adminPage.getByText( 'Settings saved.' )
-			).toBeDefined();
-			await adminContext.close();
 		} );
 	} );
 
