@@ -148,12 +148,28 @@ rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
 
 redirect_output cli wp plugin activate woocommerce-subscriptions
 
+step "Installing Woo Pre-Orders"
+echo " - Fetching latest version"
+LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/latest | jq -r '.assets[0].id')
+
+redirect_output curl -sLJ \
+	-H "Authorization: token $GITHUB_TOKEN" \
+	-H "Accept: application/octet-stream" \
+	--output $E2E_ROOT/woocommerce-pre-orders.zip \
+	https://api.github.com/repos/woocommerce/woocommerce-pre-orders/releases/assets/"$LATEST_RELEASE_ASSET_ID"
+
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-pre-orders.zip --force
+rm -rf $E2E_ROOT/woocommerce-pre-orders.zip
+
+redirect_output cli wp plugin activate woocommerce-pre-orders
+
 echo
 echo "============================================================"
 echo "WordPress     => $(cli wp core version)"
 echo "WooCommerce   => $(cli wp plugin get woocommerce --field=version)"
 echo "Stripe        => $(cli wp plugin get woocommerce-gateway-stripe --field=version)"
 echo "Subscriptions => $(cli wp plugin get woocommerce-subscriptions --field=version)"
+echo "Pre-Orders    => $(cli wp plugin get woocommerce-pre-orders --field=version)"
 echo "============================================================"
 echo
 step "E2E environment up and running at http://localhost:8088/wp-admin/"
