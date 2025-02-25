@@ -34,7 +34,9 @@ const getStripeElementOptions = () => {
 			billingDetails: {
 				name: 'never',
 				email: 'never',
-				phone: 'never',
+				// The phone field is optional, so it needs to be "auto" to not throw errors
+				// when passing the phone parameter to create a payment method.
+				phone: 'auto',
 				address: {
 					country: 'never',
 					line1: 'never',
@@ -194,7 +196,7 @@ const PaymentProcessor = ( {
 								billing_details: {
 									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
 									email: billingAddress.email,
-									phone: billingAddress.phone,
+									phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
 									address: {
 										city: billingAddress.city,
 										country: billingAddress.country,

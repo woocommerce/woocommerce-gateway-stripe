@@ -199,7 +199,9 @@ function createStripePaymentMethod(
 					  ).trim()
 					: undefined,
 				email: document.querySelector( '#billing_email' )?.value,
-				phone: document.querySelector( '#billing_phone' )?.value,
+				phone:
+					// Phone is optional, but an empty string is not allowed by Stripe.
+					document.querySelector( '#billing_phone' )?.value || null,
 				address: {
 					city: document.querySelector( '#billing_city' )?.value,
 					country: document.querySelector( '#billing_country' )
