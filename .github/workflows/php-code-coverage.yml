@@ -1,7 +1,9 @@
 name: PHP code coverage
 
 on:
-  pull_request
+  push:
+    paths:
+      - '**.php'
 
 jobs:
   test:
@@ -72,5 +74,6 @@ jobs:
         with:
           header: code-coverage
           recreate: true
+          skip_unchanged: true
           path: code-coverage-results-filtered.md
           
