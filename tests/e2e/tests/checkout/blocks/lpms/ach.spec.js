@@ -41,17 +41,6 @@ test.describe( 'ACH payment tests @blocks', () => {
 		} );
 	} );
 
-	test.afterAll( async ( { browser } ) => {
-		await test.step( 'Cleanup test environment', async () => {
-			const adminContext = await browser.newContext( {
-				storageState: process.env.ADMINSTATE,
-			} );
-			const page = await adminContext.newPage();
-			await admin.toggleACHPaymentMethod( page, false );
-			await adminContext.close();
-		} );
-	} );
-
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
@@ -76,14 +65,17 @@ test.describe( 'ACH payment tests @blocks', () => {
 			await setupACHCheckout( page, 'blocks' );
 		} );
 
-		await test.step( 'Connect bank account', async () => {
-			await fillACHBankDetails( page );
-			await page
-				.locator(
-					'.wc-block-components-payment-methods__save-card-info'
-				)
-				.click();
-		} );
+		await test.step(
+			'Connect bank account and save payment information',
+			async () => {
+				await fillACHBankDetails( page );
+				await page
+					.locator(
+						'.wc-block-components-payment-methods__save-card-info'
+					)
+					.click();
+			}
+		);
 
 		await test.step( 'Complete order', async () => {
 			await page.locator( 'text=Place order' ).click();

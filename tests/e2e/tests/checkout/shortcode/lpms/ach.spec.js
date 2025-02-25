@@ -51,27 +51,6 @@ test.describe( 'ACH payment tests @shortcode', () => {
 		} );
 	} );
 
-	test.afterAll( async ( { browser } ) => {
-		await test.step( 'Cleanup test environment', async () => {
-			const adminContext = await browser.newContext( {
-				storageState: process.env.ADMINSTATE,
-			} );
-			const page = await adminContext.newPage();
-
-			await page.goto(
-				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
-			);
-			await page
-				.getByRole( 'checkbox', { name: 'ACH Direct Debit' } )
-				.click();
-			await page.getByRole( 'button', { name: 'Remove' } ).click();
-			await page.click( 'text=Save changes' );
-
-			await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
-			await adminContext.close();
-		} );
-	} );
-
 	test( 'customer can pay with ACH using valid bank details @smoke', async ( {
 		page,
 	} ) => {
@@ -84,7 +63,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 		);
 	} );
 
-	test( 'customer can save and reuse ACH payment method @smoke', async ( {
+	test( 'customer can save ACH payment method for future use @smoke', async ( {
 		page,
 	} ) => {
 		await test.step( 'Login and setup checkout', async () => {
