@@ -153,32 +153,33 @@ export async function fillCreditCardDetailsLegacy( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
+	const options = {
+		legacy: {
+			iFrame: '#stripe-card-element iframe[name^="__privateStripeFrame"]',
+			cardNumber: '[name="cardnumber"]',
+			cardExpiry: '[name="exp-date"]',
+		},
+		upe: {
+			iFrame: '#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]',
+			cardNumber: '[name="number"]',
+			cardExpiry: '[name="expiry"]',
+		},
+	};
+
 	let frameContainerSelector;
 	let cardNumberSelector;
 	let cardExpirySelector;
 
-	if (
-		await page
-			.isVisible(
-				'#stripe-card-element iframe[name^="__privateStripeFrame"]'
-			)
-			.catch( () => false )
-	) {
-		frameContainerSelector =
-			'#stripe-card-element iframe[name^="__privateStripeFrame"]';
-		cardNumberSelector = '[name="cardnumber"]';
-		cardExpirySelector = '[name="exp-date"]';
+	if ( await page.isVisible( options.legacy.iFrame ).catch( () => false ) ) {
+		frameContainerSelector = options.legacy.iFrame;
+		cardNumberSelector = options.legacy.cardNumber;
+		cardExpirySelector = options.legacy.cardExpiry;
 	} else if (
-		await page
-			.isVisible(
-				'#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]'
-			)
-			.catch( () => false )
+		await page.isVisible( options.upe.iFrame ).catch( () => false )
 	) {
-		frameContainerSelector =
-			'#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]';
-		cardNumberSelector = '[name="number"]';
-		cardExpirySelector = '[name="expiry"]';
+		frameContainerSelector = options.upe.iFrame;
+		cardNumberSelector = options.upe.cardNumber;
+		cardExpirySelector = options.upe.cardExpiry;
 	} else {
 		throw new Error( 'Could not find the frame container' );
 	}
