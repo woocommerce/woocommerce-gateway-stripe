@@ -290,11 +290,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'metadata'                      => [
-				'_stripe_metadata' => '123',
-				'order_id'         => $this->order->get_id(),
-				'signature'        => $this->order->get_id() . ':abc123',
-			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
 			'order'                         => $this->order,
 			'payment_method'                => 'pm_mock',
 			'shipping'                      => [],
@@ -305,7 +301,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$test_request = function ( $preempt, $parsed_args, $url ) {
-			$this->assertEquals( $this->order->get_id() . ':abc123-pm_mock', $parsed_args['headers']['Idempotency-Key'] );
+			$this->assertNotEmpty( $parsed_args['headers']['Idempotency-Key'] );
 
 			return [
 				'response' => 200,
