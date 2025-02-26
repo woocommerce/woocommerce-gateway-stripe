@@ -55,13 +55,13 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 
 		$intent = $this->get_intent_from_order( $top_most_order );
 
-		$token = array(
+		$token = [
 			'gateway' => $this->id,
 			'token'   => $intent->id,
-			'data'    => array(
+			'data'    => [
 				'intent' => $intent,
-			),
-		);
+			],
+		];
 
 		return $token;
 	}
@@ -224,108 +224,181 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 	}
 
 	public function charge_order_token( $order ) {
+		return $this->process_order_token_payment( $order );
+	}
+
+	/**
+	 * Process a scheduled deposit payment.
+	 *
+	 * @param mixed $order          Scheduled deposit order.
+	 * @param mixed $retry          Whether to retry the payment.
+	 * @param mixed $previous_error Previous error.
+	 */
+	public function process_order_token_payment( $order, $retry = true, $previous_error = false ) {
+		$amount         = $order->get_total();
 		$top_most_order = WC_Checkout_Tokenization::get_top_most_order( $order );
 
-		$intent = $this->get_intent_from_order( $top_most_order );
-		if ( isset( $intent->object ) && 'setup_intent' === $intent->object ) {
-			$intent = false; // This function can only deal with *payment* intents
-		}
+		try {
+			$order_id = $order->get_id();
 
-		$stripe_customer_id = null;
-		if ( $intent && ! empty( $intent->customer ) ) {
-			$stripe_customer_id = $intent->customer;
-		}
+			// Get source from order
+			$prepared_source = $this->prepare_order_source( $top_most_order );
+			$source_object   = $prepared_source->source_object;
 
-		$prepared_source = $this->prepare_order_source( $top_most_order );
+			// Check for an existing intent, which is associated with the order.
+			// if ( $this->has_authentication_already_failed( $order ) ) {
+			// 	return;
+			// }
 
-		$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
-		$this->check_source( $prepared_source );
+			$this->check_source( $prepared_source );
+			$this->save_source_to_order( $order, $prepared_source );
 
-		$this->save_source_to_order( $order, $prepared_source );
-
-		// Update the saved payment method to have the latest billing details.
-		if ( $prepared_source->source && $this->is_using_saved_payment_method() ) {
-			$this->update_saved_payment_method( $prepared_source->source, $order );
-		}
-
-		if ( 0 >= $order->get_total() ) {
-			return $this->complete_free_order( $order, $prepared_source, $force_save_source );
-		}
-
-		// This will throw exception if not valid.
-		$this->validate_minimum_order_amount( $order );
-
-		WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
-
-		if ( $intent ) {
-			$intent = $this->update_existing_intent( $intent, $top_most_order, $prepared_source );
-		} else {
-			$intent = $this->create_intent( $top_most_order, $prepared_source );
-		}
-
-		// Confirm the intent after locking the order to make sure webhooks will not interfere.
-		if ( empty( $intent->error ) ) {
-			$this->lock_order_payment( $order, $intent );
-			$intent = $this->confirm_intent( $intent, $order, $prepared_source );
-		}
-
-		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $prepared_source->source );
-
-		if ( ! empty( $intent->error ) ) {
-			$this->maybe_remove_non_existent_customer( $intent->error, $order );
-
-			// We want to retry.
-			if ( $this->is_retryable_error( $intent->error ) ) {
-				return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
+			if ( ! $prepared_source->customer ) {
+				throw new WC_Stripe_Exception(
+					'Failed to process payment for order ' . $order->get_id() . '. Stripe customer id is missing in the order',
+					__( 'Customer not found', 'woocommerce-gateway-stripe' )
+				);
 			}
 
-			$this->unlock_order_payment( $order );
-			$this->throw_localized_message( $intent, $order );
-		}
+			WC_Stripe_Logger::log( "Info: Begin processing scheduled payment for order {$order_id} for the amount of {$amount}" );
 
-		if ( WC_Stripe_Intent_Status::SUCCEEDED === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
-			$this->save_payment_method( $prepared_source->source_object );
-		}
+			/*
+			 * If we're doing a retry and source is chargeable, we need to pass
+			 * a different idempotency key and retry for success.
+			 */
+			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
+				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
+			}
 
-		if ( ! empty( $intent ) ) {
-			// Use the last charge within the intent to proceed.
-			$response = $this->get_latest_charge_from_intent( $intent );
+			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+				// Passing empty source will charge customer default.
+				$prepared_source->source = '';
+			}
 
-			// If the intent requires a 3DS flow, redirect to it.
-			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status ) {
-				$this->unlock_order_payment( $order );
+			// If the payment gateway is SEPA, use the charges API.
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' === $this->id ) {
+				$request            = $this->generate_payment_request( $order, $prepared_source );
+				$request['capture'] = 'true';
+				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+				$response           = WC_Stripe_API::request( $request );
 
-				// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-				WC_Stripe_Helper::set_payment_awaiting_action( $order );
+				$is_authentication_required = false;
+			} else {
+				$this->lock_order_payment( $order );
+				$response                   = $this->create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount );
+				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
+			}
 
-				if ( is_wc_endpoint_url( 'order-pay' ) ) {
-					$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
+			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
+			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
+				// We want to retry.
+				if ( $this->is_retryable_error( $response->error ) ) {
+					if ( $retry ) {
+						// Don't do anymore retries after this.
+						if ( 5 <= $this->retry_interval ) { // @phpstan-ignore-line (retry_interval is defined in classes using this class)
+							return $this->process_order_token_payment( $order, false, $response->error );
+						}
 
-					return [
-						'result'   => 'success',
-						'redirect' => wp_sanitize_redirect( esc_url_raw( $redirect_url ) ),
-					];
-				} else {
-					/**
-					 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
-					 * `window.location = result.redirect`
-					 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
-					 */
+						sleep( $this->retry_interval );
 
-					return [
-						'result'                => 'success',
-						'redirect'              => $this->get_return_url( $order ),
-						'payment_intent_secret' => $intent->client_secret,
-						'save_payment_method'   => $this->save_payment_method_requested(),
-					];
+						$this->retry_interval++;
+
+						return $this->process_order_token_payment( $order, true, $response->error );
+					} else {
+						$localized_message = sprintf(
+							/* translators: 1) error message from Stripe; 2) request log URL */
+							__( 'Sorry, we are unable to process the payment at this time. Reason: %1$s %2$s', 'woocommerce-gateway-stripe' ),
+							$response->error->message,
+							isset( $response->error->request_log_url ) ? make_clickable( $response->error->request_log_url ) : ''
+						);
+						$order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+					}
 				}
+
+				$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+				if ( 'card_error' === $response->error->type ) {
+					$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+				} elseif ( 'payment_intent_mandate_invalid' === $response->error->type ) {
+					$localized_message = __(
+						'The mandate used for this scheduled payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information.',
+						'woocommerce-gateway-stripe'
+					);
+				} else {
+					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+				}
+
+				if ( isset( $response->error->request_log_url ) ) {
+					$localized_message .= ' ' . make_clickable( $response->error->request_log_url );
+				}
+
+				$order->add_order_note( $localized_message );
+
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			/* translators: error message */
+			$order->update_status( 'failed' );
+			$this->unlock_order_payment( $order );
+
+			return;
 		}
 
-		// Process valid response.
-		$this->process_response( $response, $order );
+		try {
 
+			// Either the charge was successfully captured, or it requires further authentication.
+			if ( $is_authentication_required ) {
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $order, $response );
 
+				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $error_message );
 
+				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
+				$id     = $charge->id;
+
+				$order->set_transaction_id( $id );
+				/* translators: %s is the charge Id */
+				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				if ( is_callable( [ $order, 'save' ] ) ) {
+					$order->save();
+				}
+			} elseif ( $this->must_authorize_off_session( $response ) ) {
+				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
+				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
+				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
+
+				$message = sprintf(
+					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+					$attempt_date,
+					$attempt_time
+				);
+				$order->add_order_note( $message );
+				$order->update_status( 'pending' );
+				if ( is_callable( [ $order, 'save' ] ) ) {
+					$order->save();
+				}
+			} else {
+				// The charge was successfully captured
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
+				// Use the last charge within the intent or the full response body in case of SEPA.
+				$latest_charge = $this->get_latest_charge_from_intent( $response );
+				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $order );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+		}
+
+		$this->unlock_order_payment( $order );
 	}
 }
