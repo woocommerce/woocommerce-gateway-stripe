@@ -20,14 +20,17 @@ import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 /**
  * Renders a Stripe Payment elements component.
  *
- * @param {*}           props                 Additional props for payment processing.
- * @param {WCStripeAPI} props.api             Object containing methods for interacting with Stripe.
- * @param {string}      props.paymentMethodId The ID of the payment method.
+ * @param {*}           props                        Additional props for payment processing.
+ * @param {WCStripeAPI} props.api                    Object containing methods for interacting with Stripe.
+ * @param {Object}      props.components             Object containing components for rendering.
+ * @param {string}      props.paymentMethodId        The ID of the payment method.
+ * @param {boolean}     props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
 const PaymentElements = ( {
 	api,
+	paymentMethodId,
 	supportsDeferredIntent,
 	components: { LoadingMask },
 	...props
@@ -46,7 +49,7 @@ const PaymentElements = ( {
 			try {
 				const response = await api.createIntent(
 					getBlocksConfiguration()?.orderId,
-					props.paymentMethodId
+					paymentMethodId
 				);
 
 				setClientSecret( response.client_secret );
@@ -54,7 +57,7 @@ const PaymentElements = ( {
 			} catch ( error ) {
 				const paymentMethodTitle =
 					getBlocksConfiguration()?.paymentMethodsConfig?.[
-						props.paymentMethodId
+						paymentMethodId
 					]?.title ?? '';
 				setErrorMessage(
 					sprintf(
@@ -75,7 +78,7 @@ const PaymentElements = ( {
 		api,
 		hasRequestedIntent,
 		paymentIntentId,
-		props.paymentMethodId,
+		paymentMethodId,
 		supportsDeferredIntent,
 	] );
 
@@ -119,7 +122,7 @@ const PaymentElements = ( {
 					amount,
 					currency,
 					paymentMethodTypes: getPaymentMethodTypes(
-						props.paymentMethodId
+						paymentMethodId
 					),
 			  }
 			: { clientSecret } ),
@@ -136,6 +139,7 @@ const PaymentElements = ( {
 			<PaymentProcessor
 				api={ api }
 				paymentIntentId={ paymentIntentId }
+				paymentMethodId={ paymentMethodId }
 				{ ...props }
 			/>
 		</Elements>
