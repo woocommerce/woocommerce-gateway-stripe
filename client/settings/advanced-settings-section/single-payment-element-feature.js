@@ -33,7 +33,7 @@ const SinglePaymentElementFeature = () => {
 				) }
 				help={ createInterpolateElement(
 					__(
-						"By enabling this, your store checkout form will display unified payment buttons, using Stripe's dynamic payment methods. <learnMoreLink>Learn more</learnMoreLink>.",
+						"By enabling this, your store checkout form will use Stripe's dynamic payment methods. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{
