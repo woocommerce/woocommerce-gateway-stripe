@@ -182,6 +182,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
+export const useIsSpeEnabled = makeSettingsHook( 'is_spe_enabled' );
 
 export const useIndividualPaymentMethodSettings = makeSettingsHook(
 	'individual_payment_method_settings',
