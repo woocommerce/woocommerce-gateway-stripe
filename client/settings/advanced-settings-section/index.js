@@ -6,6 +6,7 @@ import CardBody from '../card-body';
 import DebugMode from './debug-mode';
 import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -26,6 +27,7 @@ const AdvancedSettings = () => {
 				<Card>
 					<CardBody>
 						<DebugMode />
+						<SinglePaymentElementFeature />
 						<ExperimentalFeatures />
 					</CardBody>
 				</Card>
