@@ -5,8 +5,8 @@ import { payments } from '../../../utils';
 const {
 	emptyCart,
 	setupCart,
-	setupShortcodeCheckout,
-	fillCreditCardDetailsShortcode,
+	setupBlocksCheckout,
+	fillCreditCardDetails,
 	handleCheckout3DSChallenge,
 	clickPlaceOrder,
 	handleCheckoutCashAppPay,
@@ -31,7 +31,7 @@ test.beforeAll( 'enable Cash App Pay', async ( { browser } ) => {
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupCart( page );
-	await setupShortcodeCheckout(
+	await setupBlocksCheckout(
 		page,
 		config.get( 'addresses.customer.billing' )
 	);
@@ -47,17 +47,16 @@ test.beforeEach( async ( { page } ) => {
 test( 'customer can retry payment, with a different card @smoke', async ( {
 	page,
 } ) => {
-	await fillCreditCardDetailsShortcode(
-		page,
-		config.get( 'cards.declined' )
-	);
+	await fillCreditCardDetails( page, config.get( 'cards.declined' ) );
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect(
+		page.locator( '.wc-block-store-notice.is-error' )
+	).toBeVisible();
 
-	// Change to a working card, and retry the payment.
-	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
+	// Change to a working card
+	await fillCreditCardDetails( page, config.get( 'cards.basic' ) );
 	await clickPlaceOrder( page );
 	await page.waitForURL( '**/order-received/**' );
 
@@ -78,14 +77,14 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 test( 'customer can retry payment, with changed billing details @smoke', async ( {
 	page,
 } ) => {
-	await fillCreditCardDetailsShortcode( page, config.get( 'cards.3ds' ) );
+	await fillCreditCardDetails( page, config.get( 'cards.3ds' ) );
 	await clickPlaceOrder( page );
 
 	// Fail the 3DS challenge
 	await handleCheckout3DSChallenge( page, 'fail' );
 
 	// Change billing details
-	await page.fill( '#billing_postcode', '12345' );
+	await page.getByLabel( 'ZIP Code' ).fill( '12345' );
 
 	// Retry the payment
 	await clickPlaceOrder( page );
@@ -111,17 +110,16 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 test( 'customer can retry payment, using a different payment method @smoke', async ( {
 	page,
 } ) => {
-	await fillCreditCardDetailsShortcode(
-		page,
-		config.get( 'cards.declined' )
-	);
+	await fillCreditCardDetails( page, config.get( 'cards.declined' ) );
 	await clickPlaceOrder( page );
 
 	// Expect the order to fail
-	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+	await expect(
+		page.locator( '.wc-block-store-notice.is-error' )
+	).toBeVisible();
 
 	// Change to Cash App Pay
-	await handleCheckoutCashAppPay( page );
+	await handleCheckoutCashAppPay( page, '.wcstripe-payment-element' );
 
 	// Expect the order to succeed
 	await page.waitForURL( '**/order-received/**' );
