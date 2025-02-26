@@ -426,14 +426,9 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$method_title = $theorder->get_payment_method_title();
 
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
-
-		if ( ! empty( $suffix ) ) {
-			$suffix = " ($suffix)";
-		}
-
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			$express_method_titles = WC_Stripe_Express_Checkout_Helper::get_payment_method_titles();
+			$express_method_titles = WC_Stripe_Payment_Methods::METHODS_LABELS;
+			$suffix                = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 			array_walk(
 				$express_method_titles,
 				function( &$value, $key ) use ( $suffix ) {
