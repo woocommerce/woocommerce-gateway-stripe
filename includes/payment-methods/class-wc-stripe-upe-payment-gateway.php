@@ -2217,6 +2217,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
+			'payment_method'                => '',
+			'payment_method_details'        => [],
+			'payment_type'                  => 'single', // single | recurring.
+			'capture_method'                => $capture_method,
 		];
 
 		if ( 'us_bank_account' === $selected_payment_type ) {
@@ -2227,18 +2231,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_details                              = WC_Stripe_API::get_payment_method( $payment_method_id );
 			$payment_information['payment_method']               = $payment_method_id;
 			$payment_information['payment_method_details']       = $payment_method_details;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
 			$payment_information['payment_method_options']       = $this->get_payment_method_options(
 				$selected_payment_type,
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = false;
 
 			// When using confirmation tokens with manual capture, we need to
@@ -2249,8 +2250,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'capture_method' => 'manual',
 					],
 				];
-			} else {
-				$payment_information['capture_method'] = $capture_method;
 			}
 
 			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
