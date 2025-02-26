@@ -1030,7 +1030,7 @@ class WC_Stripe_Intent_Controller {
 
 		// If the customer is saving the payment method to the store or has a subscription, we should set the setup_future_usage to off_session.
 		// Only exception is when using a confirmation token. For confirmations tokens, the setup_future_usage is set within the payment method.
-		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) ) {
+		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) || $payment_information['has_forced_tokenization'] ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
