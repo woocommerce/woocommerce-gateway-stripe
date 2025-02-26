@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
 * Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Add - Adds Stripe specific information to the System Status Report data.
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
