@@ -95,7 +95,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 						'Failed to load %s payment method. Please refresh the page and try again.',
 						'woocommerce-gateway-stripe'
 					),
-					paymentMethodsConfig[ paymentMethodType ].title
+					paymentMethodsConfig?.[ paymentMethodType ]?.title ?? ''
 				)
 			);
 			return;

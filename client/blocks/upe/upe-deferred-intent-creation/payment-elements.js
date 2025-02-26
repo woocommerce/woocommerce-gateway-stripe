@@ -2,7 +2,8 @@
  * External dependencies
  */
 import { useEffect, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { Elements } from '@stripe/react-stripe-js';
 /**
  * Internal dependencies
@@ -34,6 +35,7 @@ const PaymentElements = ( {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
+	const [ errorMessage, setErrorMessage ] = useState( null );
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -50,9 +52,20 @@ const PaymentElements = ( {
 				setClientSecret( response.client_secret );
 				setPaymentIntentId( response.id );
 			} catch ( error ) {
-				// TODO: Gracefully handle errors.
-				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
-				console.log( 'error', error ); // eslint-disable-line no-console
+				const paymentMethodTitle =
+					getBlocksConfiguration()?.paymentMethodsConfig?.[
+						props.paymentMethodId
+					]?.title ?? '';
+				setErrorMessage(
+					sprintf(
+						// translators: %s is the payment method title.
+						__(
+							'Failed to load %s payment method. Please refresh the page and try again.',
+							'woocommerce-gateway-stripe'
+						),
+						paymentMethodTitle
+					)
+				);
 			}
 		}
 
@@ -65,6 +78,16 @@ const PaymentElements = ( {
 		props.paymentMethodId,
 		supportsDeferredIntent,
 	] );
+
+	if ( errorMessage ) {
+		return (
+			<div className="wc-block-components-notices">
+				<StoreNotice status="error" isDismissible={ false }>
+					{ errorMessage }
+				</StoreNotice>
+			</div>
+		);
+	}
 
 	// If a client secret is required, wait until it is available.
 	if ( ! supportsDeferredIntent && ! clientSecret ) {
