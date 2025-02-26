@@ -30,6 +30,13 @@ class WC_Stripe_Payment_Methods {
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
 
+	// Payment method labels
+	const AMAZON_PAY_LABEL = 'Amazon Pay';
+	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
+	const GOOGLE_PAY_LABEL = 'Google Pay';
+	const APPLE_PAY_LABEL  = 'Apple Pay';
+	const LINK_LABEL       = 'Link';
+
 	/**
 	 * Payment methods that are considered as voucher payment methods.
 	 *
@@ -60,5 +67,16 @@ class WC_Stripe_Payment_Methods {
 	const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
+	];
+
+	/**
+	 * List of payment methods labels.
+	 */
+	const METHODS_LABELS = [
+		self::AMAZON_PAY => self::AMAZON_PAY_LABEL,
+		self::BACS_DEBIT => self::BACS_DEBIT_LABEL,
+		'google_pay'     => self::GOOGLE_PAY_LABEL,
+		'apple_pay'      => self::APPLE_PAY_LABEL,
+		self::LINK       => self::LINK_LABEL,
 	];
 }

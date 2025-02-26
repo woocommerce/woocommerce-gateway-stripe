@@ -103,7 +103,7 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 		$display = sprintf(
 			/* translators: Bacs Direct Debit label, last 4 digits of payment method. */
 			__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
-			WC_Stripe_Express_Payment_Titles::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 			$this->get_last4(),
 		);
 
