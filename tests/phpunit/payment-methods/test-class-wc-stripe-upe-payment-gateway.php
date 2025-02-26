@@ -119,17 +119,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
 
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
-			->disableOriginalConstructor()
-			->getMock();
-
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
-			->setConstructorArgs( [ $mock_account ] )
+			->setConstructorArgs( [] )
 			->setMethods(
 				[
 					'create_and_confirm_intent_for_off_session',
@@ -192,6 +189,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		parent::tear_down();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -246,7 +244,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider get_upe_available_payment_methods_provider
 	 */
 	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
-		$this->set_stripe_account_data( [ 'country' => $country ] );
+		$this->set_stripe_account_data( [ 'country' => $country ] ); // TODO: Verify if the country is actually changing in the gateway.
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
 	}
 
@@ -2771,5 +2769,84 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Unset the feature flag.
 		delete_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME );
+	}
+
+	/**
+	 * Test for `filter_my_account_my_orders_actions`.
+	 *
+	 * @dataProvider payment_method_titles_provider
+	 */
+	public function test_filter_my_account_my_orders_actions( $payment_method_title ) {
+		add_filter(
+			'woocommerce_is_order_received_page',
+			function() {
+				return true;
+			}
+		);
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method_title( $payment_method_title );
+		$order->set_status( 'pending' );
+
+		$actions = [
+			'pay'    => [
+				'url'        => $order->get_checkout_payment_url(),
+				'name'       => 'Pay',
+				'aria-label' => sprintf( 'Pay for order %s', $order->get_order_number() ),
+			],
+			'view'   => [
+				'url'        => $order->get_view_order_url(),
+				'name'       => 'View',
+				'aria-label' => sprintf( 'View order %s', $order->get_order_number() ),
+			],
+			'cancel' => [
+				'url'        => $order->get_cancel_order_url( wc_get_page_permalink( 'myaccount' ) ),
+				'name'       => 'Cancel',
+				'aria-label' => sprintf( 'Cancel order %s', $order->get_order_number() ),
+			],
+		];
+
+		$actual = $this->mock_gateway->filter_my_account_my_orders_actions( $actions, $order );
+
+		$this->assertEquals(
+			[
+				'view' => [
+					'url'        => $order->get_view_order_url(),
+					'name'       => 'View',
+					'aria-label' => sprintf( 'View order %s', $order->get_order_number() ),
+				],
+			],
+			$actual
+		);
+	}
+
+	/**
+	 * Data provider for `test_filter_my_account_my_orders_actions`.
+	 *
+	 * @return array
+	 */
+	public function payment_method_titles_provider() {
+		return [
+			'Amazon' => [ WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL ],
+			'Bacs'   => [ WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL ],
+		];
+	}
+
+	/**
+	 * Test for `filter_thankyou_order_received_text`.
+	 *
+	 * @return void
+	 */
+	public function test_filter_thankyou_order_received_text() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( 'pending' );
+		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
+
+		$default_text = 'Thank you. Your order has been received.';
+
+		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
+
+		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a few minutes before it&#039;s confirmed.</p>';
+		$this->assertEquals( $expected, $actual );
 	}
 }

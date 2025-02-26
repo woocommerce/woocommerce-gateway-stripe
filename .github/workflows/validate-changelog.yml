@@ -1,0 +1,51 @@
+name: 'Validate Changelog'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches:
+      - trunk
+      - develop
+
+jobs:
+  check_changelog:
+    name: 'Check for changelog updates'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR description for changelog exemption
+        id: check_exemption
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || '';
+            
+            const exemptionPattern = /- *\[x\] *This Pull Request does not require a changelog entry/i;
+            const isExempt = exemptionPattern.test(prBody);
+            
+            core.setOutput('is_exempt', isExempt.toString());
+
+      - name: Check for changelog updates
+        if: steps.check_exemption.outputs.is_exempt != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            const changelogUpdated = files.some(file => file.filename === 'changelog.txt');
+            const readmeUpdated = files.some(file => file.filename === 'readme.txt');
+            
+            if (!changelogUpdated || !readmeUpdated) {
+              core.setFailed(
+                'This PR requires changelog entries. Please run `npm run changelog` to add entries to both changelog.txt and readme.txt, ' +
+                'or check "This Pull Request does not require a changelog entry" in the PR description if no changelog is needed.'
+              );
+            } else {
+              console.log('Changelog entries found in both files ✅');
+            } 

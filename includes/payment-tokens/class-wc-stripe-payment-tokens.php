@@ -21,13 +21,15 @@ class WC_Stripe_Payment_Tokens {
 	 * The values are the related gateway ID we use for them in the extension.
 	 */
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
-		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID           => WC_Stripe_UPE_Payment_Gateway::ID,
-		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
-		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID   => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
-		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 	];
 
 	/**
@@ -391,7 +393,7 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Controls the output for SEPA and Cash App on the my account page.
+	 * Controls the output for some payment methods on the my account page.
 	 *
 	 * @since 4.8.0
 	 * @param array            $item          Individual list item from woocommerce_saved_payment_methods_list.
@@ -405,8 +407,15 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
 				break;
+			case WC_Stripe_Payment_Methods::BACS_DEBIT:
+				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = esc_html__( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
+				break;
 			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
+				break;
+			case WC_Stripe_Payment_Methods::ACH:
+				$item['method']['brand'] = $payment_token->get_display_name();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
@@ -528,11 +537,31 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_last4( $payment_method->card->last4 );
 				$token->set_fingerprint( $payment_method->card->fingerprint );
 				break;
-
+			case WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID:
+				$token = new WC_Payment_Token_Bacs_Debit();
+				$token->set_last4( $payment_method->bacs_debit->last4 );
+				$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
+				$token->set_payment_method_type( $payment_method_type );
+				break;
 			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
+				break;
+			case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
+				$token = new WC_Payment_Token_ACH();
+				if ( isset( $payment_method->us_bank_account->last4 ) ) {
+					$token->set_last4( $payment_method->us_bank_account->last4 );
+				}
+				if ( isset( $payment_method->us_bank_account->fingerprint ) ) {
+					$token->set_fingerprint( $payment_method->us_bank_account->fingerprint );
+				}
+				if ( isset( $payment_method->us_bank_account->account_type ) ) {
+					$token->set_account_type( $payment_method->us_bank_account->account_type );
+				}
+				if ( isset( $payment_method->us_bank_account->bank_name ) ) {
+					$token->set_bank_name( $payment_method->us_bank_account->bank_name );
+				}
 				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_CashApp();
@@ -590,8 +619,10 @@ class WC_Stripe_Payment_Tokens {
 	public static function get_token_label_overrides_for_checkout() {
 		$label_overrides      = [];
 		$payment_method_types = [
+			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {
@@ -686,7 +717,7 @@ class WC_Stripe_Payment_Tokens {
 			/**
 			 * Token object.
 			 *
-			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA $token
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH $token
 			 */
 			if ( $token->is_equal_payment_method( $payment_method ) ) {
 				return $token;
@@ -705,6 +736,9 @@ class WC_Stripe_Payment_Tokens {
 	public function woocommerce_payment_token_class( $class, $type ) {
 		if ( WC_Payment_Token_CC::class === $class ) {
 			return WC_Stripe_Payment_Token_CC::class;
+		}
+		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $type ) {
+			return WC_Payment_Token_ACH::class;
 		}
 		return $class;
 	}

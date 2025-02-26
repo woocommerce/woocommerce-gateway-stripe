@@ -652,7 +652,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
-		$order = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -667,11 +667,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === substr( (string) $order->get_payment_method(), 0, 6 ) ) {
-			$charge        = $order->get_transaction_id();
-			$captured      = $order->get_meta( '_stripe_charge_captured' );
-			$refund_id     = $order->get_meta( '_stripe_refund_id' );
-			$currency      = $order->get_currency();
-			$raw_amount    = $refund_object->amount;
+			$charge     = $order->get_transaction_id();
+			$captured   = $order->get_meta( '_stripe_charge_captured' );
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $refund_object->amount;
 
 			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 				$raw_amount /= 100;

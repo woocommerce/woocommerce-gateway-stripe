@@ -103,9 +103,9 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	 * @param string $cost        Shipping method cost in USD
 	 */
 	private static function set_shipping_method_cost( $instance_id, $cost ) {
-		$method          = WC_Shipping_Zones::get_shipping_method( $instance_id );
-		$option_key      = $method->get_instance_option_key();
-		$options         = get_option( $option_key );
+		$method     = WC_Shipping_Zones::get_shipping_method( $instance_id );
+		$option_key = $method->get_instance_option_key();
+		$options    = get_option( $option_key );
 		if ( ! is_array( $options ) ) {
 			$options = [];
 		}

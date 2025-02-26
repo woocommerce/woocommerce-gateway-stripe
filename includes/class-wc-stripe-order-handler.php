@@ -64,9 +64,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		try {
 			$intent = $this->get_intent_from_order( $order );
 			if ( $intent && WC_Stripe_Intent_Status::REQUIRES_CAPTURE === $intent->status ) {
-				$capture_notice = __( 'Attempting to capture more than the authorized amount will fail with an error.', 'woocommerce-gateway-stripe' );
+				$capture_notice  = __( 'Attempting to capture more than the authorized amount will fail with an error.', 'woocommerce-gateway-stripe' );
 				$capture_tooltip = __( 'You may edit the order to have a total less than or equal to the original authorized amount.', 'woocommerce-gateway-stripe' );
-				echo esc_html( $capture_notice ) . wc_help_tip( $capture_tooltip );
+				echo esc_html( $capture_notice ) . wp_kses_post( wc_help_tip( $capture_tooltip ) );
 			}
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error getting intent from order: ' . $e->getMessage() );
@@ -281,7 +281,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function capture_payment( $order_id ) {
 		$result = new stdClass();
-		$order = wc_get_order( $order_id );
+		$order  = wc_get_order( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
