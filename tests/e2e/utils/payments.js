@@ -381,3 +381,36 @@ export const fillACHBankDetails = async ( page ) => {
 	// Click "Done" button.
 	await frame.getByTestId( 'done-button' ).click();
 };
+
+/**
+ * Handles the 3DS challenge on the checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {string} action The action to take on the challenge modal.
+ */
+export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
+	const outerFrameLocator = page
+		.locator( 'iframe[name^="__privateStripeFrame"]' )
+		.first()
+		.contentFrame();
+	const innerFrameLocator = outerFrameLocator.frameLocator(
+		'iframe[name="stripe-challenge-frame"]'
+	);
+
+	// Wait for the challenge modal to be ready -- the inner frame is "visible"
+	// and the loading indicator is hidden.
+	await innerFrameLocator.owner().waitFor();
+	await outerFrameLocator
+		.locator( '.LightboxModalLoadingIndicator' )
+		.waitFor( { state: 'hidden' } );
+
+	const buttonId =
+		action === 'authorize'
+			? '#test-source-authorize-3ds'
+			: '#test-source-fail-3ds';
+	await innerFrameLocator.locator( buttonId ).waitFor( { state: 'visible' } );
+	await innerFrameLocator.locator( buttonId ).click();
+
+	if ( action === 'fail' ) {
+		await innerFrameLocator.owner().waitFor( { state: 'detached' } );
+	}
+}
