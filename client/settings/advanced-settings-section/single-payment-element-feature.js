@@ -16,7 +16,7 @@ const SinglePaymentElementFeature = () => {
 
 	return (
 		<>
-			<h4 tabIndex="-1">
+			<h4>
 				{ __( 'Single payment element', 'woocommerce-gateway-stripe' ) }
 			</h4>
 			<CheckboxControl
@@ -38,6 +38,7 @@ const SinglePaymentElementFeature = () => {
 				) }
 				checked={ isSpeEnabled }
 				onChange={ setIsSpeEnabled }
+				disabled={ ! isUpeEnabled }
 			/>
 		</>
 	);
