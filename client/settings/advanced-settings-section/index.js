@@ -7,6 +7,7 @@ import DebugMode from './debug-mode';
 import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
+import { useIsUpeEnabled } from 'wcstripe/data';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -21,13 +22,14 @@ const AdvancedSettingsDescription = () => (
 );
 
 const AdvancedSettings = () => {
+	const [ isUpeEnabled ] = useIsUpeEnabled();
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
 			<LoadableSettingsSection numLines={ 10 }>
 				<Card>
 					<CardBody>
 						<DebugMode />
-						<SinglePaymentElementFeature />
+						{ isUpeEnabled && <SinglePaymentElementFeature /> }
 						<ExperimentalFeatures />
 					</CardBody>
 				</Card>
