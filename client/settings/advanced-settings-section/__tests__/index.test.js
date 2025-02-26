@@ -20,10 +20,11 @@ jest.mock( 'wcstripe/data', () => ( {
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = { is_spe_available: true };
+		global.wc_stripe_settings_params = { is_spe_available: false };
+
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
-		useIsSpeEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsSpeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
@@ -55,5 +56,23 @@ describe( 'AdvancedSettings', () => {
 		userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'should not display single payment element setting if the feature flag is disabled', () => {
+		render( <AdvancedSettings /> );
+
+		expect(
+			screen.queryByText( 'Single payment element' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should display single payment element setting if the feature flag is enabled', () => {
+		global.wc_stripe_settings_params = { is_spe_available: true };
+
+		render( <AdvancedSettings /> );
+
+		expect(
+			screen.queryByText( 'Single payment element' )
+		).toBeInTheDocument();
 	} );
 } );
