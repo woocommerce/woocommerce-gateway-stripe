@@ -44,24 +44,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns a list of the payment method titles.
-	 *
-	 * @param bool $include_link Whether to include the Link payment method.
-	 * @return array
-	 */
-	public static function get_payment_method_titles( $include_link = false ) {
-		$titles = [
-			WC_Stripe_Express_Payment_Methods::APPLE_PAY  => WC_Stripe_Express_Payment_Titles::APPLE_PAY,
-			WC_Stripe_Express_Payment_Methods::GOOGLE_PAY => WC_Stripe_Express_Payment_Titles::GOOGLE_PAY,
-			WC_Stripe_Express_Payment_Methods::AMAZON_PAY => WC_Stripe_Express_Payment_Titles::AMAZON_PAY,
-		];
-		if ( $include_link ) {
-			$titles[ WC_Stripe_Express_Payment_Methods::LINK ] = WC_Stripe_Express_Payment_Titles::LINK;
-		}
-		return $titles;
-	}
-
-	/**
 	 * Returns the suffix set for the express payment method titles.
 	 *
 	 * @return mixed

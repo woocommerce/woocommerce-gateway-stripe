@@ -18,6 +18,39 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 	protected $rest_base = 'wc_stripe/orders';
 
 	/**
+	 * Minimum charge amounts by currency.
+	 * https://docs.stripe.com/currencies#minimum-and-maximum-charge-amounts
+	 *
+	 * @var array
+	 */
+	protected static $minimum_amounts = [
+		'USD' => 50,    // $0.50
+		'AED' => 200,   // 2.00 د.إ
+		'AUD' => 50,    // $0.50
+		'BGN' => 100,   // лв1.00
+		'BRL' => 50,    // R$0.50
+		'CAD' => 50,    // $0.50
+		'CHF' => 50,    // 0.50 Fr
+		'CZK' => 1500,  // 15.00Kč
+		'DKK' => 250,   // 2.50-kr
+		'EUR' => 50,    // €0.50
+		'GBP' => 30,    // £0.30
+		'HKD' => 400,   // $4.00
+		'HUF' => 17500, // 175.00 Ft
+		'INR' => 50,    // ₹0.50
+		'JPY' => 50,    // ¥50
+		'MXN' => 1000,  // $10
+		'MYR' => 200,   // RM 2
+		'NOK' => 300,   // 3.00-kr
+		'NZD' => 50,    // $0.50
+		'PLN' => 200,   // 2.00 zł
+		'RON' => 200,   // lei2.00
+		'SEK' => 300,   // 3.00-kr
+		'SGD' => 50,    // $0.50
+		'THB' => 1000,  // ฿10
+	];
+
+	/**
 	 * Stripe payment gateway.
 	 *
 	 * @var WC_Gateway_Stripe
@@ -153,6 +186,25 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			$this->gateway->process_response( $charge, $order );
 			$result = WC_Stripe_Order_Handler::get_instance()->capture_payment( $order );
 
+			// Check for amount_too_small error
+			if ( ! empty( $result->error ) && 'amount_too_small' === $result->error->code ) {
+				$currency       = strtoupper( $order->get_currency() );
+				$minimum_amount = isset( self::$minimum_amounts[ $currency ] ) ? self::$minimum_amounts[ $currency ] : null;
+
+				$message = wp_json_encode(
+					[
+						'minimum_amount'          => $minimum_amount,
+						'minimum_amount_currency' => $currency,
+					]
+				);
+
+				return new WP_Error(
+					'wc_stripe_capture_error_amount_too_small',
+					$message,
+					[ 'status' => 400 ]
+				);
+			}
+
 			// Check for failure to capture payment.
 			if ( empty( $result ) || empty( $result->status ) || WC_Stripe_Intent_Status::SUCCEEDED !== $result->status ) {
 				return new WP_Error(
@@ -177,6 +229,5 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		} catch ( WC_Stripe_Exception $e ) {
 			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
 		}
-
 	}
 }

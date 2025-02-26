@@ -43,7 +43,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
-		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
+		$this->payment_request_configuration  = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
 		$this->express_checkout_configuration = null !== $express_checkout_configuration ? $express_checkout_configuration : new WC_Stripe_Express_Checkout_Element();
 	}
 
@@ -189,6 +189,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			// Blocks-specific options
 			[
 				'icons'                           => $this->get_icons(),
+				'plugin_url'                      => WC_STRIPE_PLUGIN_URL,
 				'supports'                        => $this->get_supported_features(),
 				'showSavedCards'                  => $this->get_show_saved_cards(),
 				'showSaveOption'                  => $this->get_show_save_option(),
@@ -198,7 +199,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'button'                          => [
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
-				'style'                          => $this->get_style(),
+				'style'                           => $this->get_style(),
 			]
 		);
 	}
@@ -514,15 +515,22 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @param string    $payment_request_type The payment request type used for payment.
 	 */
 	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
-		$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		if ( WC_Stripe_Express_Payment_Methods::APPLE_PAY === $payment_request_type ) {
-			$order->set_payment_method_title( WC_Stripe_Express_Payment_Titles::APPLE_PAY . $payment_method_suffix );
-			$order->save();
-		} elseif ( WC_Stripe_Express_Payment_Methods::GOOGLE_PAY === $payment_request_type ) {
-			$order->set_payment_method_title( WC_Stripe_Express_Payment_Titles::GOOGLE_PAY . $payment_method_suffix );
-			$order->save();
-		} elseif ( 'payment_request_api' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Payment Request (Stripe)' );
+		$payment_method_title = '';
+		switch ( $payment_request_type ) {
+			case WC_Stripe_Express_Payment_Methods::APPLE_PAY:
+				$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
+				break;
+			case WC_Stripe_Express_Payment_Methods::GOOGLE_PAY:
+				$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+				break;
+			case 'payment_request_api':
+				$payment_method_title = 'Payment Request';
+				break;
+		}
+
+		if ( $payment_method_title ) {
+			$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+			$order->set_payment_method_title( $payment_method_title . $payment_method_suffix );
 			$order->save();
 		}
 	}

@@ -41,6 +41,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
+		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
 	];
 
 	/**
@@ -156,7 +157,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
 		$this->payment_methods = [];
-
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 
 			// Show ACH only if feature is enabled.
@@ -169,8 +169,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				continue;
 			}
 
-			// Show BACS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+			// Consider Bacs only if the feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
 				continue;
 			}
 
@@ -1012,7 +1012,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
 
-			if ( $this->is_payment_needed( $order->get_id() ) ) {
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			if ( $payment_needed ) {
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} else {
 				// TODO: add confirmation token support, if possible.
@@ -1028,6 +1030,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$this->set_payment_method_title_for_order( $order, $selected_payment_type, $payment_method );
+
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$charge = $this->get_latest_charge_from_intent( $payment_intent );
+
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
+			}
 
 			$return_url = $this->get_return_url( $order );
 
@@ -2206,6 +2217,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
+			'payment_method'                => '',
+			'payment_method_details'        => [],
+			'payment_type'                  => 'single', // single | recurring.
+			'capture_method'                => $capture_method,
 		];
 
 		if ( 'us_bank_account' === $selected_payment_type ) {
@@ -2216,18 +2231,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_details                              = WC_Stripe_API::get_payment_method( $payment_method_id );
 			$payment_information['payment_method']               = $payment_method_id;
 			$payment_information['payment_method_details']       = $payment_method_details;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
 			$payment_information['payment_method_options']       = $this->get_payment_method_options(
 				$selected_payment_type,
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
-			$payment_information['payment_type']                 = 'single'; // single | recurring.
 			$payment_information['save_payment_method_to_store'] = false;
 
 			// When using confirmation tokens with manual capture, we need to
@@ -2238,8 +2250,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'capture_method' => 'manual',
 					],
 				];
-			} else {
-				$payment_information['capture_method'] = $capture_method;
+			}
+
+			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
+			if ( $payment_information['has_subscription'] ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
 			}
 		}
 
@@ -2902,15 +2917,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Hide "Pay" and "Cancel" action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+	 * Hide "Pay" and "Cancel" action buttons for pending Amazon Pay or BACS Debit orders (as they take a while to be confirmed).
 	 *
 	 * @param $actions array An array with the default actions.
 	 * @param $order WC_Order The order.
 	 * @return array
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
-		$amazon_pay_title = WC_Stripe_Express_Payment_Titles::AMAZON_PAY . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		if ( is_order_received_page() && $order->get_payment_method_title() === $amazon_pay_title && $order->has_status( 'pending' ) ) {
+		$methods_with_delayed_confirmation = [
+			WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix(),
+			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
+		];
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( 'pending' ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
@@ -2924,7 +2942,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	public function filter_thankyou_order_received_text( $text, $order ) {
-		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+		$amazon_pay_title = WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		if ( $order->get_payment_method_title() === $amazon_pay_title && $order->has_status( 'pending' ) ) {
 			$text .= '<p class="woocommerce-info">';
 			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
 			$text .= '</p>';

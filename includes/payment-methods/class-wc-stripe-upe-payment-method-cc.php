@@ -130,7 +130,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string The title for the card wallet type.
 	 */
 	private function get_card_wallet_type_title( $express_payment_type ) {
-		$express_payment_titles = WC_Stripe_Express_Checkout_Helper::get_payment_method_titles();
+		$express_payment_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
 		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
 
 		if ( ! $payment_method_title ) {

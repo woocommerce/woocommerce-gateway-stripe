@@ -386,12 +386,16 @@ class WC_Stripe_Express_Checkout_Element {
 		$order = wc_get_order( $order_id );
 
 		$express_checkout_type = wc_clean( wp_unslash( $_POST['express_checkout_type'] ) );
-		$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		$payment_method_title  = '';
 		if ( WC_Stripe_Express_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
-			$order->set_payment_method_title( WC_Stripe_Express_Payment_Titles::APPLE_PAY . $payment_method_suffix );
-			$order->save();
+			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
 		} elseif ( WC_Stripe_Express_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
-			$order->set_payment_method_title( WC_Stripe_Express_Payment_Titles::GOOGLE_PAY . $payment_method_suffix );
+			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+		}
+
+		if ( $payment_method_title ) {
+			$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+			$order->set_payment_method_title( $payment_method_title . $payment_method_suffix );
 			$order->save();
 		}
 
@@ -426,14 +430,9 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$method_title = $theorder->get_payment_method_title();
 
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
-
-		if ( ! empty( $suffix ) ) {
-			$suffix = " ($suffix)";
-		}
-
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			$express_method_titles = WC_Stripe_Express_Checkout_Helper::get_payment_method_titles();
+			$express_method_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
+			$suffix                = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 			array_walk(
 				$express_method_titles,
 				function( &$value, $key ) use ( $suffix ) {

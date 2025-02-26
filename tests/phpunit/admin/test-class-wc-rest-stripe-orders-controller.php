@@ -251,4 +251,66 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
+
+	public function test_capture_payment_amount_too_small_supported_currency() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+		$order->set_currency( 'USD' );
+		$order->save();
+
+		// Mock response from Stripe API for payment intent retrieval.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			if ( strpos( $url, 'payment_intents' ) !== false && strpos( $url, 'capture' ) === false ) {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'id'      => 'pi_12345',
+							'object'  => 'payment_intent',
+							'status'  => WC_Stripe_Intent_Status::REQUIRES_CAPTURE,
+							'charges' => [
+								'data' => [
+									[
+										'id'     => 'ch_12345',
+										'status' => 'succeeded',
+									],
+								],
+							],
+						]
+					),
+				];
+			}
+
+			// Mock the capture request to return amount_too_small error
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'error' => [
+							'code'    => 'amount_too_small',
+							'message' => 'Amount must be at least $0.50 USD',
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request  = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 'wc_stripe_capture_error_amount_too_small', $response->get_data()['code'] );
+		$this->assertEquals( 400, $response->get_status() );
+
+		// Decode the error message to verify minimum amount data
+		$error_data = json_decode( $response->get_data()['message'], true );
+		$this->assertEquals( 50, $error_data['minimum_amount'] );
+		$this->assertEquals( 'USD', $error_data['minimum_amount_currency'] );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
 }

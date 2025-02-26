@@ -7,10 +7,45 @@ class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
+	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
+	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
+	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
 
-	const LPM_ACH_FEATURE_FLAG_NAME  = '_wcstripe_feature_lpm_ach';
-	const LPM_ACSS_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_acss';
-	const LPM_BACS_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_bacs';
+	/**
+	 * Map of feature flag option names => their default "yes"/"no" value.
+	 * This single source of truth makes it easier to maintain our dev tools.
+	 *
+	 * @var array
+	 */
+	protected static $feature_flags = [
+		'_wcstripe_feature_upe'            => 'yes',
+		self::ECE_FEATURE_FLAG_NAME        => 'yes',
+		self::AMAZON_PAY_FEATURE_FLAG_NAME => 'no',
+		self::LPM_ACH_FEATURE_FLAG_NAME    => 'no',
+		self::LPM_ACSS_FEATURE_FLAG_NAME   => 'no',
+		self::LPM_BACS_FEATURE_FLAG_NAME   => 'no',
+	];
+
+	/**
+	 * Retrieve all defined feature flags with their default values.
+	 * Note: This method is intended for use in the dev tools.
+	 *
+	 * @return array
+	 */
+	public static function get_all_feature_flags_with_defaults() {
+		return self::$feature_flags;
+	}
+
+	/**
+	 * Retrieve the default value for a specific feature flag.
+	 *
+	 * @param string $flag
+	 * @return string
+	 */
+	public static function get_option_with_default( $flag ) {
+		$default = isset( self::$feature_flags[ $flag ] ) ? self::$feature_flags[ $flag ] : 'no';
+		return get_option( $flag, $default );
+	}
 
 	/**
 	 * Checks whether ACH LPM (Local Payment Method) feature flag is enabled.
@@ -19,7 +54,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_ach_lpm_enabled() {
-		return 'yes' === get_option( self::LPM_ACH_FEATURE_FLAG_NAME, 'no' );
+		return 'yes' === self::get_option_with_default( self::LPM_ACH_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -29,7 +64,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_acss_lpm_enabled() {
-		return 'yes' === get_option( self::LPM_ACSS_FEATURE_FLAG_NAME, 'no' );
+		return 'yes' === self::get_option_with_default( self::LPM_ACSS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -38,7 +73,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_amazon_pay_available() {
-		return 'yes' === get_option( self::AMAZON_PAY_FEATURE_FLAG_NAME, 'no' );
+		return 'yes' === self::get_option_with_default( self::AMAZON_PAY_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -48,7 +83,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_bacs_lpm_enabled(): bool {
-		return 'yes' === get_option( self::LPM_BACS_FEATURE_FLAG_NAME, 'no' );
+		return 'yes' === self::get_option_with_default( self::LPM_BACS_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -58,7 +93,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_stripe_ece_enabled() {
-		return 'yes' === get_option( self::ECE_FEATURE_FLAG_NAME, 'yes' );
+		return 'yes' === self::get_option_with_default( self::ECE_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -68,7 +103,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_preview_enabled() {
-		return 'yes' === get_option( '_wcstripe_feature_upe', 'yes' );
+		return 'yes' === self::get_option_with_default( '_wcstripe_feature_upe' );
 	}
 
 	/**

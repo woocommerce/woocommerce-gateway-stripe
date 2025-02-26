@@ -237,13 +237,13 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
 
 		$test_account = [
-			'id'      => 'acct_test-1234',
-			'email'   => 'john@example.com',
+			'id'    => 'acct_test-1234',
+			'email' => 'john@example.com',
 		];
 
 		$live_account = [
-			'id'      => 'acct_live-1234',
-			'email'   => 'john@example.com',
+			'id'    => 'acct_live-1234',
+			'email' => 'john@example.com',
 		];
 		set_transient( 'wcstripe_account_data_test', $test_account );
 		set_transient( 'wcstripe_account_data_live', $live_account );
@@ -429,7 +429,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'GET' ],
 		];
-		WC_Helper_Stripe_Api::$request_response = (object) [
+		WC_Helper_Stripe_Api::$request_response             = (object) [
 			'id'     => 'wh_123_test',
 			'status' => 'enabled',
 		];
@@ -475,10 +475,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function test_reconfigure_webhooks_on_update_with_outdated_webhooks() {
 		// Mock an existing webhook with different events
 		$outdated_webhook = (object) [
-			'id' => 'we_123',
-			'url' => WC_Stripe_Helper::get_webhook_url(),
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'enabled_events' => [ 'charge.succeeded', 'charge.failed' ],
-			'status' => 'enabled',
+			'status'         => 'enabled',
 		];
 
 		// Setup the account mock
@@ -505,10 +505,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function test_reconfigure_webhooks_on_update_with_current_webhooks() {
 		// Mock an existing webhook with current events
 		$current_webhook = (object) [
-			'id' => 'we_123',
-			'url' => WC_Stripe_Helper::get_webhook_url(),
+			'id'             => 'we_123',
+			'url'            => WC_Stripe_Helper::get_webhook_url(),
 			'enabled_events' => WC_Stripe_Account::WEBHOOK_EVENTS,
-			'status' => 'enabled',
+			'status'         => 'enabled',
 		];
 
 		// Setup the account mock

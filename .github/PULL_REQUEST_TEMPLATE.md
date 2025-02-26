@@ -46,31 +46,9 @@ Please follow the following guidelines when writing testing instructions:
 
 ### Changelog entry
 
-<!-- You can optionally choose to enter a changelog entry by checking the box and supplying data. -->
-
--   [ ] Automatically create a changelog entry from the details below.
-
 <!-- If no changelog entry is required for this PR, you can specify that below and provide a comment explaining why. This cannot be used if you selected the option to automatically create a changelog entry above. -->
 
 -   [ ] This Pull Request does not require a changelog entry. (Comment required below)
-
-<details>
-
-<summary>Changelog Entry Details</summary>
-
-#### Type
-
-<!-- Choose only one -->
-
--   [ ] Fix - Fixes an existing bug
--   [ ] Add - Adds functionality
--   [ ] Update - Update existing functionality
--   [ ] Dev - Development related task
--   [ ] Tweak - A minor adjustment to the codebase
-
-#### Message <!-- Add a changelog message here -->
-
-</details>
 
 <details>
 

@@ -10,12 +10,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Payment_Methods {
 
 	const ACH               = 'us_bank_account';
+	const ACSS_DEBIT        = 'acss_debit';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
+	const BACS_DEBIT        = 'bacs_debit';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
+	const CARD_PRESENT      = 'card_present';
 	const CASHAPP_PAY       = 'cashapp';
 	const EPS               = 'eps';
 	const GIROPAY           = 'giropay';
@@ -28,9 +31,13 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
-	const CARD_PRESENT      = 'card_present';
-	const ACSS_DEBIT        = 'acss_debit';
-	const BACS_DEBIT        = 'bacs_debit';
+
+	// Payment method labels
+	const AMAZON_PAY_LABEL = 'Amazon Pay';
+	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
+	const GOOGLE_PAY_LABEL = 'Google Pay';
+	const APPLE_PAY_LABEL  = 'Apple Pay';
+	const LINK_LABEL       = 'Link';
 
 	/**
 	 * Use WC_Stripe_Express_Payment_Methods::LINK instead.
@@ -76,5 +83,14 @@ class WC_Stripe_Payment_Methods {
 	const WALLET_PAYMENT_METHODS = [
 		self::CASHAPP_PAY,
 		self::WECHAT_PAY,
+	];
+
+	/**
+	 * List of express payment methods labels (excluding Link).
+	 */
+	const EXPRESS_METHODS_LABELS = [
+		self::AMAZON_PAY => self::AMAZON_PAY_LABEL,
+		'google_pay'     => self::GOOGLE_PAY_LABEL,
+		'apple_pay'      => self::APPLE_PAY_LABEL,
 	];
 }

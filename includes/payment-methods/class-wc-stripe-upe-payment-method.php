@@ -249,7 +249,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				if ( ! in_array( $order_currency, $currencies, true ) ) {
 					return false;
 				}
-			} else if ( ! in_array( $current_store_currency, $currencies, true ) ) {
+			} elseif ( ! in_array( $current_store_currency, $currencies, true ) ) {
 				return false;
 			}
 		}
@@ -564,7 +564,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return $empty_value;
 		}
 
-		if ( ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
+		if ( isset( $main_settings[ $key ] ) && ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
 			return $empty_value;
 		}
 

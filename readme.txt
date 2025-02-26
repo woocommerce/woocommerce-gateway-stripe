@@ -112,12 +112,24 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.3.0 - xxxx-xx-xx =
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
+* Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
+* Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
+* Add - Adds Stripe specific information to the System Status Report data.
 * Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
 * Fix - Prepare the redirect URL at the end of 'process_payment' method. 
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
+* Fix - Fix error when processing a subscription via Amazon Pay.
+* Fix - Make Amazon Pay compatible with upfront pre-orders.
+* Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
+* Dev - Fix changelog action
+* Tweak - Map feature flags into a standard array for easier maintenance.
+* Dev - Fix QIT Tests GitHub workflow.
+* Fix - Fix issue where payment methods do not refresh after address changes.
+* Add - Bacs: Process Payment with Saved Bank Details
+* Tweak - Update payment method logos on the checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

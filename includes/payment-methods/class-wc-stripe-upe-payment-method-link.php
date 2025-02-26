@@ -133,7 +133,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( WC_Stripe_Express_Payment_Titles::LINK === $method_title ) {
+			if ( WC_Stripe_Payment_Methods::LINK_LABEL === $method_title ) {
 				return $method_title;
 			}
 		}
