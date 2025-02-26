@@ -2416,6 +2416,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_type'                  => 'single', // single | recurring.
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'capture_method'                => $capture_method,
+			'has_forced_tokenization'       => $this->order_requires_order_payment_token( $order ),
 		];
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
