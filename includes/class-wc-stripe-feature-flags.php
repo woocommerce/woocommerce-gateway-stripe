@@ -23,6 +23,7 @@ class WC_Stripe_Feature_Flags {
 		'_wcstripe_feature_upe'            => 'yes',
 		self::ECE_FEATURE_FLAG_NAME        => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME => 'no',
+		self::SPE_FEATURE_FLAG_NAME        => 'no',
 		self::LPM_ACH_FEATURE_FLAG_NAME    => 'no',
 		self::LPM_ACSS_FEATURE_FLAG_NAME   => 'no',
 		self::LPM_BACS_FEATURE_FLAG_NAME   => 'no',
@@ -154,7 +155,7 @@ class WC_Stripe_Feature_Flags {
 	 *
 	 * @return bool
 	 */
-	public static function is_spe_enabled() {
+	public static function is_spe_available() {
 		return 'yes' === self::get_option_with_default( self::SPE_FEATURE_FLAG_NAME );
 	}
 }
