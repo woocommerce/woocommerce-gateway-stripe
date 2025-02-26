@@ -7,19 +7,23 @@ import {
 	useIsUpeEnabled,
 	useGetSavingError,
 	useSettings,
+	useIsSpeEnabled,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
+	useIsSpeEnabled: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
 } ) );
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
+		global.wc_stripe_settings_params = { is_spe_available: true };
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsSpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
