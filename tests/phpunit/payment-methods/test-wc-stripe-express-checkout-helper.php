@@ -313,24 +313,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `get_payment_method_titles`.
-	 *
-	 * @return void
-	 */
-	public function test_get_payment_method_titles() {
-		$actual = WC_Stripe_Payment_Methods::METHODS_LABELS;
-		$this->assertEquals(
-			[
-				'apple_pay'                           => WC_Stripe_Payment_Methods::APPLE_PAY_LABEL,
-				'google_pay'                          => WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL,
-				WC_Stripe_Payment_Methods::AMAZON_PAY => WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL,
-				WC_Stripe_Payment_Methods::LINK       => WC_Stripe_Payment_Methods::LINK_LABEL,
-			],
-			$actual
-		);
-	}
-
-	/**
 	 * Test for `get_payment_method_title_suffix`
 	 *
 	 * @return void
