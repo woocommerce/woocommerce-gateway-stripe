@@ -82,7 +82,8 @@ Object.entries( paymentMethodsConfig )
 				api,
 				upeConfig.description,
 				upeConfig.testingInstructions,
-				upeConfig.showSaveOption ?? false
+				upeConfig.showSaveOption ?? false,
+				upeConfig.supportsDeferredIntent
 			),
 			edit: getDeferredIntentCreationUPEFields(
 				upeName,
@@ -90,7 +91,8 @@ Object.entries( paymentMethodsConfig )
 				api,
 				upeConfig.description,
 				upeConfig.testingInstructions,
-				upeConfig.showSaveOption ?? false
+				upeConfig.showSaveOption ?? false,
+				upeConfig.supportsDeferredIntent
 			),
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
 			canMakePayment: ( cartData ) => {
