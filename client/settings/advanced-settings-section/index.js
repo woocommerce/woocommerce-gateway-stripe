@@ -29,8 +29,8 @@ const AdvancedSettings = () => {
 				<Card>
 					<CardBody>
 						<DebugMode />
-						{ isUpeEnabled && <SinglePaymentElementFeature /> }
 						<ExperimentalFeatures />
+						{ isUpeEnabled && <SinglePaymentElementFeature /> }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>
