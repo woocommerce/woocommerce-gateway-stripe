@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
 * Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
 * Add - Adds Stripe specific information to the System Status Report data.
@@ -128,5 +129,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix QIT Tests GitHub workflow.
 * Fix - Fix issue where payment methods do not refresh after address changes.
 * Add - Bacs: Process Payment with Saved Bank Details
+* Tweak - Update payment method logos on the checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
