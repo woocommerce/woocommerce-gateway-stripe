@@ -34,7 +34,9 @@ const getStripeElementOptions = () => {
 			billingDetails: {
 				name: 'never',
 				email: 'never',
-				phone: 'never',
+				// The phone field is optional, so it needs to be "auto" to not throw errors
+				// when passing the phone parameter to create a payment method.
+				phone: 'auto',
 				address: {
 					country: 'never',
 					line1: 'never',
@@ -93,6 +95,7 @@ export function validateElements( elements ) {
  *
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
+ * @param {string}      args.paymentIntentId     The payment intent ID.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
  * @param {string}      args.description         The payment method description to display.
  * @param {string}      args.testingInstructions The testing instructions to display.
@@ -109,6 +112,7 @@ export function validateElements( elements ) {
  */
 const PaymentProcessor = ( {
 	api,
+	paymentIntentId,
 	activePaymentMethod,
 	description,
 	testingInstructions,
@@ -192,7 +196,7 @@ const PaymentProcessor = ( {
 								billing_details: {
 									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
 									email: billingAddress.email,
-									phone: billingAddress.phone,
+									phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
 									address: {
 										city: billingAddress.city,
 										country: billingAddress.country,
@@ -217,6 +221,7 @@ const PaymentProcessor = ( {
 						meta: {
 							paymentMethodData: {
 								payment_method: upeMethods[ paymentMethodId ],
+								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
@@ -253,6 +258,7 @@ const PaymentProcessor = ( {
 			onPaymentSetup,
 			isPaymentElementComplete,
 			billing.billingAddress,
+			paymentIntentId,
 		]
 	);
 
