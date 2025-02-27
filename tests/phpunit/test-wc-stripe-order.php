@@ -276,4 +276,22 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'John Doe', $owner_details->name );
 		$this->assertEquals( 'test@example.com', $owner_details->email );
 	}
+
+	/**
+	 * Test for `to_instance`.
+	 *
+	 * @return void
+	 */
+	public function test_to_instance() {
+		$order = wc_create_order(
+			[
+				'status'        => 'pending',
+				'customer_id'   => 123,
+				'customer_note' => '',
+				'total'         => '',
+			]
+		);
+
+		$this->assertInstanceOf( WC_Stripe_Order::class, $order->to_instance( $order ) );
+	}
 }
