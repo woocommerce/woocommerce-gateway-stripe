@@ -97,7 +97,7 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @return string $currency
 	 *
 	 * @deprecated 9.3.0
@@ -115,7 +115,7 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @param string $currency
 	 *
 	 * @deprecated 9.3.0
@@ -133,7 +133,7 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @return string $amount
 	 *
 	 * @deprecated 9.3.0
@@ -163,7 +163,7 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @param float  $amount
 	 *
 	 * @deprecated 9.3.0
@@ -181,7 +181,7 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 *
 	 * @deprecated 9.3.0
 	 */
@@ -199,7 +199,7 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @return string $amount
 	 *
 	 * @deprecated 9.3.0
@@ -229,7 +229,7 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 * @param float  $amount
 	 *
 	 * @deprecated 9.3.0
@@ -247,7 +247,7 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param WC_Stripe_Order|WC_Order $order
+	 * @param WC_Order $order
 	 *
 	 * @deprecated 9.3.0
 	 */
@@ -1032,7 +1032,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
-	 * @return WC_Order|WC_Stripe_Order|bool Either an order or false when not found.
+	 * @return WC_Order|bool Either an order or false when not found.
 	 *
 	 * @deprecated 9.3.0
 	 */
@@ -1073,7 +1073,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
-	 * @return WC_Order|WC_Stripe_Order|bool Either an order or false when not found.
+	 * @return WC_Order|bool Either an order or false when not found.
 	 *
 	 * @deprecated 9.3.0
 	 */
@@ -1337,7 +1337,7 @@ class WC_Stripe_Helper {
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @param $payment_intent_id
-	 * @param $order WC_Stripe_Order|WC_Order
+	 * @param $order WC_Order
 	 *
 	 * @deprecated 9.3.0
 	 */
@@ -1497,7 +1497,7 @@ class WC_Stripe_Helper {
 	 *
 	 * This meta is primarily used to prevent orders from being cancelled by WooCommerce's hold stock settings.
 	 *
-	 * @param WC_Stripe_Order|WC_Order $order The order to add the metadata to.
+	 * @param WC_Order $order The order to add the metadata to.
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
@@ -1516,7 +1516,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Removes the metadata from the order that was used to indicate that the payment was awaiting action.
 	 *
-	 * @param WC_Stripe_Order|WC_Order $order The order to remove the metadata from.
+	 * @param WC_Order $order The order to remove the metadata from.
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
@@ -1587,16 +1587,13 @@ class WC_Stripe_Helper {
 	/**
 	 * Verifies if the provided order contains the identifier for a wallet method.
 	 *
-	 * @param WC_Stripe_Order $order The order.
+	 * @param WC_Order $order The order.
 	 * @return bool
 	 *
 	 * @deprecated 8.9.0
 	 */
 	public static function is_wallet_payment_method( $order ) {
 		wc_deprecated_function( __METHOD__, '8.9.0', 'in_array( $order->get_meta( \'_stripe_upe_payment_type\' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true )' );
-		if ( $order instanceof WC_Stripe_Order ) {
-			return in_array( $order->get_upe_payment_type(), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
-		}
 		return in_array( $order->get_meta( '_stripe_upe_payment_type' ), WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS, true );
 	}
 
