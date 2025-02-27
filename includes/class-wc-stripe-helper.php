@@ -1639,9 +1639,7 @@ class WC_Stripe_Helper {
 	 * @return void
 	 */
 	public static function maybe_log_ip_issues( $ip_address ) {
-		// TODO: Remove me before merging!!!
-		$test = true;
-		if ( $test || rest_is_ip_address( $ip_address ) === false ) {
+		if ( rest_is_ip_address( $ip_address ) === false ) {
 			$log_data = [ 'WC_Geolocation::get_ip_address()' => $ip_address ];
 			$headers  = [
 				'HTTP_X_REAL_IP',
