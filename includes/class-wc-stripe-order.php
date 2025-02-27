@@ -10,6 +10,149 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
+	 * Meta key for the Stripe source ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_SOURCE_ID = '_stripe_source_id';
+
+	/**
+	 * Meta key for the Stripe charge ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CHARGE_ID = '_transaction_id';
+
+	/**
+	 * Meta key for the Stripe refund ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_REFUND_ID = '_stripe_refund_id';
+
+	/**
+	 * Meta key for the Stripe Payment Intent ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_INTENT_ID = '_stripe_intent_id';
+
+	/**
+	 * Meta key for the Stripe Setup Intent ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
+
+	/**
+	 * Meta key for the Stripe fee amount.
+	 */
+	const META_STRIPE_FEE = '_stripe_fee';
+
+	/**
+	 * Meta key for the Stripe net amount.
+	 */
+	const META_STRIPE_NET = '_stripe_net';
+
+	/**
+	 * Meta key for the Stripe currency.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CURRENCY = '_stripe_currency';
+
+	/**
+	 * Meta key for the payment awaiting action flag.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
+
+	/**
+	 * Meta key for the Stripe card brand.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
+
+	/**
+	 * Meta key for the Stripe lock refund.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_LOCK_REFUND = '_stripe_lock_refund';
+
+	/**
+	 * Meta key for the Stripe lock payment.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_LOCK_PAYMENT = '_stripe_lock_payment';
+
+	/**
+	 * Meta key for the redirect processed flag.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_UPE_REDIRECT_PROCESSED = '_stripe_upe_redirect_processed';
+
+	/**
+	 * Meta key for the status before hold.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_STATUS_BEFORE_HOLD = '_stripe_status_before_hold';
+
+	/**
+	 * Meta key for the UPE waiting for redirect flag.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_UPE_WAITING_FOR_REDIRECT = '_stripe_upe_waiting_for_redirect';
+
+	/**
+	 * Meta key for the mandate ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_MANDATE_ID = '_stripe_mandate_id';
+
+	/**
+	 * Meta key for the customer ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CUSTOMER_ID = '_stripe_customer_id';
+
+	/**
+	 * Meta key for the charge captured flag.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CHARGE_CAPTURED = '_stripe_charge_captured';
+
+	/**
+	 * Meta key to identify whether the status is final.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_STATUS_FINAL = '_stripe_status_final';
+
+	/**
+	 * Meta key for the Multibanco data.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_MULTIBANCO = '_stripe_multibanco';
+
+	/**
+	 * Meta key for the UPE payment type.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
+
+	/**
 	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_data array Order data.
@@ -65,7 +208,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $source_id
 	 */
 	public static function get_by_source_id( $source_id ) {
-		return self::get_by_meta( '_stripe_source_id', $source_id );
+		return self::get_by_meta( self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -74,7 +217,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $charge_id
 	 */
 	public static function get_by_charge_id( $charge_id ) {
-		return self::get_by_meta( '_transaction_id', $charge_id );
+		return self::get_by_meta( self::META_STRIPE_CHARGE_ID, $charge_id );
 	}
 
 	/**
@@ -83,7 +226,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $refund_id
 	 */
 	public static function get_by_refund_id( $refund_id ) {
-		return self::get_by_meta( '_stripe_refund_id', $refund_id );
+		return self::get_by_meta( self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -93,7 +236,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_by_intent_id( $intent_id ) {
-		return self::get_by_meta( '_stripe_intent_id', $intent_id );
+		return self::get_by_meta( self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
 	/**
@@ -103,7 +246,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_by_setup_intent_id( $intent_id ) {
-		return self::get_by_meta( '_stripe_setup_intent', $intent_id );
+		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT, $intent_id );
 	}
 
 	/**
@@ -185,7 +328,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string $amount
 	 */
 	public function get_fee() {
-		$amount = $this->get_meta( '_stripe_fee' );
+		$amount = $this->get_meta( self::META_STRIPE_FEE );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
@@ -206,14 +349,14 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param float $amount
 	 */
 	public function set_fee( $amount = 0.0 ) {
-		$this->update_meta_data( '_stripe_fee', $amount );
+		$this->update_meta_data( self::META_STRIPE_FEE, $amount );
 	}
 
 	/**
 	 * Deletes the Stripe fee for order.
 	 */
 	public function delete_fee() {
-		$this->delete_meta_data( '_stripe_fee' );
+		$this->delete_meta_data( self::META_STRIPE_FEE );
 		$this->delete_meta_data( 'Stripe Fee' );
 	}
 
@@ -223,7 +366,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string $amount
 	 */
 	public function get_net() {
-		$amount = $this->get_meta( '_stripe_net', true );
+		$amount = $this->get_meta( self::META_STRIPE_NET, true );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
@@ -244,14 +387,14 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param float  $amount
 	 */
 	public function set_net( $amount = 0.0 ) {
-		$this->update_meta_data( '_stripe_net', $amount );
+		$this->update_meta_data( self::META_STRIPE_NET, $amount );
 	}
 
 	/**
 	 * Deletes the Stripe net for order.
 	 */
 	public function delete_net() {
-		$this->delete_meta_data( '_stripe_net' );
+		$this->delete_meta_data( self::META_STRIPE_NET );
 		$this->delete_meta_data( 'Net Revenue From Stripe' );
 	}
 
@@ -261,7 +404,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string $currency
 	 */
 	public function get_stripe_currency() {
-		return $this->get_meta( '_stripe_currency' );
+		return $this->get_meta( self::META_STRIPE_CURRENCY );
 	}
 
 	/**
@@ -270,7 +413,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param string $currency
 	 */
 	public function set_stripe_currency( $currency ) {
-		$this->update_meta_data( '_stripe_currency', $currency );
+		$this->update_meta_data( self::META_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -281,7 +424,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_payment_awaiting_action( $save = true ) {
-		$this->update_meta_data( '_stripe_payment_awaiting_action', wc_bool_to_string( true ) );
+		$this->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$this->save();
@@ -294,7 +437,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool Whether the payment is awaiting action.
 	 */
 	public function is_payment_awaiting_action() {
-		return wc_string_to_bool( $this->get_meta( '_stripe_payment_awaiting_action' ) );
+		return wc_string_to_bool( $this->get_meta( self::META_STRIPE_PAYMENT_AWAITING_ACTION ) );
 	}
 
 	/**
@@ -305,7 +448,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function remove_payment_awaiting_action( $save = true ) {
-		$this->delete_meta_data( '_stripe_payment_awaiting_action' );
+		$this->delete_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION );
 
 		if ( $save ) {
 			$this->save();
@@ -319,7 +462,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_card_brand( $brand ) {
-		$this->update_meta_data( '_stripe_card_brand', $brand );
+		$this->update_meta_data( self::META_STRIPE_CARD_BRAND, $brand );
 	}
 
 	/**
@@ -328,7 +471,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_card_brand() {
-		return $this->get_meta( '_stripe_card_brand' );
+		return $this->get_meta( self::META_STRIPE_CARD_BRAND );
 	}
 
 	/**
@@ -362,7 +505,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * Unlocks an order for processing refund.
 	 */
 	public function unlock_refund() {
-		$this->delete_meta_data( '_stripe_lock_refund' );
+		$this->delete_meta_data( self::META_STRIPE_LOCK_REFUND );
 		$this->save_meta_data();
 	}
 
@@ -373,7 +516,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_lock_refund( $time ) {
-		$this->update_meta_data( '_stripe_lock_refund', $time );
+		$this->update_meta_data( self::META_STRIPE_LOCK_REFUND, $time );
 	}
 
 	/**
@@ -382,7 +525,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return int
 	 */
 	public function get_lock_refund() {
-		return $this->get_meta( '_stripe_lock_refund' );
+		return $this->get_meta( self::META_STRIPE_LOCK_REFUND );
 	}
 
 	/**
@@ -392,7 +535,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_setup_intent( $value ) {
-		$this->update_meta_data( '_stripe_setup_intent', $value );
+		$this->update_meta_data( self::META_STRIPE_SETUP_INTENT, $value );
 	}
 
 	/**
@@ -401,7 +544,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_setup_intent() {
-		return $this->get_meta( '_stripe_setup_intent' );
+		return $this->get_meta( self::META_STRIPE_SETUP_INTENT );
 	}
 
 	/**
@@ -411,7 +554,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_upe_redirect_processed( $value ) {
-		$this->update_meta_data( '_stripe_upe_redirect_processed', $value );
+		$this->update_meta_data( self::META_STRIPE_UPE_REDIRECT_PROCESSED, $value );
 	}
 
 	/**
@@ -420,7 +563,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool The value of the flag.
 	 */
 	public function is_upe_redirect_processed() {
-		return (bool) $this->get_meta( '_stripe_upe_redirect_processed' );
+		return (bool) $this->get_meta( self::META_STRIPE_UPE_REDIRECT_PROCESSED );
 	}
 
 	/**
@@ -444,7 +587,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string The status of the order before it was put on hold.
 	 */
 	public function get_status_before_hold() {
-		$before_hold_status = $this->get_meta( '_stripe_status_before_hold' );
+		$before_hold_status = $this->get_meta( self::META_STRIPE_STATUS_BEFORE_HOLD );
 
 		if ( ! empty( $before_hold_status ) ) {
 			return $before_hold_status;
@@ -461,7 +604,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_upe_waiting_for_redirect( $value ) {
-		$this->update_meta_data( '_stripe_upe_waiting_for_redirect', $value );
+		$this->update_meta_data( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT, $value );
 	}
 
 	/**
@@ -470,7 +613,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool
 	 */
 	public function is_upe_waiting_for_redirect() {
-		return (bool) $this->get_meta( '_stripe_upe_waiting_for_redirect' );
+		return (bool) $this->get_meta( self::META_STRIPE_UPE_WAITING_FOR_REDIRECT );
 	}
 
 	/**
@@ -480,7 +623,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_mandate_id( $mandate_id ) {
-		$this->update_meta_data( '_stripe_mandate_id', $mandate_id );
+		$this->update_meta_data( self::META_STRIPE_MANDATE_ID, $mandate_id );
 	}
 
 	/**
@@ -489,7 +632,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_mandate_id() {
-		return $this->get_meta( '_stripe_mandate_id' );
+		return $this->get_meta( self::META_STRIPE_MANDATE_ID );
 	}
 
 	/**
@@ -526,7 +669,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * Unlocks an order for processing by payment intents.
 	 */
 	public function unlock_payment() {
-		$this->delete_meta_data( '_stripe_lock_payment' );
+		$this->delete_meta_data( self::META_STRIPE_LOCK_PAYMENT );
 		$this->save_meta_data();
 	}
 
@@ -537,7 +680,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_lock_payment( $time ) {
-		$this->update_meta_data( '_stripe_lock_payment', $time );
+		$this->update_meta_data( self::META_STRIPE_LOCK_PAYMENT, $time );
 	}
 
 	/**
@@ -546,7 +689,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return int
 	 */
 	public function get_lock_payment() {
-		return $this->get_meta( '_stripe_lock_payment' );
+		return $this->get_meta( self::META_STRIPE_LOCK_PAYMENT );
 	}
 
 	/**
@@ -556,7 +699,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_refund_id( $refund_id ) {
-		$this->update_meta_data( '_stripe_refund_id', $refund_id );
+		$this->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -565,7 +708,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_refund_id() {
-		return $this->get_meta( '_stripe_refund_id' );
+		return $this->get_meta( self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -575,7 +718,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_multibanco_data( $data ) {
-		$this->update_meta_data( '_stripe_multibanco', $data );
+		$this->update_meta_data( self::META_STRIPE_MULTIBANCO, $data );
 	}
 
 	/**
@@ -584,7 +727,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return array
 	 */
 	public function get_multibanco_data() {
-		return $this->get_meta( '_stripe_multibanco' );
+		return $this->get_meta( self::META_STRIPE_MULTIBANCO );
 	}
 
 	/**
@@ -594,7 +737,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_intent_id( $intent_id ) {
-		$this->update_meta_data( '_stripe_intent_id', $intent_id );
+		$this->update_meta_data( self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
 	/**
@@ -603,7 +746,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_intent_id() {
-		return $this->get_meta( '_stripe_intent_id' );
+		return $this->get_meta( self::META_STRIPE_INTENT_ID );
 	}
 
 	/**
@@ -613,7 +756,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_upe_payment_type( $payment_type ) {
-		$this->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+		$this->update_meta_data( self::META_STRIPE_UPE_PAYMENT_TYPE, $payment_type );
 	}
 
 	/**
@@ -622,7 +765,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_upe_payment_type() {
-		return $this->get_meta( '_stripe_upe_payment_type' );
+		return $this->get_meta( self::META_STRIPE_UPE_PAYMENT_TYPE );
 	}
 
 	/**
@@ -632,7 +775,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_source_id( $source_id ) {
-		$this->update_meta_data( '_stripe_source_id', $source_id );
+		$this->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -641,7 +784,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_source_id() {
-		return $this->get_meta( '_stripe_source_id' );
+		return $this->get_meta( self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -651,7 +794,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_stripe_customer_id( $customer_id ) {
-		$this->update_meta_data( '_stripe_customer_id', $customer_id );
+		$this->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
 	}
 
 	/**
@@ -660,7 +803,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return string
 	 */
 	public function get_stripe_customer_id() {
-		return $this->get_meta( '_stripe_customer_id' );
+		return $this->get_meta( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -670,7 +813,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_charge_captured( $value ) {
-		$this->update_meta_data( '_stripe_charge_captured', $value );
+		$this->update_meta_data( self::META_STRIPE_CHARGE_CAPTURED, $value );
 	}
 	/**
 	 * Whether the charge has been captured.
@@ -678,7 +821,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool
 	 */
 	public function is_charge_captured() {
-		return wc_string_to_bool( $this->get_meta( '_stripe_charge_captured' ) );
+		return wc_string_to_bool( $this->get_meta( self::META_STRIPE_CHARGE_CAPTURED ) );
 	}
 
 	/**
@@ -688,7 +831,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return void
 	 */
 	public function set_status_final( $value ) {
-		$this->update_meta_data( '_stripe_status_final', $value );
+		$this->update_meta_data( self::META_STRIPE_STATUS_FINAL, $value );
 	}
 
 	/**
@@ -697,7 +840,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool
 	 */
 	public function is_status_final() {
-		return (bool) $this->get_meta( '_stripe_status_final' );
+		return (bool) $this->get_meta( self::META_STRIPE_STATUS_FINAL );
 	}
 
 	/**
@@ -713,7 +856,7 @@ class WC_Stripe_Order extends WC_Order {
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$params = [ 'limit' => 1 ];
 			// Check if the meta key is a transaction ID. If so, use the transaction ID to query the order, instead of the meta when HPOS is enabled.
-			if ( '_transaction_id' === $meta_key ) {
+			if ( self::META_STRIPE_CHARGE_ID === $meta_key ) {
 				$params['transaction_id'] = $meta_value;
 			} else {
 				$params['meta_query'] = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
