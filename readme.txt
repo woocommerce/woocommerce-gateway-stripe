@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update payment method logos on the checkout page.
 * Update - Refactor unsupported deferred intent in the blocks checkout.
 * Fix - Allow to save card during checkout with account creation.
+* Add - Add BLIK LPM feature flag.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
