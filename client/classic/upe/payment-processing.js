@@ -87,6 +87,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
+		// TODO: Gracefully handle errors related to the intent creation.
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
 		const intent = await api.createIntent( null, paymentMethodType );
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
@@ -197,7 +199,9 @@ function createStripePaymentMethod(
 					  ).trim()
 					: undefined,
 				email: document.querySelector( '#billing_email' )?.value,
-				phone: document.querySelector( '#billing_phone' )?.value,
+				phone:
+					// Phone is optional, but an empty string is not allowed by Stripe.
+					document.querySelector( '#billing_phone' )?.value || null,
 				address: {
 					city: document.querySelector( '#billing_city' )?.value,
 					country: document.querySelector( '#billing_country' )

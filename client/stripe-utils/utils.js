@@ -385,9 +385,9 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 		email: enabledBillingFields.includes( 'billing_email' )
 			? 'never'
 			: 'auto',
-		phone: enabledBillingFields.includes( 'billing_phone' )
-			? 'never'
-			: 'auto',
+		// The phone field is optional, so it needs to be "auto" to not throw errors
+		// when passing the phone parameter to create a payment method.
+		phone: 'auto',
 		address: {
 			country: enabledBillingFields.includes( 'billing_country' )
 				? 'never'
