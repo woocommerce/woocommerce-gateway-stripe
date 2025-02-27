@@ -9,6 +9,7 @@ import {
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
+import WCStripeAPI from 'wcstripe/api';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -16,11 +17,19 @@ const checkoutIcons = initializeCheckoutIcons( isAdmin );
 
 const upeMethods = getPaymentMethodsConstants();
 
-export const upeElement = ( upeName, api, upeConfig ) => {
-	let iconName = upeName;
+/**
+ * Returns the UPE payment method element for registration.
+ *
+ * @param {string} paymentMethod The payment method name.
+ * @param {WCStripeAPI} api The Stripe API object.
+ * @param {Object} upeConfig The UPE configuration.
+ * @return {Object} The UPE payment method configuration.
+ */
+export const upeElement = ( paymentMethod, api, upeConfig ) => {
+	let iconName = paymentMethod;
 
 	// Afterpay/Clearpay have different icons for UK merchants.
-	if ( upeName === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
+	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
 		iconName =
 			getBlocksConfiguration()?.accountCountry === 'GB'
 				? PAYMENT_METHOD_CLEARPAY
@@ -41,25 +50,9 @@ export const upeElement = ( upeName, api, upeConfig ) => {
 	}
 
 	return {
-		name: upeMethods[ upeName ],
-		content: getDeferredIntentCreationUPEFields(
-			upeName,
-			upeMethods,
-			api,
-			upeConfig.description,
-			upeConfig.testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		),
-		edit: getDeferredIntentCreationUPEFields(
-			upeName,
-			upeMethods,
-			api,
-			upeConfig.description,
-			upeConfig.testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		),
+		name: upeMethods[ paymentMethod ],
+		content: getGeneralElement( api, paymentMethod, upeConfig ),
+		edit: getGeneralElement( api, paymentMethod, upeConfig ),
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
 			const billingCountry = cartData.billingAddress.country;
@@ -82,4 +75,24 @@ export const upeElement = ( upeName, api, upeConfig ) => {
 		ariaLabel: 'Stripe',
 		supports,
 	};
+};
+
+/**
+ * Get the general element for the UPE.
+ *
+ * @param {WCStripeAPI} api The Stripe API object.
+ * @param {string} paymentMethod The payment method name.
+ * @param {Object} upeConfig The UPE configuration.
+ * @return {JSX.Element} The general element for the UPE.
+ */
+const getGeneralElement = ( api, paymentMethod, upeConfig ) => {
+	return getDeferredIntentCreationUPEFields(
+		paymentMethod,
+		upeMethods,
+		api,
+		upeConfig.description,
+		upeConfig.testingInstructions,
+		upeConfig.showSaveOption ?? false,
+		upeConfig.supportsDeferredIntent
+	);
 };
