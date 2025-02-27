@@ -235,6 +235,27 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 	};
 
 	if ( billingDetails ) {
+		// Check if address form is collapsed (if Edit button exists)
+		const editButton = page.locator(
+			'#shipping-fields .wc-block-components-address-card__edit'
+		);
+		const isCollapsed = await editButton.isVisible();
+
+		if ( isCollapsed ) {
+			await editButton.click();
+			// Wait for form to expand
+			await page.waitForSelector( '#shipping-fields #shipping-country' );
+		}
+
+		// Make sure "Use same address for billing" is checked
+		const sameAddressCheckbox = page.locator(
+			'.wc-block-checkout__use-address-for-billing input[type="checkbox"]'
+		);
+		const isChecked = await sameAddressCheckbox.isChecked();
+		if ( ! isChecked ) {
+			await sameAddressCheckbox.click();
+		}
+
 		await page
 			.getByLabel( 'Country/Region' )
 			.selectOption( { label: billingDetails[ 'country' ] } );
@@ -244,9 +265,13 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.selectOption( { label: billingDetails[ 'state' ] } );
 
 		// Expand the address 2 field.
-		await page
-			.locator( '.wc-block-components-address-form__address_2-toggle' )
-			.click();
+		if ( ! isCollapsed ) {
+			await page
+				.locator(
+					'.wc-block-components-address-form__address_2-toggle'
+				)
+				.click();
+		}
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
@@ -272,3 +297,87 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		)
 		.click();
 }
+
+/**
+ * Set up the checkout page for ACH payment.
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
+	await emptyCart( page );
+	await setupCart( page );
+
+	if ( checkoutType === 'blocks' ) {
+		await setupBlocksCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+		// Select ACH in blocks checkout
+		await page
+			.locator( 'label' )
+			.filter( { hasText: 'ACH Direct Debit' } )
+			.click();
+
+		// Wait for the iframe to be ready
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+		);
+		await page.waitForTimeout( 1000 );
+
+		// Click "Test Institution"
+		await page
+			.frameLocator(
+				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+			)
+			.getByText( 'Test Institution' )
+			.click();
+	} else {
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+
+		// Select ACH in shortcode checkout
+		await page.getByText( 'ACH Direct Debit' ).click();
+		await page.waitForTimeout( 1000 );
+
+		// Wait for the iframe to be ready
+		await page.waitForSelector(
+			'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+		);
+		await page.waitForTimeout( 1000 );
+
+		// Click "Test Institution"
+		await page
+			.frameLocator(
+				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+			)
+			.getByTestId( 'featured-institution-default' )
+			.click();
+	}
+};
+
+/**
+ * Interact with the Stripe Elements iframe to fill in the bank details.
+ * @param {Page} page Playwright page fixture.
+ */
+export const fillACHBankDetails = async ( page ) => {
+	const frame = page
+		.frameLocator( 'iframe[name^="__privateStripeFrame"]' )
+		.first();
+
+	// Agree and Continue
+	await frame.getByTestId( 'agree-button' ).click();
+
+	// Click "Success ••••" button
+	await frame.getByRole( 'button', { name: 'Success ••••' } ).click();
+
+	// Click "Connect Account" button.
+	await frame.getByTestId( 'select-button' ).click();
+
+	// Skip link registration
+	await frame.getByTestId( 'link-not-now-button' ).click();
+
+	// Click "Done" button.
+	await frame.getByTestId( 'done-button' ).click();
+};
