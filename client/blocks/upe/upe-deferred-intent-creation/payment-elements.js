@@ -22,9 +22,9 @@ import { getFontRulesFromPage } from 'wcstripe/styles/upe';
  *
  * @param {*}           props                        Additional props for payment processing.
  * @param {WCStripeAPI} props.api                    Object containing methods for interacting with Stripe.
- * @param {Object}      props.components             Object containing components for rendering.
  * @param {string}      props.paymentMethodId        The ID of the payment method.
  * @param {boolean}     props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
+ * @param {Object}      props.components             Object containing components for rendering.
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
@@ -60,14 +60,15 @@ const PaymentElements = ( {
 						paymentMethodId
 					]?.title ?? '';
 				setErrorMessage(
-					sprintf(
-						// translators: %s is the payment method title.
-						__(
-							'Failed to load %s payment method. Please refresh the page and try again.',
-							'woocommerce-gateway-stripe'
-						),
-						paymentMethodTitle
-					)
+					error?.message ??
+						sprintf(
+							// translators: %s is the payment method title.
+							__(
+								'Failed to load %s payment method. Please refresh the page and try again.',
+								'woocommerce-gateway-stripe'
+							),
+							paymentMethodTitle
+						)
 				);
 			}
 		}
