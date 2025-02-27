@@ -350,6 +350,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
+		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
 		$this->process_subscription_payment( $amount_to_charge, $renewal_order, true, false );
 	}
 
@@ -367,8 +368,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param object                   $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
-		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
-
 		try {
 			$order_id = $renewal_order->get_id();
 

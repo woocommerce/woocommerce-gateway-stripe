@@ -292,6 +292,6 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->assertInstanceOf( WC_Stripe_Order::class, $order->to_instance( $order ) );
+		$this->assertInstanceOf( WC_Stripe_Order::class, WC_Stripe_Order::to_instance( $order ) );
 	}
 }
