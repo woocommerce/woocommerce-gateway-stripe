@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Bacs: Process Payment with Saved Bank Details
 * Tweak - Update payment method logos on the checkout page.
 * Update - Refactor unsupported deferred intent in the blocks checkout.
+* Fix - Allow to save card during checkout with account creation.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
