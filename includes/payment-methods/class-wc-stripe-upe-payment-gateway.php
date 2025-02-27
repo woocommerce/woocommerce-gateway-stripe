@@ -461,6 +461,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ACSS LPM Feature flag.
 		$stripe_params['is_acss_enabled'] = WC_Stripe_Feature_Flags::is_acss_lpm_enabled();
 
+		// BLIK LPM Feature flag.
+		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
@@ -1166,17 +1169,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 				if ( false === $intent ) {
 					$request['confirm'] = 'true';
+
 					// SEPA setup intents require mandate data.
 					if ( in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, array_values( $enabled_payment_methods ), true ) ) {
-						$request['mandate_data'] = [
-							'customer_acceptance' => [
-								'type'   => 'online',
-								'online' => [
-									'ip_address' => WC_Geolocation::get_ip_address(),
-									'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', // @codingStandardsIgnoreLine
-								],
-							],
-						];
+						$request = WC_Stripe_Helper::add_mandate_data( $request );
 					}
 				}
 

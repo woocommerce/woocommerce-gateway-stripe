@@ -2,6 +2,7 @@
 
 = 9.3.0 - xxxx-xx-xx =
 * Add - Adds a new feature flag to handle the Single Payment Element feature.
+* Add - Add logging of IP address issues when setting up mandate data.
 * Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
 * Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Add - Adds Stripe specific information to the System Status Report data.
@@ -21,6 +22,7 @@
 * Add - Bacs: Process Payment with Saved Bank Details
 * Tweak - Update payment method logos on the checkout page.
 * Update - Refactor unsupported deferred intent in the blocks checkout.
+* Add - Add BLIK LPM feature flag.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
