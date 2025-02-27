@@ -802,27 +802,6 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Adds mandate data to the request.
-	 *
-	 * @param array $request The request to add mandate data to.
-	 *
-	 * @return array The request with mandate data added.
-	*/
-	private function add_mandate_data( $request ) {
-		$request['mandate_data'] = [
-			'customer_acceptance' => [
-				'type'   => 'online',
-				'online' => [
-					'ip_address' => WC_Geolocation::get_ip_address(),
-					'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
-				],
-			],
-		];
-
-		return $request;
-	}
-
-	/**
 	 * Adds mandate options to the request if required.
 	 *
 	 * @param array       $request              The request array to add the mandate options to.
@@ -983,7 +962,7 @@ class WC_Stripe_Intent_Controller {
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
 		if ( ! $is_using_confirmation_token && $this->is_mandate_data_required( $selected_payment_type ) ) {
-			$request = $this->add_mandate_data( $request );
+			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
@@ -1054,7 +1033,7 @@ class WC_Stripe_Intent_Controller {
 
 		// SEPA setup intents require mandate data.
 		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
-			$request = $this->add_mandate_data( $request );
+			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
 		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
