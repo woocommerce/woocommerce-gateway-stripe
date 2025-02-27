@@ -363,7 +363,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Validates that the order meets the minimum order amount
 	 * set by Stripe.
 	 *
-	 * @param WC_Stripe_Order $order
+	 * @param WC_Order $order
 	 *
 	 * @throws WC_Stripe_Exception If the order does not meet the minimum amount.
 	 *
@@ -373,7 +373,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function validate_minimum_order_amount( $order ) {
 		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Helper::validate_minimum_amount' );
-		$order->validate_minimum_amount();
+		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
 	}
 
 	/**
@@ -391,12 +394,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Gets the saved customer id if exists.
 	 *
+	 * @param WC_Order $order The order object.
+	 * @return string The customer id.
+	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order->get_stripe_customer_id();
+		$customer = $order instanceof WC_Stripe_Order ? $order->get_stripe_customer_id() : $order->get_meta( '_stripe_customer_id', true );
 		if ( empty( $customer ) ) {
 			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
 		}
@@ -524,7 +530,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Store extra meta data for an order from a Stripe Response.
 	 *
 	 * @param object $response The Stripe response.
-	 * @param WC_Stripe_Order $order The order object.
+	 * @param WC_Order|WC_Stripe_Order $order The order object.
 	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
@@ -661,14 +667,42 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param WC_Stripe_Order $order
+	 * @param WC_Order $order
 	 * @return object $details
 	 *
 	 * @deprecated 9.3.0
 	 */
 	public function get_owner_details( $order ) {
 		_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::get_owner_details' );
-		return $order->get_owner_details();
+		$billing_first_name = $order->get_billing_first_name();
+		$billing_last_name  = $order->get_billing_last_name();
+
+		$details = [];
+
+		$name  = $billing_first_name . ' ' . $billing_last_name;
+		$email = $order->get_billing_email();
+		$phone = $order->get_billing_phone();
+
+		if ( ! empty( $phone ) ) {
+			$details['phone'] = $phone;
+		}
+
+		if ( ! empty( $name ) ) {
+			$details['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$details['email'] = $email;
+		}
+
+		$details['address']['line1']       = $order->get_billing_address_1();
+		$details['address']['line2']       = $order->get_billing_address_2();
+		$details['address']['state']       = $order->get_billing_state();
+		$details['address']['city']        = $order->get_billing_city();
+		$details['address']['postal_code'] = $order->get_billing_postcode();
+		$details['address']['country']     = $order->get_billing_country();
+
+		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
 
 	/**
@@ -915,7 +949,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return object
 	 */
 	public function prepare_order_source( $order = null ) {
@@ -1656,13 +1690,33 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @deprecated 9.3.0 Use WC_Stripe_Order::lock_payment instead.
-	 * @param WC_Stripe_Order $order  The order that is being paid.
+	 * @param WC_Order $order  The order that is being paid.
 	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_payment' );
-		return $order->lock_payment( $intent );
+		$order->read_meta_data( true );
+
+		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
+
+		if ( $existing_lock ) {
+			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
+			$expiration    = (int) $parts[0];
+			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+				return true;
+			}
+		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
 	}
 
 	/**
@@ -1670,38 +1724,58 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @deprecated 9.3.0 Use WC_Stripe_Order::unlock_payment instead.
-	 * @param WC_Stripe_Order $order The order that is being unlocked.
+	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_payment' );
-		$order->unlock_payment();
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
 	}
 
 	/**
 	 * Locks an order for refund processing for 5 minutes.
 	 *
 	 * @since 9.1.0
-	 * @param WC_Stripe_Order $order  The order that is being refunded.
+	 * @param WC_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 *
 	 * @deprecated 9.3.0 Use WC_Stripe_Order::lock_refund instead.
 	 */
 	public function lock_order_refund( $order ) {
 		_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_refund' );
-		return $order->lock_refund();
+		$order->read_meta_data( true );
+
+		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+
+		if ( $existing_lock ) {
+			$expiration = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+
+		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->save_meta_data();
+
+		return false;
 	}
 
 	/**
 	 * Unlocks an order for processing refund.
 	 *
 	 * @since 9.1.0
-	 * @param WC_Stripe_Order $order The order that is being unlocked.
+	 * @param WC_Order $order The order that is being unlocked.
 	 *
 	 * @deprecated 9.3.0 Use WC_Stripe_Order::unlock_refund instead.
 	 */
 	public function unlock_order_refund( $order ) {
 		_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_refund' );
-		$order->unlock_refund();
+		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->save_meta_data();
 	}
 
 	/**
@@ -2161,6 +2235,45 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	private function needs_ssl_setup() {
 		return ! $this->testmode && ! is_ssl(); // @phpstan-ignore-line (testmode is defined in the classes that use this class)
+	}
+
+	/**
+	 * Helper method to retrieve the status of the order before it was put on hold.
+	 *
+	 * @since 8.3.0
+	 *
+	 * @param WC_Order $order The order.
+	 *
+	 * @return string The status of the order before it was put on hold.
+	 */
+	protected function get_stripe_order_status_before_hold( $order ) {
+		$before_hold_status = $order->get_meta( '_stripe_status_before_hold' );
+
+		if ( ! empty( $before_hold_status ) ) {
+			return $before_hold_status;
+		}
+
+		$default_before_hold_status = $order->needs_processing() ? 'processing' : 'completed';
+		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $order->get_id(), $order );
+	}
+
+	/**
+	 * Stores the status of the order before being put on hold in metadata.
+	 *
+	 * @since 8.3.0
+	 *
+	 * @param WC_Order  $order  The order.
+	 * @param string    $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 *
+	 * @return void
+	 */
+	protected function set_stripe_order_status_before_hold( $order, $status ) {
+		if ( 'default_payment_complete' === $status ) {
+			$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
+			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+		}
+
+		$order->update_meta_data( '_stripe_status_before_hold', $status );
 	}
 
 	/**
