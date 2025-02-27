@@ -564,7 +564,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return $empty_value;
 		}
 
-		if ( ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
+		if ( isset( $main_settings[ $key ] ) && ! is_null( $empty_value ) && '' === $main_settings[ $key ] ) {
 			return $empty_value;
 		}
 

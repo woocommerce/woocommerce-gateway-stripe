@@ -9,7 +9,7 @@ docker compose exec -u www-data wordpress \
 
 echo "Running the tests..."
 
-docker compose exec -u www-data wordpress \
+docker compose exec -u www-data -e XDEBUG_MODE=coverage wordpress \
 	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/vendor/bin/phpunit \
 	--configuration /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpunit.xml.dist \
 	$*

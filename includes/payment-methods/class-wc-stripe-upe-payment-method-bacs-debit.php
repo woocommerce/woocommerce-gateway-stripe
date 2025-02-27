@@ -5,8 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * The Bacs Direct Debit Payment Method class extending UPE base class.
+ *
+ * @since x.x.x
  */
-class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
+class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * The Stripe ID for the payment method.
 	 */
@@ -26,6 +28,11 @@ class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
+
+		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
+		if ( ! is_wc_endpoint_url( 'add-payment-method' ) ) {
+			$this->supports[] = 'tokenization';
+		}
 	}
 
 	/**
@@ -48,5 +55,34 @@ class WC_Stripe_UPE_Payment_Method_Bacs extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return parent::is_enabled_at_checkout( $order_id, $account_domestic_currency );
+	}
+
+	/**
+	 * Returns a string representing payment method type to query for when retrieving saved payment methods from Stripe.
+	 *
+	 * @return string The payment method type.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Creates a Bacs Direct Debit payment token for the customer.
+	 *
+	 * @param int      $user_id        The customer ID the payment token is associated with.
+	 * @param stdClass $payment_method The payment method object.
+	 *
+	 * @return WC_Payment_Token The payment token created.
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Payment_Token_Bacs_Debit();
+		$token->set_token( $payment_method->id );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
+		$token->set_last4( $payment_method->bacs_debit->last4 );
+		$token->set_fingerprint( $payment_method->bacs_debit->fingerprint );
+		$token->set_payment_method_type( $this->get_id() );
+		$token->set_user_id( $user_id );
+		$token->save();
+		return $token;
 	}
 }
