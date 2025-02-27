@@ -231,10 +231,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			'metadata'                      => [
-				'_stripe_metadata' => '123',
-				'order_id'         => $this->order->get_id(),
-			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
 			'order'                         => $this->order,
 			'payment_method'                => 'pm_mock',
 			'shipping'                      => [],

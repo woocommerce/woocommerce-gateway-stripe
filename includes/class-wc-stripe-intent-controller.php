@@ -372,7 +372,6 @@ class WC_Stripe_Intent_Controller {
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
 			'capture_method'       => $capture ? 'automatic' : 'manual',
-			'metadata'             => [ 'order_id' => $order_id ],
 		];
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
