@@ -88,16 +88,6 @@ const PaymentElements = ( {
 		supportsDeferredIntent,
 	] );
 
-	if ( paymentProcessorLoadErrorMessage?.error?.message ) {
-		return (
-			<div className="wc-block-components-notices">
-				<StoreNotice status="error" isDismissible={ false }>
-					{ paymentProcessorLoadErrorMessage.error.message }
-				</StoreNotice>
-			</div>
-		);
-	}
-
 	if ( errorMessage ) {
 		return (
 			<div className="wc-block-components-notices">
@@ -151,15 +141,24 @@ const PaymentElements = ( {
 	};
 
 	return (
-		<Elements stripe={ stripe } options={ options }>
-			<PaymentProcessor
-				api={ api }
-				paymentIntentId={ paymentIntentId }
-				paymentMethodId={ paymentMethodId }
-				onLoadError={ setPaymentProcessorLoadErrorMessage }
-				{ ...props }
-			/>
-		</Elements>
+		<>
+			{ paymentProcessorLoadErrorMessage?.error?.message && (
+				<div className="wc-block-components-notices">
+					<StoreNotice status="error" isDismissible={ false }>
+						{ paymentProcessorLoadErrorMessage.error.message }
+					</StoreNotice>
+				</div>
+			) }
+			<Elements stripe={ stripe } options={ options }>
+				<PaymentProcessor
+					api={ api }
+					paymentIntentId={ paymentIntentId }
+					paymentMethodId={ paymentMethodId }
+					onLoadError={ setPaymentProcessorLoadErrorMessage }
+					{ ...props }
+				/>
+			</Elements>
+		</>
 	);
 };
 
