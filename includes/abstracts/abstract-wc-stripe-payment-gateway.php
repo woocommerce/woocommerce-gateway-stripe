@@ -547,14 +547,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
-		$order->set_charge_captured( $captured );
+		if ( $order instanceof WC_Stripe_Order ) {
+			$order->set_charge_captured( $captured );
+		} else {
+			$order->update_meta_data( '_stripe_charge_captured', $captured );
+		}
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			$order->set_mandate_id( $response->payment_method_details->card->mandate );
+			$mandate_id = $response->payment_method_details->card->mandate;
+			if ( $order instanceof WC_Stripe_Order ) {
+				$order->set_mandate_id( $mandate_id );
+			} else {
+				$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+			}
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -592,7 +601,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 * to ensure the review.closed event handler will update the status to the proper status.
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
-					$order->set_status_before_hold( 'default_payment_complete' );
+					if ( $order instanceof WC_Stripe_Order ) {
+						$order->set_status_before_hold( 'default_payment_complete' );
+					} else {
+						$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
+					}
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
 					$order->payment_complete( $response->id );
@@ -965,14 +978,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = $order->get_source_id();
+			if ( $order instanceof WC_Stripe_Order ) {
+				$source_id = $order->get_source_id();
+			} else {
+				$source_id = $order->get_meta( '_stripe_source_id', true );
+			}
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
 				$source_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$order->set_source_id( $source_id );
+				if ( $order instanceof WC_Stripe_Order ) {
+					$order->set_source_id( $source_id );
+				} else {
+					$order->update_meta_data( '_stripe_source_id', $source_id );
+				}
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1019,17 +1040,27 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param WC_Stripe_Order $order For to which the source applies.
+	 * @param WC_Order|WC_Stripe_Order $order For to which the source applies.
 	 * @param stdClass $source Source information.
 	 */
 	public function save_source_to_order( $order, $source ) {
 		// Store source in the order.
-		if ( $source->customer ) {
-			$order->set_stripe_customer_id( $source->customer );
-		}
-
-		if ( $source->source ) {
-			$order->set_source_id( $source->source );
+		$customer_id = $source->customer ?? null;
+		$source_id   = $source->source ?? null;
+		if ( $order instanceof WC_Stripe_Order ) {
+			if ( $customer_id ) {
+				$order->set_stripe_customer_id( $customer_id );
+			}
+			if ( $source_id ) {
+				$order->set_source_id( $source_id );
+			}
+		} else {
+			if ( $customer_id ) {
+				$order->update_meta_data( '_stripe_customer_id', $customer_id );
+			}
+			if ( $source_id ) {
+				$order->update_meta_data( '_stripe_source_id', $source_id );
+			}
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
