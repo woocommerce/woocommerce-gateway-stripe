@@ -38,7 +38,12 @@ const PaymentElements = ( {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
+
 	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [
+		paymentProcessorLoadErrorMessage,
+		setPaymentProcessorLoadErrorMessage,
+	] = useState( null );
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -82,6 +87,16 @@ const PaymentElements = ( {
 		paymentMethodId,
 		supportsDeferredIntent,
 	] );
+
+	if ( paymentProcessorLoadErrorMessage?.error?.message ) {
+		return (
+			<div className="wc-block-components-notices">
+				<StoreNotice status="error" isDismissible={ false }>
+					{ paymentProcessorLoadErrorMessage.error.message }
+				</StoreNotice>
+			</div>
+		);
+	}
 
 	if ( errorMessage ) {
 		return (
@@ -141,6 +156,7 @@ const PaymentElements = ( {
 				api={ api }
 				paymentIntentId={ paymentIntentId }
 				paymentMethodId={ paymentMethodId }
+				onLoadError={ setPaymentProcessorLoadErrorMessage }
 				{ ...props }
 			/>
 		</Elements>
