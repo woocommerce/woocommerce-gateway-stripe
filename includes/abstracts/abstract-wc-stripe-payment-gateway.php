@@ -601,11 +601,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 * to ensure the review.closed event handler will update the status to the proper status.
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
-					if ( $order instanceof WC_Stripe_Order ) {
-						$order->set_status_before_hold( 'default_payment_complete' );
-					} else {
-						$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
-					}
+					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
 					$order->payment_complete( $response->id );
@@ -2293,18 +2289,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 8.3.0
 	 *
-	 * @param WC_Order  $order  The order.
-	 * @param string    $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @param WC_Order|WC_Stripe_Order $order  The order.
+	 * @param string                   $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
 	 *
 	 * @return void
 	 */
 	protected function set_stripe_order_status_before_hold( $order, $status ) {
-		if ( 'default_payment_complete' === $status ) {
-			$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
-			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+		if ( $order instanceof WC_Stripe_Order ) {
+			$order->set_status_before_hold( 'default_payment_complete' );
+		} else {
+			if ( 'default_payment_complete' === $status ) {
+				$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
+				$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+			}
+			$order->update_meta_data( '_stripe_status_before_hold', $status );
 		}
-
-		$order->update_meta_data( '_stripe_status_before_hold', $status );
 	}
 
 	/**
