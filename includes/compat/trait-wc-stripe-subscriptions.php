@@ -367,6 +367,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param object                   $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
+		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
+
 		try {
 			$order_id = $renewal_order->get_id();
 
@@ -445,7 +447,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$this->lock_order_payment( $renewal_order );
+				$renewal_order->lock_payment();
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -506,7 +508,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
-			$this->unlock_order_payment( $renewal_order );
+			$renewal_order->unlock_payment();
 
 			return;
 		}
@@ -559,7 +561,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$this->unlock_order_payment( $renewal_order );
+		$renewal_order->unlock_payment();
 	}
 
 	/**
@@ -627,13 +629,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Stripe_Order|WC_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		if ( $renewal_order instanceof WC_Stripe_Order ) {
-			$renewal_order->delete_fee();
-			$renewal_order->delete_net();
-		} else {
-			WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
-			WC_Stripe_Helper::delete_stripe_net( $renewal_order );
-		}
+		$renewal_order = WC_Stripe_Order::get_by_id( $renewal_order );
+
+		$renewal_order->delete_fee();
+		$renewal_order->delete_net();
 
 		// Delete payment intent ID.
 		$renewal_order->delete_meta_data( '_stripe_intent_id' );
@@ -650,13 +649,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		if ( $renewal_order instanceof WC_Stripe_Order ) {
-			$customer_id = $renewal_order->get_customer_id();
-			$source_id   = $renewal_order->get_source_id();
-		} else {
-			$customer_id = $renewal_order->get_meta( '_stripe_customer_id', true );
-			$source_id   = $renewal_order->get_meta( '_stripe_source_id', true );
-		}
+		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
+
+		$customer_id = $renewal_order->get_customer_id();
+		$source_id   = $renewal_order->get_source_id();
+
 		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
 		$subscription->update_meta_data( '_stripe_source_id', $source_id );
 		$subscription->save();

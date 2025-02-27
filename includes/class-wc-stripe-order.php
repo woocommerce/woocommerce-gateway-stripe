@@ -153,6 +153,16 @@ class WC_Stripe_Order extends WC_Order {
 	const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
 
 	/**
+	 * Converts an order into WC_Stripe_Order if it is not already.
+	 *
+	 * @param $order WC_Stripe_Order|WC_Order Order object.
+	 * @return WC_Stripe_Order
+	 */
+	public static function to_instance( $order ) {
+		return $order instanceof WC_Stripe_Order ? $order : new self( $order );
+	}
+
+	/**
 	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_data array Order data.

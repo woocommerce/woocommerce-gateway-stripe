@@ -289,7 +289,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$upe_payment_type = $order instanceof WC_Stripe_Order ? $order->get_upe_payment_type() : $order->get_meta( '_stripe_upe_payment_type' );
+		$order = WC_Stripe_Order::to_instance( $order );
+
+		$upe_payment_type = $order->get_upe_payment_type();
 
 		if ( ! $upe_payment_type ) {
 			return true;

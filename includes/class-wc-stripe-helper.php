@@ -1458,17 +1458,11 @@ class WC_Stripe_Helper {
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		if ( $order instanceof WC_Stripe_Order ) {
-			$intent_id = $order->get_intent_id();
-			if ( ! $intent_id ) {
-				$intent_id = $order->get_setup_intent();
-			}
-		} else {
-			$intent_id = $order->get_meta( '_stripe_intent_id' );
+		$order = WC_Stripe_Order::to_instance( $order );
 
-			if ( ! $intent_id ) {
-				$intent_id = $order->get_meta( '_stripe_setup_intent' );
-			}
+		$intent_id = $order->get_intent_id();
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_setup_intent();
 		}
 
 		return $intent_id ?? false;

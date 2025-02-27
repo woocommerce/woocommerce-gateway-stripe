@@ -394,7 +394,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Gets the saved customer id if exists.
 	 *
-	 * @param WC_Order $order The order object.
+	 * @param WC_Stripe_Order|WC_Order $order The order object.
 	 * @return string The customer id.
 	 *
 	 * @since 4.0.0
@@ -402,7 +402,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order instanceof WC_Stripe_Order ? $order->get_stripe_customer_id() : $order->get_meta( '_stripe_customer_id', true );
+		$order    = WC_Stripe_Order::to_instance( $order );
+		$customer = $order->get_stripe_customer_id();
 		if ( empty( $customer ) ) {
 			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
 		}
@@ -536,6 +537,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_response( $response, $order ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
+		$order = WC_Stripe_Order::to_instance( $order );
+
 		$potential_order = WC_Stripe_Order::get_by_charge_id( $response->id );
 		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
 			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
@@ -547,11 +550,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
-		if ( $order instanceof WC_Stripe_Order ) {
-			$order->set_charge_captured( $captured );
-		} else {
-			$order->update_meta_data( '_stripe_charge_captured', $captured );
-		}
+		$order->set_charge_captured( $captured );
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -559,11 +558,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$mandate_id = $response->payment_method_details->card->mandate;
-			if ( $order instanceof WC_Stripe_Order ) {
-				$order->set_mandate_id( $mandate_id );
-			} else {
-				$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
-			}
+			$order->set_mandate_id( $mandate_id );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -601,7 +596,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				 * to ensure the review.closed event handler will update the status to the proper status.
 				 */
 				if ( 'manual_review' === $this->get_risk_outcome( $response ) ) {
-					$this->set_stripe_order_status_before_hold( $order, 'default_payment_complete' );
+					$order->set_status_before_hold( 'default_payment_complete' );
 					$order->set_transaction_id( $response->id ); // Save the transaction ID to link the order to the Stripe charge ID. This is to fix reviews that result in refund.
 				} else {
 					$order->payment_complete( $response->id );
@@ -968,28 +963,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object   = false;
 
 		if ( $order ) {
+			$order = WC_Stripe_Order::to_instance( $order );
+
 			$stripe_customer_id = $this->get_stripe_customer_id( $order );
 
 			if ( $stripe_customer_id ) {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			if ( $order instanceof WC_Stripe_Order ) {
-				$source_id = $order->get_source_id();
-			} else {
-				$source_id = $order->get_meta( '_stripe_source_id', true );
-			}
+			$source_id = $order->get_source_id();
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
 				$source_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				if ( $order instanceof WC_Stripe_Order ) {
-					$order->set_source_id( $source_id );
-				} else {
-					$order->update_meta_data( '_stripe_source_id', $source_id );
-				}
+				$order->set_source_id( $source_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1041,22 +1030,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function save_source_to_order( $order, $source ) {
 		// Store source in the order.
+		$order = WC_Stripe_Order::to_instance( $order );
+
 		$customer_id = $source->customer ?? null;
 		$source_id   = $source->source ?? null;
-		if ( $order instanceof WC_Stripe_Order ) {
-			if ( $customer_id ) {
-				$order->set_stripe_customer_id( $customer_id );
-			}
-			if ( $source_id ) {
-				$order->set_source_id( $source_id );
-			}
-		} else {
-			if ( $customer_id ) {
-				$order->update_meta_data( '_stripe_customer_id', $customer_id );
-			}
-			if ( $source_id ) {
-				$order->update_meta_data( '_stripe_source_id', $source_id );
-			}
+		if ( $customer_id ) {
+			$order->set_stripe_customer_id( $customer_id );
+		}
+		if ( $source_id ) {
+			$order->set_source_id( $source_id );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1080,9 +1062,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( empty( $balance_transaction->error ) ) {
 			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
-				if ( ! $order instanceof WC_Stripe_Order ) {
-					$order = WC_Stripe_Order::get_by_id( $order->get_id() );
-				}
+				$order = WC_Stripe_Order::to_instance( $order );
 
 				// Fees and Net needs to both come from Stripe to be accurate as the returned
 				// values are in the local currency of the Stripe account, not from WC.
@@ -1647,9 +1627,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass                 $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
-		if ( ! $order instanceof WC_Stripe_Order ) {
-			$order = WC_Stripe_Order::get_by_id( $order->get_id() );
-		}
+		$order = WC_Stripe_Order::to_instance( $order );
 
 		// Don't save any intent information on a subscription.
 		if ( $this->is_subscription( $order ) ) {
@@ -1682,12 +1660,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object|bool    Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
-		$intent_id = $order instanceof WC_Stripe_Order ? $order->get_intent_id() : $order->get_meta( '_stripe_intent_id' );
+		$order = WC_Stripe_Order::to_instance( $order );
+
+		$intent_id = $order->get_intent_id();
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );
 		}
 
-		$intent_id = $order instanceof WC_Stripe_Order ? $order->get_setup_intent() : $order->get_meta( '_stripe_setup_intent' );
+		$intent_id = $order->get_setup_intent();
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
 		}
@@ -1731,31 +1711,27 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_payment' );
-		if ( $order instanceof WC_Stripe_Order ) {
-			$order->lock_payment();
-		} else {
-			$order->read_meta_data( true );
+		$order->read_meta_data( true );
 
-			$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
+		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
 
-			if ( $existing_lock ) {
-				$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
-				$expiration    = (int) $parts[0];
-				$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+		if ( $existing_lock ) {
+			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
+			$expiration    = (int) $parts[0];
+			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
 
-				// If the lock is still active, return true.
-				if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
-					return true;
-				}
+			// If the lock is still active, return true.
+			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+				return true;
 			}
-
-			$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
-
-			$order->update_meta_data( '_stripe_lock_payment', $new_lock );
-			$order->save_meta_data();
-
-			return false;
 		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
 	}
 
 	/**
@@ -1767,12 +1743,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_payment' );
-		if ( $order instanceof WC_Stripe_Order ) {
-			$order->unlock_payment();
-		} else {
-			$order->delete_meta_data( '_stripe_lock_payment' );
-			$order->save_meta_data();
-		}
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
 	}
 
 	/**
@@ -2278,28 +2250,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	private function needs_ssl_setup() {
 		return ! $this->testmode && ! is_ssl(); // @phpstan-ignore-line (testmode is defined in the classes that use this class)
-	}
-
-	/**
-	 * Stores the status of the order before being put on hold in metadata.
-	 *
-	 * @since 8.3.0
-	 *
-	 * @param WC_Order|WC_Stripe_Order $order  The order.
-	 * @param string                   $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
-	 *
-	 * @return void
-	 */
-	protected function set_stripe_order_status_before_hold( $order, $status ) {
-		if ( $order instanceof WC_Stripe_Order ) {
-			$order->set_status_before_hold( 'default_payment_complete' );
-		} else {
-			if ( 'default_payment_complete' === $status ) {
-				$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
-				$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
-			}
-			$order->update_meta_data( '_stripe_status_before_hold', $status );
-		}
 	}
 
 	/**
