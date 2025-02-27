@@ -4,4 +4,4 @@ set -e
 . ./tests/e2e/bin/common.sh
 
 step "Starting E2E docker containers"
-CWD="$CWD" redirect_output docker-compose -f "$E2E_ROOT/env/docker-compose.yml" up -d
+CWD="$CWD" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT/env/docker-compose.yml" up -d
