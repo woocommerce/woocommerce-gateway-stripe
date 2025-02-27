@@ -1,16 +1,25 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
+import { isPluginInstalled } from '../../../utils/plugin-utils';
 
 const { setupBlocksCheckout, fillCreditCardDetails } = payments;
 
 let productId;
+
+test.skip( async () => {
+	return ! ( await isPluginInstalled( 'woocommerce-pre-orders' ) );
+}, 'Woo Pre-Orders plugin is not active. Skipping tests.' );
 
 test.beforeAll( async () => {
 	productId = await api.create.product( products.preOrderData() );
 } );
 
 test.afterAll( async () => {
+	if ( ! productId ) {
+		return;
+	}
+
 	await api.deletePost.product( productId );
 } );
 
