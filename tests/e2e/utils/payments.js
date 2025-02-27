@@ -179,65 +179,81 @@ export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
 		},
 	};
 
-	let cardNumberLocator = null;
-	let cardExpiryLocator = null;
-	let cardCvcLocator = null;
+	const isVisible = async ( frame, selector ) => {
+		return await frame.locator( selector ).isVisible( { timeout: 10000 } );
+	};
 
-	if ( await page.isVisible( options.upe.iFrame ).catch( () => false ) ) {
-		const frameLocator = page.frameLocator( options.upe.iFrame );
+	const getLocator = async (
+		page,
+		frameSelector,
+		inputSelector,
+		description
+	) => {
+		if ( ! ( await isVisible( page, frameSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } frame using selector: ${ frameSelector }`
+			);
+		}
 
-		cardNumberLocator = frameLocator.locator( options.upe.cardNumber );
-		cardExpiryLocator = frameLocator.locator( options.upe.cardExpiry );
-		cardCvcLocator = frameLocator.locator( options.upe.cardCvc );
+		const frameLocator = page.frameLocator( frameSelector );
+
+		if ( ! ( await isVisible( frameLocator, inputSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } form element using selector: ${ frameSelector } ${ inputSelector }`
+			);
+		}
+
+		return frameLocator.locator( inputSelector );
+	};
+
+	let cardNumberLocator;
+	let cardExpiryLocator;
+	let cardCvcLocator;
+
+	const isUPE = await page.isVisible( options.upe.iFrame, { timeout: 5000 } );
+	if ( isUPE ) {
+		// Wait for the iFrame to load.
+		const frameElement = await page.waitForSelector( options.upe.iFrame );
+		const frame = await frameElement.contentFrame();
+		await frame.waitForLoadState( 'networkidle' );
+
+		cardNumberLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardNumber,
+			'number'
+		);
+		cardExpiryLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardExpiry,
+			'expiration date'
+		);
+		cardCvcLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardCvc,
+			'cvc'
+		);
 	} else {
-		if (
-			await page
-				.isVisible( options.multi.cardNumber.iFrame )
-				.catch( () => false )
-		) {
-			const frameLocator = page.frameLocator(
-				options.multi.cardNumber.iFrame
-			);
-			cardNumberLocator = frameLocator.locator(
-				options.multi.cardNumber.selector
-			);
-		}
-		if (
-			await page
-				.isVisible( options.multi.cardExpiry.iFrame )
-				.catch( () => false )
-		) {
-			const frameLocator = page.frameLocator(
-				options.multi.cardExpiry.iFrame
-			);
-			cardExpiryLocator = frameLocator.locator(
-				options.multi.cardExpiry.selector
-			);
-		}
-		if (
-			await page
-				.isVisible( options.multi.cardCvc.iFrame )
-				.catch( () => false )
-		) {
-			const frameLocator = page.frameLocator(
-				options.multi.cardCvc.iFrame
-			);
-			cardCvcLocator = frameLocator.locator(
-				options.multi.cardCvc.selector
-			);
-		}
-	}
-
-	if ( ! cardNumberLocator ) {
-		throw new Error(
-			'Could not find the credit card number form element.'
+		cardNumberLocator = await getLocator(
+			page,
+			options.multi.cardNumber.iFrame,
+			options.multi.cardNumber.selector,
+			'number'
 		);
-	} else if ( ! cardExpiryLocator ) {
-		throw new Error(
-			'Could not find the credit card expiry form element.'
+		cardExpiryLocator = await getLocator(
+			page,
+			options.multi.cardExpiry.iFrame,
+			options.multi.cardExpiry.selector,
+			'expiration date'
 		);
-	} else if ( ! cardCvcLocator ) {
-		throw new Error( 'Could not find the credit card cvc form element.' );
+		cardCvcLocator = await getLocator(
+			page,
+			options.multi.cardCvc.iFrame,
+			options.multi.cardCvc.selector,
+			'cvc'
+		);
 	}
 
 	await cardNumberLocator.fill( card.number );
