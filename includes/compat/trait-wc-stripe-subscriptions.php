@@ -361,10 +361,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
 	 * @since 5.6.0 Process renewal payments for SEPA and UPE.
 	 *
-	 * @param float  $amount
-	 * @param mixed  $renewal_order
-	 * @param bool   $retry Should we retry the process?
-	 * @param object $previous_error
+	 * @param float                    $amount
+	 * @param WC_Stripe_Order|WC_Order $renewal_order
+	 * @param bool                     $retry          Should we retry the process?
+	 * @param object                   $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		try {
@@ -445,7 +445,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$renewal_order->lock_payment();
+				$this->lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -506,7 +506,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
-			$renewal_order->unlock_payment();
+			$this->unlock_order_payment( $renewal_order );
 
 			return;
 		}
@@ -559,7 +559,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$renewal_order->unlock_payment();
+		$this->unlock_order_payment( $renewal_order );
 	}
 
 	/**
@@ -645,13 +645,20 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Update the customer_id for a subscription after using Stripe to complete a payment to make up for
 	 * an automatic renewal payment which previously failed.
 	 *
-	 * @param WC_Subscription $subscription The subscription for which the failing payment method relates.
-	 * @param WC_Order        $renewal_order The order which recorded the successful payment (to make up for the failed automatic payment).
+	 * @param WC_Subscription          $subscription The subscription for which the failing payment method relates.
+	 * @param WC_Order|WC_Stripe_Order $renewal_order The order which recorded the successful payment (to make up for the failed automatic payment).
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_source_id() );
+		if ( $renewal_order instanceof WC_Stripe_Order ) {
+			$customer_id = $renewal_order->get_customer_id();
+			$source_id   = $renewal_order->get_source_id();
+		} else {
+			$customer_id = $renewal_order->get_meta( '_stripe_customer_id', true );
+			$source_id   = $renewal_order->get_meta( '_stripe_source_id', true );
+		}
+		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
 		$subscription->save();
 	}
 

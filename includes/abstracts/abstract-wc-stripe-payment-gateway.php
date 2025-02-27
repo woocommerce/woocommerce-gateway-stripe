@@ -1080,6 +1080,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( empty( $balance_transaction->error ) ) {
 			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
+				if ( ! $order instanceof WC_Stripe_Order ) {
+					$order = WC_Stripe_Order::get_by_id( $order->get_id() );
+				}
+
 				// Fees and Net needs to both come from Stripe to be accurate as the returned
 				// values are in the local currency of the Stripe account, not from WC.
 				$fee_refund = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
@@ -1639,10 +1643,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Saves intent to order.
 	 *
 	 * @since 3.2.0
-	 * @param WC_Stripe_Order $order For to which the source applies.
-	 * @param stdClass $intent Payment intent information.
+	 * @param WC_Stripe_Order|WC_Order $order  For to which the source applies.
+	 * @param stdClass                 $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
+		if ( ! $order instanceof WC_Stripe_Order ) {
+			$order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		}
+
 		// Don't save any intent information on a subscription.
 		if ( $this->is_subscription( $order ) ) {
 			return;
@@ -1723,27 +1731,31 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::lock_payment' );
-		$order->read_meta_data( true );
+		if ( $order instanceof WC_Stripe_Order ) {
+			$order->lock_payment();
+		} else {
+			$order->read_meta_data( true );
 
-		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
+			$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
 
-		if ( $existing_lock ) {
-			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
-			$expiration    = (int) $parts[0];
-			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+			if ( $existing_lock ) {
+				$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
+				$expiration    = (int) $parts[0];
+				$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
 
-			// If the lock is still active, return true.
-			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
-				return true;
+				// If the lock is still active, return true.
+				if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+					return true;
+				}
 			}
+
+			$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+
+			$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+			$order->save_meta_data();
+
+			return false;
 		}
-
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
-
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
-		$order->save_meta_data();
-
-		return false;
 	}
 
 	/**
@@ -1755,8 +1767,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function unlock_order_payment( $order ) {
 		wc_deprecated_function( __FUNCTION__, '9.3.0', 'WC_Stripe_Order::unlock_payment' );
-		$order->delete_meta_data( '_stripe_lock_payment' );
-		$order->save_meta_data();
+		if ( $order instanceof WC_Stripe_Order ) {
+			$order->unlock_payment();
+		} else {
+			$order->delete_meta_data( '_stripe_lock_payment' );
+			$order->save_meta_data();
+		}
 	}
 
 	/**
