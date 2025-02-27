@@ -181,7 +181,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Skip validation for E2E tests in test mode.
 		if (
-			( false !== getenv( 'E2E_TESTING' ) && strtolower( getenv( 'E2E_TESTING' ) ) === 'true' )
+			filter_var( getenv( 'E2E_TESTING' ), FILTER_VALIDATE_BOOLEAN )
 			&& WC_Stripe_Mode::is_test()
 		) {
 			return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
