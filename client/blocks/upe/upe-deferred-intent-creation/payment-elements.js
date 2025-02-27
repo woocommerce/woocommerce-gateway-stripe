@@ -127,7 +127,7 @@ const PaymentElements = ( {
  * Renders a Stripe Payment elements component.
  *
  * @param {string}      paymentMethodId
- * @param {Array}       upeMethods
+ * @param {Object}      upeMethods
  * @param {WCStripeAPI} api
  * @param {string}      description
  * @param {string}      testingInstructions
