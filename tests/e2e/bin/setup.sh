@@ -34,7 +34,11 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 step "Starting E2E docker containers"
-CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
+if [ "$CI" = "true" ]; then
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+else
+    CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker compose -p wcstripe-e2e --env-file "$E2E_ROOT"/config/local.env -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d
+fi
 
 step "Configuring WordPress"
 # Wait for containers to be started up before setup.
@@ -132,6 +136,9 @@ redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
 redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\"}"
+
+echo " - Enabling the ACH feature flag"
+redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'
 
 step "Installing Woo Subscriptions"
 echo " - Fetching latest version"
