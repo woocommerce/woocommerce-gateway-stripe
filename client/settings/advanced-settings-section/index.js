@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { Card } from '@wordpress/components';
@@ -7,7 +6,6 @@ import CardBody from '../card-body';
 import DebugMode from './debug-mode';
 import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
-import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -22,7 +20,6 @@ const AdvancedSettingsDescription = () => (
 );
 
 const AdvancedSettings = () => {
-	const isSpeAvailable = wc_stripe_settings_params.is_spe_available; // eslint-disable-line camelcase
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
 			<LoadableSettingsSection numLines={ 10 }>
@@ -30,7 +27,6 @@ const AdvancedSettings = () => {
 					<CardBody>
 						<DebugMode />
 						<ExperimentalFeatures />
-						{ isSpeAvailable && <SinglePaymentElementFeature /> }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>
