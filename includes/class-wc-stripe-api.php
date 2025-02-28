@@ -435,4 +435,13 @@ class WC_Stripe_API {
 
 		return true;
 	}
+
+	/**
+	 * Get the payment method configuration.
+	 *
+	 * @return array The response from the API request.
+	 */
+	public static function get_payment_method_configurations() {
+		return self::retrieve( 'payment_method_configurations' );
+	}
 }
