@@ -38,8 +38,6 @@ test.beforeEach( async ( { page } ) => {
 } );
 /**
  * When retrying payments, we will reuse a compatible payment intent, if the order already has one.
- * In addition, the payment method ID is included when generating the idempotency key
- * when creating a payment intent.
  *
  * This test verifies that the same payment method type can be used when retrying a payment, e.g.
  * chaging from one credit card to another.
@@ -69,8 +67,6 @@ test( 'customer can retry payment, with a different card @smoke', async ( {
 
 /**
  * When retrying payments, we will reuse a compatible payment intent, if the order already has one.
- * In addition, the payment method ID is included when generating the idempotency key
- * when creating a payment intent.
  *
  * This test verifies that the same payment method type can be used when retrying the same payment,
  * after changing the billing details.
@@ -103,8 +99,6 @@ test( 'customer can retry payment, with changed billing details @smoke', async (
 } );
 
 /**
- * The idempotency key for creating a payment intent includes the payment method ID.
- *
  * This test verifies that a different payment method type can be used when retrying a payment
  * for the same order.
  */
