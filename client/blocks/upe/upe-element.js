@@ -1,4 +1,5 @@
-import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
+import { useState } from '@wordpress/element';
+import { PaymentElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
 	getPaymentMethodsConstants,
@@ -10,6 +11,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
+import PaymentProcessor from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -51,8 +53,20 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: getGeneralElement( api, paymentMethod, upeConfig ),
-		edit: getGeneralElement( api, paymentMethod, upeConfig ),
+		content: (
+			<GeneralElement
+				api={ api }
+				paymentMethod={ paymentMethod }
+				upeConfig={ upeConfig }
+			/>
+		),
+		edit: (
+			<GeneralElement
+				api={ api }
+				paymentMethod={ paymentMethod }
+				upeConfig={ upeConfig }
+			/>
+		),
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
 			const billingCountry = cartData.billingAddress.country;
@@ -83,16 +97,24 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
  * @param {WCStripeAPI} api The Stripe API object.
  * @param {string} paymentMethod The payment method name.
  * @param {Object} upeConfig The UPE configuration.
+ * @param {*} props The props.
  * @return {JSX.Element} The general element for the UPE.
  */
-const getGeneralElement = ( api, paymentMethod, upeConfig ) => {
-	return getDeferredIntentCreationUPEFields(
-		paymentMethod,
-		upeMethods,
-		api,
-		upeConfig.description,
-		upeConfig.testingInstructions,
-		upeConfig.showSaveOption ?? false,
-		upeConfig.supportsDeferredIntent
+const GeneralElement = ( api, paymentMethod, upeConfig, props ) => {
+	const [ paymentIntentId ] = useState( null );
+	return (
+		<PaymentElements
+			api={ api }
+			paymentMethodId={ paymentMethod }
+			showSaveOption={ upeConfig.showSaveOption ?? false }
+			supportsDeferredIntent={ upeConfig.supportsDeferredIntent }
+		>
+			<PaymentProcessor
+				api={ api }
+				paymentIntentId={ paymentIntentId }
+				paymentMethodId={ paymentMethod }
+				{ ...props }
+			/>
+		</PaymentElements>
 	);
 };
