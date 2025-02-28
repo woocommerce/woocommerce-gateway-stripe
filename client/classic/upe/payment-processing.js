@@ -132,7 +132,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[
 		paymentMethodType
-	].upeElement = createdStripePaymentElement;
+	].groupedCheckoutElement = createdStripePaymentElement;
 
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
