@@ -21,7 +21,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
-import { groupedCheckoutElement } from 'wcstripe/blocks/upe/grouped-checkout-element';
+import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -45,7 +45,7 @@ const methodsToFilter = [
 Object.entries( paymentMethodsConfig )
 	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
 	.forEach( ( [ method, config ] ) => {
-		registerPaymentMethod( groupedCheckoutElement( method, api, config ) );
+		registerPaymentMethod( upeElement( method, api, config ) );
 	} );
 
 // Register Express Checkout Elements.

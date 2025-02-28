@@ -25,7 +25,7 @@ const upeMethods = getPaymentMethodsConstants();
  * @param {Object} upeConfig The UPE configuration.
  * @return {Object} The UPE payment method configuration.
  */
-export const groupedCheckoutElement = ( paymentMethod, api, upeConfig ) => {
+export const upeElement = ( paymentMethod, api, upeConfig ) => {
 	let iconName = paymentMethod;
 
 	// Afterpay/Clearpay have different icons for UK merchants.
