@@ -45,9 +45,8 @@ const methodsToFilter = [
 // Register UPE Elements.
 if ( true ) {
 	// @todo Replace with the feature flag
-	registerPaymentMethod(
-		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
-	);
+	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
+	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
 } else {
 	Object.entries( paymentMethodsConfig )
 		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )

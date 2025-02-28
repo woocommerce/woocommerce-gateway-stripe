@@ -48,27 +48,20 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 	if ( getBlocksConfiguration().isAdmin ?? false ) {
 		supports.style = getBlocksConfiguration()?.style ?? [];
 	}
+	const generalElement = getDeferredIntentCreationUPEFields(
+		paymentMethod,
+		upeMethods,
+		api,
+		upeConfig.description,
+		upeConfig.testingInstructions,
+		upeConfig.showSaveOption ?? false,
+		upeConfig.supportsDeferredIntent
+	);
 
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: getDeferredIntentCreationUPEFields(
-			paymentMethod,
-			upeMethods,
-			api,
-			upeConfig.description,
-			upeConfig.testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		),
-		edit: getDeferredIntentCreationUPEFields(
-			paymentMethod,
-			upeMethods,
-			api,
-			upeConfig.description,
-			upeConfig.testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		),
+		content: generalElement,
+		edit: generalElement,
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
 			const billingCountry = cartData.billingAddress.country;
