@@ -1,4 +1,3 @@
-import { useState } from '@wordpress/element';
 import { PaymentElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
@@ -101,17 +100,16 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
  * @return {JSX.Element} The general element for the UPE.
  */
 const GeneralElement = ( { api, paymentMethod, upeConfig, ...props } ) => {
-	const [ paymentIntentId ] = useState( null );
 	return (
 		<PaymentElements
 			api={ api }
 			paymentMethodId={ paymentMethod }
 			showSaveOption={ upeConfig.showSaveOption ?? false }
 			supportsDeferredIntent={ upeConfig.supportsDeferredIntent }
+			{ ...props }
 		>
 			<PaymentProcessor
 				api={ api }
-				paymentIntentId={ paymentIntentId }
 				description={ upeConfig.description }
 				testingInstructions={ upeConfig.testingInstructions }
 				paymentMethodId={ paymentMethod }

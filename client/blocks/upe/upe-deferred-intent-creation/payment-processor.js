@@ -95,7 +95,6 @@ export function validateElements( elements ) {
  *
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
- * @param {string}      args.paymentIntentId     The payment intent ID.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
  * @param {string}      args.description         The payment method description to display.
  * @param {string}      args.testingInstructions The testing instructions to display.
@@ -112,7 +111,6 @@ export function validateElements( elements ) {
  */
 const PaymentProcessor = ( {
 	api,
-	paymentIntentId,
 	activePaymentMethod,
 	description,
 	testingInstructions,
@@ -127,6 +125,7 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
+	const [ paymentIntentId ] = useState( null );
 	const [
 		selectedPaymentMethodType,
 		setSelectedPaymentMethodType,
