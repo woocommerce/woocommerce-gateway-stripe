@@ -35,7 +35,7 @@ jobs:
             php: '8.0'
           - php_support_policy: L-2
             php: '7.4'
-        exclude: # incompatible versions
+        exclude: # incompatible versions of PHP, WordPress, and WooCommerce
           - woocommerce_support_policy: L
             woocommerce: '9.5.2'
             wordpress_support_policy: L-2
