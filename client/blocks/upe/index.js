@@ -22,6 +22,7 @@ import {
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
 import { groupedCheckoutElement } from 'wcstripe/blocks/upe/grouped-checkout-element';
+import { singleCheckoutElement } from 'wcstripe/blocks/upe/single-checkout-element';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -42,11 +43,20 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-Object.entries( paymentMethodsConfig )
-	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
-	.forEach( ( [ method, config ] ) => {
-		registerPaymentMethod( groupedCheckoutElement( method, api, config ) );
-	} );
+if ( true ) {
+	// @todo replace with feature flag
+	registerPaymentMethod(
+		singleCheckoutElement( api, paymentMethodsConfig.card )
+	);
+} else {
+	Object.entries( paymentMethodsConfig )
+		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
+		.forEach( ( [ method, config ] ) => {
+			registerPaymentMethod(
+				groupedCheckoutElement( method, api, config )
+			);
+		} );
+}
 
 // Register Express Checkout Elements.
 if (

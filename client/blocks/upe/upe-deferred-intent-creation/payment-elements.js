@@ -92,9 +92,6 @@ export const PaymentElements = ( {
 
 	// Build options object.
 	const options = {
-		appearance,
-		paymentMethodCreation: 'manual',
-		fonts: getFontRulesFromPage(),
 		...( supportsDeferredIntent
 			? {
 					mode: amount < 1 ? 'setup' : 'payment',
@@ -105,12 +102,6 @@ export const PaymentElements = ( {
 					),
 			  }
 			: { clientSecret } ),
-		// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-		...( supportsDeferredIntent &&
-			( getBlocksConfiguration()?.cartContainsSubscription ||
-				showSaveOption ) && {
-				setupFutureUsage: 'off_session',
-			} ),
 	};
 
 	return (

@@ -1,0 +1,97 @@
+import { PaymentElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
+import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
+import {
+	getPaymentMethodsConstants,
+	PAYMENT_METHOD_CARD,
+} from 'wcstripe/stripe-utils/constants';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import Icons from 'wcstripe/payment-method-icons';
+import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
+import WCStripeAPI from 'wcstripe/api';
+import PaymentProcessor from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
+
+// Initialize checkout icons
+const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
+const checkoutIcons = initializeCheckoutIcons( isAdmin );
+
+const upeMethods = getPaymentMethodsConstants();
+
+/**
+ * Returns the UPE payment method element for registration.
+ *
+ * @param {WCStripeAPI} api The Stripe API object.
+ * @param {Object} upeConfig The UPE configuration.
+ * @return {Object} The UPE payment method configuration.
+ */
+export const singleCheckoutElement = ( api, upeConfig ) => {
+	const iconName = PAYMENT_METHOD_CARD;
+
+	// Use checkout icons if available, otherwise fallback to default Icons
+	const Icon =
+		( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
+	const supports = {
+		// Use `false` as fallback values in case server provided configuration is missing.
+		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+		showSaveOption: upeConfig.showSaveOption ?? false,
+		features: getBlocksConfiguration()?.supports ?? [],
+	};
+	if ( getBlocksConfiguration().isAdmin ?? false ) {
+		supports.style = getBlocksConfiguration()?.style ?? [];
+	}
+
+	return {
+		name: upeMethods[ PAYMENT_METHOD_CARD ],
+		content: <GeneralElement api={ api } upeConfig={ upeConfig } />,
+		edit: <GeneralElement api={ api } upeConfig={ upeConfig } />,
+		savedTokenComponent: <SavedTokenHandler api={ api } />,
+		canMakePayment: ( cartData ) => {
+			const billingCountry = cartData.billingAddress.country;
+			const isRestrictedInAnyCountry = !! upeConfig.countries.length;
+			const isAvailableInTheCountry =
+				! isRestrictedInAnyCountry ||
+				upeConfig.countries.includes( billingCountry );
+
+			return isAvailableInTheCountry && !! api.getStripe();
+		},
+		// see .wc-block-checkout__payment-method styles in blocks/style.scss
+		label: (
+			<>
+				<span>
+					{ upeConfig.title }
+					<Icon alt={ upeConfig.title } />
+				</span>
+			</>
+		),
+		ariaLabel: 'Stripe',
+		supports,
+	};
+};
+
+/**
+ * Get the general element for the UPE.
+ *
+ * @param {*} props The props.
+ * @param {WCStripeAPI} props.api The Stripe API object.
+ * @param {Object} props.upeConfig The UPE configuration.
+ * @return {JSX.Element} The general element for the UPE.
+ */
+const GeneralElement = ( { api, upeConfig, ...props } ) => {
+	return (
+		<PaymentElements
+			api={ api }
+			paymentMethodId={ PAYMENT_METHOD_CARD }
+			showSaveOption={ upeConfig.showSaveOption ?? false }
+			supportsDeferredIntent={ upeConfig.supportsDeferredIntent }
+			{ ...props }
+		>
+			<PaymentProcessor
+				api={ api }
+				description={ upeConfig.description }
+				testingInstructions={ upeConfig.testingInstructions }
+				paymentMethodId={ PAYMENT_METHOD_CARD }
+				upeMethods={ upeMethods }
+				{ ...props }
+			/>
+		</PaymentElements>
+	);
+};

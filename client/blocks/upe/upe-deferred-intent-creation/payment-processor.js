@@ -310,11 +310,7 @@ const PaymentProcessor = ( {
 					__html: testingInstructionsIfAppropriate,
 				} }
 			/>
-			<PaymentElement
-				options={ getStripeElementOptions() }
-				onChange={ onSelectedPaymentMethodChange }
-				className="wcstripe-payment-element"
-			/>
+			<PaymentElement />
 		</>
 	);
 };
