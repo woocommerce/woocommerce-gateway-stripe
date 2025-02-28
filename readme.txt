@@ -111,7 +111,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
-* Add - Adds a new feature flag to handle the Single Payment Element feature.
 * Add - Add logging of IP address issues when setting up mandate data.
 * Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
 * Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
