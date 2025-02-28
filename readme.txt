@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Add - Add logging of IP address issues when setting up mandate data.
 * Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
 * Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
 * Add - Adds Stripe specific information to the System Status Report data.
@@ -118,7 +119,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
-* Fix - Prepare the redirect URL at the end of 'process_payment' method. 
+* Fix - Prepare the redirect URL at the end of 'process_payment' method.
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 * Fix - Fix error when processing a subscription via Amazon Pay.
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
@@ -129,5 +130,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix issue where payment methods do not refresh after address changes.
 * Add - Bacs: Process Payment with Saved Bank Details
 * Tweak - Update payment method logos on the checkout page.
+* Update - Refactor unsupported deferred intent in the blocks checkout.
+* Add - Use idempotency keys when creating payment intents, to help prevent duplicate charges for a single order.
+* Fix - Allow to save card during checkout with account creation.
+* Add - Add BLIK LPM feature flag.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -218,7 +218,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function test_intent_creation_request_setup_future_usage() {
 		$payment_information = [
 			'amount'                        => 100,
-			'capture_method'                => 'automattic',
+			'capture_method'                => 'automatic',
 			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
 			'customer'                      => 'cus_mock',
 			'level3'                        => [
@@ -255,6 +255,50 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	private function check_setup_future_usage_off_session( $payment_information ) {
 		$test_request = function ( $preempt, $parsed_args, $url ) {
 			$this->assertEquals( 'off_session', $parsed_args['body']['setup_future_usage'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( [] ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
+	}
+
+	/**
+	 * Test presence of idempotency key when sending the payment intent request.
+	 */
+	public function test_idempotency_key_for_create_and_confirm_payment_intent() {
+		$payment_information = [
+			'amount'                        => 100,
+			'capture_method'                => 'automatic',
+			'currency'                      => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
+			'customer'                      => 'cus_mock',
+			'level3'                        => [
+				'line_items' => [
+					[
+						'product_code'        => 'ABC123',
+						'product_description' => 'Test Product',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
+			'metadata'                      => [ '_stripe_metadata' => '123' ],
+			'order'                         => $this->order,
+			'payment_method'                => 'pm_mock',
+			'shipping'                      => [],
+			'selected_payment_type'         => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types'          => [ WC_Stripe_Payment_Methods::CARD ],
+			'is_using_saved_payment_method' => false,
+			'save_payment_method_to_store'  => true,
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			$this->assertNotEmpty( $parsed_args['headers']['Idempotency-Key'] );
 
 			return [
 				'response' => 200,
