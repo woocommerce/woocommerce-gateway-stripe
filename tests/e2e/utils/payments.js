@@ -153,24 +153,112 @@ export async function fillCreditCardDetailsLegacy( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
-	await page
-		.frameLocator(
-			'#stripe-card-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cardnumber"]' )
-		.fill( card.number );
-	await page
-		.frameLocator(
-			'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="exp-date"]' )
-		.fill( card.expires.month + card.expires.year );
-	await page
-		.frameLocator(
-			'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cvc"]' )
-		.fill( card.cvc );
+	const options = {
+		multi: {
+			cardNumber: {
+				iFrame:
+					'#stripe-card-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="cardnumber"]',
+			},
+			cardExpiry: {
+				iFrame:
+					'#stripe-exp-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="exp-date"]',
+			},
+			cardCvc: {
+				iFrame:
+					'#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="cvc"]',
+			},
+		},
+		upe: {
+			iFrame: '#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]',
+			cardNumber: '[name="number"]',
+			cardExpiry: '[name="expiry"]',
+			cardCvc: '[name="cvc"]',
+		},
+	};
+
+	const isVisible = async ( frame, selector ) => {
+		return await frame.locator( selector ).isVisible( { timeout: 10000 } );
+	};
+
+	const getLocator = async (
+		page,
+		frameSelector,
+		inputSelector,
+		description
+	) => {
+		if ( ! ( await isVisible( page, frameSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } frame using selector: ${ frameSelector }`
+			);
+		}
+
+		const frameLocator = page.frameLocator( frameSelector );
+
+		if ( ! ( await isVisible( frameLocator, inputSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } form element using selector: ${ frameSelector } ${ inputSelector }`
+			);
+		}
+
+		return frameLocator.locator( inputSelector );
+	};
+
+	let cardNumberLocator;
+	let cardExpiryLocator;
+	let cardCvcLocator;
+
+	const isUPE = await page.isVisible( options.upe.iFrame, { timeout: 5000 } );
+	if ( isUPE ) {
+		// Wait for the iFrame to load.
+		const frameElement = await page.waitForSelector( options.upe.iFrame );
+		const frame = await frameElement.contentFrame();
+		await frame.waitForLoadState( 'networkidle' );
+
+		cardNumberLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardNumber,
+			'number'
+		);
+		cardExpiryLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardExpiry,
+			'expiration date'
+		);
+		cardCvcLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardCvc,
+			'cvc'
+		);
+	} else {
+		cardNumberLocator = await getLocator(
+			page,
+			options.multi.cardNumber.iFrame,
+			options.multi.cardNumber.selector,
+			'number'
+		);
+		cardExpiryLocator = await getLocator(
+			page,
+			options.multi.cardExpiry.iFrame,
+			options.multi.cardExpiry.selector,
+			'expiration date'
+		);
+		cardCvcLocator = await getLocator(
+			page,
+			options.multi.cardCvc.iFrame,
+			options.multi.cardCvc.selector,
+			'cvc'
+		);
+	}
+
+	await cardNumberLocator.fill( card.number );
+	await cardExpiryLocator.fill( card.expires.month + card.expires.year );
+	await cardCvcLocator.fill( card.cvc );
 }
 
 /**

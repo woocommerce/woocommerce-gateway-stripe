@@ -28,43 +28,6 @@ const {
 } = process.env;
 
 /**
- * Helper function to login a WP user and save the state on a given path.
- * @param {Page} page Playwright page object.
- * @param {string} username Username of the user to login.
- * @param {string} password Password of the user to login.
- * @param {string} statePath Path to save the state.
- * @param {number} retries Number of retries to login.
- * @return {Promise} Promise object represents the state of the operation.
- */
-export const loginCustomerAndSaveState = ( {
-	page,
-	username,
-	password,
-	statePath,
-	retries,
-} ) =>
-	new Promise( ( resolve ) => {
-		( async () => {
-			console.log( '- Trying to log-in as customer...' );
-			await user.login( page, username, password, retries );
-
-			await page.goto( `/my-account` );
-			await expect(
-				page.locator(
-					'.woocommerce-MyAccount-navigation-link--customer-logout'
-				)
-			).toBeVisible();
-			await expect(
-				page.locator( 'div.woocommerce-MyAccount-content > p >> nth=0' )
-			).toContainText( 'Hello' );
-
-			await page.context().storageState( { path: statePath } );
-			console.log( '\u2714 Logged-in as customer successfully.' );
-			resolve();
-		} )();
-	} );
-
-/**
  * Helper function to login a WP admin user and save the state on a given path.
  * @param {Page} page Playwright page object.
  * @param {string} username Username of the user to login.
@@ -137,151 +100,83 @@ export const createApiTokens = ( page ) =>
 	} );
 
 /**
- * Helper function to download the Stripe plugin from the repository and install it on the site.
- * This is useful when we want to test a specific version of the plugin.
- * If the plugin is already installed, it will be updated to the specified version.
+ * Helper function to download the given plugin, from the given repository, and install it on the site.
+ *
+ * Tip: This is useful when we want to test a specific version of the given plugin.
+ * If the given plugin is already installed, it will be updated to the specified version.
+ *
  * @param {Page} page Playwright page object.
- * @returns {Promise} Promise that resolves when the plugin is installed.
+ * @param {string} repo The repository to download the plugin from.
+ * @param {string} pluginSlug The plugin slug.
+ * @param {string} version The version of the plugin to install.
+ *
+ * @returns {Promise} A promise that resolves when the plugin is installed.
  */
-export const installPluginFromRepository = ( page ) =>
-	new Promise( ( resolve ) => {
-		( async () => {
-			console.log(
-				`- Trying to install plugin version ${ PLUGIN_VERSION } from repository ${ PLUGIN_REPOSITORY }...`
-			);
-			const pluginSlug = 'woocommerce-gateway-stripe';
-			const pluginZipPath = path.resolve(
-				__dirname,
-				`../../tmp/${ pluginSlug }.zip`
-			);
+export const installPluginFromRepository = async (
+	page,
+	repo,
+	pluginSlug,
+	version = 'latest'
+) => {
+	console.log(
+		`- Trying to install ${ pluginSlug }@${ version } from ${ repo } repository...`
+	);
 
-			// Download the needed plugin.
-			await downloadRelease( {
-				repo: PLUGIN_REPOSITORY,
-				releaseTag: PLUGIN_VERSION,
-				downloadPath: pluginZipPath,
-				filename: `${ pluginSlug }.zip`,
-			} );
-			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
-				waitUntil: 'networkidle',
-			} );
+	const pluginZip = `${ pluginSlug }.zip`;
+	const pluginZipPath = path.resolve( __dirname, `../../tmp/${ pluginZip }` );
 
-			await page.setInputFiles( 'input#pluginzip', pluginZipPath, {
-				timeout: 10000,
-			} );
-			await page.click( "input[type='submit'] >> text=Install Now" );
-
-			try {
-				await page.click( 'text=Replace current with uploaded', {
-					timeout: 10000,
-				} );
-
-				await expect(
-					page.locator( '#wpbody-content .wrap' )
-				).toContainText(
-					/Plugin (?:downgraded|updated) successfully/gi
-				);
-			} catch ( e ) {
-				// Stripe wasn't installed on this site.
-				await expect(
-					page.locator( '#wpbody-content .wrap' )
-				).toContainText( /Plugin installed successfully/gi );
-
-				await page.click( 'text=Activate Plugin', {
-					timeout: 10000,
-				} );
-			}
-
-			await page.goto( 'wp-admin/plugins.php', {
-				waitUntil: 'networkidle',
-			} );
-
-			// Assert that the plugin is listed and active
-			await expect(
-				page.locator( `#deactivate-${ pluginSlug }` )
-			).toBeVisible();
-
-			console.log(
-				`\u2714 Plugin version ${ PLUGIN_VERSION } installed successfully.`
-			);
-
-			resolve();
-		} )();
+	// Download the needed plugin.
+	await downloadRelease( {
+		repo,
+		releaseTag: version,
+		filename: pluginZip,
+		downloadPath: pluginZipPath,
+	} );
+	await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
+		waitUntil: 'networkidle',
 	} );
 
-/**
- * Helper function to download and install the latest WooCommerce Subscriptions release from the official repository.
- * @param {Page} page Playwright page object.
- * @returns {Promise<void>} A promise that resolves when the plugin is installed.
- */
-export const installWooSubscriptionsFromRepo = ( page ) =>
-	new Promise( ( resolve ) => {
-		( async () => {
-			console.log(
-				`- Trying to install latest Woo Subscriptions release from official repository...`
-			);
-
-			const pluginSlug = 'woocommerce-subscriptions';
-			const pluginZipPath = path.resolve(
-				__dirname,
-				`../../tmp/${ pluginSlug }.zip`
-			);
-
-			// Download the needed plugin.
-			await downloadRelease( {
-				repo: 'woocommerce/woocommerce-subscriptions',
-				releaseTag: 'latest',
-				filename: 'woocommerce-subscriptions.zip',
-				downloadPath: pluginZipPath,
-			} );
-			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
-				waitUntil: 'networkidle',
-			} );
-
-			await page.setInputFiles( 'input#pluginzip', pluginZipPath, {
-				timeout: 10000,
-			} );
-			await page.click( "input[type='submit'] >> text=Install Now" );
-
-			try {
-				await page.click( 'text=Replace current with uploaded', {
-					timeout: 10000,
-				} );
-
-				await expect(
-					page.locator( '#wpbody-content .wrap' )
-				).toContainText(
-					/Plugin (?:downgraded|updated) successfully/gi
-				);
-			} catch ( e ) {
-				// Plugin wasn't installed on this site.
-				await expect(
-					page.locator( '#wpbody-content .wrap' )
-				).toContainText( /Plugin installed successfully/gi );
-
-				await page.click( 'text=Activate Plugin', {
-					timeout: 10000,
-				} );
-			}
-
-			await page.goto( 'wp-admin/plugins.php', {
-				waitUntil: 'networkidle',
-			} );
-
-			// Assert that the plugin is listed and active
-			await expect(
-				page.locator(
-					`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
-				)
-			).toBeVisible();
-
-			console.log(
-				`\u2714 Woo Subscriptions plugin installed successfully.`
-			);
-
-			resolve();
-		} )();
+	await page.setInputFiles( 'input#pluginzip', pluginZipPath, {
+		timeout: 10000,
 	} );
+	await page.click( "input[type='submit'] >> text=Install Now" );
+	await page.waitForLoadState( 'networkidle' );
+
+	const activateButtonText = 'text=Activate Plugin';
+	const replaceButtonText = 'text=Replace current with uploaded';
+	let continueButton;
+
+	if ( await page.isVisible( activateButtonText ) ) {
+		continueButton = page.locator( activateButtonText );
+	} else if ( await page.isVisible( replaceButtonText ) ) {
+		continueButton = page.locator( replaceButtonText );
+	} else {
+		throw new Error(
+			'Unable to install the plugin. Button to proceed not found.'
+		);
+	}
+
+	await continueButton.click( {
+		timeout: 10000,
+	} );
+
+	await expect( page.locator( '#wpbody-content .wrap' ) ).toContainText(
+		/Plugin ((?:downgraded|updated) successfully|activated.)/gi
+	);
+
+	await page.goto( 'wp-admin/plugins.php', {
+		waitUntil: 'networkidle',
+	} );
+
+	// Assert that the plugin is listed and active
+	await expect(
+		page.locator(
+			`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
+		)
+	).toBeVisible();
+
+	console.log( `\u2714 ${ pluginSlug } plugin installed successfully.` );
+};
 
 /**
  * Helper function to run an array of commands in a SSH server.
