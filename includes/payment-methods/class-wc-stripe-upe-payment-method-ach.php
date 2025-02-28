@@ -29,6 +29,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_currencies = [ WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR ];
 		$this->supported_countries  = [ 'US' ];
 		$this->supports[]           = 'tokenization';
+		$this->supports[]           = 'subscriptions';
 	}
 
 	/**
