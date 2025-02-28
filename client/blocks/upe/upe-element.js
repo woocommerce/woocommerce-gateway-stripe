@@ -94,13 +94,13 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 /**
  * Get the general element for the UPE.
  *
- * @param {WCStripeAPI} api The Stripe API object.
- * @param {string} paymentMethod The payment method name.
- * @param {Object} upeConfig The UPE configuration.
  * @param {*} props The props.
+ * @param {WCStripeAPI} props.api The Stripe API object.
+ * @param {string} props.paymentMethod The payment method name.
+ * @param {Object} props.upeConfig The UPE configuration.
  * @return {JSX.Element} The general element for the UPE.
  */
-const GeneralElement = ( api, paymentMethod, upeConfig, props ) => {
+const GeneralElement = ( { api, paymentMethod, upeConfig, ...props } ) => {
 	const [ paymentIntentId ] = useState( null );
 	return (
 		<PaymentElements
