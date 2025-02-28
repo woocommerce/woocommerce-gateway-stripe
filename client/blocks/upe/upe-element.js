@@ -112,7 +112,10 @@ const GeneralElement = ( api, paymentMethod, upeConfig, props ) => {
 			<PaymentProcessor
 				api={ api }
 				paymentIntentId={ paymentIntentId }
+				description={ upeConfig.description }
+				testingInstructions={ upeConfig.testingInstructions }
 				paymentMethodId={ paymentMethod }
+				upeMethods={ upeMethods }
 				{ ...props }
 			/>
 		</PaymentElements>
