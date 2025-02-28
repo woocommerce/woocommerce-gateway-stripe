@@ -100,7 +100,6 @@ const PaymentElements = ( {
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
 				currency: getBlocksConfiguration()?.currency.toLowerCase(),
-				paymentMethodTypes: getPaymentMethodTypes( paymentMethodId ),
 			},
 		};
 
@@ -113,6 +112,25 @@ const PaymentElements = ( {
 				...options,
 				...{
 					setupFutureUsage: 'off_session',
+				},
+			};
+		}
+
+		if ( true ) {
+			// @todo Replace it with the feature flag
+			options = {
+				...options,
+				...{
+					paymentMethodConfiguration: 'pmc_1QxXgxGtN3ImWtq0zHNUUOkT',
+				},
+			};
+		} else {
+			options = {
+				...options,
+				...{
+					paymentMethodTypes: getPaymentMethodTypes(
+						paymentMethodId
+					),
 				},
 			};
 		}

@@ -1112,7 +1112,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$intent = $this->get_intent_from_order( $order );
 
 			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
+			$payment_method_types    = array_values( $enabled_payment_methods );
 			$payment_needed          = $this->is_payment_needed( $order_id );
+
+			// Common parts when requesting the payment intent endpoints.
+			$request = [
+				'payment_method'       => $payment_method->id,
+				'payment_method_types' => $payment_method_types,
+				'customer'             => $payment_method->customer,
+				'confirm'              => false === $intent ? 'true' : null,
+			];
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
@@ -1120,28 +1129,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
-				$request         = [
-					'payment_method'       => $payment_method->id,
-					'payment_method_types' => array_values( $enabled_payment_methods ),
-					'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-					'currency'             => strtolower( $order->get_currency() ),
-					'description'          => $request_details['description'],
-					'metadata'             => $request_details['metadata'],
-					'customer'             => $payment_method->customer,
-				];
-				if ( false === $intent ) {
-					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
-					$request['confirm']        = 'true';
-				}
 
-				// If order requires shipping, add the shipping address details to the payment intent request.
-				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
-					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
-				}
-
-				if ( $this->has_subscription( $order_id ) ) {
-					$request['setup_future_usage'] = 'off_session';
-				}
+				$request = array_merge(
+					$request,
+					[
+						'amount'             => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+						'currency'           => strtolower( $order->get_currency() ),
+						'description'        => $request_details['description'],
+						'metadata'           => $request_details['metadata'],
+						'capture_method'     => $intent ? null : ( 'true' === $request_details['capture'] ? 'automatic' : 'manual' ),
+						// If order requires shipping, add the shipping address details to the payment intent request.
+						'shipping'           => method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ? $this->get_address_data_for_payment_request( $order ) : null,
+						'setup_future_usage' => $this->has_subscription( $order_id ) ? 'off_session' : null,
+					]
+				);
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
 				$request = apply_filters(
@@ -1150,30 +1151,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$order,
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
-
-				$intent = $this->stripe_request(
-					$endpoint,
-					$request,
-					$order
-				);
 			} else {
-				$endpoint = false !== $intent ? "setup_intents/$intent->id" : 'setup_intents';
-				$request  = [
-					'payment_method'       => $payment_method->id,
-					'payment_method_types' => array_values( $enabled_payment_methods ),
-					'customer'             => $payment_method->customer,
-				];
-				if ( false === $intent ) {
-					$request['confirm'] = 'true';
-
-					// SEPA setup intents require mandate data.
-					if ( in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, array_values( $enabled_payment_methods ), true ) ) {
-						$request = WC_Stripe_Helper::add_mandate_data( $request );
-					}
+				$order    = null;
+				$endpoint = $intent ? "setup_intents/$intent->id" : 'setup_intents';
+				// SEPA setup intents require mandate data.
+				if ( false === $intent && in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, $payment_method_types, true ) ) {
+					$request = WC_Stripe_Helper::add_mandate_data( $request );
 				}
-
-				$intent = $this->stripe_request( $endpoint, $request );
 			}
+
+			$intent = $this->stripe_request( $endpoint, $request, $order );
+
 			$this->save_intent_to_order( $order, $intent );
 
 			if ( ! empty( $intent->error ) ) {
