@@ -51,6 +51,7 @@ const getStripeElementOptions = () => {
 			applePay: 'never',
 			googlePay: 'never',
 		},
+		layout: 'accordion',
 	};
 
 	// Prefill Link customer data if available.
