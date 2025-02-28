@@ -7,13 +7,14 @@ import { Elements } from '@stripe/react-stripe-js';
 /**
  * Internal dependencies
  */
+import PaymentProcessor from './payment-processor';
+import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-import WCStripeAPI from 'wcstripe/api';
 
 /**
  * Renders a Stripe Payment elements component.
@@ -22,19 +23,16 @@ import WCStripeAPI from 'wcstripe/api';
  * @param {WCStripeAPI} props.api                    Object containing methods for interacting with Stripe.
  * @param {Object}      props.components             Object containing components for rendering.
  * @param {string}      props.paymentMethodId        The ID of the payment method.
- * @param {boolean}     props.showSaveOption         Whether to show the save payment option.
  * @param {boolean}     props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
- * @param {JSX.Element} props.children               Child elements to render.
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
-export const PaymentElements = ( {
+const PaymentElements = ( {
 	api,
 	components: { LoadingMask },
 	paymentMethodId,
-	showSaveOption,
 	supportsDeferredIntent,
-	children,
+	...props
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
@@ -108,14 +106,54 @@ export const PaymentElements = ( {
 		// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
 		...( supportsDeferredIntent &&
 			( getBlocksConfiguration()?.cartContainsSubscription ||
-				showSaveOption ) && {
+				props.showSaveOption ) && {
 				setupFutureUsage: 'off_session',
 			} ),
 	};
 
 	return (
 		<Elements stripe={ stripe } options={ options }>
-			{ children }
+			<PaymentProcessor
+				api={ api }
+				paymentIntentId={ paymentIntentId }
+				paymentMethodId={ paymentMethodId }
+				{ ...props }
+			/>
 		</Elements>
+	);
+};
+
+/**
+ * Renders a Stripe Payment elements component.
+ *
+ * @param {string}      paymentMethodId
+ * @param {Array}       upeMethods
+ * @param {WCStripeAPI} api
+ * @param {string}      description
+ * @param {string}      testingInstructions
+ * @param {boolean}     showSaveOption
+ * @param {boolean}     supportsDeferredIntent
+ *
+ * @return {JSX.Element} Rendered Payment elements.
+ */
+export const getDeferredIntentCreationUPEFields = (
+	paymentMethodId,
+	upeMethods,
+	api,
+	description,
+	testingInstructions,
+	showSaveOption,
+	supportsDeferredIntent
+) => {
+	return (
+		<PaymentElements
+			paymentMethodId={ paymentMethodId }
+			upeMethods={ upeMethods }
+			api={ api }
+			description={ description }
+			testingInstructions={ testingInstructions }
+			showSaveOption={ showSaveOption }
+			supportsDeferredIntent={ supportsDeferredIntent }
+		/>
 	);
 };

@@ -1,4 +1,4 @@
-import { PaymentElements } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
+import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
 	getPaymentMethodsConstants,
@@ -10,7 +10,6 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
 import { initializeCheckoutIcons } from 'wcstripe/blocks/upe/checkout-icons';
 import WCStripeAPI from 'wcstripe/api';
-import PaymentProcessor from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-processor';
 
 // Initialize checkout icons
 const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
@@ -52,19 +51,23 @@ export const groupedCheckoutElement = ( paymentMethod, api, upeConfig ) => {
 
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: (
-			<GeneralElement
-				api={ api }
-				paymentMethod={ paymentMethod }
-				upeConfig={ upeConfig }
-			/>
+		content: getDeferredIntentCreationUPEFields(
+			paymentMethod,
+			upeMethods,
+			api,
+			upeConfig.description,
+			upeConfig.testingInstructions,
+			upeConfig.showSaveOption ?? false,
+			upeConfig.supportsDeferredIntent
 		),
-		edit: (
-			<GeneralElement
-				api={ api }
-				paymentMethod={ paymentMethod }
-				upeConfig={ upeConfig }
-			/>
+		edit: getDeferredIntentCreationUPEFields(
+			paymentMethod,
+			upeMethods,
+			api,
+			upeConfig.description,
+			upeConfig.testingInstructions,
+			upeConfig.showSaveOption ?? false,
+			upeConfig.supportsDeferredIntent
 		),
 		savedTokenComponent: <SavedTokenHandler api={ api } />,
 		canMakePayment: ( cartData ) => {
@@ -88,34 +91,4 @@ export const groupedCheckoutElement = ( paymentMethod, api, upeConfig ) => {
 		ariaLabel: 'Stripe',
 		supports,
 	};
-};
-
-/**
- * Get the general element for the UPE.
- *
- * @param {*} props The props.
- * @param {WCStripeAPI} props.api The Stripe API object.
- * @param {string} props.paymentMethod The payment method name.
- * @param {Object} props.upeConfig The UPE configuration.
- * @return {JSX.Element} The general element for the UPE.
- */
-const GeneralElement = ( { api, paymentMethod, upeConfig, ...props } ) => {
-	return (
-		<PaymentElements
-			api={ api }
-			paymentMethodId={ paymentMethod }
-			showSaveOption={ upeConfig.showSaveOption ?? false }
-			supportsDeferredIntent={ upeConfig.supportsDeferredIntent }
-			{ ...props }
-		>
-			<PaymentProcessor
-				api={ api }
-				description={ upeConfig.description }
-				testingInstructions={ upeConfig.testingInstructions }
-				paymentMethodId={ paymentMethod }
-				upeMethods={ upeMethods }
-				{ ...props }
-			/>
-		</PaymentElements>
-	);
 };
