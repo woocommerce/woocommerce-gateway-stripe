@@ -467,6 +467,12 @@ export const getDefaultValues = () => {
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
+	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+
+	if ( ! $container.length ) {
+		return;
+	}
+
 	if (
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
@@ -494,11 +500,6 @@ export const showErrorCheckout = ( errorMessage ) => {
 			'<ul class="woocommerce-error" role="alert"><li>' +
 			errorMessage +
 			'</li></ul>';
-	}
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
-
-	if ( ! $container.length ) {
-		return;
 	}
 
 	// Adapted from WooCommerce core @ ea9aa8c, assets/js/frontend/checkout.js#L514-L529
@@ -533,6 +534,13 @@ export const showErrorCheckout = ( errorMessage ) => {
  * @param {string} containerSelector   - Selector for the container where the error should be appended.
  */
 export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
+	const $container = jQuery( containerSelector ).first();
+
+	if ( ! $container.length ) {
+		// If the container doesn't exist, do nothing.
+		return;
+	}
+
 	if (
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
@@ -553,13 +561,6 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
 				<li>${ errorMessage }</li>
 			</ul>
 		`;
-	}
-
-	const $container = jQuery( containerSelector ).first();
-
-	if ( ! $container.length ) {
-		// If the container doesn't exist, do nothing.
-		return;
 	}
 
 	// Remove any existing `.woocommerce-error` elements within this container
