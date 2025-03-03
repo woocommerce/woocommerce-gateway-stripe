@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Allow to save card during checkout with account creation.
 * Add - Add BLIK LPM feature flag.
 * Fix - ACSS: Handle errors and edge cases.
+* Add - Add subscriptions support to Bacs.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
