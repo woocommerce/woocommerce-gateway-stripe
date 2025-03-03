@@ -45,6 +45,8 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 
 		add_filter( 'pre_wc_checkout_tokenization_get_order_payment_token', [ $this, 'get_order_payment_token' ], 10, 2 );
 
+		add_action( 'wc_checkout_tokenization_delete_order_payment_token', [ $this, 'delete_order_payment_token' ], 10, 2 );
+
 		self::$has_attached_forced_tokenization_integration_hooks = true;
 	}
 
@@ -400,5 +402,33 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 		}
 
 		$this->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Delete the Stripe token data from the order.
+	 *
+	 * Detach the payment method from the customer as the order is now
+	 * completed and the payment method is no longer required.
+	 *
+	 * The payment method is invalidated via the API rather than deleting
+	 * the meta data to allow for future references in refunds and other
+	 * operations.
+	 *
+	 * @see https://docs.stripe.com/api/payment_methods/detach
+	 *
+	 * @since x.x.x
+	 *
+	 * @param WC_Order $order The order object the token is stored against.
+	 */
+	public function delete_order_payment_token( $order ) {
+		// API request to detach the payment method from the customer.
+		$payment_method_id = $order->get_meta( '_stripe_source_id' ); // Payment method is stored as source ID.
+		$customer_id       = $order->get_meta( '_stripe_customer_id' );
+
+		if ( ! $payment_method_id || ! $customer_id ) {
+			return;
+		}
+
+		WC_Stripe_API::detach_payment_method_from_customer( $customer_id, $payment_method_id );
 	}
 }
