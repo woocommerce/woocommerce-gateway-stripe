@@ -6,6 +6,7 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_AFTERPAY,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_LINK,
@@ -102,6 +103,17 @@ Object.entries( paymentMethodsConfig )
 					! isRestrictedInAnyCountry ||
 					upeConfig.countries.includes( billingCountry );
 
+				// Disable Bacs for subscriptions with free trial.
+				const cartContainsSubscriptions = cartData.cart.cartItems.every(
+					( item ) => item.type === 'subscription'
+				);
+				if (
+					upeName === PAYMENT_METHOD_BACS &&
+					cartContainsSubscriptions &&
+					cartData.cartTotals.total_price === '0'
+				) {
+					return false;
+				}
 				return isAvailableInTheCountry && !! api.getStripe();
 			},
 			// see .wc-block-checkout__payment-method styles in blocks/style.scss
