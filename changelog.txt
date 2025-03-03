@@ -9,7 +9,7 @@
 * Dev - Adds the payment method constants to the payment methods map file (frontend side).
 * Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
 * Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
-* Fix - Prepare the redirect URL at the end of 'process_payment' method. 
+* Fix - Prepare the redirect URL at the end of 'process_payment' method.
 * Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
 * Fix - Fix error when processing a subscription via Amazon Pay.
 * Fix - Make Amazon Pay compatible with upfront pre-orders.
@@ -21,6 +21,7 @@
 * Add - Bacs: Process Payment with Saved Bank Details
 * Tweak - Update payment method logos on the checkout page.
 * Update - Refactor unsupported deferred intent in the blocks checkout.
+* Add - Use idempotency keys when creating payment intents, to help prevent duplicate charges for a single order.
 * Fix - Allow to save card during checkout with account creation.
 * Add - Add BLIK LPM feature flag.
 
