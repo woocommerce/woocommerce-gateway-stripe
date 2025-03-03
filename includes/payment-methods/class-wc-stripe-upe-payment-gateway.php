@@ -2238,42 +2238,42 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_method'                => '',
 			'payment_method_details'        => $payment_method_details,
 			'payment_type'                  => 'single', // single | recurring.
+			'save_payment_method_to_store'  => $save_payment_method_to_store,
 		];
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
 		}
 
-		if ( ! empty( $payment_method_id ) ) {
-			$payment_information['payment_method']               = $payment_method_id;
-			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
-			$payment_information['payment_method_options']       = $this->get_payment_method_options(
+		if ( empty( $payment_method_id ) && ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
+			// These fields should not be set when using confirmation tokens to create a payment intent.
+			unset( $payment_information['payment_method'] );
+			unset( $payment_information['payment_method_details'] );
+
+			$confirmation_token_id                     = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
+			$payment_information['confirmation_token'] = $confirmation_token_id;
+
+			// Some payment methods such as Amazon Pay will only accept a capture_method of 'manual'
+			// under payment_method_options.
+			if ( 'manual' === $capture_method ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['capture_method'] = 'manual';
+			} else {
+				// Explicitly set the capture method at the top level if not 'manual'. Stripe default is 'automatic_async'.
+				// https://docs.stripe.com/api/payment_intents/create#create_payment_intent-capture_method
+				$payment_information['capture_method'] = $capture_method;
+			}
+
+			if ( $payment_information['has_subscription'] ) {
+				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
+			}
+		} else {
+			$payment_information['payment_method']         = $payment_method_id;
+			$payment_information['capture_method']         = $capture_method;
+			$payment_information['payment_method_options'] = $this->get_payment_method_options(
 				$selected_payment_type,
 				$order,
 				$payment_method_details
 			);
-			$payment_information['capture_method']               = $capture_method;
-		} else {
-			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
-			$payment_information['confirmation_token']           = $confirmation_token_id;
-			$payment_information['save_payment_method_to_store'] = false;
-
-			// When using confirmation tokens with manual capture, we need to
-			// set the capture_method parameter under payment method options.
-			if ( 'manual' === $capture_method ) {
-				$payment_information['payment_method_options'] = [
-					$selected_payment_type => [
-						'capture_method' => 'manual',
-					],
-				];
-			} else {
-				$payment_information['capture_method'] = $capture_method;
-			}
-
-			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
-			if ( $payment_information['has_subscription'] ) {
-				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
-			}
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
