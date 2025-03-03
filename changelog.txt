@@ -94,6 +94,7 @@
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.
 * Fix - Fix variable dump in ACH customer error message when retrying a payment.
+* Dev - Fetch Stripe settings with Stripe configuration API.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
