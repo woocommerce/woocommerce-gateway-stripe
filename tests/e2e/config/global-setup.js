@@ -8,8 +8,6 @@ import {
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-	installWooSubscriptionsFromRepo,
-	checkWooGutenbergProductsBlockVersion,
 } from '../utils/playwright-setup';
 
 dotenv.config( {
@@ -21,6 +19,7 @@ const {
 	ADMIN_USER,
 	ADMIN_PASSWORD,
 	PLUGIN_VERSION,
+	PLUGIN_REPOSITORY,
 	WOO_SETUP,
 	STRIPE_SETUP,
 	STRIPE_PUB_KEY,
@@ -36,6 +35,41 @@ function wait( milliseconds ) {
 	return new Promise( ( resolve ) => {
 		setTimeout( resolve, milliseconds );
 	} );
+}
+
+/**
+ * Install plugins from the respective repositories.
+ *
+ * @param {Page} page Playwright page fixture.
+ *
+ * @returns {Promise<unknown>}
+ */
+async function installPlugins( page ) {
+	let pluginSlug;
+
+	try {
+		// Install WooCommerce Subscriptions.
+		pluginSlug = 'woocommerce-subscriptions';
+		await installPluginFromRepository(
+			page,
+			`woocommerce/${ pluginSlug }`,
+			pluginSlug
+		);
+		// Install WooCommerce Pre-Orders.
+		pluginSlug = 'woocommerce-pre-orders';
+		await installPluginFromRepository(
+			page,
+			`woocommerce/${ pluginSlug }`,
+			pluginSlug
+		);
+	} catch ( e ) {
+		console.error( e );
+		console.error(
+			`Cannot proceed e2e test, as we could not install ${ pluginSlug }.`,
+			'Please check if the GITHUB_TOKEN env variable is valid.'
+		);
+		process.exit( 1 );
+	}
 }
 
 module.exports = async ( config ) => {
@@ -125,13 +159,13 @@ module.exports = async ( config ) => {
 	} )
 		.then( async () => {
 			const apiTokensPage = await adminContext.newPage();
-			const updatePluginPage = await adminContext.newPage();
-			const wooSubscriptionsInstallPage = await adminContext.newPage();
+			const pluginsInstallPage01 = await adminContext.newPage();
+			const pluginsInstallPage02 = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
 			let restApiKeysFinished = false;
 			let pluginUpdateFinished = false;
-			let wooSubscriptionsInstallFinished = false;
+			let pluginsInstallFinished = false;
 			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
@@ -146,14 +180,20 @@ module.exports = async ( config ) => {
 				} );
 
 			if ( PLUGIN_VERSION ) {
-				installPluginFromRepository( updatePluginPage )
+				installPluginFromRepository(
+					pluginsInstallPage01,
+					PLUGIN_REPOSITORY,
+					'woocommerce-gateway-stripe',
+					PLUGIN_VERSION
+				)
 					.then( () => {
 						pluginUpdateFinished = true;
 					} )
 					.catch( ( e ) => {
 						console.error( e );
 						console.error(
-							'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
+							'Cannot proceed with e2e tests, as the plugin could not be installed.',
+							'Please check if the site has been setup correctly.'
 						);
 						process.exit( 1 );
 					} );
@@ -165,22 +205,15 @@ module.exports = async ( config ) => {
 			}
 
 			if ( WOO_SETUP && GITHUB_TOKEN ) {
-				installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
-					.then( () => {
-						wooSubscriptionsInstallFinished = true;
-					} )
-					.catch( ( e ) => {
-						console.error( e );
-						console.error(
-							'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
-						);
-						process.exit( 1 );
-					} );
+				installPlugins( pluginsInstallPage02 ).then( () => {
+					pluginsInstallFinished = true;
+				} );
 			} else {
 				console.log(
-					'Skipping WC Subscriptions setup. The version already installed on the test site will be used if needed.'
+					'Skipping plugins installation.',
+					'The plugin versions pre-installed on the site will be used, if needed.'
 				);
-				wooSubscriptionsInstallFinished = true;
+				pluginsInstallFinished = true;
 			}
 
 			if ( STRIPE_SETUP ) {
@@ -210,7 +243,7 @@ module.exports = async ( config ) => {
 				! pluginUpdateFinished ||
 				! restApiKeysFinished ||
 				! stripeSetupFinished ||
-				! wooSubscriptionsInstallFinished
+				! pluginsInstallFinished
 			) {
 				await wait( 1000 );
 			}

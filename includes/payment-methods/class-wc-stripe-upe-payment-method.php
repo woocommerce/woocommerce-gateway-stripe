@@ -712,7 +712,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$id = 'wc-' . $this->id . '-new-payment-method';
 		?>
 		<fieldset <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
-			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
+			<p class="form-row woocommerce-SavedPaymentMethods-saveNew" <?php echo ! is_user_logged_in() ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
 				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
 				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
 					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>

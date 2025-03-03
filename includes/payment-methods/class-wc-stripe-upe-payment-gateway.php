@@ -463,6 +463,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ACSS LPM Feature flag.
 		$stripe_params['is_acss_enabled'] = WC_Stripe_Feature_Flags::is_acss_lpm_enabled();
 
+		// BLIK LPM Feature flag.
+		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
@@ -641,9 +644,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
-				if ( is_user_logged_in() ) {
-					$this->saved_payment_methods();
-				}
+				$this->saved_payment_methods();
 			}
 			?>
 
@@ -658,9 +659,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
-				if ( is_user_logged_in() ) {
-					$this->save_payment_method_checkbox( $force_save_payment );
-				}
+				$this->save_payment_method_checkbox( $force_save_payment );
 			}
 
 			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
