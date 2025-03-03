@@ -1053,6 +1053,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
+			if ( $payment_information['save_payment_method_to_store'] ) {
+				$this->handle_saving_payment_method(
+					$order,
+					$payment_method,
+					$selected_payment_type
+				);
+			}
+
 			$return_url = $this->get_return_url( $order );
 
 			return [
