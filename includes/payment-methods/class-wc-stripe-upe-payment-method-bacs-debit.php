@@ -34,6 +34,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		if ( ! is_wc_endpoint_url( 'add-payment-method' ) ) {
 			$this->supports[] = 'tokenization';
 		}
+
+		$this->hide_bacs_for_subscriptions_with_free_trials();
 	}
 
 	/**
@@ -85,5 +87,24 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;
+	}
+
+	public function hide_bacs_for_subscriptions_with_free_trials() {
+		add_filter(
+			'woocommerce_available_payment_gateways',
+			function ( $available_gateways ) {
+				global $post;
+				$is_checkout_shortcode_page          = wc_post_content_has_shortcode( 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post );
+				$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
+				if ( $is_checkout_shortcode_page || $is_update_order_review_ajax_request ) {
+					// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
+					// as long as another product increases the total amount, ensuring compatibility with Bacs.
+					if ( WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
+						unset( $available_gateways['stripe_bacs_debit'] );
+					}
+				}
+				return $available_gateways;
+			}
+		);
 	}
 }
