@@ -614,7 +614,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$currently_enabled_payment_method_ids = (array) $this->gateway->get_option( 'upe_checkout_experience_accepted_payments' );
+		$currently_enabled_payment_method_ids      = (array) $this->gateway->get_option( 'upe_checkout_experience_accepted_payments' );
 		$upe_checkout_experience_accepted_payments = [];
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $gateway ) {
@@ -626,7 +626,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
 
 		// After updating payment methods record tracks events.
-		$newly_enabled_methods = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
+		$newly_enabled_methods  = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
 		$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
 
 		$this->record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
@@ -728,29 +728,29 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
 		// Track the events for both arrays.
-		array_map( 
+		array_map(
 			function ( $id ) use ( $is_test_mode ) {
-				wc_admin_record_tracks_event( 
-					'wcstripe_payment_method_settings_enabled', 
-					[ 
-						'is_test_mode' => $is_test_mode, 
-						'payment_method' => $id 
-					] 
-				) ;
-			}, 
-			$enabled_methods
-		);
-		array_map( 
-			function ( $id ) use ( $is_test_mode ) {
-				wc_admin_record_tracks_event( 
-					'wcstripe_payment_method_settings_disabled', 
-					[ 
-						'is_test_mode' => $is_test_mode, 
-						'payment_method' => $id 
-					] 
+				wc_admin_record_tracks_event(
+					'wcstripe_payment_method_settings_enabled',
+					[
+						'is_test_mode'   => $is_test_mode,
+						'payment_method' => $id,
+					]
 				);
 			},
-			$disabled_methods 
+			$enabled_methods
+		);
+		array_map(
+			function ( $id ) use ( $is_test_mode ) {
+				wc_admin_record_tracks_event(
+					'wcstripe_payment_method_settings_disabled',
+					[
+						'is_test_mode'   => $is_test_mode,
+						'payment_method' => $id,
+					]
+				);
+			},
+			$disabled_methods
 		);
 	}
 }
