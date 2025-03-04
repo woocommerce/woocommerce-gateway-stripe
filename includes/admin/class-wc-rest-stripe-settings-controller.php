@@ -727,18 +727,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$is_test_mode = WC_Stripe_Mode::is_test();
 
-		if ( defined( 'RECORD_TRACKS_LOCALLY' ) && RECORD_TRACKS_LOCALLY ) {
-			$logger = wc_get_logger();
-			foreach( $enabled_methods as $id ) {
-				$message = json_encode( [ 'event_name' => "wcstripe_payment_method_settings_enabled", 'event_properties' => [ 'is_test_mode' => $is_test_mode, 'payment_method' => $id ] ] );
-				$logger->info( $message, [ 'source' => 'wcstripe_tracks_event_log' ] );
-			}
-			foreach( $disabled_methods as $id ) {
-				$message = json_encode( [ 'event_name' => "wcstripe_payment_method_settings_disabled", 'event_properties' => [ 'is_test_mode' => $is_test_mode, 'payment_method' => $id ] ] );
-				$logger->info( $message, [ 'source' => 'wcstripe_tracks_event_log' ] );
-			}
-		}
-
 		// Track the events for both arrays.
 		array_map( fn($id) => wc_admin_record_tracks_event( "wcstripe_payment_method_settings_enabled", [ 'is_test_mode' => $is_test_mode, 'payment_method' => $id ] ), $enabled_methods );
 		array_map( fn($id) => wc_admin_record_tracks_event( "wcstripe_payment_method_settings_disabled", [ 'is_test_mode' => $is_test_mode, 'payment_method' => $id ] ), $disabled_methods );
