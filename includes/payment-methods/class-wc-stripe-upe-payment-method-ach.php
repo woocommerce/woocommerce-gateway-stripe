@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Stripe_UPE_Payment_Method
  */
 class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	/**
 	 * Stripe's internal identifier for ACH Direct Debit.
@@ -30,6 +31,9 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_countries  = [ 'US' ];
 		$this->supports[]           = 'tokenization';
 		$this->supports[]           = 'subscriptions';
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**
