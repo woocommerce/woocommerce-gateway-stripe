@@ -987,6 +987,10 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;
+						case WC_Stripe_Payment_Methods::BACS_DEBIT:
+							/* translators: 1) email address associated with the Stripe Link payment method */
+							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
+							break 3;
 					}
 				}
 			}
