@@ -9,6 +9,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since x.x.x
  */
 class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
+
 	/**
 	 * The Stripe ID for the payment method.
 	 */
@@ -32,7 +34,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
 		if ( ! is_wc_endpoint_url( 'add-payment-method' ) ) {
-			$this->supports[] = 'tokenization';
+			// Check if subscriptions are enabled and add support for them.
+			$this->maybe_init_subscriptions();
 		}
 
 		$this->hide_bacs_for_subscriptions_with_free_trials();
