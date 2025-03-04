@@ -303,7 +303,21 @@ export const generateCheckoutEventNames = () => {
 		.join( ' ' );
 };
 
+/**
+ * Appends a payment method ID to the form.
+ *
+ * @param {Object} form The jQuery form object.
+ * @param {string} paymentMethodId The payment method ID to append to the form.
+ */
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
+	// If the element already exists, remove it first, to avoid duplicates.
+	// This can happen if the payment is retried, e.g. entering a new card
+	// after a previous card was declined.
+	const existingElement = form.find( 'input#wc-stripe-payment-method' );
+	if ( existingElement.length ) {
+		existingElement.remove();
+	}
+
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
 	);
