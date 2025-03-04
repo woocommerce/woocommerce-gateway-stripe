@@ -9,7 +9,7 @@ import {
 	useStripe,
 	Elements,
 } from '@stripe/react-stripe-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
@@ -23,6 +23,7 @@ import {
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 
+const noop = () => null;
 /**
  * Gets the Stripe element options.
  *
@@ -34,7 +35,9 @@ const getStripeElementOptions = () => {
 			billingDetails: {
 				name: 'never',
 				email: 'never',
-				phone: 'never',
+				// The phone field is optional, so it needs to be "auto" to not throw errors
+				// when passing the phone parameter to create a payment method.
+				phone: 'auto',
 				address: {
 					country: 'never',
 					line1: 'never',
@@ -93,6 +96,7 @@ export function validateElements( elements ) {
  *
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
+ * @param {string}      args.paymentIntentId     The payment intent ID.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
  * @param {string}      args.description         The payment method description to display.
  * @param {string}      args.testingInstructions The testing instructions to display.
@@ -109,6 +113,7 @@ export function validateElements( elements ) {
  */
 const PaymentProcessor = ( {
 	api,
+	paymentIntentId,
 	activePaymentMethod,
 	description,
 	testingInstructions,
@@ -120,6 +125,7 @@ const PaymentProcessor = ( {
 	shouldSavePayment,
 	fingerprint,
 	billing,
+	onLoadError = noop,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
@@ -142,6 +148,13 @@ const PaymentProcessor = ( {
 	shouldSavePayment =
 		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
 
+	const hasLoadErrorRef = useRef( false );
+
+	const setHasLoadError = ( event ) => {
+		hasLoadErrorRef.current = true;
+		onLoadError( event );
+	};
+
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
@@ -150,6 +163,16 @@ const PaymentProcessor = ( {
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
 					) {
 						return;
+					}
+
+					if ( hasLoadErrorRef.current ) {
+						return {
+							type: 'error',
+							message: __(
+								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+								'woocommerce-gateway-stripe'
+							),
+						};
 					}
 
 					if ( ! isPaymentElementComplete ) {
@@ -169,6 +192,7 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					// Check if user tried to save a method that isn’t reusable.
 					if (
 						gatewayConfig.supports.showSaveOption &&
 						shouldSavePayment &&
@@ -192,7 +216,7 @@ const PaymentProcessor = ( {
 								billing_details: {
 									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
 									email: billingAddress.email,
-									phone: billingAddress.phone,
+									phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
 									address: {
 										city: billingAddress.city,
 										country: billingAddress.country,
@@ -217,6 +241,7 @@ const PaymentProcessor = ( {
 						meta: {
 							paymentMethodData: {
 								payment_method: upeMethods[ paymentMethodId ],
+								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
@@ -253,6 +278,7 @@ const PaymentProcessor = ( {
 			onPaymentSetup,
 			isPaymentElementComplete,
 			billing.billingAddress,
+			paymentIntentId,
 		]
 	);
 
@@ -308,6 +334,7 @@ const PaymentProcessor = ( {
 			<PaymentElement
 				options={ getStripeElementOptions() }
 				onChange={ onSelectedPaymentMethodChange }
+				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"
 			/>
 		</>

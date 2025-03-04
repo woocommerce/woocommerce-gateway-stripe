@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Required minimums and constants
  */
 define( 'WC_STRIPE_VERSION', '9.2.0' ); // WRCS: DEFINED_VERSION.
-define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
+define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
+define( 'WC_STRIPE_MIN_WC_VER', '9.2' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.2' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -215,6 +215,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-bacs-payment-token.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-status.php';
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
@@ -226,7 +227,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
-				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php';

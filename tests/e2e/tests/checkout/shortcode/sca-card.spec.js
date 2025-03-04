@@ -7,6 +7,7 @@ const {
 	setupCart,
 	setupShortcodeCheckout,
 	fillCreditCardDetailsShortcode,
+	handleCheckout3DSChallenge,
 } = payments;
 
 test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
@@ -19,23 +20,8 @@ test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 	await fillCreditCardDetailsShortcode( page, config.get( 'cards.3ds' ) );
 	await page.locator( 'text=Place order' ).dispatchEvent( 'click' );
 
-	// Wait until the SCA frame is available
-	while (
-		! page.frame( {
-			name: 'stripe-challenge-frame',
-		} )
-	) {
-		await page.waitForTimeout( 1000 );
-	}
-	// Not ideal, but the iframe body gets repalced after load, so a waitFor does not work here.
-	await page.waitForTimeout( 2000 );
-
-	await page
-		.frame( {
-			name: 'stripe-challenge-frame',
-		} )
-		.getByRole( 'button', { name: 'Complete' } )
-		.click();
+	// Complete the 3DS challenge
+	await handleCheckout3DSChallenge( page );
 
 	await page.waitForURL( '**/checkout/order-received/**' );
 
