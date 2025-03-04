@@ -20,6 +20,8 @@ setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 	await expect(
 		page.getByTestId( 'legacy-checkout-experience-checkbox' )
 	).not.toBeChecked();
+
+	await adminContext.close();
 } );
 
 setup( 'enable Link', async ( { browser } ) => {
@@ -36,4 +38,6 @@ setup( 'enable Link', async ( { browser } ) => {
 
 	await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
 	await expect( page.getByLabel( 'Link by Stripe Input' ) ).toBeChecked();
+
+	await adminContext.close();
 } );

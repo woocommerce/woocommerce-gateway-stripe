@@ -9,7 +9,7 @@ import {
 	useStripe,
 	Elements,
 } from '@stripe/react-stripe-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
@@ -23,6 +23,7 @@ import {
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 
+const noop = () => null;
 /**
  * Gets the Stripe element options.
  *
@@ -124,6 +125,7 @@ const PaymentProcessor = ( {
 	shouldSavePayment,
 	fingerprint,
 	billing,
+	onLoadError = noop,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
@@ -146,6 +148,13 @@ const PaymentProcessor = ( {
 	shouldSavePayment =
 		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
 
+	const hasLoadErrorRef = useRef( false );
+
+	const setHasLoadError = ( event ) => {
+		hasLoadErrorRef.current = true;
+		onLoadError( event );
+	};
+
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
@@ -154,6 +163,16 @@ const PaymentProcessor = ( {
 						upeMethods[ paymentMethodId ] !== activePaymentMethod
 					) {
 						return;
+					}
+
+					if ( hasLoadErrorRef.current ) {
+						return {
+							type: 'error',
+							message: __(
+								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+								'woocommerce-gateway-stripe'
+							),
+						};
 					}
 
 					if ( ! isPaymentElementComplete ) {
@@ -173,6 +192,7 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					// Check if user tried to save a method that isn’t reusable.
 					if (
 						gatewayConfig.supports.showSaveOption &&
 						shouldSavePayment &&
@@ -314,6 +334,7 @@ const PaymentProcessor = ( {
 			<PaymentElement
 				options={ getStripeElementOptions() }
 				onChange={ onSelectedPaymentMethodChange }
+				onLoadError={ setHasLoadError }
 				className="wcstripe-payment-element"
 			/>
 		</>

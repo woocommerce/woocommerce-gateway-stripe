@@ -22,6 +22,10 @@
 		"subscription": {
 			"name": "Subscription Product",
 			"type": "subscription"
+		},
+		"pre-order": {
+			"name": "Pre-Order Product",
+			"type": "simple"
 		}
 	},
 	"addresses": {
