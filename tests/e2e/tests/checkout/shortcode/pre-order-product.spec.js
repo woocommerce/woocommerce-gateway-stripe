@@ -1,20 +1,32 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
+import { isPluginInstalled } from '../../../utils/plugin-utils';
 
-const { setupBlocksCheckout, fillCreditCardDetails } = payments;
+const {
+	setupShortcodeCheckout,
+	fillCreditCardDetailsShortcodeLegacy,
+} = payments;
 
 let productId;
 
+test.skip( async () => {
+	return ! ( await isPluginInstalled( 'woocommerce-pre-orders' ) );
+}, 'Woo Pre-Orders plugin is not active. Skipping tests.' );
+
 test.beforeAll( async () => {
-	productId = await api.create.product( products.subscriptionData() );
+	productId = await api.create.product( products.preOrderData() );
 } );
 
 test.afterAll( async () => {
+	if ( ! productId ) {
+		return;
+	}
+
 	await api.deletePost.product( productId );
 } );
 
-test( 'customer can purchase a subscription product @smoke @blocks @subscriptions', async ( {
+test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	page,
 } ) => {
 	await page.goto( `?p=${ productId }` );
@@ -27,10 +39,13 @@ test( 'customer can purchase a subscription product @smoke @blocks @subscription
 			Date.now() + '+' + config.get( 'addresses.customer.billing.email' ),
 	};
 
-	await setupBlocksCheckout( page, customerData );
-	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
+	await setupShortcodeCheckout( page, customerData );
+	await fillCreditCardDetailsShortcodeLegacy(
+		page,
+		config.get( 'cards.basic' )
+	);
 
-	await page.locator( 'text=Sign up now' ).click();
+	await page.locator( 'text="Place pre-order now"' ).click();
 	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

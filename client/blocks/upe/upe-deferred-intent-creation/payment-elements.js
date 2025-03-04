@@ -2,7 +2,8 @@
  * External dependencies
  */
 import { useEffect, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
+import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { Elements } from '@stripe/react-stripe-js';
 /**
  * Internal dependencies
@@ -21,22 +22,28 @@ import { getFontRulesFromPage } from 'wcstripe/styles/upe';
  *
  * @param {*}           props                        Additional props for payment processing.
  * @param {WCStripeAPI} props.api                    Object containing methods for interacting with Stripe.
- * @param {Object}      props.components             Object containing components for rendering.
  * @param {string}      props.paymentMethodId        The ID of the payment method.
  * @param {boolean}     props.supportsDeferredIntent Whether the payment method supports deferred intent creation.
+ * @param {Object}      props.components             Object containing components for rendering.
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
 const PaymentElements = ( {
 	api,
-	components: { LoadingMask },
 	paymentMethodId,
 	supportsDeferredIntent,
+	components: { LoadingMask },
 	...props
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
+
+	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [
+		paymentProcessorLoadErrorMessage,
+		setPaymentProcessorLoadErrorMessage,
+	] = useState( null );
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -53,9 +60,21 @@ const PaymentElements = ( {
 				setClientSecret( response.client_secret );
 				setPaymentIntentId( response.id );
 			} catch ( error ) {
-				// TODO: Gracefully handle errors.
-				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/3830
-				console.log( 'error', error ); // eslint-disable-line no-console
+				const paymentMethodTitle =
+					getBlocksConfiguration()?.paymentMethodsConfig?.[
+						paymentMethodId
+					]?.title ?? '';
+				setErrorMessage(
+					error?.message ??
+						sprintf(
+							// translators: %s is the payment method title.
+							__(
+								'Failed to load %s payment method. Please refresh the page and try again.',
+								'woocommerce-gateway-stripe'
+							),
+							paymentMethodTitle
+						)
+				);
 			}
 		}
 
@@ -68,6 +87,16 @@ const PaymentElements = ( {
 		paymentMethodId,
 		supportsDeferredIntent,
 	] );
+
+	if ( errorMessage ) {
+		return (
+			<div className="wc-block-components-notices">
+				<StoreNotice status="error" isDismissible={ false }>
+					{ errorMessage }
+				</StoreNotice>
+			</div>
+		);
+	}
 
 	// If a client secret is required, wait until it is available.
 	if ( ! supportsDeferredIntent && ! clientSecret ) {
@@ -112,14 +141,24 @@ const PaymentElements = ( {
 	};
 
 	return (
-		<Elements stripe={ stripe } options={ options }>
-			<PaymentProcessor
-				api={ api }
-				paymentIntentId={ paymentIntentId }
-				paymentMethodId={ paymentMethodId }
-				{ ...props }
-			/>
-		</Elements>
+		<>
+			{ paymentProcessorLoadErrorMessage?.error?.message && (
+				<div className="wc-block-components-notices">
+					<StoreNotice status="error" isDismissible={ false }>
+						{ paymentProcessorLoadErrorMessage.error.message }
+					</StoreNotice>
+				</div>
+			) }
+			<Elements stripe={ stripe } options={ options }>
+				<PaymentProcessor
+					api={ api }
+					paymentIntentId={ paymentIntentId }
+					paymentMethodId={ paymentMethodId }
+					onLoadError={ setPaymentProcessorLoadErrorMessage }
+					{ ...props }
+				/>
+			</Elements>
+		</>
 	);
 };
 
