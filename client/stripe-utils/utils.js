@@ -462,11 +462,17 @@ export const getDefaultValues = () => {
 
 /**
  * Show error notice at top of checkout form.
- * Will try to use a translatable message using the message code if available
+ * Will try to use a translatable message using the message code if available.
  *
  * @param {string} errorMessage
  */
 export const showErrorCheckout = ( errorMessage ) => {
+	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+
+	if ( ! $container.length ) {
+		return;
+	}
+
 	if (
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
@@ -495,24 +501,73 @@ export const showErrorCheckout = ( errorMessage ) => {
 			errorMessage +
 			'</li></ul>';
 	}
-	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
-
-	if ( ! $container.length ) {
-		return;
-	}
 
 	// Adapted from WooCommerce core @ ea9aa8c, assets/js/frontend/checkout.js#L514-L529
-	jQuery(
-		'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
-	).remove();
+	$container
+		.find(
+			'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
+		)
+		.remove();
 	$container.prepend( messageWrapper );
-	jQuery( 'form.checkout' )
-		.find( '.input-text, select, input:checkbox' )
-		.trigger( 'validate' )
-		.trigger( 'blur' );
+
+	const $fields = jQuery( 'form.checkout' ).find(
+		'.input-text, select, input:checkbox'
+	);
+
+	if ( $fields.length ) {
+		$fields.each( function () {
+			try {
+				jQuery( this ).trigger( 'validate' ).trigger( 'blur' );
+			} catch ( e ) {} // Don't break trying to validate fields.
+		} );
+	}
 
 	jQuery.scroll_to_notices( $container );
 	jQuery( document.body ).trigger( 'checkout_error' );
+};
+
+/**
+ * Show an error notice inside a specific payment method container.
+ * Will try to use a translatable message using the message code if available.
+ *
+ * @param {string|Object} errorMessage - The error message or error object.
+ * @param {string} containerSelector   - Selector for the container where the error should be appended.
+ */
+export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
+	const $container = jQuery( containerSelector ).first();
+
+	if ( ! $container.length ) {
+		// If the container doesn't exist, do nothing.
+		return;
+	}
+
+	if (
+		typeof errorMessage !== 'string' &&
+		! ( errorMessage instanceof String )
+	) {
+		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
+			errorMessage = getStripeServerData()[ errorMessage.code ];
+		} else {
+			errorMessage = errorMessage.message;
+		}
+	}
+
+	let messageWrapper = '';
+	if ( errorMessage.includes( 'woocommerce-error' ) ) {
+		messageWrapper = errorMessage;
+	} else {
+		messageWrapper = `
+			<ul class="woocommerce-error" role="alert">
+				<li>${ errorMessage }</li>
+			</ul>
+		`;
+	}
+
+	// Remove any existing `.woocommerce-error` elements within this container
+	// so we don't stack multiple copies.
+	$container.find( '.woocommerce-error' ).remove();
+
+	$container.prepend( messageWrapper );
 };
 
 /**
