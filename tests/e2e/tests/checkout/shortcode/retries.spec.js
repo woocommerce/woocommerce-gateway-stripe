@@ -123,3 +123,30 @@ test( 'customer can retry payment, using a different payment method @smoke', asy
 		'Order received'
 	);
 } );
+
+/**
+ * This test verifies that exactly one element with the id wc-stripe-payment-method is present in the form,
+ * after retrying a payment.
+ */
+test( 'No duplicate payment method elements are created when retrying payments', async ( {
+	page,
+} ) => {
+	await fillCreditCardDetailsShortcode(
+		page,
+		config.get( 'cards.declined' )
+	);
+	await clickPlaceOrder( page );
+
+	// Expect the order to fail
+	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+
+	// Fail again
+	await clickPlaceOrder( page );
+
+	// Expect the order to fail
+	await expect( page.locator( '.woocommerce-error' ) ).toBeVisible();
+
+	// Expect only one element with the id wc-stripe-payment-method
+	const paymentMethodInputs = await page.$$( '#wc-stripe-payment-method' );
+	expect( paymentMethodInputs ).toHaveLength( 1 );
+} );

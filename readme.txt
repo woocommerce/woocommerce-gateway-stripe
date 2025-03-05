@@ -134,5 +134,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Use idempotency keys when creating payment intents, to help prevent duplicate charges for a single order.
 * Fix - Allow to save card during checkout with account creation.
 * Add - Add BLIK LPM feature flag.
+* Fix - Skip unnecessary save step when already using a saved payment method for legacy checkout.
+* Fix - Avoid duplicate payment method element for classic checkout.
+* Fix - ACSS: Handle errors and edge cases.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
