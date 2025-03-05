@@ -27,6 +27,40 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
+	 * Return if Amazon Pay is enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_amazon_pay_enabled() {
+		// Amazon Pay is disabled if feature flag is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
+			return false;
+		}
+
+		// Amazon Pay is disabled if UPE is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return false;
+		}
+
+		$upe_enabled_method_ids = WC_Stripe_Helper::get_settings( null, 'upe_checkout_experience_accepted_payments' );
+
+		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
+	}
+
+	/**
+	 * Returns whether the payment method is available.
+	 *
+	 * Amazon Pay is rendered as an express checkout method only, for now.
+	 * We return false here so that it isn't considered available by WooCommerce
+	 * and rendered as a standard payment method at checkout.
+	 *
+	 * @return bool
+	 */
+	public function is_available() {
+		return false;
+	}
+
+	/**
 	 * Returns whether the payment method requires automatic capture.
 	 *
 	 * @return bool

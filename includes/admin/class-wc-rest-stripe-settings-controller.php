@@ -88,11 +88,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_amazon_pay_enabled'              => [
-						'description'       => __( 'If Amazon Pay should be enabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'boolean',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'amazon_pay_button_size'             => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
@@ -266,7 +261,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
-				'is_amazon_pay_enabled'                    => 'yes' === $this->gateway->get_option( 'amazon_pay' ),
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
 				'is_payment_request_enabled'               => 'yes' === $this->gateway->get_option( 'payment_request' ),
@@ -307,7 +301,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_settings( $request );
-		$this->update_is_amazon_pay_enabled( $request );
 		$this->update_amazon_pay_settings( $request );
 
 		/* Settings > Payments & transactions */
@@ -393,21 +386,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
-	}
-
-	/**
-	 * Updates the "Amazon Pay" enable/disable settings.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_is_amazon_pay_enabled( WP_REST_Request $request ) {
-		$is_amazon_pay_enabled = $request->get_param( 'is_amazon_pay_enabled' );
-
-		if ( null === $is_amazon_pay_enabled ) {
-			return;
-		}
-
-		$this->gateway->update_option( 'amazon_pay', $is_amazon_pay_enabled ? 'yes' : 'no' );
 	}
 
 	/**
