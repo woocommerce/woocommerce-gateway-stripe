@@ -162,7 +162,14 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 		return $display_save_option;
 	}
 
-	public function process_order_saving_order_token( $order_id ) {
+	/**
+	 * Process a payment and store a reusable token against the order.
+	 *
+	 * @param WC_Order $order Order object.
+	 * @param bool     $retry Whether this is a retry.
+	 * @param mixed    $error Previous error.
+	 */
+	public function process_order_saving_order_token( $order_id, $retry = true, $error = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 			if ( ! $order ) {
@@ -222,19 +229,25 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 				$order->add_order_note( $order_note );
 			}
 		}
-
 	}
 
+	/**
+	 * Process a scheduled payment for an order with forced tokenization.
+	 *
+	 * Runs on the "wc_checkout_tokenization_{$this->id}_charge_order_token" action.
+	 *
+	 * @param WC_Order $order Scheduled order.
+	 */
 	public function charge_order_token( $order ) {
 		return $this->process_order_token_payment( $order );
 	}
 
 	/**
-	 * Process a scheduled deposit payment.
+	 * Process a scheduled payment.
 	 *
-	 * @param mixed $order          Scheduled deposit order.
-	 * @param mixed $retry          Whether to retry the payment.
-	 * @param mixed $previous_error Previous error.
+	 * @param WC_Order $order          Scheduled deposit order.
+	 * @param bool     $retry          Whether to retry the payment.
+	 * @param mixed    $previous_error Previous error.
 	 */
 	public function process_order_token_payment( $order, $retry = true, $previous_error = false ) {
 		$amount         = $order->get_total();
@@ -246,11 +259,6 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $top_most_order );
 			$source_object   = $prepared_source->source_object;
-
-			// Check for an existing intent, which is associated with the order.
-			// if ( $this->has_authentication_already_failed( $order ) ) {
-			// 	return;
-			// }
 
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
