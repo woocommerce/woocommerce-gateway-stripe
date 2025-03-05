@@ -27,6 +27,7 @@
 * Fix - Skip unnecessary save step when already using a saved payment method for legacy checkout.
 * Fix - Avoid duplicate payment method element for classic checkout.
 * Fix - ACSS: Handle errors and edge cases.
+* Update - Add tracks events for payment method settings updates.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
