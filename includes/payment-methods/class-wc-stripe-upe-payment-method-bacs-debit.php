@@ -31,13 +31,13 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
 
-		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
-		if ( ! is_wc_endpoint_url( 'add-payment-method' ) ) {
-			$this->supports[] = 'tokenization';
-		}
-
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+
+		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
+		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			unset( $this->supports['tokenization'] );
+		}
 
 		$this->hide_bacs_for_subscriptions_with_free_trials();
 	}
