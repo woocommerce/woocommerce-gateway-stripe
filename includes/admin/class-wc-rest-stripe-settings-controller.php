@@ -257,7 +257,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'               => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'             => $available_payment_method_ids,
-				'ordered_payment_method_ids'               => array_values( array_diff( $ordered_payment_method_ids, [ WC_Stripe_Payment_Methods::LINK ] ) ), // exclude Link from this list as it is a express methods.
+				'ordered_payment_method_ids'               => array_values(
+					array_diff(
+						$ordered_payment_method_ids,
+						[ WC_Stripe_Payment_Methods::AMAZON_PAY, WC_Stripe_Payment_Methods::LINK ]
+					)
+				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */

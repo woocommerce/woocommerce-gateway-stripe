@@ -3,6 +3,7 @@ import {
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
 import {
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
@@ -37,6 +38,7 @@ const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 
 const methodsToFilter = [
+	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
 ];
