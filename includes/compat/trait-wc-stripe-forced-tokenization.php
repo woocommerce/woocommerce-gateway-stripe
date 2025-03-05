@@ -51,7 +51,7 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 	}
 
 	public function get_order_payment_token( $token, $top_most_order ) {
-		if ( $top_most_order->payment_method !== $this->id ) {
+		if ( $top_most_order->get_payment_method() !== $this->id ) {
 			return $token;
 		}
 
