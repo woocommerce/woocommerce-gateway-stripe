@@ -987,6 +987,14 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;
+						case WC_Stripe_Payment_Methods::ACH:
+							$payment_method_to_display = sprintf(
+								/* translators: account type (checking, savings), last 4 digits of account. */
+								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
+								ucfirst( $source->us_bank_account->account_type ),
+								$source->us_bank_account->last4
+							);
+							break 3;
 					}
 				}
 			}
