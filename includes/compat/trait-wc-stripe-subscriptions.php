@@ -996,7 +996,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							);
 							break 3;
 						case WC_Stripe_Payment_Methods::BACS_DEBIT:
-							/* translators: 1) email address associated with the Stripe Link payment method */
+							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
 							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
 							break 3;
 					}
