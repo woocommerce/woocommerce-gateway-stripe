@@ -138,5 +138,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Avoid duplicate payment method element for classic checkout.
 * Fix - ACSS: Handle errors and edge cases.
 * Add - Add subscriptions support to Bacs.
+* Update - Add tracks events for payment method settings updates.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
