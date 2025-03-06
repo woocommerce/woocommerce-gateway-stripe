@@ -3,18 +3,10 @@ import {
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
 import {
-	getPaymentMethodsConstants,
-	PAYMENT_METHOD_AFTERPAY,
-	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
-import Icons from '../../payment-method-icons';
-import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
-import { SavedTokenHandler } from './saved-token-handler';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
-import { initializeCheckoutIcons } from './checkout-icons';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import {
 	expressCheckoutElementAmazonPay,
@@ -29,6 +21,7 @@ import {
 	populateOrderAttributionInputs,
 } from 'wcstripe/blocks/utils';
 import './styles.scss';
+import { upeElement } from 'wcstripe/blocks/upe/upe-element';
 
 const api = new WCStripeAPI(
 	getBlocksConfiguration(),
@@ -40,82 +33,19 @@ const api = new WCStripeAPI(
 	}
 );
 
-// Initialize checkout icons
-const isAdmin = getBlocksConfiguration()?.isAdmin ?? false;
-const checkoutIcons = initializeCheckoutIcons( isAdmin );
-
-const upeMethods = getPaymentMethodsConstants();
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
+
+const methodsToFilter = [
+	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
+];
+
+// Register UPE Elements.
 Object.entries( paymentMethodsConfig )
-	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_LINK )
-	.filter( ( [ upeName ] ) => upeName !== PAYMENT_METHOD_GIROPAY ) // Skip giropay as it was deprecated by Jun, 30th 2024.
-	.forEach( ( [ upeName, upeConfig ] ) => {
-		let iconName = upeName;
-
-		// Afterpay/Clearpay have different icons for UK merchants.
-		if ( upeName === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-			iconName =
-				getBlocksConfiguration()?.accountCountry === 'GB'
-					? PAYMENT_METHOD_CLEARPAY
-					: PAYMENT_METHOD_AFTERPAY;
-		}
-
-		// Use checkout icons if available, otherwise fallback to default Icons
-		const Icon =
-			( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
-		const supports = {
-			// Use `false` as fallback values in case server provided configuration is missing.
-			showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
-			showSaveOption: upeConfig.showSaveOption ?? false,
-			features: getBlocksConfiguration()?.supports ?? [],
-		};
-		if ( getBlocksConfiguration().isAdmin ?? false ) {
-			supports.style = getBlocksConfiguration()?.style ?? [];
-		}
-
-		registerPaymentMethod( {
-			name: upeMethods[ upeName ],
-			content: getDeferredIntentCreationUPEFields(
-				upeName,
-				upeMethods,
-				api,
-				upeConfig.description,
-				upeConfig.testingInstructions,
-				upeConfig.showSaveOption ?? false,
-				upeConfig.supportsDeferredIntent
-			),
-			edit: getDeferredIntentCreationUPEFields(
-				upeName,
-				upeMethods,
-				api,
-				upeConfig.description,
-				upeConfig.testingInstructions,
-				upeConfig.showSaveOption ?? false,
-				upeConfig.supportsDeferredIntent
-			),
-			savedTokenComponent: <SavedTokenHandler api={ api } />,
-			canMakePayment: ( cartData ) => {
-				const billingCountry = cartData.billingAddress.country;
-				const isRestrictedInAnyCountry = !! upeConfig.countries.length;
-				const isAvailableInTheCountry =
-					! isRestrictedInAnyCountry ||
-					upeConfig.countries.includes( billingCountry );
-
-				return isAvailableInTheCountry && !! api.getStripe();
-			},
-			// see .wc-block-checkout__payment-method styles in blocks/style.scss
-			label: (
-				<>
-					<span>
-						{ upeConfig.title }
-						<Icon alt={ upeConfig.title } />
-					</span>
-				</>
-			),
-			ariaLabel: 'Stripe',
-			supports,
-		} );
+	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
+	.forEach( ( [ method, config ] ) => {
+		registerPaymentMethod( upeElement( method, api, config ) );
 	} );
 
 // Register Express Checkout Elements.

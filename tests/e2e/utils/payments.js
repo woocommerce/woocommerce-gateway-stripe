@@ -153,24 +153,112 @@ export async function fillCreditCardDetailsLegacy( page, card ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCreditCardDetailsShortcodeLegacy( page, card ) {
-	await page
-		.frameLocator(
-			'#stripe-card-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cardnumber"]' )
-		.fill( card.number );
-	await page
-		.frameLocator(
-			'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="exp-date"]' )
-		.fill( card.expires.month + card.expires.year );
-	await page
-		.frameLocator(
-			'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
-		)
-		.locator( '[name="cvc"]' )
-		.fill( card.cvc );
+	const options = {
+		multi: {
+			cardNumber: {
+				iFrame:
+					'#stripe-card-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="cardnumber"]',
+			},
+			cardExpiry: {
+				iFrame:
+					'#stripe-exp-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="exp-date"]',
+			},
+			cardCvc: {
+				iFrame:
+					'#stripe-cvc-element iframe[name^="__privateStripeFrame"]',
+				selector: '[name="cvc"]',
+			},
+		},
+		upe: {
+			iFrame: '#wc-stripe-upe-form iframe[name^="__privateStripeFrame"]',
+			cardNumber: '[name="number"]',
+			cardExpiry: '[name="expiry"]',
+			cardCvc: '[name="cvc"]',
+		},
+	};
+
+	const isVisible = async ( frame, selector ) => {
+		return await frame.locator( selector ).isVisible( { timeout: 10000 } );
+	};
+
+	const getLocator = async (
+		page,
+		frameSelector,
+		inputSelector,
+		description
+	) => {
+		if ( ! ( await isVisible( page, frameSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } frame using selector: ${ frameSelector }`
+			);
+		}
+
+		const frameLocator = page.frameLocator( frameSelector );
+
+		if ( ! ( await isVisible( frameLocator, inputSelector ) ) ) {
+			throw new Error(
+				`Could not find the credit card ${ description } form element using selector: ${ frameSelector } ${ inputSelector }`
+			);
+		}
+
+		return frameLocator.locator( inputSelector );
+	};
+
+	let cardNumberLocator;
+	let cardExpiryLocator;
+	let cardCvcLocator;
+
+	const isUPE = await page.isVisible( options.upe.iFrame, { timeout: 5000 } );
+	if ( isUPE ) {
+		// Wait for the iFrame to load.
+		const frameElement = await page.waitForSelector( options.upe.iFrame );
+		const frame = await frameElement.contentFrame();
+		await frame.waitForLoadState( 'networkidle' );
+
+		cardNumberLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardNumber,
+			'number'
+		);
+		cardExpiryLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardExpiry,
+			'expiration date'
+		);
+		cardCvcLocator = await getLocator(
+			page,
+			options.upe.iFrame,
+			options.upe.cardCvc,
+			'cvc'
+		);
+	} else {
+		cardNumberLocator = await getLocator(
+			page,
+			options.multi.cardNumber.iFrame,
+			options.multi.cardNumber.selector,
+			'number'
+		);
+		cardExpiryLocator = await getLocator(
+			page,
+			options.multi.cardExpiry.iFrame,
+			options.multi.cardExpiry.selector,
+			'expiration date'
+		);
+		cardCvcLocator = await getLocator(
+			page,
+			options.multi.cardCvc.iFrame,
+			options.multi.cardCvc.selector,
+			'cvc'
+		);
+	}
+
+	await cardNumberLocator.fill( card.number );
+	await cardExpiryLocator.fill( card.expires.month + card.expires.year );
+	await cardCvcLocator.fill( card.cvc );
 }
 
 /**
@@ -381,3 +469,100 @@ export const fillACHBankDetails = async ( page ) => {
 	// Click "Done" button.
 	await frame.getByTestId( 'done-button' ).click();
 };
+
+/**
+ * Handles the 3DS challenge on the checkout page.
+ * @param {Page} page Playwright page fixture.
+ * @param {string} action The action to take on the challenge modal.
+ */
+export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
+	const outerFrameLocator = page
+		.locator( 'iframe[name^="__privateStripeFrame"]' )
+		.contentFrame()
+		.first();
+	const innerFrameLocator = outerFrameLocator.frameLocator(
+		'iframe[name="stripe-challenge-frame"]'
+	);
+
+	// Wait for the challenge modal to be ready -- the inner frame is "visible"
+	// and the loading indicator is hidden.
+	await expect( innerFrameLocator.owner() ).toBeVisible();
+	await expect(
+		outerFrameLocator.locator( '.LightboxModalLoadingIndicator' )
+	).toBeHidden();
+
+	const buttonId =
+		action === 'authorize'
+			? '#test-source-authorize-3ds'
+			: '#test-source-fail-3ds';
+	await expect( innerFrameLocator.locator( buttonId ) ).toBeVisible();
+	await innerFrameLocator.locator( buttonId ).click();
+
+	if ( action === 'fail' ) {
+		await expect( innerFrameLocator.owner() ).toBeHidden();
+	}
+}
+
+/**
+ * This roundabout way of clicking the Place Order button is an
+ * attempt to reduce the flakiness.
+ * @param {Page} page Playwright page fixture.
+ */
+export async function clickPlaceOrder( page ) {
+	// Wait for the button to be enabled (i.e. clickable), to wait
+	// for any logic we are potentially depending on.
+	await expect(
+		page.getByRole( 'button', { name: 'Place order' } )
+	).toBeEnabled();
+
+	// Dispatch a click event, instead of clicking the button directly,
+	// to reduce "missed" clicks.
+	await page
+		.getByRole( 'button', { name: 'Place order' } )
+		.dispatchEvent( 'click' );
+}
+
+/**
+ * Handles the Cash App Pay payment on the checkout page.
+ * @param {Page} page Playwright page fixture.
+ */
+export async function handleCheckoutCashAppPay(
+	page,
+	paymentElementSelector = '#wc-stripe_cashapp-upe-form'
+) {
+	await page.getByText( 'Cash App Pay' ).click();
+	await expect(
+		page
+			.frameLocator(
+				`${ paymentElementSelector } iframe[name^="__privateStripeFrame"]`
+			)
+			.locator( '.__PrivateStripeElementLoader' )
+	).toBeHidden();
+	await expect(
+		page
+			.frameLocator(
+				`${ paymentElementSelector } iframe[name^="__privateStripeFrame"]`
+			)
+			.getByText( 'Cash App Pay selected.' )
+	).toBeVisible();
+	await clickPlaceOrder( page );
+
+	// Expect a modal to appear
+	const simulateScanButton = await page
+		.locator( 'iframe[name^="__privateStripeFrame"]' )
+		.contentFrame()
+		.first()
+		.frameLocator( 'iframe[title="QR Code Instructions"]' )
+		.getByRole( 'button', { name: 'Simulate scan' } );
+
+	const context = await page.context();
+	const [ paymentPage ] = await Promise.all( [
+		context.waitForEvent( 'page' ),
+		simulateScanButton.dispatchEvent( 'click' ),
+	] );
+
+	await paymentPage.waitForLoadState();
+	await paymentPage
+		.getByRole( 'link', { name: 'Authorize Test Payment' } )
+		.click();
+}
