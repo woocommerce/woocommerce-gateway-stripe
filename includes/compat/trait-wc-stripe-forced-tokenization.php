@@ -50,6 +50,17 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 		self::$has_attached_forced_tokenization_integration_hooks = true;
 	}
 
+	/**
+	 * Filter the order payment token to include the source and intent.
+	 *
+	 * Runs on the `pre_wc_checkout_tokenization_get_order_payment_token` filter.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param array $token The order payment token.
+	 * @param WC_Order $top_most_order The top most order in the chain.
+	 * @return array The modified order payment token.
+	 */
 	public function get_order_payment_token( $token, $top_most_order ) {
 		if ( $top_most_order->get_payment_method() !== $this->id ) {
 			return $token;
