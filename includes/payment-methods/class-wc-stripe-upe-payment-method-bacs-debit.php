@@ -103,7 +103,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 				if ( $is_checkout_shortcode_page || $is_update_order_review_ajax_request ) {
 					// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
 					// as long as another product increases the total amount, ensuring compatibility with Bacs.
-					if ( WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
+					if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
 						unset( $available_gateways['stripe_bacs_debit'] );
 					}
 				}
