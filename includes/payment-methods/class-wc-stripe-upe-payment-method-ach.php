@@ -36,7 +36,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		$this->maybe_init_subscriptions();
 
 		// Add support for pre-orders.
-		$this->maybe_init_pre_orders();		
+		$this->maybe_init_pre_orders();
 	}
 
 	/**
