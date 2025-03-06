@@ -34,10 +34,15 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
 
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
+
 		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
 		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			unset( $this->supports['tokenization'] );
 		}
+
+		$this->hide_bacs_for_pre_orders_charge_upon_release();
 
 		$this->hide_bacs_for_subscriptions_with_free_trials();
 	}
@@ -93,6 +98,38 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		return $token;
 	}
 
+	/**
+	 * Hides the Bacs payment method for pre-orders that are charged upon release.
+	 *
+	 * This function removes the "stripe_bacs_debit" payment gateway from the available payment methods
+	 * if the cart contains a pre-order product that is charged upon release. This ensures that customers
+	 * do not select Bacs for pre-orders that are not charged upfront.
+	 *
+	 * @return void
+	 */
+	public function hide_bacs_for_pre_orders_charge_upon_release() {
+		add_filter(
+			'woocommerce_available_payment_gateways',
+			function ( $available_gateways ) {
+				if ( is_checkout() && WC_Pre_Orders_Cart::cart_contains_pre_order() ) {
+					$product_id = reset( WC()->cart->get_cart() )['product_id'];
+					if ( WC_Pre_Orders_Product::product_is_charged_upon_release( $product_id ) ) {
+						unset( $available_gateways['stripe_bacs_debit'] );
+					}
+				}
+				return $available_gateways;
+			}
+		);
+	}
+
+	/**
+	 * Hides the Bacs payment method for subscriptions with free trials.
+	 *
+	 * This function removes the "stripe_bacs_debit" payment gateway from the available payment methods
+	 * if the cart contains a subscription with a free trial and the total cart amount is zero.
+	 *
+	 * @return void
+	 */
 	public function hide_bacs_for_subscriptions_with_free_trials() {
 		add_filter(
 			'woocommerce_available_payment_gateways',
