@@ -132,8 +132,7 @@ const PaymentElements = ( {
 			},
 		};
 
-		// @todo Replace it with the feature flag
-		if ( true ) {
+		if ( getBlocksConfiguration()?.isSpeEnabled ) {
 			options = {
 				...options,
 				...{

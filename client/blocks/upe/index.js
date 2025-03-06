@@ -43,8 +43,7 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-if ( true ) {
-	// @todo Replace with the feature flag
+if ( getBlocksConfiguration()?.isSpeEnabled ) {
 	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
 	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
 } else {
