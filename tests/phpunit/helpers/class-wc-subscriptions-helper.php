@@ -20,9 +20,10 @@ function wcs_get_subscriptions_for_order( $order ) {
 /**
  * A function to mock wcs_get_subscriptions.
  *
+ * @param array $args A set of name value pairs to determine the return value.
  * @return array
  */
-function wcs_get_subscriptions() {
+function wcs_get_subscriptions( $args ) {
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions ) {
 		return [];
 	}

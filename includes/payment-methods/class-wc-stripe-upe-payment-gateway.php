@@ -481,7 +481,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
 			}
 
-			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
+			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
 
