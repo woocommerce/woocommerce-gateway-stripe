@@ -2215,7 +2215,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'capture_method'                => $capture_method,
 		];
 
-		if ( 'us_bank_account' === $selected_payment_type ) {
+		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
 		}
 

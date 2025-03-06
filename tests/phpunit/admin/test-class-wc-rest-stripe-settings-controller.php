@@ -235,23 +235,23 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = $this->rest_get_settings();
 
 		$expected_method_ids  = [
-			'card',
-			'us_bank_account',
-			'alipay',
-			'klarna',
-			'affirm',
-			'afterpay_clearpay',
-			'eps',
-			'bancontact',
-			'boleto',
-			'ideal',
-			'oxxo',
-			'sepa_debit',
-			'p24',
-			'multibanco',
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
+			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::AFFIRM,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::EPS,
+			WC_Stripe_Payment_Methods::BANCONTACT,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::IDEAL,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			WC_Stripe_Payment_Methods::P24,
+			WC_Stripe_Payment_Methods::MULTIBANCO,
 			// 'link', // Link is excluded as it is a express method.
-			'wechat_pay',
-			'cashapp',
+			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 		];
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
@@ -283,23 +283,23 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		WC_Stripe::get_instance()->account->method( 'get_account_country' )->willReturn( 'US' );
 
 		$expected_method_ids = [
-			'card',
-			'us_bank_account',
-			'alipay',
-			'klarna',
-			'affirm',
-			'afterpay_clearpay',
-			'eps',
-			'bancontact',
-			'boleto',
-			'ideal',
-			'oxxo',
-			'sepa_debit',
-			'p24',
-			'multibanco',
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ACH,
+			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::AFFIRM,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::EPS,
+			WC_Stripe_Payment_Methods::BANCONTACT,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::IDEAL,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			WC_Stripe_Payment_Methods::P24,
+			WC_Stripe_Payment_Methods::MULTIBANCO,
 			// 'link', // Link is excluded as it is a express method.
-			'wechat_pay',
-			'cashapp',
+			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 		];
 
 		$response           = $this->rest_get_settings();

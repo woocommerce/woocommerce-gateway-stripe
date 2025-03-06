@@ -271,20 +271,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			'type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
 
-		$card_method       = $this->mock_payment_methods['card'];
-		$alipay_method     = $this->mock_payment_methods['alipay'];
-		$p24_method        = $this->mock_payment_methods['p24'];
-		$eps_method        = $this->mock_payment_methods['eps'];
-		$sepa_method       = $this->mock_payment_methods['sepa_debit'];
-		$sofort_method     = $this->mock_payment_methods['sofort'];
-		$bancontact_method = $this->mock_payment_methods['bancontact'];
-		$ideal_method      = $this->mock_payment_methods['ideal'];
-		$multibanco_method = $this->mock_payment_methods['multibanco'];
-		$boleto_method     = $this->mock_payment_methods['boleto'];
-		$oxxo_method       = $this->mock_payment_methods['oxxo'];
-		$wechat_pay_method = $this->mock_payment_methods['wechat_pay'];
-		$ach_method        = $this->mock_payment_methods['us_bank_account'];
-		$acss_method       = $this->mock_payment_methods['acss_debit'];
+		$card_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$alipay_method     = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ALIPAY ];
+		$p24_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::P24 ];
+		$eps_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::EPS ];
+		$sepa_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SEPA_DEBIT ];
+		$sofort_method     = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+		$bancontact_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BANCONTACT ];
+		$ideal_method      = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::IDEAL ];
+		$multibanco_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::MULTIBANCO ];
+		$boleto_method     = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BOLETO ];
+		$oxxo_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::OXXO ];
+		$wechat_pay_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
+		$ach_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
+		$acss_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -416,22 +416,22 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$card_method              = $this->mock_payment_methods['card'];
-		$klarna_method            = $this->mock_payment_methods['klarna'];
-		$afterpay_clearpay_method = $this->mock_payment_methods['afterpay_clearpay'];
-		$affirm_method            = $this->mock_payment_methods['affirm'];
-		$p24_method               = $this->mock_payment_methods['p24'];
-		$eps_method               = $this->mock_payment_methods['eps'];
-		$sepa_method              = $this->mock_payment_methods['sepa_debit'];
-		$sofort_method            = $this->mock_payment_methods['sofort'];
-		$bancontact_method        = $this->mock_payment_methods['bancontact'];
-		$ideal_method             = $this->mock_payment_methods['ideal'];
-		$boleto_method            = $this->mock_payment_methods['boleto'];
-		$multibanco_method        = $this->mock_payment_methods['multibanco'];
-		$oxxo_method              = $this->mock_payment_methods['oxxo'];
-		$wechat_pay_method        = $this->mock_payment_methods['wechat_pay'];
-		$ach_method               = $this->mock_payment_methods['us_bank_account'];
-		$acss_method              = $this->mock_payment_methods['acss_debit'];
+		$card_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$klarna_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::KLARNA ];
+		$afterpay_clearpay_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY ];
+		$affirm_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::AFFIRM ];
+		$p24_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::P24 ];
+		$eps_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::EPS ];
+		$sepa_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SEPA_DEBIT ];
+		$sofort_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::SOFORT ];
+		$bancontact_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BANCONTACT ];
+		$ideal_method             = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::IDEAL ];
+		$boleto_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BOLETO ];
+		$multibanco_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::MULTIBANCO ];
+		$oxxo_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::OXXO ];
+		$wechat_pay_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
+		$ach_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
+		$acss_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
