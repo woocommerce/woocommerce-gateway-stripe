@@ -83,6 +83,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_spe_enabled'                     => [
+						'description'       => __( 'If Single Payment Element should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_amazon_pay_enabled'              => [
 						'description'       => __( 'If Amazon Pay should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -275,6 +280,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
+				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
 			]
 		);
 	}
@@ -309,6 +315,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
+		$this->update_is_spe_enabled( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -579,6 +586,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$value = $request->get_param( $request_key );
 			$this->gateway->update_validated_option( $attribute, $value );
 		}
+	}
+
+	/**
+	 * Updates the "Single Payment Element" enable/disable settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_spe_enabled( WP_REST_Request $request ) {
+		$is_spe_enabled = $request->get_param( 'is_spe_enabled' );
+
+		if ( null === $is_spe_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
 	}
 
 	/**

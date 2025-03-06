@@ -151,7 +151,7 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Single Payment Element (SPE) feature is enabled.
+	 * Whether the Single Payment Element (SPE) feature flag is enabled.
 	 *
 	 * @return bool
 	 */
