@@ -103,6 +103,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $sepa_tokens_for_other_methods;
 
 	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 */
+	public $spe_enabled;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -211,6 +218,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->enabled                       = $this->get_option( 'enabled' );
 		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		$this->spe_enabled                   = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -1751,6 +1759,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		return $this->sepa_tokens_for_other_methods;
+	}
+
+	/**
+	 * Checks if the Single Payment Element setting is enabled.
+	 *
+	 * @return bool Whether the Single Payment Element setting is enabled.
+	 */
+	public function is_spe_enabled() {
+		return $this->spe_enabled;
 	}
 
 	/**
