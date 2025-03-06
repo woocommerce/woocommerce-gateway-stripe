@@ -5,6 +5,7 @@ import {
 	PAYMENT_METHOD_AFTERPAY,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CLEARPAY,
+	PAYMENT_METHOD_BACS,
 } from 'wcstripe/stripe-utils/constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
@@ -76,6 +77,18 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			const isAvailableInTheCountry =
 				! isRestrictedInAnyCountry ||
 				upeConfig.countries.includes( billingCountry );
+
+			// Disable Bacs for subscriptions with free trial.
+			const cartContainsSubscriptions = cartData.cart.cartItems.every(
+				( item ) => item.type === 'subscription'
+			);
+			if (
+				paymentMethod === PAYMENT_METHOD_BACS &&
+				cartContainsSubscriptions &&
+				cartData.cartTotals.total_price === '0'
+			) {
+				return false;
+			}
 
 			return isAvailableInTheCountry && !! api.getStripe();
 		},
