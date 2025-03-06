@@ -2629,9 +2629,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	private function set_stripe_account_data( $account_data ) {
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
-			->disableOriginalConstructor()
-			->setMethods( [ 'get_cached_account_data' ] )
-			->getMock();
+												->disableOriginalConstructor()
+												->setMethods( [ 'get_cached_account_data' ] )
+												->getMock();
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
 
