@@ -141,5 +141,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Avoid duplicate payment method element for classic checkout.
 * Fix - ACSS: Handle errors and edge cases.
 * Update - Add tracks events for payment method settings updates.
+* Fix - Fix ECE button width in shortcode cart page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
