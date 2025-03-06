@@ -113,7 +113,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			function ( $available_gateways ) {
 				if ( is_checkout() && class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() ) {
 					// Iteration is unnecessary since only one pre-order product can be in the cart.
-					$product_id = reset( WC()->cart->get_cart() )['product_id'];
+					$cart = WC()->cart->get_cart();
+					$product_id = reset( $cart )['product_id'];
 					if ( WC_Pre_Orders_Product::product_is_charged_upon_release( $product_id ) ) {
 						unset( $available_gateways['stripe_bacs_debit'] );
 					}
