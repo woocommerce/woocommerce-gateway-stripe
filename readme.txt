@@ -143,5 +143,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add subscriptions support to Bacs.
 * Update - Add tracks events for payment method settings updates.
 * Add - Add WooCommerce Pre-Orders support to Bacs.
+* Tweak - Fix background in express checkout settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
