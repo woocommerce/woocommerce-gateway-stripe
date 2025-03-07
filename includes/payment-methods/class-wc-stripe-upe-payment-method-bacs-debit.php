@@ -34,12 +34,15 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
 
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
+
 		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
 		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			unset( $this->supports['tokenization'] );
 		}
 
-		$this->hide_bacs_for_subscriptions_with_free_trials();
+		$this->maybe_hide_bacs_payment_gateway();
 	}
 
 	/**
@@ -93,22 +96,63 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		return $token;
 	}
 
-	public function hide_bacs_for_subscriptions_with_free_trials() {
+	/**
+	 * Conditionally hides the Bacs payment gateway for specific scenarios.
+	 */
+	public function maybe_hide_bacs_payment_gateway() {
 		add_filter(
 			'woocommerce_available_payment_gateways',
 			function ( $available_gateways ) {
-				global $post;
-				$is_checkout_shortcode_page          = wc_post_content_has_shortcode( 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post );
-				$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
-				if ( $is_checkout_shortcode_page || $is_update_order_review_ajax_request ) {
-					// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
-					// as long as another product increases the total amount, ensuring compatibility with Bacs.
-					if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
-						unset( $available_gateways['stripe_bacs_debit'] );
-					}
+				if (
+					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
+					$this->should_hide_bacs_for_subscriptions_with_free_trials()
+				) {
+					unset( $available_gateways['stripe_bacs_debit'] );
 				}
 				return $available_gateways;
 			}
 		);
+	}
+
+	/**
+	 * Determines whether the Bacs payment gateway should be hidden for pre-orders that are charged upon release.
+	 *
+	 * WooCommerce Pre-Orders allows merchants to choose when to charge customers.
+	 * If a product is set to be charged upon release, Bacs can't be used for now as setup intents are not supported for Bacs.
+	 *
+	 * @return bool True if Bacs should be hidden, false otherwise.
+	 */
+	public function should_hide_bacs_for_pre_orders_charge_upon_release() {
+		if ( is_checkout() && class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() ) {
+			$cart = WC()->cart->get_cart();
+			// Iteration is unnecessary since only one pre-order product can be in the cart.
+			$product_id = reset( $cart )['product_id'];
+			if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product_id ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Determines whether the Bacs payment gateway should be hidden for subscriptions with free trials.
+	 *
+	 * If the cart contains a subscription with a free trial and the cart total amount is zero,
+	 * Bacs can't be used for now as setup intents are not supported for Bacs.
+	 *
+	 * @return bool True if Bacs should be hidden, false otherwise.
+	 */
+	public function should_hide_bacs_for_subscriptions_with_free_trials() {
+		global $post;
+		$is_checkout_shortcode_page          = wc_post_content_has_shortcode( 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post );
+		$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
+		if ( $is_checkout_shortcode_page || $is_update_order_review_ajax_request ) {
+			// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
+			// as long as another product increases the total amount, ensuring compatibility with Bacs.
+			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
