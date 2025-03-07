@@ -102,7 +102,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 				if (
 					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
 					$this->should_hide_bacs_for_subscriptions_with_free_trials() ||
-					$this->should_hide_bacs_on_add_payment_page()
+					$this->should_hide_bacs_on_add_payment_method_page()
 				) {
 					unset( $available_gateways['stripe_bacs_debit'] );
 				}
@@ -116,7 +116,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 *
 	 * @return bool True if the Bacs payment gateway should be hidden, false otherwise.
 	 */
-	public function should_hide_bacs_on_add_payment_page() {
+	public function should_hide_bacs_on_add_payment_method_page() {
 		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
 			return true;
 		}
