@@ -40,7 +40,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
 		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
-			unset( $this->supports['tokenization'] );
+			$this->supports = array_values( array_diff( $this->supports, [ 'tokenization' ] ) );
 		}
 
 		$this->maybe_hide_bacs_payment_gateway();
