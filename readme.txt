@@ -153,5 +153,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add Amazon Pay payment method class.
 * Fix - Prevent potential duplicate renewal charges by ensuring subscription integration hooks are only attached once per Gateway ID
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
+* Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
