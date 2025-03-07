@@ -29,7 +29,6 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	 */
 	protected $extra_data = [
 		'bank_name'           => '',
-		'account_type'        => '',
 		'last4'               => '',
 		'payment_method_type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		'fingerprint'         => '',
@@ -43,7 +42,7 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
 		if ( WC_Stripe_Payment_Methods::ACSS_DEBIT === $payment_method->type
-			&& ( $payment_method->bacs_debit->fingerprint ?? null ) === $this->get_fingerprint() ) { // TODO: Fix this.
+			&& ( $payment_method->acss_debit->fingerprint ?? null ) === $this->get_fingerprint() ) {
 			return true;
 		}
 
@@ -96,20 +95,37 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	}
 
 	/**
+	 * Set the bank name.
+	 *
+	 * @param string $bank_name
+	 */
+	public function set_bank_name( $bank_name ) {
+		$this->set_prop( 'bank_name', $bank_name );
+	}
+
+	/**
+	 * Get the bank name.
+	 *
+	 * @param string $context What the value is for. Valid values are view and edit.
+	 * @return string
+	 */
+	public function get_bank_name( $context = 'view' ) {
+		return $this->get_prop( 'bank_name', $context );
+	}
+
+	/**
 	 * Get type to display to user.
 	 *
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
 	 * @return string
 	 */
 	public function get_display_name( $deprecated = '' ) {
-		// $display = sprintf(
-		// 	/* translators: bank name, account type (checking, savings), last 4 digits of account. */
-		// 	__( '%1$s account ending in %2$s (%3$s)', 'woocommerce-gateway-stripe' ),
-		// 	ucfirst( $this->get_account_type() ),
-		// 	$this->get_last4(),
-		// 	$this->get_bank_name()
-		// );
-		$display = 'Test';
+		$display = sprintf(
+			/* translators: bank name, last 4 digits of account. */
+			__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+			$this->get_bank_name(),
+			$this->get_last4()
+		);
 
 		return $display;
 	}

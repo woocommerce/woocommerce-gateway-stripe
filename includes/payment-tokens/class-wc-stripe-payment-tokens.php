@@ -575,12 +575,9 @@ class WC_Stripe_Payment_Tokens {
 				if ( isset( $payment_method->acss_debit->fingerprint ) ) {
 					$token->set_fingerprint( $payment_method->acss_debit->fingerprint );
 				}
-				// if ( isset( $payment_method->acss_debit->account_type ) ) {
-				// 	$token->set_account_type( $payment_method->acss_debit->account_type );
-				// }
-				// if ( isset( $payment_method->acss_debit->bank_name ) ) {
-				// 	$token->set_bank_name( $payment_method->acss_debit->bank_name );
-				// }
+				if ( isset( $payment_method->acss_debit->bank_name ) ) {
+					$token->set_bank_name( $payment_method->acss_debit->bank_name );
+				}
 				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_CashApp();

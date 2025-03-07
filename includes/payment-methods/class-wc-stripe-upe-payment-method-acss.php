@@ -47,13 +47,12 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$payment_token = new WC_Payment_Token_ACSS();
+		$payment_token->set_token( $payment_method->id );
 		$payment_token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
 		$payment_token->set_user_id( $user_id );
-		$payment_token->set_token( $payment_method->id );
-		// $payment_token->set_last4( $payment_method->us_bank_account->last4 );
-		// $payment_token->set_bank_name( $payment_method->us_bank_account->bank_name );
-		// $payment_token->set_account_type( $payment_method->us_bank_account->account_type );
-		// $payment_token->set_fingerprint( $payment_method->us_bank_account->fingerprint );
+		$payment_token->set_last4( $payment_method->acss_debit->last4 );
+		$payment_token->set_bank_name( $payment_method->acss_debit->bank_name );
+		$payment_token->set_fingerprint( $payment_method->acss_debit->fingerprint );
 		$payment_token->save();
 
 		return $payment_token;
