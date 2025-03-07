@@ -31,6 +31,7 @@ Install the following plugins:
 
 -   WooCommerce
 -   Stripe Dev Tools (clone or download [the GitHub repo](https://github.com/woocommerce/woocommerce-gateway-stripe-dev-tools))
+	- This dependency is automatically updated to the latest version each time you perform a `git pull` or `git merge` in this repository, as long as the Stripe Dev Tools repository is cloned locally and remains on the `trunk` branch. For more details, please refer to the [post-merge](.husky/post-merge) hook.
 
 ## Debugging
 
