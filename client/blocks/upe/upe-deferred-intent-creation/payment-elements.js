@@ -114,31 +114,43 @@ const PaymentElements = ( {
 
 	const stripe = api.getStripe();
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
-	const currency = getBlocksConfiguration()?.currency.toLowerCase();
-	const appearance = initializeUPEAppearance( api, 'true' );
 
 	// Build options object.
-	const options = {
-		appearance,
+	let options = {
+		appearance: initializeUPEAppearance( api, 'true' ),
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
-		...( supportsDeferredIntent
-			? {
-					mode: amount < 1 ? 'setup' : 'payment',
-					amount,
-					currency,
-					paymentMethodTypes: getPaymentMethodTypes(
-						paymentMethodId
-					),
-			  }
-			: { clientSecret } ),
-		// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-		...( supportsDeferredIntent &&
-			( getBlocksConfiguration()?.cartContainsSubscription ||
-				props.showSaveOption ) && {
-				setupFutureUsage: 'off_session',
-			} ),
 	};
+
+	if ( supportsDeferredIntent ) {
+		options = {
+			...options,
+			...{
+				mode: amount < 1 ? 'setup' : 'payment',
+				amount,
+				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				paymentMethodTypes: getPaymentMethodTypes( paymentMethodId ),
+			},
+		};
+
+		// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
+		if (
+			getBlocksConfiguration()?.cartContainsSubscription ||
+			props.showSaveOption
+		) {
+			options = {
+				...options,
+				...{
+					setupFutureUsage: 'off_session',
+				},
+			};
+		}
+	} else {
+		options = {
+			...options,
+			...{ clientSecret },
+		};
+	}
 
 	return (
 		<>
