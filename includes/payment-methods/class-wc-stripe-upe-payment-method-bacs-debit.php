@@ -38,11 +38,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
 
-		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
-		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
-			$this->supports = array_values( array_diff( $this->supports, [ 'tokenization' ] ) );
-		}
-
 		$this->maybe_hide_bacs_payment_gateway();
 	}
 
@@ -106,13 +101,27 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			function ( $available_gateways ) {
 				if (
 					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
-					$this->should_hide_bacs_for_subscriptions_with_free_trials()
+					$this->should_hide_bacs_for_subscriptions_with_free_trials() ||
+					$this->should_hide_bacs_on_add_payment_page()
 				) {
 					unset( $available_gateways['stripe_bacs_debit'] );
 				}
 				return $available_gateways;
 			}
 		);
+	}
+
+	/**
+	 * Determines whether the Bacs payment gateway should be hidden on the "Add Payment Method" page.
+	 *
+	 * @return bool True if the Bacs payment gateway should be hidden, false otherwise.
+	 */
+	public function should_hide_bacs_on_add_payment_page() {
+		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
