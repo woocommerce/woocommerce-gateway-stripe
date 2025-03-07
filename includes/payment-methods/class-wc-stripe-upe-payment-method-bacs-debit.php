@@ -104,8 +104,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			'woocommerce_available_payment_gateways',
 			function ( $available_gateways ) {
 				if (
-				$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
-				$this->should_hide_bacs_for_subscriptions_with_free_trials()
+					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
+					$this->should_hide_bacs_for_subscriptions_with_free_trials()
 				) {
 					unset( $available_gateways['stripe_bacs_debit'] );
 				}
@@ -115,7 +115,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
-	 * Determines whether the Bacs payment gateway should be hidden for pre-orders  that are charged upon release.
+	 * Determines whether the Bacs payment gateway should be hidden for pre-orders that are charged upon release.
 	 *
 	 * WooCommerce Pre-Orders allows merchants to choose when to charge customers.
 	 * If a product is set to be charged upon release, Bacs can't be used for now as setup intents are not supported for Bacs.
@@ -133,7 +133,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		}
 		return false;
 	}
-
 
 	/**
 	 * Determines whether the Bacs payment gateway should be hidden for subscriptions with free trials.
