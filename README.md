@@ -34,6 +34,6 @@ Install the following plugins:
 
 ## Debugging
 
-If you are following the Docker setup [here](https://github.com/Automattic/woocommerce-gateway-stripe/blob/trunk/docs/DOCKER.md), Xdebug is ready to use for debugging.
+If you are following the Docker setup [here](https://github.com/woocommerce/woocommerce-gateway-stripe/blob/trunk/docs/DOCKER.md), Xdebug is ready to use for debugging.
 
 Install [Xdebug Helper browser extension mentioned here](https://xdebug.org/docs/remote) to enable Xdebug on demand.
