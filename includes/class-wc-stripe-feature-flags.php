@@ -26,7 +26,7 @@ class WC_Stripe_Feature_Flags {
 		self::SPE_FEATURE_FLAG_NAME        => 'no',
 		self::LPM_ACH_FEATURE_FLAG_NAME    => 'yes',
 		self::LPM_ACSS_FEATURE_FLAG_NAME   => 'no',
-		self::LPM_BACS_FEATURE_FLAG_NAME   => 'no',
+		self::LPM_BACS_FEATURE_FLAG_NAME   => 'yes',
 	];
 
 	/**
