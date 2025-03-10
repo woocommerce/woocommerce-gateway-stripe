@@ -6,7 +6,6 @@ on:
       - '**.php'
 
 permissions:
-  contents: read
   pull-requests: write
 
 jobs:
