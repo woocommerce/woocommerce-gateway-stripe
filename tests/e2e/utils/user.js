@@ -22,16 +22,17 @@ export async function login( page, username, password, retries = 3 ) {
 				await page.waitForLoadState( 'load' );
 			}
 
-			if ( await page.$( 'body.logged-in' ) ) {
-				// customer login
-				return;
-			} else {
-				// admin login
-				await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
-					'Dashboard'
-				);
-				return;
-			}
+			// Wait for either customer or admin login success
+			await Promise.race( [
+				// Customer login success
+				expect( page.locator( 'body.logged-in' ) ).toBeVisible(),
+				// Admin login success
+				expect(
+					page.getByRole( 'heading', { name: 'Dashboard' } )
+				).toBeVisible(),
+			] );
+
+			return;
 		} catch ( e ) {
 			console.error(
 				`User log-in failed, Retrying... ${ i }/${ retries }.`,
