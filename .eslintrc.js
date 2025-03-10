@@ -73,6 +73,7 @@ module.exports = {
 		// This helps the `import/no-extraneous-dependencies` and
 		//`import/no-unresolved` rules account for them.
 		'import/core-modules': [
+			'@woocommerce/blocks-checkout',
 			'@woocommerce/blocks-registry',
 			'@woocommerce/settings',
 			'@wordpress/i18n',

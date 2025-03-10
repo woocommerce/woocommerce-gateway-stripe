@@ -236,6 +236,7 @@ class WC_Stripe_Settings_Controller {
 			'is_ach_enabled'            => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
 			'is_acss_enabled'           => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
 			'is_bacs_enabled'           => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
+			'is_blik_enabled'           => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
 			'stripe_test_oauth_url'     => $test_oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
@@ -244,6 +245,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
+			'is_spe_available'          => WC_Stripe_Feature_Flags::is_spe_available(),
 			'oauth_nonce'               => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 		];
 		wp_localize_script(

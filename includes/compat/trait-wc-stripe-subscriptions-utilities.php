@@ -17,9 +17,12 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @since 5.6.0
 	 *
 	 * @return bool Whether subscriptions is enabled or not.
+	 *
+	 * @deprecated 9.2.0 Use WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled instead.
 	 */
 	public function is_subscriptions_enabled() {
-		return class_exists( 'WC_Subscriptions' ) && class_exists( 'WC_Subscription' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
+		wc_deprecated_function( 'is_subscriptions_enabled', '9.2.0', 'WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled' );
+		return WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled();
 	}
 
 	/**
@@ -64,7 +67,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool
 	 */
 	public function is_payment_recurring( $order_id ) {
-		if ( ! $this->is_subscriptions_enabled() ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return false;
 		}
 		return $this->is_changing_payment_method_for_subscription() || $this->has_subscription( $order_id );
@@ -103,7 +106,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool
 	 */
 	public function is_subscription_item_in_cart() {
-		if ( $this->is_subscriptions_enabled() ) {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_subscription() ) || $this->cart_contains_renewal();
 		}
 		return false;
