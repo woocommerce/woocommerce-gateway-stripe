@@ -156,6 +156,6 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_spe_available() {
-		return 'yes' === self::get_option_with_default( self::SPE_FEATURE_FLAG_NAME );
+		return true;
 	}
 }
