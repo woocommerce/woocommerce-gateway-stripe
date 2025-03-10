@@ -13,14 +13,14 @@ export async function login( page, username, password, retries = 3 ) {
 	for ( let i = 1; i <= retries; i++ ) {
 		try {
 			await page.goto( `/wp-admin` );
-			await page.waitForLoadState( 'networkidle' );
+			await page.waitForLoadState( 'load' );
 
 			if ( await page.url().includes( 'wp-login.php' ) ) {
 				await page.fill( 'input[name="log"]', username );
 				await page.fill( 'input[name="pwd"]', password );
 				await page.click( 'input[value="Log In"]' );
+				await page.waitForLoadState( 'load' );
 			}
-			await page.waitForLoadState( 'networkidle' );
 
 			if ( await page.$( 'body.logged-in' ) ) {
 				// customer login
