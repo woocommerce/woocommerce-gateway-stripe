@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
 * Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
 * Add - Adds a new feature flag to handle the Single Payment Element feature.
 * Dev - Moves the method to check if the subscriptions extension is enabled to a new helper class.
