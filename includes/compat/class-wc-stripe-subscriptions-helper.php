@@ -48,7 +48,7 @@ class WC_Stripe_Subscriptions_Helper {
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
 				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
-				if ( ! $payment_method->customer ) {
+				if ( empty( $payment_method->customer ) ) {
 					$detached_subscriptions[] = [
 						'id'                        => $subscription->get_id(),
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
