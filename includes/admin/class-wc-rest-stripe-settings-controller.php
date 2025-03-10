@@ -83,6 +83,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'is_spe_enabled'                     => [
+						'description'       => __( 'If Single Payment Element should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_amazon_pay_enabled'              => [
 						'description'       => __( 'If Amazon Pay should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -275,6 +280,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
+				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
 			]
 		);
 	}
@@ -309,6 +315,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
+		$this->update_is_spe_enabled( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -515,15 +522,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-
 		// If the new UPE is enabled, we need to remove the flag to ensure legacy SEPA tokens are updated flag.
 		if ( $is_upe_enabled && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 		}
 
-		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		$this->gateway->update_option( WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME, $is_upe_enabled ? 'yes' : 'disabled' );
 
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
@@ -579,6 +583,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$value = $request->get_param( $request_key );
 			$this->gateway->update_validated_option( $attribute, $value );
 		}
+	}
+
+	/**
+	 * Updates the "Single Payment Element" enable/disable settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_spe_enabled( WP_REST_Request $request ) {
+		$is_spe_enabled = $request->get_param( 'is_spe_enabled' );
+
+		if ( null === $is_spe_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
 	}
 
 	/**

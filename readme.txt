@@ -111,6 +111,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
+* Add - Adds a new feature flag to handle the Single Payment Element feature.
+* Dev - Moves the method to check if the subscriptions extension is enabled to a new helper class.
 * Dev - Moves and refactor some of the UPE-related code to make Single Payment Element development easier.
 * Add - Add logging of IP address issues when setting up mandate data.
 * Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
@@ -138,6 +141,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Skip unnecessary save step when already using a saved payment method for legacy checkout.
 * Fix - Avoid duplicate payment method element for classic checkout.
 * Fix - ACSS: Handle errors and edge cases.
+* Add - Add subscriptions support to Bacs.
 * Update - Add tracks events for payment method settings updates.
+* Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
+* Add - Add WooCommerce Pre-Orders support to Bacs.
+* Tweak - Fix background in express checkout settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
