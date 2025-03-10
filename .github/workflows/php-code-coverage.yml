@@ -5,6 +5,9 @@ on:
     paths:
       - '**.php'
 
+permissions:
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -64,6 +67,7 @@ jobs:
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
+          number: ${{ github.event.number }}
           header: code-coverage
           recreate: true
           skip_unchanged: true
