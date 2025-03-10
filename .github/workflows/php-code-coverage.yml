@@ -5,6 +5,10 @@ on:
     paths:
       - '**.php'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-22.04
@@ -64,6 +68,7 @@ jobs:
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
+          number: ${{ steps.finder.outputs.pr }}
           header: code-coverage
           recreate: true
           skip_unchanged: true
