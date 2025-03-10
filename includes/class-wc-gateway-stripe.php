@@ -825,7 +825,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
 
-		if ( $this->save_payment_method_requested() || $force_save_source_value ) {
+		// We want to save the payment method if requested or forced, AND if we are not
+		// already using a saved payment method.
+		if ( ( $this->save_payment_method_requested() || $force_save_source_value ) &&
+			! $this->is_using_saved_payment_method() ) {
 			$query_params['save_payment_method'] = true;
 		}
 
