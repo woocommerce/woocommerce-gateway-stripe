@@ -813,7 +813,7 @@ class WC_Stripe_Intent_Controller {
 		// Add required mandate options for ACSS.
 		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
-				'acss_debit' => [
+				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
 					'mandate_options' => [
 						'payment_schedule'     => 'interval',
 						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
