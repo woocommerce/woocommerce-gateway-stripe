@@ -67,7 +67,7 @@ jobs:
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         with:
-          number: ${{ steps.finder.outputs.pr }}
+          number: ${{ github.event.number }}
           header: code-coverage
           recreate: true
           skip_unchanged: true
