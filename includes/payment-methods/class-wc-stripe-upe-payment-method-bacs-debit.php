@@ -30,17 +30,13 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->accept_only_domestic_payment = true;
 		$this->label                        = __( 'Bacs Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->description                  = __( 'Bacs Direct Debit enables customers in the UK to pay by providing their bank account details.', 'woocommerce-gateway-stripe' );
+		$this->supports[]                   = 'tokenization';
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
 
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
-
-		// Remove Bacs from the “Add Payment Method” page for now, as its implementation will be handled later.
-		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
-			unset( $this->supports['tokenization'] );
-		}
 
 		$this->maybe_hide_bacs_payment_gateway();
 	}
@@ -105,13 +101,27 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			function ( $available_gateways ) {
 				if (
 					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
-					$this->should_hide_bacs_for_subscriptions_with_free_trials()
+					$this->should_hide_bacs_for_subscriptions_with_free_trials() ||
+					$this->should_hide_bacs_on_add_payment_method_page()
 				) {
 					unset( $available_gateways['stripe_bacs_debit'] );
 				}
 				return $available_gateways;
 			}
 		);
+	}
+
+	/**
+	 * Determines whether the Bacs payment gateway should be hidden on the "Add Payment Method" page.
+	 *
+	 * @return bool True if the Bacs payment gateway should be hidden, false otherwise.
+	 */
+	public function should_hide_bacs_on_add_payment_method_page() {
+		if ( is_wc_endpoint_url( 'add-payment-method' ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -143,10 +153,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool True if Bacs should be hidden, false otherwise.
 	 */
 	public function should_hide_bacs_for_subscriptions_with_free_trials() {
-		global $post;
-		$is_checkout_shortcode_page          = wc_post_content_has_shortcode( 'woocommerce_checkout' ) || has_block( 'woocommerce/classic-shortcode', $post );
 		$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
-		if ( $is_checkout_shortcode_page || $is_update_order_review_ajax_request ) {
+		if ( is_checkout() || $is_update_order_review_ajax_request ) {
 			// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
 			// as long as another product increases the total amount, ensuring compatibility with Bacs.
 			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {

@@ -6,3 +6,27 @@ npx --no-install yarnhook
 
 # make sure the autoload files are regenerated
 composer dumpautoload
+
+DEV_TOOLS_PLUGIN_PATH=${LOCAL_STRIPE_DEV_TOOLS_PLUGIN_REPO_PATH:-"docker/wordpress/wp-content/plugins/woocommerce-gateway-stripe-dev-tools"}
+if [ ! -d $DEV_TOOLS_PLUGIN_PATH ]; then
+	echo
+    echo "\033[33mCouldn't find the '$DEV_TOOLS_PLUGIN_PATH' directory. Skipping the auto-update for the Stripe Dev Tools plugin...\033[0m"
+else
+	if [ "$(cd $DEV_TOOLS_PLUGIN_PATH && git rev-parse --show-toplevel 2>/dev/null)" = "$(cd $DEV_TOOLS_PLUGIN_PATH && pwd)" ]; then
+		echo
+		echo "\033[32mDetermining if there is an update for the Stripe Dev Tools plugin...\033[0m"
+
+		DEV_TOOLS_BRANCH=$(cd $DEV_TOOLS_PLUGIN_PATH && git branch --show-current)
+		if [[ $DEV_TOOLS_BRANCH = "trunk" ]]; then
+			echo "  \033[32mThe current branch is $DEV_TOOLS_BRANCH. Check if we are safe to pull from origin/$DEV_TOOLS_BRANCH...\033[0m"
+			if [[ `cd $DEV_TOOLS_PLUGIN_PATH && git status --porcelain` ]]; then
+				echo "\033[33m  There are uncommitted local changes on the Stripe Dev Tools repo. Skipping any attempt to update it.\033[0m"
+			else
+				echo "  \033[32mPulling the latest changes from origin/$DEV_TOOLS_BRANCH, if any...\033[0m"
+				cd $DEV_TOOLS_PLUGIN_PATH && git pull
+			fi
+		else
+			echo "\033[33m  The Stripe Dev Tools local clone is not on the trunk branch. Skipping any attempt to update it.\033[0m"
+		fi
+	fi
+fi
