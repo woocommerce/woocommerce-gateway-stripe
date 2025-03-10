@@ -160,6 +160,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			applePay: 'never',
 			googlePay: 'never',
 		},
+		layout: 'accordion',
 	} );
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
