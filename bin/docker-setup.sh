@@ -114,6 +114,17 @@ cli wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --a
 echo "Activating the WooCommerce Stripe Payment Gateway plugin..."
 cli wp plugin activate woocommerce-gateway-stripe
 
+echo "Installing dev tools plugin..."
+set +e
+git clone git@github.com:woocommerce/woocommerce-gateway-stripe-dev-tools.git docker/wordpress/wp-content/plugins/woocommerce-gateway-stripe-dev-tools
+if [[ $? -eq 0 ]]; then
+	cli wp plugin activate woocommerce-gateway-stripe-dev-tools
+else
+	echo
+	echo "WARN: Could not clone the dev tools repository. Skipping the install."
+fi
+set -e
+
 echo
 echo "SUCCESS! You should now be able to access http://${SITE_URL}/wp-admin/"
 echo "You can login by using the username and password both as 'admin'"

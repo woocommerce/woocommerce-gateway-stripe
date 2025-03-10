@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.3.0 - xxxx-xx-xx =
 * Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
+* Fix - Improves the checking for existing customer attribute when retrieving a payment method that may be detached from a subscription.
+* Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
 * Add - Adds a new feature flag to handle the Single Payment Element feature.
 * Dev - Moves the method to check if the subscriptions extension is enabled to a new helper class.
 * Dev - Moves and refactor some of the UPE-related code to make Single Payment Element development easier.
@@ -143,6 +145,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - ACSS: Handle errors and edge cases.
 * Add - Add subscriptions support to Bacs.
 * Update - Add tracks events for payment method settings updates.
+* Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
 * Add - Add WooCommerce Pre-Orders support to Bacs.
+* Tweak - Fix background in express checkout settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
