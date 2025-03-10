@@ -75,8 +75,8 @@ class Test_WC_Payment_Token_Bacs_Debit extends WP_UnitTestCase {
 	public function test_is_equal_payment_method_returns_true_on_valid_object() {
 		$this->token->set_fingerprint( 'test_fp_123' );
 		$payment_method_mock = (object) [
-			'type'       => WC_Stripe_Payment_Methods::BACS_DEBIT,
-			'bacs_debit' => (object) [
+			'type'                                => WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BACS_DEBIT => (object) [
 				'fingerprint' => 'test_fp_123',
 				'last4'       => '9999',
 			],
@@ -94,8 +94,8 @@ class Test_WC_Payment_Token_Bacs_Debit extends WP_UnitTestCase {
 	public function test_is_equal_payment_method_returns_false_mismatched_type() {
 		$this->token->set_fingerprint( 'test_fp_abc' );
 		$payment_method_mock = (object) [
-			'type'       => 'card', // This is not bacs_debit
-			'bacs_debit' => (object) [
+			'type'                                => 'card', // This is not bacs_debit
+			WC_Stripe_Payment_Methods::BACS_DEBIT => (object) [
 				'fingerprint' => 'test_fp_abc',
 			],
 		];
@@ -112,8 +112,8 @@ class Test_WC_Payment_Token_Bacs_Debit extends WP_UnitTestCase {
 	public function test_is_equal_payment_method_returns_false_mismatched_fingerprint() {
 		$this->token->set_fingerprint( 'test_fp_123' );
 		$payment_method_mock = (object) [
-			'type'       => WC_Stripe_Payment_Methods::BACS_DEBIT,
-			'bacs_debit' => (object) [
+			'type'                                => WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BACS_DEBIT => (object) [
 				'fingerprint' => 'different_fp',
 			],
 		];
