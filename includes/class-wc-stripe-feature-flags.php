@@ -7,9 +7,11 @@ class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
+	const SPE_FEATURE_FLAG_NAME               = '_wcstripe_feature_spe';
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
+	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
@@ -21,9 +23,10 @@ class WC_Stripe_Feature_Flags {
 		'_wcstripe_feature_upe'            => 'yes',
 		self::ECE_FEATURE_FLAG_NAME        => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME => 'no',
-		self::LPM_ACH_FEATURE_FLAG_NAME    => 'no',
+		self::SPE_FEATURE_FLAG_NAME        => 'no',
+		self::LPM_ACH_FEATURE_FLAG_NAME    => 'yes',
 		self::LPM_ACSS_FEATURE_FLAG_NAME   => 'no',
-		self::LPM_BACS_FEATURE_FLAG_NAME   => 'no',
+		self::LPM_BACS_FEATURE_FLAG_NAME   => 'yes',
 	];
 
 	/**
@@ -87,6 +90,16 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
+	 * Checks whether BLIK LPM (Local Payment Method) feature flag is enabled.
+	 * BLIK LPM is a feature that allows merchants to enable/disable the BLIK payment method.
+	 *
+	 * @return bool
+	 */
+	public static function is_blik_lpm_enabled(): bool {
+		return 'yes' === self::get_option_with_default( self::LPM_BLIK_FEATURE_FLAG_NAME );
+	}
+
+	/**
 	 * Checks whether Stripe ECE (Express Checkout Element) feature flag is enabled.
 	 * Express checkout buttons are rendered with either ECE or PRB depending on this feature flag.
 	 *
@@ -135,5 +148,14 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function are_apms_deprecated() {
 		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-28' && ! self::is_upe_checkout_enabled();
+	}
+
+	/**
+	 * Whether the Single Payment Element (SPE) feature flag is enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_spe_available() {
+		return 'yes' === self::get_option_with_default( self::SPE_FEATURE_FLAG_NAME );
 	}
 }

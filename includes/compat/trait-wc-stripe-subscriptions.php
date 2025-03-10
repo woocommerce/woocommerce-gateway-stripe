@@ -25,7 +25,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 5.6.0
 	 */
 	public function maybe_init_subscriptions() {
-		if ( ! $this->is_subscriptions_enabled() ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return;
 		}
 
@@ -211,7 +211,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function maybe_change_subscription_payment_method( $order_id ) {
 		return (
-			$this->is_subscriptions_enabled() &&
+			WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() &&
 			$this->has_subscription( $order_id ) &&
 			$this->is_changing_payment_method_for_subscription()
 		);
@@ -572,7 +572,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
-		if ( ! $this->is_subscriptions_enabled() ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return;
 		}
 
@@ -987,6 +987,18 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) email address associated with the Stripe Link payment method */
 							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
 							break 3;
+						case WC_Stripe_Payment_Methods::ACH:
+							$payment_method_to_display = sprintf(
+								/* translators: account type (checking, savings), last 4 digits of account. */
+								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
+								ucfirst( $source->us_bank_account->account_type ),
+								$source->us_bank_account->last4
+							);
+							break 3;
+						case WC_Stripe_Payment_Methods::BACS_DEBIT:
+							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
+							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
+							break 3;
 					}
 				}
 			}
@@ -1081,7 +1093,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object.
 	 */
 	protected function maybe_process_subscription_early_renewal_success( $order, $intent ) {
-		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			if ( function_exists( 'wcs_update_dates_after_early_renewal' ) && function_exists( 'wcs_get_subscription' ) ) {
 				wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			}
@@ -1098,7 +1110,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object (unused).
 	 */
 	protected function maybe_process_subscription_early_renewal_failure( $order, $intent ) {
-		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
 			$renewal_url = ( function_exists( 'wcs_get_early_renewal_url' ) && function_exists( 'wcs_get_subscription' ) )
@@ -1130,7 +1142,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
 	 */
 	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
-		if ( ! $this->is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
 			return;
 		}
 
@@ -1149,7 +1161,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
 		$parent_order = wc_get_order( $order->get_parent_id() );
-		if ( $this->is_subscriptions_enabled()
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
 			&& $this->is_subscription( $order )
 			&& $parent_order
 			&& ! empty( $parent_order->get_meta( '_stripe_mandate_id', true ) ) ) {

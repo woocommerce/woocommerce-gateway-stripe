@@ -23,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Required minimums and constants
  */
 define( 'WC_STRIPE_VERSION', '9.2.0' ); // WRCS: DEFINED_VERSION.
-define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
+define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
+define( 'WC_STRIPE_MIN_WC_VER', '9.2' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.2' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -199,6 +199,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-helper.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
+				require_once __DIR__ . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
 				require_once __DIR__ . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once __DIR__ . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once __DIR__ . '/includes/compat/trait-wc-stripe-pre-orders.php';

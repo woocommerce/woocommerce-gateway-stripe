@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api } from '../../../utils';
+import { api, payments, products } from '../../../utils';
 
 const {
 	setupShortcodeCheckout,
@@ -10,22 +10,7 @@ const {
 let productId;
 
 test.beforeAll( async () => {
-	const product = {
-		...config.get( 'products.subscription' ),
-		regular_price: '9.99',
-		meta_data: [
-			{
-				key: '_subscription_period',
-				value: 'month',
-			},
-			{
-				key: '_subscription_period_interval',
-				value: '1',
-			},
-		],
-	};
-
-	productId = await api.create.product( product );
+	productId = await api.create.product( products.subscriptionData() );
 } );
 
 test.afterAll( async () => {

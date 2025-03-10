@@ -461,6 +461,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// ACSS LPM Feature flag.
 		$stripe_params['is_acss_enabled'] = WC_Stripe_Feature_Flags::is_acss_lpm_enabled();
 
+		// BLIK LPM Feature flag.
+		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
@@ -478,7 +481,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$stripe_params['customerData'] = [ 'billing_country' => $order->get_billing_country() ];
 			}
 
-			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
+			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
 
@@ -639,9 +642,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
-				if ( is_user_logged_in() ) {
-					$this->saved_payment_methods();
-				}
+				$this->saved_payment_methods();
 			}
 			?>
 
@@ -656,9 +657,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
-				if ( is_user_logged_in() ) {
-					$this->save_payment_method_checkbox( $force_save_payment );
-				}
+				$this->save_payment_method_checkbox( $force_save_payment );
 			}
 
 			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );
@@ -1166,17 +1165,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 				if ( false === $intent ) {
 					$request['confirm'] = 'true';
+
 					// SEPA setup intents require mandate data.
 					if ( in_array( WC_Stripe_Payment_Methods::SEPA_DEBIT, array_values( $enabled_payment_methods ), true ) ) {
-						$request['mandate_data'] = [
-							'customer_acceptance' => [
-								'type'   => 'online',
-								'online' => [
-									'ip_address' => WC_Geolocation::get_ip_address(),
-									'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', // @codingStandardsIgnoreLine
-								],
-							],
-						];
+						$request = WC_Stripe_Helper::add_mandate_data( $request );
 					}
 				}
 
@@ -2220,7 +2212,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_method'                => '',
 			'payment_method_details'        => [],
 			'payment_type'                  => 'single', // single | recurring.
-			'capture_method'                => $capture_method,
 		];
 
 		if ( 'us_bank_account' === $selected_payment_type ) {
@@ -2237,6 +2228,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
+			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
@@ -2250,6 +2242,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'capture_method' => 'manual',
 					],
 				];
+			} else {
+				$payment_information['capture_method'] = $capture_method;
 			}
 
 			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.

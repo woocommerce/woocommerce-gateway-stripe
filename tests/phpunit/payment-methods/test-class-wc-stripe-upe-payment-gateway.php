@@ -2648,10 +2648,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $mock_subscription_0, $mock_subscription_1 ];
 
-		$this->mock_gateway->expects( $this->exactly( 4 ) ) // 4 times because we test 4 payment methods.
-			->method( 'is_subscriptions_enabled' )
-			->willReturn( true );
-
 		/**
 		 * SEPA
 		 */
