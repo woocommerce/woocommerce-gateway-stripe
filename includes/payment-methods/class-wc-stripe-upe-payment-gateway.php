@@ -2212,7 +2212,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_method'                => '',
 			'payment_method_details'        => [],
 			'payment_type'                  => 'single', // single | recurring.
-			'capture_method'                => $capture_method,
 		];
 
 		if ( 'us_bank_account' === $selected_payment_type ) {
@@ -2229,6 +2228,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order,
 				$payment_method_details
 			);
+			$payment_information['capture_method']               = $capture_method;
 		} else {
 			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
 			$payment_information['confirmation_token']           = $confirmation_token_id;
@@ -2242,6 +2242,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'capture_method' => 'manual',
 					],
 				];
+			} else {
+				$payment_information['capture_method'] = $capture_method;
 			}
 
 			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
