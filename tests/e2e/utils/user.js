@@ -16,10 +16,15 @@ export async function login( page, username, password, retries = 3 ) {
 			await page.waitForLoadState( 'load' );
 
 			if ( await page.url().includes( 'wp-login.php' ) ) {
-				await page.fill( 'input[name="log"]', username );
-				await page.fill( 'input[name="pwd"]', password );
-				await page.click( 'input[value="Log In"]' );
-				await page.waitForLoadState( 'load' );
+				// Wait for login form to be visible
+				await page
+					.locator( '#loginform' )
+					.waitFor( { state: 'visible', timeout: 5000 } );
+
+				// Fill in login credentials
+				await page.locator( 'input[name="log"]' ).fill( username );
+				await page.locator( 'input[name="pwd"]' ).fill( password );
+				page.locator( 'input[value="Log In"]' ).click();
 			}
 
 			// Wait for either customer or admin login success
