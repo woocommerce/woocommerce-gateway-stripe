@@ -13,6 +13,7 @@ class WC_Stripe_Payment_Methods {
 	const AMAZON_PAY        = 'amazon_pay';
 	const BACS_DEBIT        = 'bacs_debit';
 	const BANCONTACT        = 'bancontact';
+	const BLIK              = 'blik';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
 	const CARD_PRESENT      = 'card_present';

@@ -21,6 +21,7 @@ import BacsDebitIcon from './bacs-debit';
 
 export default {
 	alipay: AlipayIcon,
+	blik: CashAppIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
 	klarna: KlarnaIcon,

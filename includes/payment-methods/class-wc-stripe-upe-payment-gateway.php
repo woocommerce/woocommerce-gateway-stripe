@@ -24,6 +24,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
+		WC_Stripe_UPE_Payment_Method_BLIK::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Affirm::class,
@@ -178,6 +179,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Consider Bacs only if the feature is enabled.
 			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show BLIK only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
 				continue;
 			}
 

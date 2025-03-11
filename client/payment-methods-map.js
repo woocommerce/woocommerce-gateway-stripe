@@ -8,6 +8,7 @@ import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -28,6 +29,7 @@ const accountCountry =
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
+const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
@@ -305,6 +307,20 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
+	};
+}
+
+// Enable BLIK according to feature flag value.
+if ( isBlikEnabled ) {
+	paymentMethodsMap.blik = {
+		id: PAYMENT_METHOD_BLIK,
+		label: 'BLIK',
+		description: __(
+			'BLIK is a mobile payment method primarily used in Poland.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.cashapp,
+		currencies: [ 'PLN' ],
 	};
 }
 

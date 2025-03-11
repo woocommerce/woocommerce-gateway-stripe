@@ -1,6 +1,7 @@
 /**
  * Payment method name constants without the `stripe` prefix
  */
+export const PAYMENT_METHOD_BLIK = 'blik';
 export const PAYMENT_METHOD_CARD = 'card';
 export const PAYMENT_METHOD_GIROPAY = 'giropay';
 export const PAYMENT_METHOD_EPS = 'eps';
@@ -31,6 +32,7 @@ export const PAYMENT_METHOD_BACS = 'bacs_debit';
  */
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
 export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
+export const PAYMENT_METHOD_STRIPE_BLIK = 'stripe_blik';
 export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
@@ -53,6 +55,7 @@ export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
+		blik: PAYMENT_METHOD_STRIPE_BLIK,
 		card: PAYMENT_METHOD_STRIPE_CARD,
 		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
 		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
