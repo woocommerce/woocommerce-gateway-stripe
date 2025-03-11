@@ -4,6 +4,7 @@ import {
 } from '@woocommerce/blocks-registry';
 import {
 	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
@@ -44,11 +45,16 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-Object.entries( paymentMethodsConfig )
-	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
-	.forEach( ( [ method, config ] ) => {
-		registerPaymentMethod( upeElement( method, api, config ) );
-	} );
+if ( getBlocksConfiguration()?.isSPEEnabled ) {
+	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
+	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
+} else {
+	Object.entries( paymentMethodsConfig )
+		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
+		.forEach( ( [ method, config ] ) => {
+			registerPaymentMethod( upeElement( method, api, config ) );
+		} );
+}
 
 // Register Express Checkout Elements.
 if (
