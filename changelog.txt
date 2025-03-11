@@ -39,7 +39,8 @@
 * Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
 * Add - Add WooCommerce Pre-Orders support to Bacs.
 * Tweak - Fix background in express checkout settings.
-* Dev - Fix flaky e2e login step
+* Dev - Fix flaky e2e login step.
+* Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
