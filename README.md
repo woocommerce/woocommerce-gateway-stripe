@@ -6,13 +6,13 @@ This is the official feature plugin for accepting payments via the Stripe paymen
 
 -   WooCommerce
 
-## Version support policy
+## Version Support Policy
 
 We adopt the L-2 version support policy for WordPress core strictly, and a loose L-2 policy for WooCommerce. See [more details](./docs/version-support-policy.md).
 
 ## Development
 
-### Install dependencies & build
+### Install Dependencies & Build
 
 -   `npm install`
 -   `composer install`
@@ -20,7 +20,7 @@ We adopt the L-2 version support policy for WordPress core strictly, and a loose
 
 If you run into errors with `npm install` it may be due to node version, try `nvm install` followed by `nvm use` then try again.
 
-When running the `composer install/update`, composer may prompt you for a GitHub OAuth token before it can fetch the `subscriptions` and `pre-orders` extensions from GitHub.
+When running the `composer install/update`, Composer may prompt you for a GitHub OAuth token before it can fetch the `subscriptions` and `pre-orders` extensions from GitHub.
 
 ## Setup
 
