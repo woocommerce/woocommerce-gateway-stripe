@@ -763,7 +763,7 @@ class WC_Stripe_Intent_Controller {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
 		}
 
-		if ( isset( $payment_information['payment_method_options'] ) ) {
+		if ( ! empty( $payment_information['payment_method_options'] ) ) {
 			$request['payment_method_options'] = $payment_information['payment_method_options'];
 		}
 
@@ -964,6 +964,9 @@ class WC_Stripe_Intent_Controller {
 		if ( ! $is_using_confirmation_token && $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
+
+		// Add required mandate options for ACSS.
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];

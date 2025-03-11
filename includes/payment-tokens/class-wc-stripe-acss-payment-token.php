@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit;
 }
 
 // phpcs:disable WordPress.Files.FileName
@@ -50,19 +50,12 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	}
 
 	/**
-	 * Set the last four digits for the Bacs Debit Token.
+	 * Set the last four digits for the ACSS Debit Token.
 	 *
 	 * @param string $last4
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
-	}
-
-	/**
-	 * Hook prefix
-	 */
-	protected function get_hook_prefix() {
-		return 'woocommerce_payment_token_acss_get_';
 	}
 
 	/**
@@ -114,7 +107,7 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 	}
 
 	/**
-	 * Get type to display to user.
+	 * Returns the name of the token to display.
 	 *
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
 	 * @return string
@@ -128,6 +121,13 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 		);
 
 		return $display;
+	}
+
+	/**
+	 * Hook prefix.
+	 */
+	protected function get_hook_prefix() {
+		return 'woocommerce_payment_token_acss_get_';
 	}
 }
 
