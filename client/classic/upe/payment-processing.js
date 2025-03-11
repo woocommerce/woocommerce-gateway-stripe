@@ -130,7 +130,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			amount,
 		};
 
-		if ( getStripeServerData()?.isSpeEnabled ) {
+		if ( getStripeServerData()?.isSPEEnabled ) {
 			options = {
 				...options,
 				paymentMethodConfiguration: 'pmc_1QxXgxGtN3ImWtq0zHNUUOkT',
