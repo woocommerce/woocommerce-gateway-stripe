@@ -773,7 +773,7 @@ class WC_Stripe_Intent_Controller {
 		if ( ! $is_using_saved_token && $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
 
-			// When `confirm` is `false`, `return_url` is not accepted
+			// When `confirm` is `false`, `return_url` and `mandate_data` are not accepted
 			unset( $request['return_url'], $request['mandate_data'] );
 		}
 

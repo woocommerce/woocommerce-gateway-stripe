@@ -41,13 +41,13 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		if ( $payment_details ) {
-			$wallet_type = WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ? WC_Stripe_Payment_Methods::AMAZON_PAY : ( $payment_details->card->wallet->type ?? null );
-			if ( $wallet_type ) {
-				return $this->get_card_wallet_type_title( $wallet_type );
-			}
+		$wallet_type = WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ? WC_Stripe_Payment_Methods::AMAZON_PAY : ( $payment_details->card->wallet->type ?? null );
+		if ( $payment_details && $wallet_type ) {
+			return $this->get_card_wallet_type_title( $wallet_type );
+		}
 
-			if ( $this->spe_enabled ) { // Setting title for the order details page / thank you page.
+		if ( $this->spe_enabled ) {
+			if ( $payment_details ) { // Setting title for the order details page / thank you page.
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 					$payment_method = new $payment_method_class();
 					if ( $payment_method->get_id() === $payment_details->type ) {
@@ -55,9 +55,8 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 					}
 				}
 			}
-		}
 
-		if ( $this->spe_enabled ) { // Classic checkout page
+			// Classic checkout page
 			return __( 'Stripe', 'woocommerce-gateway-stripe' );
 		}
 
