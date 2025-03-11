@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.3.0 - xxxx-xx-xx =
+* Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
 * Dev - Additional replacements for payment method constant values on the backend.
 * Fix - Improves the checking for existing customer attribute when retrieving a payment method that may be detached from a subscription.
 * Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
