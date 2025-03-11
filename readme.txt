@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
 * Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
 * Dev - Additional replacements for payment method constant values on the backend.
