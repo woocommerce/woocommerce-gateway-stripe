@@ -43,7 +43,7 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-if ( getBlocksConfiguration()?.isSpeEnabled ) {
+if ( getBlocksConfiguration()?.isSPEEnabled ) {
 	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
 	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
 } else {
