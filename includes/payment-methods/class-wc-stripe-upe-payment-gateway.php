@@ -103,6 +103,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $sepa_tokens_for_other_methods;
 
 	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 */
+	public $spe_enabled;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -211,6 +218,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->enabled                       = $this->get_option( 'enabled' );
 		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
+		$this->spe_enabled                   = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -463,6 +471,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// BLIK LPM Feature flag.
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
+		// Single Payment Element feature flag + setting.
+		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -1754,6 +1765,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Checks if the Single Payment Element setting is enabled.
+	 *
+	 * @return bool Whether the Single Payment Element setting is enabled.
+	 */
+	public function is_spe_enabled() {
+		return $this->spe_enabled;
+	}
+
+	/**
 	 * Set formatted readable payment method title for order,
 	 * using payment method details from accompanying charge.
 	 *
@@ -2187,10 +2207,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
+		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
+
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation(
 			$selected_payment_type,
 			$order->get_id(),
-			$this->get_express_payment_type_from_request()
+			$this->get_express_payment_type_from_request(),
+			( $payment_method_details->type ?? null )
 		);
 
 		$payment_information = [
@@ -2210,7 +2233,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
 			'payment_method'                => '',
-			'payment_method_details'        => [],
+			'payment_method_details'        => $payment_method_details,
 			'payment_type'                  => 'single', // single | recurring.
 		];
 
@@ -2219,9 +2242,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		if ( ! empty( $payment_method_id ) ) {
-			$payment_method_details                              = WC_Stripe_API::get_payment_method( $payment_method_id );
 			$payment_information['payment_method']               = $payment_method_id;
-			$payment_information['payment_method_details']       = $payment_method_details;
 			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
 			$payment_information['payment_method_options']       = $this->get_payment_method_options(
 				$selected_payment_type,
@@ -2688,15 +2709,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @param string $selected_payment_type The payment type the shopper selected, if any.
 	 * @param int    $order_id              ID of the WC order we're handling.
-	 * @param string|void $express_payment_type  The express payment type, if any.
+	 * @param string|null $express_payment_type  The express payment type, if any.
+	 * @param string|null $payment_method_type  The payment method type, if any.
 	 *
 	 * @return array
 	 */
 	private function get_payment_method_types_for_intent_creation(
 		string $selected_payment_type,
 		int $order_id,
-		$express_payment_type = ''
+		?string $express_payment_type = null,
+		?string $payment_method_type = null
 	): array {
+		// If Single Payment Element is enabled, return only the payment method type.
+		if ( $this->spe_enabled && ! empty( $payment_method_type ) ) {
+			return [ $payment_method_type ];
+		}
+
 		// If the shopper didn't select a payment type, return all the enabled ones.
 		if ( '' === $selected_payment_type ) {
 			return $this->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
