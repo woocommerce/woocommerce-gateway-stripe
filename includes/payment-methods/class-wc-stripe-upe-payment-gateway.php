@@ -473,7 +473,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
 
 		// Single Payment Element feature flag + setting.
-		$stripe_params['isSpeEnabled'] = $this->spe_enabled;
+		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
