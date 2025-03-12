@@ -98,10 +98,7 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
-	 * Displays a maintenance notice next to merged plugins, to inform users
-	 * that the plugin functionality is now offered by WooCommerce core.
-	 *
-	 * Requires 'mark_merged_plugins_as_pending_update' to properly display this notice.
+	 * Displays the legacy deprecation notice.
 	 *
 	 * @param string $plugin_file Plugin file.
 	 */
