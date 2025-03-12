@@ -151,5 +151,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add WooCommerce Pre-Orders support to Bacs.
 * Tweak - Fix background in express checkout settings.
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
+* Update - Update handling of PR as a country in the terminal locations endpoint.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

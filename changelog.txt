@@ -41,6 +41,7 @@
 * Add - Add WooCommerce Pre-Orders support to Bacs.
 * Tweak - Fix background in express checkout settings.
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
+* Update - Update handling of PR as a country in the terminal locations endpoint.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
