@@ -602,7 +602,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( 'failed' === $response->status ) {
 				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $response->outcome->seller_message ?? $localized_message );
+				$order->add_order_note(
+					property_exists( $response, 'outcome' ) && isset( $response->outcome->seller_message )
+						? $response->outcome->seller_message
+						: $localized_message
+				);
 
 				throw new WC_Stripe_Exception( $localized_message, $localized_message );
 			}
