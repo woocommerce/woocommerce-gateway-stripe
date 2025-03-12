@@ -47,7 +47,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		if ( $this->spe_enabled ) {
-			if ( $payment_details ) { // Setting title for the order details page / thank you page.
+			if ( $payment_details ) { // Setting title for the order details page / thank you page (classic checkout).
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 					$payment_method = new $payment_method_class();
 					if ( $payment_method->get_id() === $payment_details->type ) {
@@ -57,7 +57,9 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			}
 
 			// Classic checkout page
-			return __( 'Stripe', 'woocommerce-gateway-stripe' );
+			if ( is_checkout() ) {
+				return __( 'Stripe', 'woocommerce-gateway-stripe' );
+			}
 		}
 
 		return parent::get_title();
