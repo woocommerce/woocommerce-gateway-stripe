@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
+* Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
 * Dev - Additional replacements for payment method constant values on the backend.
 * Fix - Improves the checking for existing customer attribute when retrieving a payment method that may be detached from a subscription.
 * Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
@@ -149,5 +151,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
 * Add - Add WooCommerce Pre-Orders support to Bacs.
 * Tweak - Fix background in express checkout settings.
+* Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
