@@ -70,6 +70,5 @@ jobs:
           number: ${{ github.event.number }}
           header: code-coverage
           recreate: true
-          skip_unchanged: true
           path: code-coverage-results-filtered.md
           
