@@ -32,7 +32,9 @@ class WC_Stripe_Admin_Notices {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
 		add_action( 'woocommerce_stripe_updated', [ $this, 'stripe_updated' ] );
+		add_action( 'after_plugin_row_woocommerce-gateway-stripe/woocommerce-gateway-stripe.php', [ $this, 'display_legacy_deprecation_notice' ], 10, 1 );
 	}
+
 
 	/**
 	 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
@@ -93,6 +95,55 @@ class WC_Stripe_Admin_Notices {
 			);
 			echo '</p></div>';
 		}
+	}
+
+	/**
+	 * Displays a maintenance notice next to merged plugins, to inform users
+	 * that the plugin functionality is now offered by WooCommerce core.
+	 *
+	 * Requires 'mark_merged_plugins_as_pending_update' to properly display this notice.
+	 *
+	 * @param string $plugin_file Plugin file.
+	 */
+	public static function display_legacy_deprecation_notice( $plugin_file ) {
+		global $wp_list_table;
+
+		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) ) {
+			return;
+		}
+
+		if ( is_null( $wp_list_table ) ) {
+			return;
+		}
+
+		$columns_count      = $wp_list_table->get_column_count();
+		$is_active          = is_plugin_active( $plugin_file );
+		$is_active_class    = $is_active ? 'active' : 'inactive';
+		
+		$message = sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
+				'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
+				'</a>'
+			);
+		?>
+		<tr class='plugin-update-tr <?php echo $is_active_class; ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo $plugin_file; ?>'>
+			<td colspan='<?php echo $columns_count; ?>' class='plugin-update colspanchange'>
+				<div class='notice inline notice-warning notice-alt'>
+					<p>
+						<span style="display: inline-block; vertical-align: text-top;">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z" stroke="#dba617" stroke-width="1.5"/>
+								<path d="M13 7H11V13H13V7Z" fill="#dba617"/>
+								<path d="M13 15H11V17H13V15Z" fill="#dba617"/>
+							</svg>
+						</span>
+						<?php echo $message; ?>
+					</p>
+				</div>
+			</td>
+		</tr>
+		<?php
 	}
 
 	/**
