@@ -552,7 +552,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$gateway                 = $this->get_upe_gateway();
-		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
 
 		$request = [
 			'customer'             => $customer_id,
@@ -562,10 +562,7 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type, true );
 
-		$setup_intent = WC_Stripe_API::request(
-			$request,
-			'setup_intents'
-		);
+		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
 			throw new Exception( $setup_intent->error->message );
@@ -819,7 +816,6 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false ) {
-		// Add required mandate options for ACSS.
 		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
 				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
