@@ -224,6 +224,11 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 					in_array( $location->display_name, $possible_names, true )
 					&& count( array_intersect( (array) $location->address, $address ) ) === count( $address )
 				) {
+					// Transform the location's address if it uses PR as country.
+					if ( isset( $location->address->country ) && 'PR' === $location->address->country ) {
+						$location->address->country = 'US';
+						$location->address->state = 'PR';
+					}
 					return rest_ensure_response( $location );
 				}
 			}
