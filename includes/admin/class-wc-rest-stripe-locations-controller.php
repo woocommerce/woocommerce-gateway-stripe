@@ -193,6 +193,12 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			]
 		);
 
+		// Special handling for Puerto Rico - treat as US state rather than country.
+		if ( 'PR' === $address['country'] ) {
+			$address['country'] = 'US';
+			$address['state']   = 'PR';
+		}
+
 		// Return an error if store doesn't have a location.
 		$is_address_populated = isset( $address['country'], $address['city'], $address['postal_code'], $address['line1'] );
 		if ( ! $is_address_populated ) {
