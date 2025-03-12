@@ -767,10 +767,6 @@ class WC_Stripe_Intent_Controller {
 			$request['payment_method_options'] = $payment_information['payment_method_options'];
 		}
 
-		if ( $this->request_needs_redirection( $payment_method_types ) ) {
-			$request['return_url'] = $payment_information['return_url'];
-		}
-
 		// Using a saved token will also be confirmed immediately. For voucher and wallet payment methods type like Boleto, Oxxo, Multibanco, and Cash App we shouldn't confirm
 		// the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
@@ -965,7 +961,8 @@ class WC_Stripe_Intent_Controller {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
-		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+		// Does not set the return URL if Single Payment Element is enabled or if the request needs redirection.
+		if ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
@@ -1042,7 +1039,8 @@ class WC_Stripe_Intent_Controller {
 			$request['confirm'] = 'false';
 		}
 
-		if ( ! $this->request_needs_redirection( $request['payment_method_types'] ) ) {
+		// Removes the return URL if Single Payment Element is not enabled or if the request doesn't need redirection.
+		if ( ! ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
 
