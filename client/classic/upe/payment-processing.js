@@ -88,7 +88,16 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
 		try {
-			intent = await api.createIntent( null, paymentMethodType );
+			const isSetupIntent =
+				document.getElementById( 'add_payment_method' ) ||
+				! getStripeServerData()?.isPaymentNeeded ||
+				getStripeServerData()?.isChangingPayment;
+
+			if ( isSetupIntent ) {
+				intent = await api.initSetupIntent( paymentMethodType );
+			} else {
+				intent = await api.createIntent( null, paymentMethodType );
+			}
 		} catch ( error ) {
 			showErrorPaymentMethod(
 				error?.message ??
