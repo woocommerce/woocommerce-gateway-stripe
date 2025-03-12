@@ -550,8 +550,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
+		// TODO: Add mandate ID support for other payment methods, if necessary.
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		} elseif ( isset( $response->payment_method_details->acss_debit->mandate ) ) {
+			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->acss_debit->mandate );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -1621,8 +1624,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// Add the mandate id necessary for renewal payments with Indian cards if it's present.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
+			// TODO: Add mandate ID support for other payment methods, if necessary.
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
+			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
+				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
