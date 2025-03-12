@@ -116,16 +116,16 @@ class WC_Stripe_Admin_Notices {
 		$columns_count      = $wp_list_table->get_column_count();
 		$is_active          = is_plugin_active( $plugin_file );
 		$is_active_class    = $is_active ? 'active' : 'inactive';
-		
+
 		$message = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-				__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
-				'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
-				'</a>'
+			__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
+			'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
+			'</a>'
 			);
 		?>
-		<tr class='plugin-update-tr <?php echo $is_active_class; ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo $plugin_file; ?>'>
-			<td colspan='<?php echo $columns_count; ?>' class='plugin-update colspanchange'>
+		<tr class='plugin-update-tr <?php echo esc_html( $is_active_class ); ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo esc_html( $plugin_file ); ?>'>
+			<td colspan='<?php echo esc_html( $columns_count ); ?>' class='plugin-update colspanchange'>
 				<div class='notice inline notice-warning notice-alt'>
 					<p>
 						<span style="display: inline-block; vertical-align: text-top;">
