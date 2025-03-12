@@ -125,23 +125,23 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
-		$show_style_notice   = get_option( 'wc_stripe_show_style_notice' );
-		$show_ssl_notice     = get_option( 'wc_stripe_show_ssl_notice' );
-		$show_keys_notice    = get_option( 'wc_stripe_show_keys_notice' );
-		$show_3ds_notice     = get_option( 'wc_stripe_show_3ds_notice' );
-		$show_phpver_notice  = get_option( 'wc_stripe_show_phpver_notice' );
-		$show_wcver_notice   = get_option( 'wc_stripe_show_wcver_notice' );
-		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
-		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
-		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
+		$show_style_notice         = get_option( 'wc_stripe_show_style_notice' );
+		$show_ssl_notice           = get_option( 'wc_stripe_show_ssl_notice' );
+		$show_keys_notice          = get_option( 'wc_stripe_show_keys_notice' );
+		$show_3ds_notice           = get_option( 'wc_stripe_show_3ds_notice' );
+		$show_phpver_notice        = get_option( 'wc_stripe_show_phpver_notice' );
+		$show_wcver_notice         = get_option( 'wc_stripe_show_wcver_notice' );
+		$show_curl_notice          = get_option( 'wc_stripe_show_curl_notice' );
+		$show_sca_notice           = get_option( 'wc_stripe_show_sca_notice' );
+		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
-		$options             = WC_Stripe_Helper::get_stripe_settings();
-		$testmode            = WC_Stripe_Mode::is_test();
-		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
-		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
-		$live_pub_key        = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
-		$live_secret_key     = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
-		$three_d_secure      = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
+		$options                   = WC_Stripe_Helper::get_stripe_settings();
+		$testmode                  = WC_Stripe_Mode::is_test();
+		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
+		$test_secret_key           = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
+		$live_pub_key              = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
+		$live_secret_key           = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
+		$three_d_secure            = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
 			// Check if Stripe is in test mode.
