@@ -134,6 +134,7 @@ class WC_Stripe_Admin_Notices {
 		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
 		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
+		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
 		$options             = WC_Stripe_Helper::get_stripe_settings();
 		$testmode            = WC_Stripe_Mode::is_test();
 		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
@@ -314,6 +315,20 @@ class WC_Stripe_Admin_Notices {
 
 				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', $message, true );
 			}
+
+			if ( empty( $legacy_deprecation_notice ) ) {
+				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
+				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
+					$message = sprintf(
+					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+						__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
+						'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
+						'</a>'
+					);
+
+					$this->add_admin_notice( 'legacy_deprecation', 'notice notice-warning', $message, true );
+				}
+			}
 		}
 	}
 
@@ -479,6 +494,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'changed_keys':
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
+					break;
+				case 'legacy_deprecation':
+					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
 					break;
 				case 'payment_methods':
 					update_option( 'wc_stripe_show_payment_methods_notice', 'no' );
