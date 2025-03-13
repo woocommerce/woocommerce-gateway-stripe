@@ -21,7 +21,10 @@ import {
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 const noop = () => null;
 /**
@@ -283,8 +286,8 @@ const PaymentProcessor = ( {
 		]
 	);
 
-	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
+		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
@@ -293,6 +296,25 @@ const PaymentProcessor = ( {
 			);
 		} else {
 			removeCashAppLimitNotice();
+		}
+		if (
+			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
+			getBlocksConfiguration()?.isSPEEnabled
+		) {
+			const labels = document.getElementsByTagName( 'label' );
+			for ( const label of labels ) {
+				if (
+					label.htmlFor ===
+					'radio-control-wc-payment-method-options-stripe'
+				) {
+					label.style.display = 'none';
+				}
+			}
+			const stripePaymentMethodContent = document.getElementById(
+				'radio-control-wc-payment-method-options-stripe__content'
+			);
+			stripePaymentMethodContent.style.padding = 0;
+			// @todo Remove Stripe iframe spacing
 		}
 	}, [ selectedPaymentMethodType ] );
 
