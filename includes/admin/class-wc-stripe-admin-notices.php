@@ -117,12 +117,16 @@ class WC_Stripe_Admin_Notices {
 		$is_active          = is_plugin_active( $plugin_file );
 		$is_active_class    = $is_active ? 'active' : 'inactive';
 
+		$setting_link = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' ) );
 		$message = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
+			__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
+			'<a href="' . $setting_link . '">',
+			'</a>',
 			'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
 			'</a>'
 		);
+
 		?>
 		<tr class='plugin-update-tr <?php echo esc_html( $is_active_class ); ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo esc_html( $plugin_file ); ?>'>
 			<td colspan='<?php echo esc_html( $columns_count ); ?>' class='plugin-update colspanchange'>
@@ -134,7 +138,7 @@ class WC_Stripe_Admin_Notices {
 								<path d="M13 7H11V13H13V7Z" fill="#dba617"/>
 								<path d="M13 15H11V17H13V15Z" fill="#dba617"/>
 							</svg>
-						</span>				
+						</span>
 						<?php
 						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 						echo $message;
@@ -370,9 +374,12 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $legacy_deprecation_notice ) ) {
 				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
 				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
+					$setting_link = $this->get_setting_link();
 					$message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
+						__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
+						'<a href="' . $setting_link . '">',
+						'</a>',
 						'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
 						'</a>'
 					);
