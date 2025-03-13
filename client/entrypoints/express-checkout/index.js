@@ -82,10 +82,10 @@ jQuery( function ( $ ) {
 	 *
 	 * @todo Using the legacy endpoint (non-StoreAPI) for booking products. Can be
 	 * removed once booking product flows have been fully migrated to StoreAPI.
+	 *
+	 * @todo Disabling the StoreAPI temporarily due incompatibility with old version of the Order Status Manager plugin.
 	 */
-	const useLegacyCartEndpoints =
-		$( '.variations_form' ).length > 0 ||
-		$( '.wc-bookings-booking-form' ).length > 0;
+	const useLegacyCartEndpoints = true;
 
 	const resolveClickEvent = ( event, options ) => {
 		const clickOptions = {
