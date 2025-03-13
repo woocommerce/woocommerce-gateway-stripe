@@ -126,6 +126,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
 		'alipay_payments'            => 'active',
+		'amazon_pay_payments'        => 'active',
 		'bancontact_payments'        => 'active',
 		'card_payments'              => 'active',
 		'eps_payments'               => 'active',
@@ -640,7 +641,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
 			$store_currency = 'EUR';
-			if ( in_array( $payment_method_id, [ WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID ] ) ) {
+			if ( in_array(
+				$payment_method_id,
+				[
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+				],
+				true
+			) ) {
 				$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 			} elseif ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID === $payment_method_id ) {
 				$store_currency = WC_Stripe_Currency_Code::POUND_STERLING;
