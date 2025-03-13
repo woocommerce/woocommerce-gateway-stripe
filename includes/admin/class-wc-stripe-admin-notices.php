@@ -122,7 +122,7 @@ class WC_Stripe_Admin_Notices {
 			__( 'Starting with WooCommerce Stripe Gateway version 9.4.0, the legacy checkout experience will no longer be supported. %1$sLearn more%2$s', 'woocommerce-gateway-stripe' ),
 			'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
 			'</a>'
-			);
+		);
 		?>
 		<tr class='plugin-update-tr <?php echo esc_html( $is_active_class ); ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo esc_html( $plugin_file ); ?>'>
 			<td colspan='<?php echo esc_html( $columns_count ); ?>' class='plugin-update colspanchange'>
@@ -134,8 +134,11 @@ class WC_Stripe_Admin_Notices {
 								<path d="M13 7H11V13H13V7Z" fill="#dba617"/>
 								<path d="M13 15H11V17H13V15Z" fill="#dba617"/>
 							</svg>
-						</span>
-						<?php echo $message; ?>
+						</span>				
+						<?php
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo $message;
+						?>
 					</p>
 				</div>
 			</td>
