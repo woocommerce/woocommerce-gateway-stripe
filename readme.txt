@@ -152,5 +152,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Fix background in express checkout settings.
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Add ACSS payment tokenization.
+* Add - Add ACSS support for WC Subscriptions.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
