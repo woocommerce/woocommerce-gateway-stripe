@@ -62,6 +62,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				$expected_notices[] = 'wcver';
 			}
 			if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				// This means the legacy checkout support notice will be added.
 				$expected_notices[] = 'legacy_deprecation';
 			}
 		}
@@ -146,6 +147,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		);
 		update_option( 'wc_stripe_show_style_notice', 'no' );
 		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
 		update_option( 'home', 'https://...' );
 
 		$notices = new WC_Stripe_Admin_Notices();
