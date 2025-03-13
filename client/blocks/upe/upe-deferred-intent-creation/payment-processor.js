@@ -140,9 +140,11 @@ const PaymentProcessor = ( {
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
+	const testingInstructionsIfAppropriate =
+		getBlocksConfiguration()?.testMode &&
+		! getBlocksConfiguration()?.isSPEEnabled // @todo Temporary disabling testing instructions for SPE.
+			? testingInstructions
+			: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 
@@ -314,7 +316,11 @@ const PaymentProcessor = ( {
 				'radio-control-wc-payment-method-options-stripe__content'
 			);
 			stripePaymentMethodContent.style.padding = 0;
-			// @todo Remove Stripe iframe spacing
+			const stripeElementWrapper = document.getElementsByClassName(
+				'wcstripe-payment-element'
+			)[ 0 ];
+			const stripeIFrame = stripeElementWrapper.querySelector( 'iframe' );
+			stripeIFrame.style.margin = 0;
 		}
 	}, [ selectedPaymentMethodType ] );
 
