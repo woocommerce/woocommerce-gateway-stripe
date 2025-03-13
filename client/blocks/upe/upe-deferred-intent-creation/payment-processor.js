@@ -303,13 +303,16 @@ const PaymentProcessor = ( {
 			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
 			getBlocksConfiguration()?.isSPEEnabled
 		) {
-			const labels = document.getElementsByTagName( 'label' );
-			for ( const label of labels ) {
-				if (
-					label.htmlFor ===
-					'radio-control-wc-payment-method-options-stripe'
-				) {
-					label.style.display = 'none';
+			// Hide the radio button when only Stripe is available.
+			if ( getPaymentMethods().length === 1 ) {
+				const labels = document.getElementsByTagName( 'label' );
+				for ( const label of labels ) {
+					if (
+						label.htmlFor ===
+						'radio-control-wc-payment-method-options-stripe'
+					) {
+						label.style.display = 'none';
+					}
 				}
 			}
 			const stripePaymentMethodContent = document.getElementById(
@@ -319,6 +322,12 @@ const PaymentProcessor = ( {
 			const stripeElementWrapper = document.getElementsByClassName(
 				'wcstripe-payment-element'
 			)[ 0 ];
+			const contentParagraphs = stripePaymentMethodContent.querySelectorAll(
+				'.content'
+			);
+			for ( const paragraph of contentParagraphs ) {
+				paragraph.style.display = 'none';
+			}
 			const stripeIFrame = stripeElementWrapper.querySelector( 'iframe' );
 			stripeIFrame.style.margin = 0;
 		}
