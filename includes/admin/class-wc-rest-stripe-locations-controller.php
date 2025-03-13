@@ -132,13 +132,42 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	}
 
 	/**
+	 * Transform location address for Puerto Rico to use US as country and PR as state.
+	 *
+	 * @param object|array $location Location object or address array to transform
+	 * @return object|array Transformed location object or address array
+	 */
+	private function transform_pr_address( $location ) {
+		if ( is_array( $location ) ) {
+			if ( isset( $location['country'] ) && 'PR' === $location['country'] ) {
+				$location['country'] = 'US';
+				$location['state']   = 'PR';
+			}
+			return $location;
+		}
+
+		if ( isset( $location->address->country ) && 'PR' === $location->address->country ) {
+			$location->address->country = 'US';
+			$location->address->state   = 'PR';
+		}
+		return $location;
+	}
+
+	/**
 	 * Get all terminal locations via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function get_all_locations( $request ) {
 		try {
-			return rest_ensure_response( $this->fetch_locations() );
+			$locations = $this->fetch_locations();
+			
+			// Transform any locations that use PR as country
+			foreach ( $locations as $location ) {
+				$location = $this->transform_pr_address( $location );
+			}
+			
+			return rest_ensure_response( $locations );
 		} catch ( WC_Stripe_Exception $e ) {
 			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
 		}
@@ -166,7 +195,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	public function get_location( $request ) {
 		try {
 			$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'GET' );
-			return rest_ensure_response( $response );
+			return rest_ensure_response( $this->transform_pr_address( $response ) );
 		} catch ( WC_Stripe_Exception $e ) {
 			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
 		}
@@ -194,10 +223,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		);
 
 		// Special handling for Puerto Rico - treat as US state rather than country.
-		if ( 'PR' === $address['country'] ) {
-			$address['country'] = 'US';
-			$address['state']   = 'PR';
-		}
+		$address = $this->transform_pr_address( $address );
 
 		// Return an error if store doesn't have a location.
 		$is_address_populated = isset( $address['country'], $address['city'], $address['postal_code'], $address['line1'] );
@@ -220,15 +246,11 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 
 		try {
 			foreach ( $this->fetch_locations() as $location ) {
+				$location = $this->transform_pr_address( $location );
 				if (
 					in_array( $location->display_name, $possible_names, true )
 					&& count( array_intersect( (array) $location->address, $address ) ) === count( $address )
 				) {
-					// Transform the location's address if it uses PR as country.
-					if ( isset( $location->address->country ) && 'PR' === $location->address->country ) {
-						$location->address->country = 'US';
-						$location->address->state = 'PR';
-					}
 					return rest_ensure_response( $location );
 				}
 			}
