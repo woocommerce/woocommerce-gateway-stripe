@@ -1,5 +1,10 @@
 import { __ } from '@wordpress/i18n';
-import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
+import {
+	getErrorMessageFromNotice,
+	normalizeOrderData,
+	normalizeOrderDataLegacy,
+	normalizePayForOrderDataLegacy,
+} from './utils';
 
 // @todo Disabling the StoreAPI temporarily due incompatibility with old version of the Order Status Manager plugin.
 const useLegacyCartEndpoints = true;
@@ -155,19 +160,11 @@ const processOrder = async ( {
 		if ( order ) {
 			orderResponse = await api.expressCheckoutECEPayForOrderLegacy(
 				order,
-				normalizeOrderData( {
-					event,
-					paymentMethodId,
-					confirmationTokenId,
-				} )
+				normalizePayForOrderDataLegacy( event, paymentMethodId )
 			);
 		} else {
 			orderResponse = await api.expressCheckoutECECreateOrderLegacy(
-				normalizeOrderData( {
-					event,
-					paymentMethodId,
-					confirmationTokenId,
-				} )
+				normalizeOrderDataLegacy( event, paymentMethodId )
 			);
 		}
 	} else if ( order ) {
@@ -191,10 +188,14 @@ const processOrder = async ( {
 	}
 
 	return {
-		result: orderResponse?.payment_result?.payment_status,
-		errorMessage: orderResponse?.payment_result?.payment_details?.find(
-			( detail ) => detail.key === 'errorMessage'
-		)?.value,
+		result: useLegacyCartEndpoints
+			? orderResponse.result
+			: orderResponse?.payment_result?.payment_status,
+		errorMessage: useLegacyCartEndpoints
+			? getErrorMessageFromNotice( orderResponse.messages )
+			: orderResponse?.payment_result?.payment_details?.find(
+					( detail ) => detail.key === 'errorMessage'
+			  )?.value,
 		redirect: orderResponse?.payment_result?.redirect_url,
 	};
 };
