@@ -155,5 +155,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.
 * Dev - Fetch Stripe settings with Stripe configuration API
+* Add - Hook up Amazon Pay configuration
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
