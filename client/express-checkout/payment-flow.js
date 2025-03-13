@@ -1,6 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 
+// @todo Disabling the StoreAPI temporarily due incompatibility with old version of the Order Status Manager plugin.
+const useLegacyCartEndpoints = true;
+
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	let errorMessage;
 	if ( exception.message ) {
@@ -148,7 +151,26 @@ const processOrder = async ( {
 	orderDetails = {},
 } ) => {
 	let orderResponse;
-	if ( order ) {
+	if ( useLegacyCartEndpoints ) {
+		if ( order ) {
+			orderResponse = await api.expressCheckoutECEPayForOrderLegacy(
+				order,
+				normalizeOrderData( {
+					event,
+					paymentMethodId,
+					confirmationTokenId,
+				} )
+			);
+		} else {
+			orderResponse = await api.expressCheckoutECECreateOrderLegacy(
+				normalizeOrderData( {
+					event,
+					paymentMethodId,
+					confirmationTokenId,
+				} )
+			);
+		}
+	} else if ( order ) {
 		orderResponse = await api.expressCheckoutECEPayForOrder(
 			order,
 			orderDetails,
