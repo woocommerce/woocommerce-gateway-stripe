@@ -35,7 +35,6 @@ class WC_Stripe_Admin_Notices {
 		add_action( 'after_plugin_row_woocommerce-gateway-stripe/woocommerce-gateway-stripe.php', [ $this, 'display_legacy_deprecation_notice' ], 10, 1 );
 	}
 
-
 	/**
 	 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
 	 *
@@ -105,7 +104,7 @@ class WC_Stripe_Admin_Notices {
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
 
-		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) ) {
+		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 
@@ -376,7 +375,7 @@ class WC_Stripe_Admin_Notices {
 				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
 					$setting_link = $this->get_setting_link();
 					$message = sprintf(
-					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 						__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>',
