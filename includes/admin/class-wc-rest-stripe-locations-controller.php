@@ -161,12 +161,12 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	public function get_all_locations( $request ) {
 		try {
 			$locations = $this->fetch_locations();
-			
+
 			// Transform any locations that use PR as country
 			foreach ( $locations as $location ) {
 				$location = $this->transform_pr_address( $location );
 			}
-			
+
 			return rest_ensure_response( $locations );
 		} catch ( WC_Stripe_Exception $e ) {
 			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
