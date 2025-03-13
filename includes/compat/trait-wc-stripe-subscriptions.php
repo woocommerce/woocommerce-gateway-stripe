@@ -30,8 +30,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		/**
-		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc), but only once.
-		 * Therefore we use a statuc flag at class level to indicate that they have been attached.
+		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
+		 * Therefore, we use a static flag at class level to indicate that they have been attached.
 		 */
 		if ( self::$has_attached_integration_hooks ) {
 			return;
