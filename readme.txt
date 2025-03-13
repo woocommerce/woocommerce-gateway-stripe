@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Tweak - Updates the Single Payment Element implementation to make all the payment methods to look just like any other WooCommerce payment method.
 * Add - Implements the Single Payment Element feature for the new checkout experience on the classic/shortcode checkout page.
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
 * Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
