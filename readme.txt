@@ -150,6 +150,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
 * Add - Add WooCommerce Pre-Orders support to Bacs.
 * Tweak - Fix background in express checkout settings.
+* Add - Add Amazon Pay payment method class.
 * Fix - Prevent potential duplicate renewal charges by ensuring subscription integration hooks are only attached once per Gateway ID
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.

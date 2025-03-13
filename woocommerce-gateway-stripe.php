@@ -246,6 +246,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
