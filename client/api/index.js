@@ -611,6 +611,19 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Creates order based on Express Checkout ECE payment method (legacy version, non-StoreAPI).
+	 *
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECECreateOrderLegacy( paymentData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'create_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.checkout,
+			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+		} );
+	}
+
+	/**
 	 * Pays for an order based on the Express Checkout payment method.
 	 *
 	 * @param {number} order The order ID.
@@ -625,6 +638,21 @@ export default class WCStripeAPI {
 		const key = orderDetails.orderKey ?? '';
 		const url = `/wc/store/v1/checkout/${ order }?key=${ key }&billing_email=${ billingEmail }`;
 		return this.postToBlocksAPI( url, paymentData );
+	}
+
+	/**
+	 * Pays for an order based on the Express Checkout payment method (legacy version, non-StoreAPI).
+	 *
+	 * @param {number} order The order ID.
+	 * @param {Object} paymentData Order data.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutECEPayForOrderLegacy( order, paymentData ) {
+		return this.request( getExpressCheckoutAjaxURL( 'pay_for_order' ), {
+			_wpnonce: getExpressCheckoutData( 'nonce' )?.pay_for_order,
+			order,
+			...paymentData,
+		} );
 	}
 
 	/**
