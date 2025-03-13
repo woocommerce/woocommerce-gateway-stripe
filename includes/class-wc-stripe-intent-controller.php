@@ -823,8 +823,8 @@ class WC_Stripe_Intent_Controller {
 			$request['payment_method_options'] = [
 				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
 					'mandate_options' => [
-						'payment_schedule'     => 'interval',
-						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
+						'payment_schedule'     => 'combined',
+						'interval_description' => __( 'Payments as per agreement', 'woocommerce-gateway-stripe' ),
 						'transaction_type'     => 'personal',
 					],
 				],
