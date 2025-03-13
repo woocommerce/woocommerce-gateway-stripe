@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.3.0 - xxxx-xx-xx =
+* Fix - Temporarily disables the Store API integration for ECE due incompatibility issues with the Order Status Manager extension.
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
 * Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
 * Dev - Additional replacements for payment method constant values on the backend.
