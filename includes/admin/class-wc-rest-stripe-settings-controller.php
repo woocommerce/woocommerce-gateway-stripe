@@ -243,6 +243,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
+		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configurations();
+
+		$is_amazon_pay_enabled        = 'on' === $merchant_payment_method_configuration->amazon_pay->display_preference->value;
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
@@ -266,7 +269,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
-				'is_amazon_pay_enabled'                    => 'yes' === $this->gateway->get_option( 'amazon_pay' ),
+				'is_amazon_pay_enabled'                    => $is_amazon_pay_enabled,
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
 				'is_payment_request_enabled'               => 'yes' === $this->gateway->get_option( 'payment_request' ),
@@ -396,18 +399,44 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates the "Amazon Pay" enable/disable settings.
+	 * Get the default active payment method configuration.
+	 *
+	 * @return array|null
+	 */
+	private function get_merchant_payment_method_configurations() {
+		$payment_method_configurations = WC_Stripe_API::get_payment_method_configurations()->data;
+
+		foreach ( $payment_method_configurations as $payment_method_configuration ) {
+			if ( $payment_method_configuration->active && $payment_method_configuration->parent ) {
+				return $payment_method_configuration;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Updates the "Amazon Pay" enable/disable settings in Stripe.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_is_amazon_pay_enabled( WP_REST_Request $request ) {
-		$is_amazon_pay_enabled = $request->get_param( 'is_amazon_pay_enabled' );
+		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configurations();
 
-		if ( null === $is_amazon_pay_enabled ) {
+		if ( null === $merchant_payment_method_configuration ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'amazon_pay', $is_amazon_pay_enabled ? 'yes' : 'no' );
+		WC_Stripe_API::update_payment_method_configurations(
+			$merchant_payment_method_configuration->id,
+			[
+				'amazon_pay' => [
+					'display_preference' => [
+						'preference' => $request->get_param( 'is_amazon_pay_enabled' ) ? 'on' : 'off',
+					],
+				],
+			]
+		);
 	}
 
 	/**

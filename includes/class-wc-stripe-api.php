@@ -444,4 +444,16 @@ class WC_Stripe_API {
 	public static function get_payment_method_configurations() {
 		return self::retrieve( 'payment_method_configurations' );
 	}
+
+	/**
+	 * Update the payment method configuration.
+	 *
+	 * @param array $payment_method_configurations The payment method configurations to update.
+	 */
+	public static function update_payment_method_configurations( $id, $payment_method_configurations ) {
+		return self::request(
+			$payment_method_configurations,
+			'payment_method_configurations/' . $id
+		);
+	}
 }
