@@ -104,7 +104,7 @@ class WC_Stripe_Admin_Notices {
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
 
-		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 
@@ -372,7 +372,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $legacy_deprecation_notice ) ) {
 				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
-				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$setting_link = $this->get_setting_link();
 					$message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
