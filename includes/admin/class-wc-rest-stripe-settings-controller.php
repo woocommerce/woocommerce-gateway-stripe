@@ -597,12 +597,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_is_spe_enabled( WP_REST_Request $request ) {
 		$is_spe_enabled = $request->get_param( 'is_spe_enabled' );
+		$current_spe_enabled = $this->gateway->get_option( 'single_payment_element' );
 
 		if ( null === $is_spe_enabled ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
+		if ( $is_spe_enabled !== $current_spe_enabled ) {
+			$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
+			wc_admin_record_tracks_event(
+				$is_spe_enabled ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
+				[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+			);
+		}
+
 	}
 
 	/**
