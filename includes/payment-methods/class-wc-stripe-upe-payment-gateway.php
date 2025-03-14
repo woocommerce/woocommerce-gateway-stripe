@@ -2957,7 +2957,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
 	 *
 	 * @param string $text Default text.
-	 * @param WC_Order $order Order data.
+	 * @param WC_Order|bool $order Order data.
 	 * @return string
 	 */
 	public function filter_thankyou_order_received_text( $text, $order ) {
