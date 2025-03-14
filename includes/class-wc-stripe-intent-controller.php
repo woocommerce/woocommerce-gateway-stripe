@@ -499,7 +499,10 @@ class WC_Stripe_Intent_Controller {
 				$order
 			);
 
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			// Prevent any failures if updating the status of a subscription order.
+			if ( ! $gateway->has_subscription( $order_id ) ) {
+				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			}
 			$order->save();
 			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 		}
