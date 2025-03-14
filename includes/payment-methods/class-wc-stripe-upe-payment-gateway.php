@@ -2956,11 +2956,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
 	 *
 	 * @param string $text Default text.
-	 * @param WC_Order $order Order data.
+	 * @param WC_Order|bool $order Order data.
 	 * @return string
 	 */
 	public function filter_thankyou_order_received_text( $text, $order ) {
-		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+		if ( is_a( $order, 'WC_Order' ) && $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
 			$text .= '<p class="woocommerce-info">';
 			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
 			$text .= '</p>';

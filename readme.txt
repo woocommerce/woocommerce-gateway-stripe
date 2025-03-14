@@ -114,5 +114,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
 * Fix - Update ACH capability check key
 * Fix - Update legacy checkout documentation links and deprecation notice display logic
+* Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
+* Fix - Fixes an error with the `filter_thankyou_order_received_text` filter when it does not receive a valid WC_Order instance.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
