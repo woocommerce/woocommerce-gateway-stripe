@@ -12,6 +12,7 @@ class WC_Stripe_Payment_Methods {
 	const ALIPAY            = 'alipay';
 	const AMAZON_PAY        = 'amazon_pay';
 	const BACS_DEBIT        = 'bacs_debit';
+	const BECS_DEBIT        = 'au_becs_debit';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
 	const CARD              = 'card';
