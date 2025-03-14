@@ -125,28 +125,28 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Mock capabilities object from Stripe response--all active.
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
-		'alipay_payments'            => 'active',
-		'bancontact_payments'        => 'active',
-		'card_payments'              => 'active',
-		'eps_payments'               => 'active',
-		'giropay_payments'           => 'active',
-		'klarna_payments'            => 'active',
-		'affirm_payments'            => 'active',
-		'clearpay_afterpay_payments' => 'active',
-		'ideal_payments'             => 'active',
-		'p24_payments'               => 'active',
-		'sepa_debit_payments'        => 'active',
-		'sofort_payments'            => 'active',
-		'transfers'                  => 'active',
-		'multibanco_payments'        => 'active',
-		'boleto_payments'            => 'active',
-		'oxxo_payments'              => 'active',
-		'link_payments'              => 'active',
-		'cashapp_payments'           => 'active',
-		'wechat_pay_payments'        => 'active',
-		'acss_debit_payments'        => 'active',
-		'us_bank_account_payments'   => 'active',
-		'bacs_debit_payments'        => 'active',
+		'alipay_payments'              => 'active',
+		'bancontact_payments'          => 'active',
+		'card_payments'                => 'active',
+		'eps_payments'                 => 'active',
+		'giropay_payments'             => 'active',
+		'klarna_payments'              => 'active',
+		'affirm_payments'              => 'active',
+		'clearpay_afterpay_payments'   => 'active',
+		'ideal_payments'               => 'active',
+		'p24_payments'                 => 'active',
+		'sepa_debit_payments'          => 'active',
+		'sofort_payments'              => 'active',
+		'transfers'                    => 'active',
+		'multibanco_payments'          => 'active',
+		'boleto_payments'              => 'active',
+		'oxxo_payments'                => 'active',
+		'link_payments'                => 'active',
+		'cashapp_payments'             => 'active',
+		'wechat_pay_payments'          => 'active',
+		'acss_debit_payments'          => 'active',
+		'us_bank_account_ach_payments' => 'active',
+		'bacs_debit_payments'          => 'active',
 	];
 
 	/**
@@ -482,7 +482,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $currency ) );
 
-			$capability_key                                = $payment_method->get_id() . '_payments';
+			$capability_key                                = WC_Stripe_Helper::get_payment_method_capability_id( $payment_method->get_id() );
 			$mock_capabilities_response[ $capability_key ] = 'active';
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
