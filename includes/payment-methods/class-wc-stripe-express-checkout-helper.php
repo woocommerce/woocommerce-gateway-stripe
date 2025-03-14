@@ -1359,7 +1359,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_express_checkout_enabled() {
-		return $this->is_payment_request_enabled() || $this->is_amazon_pay_enabled() || WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
+		return $this->is_payment_request_enabled() ||
+			WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled() ||
+			WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
 	}
 
 	/**
@@ -1369,16 +1371,6 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_payment_request_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
-	}
-
-	/**
-	 * Returns whether Amazon Pay is enabled.
-	 *
-	 * @return boolean
-	 */
-	public function is_amazon_pay_enabled() {
-		return WC_Stripe_Feature_Flags::is_amazon_pay_available() &&
-			isset( $this->stripe_settings['amazon_pay'] ) && 'yes' === $this->stripe_settings['amazon_pay'];
 	}
 
 	/**
