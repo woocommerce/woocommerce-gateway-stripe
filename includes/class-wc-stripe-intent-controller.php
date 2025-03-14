@@ -1005,6 +1005,7 @@ class WC_Stripe_Intent_Controller {
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::BANCONTACT,
 			WC_Stripe_Payment_Methods::IDEAL,

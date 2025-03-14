@@ -8,6 +8,7 @@ import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
+	PAYMENT_METHOD_BECS,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -263,6 +264,16 @@ const paymentMethodsMap = {
 		Icon: icons.cashapp,
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
+	},
+	au_becs_debit: {
+		id: PAYMENT_METHOD_BECS,
+		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'BECS is a payment method that allows customers to pay using their Australian bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.us_bank_account,
+		currencies: [ 'AUD' ],
 	},
 };
 
