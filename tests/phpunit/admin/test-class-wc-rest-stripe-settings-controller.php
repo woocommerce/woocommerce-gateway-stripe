@@ -43,6 +43,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		// Enable ACH
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 
+		// Enable Amazon Pay
+		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
+
 		// All tests assume UPE is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
 		$upe_helper->enable_upe();
@@ -74,6 +77,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -238,6 +242,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFFIRM,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
@@ -282,6 +287,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		WC_Stripe::get_instance()->account->method( 'get_account_country' )->willReturn( 'US' );
 
+		// Link and Amazon Pay are excluded as they are express methods only.
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ACH,
@@ -297,7 +303,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
-			// 'link', // Link is excluded as it is a express method.
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 		];
