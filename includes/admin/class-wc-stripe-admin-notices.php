@@ -32,6 +32,7 @@ class WC_Stripe_Admin_Notices {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
 		add_action( 'woocommerce_stripe_updated', [ $this, 'stripe_updated' ] );
+		add_action( 'after_plugin_row_woocommerce-gateway-stripe/woocommerce-gateway-stripe.php', [ $this, 'display_legacy_deprecation_notice' ], 10, 1 );
 	}
 
 	/**
@@ -96,6 +97,59 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Displays the legacy deprecation notice.
+	 *
+	 * @param string $plugin_file Plugin file.
+	 */
+	public static function display_legacy_deprecation_notice( $plugin_file ) {
+		global $wp_list_table;
+
+		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
+		if ( is_null( $wp_list_table ) ) {
+			return;
+		}
+
+		$columns_count      = $wp_list_table->get_column_count();
+		$is_active          = is_plugin_active( $plugin_file );
+		$is_active_class    = $is_active ? 'active' : 'inactive';
+
+		$setting_link = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' ) );
+		$message = sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
+			'<a href="' . $setting_link . '">',
+			'</a>',
+			'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
+			'</a>'
+		);
+
+		?>
+		<tr class='plugin-update-tr <?php echo esc_html( $is_active_class ); ?>' data-id="woocommerce-gateway-stripe-update" data-slug="woocommerce-gateway-stripe" data-plugin='<?php echo esc_html( $plugin_file ); ?>'>
+			<td colspan='<?php echo esc_html( $columns_count ); ?>' class='plugin-update colspanchange'>
+				<div class='notice inline notice-warning notice-alt'>
+					<p>
+						<span style="display: inline-block; vertical-align: text-top;">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z" stroke="#dba617" stroke-width="1.5"/>
+								<path d="M13 7H11V13H13V7Z" fill="#dba617"/>
+								<path d="M13 15H11V17H13V15Z" fill="#dba617"/>
+							</svg>
+						</span>
+						<?php
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						echo $message;
+						?>
+					</p>
+				</div>
+			</td>
+		</tr>
+		<?php
+	}
+
+	/**
 	 * List of available payment methods.
 	 *
 	 * @since 4.1.0
@@ -125,22 +179,23 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
-		$show_style_notice   = get_option( 'wc_stripe_show_style_notice' );
-		$show_ssl_notice     = get_option( 'wc_stripe_show_ssl_notice' );
-		$show_keys_notice    = get_option( 'wc_stripe_show_keys_notice' );
-		$show_3ds_notice     = get_option( 'wc_stripe_show_3ds_notice' );
-		$show_phpver_notice  = get_option( 'wc_stripe_show_phpver_notice' );
-		$show_wcver_notice   = get_option( 'wc_stripe_show_wcver_notice' );
-		$show_curl_notice    = get_option( 'wc_stripe_show_curl_notice' );
-		$show_sca_notice     = get_option( 'wc_stripe_show_sca_notice' );
-		$changed_keys_notice = get_option( 'wc_stripe_show_changed_keys_notice' );
-		$options             = WC_Stripe_Helper::get_stripe_settings();
-		$testmode            = WC_Stripe_Mode::is_test();
-		$test_pub_key        = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
-		$test_secret_key     = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
-		$live_pub_key        = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
-		$live_secret_key     = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
-		$three_d_secure      = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
+		$show_style_notice         = get_option( 'wc_stripe_show_style_notice' );
+		$show_ssl_notice           = get_option( 'wc_stripe_show_ssl_notice' );
+		$show_keys_notice          = get_option( 'wc_stripe_show_keys_notice' );
+		$show_3ds_notice           = get_option( 'wc_stripe_show_3ds_notice' );
+		$show_phpver_notice        = get_option( 'wc_stripe_show_phpver_notice' );
+		$show_wcver_notice         = get_option( 'wc_stripe_show_wcver_notice' );
+		$show_curl_notice          = get_option( 'wc_stripe_show_curl_notice' );
+		$show_sca_notice           = get_option( 'wc_stripe_show_sca_notice' );
+		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
+		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
+		$options                   = WC_Stripe_Helper::get_stripe_settings();
+		$testmode                  = WC_Stripe_Mode::is_test();
+		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
+		$test_secret_key           = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
+		$live_pub_key              = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
+		$live_secret_key           = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
+		$three_d_secure            = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
 			// Check if Stripe is in test mode.
@@ -314,6 +369,23 @@ class WC_Stripe_Admin_Notices {
 
 				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', $message, true );
 			}
+
+			if ( empty( $legacy_deprecation_notice ) ) {
+				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
+				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
+					$setting_link = $this->get_setting_link();
+					$message = sprintf(
+						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+						__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
+						'<a href="' . $setting_link . '">',
+						'</a>',
+						'<a href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/" target="_blank">',
+						'</a>'
+					);
+
+					$this->add_admin_notice( 'legacy_deprecation', 'notice notice-warning', $message, true );
+				}
+			}
 		}
 	}
 
@@ -479,6 +551,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'changed_keys':
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
+					break;
+				case 'legacy_deprecation':
+					update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
 					break;
 				case 'payment_methods':
 					update_option( 'wc_stripe_show_payment_methods_notice', 'no' );

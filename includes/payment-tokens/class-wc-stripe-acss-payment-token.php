@@ -10,7 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Token for ACSS.
  *
- * @class WC_Payment_Token_ACSS
  * @since x.x.x
  */
 class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {

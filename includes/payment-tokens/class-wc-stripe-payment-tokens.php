@@ -416,7 +416,12 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::ACH:
-				$item['method']['brand'] = $payment_token->get_display_name();
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
+				break;
+			case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::ACSS_DEBIT:
 				$item['method']['brand'] = $payment_token->get_display_name();

@@ -29,6 +29,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
+		/**
+		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
+		 * Therefore, we use a static flag at class level to indicate that they have been attached.
+		 */
+		if ( self::$has_attached_integration_hooks ) {
+			return;
+		}
+
 		$this->supports = array_merge(
 			$this->supports,
 			[
@@ -61,15 +69,15 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Validate the payment method meta data set on a subscription.
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 
+		self::$has_attached_integration_hooks = true;
+
 		/**
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
+		if ( WC_Gateway_Stripe::ID !== $this->id ) {
 			return;
 		}
-
-		self::$has_attached_integration_hooks = true;
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
