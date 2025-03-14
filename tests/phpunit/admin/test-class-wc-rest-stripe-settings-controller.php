@@ -17,6 +17,20 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	const SETTINGS_ROUTE = '/wc/v3/wc_stripe/settings';
 
 	/**
+	 * Controller instance
+	 *
+	 * @var WC_REST_Stripe_Settings_Controller
+	 */
+	private $controller;
+
+	/**
+	 * Stripe API instance that the controller uses.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private $stripe_api;
+
+	/**
 	 * Gateway instance that the controller uses.
 	 *
 	 * @var WC_Gateway_Stripe
@@ -66,6 +80,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
 		}
 
+		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
+		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Gateway_Stripe(), $this->stripe_api );
+
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
 		// Set the user so that we can pass the authentication.
@@ -78,6 +95,32 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
+	}
+
+	/**
+	 * @dataProvider stripe_payment_method_configurations_provider
+	 */
+	public function test_stripe_payment_method_configurations_settings( $payment_method, $display_preference, $expected_result, $rest_key ) {
+		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
+			(object) [
+				'data' => [
+					(object) [
+						'id'       => 'pmc_abcdef',
+						'object'   => 'payment_method_configuration',
+						'active'   => true,
+						'parent'   => true,
+						$payment_method => (object) [
+							'display_preference' => (object) [ 'value' => $display_preference ],
+						],
+					],
+				],
+			],
+		);
+
+		$response = $this->controller->get_settings();
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected_result, $response->get_data()[ $rest_key ] );
 	}
 
 	/**
@@ -361,7 +404,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_payment_request_enabled'            => [ 'is_payment_request_enabled', 'payment_request' ],
-			'is_amazon_pay_enabled'                 => [ 'is_amazon_pay_enabled', 'amazon_pay' ],
 			'is_spe_enabled'                        => [ 'is_spe_enabled', 'single_payment_element' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
@@ -371,6 +413,13 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				'is_short_statement_descriptor_enabled',
 			],
 			'is_debug_log_enabled'                  => [ 'is_debug_log_enabled', 'logging' ],
+		];
+	}
+
+	public function stripe_payment_method_configurations_provider() {
+		return [
+			'amazon_pay' => [ 'amazon_pay', 'on', true, 'is_amazon_pay_enabled' ],
+			'amazon_pay' => [ 'amazon_pay', 'off', false, 'is_amazon_pay_enabled' ],
 		];
 	}
 

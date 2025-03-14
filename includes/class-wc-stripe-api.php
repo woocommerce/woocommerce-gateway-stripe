@@ -441,7 +441,7 @@ class WC_Stripe_API {
 	 *
 	 * @return array The response from the API request.
 	 */
-	public static function get_payment_method_configurations() {
+	public function get_payment_method_configurations() {
 		return self::retrieve( 'payment_method_configurations' );
 	}
 
@@ -450,7 +450,7 @@ class WC_Stripe_API {
 	 *
 	 * @param array $payment_method_configurations The payment method configurations to update.
 	 */
-	public static function update_payment_method_configurations( $id, $payment_method_configurations ) {
+	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
 		return self::request(
 			$payment_method_configurations,
 			'payment_method_configurations/' . $id

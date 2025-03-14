@@ -25,12 +25,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private $gateway;
 
 	/**
+	 * Stripe payment gateway.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private $stripe_api;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway ) {
+	public function __construct( WC_Gateway_Stripe $gateway, WC_Stripe_API $stripe_api ) {
 		$this->gateway = $gateway;
+		$this->stripe_api = $stripe_api;
 	}
 
 	/**
@@ -245,7 +253,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function get_settings() {
 		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configurations();
 
-		$is_amazon_pay_enabled        = 'on' === $merchant_payment_method_configuration->amazon_pay->display_preference->value;
+		$is_amazon_pay_enabled        = $merchant_payment_method_configuration && 'on' === $merchant_payment_method_configuration->amazon_pay->display_preference->value;
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
@@ -404,7 +412,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return array|null
 	 */
 	private function get_merchant_payment_method_configurations() {
-		$payment_method_configurations = WC_Stripe_API::get_payment_method_configurations()->data;
+		$payment_method_configurations =
+			property_exists( $this->stripe_api->get_payment_method_configurations(), 'data' ) ? $this->stripe_api->get_payment_method_configurations()->data : null;
+
+		if ( ! $payment_method_configurations ) {
+			return null;
+		}
 
 		foreach ( $payment_method_configurations as $payment_method_configuration ) {
 			if ( $payment_method_configuration->active && $payment_method_configuration->parent ) {
@@ -427,7 +440,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		WC_Stripe_API::update_payment_method_configurations(
+		$this->stripe_api->update_payment_method_configurations(
 			$merchant_payment_method_configuration->id,
 			[
 				'amazon_pay' => [
