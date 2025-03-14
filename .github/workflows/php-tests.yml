@@ -16,11 +16,11 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '9.5.2'
+            woocommerce: '9.7.1'
           - woocommerce_support_policy: L-1
-            woocommerce: '9.3.4'
+            woocommerce: '9.6.2'
           - woocommerce_support_policy: L-2
-            woocommerce: '9.2.3'
+            woocommerce: '9.5.2'
           # WordPress
           - wordpress_support_policy: L
             wordpress: '6.7'
