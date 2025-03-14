@@ -112,5 +112,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Add - Add Amazon Pay payment method class.
+* Tweak - Record a Tracks event when enabling/disabling SPE
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
