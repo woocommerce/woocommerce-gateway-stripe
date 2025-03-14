@@ -17,22 +17,25 @@ const SinglePaymentElementFeature = () => {
 	return (
 		<>
 			<h4>
-				{ __( 'Single payment element', 'woocommerce-gateway-stripe' ) }
+				{ __(
+					'Enable Smart Checkout (Recommended)',
+					'woocommerce-gateway-stripe'
+				) }
 			</h4>
 			<CheckboxControl
 				data-testid="single-payment-element-checkbox"
 				label={ __(
-					'Enable the single payment element feature',
+					'Enable Smart Checkout to display payment methods',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						"By enabling this, your store checkout form will use Stripe's dynamic payment methods. Legacy checkout must be disabled. <learnMoreLink>Learn more</learnMoreLink>.",
+						"Automatically display the most relevant payment methods for each customer with Stripe's AI-driven Dynamic Payment Methods to optimize your checkout for conversions. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{
 						learnMoreLink: (
-							<ExternalLink href="https://docs.stripe.com/connect/dynamic-payment-methods" />
+							<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/settings-guide/#advanced-settings" />
 						),
 					}
 				) }
