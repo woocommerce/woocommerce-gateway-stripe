@@ -1661,6 +1661,7 @@ class WC_Stripe_Helper {
 	 * @return string The capability ID.
 	 */
 	public static function get_payment_method_capability_id( $payment_method_id ) {
+		// "_payments" is a suffix that comes from Stripe API, except when it is "transfers" or ACH.
 		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $payment_method_id ) {
 			return $payment_method_id . '_ach_payments';
 		}
