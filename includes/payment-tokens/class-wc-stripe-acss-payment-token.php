@@ -1,18 +1,18 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit;
 }
 
 // phpcs:disable WordPress.Files.FileName
 
 /**
- * WooCommerce Stripe Bacs Direct Debit Payment Token.
+ * WooCommerce Stripe ACSS Payment Token.
  *
- * Token for Bacs Direct Debit.
+ * Token for ACSS.
  *
- * @since 9.3.0
+ * @since x.x.x
  */
-class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
+class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	use WC_Stripe_Fingerprint_Trait;
 
 	/**
@@ -20,16 +20,17 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 *
 	 * @var string
 	 */
-	protected $type = WC_Stripe_Payment_Methods::BACS_DEBIT;
+	protected $type = WC_Stripe_Payment_Methods::ACSS_DEBIT;
 
 	/**
-	 * Bacs Debit payment token data.
+	 * ACSS payment token data.
 	 *
 	 * @var array
 	 */
 	protected $extra_data = [
+		'bank_name'           => '',
 		'last4'               => '',
-		'payment_method_type' => WC_Stripe_Payment_Methods::BACS_DEBIT,
+		'payment_method_type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		'fingerprint'         => '',
 	];
 
@@ -40,8 +41,8 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 * @return bool
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Payment_Methods::BACS_DEBIT === $payment_method->type
-			&& ( $payment_method->bacs_debit->fingerprint ?? null ) === $this->get_fingerprint() ) {
+		if ( WC_Stripe_Payment_Methods::ACSS_DEBIT === $payment_method->type
+			&& ( $payment_method->acss_debit->fingerprint ?? null ) === $this->get_fingerprint() ) {
 			return true;
 		}
 
@@ -49,7 +50,7 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	}
 
 	/**
-	 * Set the last four digits for the Bacs Debit Token.
+	 * Set the last four digits for the ACSS Debit Token.
 	 *
 	 * @param string $last4
 	 */
@@ -58,14 +59,7 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	}
 
 	/**
-	 * Hook prefix
-	 */
-	protected function get_hook_prefix() {
-		return 'woocommerce_payment_token_bacs_get_';
-	}
-
-	/**
-	 * Returns the last four digits of the Bacs Debit Token.
+	 * Returns the last four digits of the ACSS Token.
 	 *
 	 * @param  string $context What the value is for. Valid values are view and edit.
 	 * @return string The last 4 digits.
@@ -94,20 +88,46 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 	}
 
 	/**
-	 * Get type to display to user.
+	 * Set the bank name.
+	 *
+	 * @param string $bank_name
+	 */
+	public function set_bank_name( $bank_name ) {
+		$this->set_prop( 'bank_name', $bank_name );
+	}
+
+	/**
+	 * Get the bank name.
+	 *
+	 * @param string $context What the value is for. Valid values are view and edit.
+	 * @return string
+	 */
+	public function get_bank_name( $context = 'view' ) {
+		return $this->get_prop( 'bank_name', $context );
+	}
+
+	/**
+	 * Returns the name of the token to display.
 	 *
 	 * @param  string $deprecated Deprecated since WooCommerce 3.0
 	 * @return string
 	 */
 	public function get_display_name( $deprecated = '' ) {
 		$display = sprintf(
-			/* translators: Bacs Direct Debit label, last 4 digits of payment method. */
+			/* translators: bank name, last 4 digits of account. */
 			__( '%1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
-			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
-			$this->get_last4(),
+			$this->get_bank_name(),
+			$this->get_last4()
 		);
 
 		return $display;
+	}
+
+	/**
+	 * Hook prefix.
+	 */
+	protected function get_hook_prefix() {
+		return 'woocommerce_payment_token_acss_get_';
 	}
 }
 
