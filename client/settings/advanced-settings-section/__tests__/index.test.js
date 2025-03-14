@@ -62,7 +62,7 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
-			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
+			screen.queryByText( 'Single payment element' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -72,7 +72,7 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
-			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
+			screen.queryByText( 'Single payment element' )
 		).toBeInTheDocument();
 	} );
 } );

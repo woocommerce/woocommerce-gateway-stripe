@@ -3,10 +3,7 @@ import React from 'react';
 import { useGetAvailablePaymentMethodIds } from 'wcstripe/data';
 import { useGetCapabilities } from 'wcstripe/data/account';
 import methodsConfiguration from 'wcstripe/payment-methods-map';
-import {
-	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_LINK,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const PaymentMethodsUnavailableList = () => {
 	const countIconsToDisplay = 3;
@@ -17,12 +14,7 @@ const PaymentMethodsUnavailableList = () => {
 			( methodId ) =>
 				! capabilities.hasOwnProperty( `${ methodId }_payments` )
 		)
-		.filter(
-			( id ) =>
-				! [ PAYMENT_METHOD_LINK, PAYMENT_METHOD_AMAZON_PAY ].includes(
-					id
-				)
-		);
+		.filter( ( id ) => id !== PAYMENT_METHOD_LINK );
 	const unavailablePaymentMethods = unavailablePaymentMethodIds
 		.filter( ( methodId, idx ) => idx < countIconsToDisplay )
 		.map( ( methodId ) => methodsConfiguration[ methodId ] );
