@@ -3,6 +3,7 @@
 = 9.4.0 - xxxx-xx-xx =
 * Add - Add Amazon Pay payment method class.
 * Tweak - Record a Tracks event when enabling/disabling SPE
+* Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 
 = 9.3.0 - 2025-03-13 =
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
