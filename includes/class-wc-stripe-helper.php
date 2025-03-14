@@ -738,6 +738,9 @@ class WC_Stripe_Helper {
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
 			$key = $payment_method_id . '_payments';
+			if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $payment_method_id ) {
+				$key = $payment_method_id . '_ach_payments';
+			}
 			// Check if the payment method has capabilities set in the account data.
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
