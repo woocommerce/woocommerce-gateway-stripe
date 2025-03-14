@@ -52,16 +52,18 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
-		update_option( 'wc_stripe_show_legacy_deprecation_notice', 'no' );
-
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
-		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
-			// Displaying the style notice results in an early return.
-			if ( ! in_array( 'style', $expected_notices, true ) ) {
+		// Displaying the style notice results in an early return.
+		if ( ! in_array( 'style', $expected_notices, true ) ) {
+			if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
 				// This means a version support notice will be added.
 				$expected_notices[] = 'wcver';
+			}
+			if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				// This means the legacy checkout support notice will be added.
+				$expected_notices[] = 'legacy_deprecation';
 			}
 		}
 
