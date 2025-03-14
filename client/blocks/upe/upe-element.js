@@ -29,6 +29,10 @@ const upeMethods = getPaymentMethodsConstants();
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
 	let iconName = paymentMethod;
 
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		iconName = 'stripe';
+	}
+
 	// Afterpay/Clearpay have different icons for UK merchants.
 	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
 		iconName =
