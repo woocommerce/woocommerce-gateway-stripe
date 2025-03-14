@@ -8,6 +8,7 @@
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
 * Add - Add ACSS support for WC Subscriptions.
+* Add - Add WooCommerce Pre-Orders support to ACSS.
 
 = 9.3.0 - 2025-03-13 =
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
