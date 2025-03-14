@@ -155,4 +155,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.
 
+= 9.3.1 - xxxx-xx-xx =
+* Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with too many subscriptions.
+
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
