@@ -330,6 +330,20 @@ const PaymentProcessor = ( {
 			}
 			const stripeIFrame = stripeElementWrapper.querySelector( 'iframe' );
 			stripeIFrame.style.margin = 0;
+			const paymentMethodWrapper = document.getElementsByClassName(
+				'wc-block-checkout__payment-method'
+			);
+			const paymentMethodLabel = paymentMethodWrapper[ 0 ].querySelector(
+				'.wc-block-components-radio-control__label'
+			);
+			const paymentMethodLabelSpan = paymentMethodLabel.querySelector(
+				'span'
+			);
+			paymentMethodLabelSpan.style.width = '100%';
+			const paymentMethodLabelIconSpan = paymentMethodLabelSpan.querySelector(
+				'span'
+			);
+			paymentMethodLabelIconSpan.style.border = 'none';
 		}
 	}, [ selectedPaymentMethodType ] );
 

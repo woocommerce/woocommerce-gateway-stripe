@@ -136,7 +136,21 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: 'pmc_...',
+					paymentMethodConfiguration: 'pmc_1QxXgxGtN3ImWtq0zHNUUOkT',
+				},
+				appearance: {
+					rules: {
+						'.AccordionItem': {
+							borderColor: '#43454b',
+							borderWidth: '1.5px',
+						},
+						'.RadioIcon': {
+							width: '2.1em',
+						},
+						'.RadioIconOuter': {
+							strokeWidth: '2px',
+						},
+					},
 				},
 			};
 		} else {
