@@ -110,51 +110,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.3.0 - 2025-03-13 =
-* Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
-* Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
-* Dev - Additional replacements for payment method constant values on the backend.
-* Fix - Improves the checking for existing customer attribute when retrieving a payment method that may be detached from a subscription.
-* Fix - Reverts the default value for the `capture_method` property to avoid breaking Amazon Pay when creating a payment intent.
-* Add - Adds a new feature flag to handle the Single Payment Element feature.
-* Dev - Moves the method to check if the subscriptions extension is enabled to a new helper class.
-* Dev - Moves and refactor some of the UPE-related code to make Single Payment Element development easier.
-* Add - Add logging of IP address issues when setting up mandate data.
-* Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
-* Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
-* Add - Adds Stripe specific information to the System Status Report data.
-* Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
-* Dev - Adds the payment method constants to the payment methods map file (frontend side).
-* Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
-* Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
-* Fix - Prepare the redirect URL at the end of 'process_payment' method.
-* Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
-* Fix - Fix error when processing a subscription via Amazon Pay.
-* Fix - Make Amazon Pay compatible with upfront pre-orders.
-* Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
-* Dev - Fix changelog action
-* Tweak - Map feature flags into a standard array for easier maintenance.
-* Dev - Fix QIT Tests GitHub workflow.
-* Fix - Fix issue where payment methods do not refresh after address changes.
-* Add - Bacs: Process Payment with Saved Bank Details
-* Tweak - Update payment method logos on the checkout page.
-* Update - Refactor unsupported deferred intent in the blocks checkout.
-* Add - Use idempotency keys when creating payment intents, to help prevent duplicate charges for a single order.
-* Fix - Allow to save card during checkout with account creation.
-* Add - Add BLIK LPM feature flag.
-* Fix - Skip unnecessary save step when already using a saved payment method for legacy checkout.
-* Fix - Avoid duplicate payment method element for classic checkout.
-* Fix - ACSS: Handle errors and edge cases.
-* Add - Add subscriptions support to Bacs.
-* Update - Add tracks events for payment method settings updates.
-* Fix - Fix issue where Legacy Checkout settings get overwritten with old value.
-* Add - Add WooCommerce Pre-Orders support to Bacs.
-* Tweak - Fix background in express checkout settings.
-* Add - Add Amazon Pay payment method class.
-* Fix - Prevent potential duplicate renewal charges by ensuring subscription integration hooks are only attached once per Gateway ID
-* Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
-* Add - Show upcoming legacy checkout experience deprecation notice.
-
 = 9.3.1 - xxxx-xx-xx =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with too many subscriptions.
 
