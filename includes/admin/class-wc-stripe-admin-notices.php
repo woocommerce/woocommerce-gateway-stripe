@@ -469,9 +469,6 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscriptions_check_environment() {
-		// @todo Temporarily disabling this due long load times on stores with too many subscriptions.
-		return;
-
 		$show_notice = get_option( 'wc_stripe_show_subscriptions_notice' );
 		if ( 'yes' !== $show_notice ) {
 			return;

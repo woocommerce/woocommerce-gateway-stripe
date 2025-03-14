@@ -35,26 +35,38 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_subscriptions;
 		}
 
+		$subscriptions_list     = [];
 		$detached_subscriptions = [];
-		$subscriptions          = wcs_get_subscriptions(
-			[
-				'subscriptions_per_page' => -1,
-				'orderby'                => 'date',
-				'order'                  => 'DESC',
-				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
-			]
-		);
-		foreach ( $subscriptions as $subscription ) {
-			$source_id = $subscription->get_meta( '_stripe_source_id' );
-			if ( $source_id ) {
-				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
-				if ( empty( $payment_method->customer ) ) {
-					$detached_subscriptions[] = [
+		$page                   = 1;
+
+		do {
+			$subscriptions = wcs_get_subscriptions(
+				[
+					'subscriptions_per_page' => 50,
+					'page'                   => $page,
+					'orderby'                => 'date',
+					'order'                  => 'DESC',
+					'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+				]
+			);
+
+			foreach ( $subscriptions as $subscription ) {
+				$source_id = $subscription->get_meta( '_stripe_source_id' );
+				if ( $source_id ) {
+					$subscriptions_list[] = [
 						'id'                        => $subscription->get_id(),
+						'source_id'                 => $source_id,
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
 				}
+			}
+		} while ( ! empty( $subscriptions ) && ++$page );
+
+		foreach ( $subscriptions_list as $subscription ) {
+			$payment_method = WC_Stripe_API::get_payment_method( $subscription['source_id'] );
+			if ( empty( $payment_method->customer ) ) {
+				$detached_subscriptions[] = $subscription;
 			}
 		}
 
