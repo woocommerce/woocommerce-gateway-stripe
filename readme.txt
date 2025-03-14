@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
 * Tweak - Record a Tracks event when enabling/disabling SPE
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
