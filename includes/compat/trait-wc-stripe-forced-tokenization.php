@@ -87,7 +87,7 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 	 * @return bool
 	 */
 	public function is_forced_tokenization_enabled() {
-		return class_exists( 'WC_Checkout_Tokenization' );
+		return WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && class_exists( 'WC_Checkout_Tokenization' );
 	}
 
 	/**
