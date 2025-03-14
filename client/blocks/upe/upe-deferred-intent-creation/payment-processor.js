@@ -27,6 +27,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 const noop = () => null;
+
 /**
  * Gets the Stripe element options.
  *
@@ -303,18 +304,6 @@ const PaymentProcessor = ( {
 			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
 			getBlocksConfiguration()?.isSPEEnabled
 		) {
-			// Hide the radio button when only Stripe is available.
-			if ( getPaymentMethods().length === 1 ) {
-				const labels = document.getElementsByTagName( 'label' );
-				for ( const label of labels ) {
-					if (
-						label.htmlFor ===
-						'radio-control-wc-payment-method-options-stripe'
-					) {
-						label.style.display = 'none';
-					}
-				}
-			}
 			const stripePaymentMethodContent = document.getElementById(
 				'radio-control-wc-payment-method-options-stripe__content'
 			);
@@ -344,8 +333,30 @@ const PaymentProcessor = ( {
 				'span'
 			);
 			paymentMethodLabelIconSpan.style.border = 'none';
+
+			const labels = document.getElementsByTagName( 'label' );
+			let stripeLabel;
+			for ( const label of labels ) {
+				if (
+					label.htmlFor ===
+					'radio-control-wc-payment-method-options-stripe'
+				) {
+					stripeLabel = label;
+				}
+			}
+
+			document.querySelector(
+				'.wc-block-components-radio-control-accordion-option--checked-option-highlighted'
+			).style.boxShadow = 'none';
+			stripeElementWrapper.style.width = 'calc(100% + 8px)';
+			stripeElementWrapper.style.marginLeft = '-4px';
+			stripeLabel.style.display = 'none';
 		}
 	}, [ selectedPaymentMethodType ] );
+
+	useEffect( () => {
+		// @todo check if the stripe radio is checked and if so, hide the label
+	}, [] );
 
 	usePaymentCompleteHandler(
 		api,
