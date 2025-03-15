@@ -611,7 +611,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 						: $localized_message
 				);
 
-				throw new WC_Stripe_Exception( $localized_message, $localized_message );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} else {
 			$order->set_transaction_id( $response->id );
