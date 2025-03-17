@@ -3007,7 +3007,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
-			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();
+			$display_option = $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();
+
+			/**
+			 * Filters whether the save payment checkbox should be displayed for the payment method.
+			 *
+			 * @since x.x.x
+			 *
+			 * @param bool $result Whether the save payment checkbox should be displayed for the payment method.
+			 */
+			$display_option = apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $display_option, FILTER_VALIDATE_BOOLEAN ) );
+			return $display_option;
 		}
 
 		return false;
