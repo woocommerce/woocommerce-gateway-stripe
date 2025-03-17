@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
