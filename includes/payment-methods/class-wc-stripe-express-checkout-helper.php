@@ -46,7 +46,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Returns the suffix set for the express payment method titles.
 	 *
-	 * @return mixed
+	 * @return string
 	 */
 	public static function get_payment_method_title_suffix() {
 		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
