@@ -31,7 +31,6 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 
 	// Payment method labels
-	const AMAZON_PAY_LABEL      = 'Amazon Pay';
 	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
 	const GOOGLE_PAY_LABEL      = 'Google Pay';
 	const APPLE_PAY_LABEL       = 'Apple Pay';
