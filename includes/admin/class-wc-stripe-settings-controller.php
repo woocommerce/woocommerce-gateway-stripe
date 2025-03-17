@@ -237,6 +237,7 @@ class WC_Stripe_Settings_Controller {
 			'is_acss_enabled'           => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
 			'is_bacs_enabled'           => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
 			'is_blik_enabled'           => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
+			'is_becs_debit_enabled'     => WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled(),
 			'stripe_oauth_url'          => $oauth_url,
 			'stripe_test_oauth_url'     => $test_oauth_url,
 			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
