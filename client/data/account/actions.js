@@ -40,11 +40,18 @@ export function* refreshAccount() {
 
 		// Check new payment methods available for account.
 		const newPaymentMethods = activeCapabilitiesAfterRefresh.filter(
-			( paymentMethod ) =>
-				! activeCapabilitiesBeforeRefresh.includes( paymentMethod ) &&
-				PaymentMethodsMap[
-					paymentMethod.replace( '_payments', '' )
-				] !== undefined
+			( capability ) => {
+				const paymentMethodFromCapability =
+					capability === 'us_bank_account_ach_payments'
+						? 'us_bank_account'
+						: capability.replace( '_payments', '' );
+
+				return (
+					! activeCapabilitiesBeforeRefresh.includes( capability ) &&
+					PaymentMethodsMap[ paymentMethodFromCapability ] !==
+						undefined
+				);
+			}
 		);
 
 		// If there are new payment methods available, show a toast informing the user.
@@ -57,9 +64,14 @@ export function* refreshAccount() {
 						'woocommerce-gateway-stripe'
 					),
 					newPaymentMethods
-						.map( ( method ) => {
+						.map( ( capability ) => {
+							const paymentMethodFromCapability =
+								capability === 'us_bank_account_ach_payments'
+									? 'us_bank_account'
+									: capability.replace( '_payments', '' );
+
 							return PaymentMethodsMap[
-								method.replace( '_payments', '' )
+								paymentMethodFromCapability
 							].label;
 						} )
 						.join( ', ' )

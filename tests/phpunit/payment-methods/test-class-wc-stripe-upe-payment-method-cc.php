@@ -44,7 +44,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 				'payment details' => [
 					'card' => [
 						'wallet' => [
-							'type' => 'google_pay',
+							'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 						],
 					],
 				],
