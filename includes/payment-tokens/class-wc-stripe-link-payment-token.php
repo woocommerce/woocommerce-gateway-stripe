@@ -19,7 +19,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 *
 	 * @var string
 	 */
-	protected $type = WC_Stripe_Express_Payment_Methods::LINK;
+	protected $type = WC_Stripe_Payment_Methods::LINK;
 
 	/**
 	 * Stores Link payment token data.
@@ -98,7 +98,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token implements WC_Stripe_Paymen
 	 * @inheritDoc
 	 */
 	public function is_equal_payment_method( $payment_method ): bool {
-		if ( WC_Stripe_Express_Payment_Methods::LINK === $payment_method->type
+		if ( WC_Stripe_Payment_Methods::LINK === $payment_method->type
 			&& ( $payment_method->link->email ?? null ) === $this->get_email() ) {
 			return true;
 		}

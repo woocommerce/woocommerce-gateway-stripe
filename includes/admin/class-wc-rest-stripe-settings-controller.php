@@ -255,7 +255,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'ordered_payment_method_ids'               => array_values(
 					array_diff(
 						$ordered_payment_method_ids,
-						[ WC_Stripe_Express_Payment_Methods::AMAZON_PAY, WC_Stripe_Express_Payment_Methods::LINK ]
+						[ WC_Stripe_Payment_Methods::AMAZON_PAY, WC_Stripe_Payment_Methods::LINK ]
 					)
 				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),

@@ -517,10 +517,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
 		$payment_method_title = '';
 		switch ( $payment_request_type ) {
-			case WC_Stripe_Express_Payment_Methods::APPLE_PAY:
+			case WC_Stripe_Payment_Methods::APPLE_PAY:
 				$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
 				break;
-			case WC_Stripe_Express_Payment_Methods::GOOGLE_PAY:
+			case WC_Stripe_Payment_Methods::GOOGLE_PAY:
 				$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
 				break;
 			case 'payment_request_api':

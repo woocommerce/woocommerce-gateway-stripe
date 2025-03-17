@@ -35,7 +35,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 			'Amazon Pay'             => [
 				'settings'        => [],
 				'payment details' => [
-					'type' => WC_Stripe_Express_Payment_Methods::AMAZON_PAY,
+					'type' => WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
 				'expected'        => 'Amazon Pay (Stripe)',
 			],
@@ -44,7 +44,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 				'payment details' => [
 					'card' => [
 						'wallet' => [
-							'type' => WC_Stripe_Express_Payment_Methods::GOOGLE_PAY,
+							'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 						],
 					],
 				],

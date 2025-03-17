@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Payment_Methods
  */
 class WC_Stripe_Payment_Methods {
-
+	// Standard payment method constants
 	const ACH               = 'us_bank_account';
 	const ACSS_DEBIT        = 'acss_debit';
 	const AFFIRM            = 'affirm';
@@ -32,6 +32,12 @@ class WC_Stripe_Payment_Methods {
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
 
+	// Express method constants
+	const AMAZON_PAY = 'amazon_pay';
+	const GOOGLE_PAY = 'google_pay';
+	const APPLE_PAY  = 'apple_pay';
+	const LINK       = 'link';
+
 	// Payment method labels
 	const AMAZON_PAY_LABEL      = 'Amazon Pay';
 	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
@@ -39,20 +45,6 @@ class WC_Stripe_Payment_Methods {
 	const APPLE_PAY_LABEL       = 'Apple Pay';
 	const LINK_LABEL            = 'Link';
 	const PAYMENT_REQUEST_LABEL = 'Payment Request';
-
-	/**
-	 * Use WC_Stripe_Express_Payment_Methods::LINK instead.
-	 *
-	 * @deprecated 9.2.0
-	 */
-	const LINK = 'link';
-
-	/**
-	 * Use WC_Stripe_Express_Payment_Methods::AMAZON_PAY instead.
-	 *
-	 * @deprecated 9.2.0
-	 */
-	const AMAZON_PAY = 'amazon_pay';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.
