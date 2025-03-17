@@ -99,6 +99,8 @@ const PromotionalBannerSection = ( {
 						'woocommerce-gateway-stripe'
 					)
 				);
+
+				window.location.reload();
 			} catch ( err ) {
 				createErrorNotice(
 					__(

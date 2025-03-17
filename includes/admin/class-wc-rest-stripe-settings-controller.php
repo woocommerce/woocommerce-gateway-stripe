@@ -88,11 +88,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_amazon_pay_enabled'              => [
-						'description'       => __( 'If Amazon Pay should be enabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'boolean',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'amazon_pay_button_size'             => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
@@ -257,11 +252,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'               => array_values( array_intersect( $enabled_payment_method_ids, $available_payment_method_ids ) ), // only fetch enabled payment methods that are available.
 				'available_payment_method_ids'             => $available_payment_method_ids,
-				'ordered_payment_method_ids'               => array_values( array_diff( $ordered_payment_method_ids, [ WC_Stripe_Express_Payment_Methods::LINK ] ) ), // exclude Link from this list as it is a express methods.
+				'ordered_payment_method_ids'               => array_values(
+					array_diff(
+						$ordered_payment_method_ids,
+						[ WC_Stripe_Express_Payment_Methods::AMAZON_PAY, WC_Stripe_Express_Payment_Methods::LINK ]
+					)
+				), // exclude Amazon Pay and Link from this list as they are express methods only.
 				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
-				'is_amazon_pay_enabled'                    => 'yes' === $this->gateway->get_option( 'amazon_pay' ),
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
 				'is_payment_request_enabled'               => 'yes' === $this->gateway->get_option( 'payment_request' ),
@@ -302,7 +301,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_settings( $request );
-		$this->update_is_amazon_pay_enabled( $request );
 		$this->update_amazon_pay_settings( $request );
 
 		/* Settings > Payments & transactions */
@@ -388,21 +386,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
-	}
-
-	/**
-	 * Updates the "Amazon Pay" enable/disable settings.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_is_amazon_pay_enabled( WP_REST_Request $request ) {
-		$is_amazon_pay_enabled = $request->get_param( 'is_amazon_pay_enabled' );
-
-		if ( null === $is_amazon_pay_enabled ) {
-			return;
-		}
-
-		$this->gateway->update_option( 'amazon_pay', $is_amazon_pay_enabled ? 'yes' : 'no' );
 	}
 
 	/**
@@ -592,12 +575,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_is_spe_enabled( WP_REST_Request $request ) {
 		$is_spe_enabled = $request->get_param( 'is_spe_enabled' );
+		$current_spe_enabled = $this->gateway->get_option( 'single_payment_element' );
 
 		if ( null === $is_spe_enabled ) {
 			return;
 		}
 
-		$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
+		if ( $is_spe_enabled !== $current_spe_enabled ) {
+			$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
+			wc_admin_record_tracks_event(
+				$is_spe_enabled ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
+				[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+			);
+		}
+
 	}
 
 	/**

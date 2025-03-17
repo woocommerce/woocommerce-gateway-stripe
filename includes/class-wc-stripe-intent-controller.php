@@ -506,7 +506,7 @@ class WC_Stripe_Intent_Controller {
 	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
 	 *
 	 * @since 5.6.0
-	 * @version 5.6.0
+	 * @version x.x.x
 	 */
 	public function init_setup_intent_ajax() {
 		try {
@@ -515,7 +515,9 @@ class WC_Stripe_Intent_Controller {
 				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( $this->init_setup_intent(), 200 );
+			$payment_method_type = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
+
+			wp_send_json_success( $this->init_setup_intent( $payment_method_type ), 200 );
 		} catch ( Exception $e ) {
 			// Send back error, so it can be displayed to the customer.
 			wp_send_json_error(
@@ -532,11 +534,13 @@ class WC_Stripe_Intent_Controller {
 	 * Creates a setup intent without confirmation.
 	 *
 	 * @since 5.6.0
-	 * @version 5.6.0
+	 * @version x.x.x
+	 *
+	 * @param string|null $payment_method_type The type of payment method to use for the intent.
 	 * @return array
 	 * @throws Exception If customer for the current user cannot be read/found.
 	 */
-	public function init_setup_intent() {
+	public function init_setup_intent( $payment_method_type = null ) {
 		// Determine the customer managing the payment methods, create one if we don't have one already.
 		$user     = wp_get_current_user();
 		$customer = new WC_Stripe_Customer( $user->ID );
@@ -547,17 +551,18 @@ class WC_Stripe_Intent_Controller {
 			$customer_id = $customer->update_customer();
 		}
 
-		$gateway              = $this->get_upe_gateway();
-		$payment_method_types = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+		$gateway                 = $this->get_upe_gateway();
+		$enabled_payment_methods = $payment_method_type ? [ $payment_method_type ] : array_values( array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] ) );
 
-		$setup_intent = WC_Stripe_API::request(
-			[
-				'customer'             => $customer_id,
-				'confirm'              => 'false',
-				'payment_method_types' => array_values( $payment_method_types ),
-			],
-			'setup_intents'
-		);
+		$request = [
+			'customer'             => $customer_id,
+			'confirm'              => 'false',
+			'payment_method_types' => $enabled_payment_methods,
+		];
+
+		$request = $this->maybe_add_mandate_options( $request, $payment_method_type, true );
+
+		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
 			throw new Exception( $setup_intent->error->message );
@@ -763,7 +768,7 @@ class WC_Stripe_Intent_Controller {
 			$request['statement_descriptor_suffix'] = $payment_information['statement_descriptor_suffix'];
 		}
 
-		if ( isset( $payment_information['payment_method_options'] ) ) {
+		if ( ! empty( $payment_information['payment_method_options'] ) ) {
 			$request['payment_method_options'] = $payment_information['payment_method_options'];
 		}
 
@@ -802,11 +807,11 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array       $request              The request array to add the mandate options to.
 	 * @param string|null $payment_method_type  The type of payment method to use for the intent.
+	 * @param bool        $is_setup_intent      Whether the request is for a setup intent.
 	 *
 	 * @return array
 	 */
-	private function maybe_add_mandate_options( $request, $payment_method_type ) {
-		// Add required mandate options for ACSS.
+	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false ) {
 		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
 				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
@@ -817,6 +822,11 @@ class WC_Stripe_Intent_Controller {
 					],
 				],
 			];
+
+			// If it's a setup intent, add the CAD currency parameter.
+			if ( $is_setup_intent ) {
+				$request['payment_method_options'][ WC_Stripe_Payment_Methods::ACSS_DEBIT ]['currency'] = strtolower( WC_Stripe_Currency_Code::CANADIAN_DOLLAR );
+			}
 		}
 
 		return $request;
@@ -961,6 +971,8 @@ class WC_Stripe_Intent_Controller {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
+
 		// Does not set the return URL if Single Payment Element is enabled or if the request needs redirection.
 		if ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
@@ -1032,6 +1044,8 @@ class WC_Stripe_Intent_Controller {
 		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
+
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true );
 
 		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
