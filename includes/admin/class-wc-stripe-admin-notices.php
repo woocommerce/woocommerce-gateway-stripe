@@ -469,10 +469,10 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscriptions_check_environment() {
-		$show_notice = get_option( 'wc_stripe_show_subscriptions_notice' );
-		if ( 'no' !== $show_notice ) {
-			$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' );
+		$options = WC_Stripe_Helper::get_stripe_settings();
+		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
 			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
+			$detached_messages = '';
 			foreach ( $subscriptions as $subscription ) {
 				$customer_payment_method_link = sprintf(
 					'<a href="%s">%s</a>',
@@ -499,6 +499,7 @@ class WC_Stripe_Admin_Notices {
 				);
 			}
 			if ( ! empty( $detached_messages ) ) {
+				$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
 				$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
 			}
 		}
