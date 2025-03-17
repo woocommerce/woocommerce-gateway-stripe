@@ -681,7 +681,7 @@ class WC_Stripe_Order extends WC_Order {
 			}
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+		$new_lock = ( time() + self::PAYMENT_LOCK_EXPIRATION ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
 
 		$this->set_lock_payment( $new_lock );
 		$this->save_meta_data();
