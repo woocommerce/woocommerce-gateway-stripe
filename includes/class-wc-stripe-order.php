@@ -517,7 +517,7 @@ class WC_Stripe_Order extends WC_Order {
 			}
 		}
 
-		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+		$new_lock = time() + self::REFUND_LOCK_EXPIRATION;
 
 		$this->set_lock_refund( $new_lock );
 		$this->save_meta_data();
