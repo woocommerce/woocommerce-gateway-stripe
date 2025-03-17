@@ -24,49 +24,42 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Returns a list of subscriptions that are detached from the customer.
+	 * Returns a list with some (up to 5) subscriptions that are detached from the customer.
 	 *
 	 * @return array
 	 */
-	public static function get_detached_subscriptions() {
+	public static function get_some_detached_subscriptions() {
 		// Check if we have a cached result.
 		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
 		if ( ! empty( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
 
-		$subscriptions_list     = [];
 		$detached_subscriptions = [];
 		$page                   = 1;
 
-		do {
-			$subscriptions = wcs_get_subscriptions(
-				[
-					'subscriptions_per_page' => 50,
-					'page'                   => $page,
-					'orderby'                => 'date',
-					'order'                  => 'DESC',
-					'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
-				]
-			);
+		$subscriptions = wcs_get_subscriptions(
+			[
+				'subscriptions_per_page' => 5,
+				'page'                   => $page,
+				'orderby'                => 'date',
+				'order'                  => 'DESC',
+				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+			]
+		);
 
-			foreach ( $subscriptions as $subscription ) {
-				$source_id = $subscription->get_meta( '_stripe_source_id' );
-				if ( $source_id ) {
-					$subscriptions_list[] = [
+		foreach ( $subscriptions as $subscription ) {
+			$source_id = $subscription->get_meta( '_stripe_source_id' );
+			if ( $source_id ) {
+				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
+				if ( empty( $payment_method->customer ) ) {
+					$detached_subscriptions[] = [
 						'id'                        => $subscription->get_id(),
 						'source_id'                 => $source_id,
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
 				}
-			}
-		} while ( ! empty( $subscriptions ) && ++$page );
-
-		foreach ( $subscriptions_list as $subscription ) {
-			$payment_method = WC_Stripe_API::get_payment_method( $subscription['source_id'] );
-			if ( empty( $payment_method->customer ) ) {
-				$detached_subscriptions[] = $subscription;
 			}
 		}
 
