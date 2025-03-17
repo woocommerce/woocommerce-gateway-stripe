@@ -457,7 +457,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
 		$stripe_params['isPaymentRequestEnabled']          = $express_checkout_helper->is_payment_request_enabled();
-		$stripe_params['isAmazonPayEnabled']               = $express_checkout_helper->is_amazon_pay_enabled();
+		$stripe_params['isAmazonPayEnabled']               = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled();
 		$stripe_params['isLinkEnabled']                    = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
 
 		// Add appearance settings.
@@ -1849,7 +1849,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		foreach ( $this->payment_methods as $method_id => $method ) {
 			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) && ( $is_automatic_capture_enabled || ! $method->requires_automatic_capture() ) ? 'enabled' : 'disabled';
 			$method_enabled_label = 'enabled' === $method_enabled ? __( 'enabled', 'woocommerce-gateway-stripe' ) : __( 'disabled', 'woocommerce-gateway-stripe' );
-			$capability_id        = "{$method_id}_payments"; // "_payments" is a suffix that comes from Stripe API, except when it is "transfers", which does not apply here
+			$capability_id        = WC_Stripe_Helper::get_payment_method_capability_id( $method_id );
 			$method_status        = isset( $stripe_capabilities[ $capability_id ] ) ? $stripe_capabilities[ $capability_id ] : 'inactive';
 			$subtext_messages     = $method->get_subtext_messages( $method_status );
 			$aria_label           = sprintf(
@@ -2964,11 +2964,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
 	 *
 	 * @param string $text Default text.
-	 * @param WC_Order $order Order data.
+	 * @param WC_Order|bool $order Order data.
 	 * @return string
 	 */
 	public function filter_thankyou_order_received_text( $text, $order ) {
-		if ( $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
+		if ( is_a( $order, 'WC_Order' ) && $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
 			$text .= '<p class="woocommerce-info">';
 			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
 			$text .= '</p>';

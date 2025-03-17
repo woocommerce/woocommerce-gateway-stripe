@@ -361,7 +361,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
 			'is_payment_request_enabled'            => [ 'is_payment_request_enabled', 'payment_request' ],
-			'is_amazon_pay_enabled'                 => [ 'is_amazon_pay_enabled', 'amazon_pay' ],
 			'is_spe_enabled'                        => [ 'is_spe_enabled', 'single_payment_element' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
