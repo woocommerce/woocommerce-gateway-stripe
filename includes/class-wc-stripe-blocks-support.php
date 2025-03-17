@@ -515,14 +515,22 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @param string    $payment_request_type The payment request type used for payment.
 	 */
 	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
-		if ( 'apple_pay' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
-			$order->save();
-		} elseif ( 'google_pay' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Google Pay (Stripe)' );
-			$order->save();
-		} elseif ( 'payment_request_api' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Payment Request (Stripe)' );
+		$payment_method_title = '';
+		switch ( $payment_request_type ) {
+			case 'apple_pay':
+				$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
+				break;
+			case 'google_pay':
+				$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+				break;
+			case 'payment_request_api':
+				$payment_method_title = WC_Stripe_Payment_Methods::PAYMENT_REQUEST_LABEL;
+				break;
+		}
+
+		if ( $payment_method_title ) {
+			$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+			$order->set_payment_method_title( $payment_method_title . $payment_method_suffix );
 			$order->save();
 		}
 	}

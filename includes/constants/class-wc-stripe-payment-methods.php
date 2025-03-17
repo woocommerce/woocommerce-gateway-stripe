@@ -31,8 +31,12 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 
 	// Payment method labels
-	const AMAZON_PAY_LABEL = 'Amazon Pay (Stripe)';
-	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
+	const AMAZON_PAY_LABEL      = 'Amazon Pay';
+	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
+	const GOOGLE_PAY_LABEL      = 'Google Pay';
+	const APPLE_PAY_LABEL       = 'Apple Pay';
+	const LINK_LABEL            = 'Link';
+	const PAYMENT_REQUEST_LABEL = 'Payment Request';
 
 	/**
 	 * Payment methods that are considered as voucher payment methods.
@@ -67,10 +71,11 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
-	 * Payment methods we need to hide the action buttons from the order page.
+	 * List of express payment methods labels (excluding Link).
 	 */
-	const PAYMENT_METHODS_WITH_DELAYED_VERIFICATION = [
-		self::AMAZON_PAY_LABEL,
-		self::BACS_DEBIT_LABEL,
+	const EXPRESS_METHODS_LABELS = [
+		self::AMAZON_PAY => self::AMAZON_PAY_LABEL,
+		'google_pay'     => self::GOOGLE_PAY_LABEL,
+		'apple_pay'      => self::APPLE_PAY_LABEL,
 	];
 }
