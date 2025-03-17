@@ -120,7 +120,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
-
+		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -190,6 +190,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -271,6 +272,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Affirm::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::STRIPE_ID,
@@ -293,6 +295,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
@@ -2823,7 +2826,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function payment_method_titles_provider() {
 		return [
-			'Amazon' => [ WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL ],
+			'Amazon' => [ WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix() ],
 			'Bacs'   => [ WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL ],
 		];
 	}
@@ -2834,15 +2837,23 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_filter_thankyou_order_received_text() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_status( 'pending' );
-		$order->set_payment_method_title( 'Amazon Pay (Stripe)' );
-
 		$default_text = 'Thank you. Your order has been received.';
 
-		$actual = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
+		// Order is invalid.
+		$actual   = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, false );
+		$expected = $default_text;
 
+		$this->assertEquals( $expected, $actual );
+
+		// Order exists.
+		$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+		$order                 = WC_Helper_Order::create_order();
+		$order->set_status( 'pending' );
+		$order->set_payment_method_title( WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . $payment_method_suffix );
+
+		$actual   = $this->mock_gateway->filter_thankyou_order_received_text( $default_text, $order );
 		$expected = $default_text . '<p class="woocommerce-info">The payment is being processed and it might take a few minutes before it&#039;s confirmed.</p>';
+
 		$this->assertEquals( $expected, $actual );
 	}
 
