@@ -624,4 +624,48 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `process_webhook_charge_succeeded`, that it is skipped for synchronous payment methods.
+	 *
+	 * @param string $payment_method_type The payment method type.
+	 * @return void
+	 * @dataProvider provide_test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods
+	 */
+	public function test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods( $payment_method_type ) {
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                     => 'ch_mock',
+					'payment_method_details' => (object) [
+						'type' => $payment_method_type,
+					],
+				],
+			],
+		];
+
+		// Mock WC_Stripe_Helper::get_order_by_charge_id
+		$helper_mock = $this->getMockBuilder( WC_Stripe_Helper::class )
+			->disableOriginalConstructor()
+			->getMockForAbstractClass();
+
+		$helper_mock::expects( $this->never() )
+			->method( 'get_order_by_charge_id' );
+
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+	}
+
+	/**
+	 * Provider for `test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods() {
+		return [
+			'card'           => [ WC_Stripe_Payment_Methods::CARD ],
+			'amazon_pay'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
+			'three_d_secure' => [ 'three_d_secure' ],
+		];
+	}
 }
