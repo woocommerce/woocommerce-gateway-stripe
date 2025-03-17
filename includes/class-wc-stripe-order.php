@@ -153,6 +153,20 @@ class WC_Stripe_Order extends WC_Order {
 	const META_STRIPE_UPE_PAYMENT_TYPE = '_stripe_upe_payment_type';
 
 	/**
+	 * The lock refund expiration time.
+	 *
+	 * @var int
+	 */
+	const REFUND_LOCK_EXPIRATION = 5 * MINUTE_IN_SECONDS;
+
+	/**
+	 * The lock payment expiration time.
+	 *
+	 * @var int
+	 */
+	const PAYMENT_LOCK_EXPIRATION = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Converts an order into WC_Stripe_Order if it is not already.
 	 *
 	 * @param $order WC_Stripe_Order|WC_Order Order object.
