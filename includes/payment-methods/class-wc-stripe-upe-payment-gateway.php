@@ -2594,6 +2594,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return true;
 		}
 
+		// Saved when required by forced tokenization (user payment method) feature.
+		if ( $this->order_requires_user_payment_method( $order_id ) ) {
+			return true;
+		}
+
 		// Unless it's paying for a subscription, don't save it when saving payment methods is disabled.
 		if ( ! $this->is_saved_cards_enabled() ) {
 			return false;
