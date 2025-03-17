@@ -25,6 +25,7 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
+import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
 
 const noop = () => null;
 
@@ -300,63 +301,14 @@ const PaymentProcessor = ( {
 		} else {
 			removeCashAppLimitNotice();
 		}
+		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
 		if (
 			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
 			getBlocksConfiguration()?.isSPEEnabled
 		) {
-			const stripePaymentMethodContent = document.getElementById(
-				'radio-control-wc-payment-method-options-stripe__content'
-			);
-			stripePaymentMethodContent.style.padding = 0;
-			const stripeElementWrapper = document.getElementsByClassName(
-				'wcstripe-payment-element'
-			)[ 0 ];
-			const contentParagraphs = stripePaymentMethodContent.querySelectorAll(
-				'.content'
-			);
-			for ( const paragraph of contentParagraphs ) {
-				paragraph.style.display = 'none';
-			}
-			const stripeIFrame = stripeElementWrapper.querySelector( 'iframe' );
-			stripeIFrame.style.margin = 0;
-			const paymentMethodWrapper = document.getElementsByClassName(
-				'wc-block-checkout__payment-method'
-			);
-			const paymentMethodLabel = paymentMethodWrapper[ 0 ].querySelector(
-				'.wc-block-components-radio-control__label'
-			);
-			const paymentMethodLabelSpan = paymentMethodLabel.querySelector(
-				'span'
-			);
-			paymentMethodLabelSpan.style.width = '100%';
-			const paymentMethodLabelIconSpan = paymentMethodLabelSpan.querySelector(
-				'span'
-			);
-			paymentMethodLabelIconSpan.style.border = 'none';
-
-			const labels = document.getElementsByTagName( 'label' );
-			let stripeLabel;
-			for ( const label of labels ) {
-				if (
-					label.htmlFor ===
-					'radio-control-wc-payment-method-options-stripe'
-				) {
-					stripeLabel = label;
-				}
-			}
-
-			document.querySelector(
-				'.wc-block-components-radio-control-accordion-option--checked-option-highlighted'
-			).style.boxShadow = 'none';
-			stripeElementWrapper.style.width = 'calc(100% + 8px)';
-			stripeElementWrapper.style.marginLeft = '-4px';
-			stripeLabel.style.display = 'none';
+			applySinglePaymentElementStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
-
-	useEffect( () => {
-		// @todo check if the stripe radio is checked and if so, hide the label
-	}, [] );
 
 	usePaymentCompleteHandler(
 		api,

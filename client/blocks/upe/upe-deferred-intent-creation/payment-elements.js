@@ -140,10 +140,6 @@ const PaymentElements = ( {
 				},
 				appearance: {
 					rules: {
-						'.AccordionItem': {
-							borderColor: '#43454b',
-							borderWidth: '1.5px',
-						},
 						'.RadioIcon': {
 							width: '2.1em',
 						},
