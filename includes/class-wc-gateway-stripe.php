@@ -260,6 +260,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$this->elements_form();
 
+		/** Documented in includes/payment-methods/class-wc-stripe-upe-payment-gateway.php */
 		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
 
 			$this->save_payment_method_checkbox();
