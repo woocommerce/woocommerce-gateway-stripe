@@ -386,12 +386,16 @@ class WC_Stripe_Express_Checkout_Element {
 		$order = wc_get_order( $order_id );
 
 		$express_checkout_type = wc_clean( wp_unslash( $_POST['express_checkout_type'] ) );
-
+		$payment_method_title  = '';
 		if ( 'apple_pay' === $express_checkout_type ) {
-			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
-			$order->save();
+			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
 		} elseif ( 'google_pay' === $express_checkout_type ) {
-			$order->set_payment_method_title( 'Google Pay (Stripe)' );
+			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
+		}
+
+		if ( $payment_method_title ) {
+			$payment_method_suffix = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+			$order->set_payment_method_title( $payment_method_title . $payment_method_suffix );
 			$order->save();
 		}
 
@@ -408,6 +412,9 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Filters the gateway title to reflect express checkout type
+	 *
+	 * @param string $title The gateway title.
+	 * @param string $id    The gateway ID.
 	 */
 	public function filter_gateway_title( $title, $id ) {
 		global $theorder;
@@ -424,7 +431,15 @@ class WC_Stripe_Express_Checkout_Element {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( in_array( $method_title, [ 'Apple Pay (Stripe)', 'Google Pay (Stripe)', 'Amazon Pay (Stripe)' ], true ) ) {
+			$express_method_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
+			$suffix                = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+			array_walk(
+				$express_method_titles,
+				function( &$value, $key ) use ( $suffix ) {
+					$value .= $suffix;
+				}
+			);
+			if ( in_array( $method_title, $express_method_titles, true ) ) {
 				return $method_title;
 			}
 		}

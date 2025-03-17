@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.3.0
+Stable tag: 9.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
@@ -118,7 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
-* Fix - Fixes an error with the `filter_thankyou_order_received_text` filter when it does not receive a valid WC_Order instance.
 * Fix - Fix variable dump in ACH customer error message when retrying a payment.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

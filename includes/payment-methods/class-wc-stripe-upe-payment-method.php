@@ -342,7 +342,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( empty( $capabilities ) ) {
 			return false;
 		}
-		$key = $this->get_id() . '_payments';
+		$key = WC_Stripe_Helper::get_payment_method_capability_id( $this->get_id() );
 		return isset( $capabilities[ $key ] ) && 'active' === $capabilities[ $key ];
 	}
 

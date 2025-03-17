@@ -41,7 +41,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		$wallet_type = WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ? WC_Stripe_Payment_Methods::AMAZON_PAY : ( $payment_details->card->wallet->type ?? null );
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ) {
+			return $this->get_card_wallet_type_title( WC_Stripe_Payment_Methods::AMAZON_PAY );
+		}
+
+		$wallet_type = $payment_details->card->wallet->type ?? null;
 		if ( $payment_details && $wallet_type ) {
 			return $this->get_card_wallet_type_title( $wallet_type );
 		}
@@ -126,24 +130,13 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string The title for the card wallet type.
 	 */
 	private function get_card_wallet_type_title( $express_payment_type ) {
-		$express_payment_titles = [
-			'apple_pay'                           => 'Apple Pay',
-			'google_pay'                          => 'Google Pay',
-			WC_Stripe_Payment_Methods::AMAZON_PAY => 'Amazon Pay',
-		];
-
-		$payment_method_title = $express_payment_titles[ $express_payment_type ] ?? false;
+		$express_payment_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
+		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
 
 		if ( ! $payment_method_title ) {
 			return parent::get_title();
 		}
 
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
-
-		if ( ! empty( $suffix ) ) {
-			$suffix = " ($suffix)";
-		}
-
-		return $payment_method_title . $suffix;
+		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 	}
 }

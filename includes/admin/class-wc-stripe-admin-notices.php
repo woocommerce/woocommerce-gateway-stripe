@@ -104,7 +104,7 @@ class WC_Stripe_Admin_Notices {
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
 
-		if ( version_compare( WC_STRIPE_VERSION, '9.3.0', '!=' ) || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 
@@ -372,7 +372,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $legacy_deprecation_notice ) ) {
 				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
-				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && version_compare( WC_STRIPE_VERSION, '9.3.0', '==' ) ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$setting_link = $this->get_setting_link();
 					$message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -469,6 +469,14 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscriptions_check_environment() {
+		// @todo Temporarily disabling this due long load times on stores with too many subscriptions.
+		return;
+
+		$show_notice = get_option( 'wc_stripe_show_subscriptions_notice' );
+		if ( 'yes' !== $show_notice ) {
+			return;
+		}
+
 		$detached_messages = '';
 		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
 		foreach ( $subscriptions as $subscription ) {
@@ -476,7 +484,7 @@ class WC_Stripe_Admin_Notices {
 				'<a href="%s">%s</a>',
 				esc_url( $subscription['change_payment_method_url'] ),
 				esc_html(
-					/* translators: this is a text for a link pointing to the customer's payment method page */
+				/* translators: this is a text for a link pointing to the customer's payment method page */
 					__( 'this link &rarr;', 'woocommerce-gateway-stripe' )
 				)
 			);
@@ -484,7 +492,7 @@ class WC_Stripe_Admin_Notices {
 				'<a href="%s">%s</a>',
 				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
 				esc_html(
-					/* translators: this is a text for a link pointing to the customer's page on Stripe */
+				/* translators: this is a text for a link pointing to the customer's page on Stripe */
 					__( 'here &rarr;', 'woocommerce-gateway-stripe' )
 				)
 			);
@@ -496,8 +504,7 @@ class WC_Stripe_Admin_Notices {
 				$customer_stripe_page
 			);
 		}
-		$show_notice = get_option( 'wc_stripe_show_subscriptions_notice' );
-		if ( ! empty( $detached_messages ) && 'no' !== $show_notice ) {
+		if ( ! empty( $detached_messages ) ) {
 			$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
 		}
 	}
