@@ -1,23 +1,7 @@
 *** Changelog ***
 
-= 9.4.0 - xxxx-xx-xx =
+= 9.3.0 - xxxx-xx-xx =
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
-* Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
-* Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
-* Add - Add Amazon Pay payment method class.
-* Tweak - Record a Tracks event when enabling/disabling SPE
-* Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
-* Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
-* Add - Add ACSS payment tokenization.
-
-= 9.3.1 - 2025-03-14 =
-* Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
-* Fix - Update ACH capability check key
-* Fix - Update legacy checkout documentation links and deprecation notice display logic
-* Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
-* Fix - Fixes an error with the `filter_thankyou_order_received_text` filter when it does not receive a valid WC_Order instance.
-
-= 9.3.0 - 2025-03-13 =
 * Dev - Adds a new README.md file to the plugin with specific development-focused instructions.
 * Add - Implements the Single Payment Element feature for the new checkout experience on the block checkout page.
 * Dev - Additional replacements for payment method constant values on the backend.
