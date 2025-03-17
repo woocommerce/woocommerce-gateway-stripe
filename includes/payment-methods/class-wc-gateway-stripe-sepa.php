@@ -261,6 +261,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		$this->form();
 
+		/** Documented in includes/payment-methods/class-wc-stripe-upe-payment-gateway.php */
 		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
 			$this->save_payment_method_checkbox();
 		}

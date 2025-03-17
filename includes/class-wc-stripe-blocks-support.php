@@ -375,6 +375,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/blob/master/includes/class-wc-gateway-stripe.php#L95 .
 		// See https://github.com/woocommerce/woocommerce-gateway-stripe/blob/ad19168b63df86176cbe35c3e95203a245687640/includes/class-wc-gateway-stripe.php#L271 and
 		// https://github.com/woocommerce/woocommerce/wiki/Payment-Token-API .
+		/** Documented in includes/payment-methods/class-wc-stripe-upe-payment-gateway.php */
 		return apply_filters( 'wc_stripe_display_save_payment_method_checkbox', filter_var( $saved_cards, FILTER_VALIDATE_BOOLEAN ) );
 	}
 
