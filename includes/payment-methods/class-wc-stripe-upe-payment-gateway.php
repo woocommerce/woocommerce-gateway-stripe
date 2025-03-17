@@ -2418,6 +2418,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return '';
 		}
 
+		// Amazon Pay is available as an express checkout method only, for now.
+		// To prevent WooCommerce from rendering it as a standard payment method in checkout, we make
+		// WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_available() return false.
+		// We set the payment method to 'amazon_pay' here, instead of earlier (i.e. passing
+		// 'stripe_amazon_pay' in the POST request) to avoid WooCommerce rejecting the order for
+		// having an "unavailable" payment method type.
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $this->get_express_payment_type_from_request() ) {
+			return WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+
 		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
 	}
 
