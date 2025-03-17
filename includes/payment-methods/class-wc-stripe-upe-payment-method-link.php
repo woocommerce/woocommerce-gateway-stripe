@@ -114,6 +114,9 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
 	/**
 	 * Filters the gateway title to reflect Link as the payment method.
+	 *
+	 * @param string $title The gateway title.
+	 * @param string $id The gateway ID.
 	 */
 	public function filter_gateway_title( $title, $id ) {
 		global $theorder;
@@ -130,7 +133,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
-			if ( 'Link' === $method_title ) {
+			if ( WC_Stripe_Payment_Methods::LINK_LABEL === $method_title ) {
 				return $method_title;
 			}
 		}
