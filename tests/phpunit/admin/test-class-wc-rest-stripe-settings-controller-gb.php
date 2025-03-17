@@ -90,6 +90,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
 			WC_Stripe_Payment_Methods::EPS,
@@ -117,6 +118,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	}
 
 	public function test_get_settings_returns_ordered_payment_method_ids_for_gb() {
+		// Link and Amazon Pay are excluded as they are express methods only.
 		$expected_ordered_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ALIPAY,

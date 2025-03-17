@@ -47,7 +47,10 @@ const IconComponent = ( { children, ...props } ) => (
 
 const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilities = useGetCapabilities();
-	const capabilityStatus = capabilities[ `${ id }_payments` ];
+	const capabilityStatus =
+		id === 'us_bank_account'
+			? capabilities[ `${ id }_ach_payments` ]
+			: capabilities[ `${ id }_payments` ];
 
 	return (
 		<>

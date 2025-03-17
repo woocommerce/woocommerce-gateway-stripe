@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.3.0
+Stable tag: 9.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,7 +110,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.3.1 - xxxx-xx-xx =
-* Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with too many subscriptions.
+= 9.4.0 - xxxx-xx-xx =
+* Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
+* Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
+* Add - Add Amazon Pay payment method class.
+* Tweak - Record a Tracks event when enabling/disabling SPE
+* Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
+* Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
+* Add - Add ACSS payment tokenization.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
