@@ -71,11 +71,11 @@ class WC_Stripe_Payment_Methods {
 	];
 
 	/**
-	 * List of express payment methods labels (excluding Link).
+	 * List of express payment methods labels. Amazon Pay and Link are not included,
+	 * as they have their own payment method classes.
 	 */
 	const EXPRESS_METHODS_LABELS = [
-		self::AMAZON_PAY => self::AMAZON_PAY_LABEL,
-		'google_pay'     => self::GOOGLE_PAY_LABEL,
-		'apple_pay'      => self::APPLE_PAY_LABEL,
+		'google_pay' => self::GOOGLE_PAY_LABEL,
+		'apple_pay'  => self::APPLE_PAY_LABEL,
 	];
 }
