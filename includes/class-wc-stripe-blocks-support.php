@@ -524,7 +524,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
 				break;
 			case 'payment_request_api':
-				$payment_method_title = 'Payment Request';
+				$payment_method_title = WC_Stripe_Payment_Methods::PAYMENT_REQUEST_LABEL;
 				break;
 		}
 

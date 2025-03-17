@@ -318,8 +318,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_payment_method_title_suffix() {
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
-		$actual               = $wc_stripe_ece_helper->get_payment_method_title_suffix();
+		$actual = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 
 		$this->assertEquals( ' (Stripe)', $actual );
 	}

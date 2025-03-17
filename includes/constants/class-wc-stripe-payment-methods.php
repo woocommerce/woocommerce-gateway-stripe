@@ -33,11 +33,12 @@ class WC_Stripe_Payment_Methods {
 	const WECHAT_PAY        = 'wechat_pay';
 
 	// Payment method labels
-	const AMAZON_PAY_LABEL = 'Amazon Pay';
-	const BACS_DEBIT_LABEL = 'Bacs Direct Debit';
-	const GOOGLE_PAY_LABEL = 'Google Pay';
-	const APPLE_PAY_LABEL  = 'Apple Pay';
-	const LINK_LABEL       = 'Link';
+	const AMAZON_PAY_LABEL      = 'Amazon Pay';
+	const BACS_DEBIT_LABEL      = 'Bacs Direct Debit';
+	const GOOGLE_PAY_LABEL      = 'Google Pay';
+	const APPLE_PAY_LABEL       = 'Apple Pay';
+	const LINK_LABEL            = 'Link';
+	const PAYMENT_REQUEST_LABEL = 'Payment Request';
 
 	/**
 	 * Use WC_Stripe_Express_Payment_Methods::LINK instead.

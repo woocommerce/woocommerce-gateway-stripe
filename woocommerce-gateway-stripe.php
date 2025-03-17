@@ -191,6 +191,7 @@ function woocommerce_gateway_stripe() {
 					require_once __DIR__ . '/includes/admin/class-wc-stripe-privacy.php';
 				}
 
+				require_once __DIR__ . '/includes/class-wc-stripe-order.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
