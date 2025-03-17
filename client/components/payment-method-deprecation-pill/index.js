@@ -60,7 +60,7 @@ const PaymentMethodDeprecationPill = () => {
 					components: {
 						currencySettingsLink: (
 							<StyledLink
-								href="https://support.stripe.com/topics/shutdown-of-the-legacy-sources-api-for-non-card-payment-methods"
+								href="https://woocommerce.com/document/stripe/admin-experience/legacy-checkout-experience/"
 								target="_blank"
 								rel="noreferrer"
 								onClick={ ( ev ) => {

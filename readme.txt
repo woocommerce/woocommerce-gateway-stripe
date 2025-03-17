@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.2.0
+Stable tag: 9.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,25 +110,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.3.0 - xxxx-xx-xx =
-* Fix - Fixes a fatal error that might happen when a payment method ID cannot be retrieved during the processing of an order (new checkout experience).
-* Dev - Generates a code coverage report for PHP Unit tests as a comment on PRs.
+= 9.4.0 - xxxx-xx-xx =
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
-* Add - Adds Stripe specific information to the System Status Report data.
-* Fix - Fixes a fatal error that might happen during extension install due to missing Amazon Pay default settings data, when registering the settings route.
-* Dev - Adds the payment method constants to the payment methods map file (frontend side).
-* Add - Adds a new notice for store admins when there are subscriptions without a payment method attached.
-* Fix - Hides "pay" and "cancel" buttons on the order received page when an Amazon Pay order is pending, since it may take a while to be confirmed.
-* Fix - Prepare the redirect URL at the end of 'process_payment' method. 
-* Fix - Fix uncaught error in block editor when the new checkout experience is enabled.
-* Fix - Fix error when processing a subscription via Amazon Pay.
-* Fix - Make Amazon Pay compatible with upfront pre-orders.
-* Add - Include minimum amounts in the capture_terminal_payment endpoint when a capture fails.
-* Dev - Fix changelog action
-* Tweak - Map feature flags into a standard array for easier maintenance.
-* Dev - Fix QIT Tests GitHub workflow.
-* Fix - Fix issue where payment methods do not refresh after address changes.
-* Add - Bacs: Process Payment with Saved Bank Details
-* Tweak - Update payment method logos on the checkout page.
+* Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
+* Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
+* Add - Add Amazon Pay payment method class.
+* Tweak - Record a Tracks event when enabling/disabling SPE
+* Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
+* Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
+* Add - Add ACSS payment tokenization.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

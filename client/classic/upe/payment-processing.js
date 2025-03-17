@@ -9,6 +9,7 @@ import {
 	getStripeServerData,
 	getUpeSettings,
 	showErrorCheckout,
+	showErrorPaymentMethod,
 	appendSetupIntentToForm,
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
@@ -32,6 +33,7 @@ for ( const paymentMethodType in paymentMethodsConfig ) {
 		intentId: null,
 		elements: null,
 		upeElement: null,
+		hasLoadError: false,
 	};
 }
 
@@ -79,15 +81,41 @@ export function validateElements( elements ) {
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
 async function createStripePaymentElement( api, paymentMethodType ) {
-	const amount = Number( getStripeServerData()?.cartTotal );
-	const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
-	let options;
+	let intent, options;
 
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
-		const intent = await api.createIntent( null, paymentMethodType );
+		try {
+			const isSetupIntent =
+				document.getElementById( 'add_payment_method' ) ||
+				! getStripeServerData()?.isPaymentNeeded ||
+				getStripeServerData()?.isChangingPayment;
+
+			if ( isSetupIntent ) {
+				intent = await api.initSetupIntent( paymentMethodType );
+			} else {
+				intent = await api.createIntent( null, paymentMethodType );
+			}
+		} catch ( error ) {
+			showErrorPaymentMethod(
+				error?.message ??
+					sprintf(
+						// translators: %s is the payment method title.
+						__(
+							'Failed to load %s payment method. Please refresh the page and try again.',
+							'woocommerce-gateway-stripe'
+						),
+						paymentMethodsConfig?.[ paymentMethodType ]?.title ?? ''
+					),
+				'.payment_box.payment_method_stripe_' + paymentMethodType
+			);
+			// Setting the flag to true to prevent the form from being submitted.
+			gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
+			return;
+		}
+
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
 		options = {
@@ -97,6 +125,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			clientSecret: intent.client_secret,
 		};
 	} else {
+		const amount = Number( getStripeServerData()?.cartTotal );
+		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
+
 		options = {
 			mode: amount < 1 ? 'setup' : 'payment',
 			currency: getStripeServerData()?.currency.toLowerCase(),
@@ -197,7 +228,9 @@ function createStripePaymentMethod(
 					  ).trim()
 					: undefined,
 				email: document.querySelector( '#billing_email' )?.value,
-				phone: document.querySelector( '#billing_phone' )?.value,
+				phone:
+					// Phone is optional, but an empty string is not allowed by Stripe.
+					document.querySelector( '#billing_phone' )?.value || null,
 				address: {
 					city: document.querySelector( '#billing_city' )?.value,
 					country: document.querySelector( '#billing_country' )
@@ -259,7 +292,13 @@ export async function mountStripePaymentElement( api, domElement ) {
 	const upeElement =
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
+
 	upeElement.mount( domElement );
+	upeElement.on( 'loaderror', ( e ) => {
+		showErrorPaymentMethod( e.error.message, domElement );
+		// Setting the flag to true to prevent the form from being submitted.
+		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
+	} );
 
 	return gatewayUPEComponents[ paymentMethodType ];
 }
@@ -274,6 +313,7 @@ export async function mountStripePaymentElement( api, domElement ) {
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
  * @param {string} paymentMethodType The type of Stripe payment method being used.
  * @return {boolean} return false to prevent the default form submission from WC Core.
+ * @throws {Error} If there is an error creating the Stripe payment method.
  */
 let hasCheckoutCompleted;
 export const processPayment = (
@@ -292,8 +332,6 @@ export const processPayment = (
 	}
 
 	blockUI( jQueryForm );
-
-	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
 
 	const getErrorMessage = ( err ) => {
 		const genericErrorMessage = __(
@@ -338,6 +376,19 @@ export const processPayment = (
 
 	( async () => {
 		try {
+			const { elements, hasLoadError } = gatewayUPEComponents[
+				paymentMethodType
+			];
+
+			if ( hasLoadError ) {
+				throw new Error(
+					__(
+						'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+
 			await validateElements( elements );
 
 			const paymentMethodObject = await createStripePaymentMethod(

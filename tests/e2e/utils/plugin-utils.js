@@ -1,3 +1,4 @@
+import { chromium } from '@playwright/test';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
 import fs from 'fs';
@@ -8,6 +9,24 @@ dotenv.config( {
 } );
 
 const { GITHUB_TOKEN } = process.env;
+
+export const isPluginInstalled = async ( pluginSlug ) => {
+	const browser = await chromium.launch();
+	const adminContext = await browser.newContext( {
+		storageState: process.env.ADMINSTATE,
+	} );
+	const adminPage = await adminContext.newPage();
+
+	await adminPage.goto( 'wp-admin/plugins.php', {
+		waitUntil: 'networkidle',
+	} );
+
+	return await adminPage
+		.locator(
+			`#deactivate-${ pluginSlug }, #deactivate-woocommerce-com-${ pluginSlug }`
+		)
+		.isVisible();
+};
 
 const getReleaseInfo = async ( { repo, releaseTag } ) => {
 	const options = {
