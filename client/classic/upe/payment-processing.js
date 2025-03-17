@@ -18,6 +18,7 @@ import {
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -66,6 +67,24 @@ export function validateElements( elements ) {
 			throw new Error( result.error.message );
 		}
 	} );
+}
+
+/**
+ * Validates the BLIK code input before submitting checkout.
+ * If an error occurs, the function removes loading effect from the provided jQuery form and thus unblocks it,
+ * and shows an error message in the checkout.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @return {void}
+ */
+export function validateBlikCode( jQueryForm ) {
+	const code = jQueryForm?.find( '#wc-stripe-blik-code' )?.val();
+
+	if ( ! /[0-9]{6}/.test( code ) ) {
+		throw new Error(
+			__( 'BLIK code is invalid.', 'woocommerce-gateway-stripe' )
+		);
+	}
 }
 
 /**
@@ -238,9 +257,19 @@ function createStripePaymentMethod(
 		};
 	}
 
+	// BLIK uses a controlled form instead of Stripe Elements.
+	const paymentMethodParams =
+		paymentMethodType === PAYMENT_METHOD_BLIK
+			? {
+					type: paymentMethodType,
+					billing_details: params?.billing_details,
+					blik: {},
+			  }
+			: { elements, params };
+
 	return api
 		.getStripe( paymentMethodType )
-		.createPaymentMethod( { elements, params } )
+		.createPaymentMethod( paymentMethodParams )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
 				throw paymentMethod.error;
@@ -380,7 +409,11 @@ export const processPayment = (
 				);
 			}
 
-			await validateElements( elements );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
+			} else {
+				await validateElements( elements );
+			}
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
