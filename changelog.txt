@@ -19,6 +19,7 @@
 * Update - Update payment method type for Amazon Pay orders.
 * Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons.
+* Tweak - Update payment method type check for charge.succeeded webhook.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
