@@ -30,6 +30,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 	];
 
 	/**
@@ -415,7 +416,12 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::ACH:
-				$item['method']['brand'] = $payment_token->get_display_name();
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
+				break;
+			case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
@@ -563,6 +569,18 @@ class WC_Stripe_Payment_Tokens {
 					$token->set_bank_name( $payment_method->us_bank_account->bank_name );
 				}
 				break;
+			case WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID:
+				$token = new WC_Payment_Token_ACSS();
+				if ( isset( $payment_method->acss_debit->last4 ) ) {
+					$token->set_last4( $payment_method->acss_debit->last4 );
+				}
+				if ( isset( $payment_method->acss_debit->fingerprint ) ) {
+					$token->set_fingerprint( $payment_method->acss_debit->fingerprint );
+				}
+				if ( isset( $payment_method->acss_debit->bank_name ) ) {
+					$token->set_bank_name( $payment_method->acss_debit->bank_name );
+				}
+				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 				$token = new WC_Payment_Token_CashApp();
 
@@ -620,6 +638,7 @@ class WC_Stripe_Payment_Tokens {
 		$label_overrides      = [];
 		$payment_method_types = [
 			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
@@ -717,7 +736,7 @@ class WC_Stripe_Payment_Tokens {
 			/**
 			 * Token object.
 			 *
-			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH $token
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH|WC_Payment_Token_ACSS $token
 			 */
 			if ( $token->is_equal_payment_method( $payment_method ) ) {
 				return $token;
@@ -739,6 +758,9 @@ class WC_Stripe_Payment_Tokens {
 		}
 		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $type ) {
 			return WC_Payment_Token_ACH::class;
+		}
+		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $type ) {
+			return WC_Payment_Token_ACSS::class;
 		}
 		return $class;
 	}

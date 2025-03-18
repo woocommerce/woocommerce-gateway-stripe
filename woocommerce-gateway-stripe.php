@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.2.0
+ * Version: 9.3.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
- * WC requires at least: 9.2
- * WC tested up to: 9.5
+ * WC requires at least: 9.5
+ * WC tested up to: 9.7
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,10 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.2.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.3.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '9.2' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.2' );
+define( 'WC_STRIPE_MIN_WC_VER', '9.5' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.6' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );
@@ -191,6 +191,7 @@ function woocommerce_gateway_stripe() {
 					require_once __DIR__ . '/includes/admin/class-wc-stripe-privacy.php';
 				}
 
+				require_once __DIR__ . '/includes/class-wc-stripe-order.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
@@ -213,6 +214,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/interface-wc-stripe-payment-method-comparison.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cc-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-ach-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-acss-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-sepa-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
@@ -246,6 +248,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cash-app-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-wechat-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-acss.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-amazon-pay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
