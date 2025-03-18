@@ -112,26 +112,6 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	}
 
 	/**
-	 * Create a terminal location via Stripe API.
-	 *
-	 * @param WP_REST_Request $request Full data about the request.
-	 */
-	public function create_location( $request ) {
-		try {
-			$response = WC_Stripe_API::request(
-				[
-					'display_name' => $request['display_name'],
-					'address'      => $request['address'],
-				],
-				'terminal/locations'
-			);
-			return rest_ensure_response( $response );
-		} catch ( WC_Stripe_Exception $e ) {
-			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
-		}
-	}
-
-	/**
 	 * Transform location address for Puerto Rico to use US as country and PR as state.
 	 *
 	 * @param object|array $location Location object or address array to transform
@@ -139,18 +119,43 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 */
 	private function transform_pr_address( $location ) {
 		if ( is_array( $location ) ) {
-			if ( isset( $location['country'] ) && 'PR' === $location['country'] ) {
+			// If either country is PR or state is PR, ensure US/PR format.
+			if ( ( isset( $location['country'] ) && 'PR' === $location['country'] ) ||
+				 ( isset( $location['state'] ) && 'PR' === $location['state'] ) ) {
 				$location['country'] = 'US';
-				$location['state']   = 'PR';
+				$location['state'] = 'PR';
 			}
 			return $location;
 		}
 
-		if ( isset( $location->address->country ) && 'PR' === $location->address->country ) {
+		if ( isset( $location->address->country ) && 'PR' === $location->address->country ||
+			 isset( $location->address->state ) && 'PR' === $location->address->state ) {
 			$location->address->country = 'US';
-			$location->address->state   = 'PR';
+			$location->address->state = 'PR';
 		}
 		return $location;
+	}
+
+	/**
+	 * Create a terminal location via Stripe API.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 */
+	public function create_location( $request ) {
+		try {
+			$address = $this->transform_pr_address( $request['address'] );
+			
+			$response = WC_Stripe_API::request(
+				[
+					'display_name' => $request['display_name'],
+					'address'      => $address,
+				],
+				'terminal/locations'
+			);
+			return rest_ensure_response( $this->transform_pr_address( $response ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -280,11 +285,11 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			$body['display_name'] = $request['display_name'];
 		}
 		if ( isset( $request['address'] ) ) {
-			$body['address'] = $request['address'];
+			$body['address'] = $this->transform_pr_address( $request['address'] );
 		}
 		try {
 			$response = WC_Stripe_API::request( $body, 'terminal/locations/' . urlencode( $request['location_id'] ), 'POST' );
-			return rest_ensure_response( $response );
+			return rest_ensure_response( $this->transform_pr_address( $response ) );
 		} catch ( WC_Stripe_Exception $e ) {
 			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
 		}
