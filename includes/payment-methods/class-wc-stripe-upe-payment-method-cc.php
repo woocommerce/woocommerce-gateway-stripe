@@ -41,10 +41,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ) {
-			return $this->get_card_wallet_type_title( WC_Stripe_Payment_Methods::AMAZON_PAY );
-		}
-
 		$wallet_type = $payment_details->card->wallet->type ?? null;
 		if ( $payment_details && $wallet_type ) {
 			return $this->get_card_wallet_type_title( $wallet_type );
