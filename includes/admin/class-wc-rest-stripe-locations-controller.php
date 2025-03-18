@@ -144,7 +144,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	public function create_location( $request ) {
 		try {
 			$address = $this->transform_pr_address( $request['address'] );
-			
+	
 			$response = WC_Stripe_API::request(
 				[
 					'display_name' => $request['display_name'],
