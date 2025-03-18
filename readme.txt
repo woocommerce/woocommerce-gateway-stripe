@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the PHP unit tests.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
 * Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
