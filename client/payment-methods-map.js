@@ -29,7 +29,8 @@ const accountCountry =
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
-
+const isBecsDebitEnabled =
+	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const paymentMethodsMap = {
 	card: {
 		id: PAYMENT_METHOD_CARD,
@@ -265,16 +266,6 @@ const paymentMethodsMap = {
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
 	},
-	au_becs_debit: {
-		id: PAYMENT_METHOD_BECS,
-		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'BECS is a payment method that allows customers to pay using their Australian bank account.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.us_bank_account,
-		currencies: [ 'AUD' ],
-	},
 };
 
 // Enable ACH according to feature flag value.
@@ -316,6 +307,20 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
+	};
+}
+
+// Enable BECS Debit according to feature flag value.
+if ( isBecsDebitEnabled ) {
+	paymentMethodsMap.becs_debit = {
+		id: PAYMENT_METHOD_BECS,
+		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'BECS Direct Debit enables customers in Australia to pay by providing their bank account details.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.au_becs_debit,
+		currencies: [ 'AUD' ],
 	};
 }
 
