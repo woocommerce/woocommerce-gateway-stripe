@@ -136,7 +136,7 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: 'pmc_1QxXgxGtN3ImWtq0zHNUUOkT',
+					paymentMethodConfiguration: 'pmc_...',
 				},
 				appearance: {
 					rules: {
