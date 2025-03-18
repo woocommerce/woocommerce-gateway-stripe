@@ -1,16 +1,19 @@
 <?php
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit; // Exit if accessed directly.
+}
+
 /**
  * Class WC_Stripe_Payment_Methods
  */
 class WC_Stripe_Payment_Methods {
-
+	// Standard payment method constants
 	const ACH               = 'us_bank_account';
 	const ACSS_DEBIT        = 'acss_debit';
 	const AFFIRM            = 'affirm';
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
-	const AMAZON_PAY        = 'amazon_pay';
 	const BACS_DEBIT        = 'bacs_debit';
 	const BANCONTACT        = 'bancontact';
 	const BOLETO            = 'boleto';
@@ -21,7 +24,6 @@ class WC_Stripe_Payment_Methods {
 	const GIROPAY           = 'giropay';
 	const IDEAL             = 'ideal';
 	const KLARNA            = 'klarna';
-	const LINK              = 'link';
 	const MULTIBANCO        = 'multibanco';
 	const OXXO              = 'oxxo';
 	const P24               = 'p24';
@@ -29,6 +31,12 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
+
+	// Express method constants
+	const AMAZON_PAY = 'amazon_pay';
+	const GOOGLE_PAY = 'google_pay';
+	const APPLE_PAY  = 'apple_pay';
+	const LINK       = 'link';
 
 	// Payment method labels
 	const AMAZON_PAY_LABEL      = 'Amazon Pay';
