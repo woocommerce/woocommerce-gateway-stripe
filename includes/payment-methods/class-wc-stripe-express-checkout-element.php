@@ -387,9 +387,9 @@ class WC_Stripe_Express_Checkout_Element {
 
 		$express_checkout_type = wc_clean( wp_unslash( $_POST['express_checkout_type'] ) );
 		$payment_method_title  = '';
-		if ( 'apple_pay' === $express_checkout_type ) {
+		if ( WC_Stripe_Payment_Methods::APPLE_PAY === $express_checkout_type ) {
 			$payment_method_title = WC_Stripe_Payment_Methods::APPLE_PAY_LABEL;
-		} elseif ( 'google_pay' === $express_checkout_type ) {
+		} elseif ( WC_Stripe_Payment_Methods::GOOGLE_PAY === $express_checkout_type ) {
 			$payment_method_title = WC_Stripe_Payment_Methods::GOOGLE_PAY_LABEL;
 		}
 

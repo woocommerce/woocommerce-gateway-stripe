@@ -472,6 +472,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// BLIK LPM Feature flag.
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
 
+		// BECS Debit LPM Feature flag.
+		$stripe_params['is_becs_debit_enabled'] = WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled();
+
 		// Single Payment Element feature flag + setting.
 		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
 
@@ -2747,8 +2750,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
 				case WC_Stripe_Payment_Methods::AMAZON_PAY:
 					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
-				case 'google_pay':
-				case 'apple_pay':
+				case WC_Stripe_Payment_Methods::GOOGLE_PAY:
+				case WC_Stripe_Payment_Methods::APPLE_PAY:
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}
