@@ -24,7 +24,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Returns a list with some (up to 5) subscriptions that are detached from the customer.
+	 * Loads up to 100 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
 	 *
 	 * @return array
 	 */
@@ -40,7 +40,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$subscriptions = wcs_get_subscriptions(
 			[
-				'subscriptions_per_page' => 5,
+				'subscriptions_per_page' => 100,
 				'page'                   => $page,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
