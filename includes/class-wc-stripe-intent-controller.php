@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -492,7 +495,7 @@ class WC_Stripe_Intent_Controller {
 				$order
 			);
 
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 		}
@@ -629,7 +632,7 @@ class WC_Stripe_Intent_Controller {
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
 				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 
 			// Send back error so it can be displayed to the customer.
@@ -699,7 +702,7 @@ class WC_Stripe_Intent_Controller {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( $order ) {
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 		}
 

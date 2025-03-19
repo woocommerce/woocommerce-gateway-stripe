@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -58,7 +61,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
 		$payment_method = $order->get_payment_method();
-		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( 'on-hold' ) ) {
+		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( OrderStatus::ON_HOLD ) ) {
 			$this->get_instructions( $order, $plain_text );
 		}
 	}
@@ -137,8 +140,8 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( 'on-hold', $allowed_statuses, true ) ) {
-			$allowed_statuses[] = 'on-hold';
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 
 		return $allowed_statuses;
