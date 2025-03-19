@@ -246,13 +246,25 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
-		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configurations();
-
-		$is_amazon_pay_enabled        = $merchant_payment_method_configuration && 'on' === $merchant_payment_method_configuration->amazon_pay->display_preference->value;
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
+		$enabled_payment_method_ids   = [];
+
+		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configuration();
+
+		foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+			if ( is_object( $payment_method ) &&
+				property_exists( $payment_method, 'display_preference' ) &&
+				property_exists( $payment_method->display_preference, 'preference' ) ) {
+
+				$payment_method_status = 'on' === $payment_method->display_preference->preference;
+
+				if ( $payment_method_status ) {
+					$enabled_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
 
 		return new WP_REST_Response(
 			[
@@ -397,6 +409,28 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Get the merchant payment method configuration in Stripe.
+	 *
+	 * @return array|null
+	 */
+	private function get_merchant_payment_method_configuration() {
+		$payment_method_configurations =
+			property_exists( $this->stripe_api->get_payment_method_configurations(), 'data' ) ? $this->stripe_api->get_payment_method_configurations()->data : null;
+
+		if ( ! $payment_method_configurations ) {
+			return null;
+		}
+
+		foreach ( $payment_method_configurations as $payment_method_configuration ) {
+			if ( $payment_method_configuration->active && $payment_method_configuration->parent ) {
+				return $payment_method_configuration;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -635,22 +669,31 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$currently_enabled_payment_method_ids      = (array) $this->gateway->get_option( 'upe_checkout_experience_accepted_payments' );
-		$upe_checkout_experience_accepted_payments = [];
+		$payment_method_configuration          = [];
+		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configuration();
+		$available_payment_methods             = $this->gateway->get_upe_available_payment_methods();
 
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $gateway ) {
-			if ( in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ) {
-				$upe_checkout_experience_accepted_payments[] = $gateway::STRIPE_ID;
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $gateway_class ) {
+			$gateway = new $gateway_class();
+
+			if (
+				! in_array( $gateway->get_id(), $available_payment_methods, true ) ||
+				( $gateway->get_supported_currencies() && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currencies(), true ) )
+			) {
+				continue;
 			}
+
+			$payment_method_configuration[ $gateway::STRIPE_ID ] = [
+				'display_preference' => [
+					'preference' => in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ? 'on' : 'off',
+				],
+			];
 		}
 
-		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
-
-		// After updating payment methods record tracks events.
-		$newly_enabled_methods  = array_diff( $upe_checkout_experience_accepted_payments, $currently_enabled_payment_method_ids );
-		$newly_disabled_methods = array_diff( $currently_enabled_payment_method_ids, $payment_method_ids_to_enable );
-
-		$this->record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
+		$this->stripe_api->update_payment_method_configurations(
+			$merchant_payment_method_configuration->id,
+			$payment_method_configuration
+		);
 	}
 
 	/**
