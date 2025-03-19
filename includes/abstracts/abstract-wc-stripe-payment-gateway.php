@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Admin\Overrides\OrderRefund;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -603,7 +606,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( 'failed' === $response->status ) {
 				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $localized_message );
+				$order->add_order_note(
+					property_exists( $response, 'outcome' ) && isset( $response->outcome->seller_message )
+						? $response->outcome->seller_message
+						: $localized_message
+				);
+
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} else {
@@ -2390,10 +2398,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * This signature is included as metadata in Stripe requests and used to identify the order when webhooks are received.
 	 *
-	 * @param WC_Order $order The Order object.
+	 * @param WC_Order|OrderRefund $order The Order object.
 	 * @return string The order's unique signature. Format: order_id:md5(order_id-order_key-customer_id-order_total).
 	 */
 	protected function get_order_signature( $order ) {
+		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
+
 		$signature = [
 			absint( $order->get_id() ),
 			$order->get_order_key(),

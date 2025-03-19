@@ -1467,35 +1467,45 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		WC()->shipping->reset_shipping();
+		try {
+			WC()->shipping->reset_shipping();
 
-		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product      = wc_get_product( $product_id );
-		$product_type = $product->get_type();
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+			$product    = wc_get_product( $product_id );
 
-		// First empty the cart to prevent wrong calculation.
-		WC()->cart->empty_cart();
+			if ( ! is_a( $product, 'WC_Product' ) ) {
+				/* translators: 1) The product Id */
+				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+			}
 
-		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+			$product_type = $product->get_type();
 
-			$data_store   = WC_Data_Store::load( 'product' );
-			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+			// First empty the cart to prevent wrong calculation.
+			WC()->cart->empty_cart();
 
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		} elseif ( in_array( $product_type, $this->supported_product_types(), true ) ) {
-			WC()->cart->add_to_cart( $product->get_id(), $qty );
+			if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+			} elseif ( in_array( $product_type, $this->supported_product_types(), true ) ) {
+				WC()->cart->add_to_cart( $product->get_id(), $qty );
+			}
+
+			WC()->cart->calculate_totals();
+
+			$data           = [];
+			$data          += $this->build_display_items();
+			$data['result'] = 'success';
+
+			// @phpstan-ignore-next-line (return statement is added)
+			wp_send_json( $data );
+		} catch ( Exception $e ) {
+			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
-
-		WC()->cart->calculate_totals();
-
-		$data           = [];
-		$data          += $this->build_display_items();
-		$data['result'] = 'success';
-
-		// @phpstan-ignore-next-line (return statement is added)
-		wp_send_json( $data );
 	}
 
 	/**
