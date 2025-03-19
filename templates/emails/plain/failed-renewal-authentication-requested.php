@@ -12,16 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 echo '= ' . esc_html( $email_heading ) . " =\n\n";
 
-$is_preview = apply_filters( 'woocommerce_is_email_preview', false );
-$retry_time = '';
-
-if ( $is_preview ) {
-	$interval = 12 * HOUR_IN_SECONDS;
-	$retry_time = human_time_diff( time(), time() + ( $interval ) );
-} elseif ( is_a( $retry, 'WCS_Retry' ) && method_exists( $retry, 'get_time' ) ) {
-	$retry_time = wcs_get_human_time_diff( $retry->get_time() );
-}
-
 printf(
 	// translators: 1) an order number, 2) the customer's full name, 3) lowercase human time diff in the form returned by wcs_get_human_time_diff(), e.g. 'in 12 hours'.
 	esc_html_x(
@@ -31,7 +21,7 @@ printf(
 	),
 	esc_html( $order->get_order_number() ),
 	esc_html( $order->get_formatted_billing_full_name() ),
-	esc_html( $retry_time )
+	esc_html( $email->get_retry_time() )
 ) . "\n\n";
 printf( esc_html__( 'The renewal order is as follows:', 'woocommerce-gateway-stripe' ) ) . "\n\n";
 

@@ -51,6 +51,22 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	}
 
 	/**
+	 * Get retry time.
+	 *
+	 * @return string
+	 */
+	public function get_retry_time() {
+		if ( apply_filters( 'woocommerce_is_email_preview', false ) ) {
+			$interval = 12 * HOUR_IN_SECONDS;
+			return human_time_diff( time(), time() + $interval );
+		}
+
+		return ( is_a( $this->retry, 'WCS_Retry' ) && method_exists( $this->retry, 'get_time' ) )
+			? wcs_get_human_time_diff( $this->retry->get_time() )
+			: '';
+	}
+
+	/**
 	 * Get the default e-mail subject.
 	 *
 	 * @return string

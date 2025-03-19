@@ -17,15 +17,6 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <p>
 	<?php
-	$is_preview = apply_filters( 'woocommerce_is_email_preview', false );
-	$retry_time = '';
-
-	if ( $is_preview ) {
-		$interval = 12 * HOUR_IN_SECONDS;
-		$retry_time = human_time_diff( time(), time() + ( $interval ) );
-	} elseif ( is_a( $retry, 'WCS_Retry' ) && method_exists( $retry, 'get_time' ) ) {
-		$retry_time = wcs_get_human_time_diff( $retry->get_time() );
-	}
 
 	echo esc_html(
 		sprintf(
@@ -37,7 +28,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 			),
 			$order->get_order_number(),
 			$order->get_formatted_billing_full_name(),
-			$retry_time
+			$email->get_retry_time()
 		)
 	);
 	?>
