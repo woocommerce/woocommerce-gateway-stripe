@@ -212,6 +212,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$intent_id = 'pi_mock';
 		$order->set_intent_id( $intent_id );
+		$order->save_meta_data();
 
 		$order = WC_Stripe_Order::get_by_intent_id( $intent_id );
 		if ( $success ) {
@@ -393,6 +394,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [ 'test' => 'test' ], $current_settings );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $current_settings );
