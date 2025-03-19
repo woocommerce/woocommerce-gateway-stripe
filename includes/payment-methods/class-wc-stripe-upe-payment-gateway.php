@@ -164,38 +164,46 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
-		$this->payment_methods = [];
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
+		$this->spe_enabled = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 
-			// Show ACH only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show ACSS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
-				continue;
-			}
-
-			// Consider Bacs only if the feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-				continue;
-			}
-
-			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-			 */
-			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
-				continue;
-			}
-
-			// Show giropay only on the orders page to allow refunds. It was deprecated.
-			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
-				continue;
-			}
-
-			$payment_method                                     = new $payment_method_class();
+		if ( $this->spe_enabled ) {
+			$payment_method                                     = new WC_Stripe_UPE_Payment_Method_CC();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+		} else {
+			$this->payment_methods = [];
+			foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+
+				// Show ACH only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+					continue;
+				}
+
+				// Show ACSS only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+					continue;
+				}
+
+				// Consider Bacs only if the feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+					continue;
+				}
+
+				/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+				 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+				 */
+				if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+					continue;
+				}
+
+				// Show giropay only on the orders page to allow refunds. It was deprecated.
+				if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
+					continue;
+				}
+
+				$payment_method                                     = new $payment_method_class();
+				$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+			}
 		}
 
 		$this->intent_controller        = new WC_Stripe_Intent_Controller();
@@ -213,7 +221,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings                       = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                         = $this->payment_methods['card']->get_title();
 		$this->description                   = $this->payment_methods['card']->get_description();
 		$this->enabled                       = $this->get_option( 'enabled' );
@@ -2723,7 +2730,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string $selected_payment_type The payment type the shopper selected, if any.
 	 * @param int    $order_id              ID of the WC order we're handling.
 	 * @param string|null $express_payment_type  The express payment type, if any.
-	 * @param string|null $payment_method_type  The payment method type, if any.
 	 *
 	 * @return array
 	 */
@@ -2867,12 +2873,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string The redirect URL.
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
+		$selected_payment_type = $this->spe_enabled ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
 		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
 				$order->get_id(),
-				$payment_information['selected_payment_type'],
+				$selected_payment_type,
 				$payment_intent->client_secret,
 				rawurlencode( $return_url )
 			);
@@ -2881,7 +2888,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s:%s:%s',
 				$order->get_id(),
-				$payment_information['selected_payment_type'],
+				$selected_payment_type,
 				$payment_intent->object,
 				$payment_intent->client_secret,
 				rawurlencode( $return_url ),

@@ -119,11 +119,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
+* Add - Implements the Single Payment Element feature for the new checkout experience on the classic/shortcode checkout page.
 * Tweak - Record a Tracks event when enabling/disabling SPE
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
 * Fix - Fix variable dump in ACH customer error message when retrying a payment.
 * Update - Update payment method type for Amazon Pay orders.
+* Fix - Compatibility with email preview in the Auth Requested email
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
