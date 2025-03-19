@@ -13,6 +13,7 @@
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
 * Update - Update payment method type for Amazon Pay orders.
+* Update - Update Alipay and bank debit icons.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
