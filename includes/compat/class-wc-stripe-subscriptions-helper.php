@@ -24,7 +24,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads up to 100 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
+	 * Loads up to 50 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
 	 *
 	 * @return array
 	 */
@@ -40,7 +40,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$subscriptions = wcs_get_subscriptions(
 			[
-				'subscriptions_per_page' => 100,
+				'subscriptions_per_page' => 50,
 				'page'                   => $page,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
@@ -58,6 +58,9 @@ class WC_Stripe_Subscriptions_Helper {
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
+					if ( count( $detached_subscriptions ) > 5 ) {
+						break;
+					}
 				}
 			}
 		}
