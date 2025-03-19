@@ -1058,7 +1058,8 @@ class WC_Stripe_Intent_Controller {
 			unset( $request['return_url'] );
 		}
 
-		$order   = $payment_information['order'];
+		$order = $payment_information['order'];
+		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
 			$request,
