@@ -22,6 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order {
 
 	/**
+	 * The retry object for the order
+	 *
+	 * @var WCS_Retry|null
+	 */
+	protected $retry;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -59,6 +66,33 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	 */
 	public function get_default_heading() {
 		return $this->heading;
+	}
+
+	/**
+	 * Creates a dummy retry for use when previewing failed subscription payment retry emails.
+	 *
+	 * @param WC_Order $order The order object to create a dummy retry for.
+	 * @return WCS_Retry|null The dummy retry object.
+	 */
+	private function get_dummy_retry( $order ) {
+		if ( ! class_exists( 'WCS_Retry_Manager' ) ) {
+			return null;
+		}
+
+		$order_id = is_a( $order, 'WC_Order' ) ? $order->get_id() : 12345;
+		$retry_rule = WCS_Retry_Manager::rules()->get_rule( 1, $order_id );
+
+		if ( ! $retry_rule ) {
+			return null;
+		}
+
+		$retry = new WCS_Retry();
+		$retry->set_order_id( $order_id );
+		$retry->set_rule_id( 1 );
+		$retry->set_time( time() + ( 12 * HOUR_IN_SECONDS ) );
+		$retry->set_status( 'pending' );
+
+		return $retry;
 	}
 
 	/**
