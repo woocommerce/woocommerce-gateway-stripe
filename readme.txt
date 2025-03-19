@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
+* Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
@@ -121,5 +123,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
 * Fix - Fix variable dump in ACH customer error message when retrying a payment.
+* Update - Update payment method type for Amazon Pay orders.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

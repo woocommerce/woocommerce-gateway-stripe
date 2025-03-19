@@ -344,6 +344,10 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 				'payment_method' => 'stripe_eps',
 				'expected'       => false,
 			],
+			'AmazonPay'         => [
+				'payment_method' => 'stripe_amazon_pay',
+				'expected'       => true,
+			],
 		];
 	}
 

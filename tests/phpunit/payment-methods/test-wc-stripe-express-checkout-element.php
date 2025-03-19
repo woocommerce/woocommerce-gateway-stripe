@@ -198,9 +198,9 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 				'title'    => 'test',
 				'expected' => 'test',
 			],
-			'Amazon Pay'   => [
-				'title'    => 'Amazon Pay (Stripe)',
-				'expected' => 'Amazon Pay (Stripe)',
+			'Google Pay'   => [
+				'title'    => 'Google Pay (Stripe)',
+				'expected' => 'Google Pay (Stripe)',
 			],
 		];
 	}
