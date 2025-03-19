@@ -55,7 +55,6 @@ class WC_Stripe_Subscriptions_Helper {
 				if ( empty( $payment_method->customer ) ) {
 					$detached_subscriptions[] = [
 						'id'                        => $subscription->get_id(),
-						'source_id'                 => $source_id,
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
