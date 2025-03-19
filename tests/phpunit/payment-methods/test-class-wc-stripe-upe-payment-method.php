@@ -140,6 +140,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 */
 	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
 		'alipay_payments'              => 'active',
+		'amazon_pay_payments'          => 'active',
 		'bancontact_payments'          => 'active',
 		'blik_payments'                => 'active',
 		'card_payments'                => 'active',
