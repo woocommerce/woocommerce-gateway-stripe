@@ -35,19 +35,17 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_subscriptions;
 		}
 
-		$detached_subscriptions = [];
-		$page                   = 1;
-
 		$subscriptions = wcs_get_subscriptions(
 			[
 				'subscriptions_per_page' => 50,
-				'page'                   => $page,
+				'page'                   => 1,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
 				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
 			]
 		);
 
+		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
