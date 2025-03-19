@@ -306,6 +306,18 @@ jQuery( function ( $ ) {
 			} else {
 				removeCashAppLimitNotice();
 			}
+
+			// Because of the form change and that BLIK has a controlled form, we need to remove the invalid classes.
+			if (
+				$( '#wc-stripe-blik-code_field input' ).val() === '' &&
+				$( '#wc-stripe-blik-code_field' ).hasClass(
+					'woocommerce-invalid'
+				)
+			) {
+				$( '#wc-stripe-blik-code_field' ).removeClass(
+					'woocommerce-invalid woocommerce-invalid-required-field'
+				);
+			}
 		} );
 
 	// Add terms parameter to UPE if save payment information checkbox is checked.
