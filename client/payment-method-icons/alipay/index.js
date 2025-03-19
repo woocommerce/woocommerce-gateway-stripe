@@ -4,8 +4,12 @@ import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
 
 const Wrapper = styled( IconWithShell )`
-	padding-top: 4px;
-	padding-bottom: 4px;
+	padding: 0;
+	border: none;
+
+	img {
+		outline: 1px solid #ddd;
+	}
 `;
 
 const AlipayIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
