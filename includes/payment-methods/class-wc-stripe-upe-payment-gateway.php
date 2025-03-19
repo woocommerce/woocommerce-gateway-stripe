@@ -2213,6 +2213,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
 				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			} elseif ( is_a( $token, 'WC_Payment_Token_Amazon_Pay' ) ) {
+				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID;
 			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
