@@ -262,9 +262,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
-		// Hide action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
-		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'filter_thankyou_order_received_text' ], 10, 2 );
 	}
 
 	/**
@@ -472,6 +471,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// BLIK LPM Feature flag.
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
+		// BECS Debit LPM Feature flag.
+		$stripe_params['is_becs_debit_enabled'] = WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled();
 
 		// Single Payment Element feature flag + setting.
 		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
@@ -2418,6 +2420,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return '';
 		}
 
+		// Amazon Pay is available as an express checkout method only, for now.
+		// To prevent WooCommerce from rendering it as a standard payment method in checkout, we make
+		// WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_available() return false.
+		// We set the payment method to 'amazon_pay' here, instead of earlier (i.e. passing
+		// 'stripe_amazon_pay' in the POST request) to avoid WooCommerce rejecting the order for
+		// having an "unavailable" payment method type.
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $this->get_express_payment_type_from_request() ) {
+			return WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+
 		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
 	}
 
@@ -2744,8 +2756,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ];
 				case WC_Stripe_Payment_Methods::AMAZON_PAY:
 					return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
-				case 'google_pay':
-				case 'apple_pay':
+				case WC_Stripe_Payment_Methods::GOOGLE_PAY:
+				case WC_Stripe_Payment_Methods::APPLE_PAY:
 				default:
 					return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
 			}
@@ -2946,32 +2958,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Hide "Pay" and "Cancel" action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+	 * Hide "Pay" and "Cancel" action buttons for pending orders if they take a while to be confirmed.
 	 *
 	 * @param $actions array An array with the default actions.
 	 * @param $order WC_Order The order.
 	 * @return array
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), WC_Stripe_Payment_Methods::PAYMENT_METHODS_WITH_DELAYED_VERIFICATION ) && $order->has_status( 'pending' ) ) {
+		$methods_with_delayed_confirmation = [
+			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
+		];
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( 'pending' ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
-	}
-
-	/**
-	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
-	 *
-	 * @param string $text Default text.
-	 * @param WC_Order|bool $order Order data.
-	 * @return string
-	 */
-	public function filter_thankyou_order_received_text( $text, $order ) {
-		if ( is_a( $order, 'WC_Order' ) && $order->get_payment_method_title() === 'Amazon Pay (Stripe)' && $order->has_status( 'pending' ) ) {
-			$text .= '<p class="woocommerce-info">';
-			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
-			$text .= '</p>';
-		}
-		return $text;
 	}
 }

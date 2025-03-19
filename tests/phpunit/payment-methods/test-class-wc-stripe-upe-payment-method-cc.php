@@ -32,19 +32,12 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_title() {
 		return [
-			'Amazon Pay'             => [
-				'settings'        => [],
-				'payment details' => [
-					'type' => WC_Stripe_Payment_Methods::AMAZON_PAY,
-				],
-				'expected'        => 'Amazon Pay (Stripe)',
-			],
 			'Google Pay'             => [
 				'settings'        => [],
 				'payment details' => [
 					'card' => [
 						'wallet' => [
-							'type' => 'google_pay',
+							'type' => WC_Stripe_Payment_Methods::GOOGLE_PAY,
 						],
 					],
 				],
