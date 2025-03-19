@@ -269,9 +269,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		add_action( 'customize_save_after', [ $this, 'clear_appearance_transients' ] );
 		add_action( 'save_post', [ $this, 'clear_appearance_transients_block_theme' ], 10, 2 );
 
-		// Hide action buttons for pending Amazon Pay orders (as they take a while to be confirmed).
+		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
-		add_filter( 'woocommerce_thankyou_order_received_text', [ $this, 'filter_thankyou_order_received_text' ], 10, 2 );
 	}
 
 	/**
@@ -479,6 +478,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// BLIK LPM Feature flag.
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
+
+		// BECS Debit LPM Feature flag.
+		$stripe_params['is_becs_debit_enabled'] = WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled();
 
 		// Single Payment Element feature flag + setting.
 		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
@@ -706,7 +708,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                 = wc_get_order( $order_id );
+		$order                 = WC_Stripe_Order::get_by_id( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
@@ -1408,7 +1410,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.5.0
 	 */
 	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $is_pay_for_order = false ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! is_object( $order ) ) {
 			return;
@@ -2425,6 +2427,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return '';
 		}
 
+		// Amazon Pay is available as an express checkout method only, for now.
+		// To prevent WooCommerce from rendering it as a standard payment method in checkout, we make
+		// WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_available() return false.
+		// We set the payment method to 'amazon_pay' here, instead of earlier (i.e. passing
+		// 'stripe_amazon_pay' in the POST request) to avoid WooCommerce rejecting the order for
+		// having an "unavailable" payment method type.
+		if ( WC_Stripe_Payment_Methods::AMAZON_PAY === $this->get_express_payment_type_from_request() ) {
+			return WC_Stripe_Payment_Methods::AMAZON_PAY;
+		}
+
 		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
 	}
 
@@ -2951,7 +2963,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Hide "Pay" and "Cancel" action buttons for pending Amazon Pay or BACS Debit orders (as they take a while to be confirmed).
+	 * Hide "Pay" and "Cancel" action buttons for pending orders if they take a while to be confirmed.
 	 *
 	 * @param $actions array An array with the default actions.
 	 * @param $order WC_Order The order.
@@ -2959,29 +2971,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function filter_my_account_my_orders_actions( $actions, $order ) {
 		$methods_with_delayed_confirmation = [
-			WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix(),
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
 		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( 'pending' ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
-	}
-
-	/**
-	 * Filter the order received text for Amazon Pay orders, including the delayed confirmation information.
-	 *
-	 * @param string $text Default text.
-	 * @param WC_Order|bool $order Order data.
-	 * @return string
-	 */
-	public function filter_thankyou_order_received_text( $text, $order ) {
-		$amazon_pay_title = WC_Stripe_Payment_Methods::AMAZON_PAY_LABEL . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-		if ( is_a( $order, 'WC_Order' ) && $order->get_payment_method_title() === $amazon_pay_title && $order->has_status( 'pending' ) ) {
-			$text .= '<p class="woocommerce-info">';
-			$text .= esc_html( 'The payment is being processed and it might take a few minutes before it\'s confirmed.' );
-			$text .= '</p>';
-		}
-		return $text;
 	}
 }
