@@ -307,7 +307,8 @@ jQuery( function ( $ ) {
 				removeCashAppLimitNotice();
 			}
 
-			// Because of the form change and that BLIK has a controlled form, we need to remove the invalid classes.
+			// Because the form change triggers WooCommerce form validation and BLIK contains a controlled input,
+			// we need to remove the invalid classes so it's not initially invalid.
 			if (
 				$( '#wc-stripe-blik-code_field input' ).val() === '' &&
 				$( '#wc-stripe-blik-code_field' ).hasClass(
