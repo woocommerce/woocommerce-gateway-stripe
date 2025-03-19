@@ -86,10 +86,12 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 			return null;
 		}
 
+		$interval = 12 * HOUR_IN_SECONDS;
+
 		$retry = new WCS_Retry();
 		$retry->set_order_id( $order_id );
 		$retry->set_rule_id( 1 );
-		$retry->set_time( time() + ( 12 * HOUR_IN_SECONDS ) );
+		$retry->set_time( time() + ( $interval ) );
 		$retry->set_status( 'pending' );
 
 		return $retry;
