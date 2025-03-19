@@ -21,8 +21,10 @@ export const applySinglePaymentElementStyles = () => {
 		)
 		.classList.add( 'single-payment-element' );
 
-	// Style the Stripe iframe to remove the margin.
-	document.querySelector(
+	// Style the Stripe iframe to remove the margin and set width to 100%.
+	const stripeIframe = document.querySelector(
 		'.wcstripe-payment-element iframe'
-	).style.margin = 0;
+	);
+	stripeIframe.style.margin = 0;
+	stripeIframe.style.width = '100%';
 };
