@@ -13,6 +13,7 @@
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
 * Update - Update payment method type for Amazon Pay orders.
+* Fix - Compatibility with email preview in the Auth Requested email
 * Fix - Fix subscription renewal issues for Amazon Pay.
 
 = 9.3.1 - 2025-03-14 =
