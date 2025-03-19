@@ -19,7 +19,7 @@ class WC_Helper_Order {
 	 */
 	public static function delete_order( $order_id ) {
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		// Delete all products in the order.
 		foreach ( $order->get_items() as $item ) {

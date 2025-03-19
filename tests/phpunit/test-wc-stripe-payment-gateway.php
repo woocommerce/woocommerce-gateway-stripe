@@ -634,7 +634,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$locked  = $order_1->lock_payment();
 
 		$this->assertFalse( $locked );
-		$current_lock = $order_1->get_meta( '_stripe_lock_payment' );
+		$current_lock = $order_1->get_lock_payment();
 		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
 
 		$locked = $order_1->lock_payment();
@@ -645,7 +645,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$intent_id = 'pi_123intent';
 
 		$locked       = $order_2->lock_payment( $intent_id );
-		$current_lock = $order_2->get_meta( '_stripe_lock_payment' );
+		$current_lock = $order_2->get_lock_payment();
 
 		$this->assertFalse( $locked );
 		$locked = $order_2->lock_payment( $intent_id );
@@ -706,7 +706,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 		$order->set_currency( 'USD' );
 		$order->set_transaction_id( 'ch_123' );
-		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->set_charge_captured( 'yes' );
 		$order->save();
 		$order_id = $order->get_id();
 

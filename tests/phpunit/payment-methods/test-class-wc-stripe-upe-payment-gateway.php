@@ -2440,7 +2440,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		// Save the failed intent ID to the order
-		$order->update_meta_data( '_stripe_intent_id', $mock_failed_intent->id );
+		$order->set_intent_id( $mock_failed_intent->id );
 		$order->save();
 
 		// Mock that we find an existing failed intent on the order
