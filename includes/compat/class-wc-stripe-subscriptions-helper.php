@@ -56,7 +56,7 @@ class WC_Stripe_Subscriptions_Helper {
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
-					if ( count( $detached_subscriptions ) > 5 ) {
+					if ( count( $detached_subscriptions ) >= 5 ) {
 						break;
 					}
 				}
