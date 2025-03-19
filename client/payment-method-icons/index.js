@@ -1,4 +1,5 @@
 import AlipayIcon from './alipay';
+import BlikIcon from './blik';
 import CreditCardIcon from './cards';
 import GiropayIcon from './giropay';
 import KlarnaIcon from './klarna';
@@ -21,7 +22,7 @@ import BacsDebitIcon from './bacs-debit';
 
 export default {
 	alipay: AlipayIcon,
-	blik: CashAppIcon,
+	blik: BlikIcon,
 	card: CreditCardIcon,
 	giropay: GiropayIcon,
 	klarna: KlarnaIcon,

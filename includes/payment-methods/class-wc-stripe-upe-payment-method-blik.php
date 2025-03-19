@@ -22,7 +22,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_countries      = [ 'PL' ];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
-			'BLIK is a mobile payment method primarily used in Poland. It allows customers to pay using their mobile banking app.',
+			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
 			'woocommerce-gateway-stripe'
 		);
 		$this->supports_deferred_intent = false;

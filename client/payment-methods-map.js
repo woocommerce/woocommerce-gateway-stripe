@@ -316,10 +316,10 @@ if ( isBlikEnabled ) {
 		id: PAYMENT_METHOD_BLIK,
 		label: 'BLIK',
 		description: __(
-			'BLIK is a mobile payment method primarily used in Poland.',
+			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: icons.cashapp,
+		Icon: icons.blik,
 		currencies: [ 'PLN' ],
 	};
 }
