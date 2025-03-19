@@ -24,26 +24,28 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Returns a list of subscriptions that are detached from the customer.
+	 * Loads up to 50 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
 	 *
 	 * @return array
 	 */
-	public static function get_detached_subscriptions() {
+	public static function get_some_detached_subscriptions() {
 		// Check if we have a cached result.
 		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
 		if ( ! empty( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
 
-		$detached_subscriptions = [];
-		$subscriptions          = wcs_get_subscriptions(
+		$subscriptions = wcs_get_subscriptions(
 			[
-				'subscriptions_per_page' => -1,
+				'subscriptions_per_page' => 50,
+				'page'                   => 1,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
 				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
 			]
 		);
+
+		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
@@ -54,6 +56,9 @@ class WC_Stripe_Subscriptions_Helper {
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
+					if ( count( $detached_subscriptions ) >= 5 ) {
+						break;
+					}
 				}
 			}
 		}
