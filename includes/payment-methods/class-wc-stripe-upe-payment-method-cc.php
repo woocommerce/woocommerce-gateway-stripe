@@ -46,6 +46,20 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			return $this->get_card_wallet_type_title( $wallet_type );
 		}
 
+		if ( $this->spe_enabled ) {
+			if ( $payment_details ) { // Setting title for the order details page / thank you page.
+				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+					$payment_method = new $payment_method_class();
+					if ( $payment_method->get_id() === $payment_details->type ) {
+						return $payment_method->get_title();
+					}
+				}
+			}
+
+			// Classic checkout page
+			return __( 'Stripe', 'woocommerce-gateway-stripe' );
+		}
+
 		return parent::get_title();
 	}
 
