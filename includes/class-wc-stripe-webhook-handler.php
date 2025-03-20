@@ -525,15 +525,30 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
-		// The following payment methods are synchronous so does not need to be handle via webhook.
-		if ( ( isset( $notification->data->object->source->type ) && WC_Stripe_Payment_Methods::CARD === $notification->data->object->source->type ) || ( isset( $notification->data->object->source->type ) && 'three_d_secure' === $notification->data->object->source->type ) ) {
+		if ( empty( $notification->data->object ) ) {
+			WC_Stripe_Logger::log( 'Missing charge object in charge.succeeded webhook, Event ID: %s', $notification->id ?? 'unknown' );
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		// https://docs.stripe.com/api/events/types#event_types-charge.succeeded
+		$charge = $notification->data->object;
+
+		// The following payment methods are synchronous so does not need to be handled via webhook.
+		$payment_method_type = $this->get_payment_method_type_from_charge( $charge );
+		$synchronous_methods = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			'three_d_secure',
+		];
+
+		if ( in_array( $payment_method_type, $synchronous_methods, true ) ) {
+			return;
+		}
+
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $charge->id );
 			return;
 		}
 
@@ -545,15 +560,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// setting is enabled, Stripe API still sends a "charge.succeeded" webhook but
 		// the payment has not been captured, yet. This ensures that the payment has been
 		// captured, before completing the payment.
-		if ( ! $notification->data->object->captured ) {
+		if ( ! $charge->captured ) {
 			return;
 		}
 
 		// Store other data such as fees
-		$order->set_transaction_id( $notification->data->object->id );
+		$order->set_transaction_id( $charge->id );
 
-		if ( isset( $notification->data->object->balance_transaction ) ) {
-			$this->update_fees( $order, $notification->data->object->balance_transaction );
+		if ( isset( $charge->balance_transaction ) ) {
+			$this->update_fees( $order, $charge->balance_transaction );
 		}
 
 		/**
@@ -568,10 +583,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * to ensure the review.closed event handler will update the status to the proper status.
 		 */
 		if ( 'manual_review' !== $this->get_risk_outcome( $notification ) ) {
-			$order->payment_complete( $notification->data->object->id );
+			$order->payment_complete( $charge->id );
 
 			/* translators: transaction id */
-			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $charge->id ) );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1357,6 +1372,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Fall back to finding the order via the intent ID.
 		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+	}
+
+	/**
+	 * Get the payment method type from the charge object.
+	 * https://docs.stripe.com/api/charges/object
+	 *
+	 * @param object $charge The charge object from Stripe
+	 * @return string|null The payment method type, or null if not found
+	 */
+	private function get_payment_method_type_from_charge( $charge ) {
+		// We don't expect $charge->source to be set,
+		// but we keep it here to ensure backwards compatibility.
+		if ( isset( $charge->source->type ) ) {
+			return $charge->source->type;
+		}
+
+		if ( isset( $charge->payment_method_details->type ) ) {
+			return $charge->payment_method_details->type;
+		}
+
+		return null;
 	}
 }
 

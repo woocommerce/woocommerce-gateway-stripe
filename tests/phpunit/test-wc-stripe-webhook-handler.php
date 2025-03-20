@@ -54,6 +54,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'get_intent_from_order',
 			'get_latest_charge_from_intent',
 			'process_response',
+			'update_fees',
 		];
 
 		$methods = array_diff( $methods, $exclude_methods );
@@ -622,6 +623,66 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'expected process payment calls' => 0,
 				'expected process payment intent incomplete calls' => 0,
 			],
+		];
+	}
+
+	/**
+	 * Test for `process_webhook_charge_succeeded`, that it is skipped for synchronous payment methods.
+	 *
+	 * @param string $payment_method_type The payment method type.
+	 * @return void
+	 * @dataProvider provide_test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods
+	 */
+	public function test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods( $payment_method_type ) {
+		$charge_id    = 'ch_mock9G5K2X1Q';
+		$notification = (object) [
+			'type' => 'charge.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                     => $charge_id,
+					'payment_method_details' => (object) [
+						'type' => $payment_method_type,
+					],
+					'captured'               => true,
+					'balance_transaction'    => (object) [
+						'fee' => 100,
+					],
+				],
+			],
+		];
+
+		// We want to assert an early return by checking that we don't run the next line, i.e.
+		// retrieving the order by charge ID. However, we are using WC_Stripe_Helper::get_order_by_charge_id()
+		// which is a static method, and phpunit does not natively support mocking static methods.
+
+		// We will instead create the mock order for the charge ID, so we are able to retrieve an order,
+		// and make sure the next few checks pass so that it reaches the line that calls update_fees()
+		// which we can mock and check if it was called.
+		$order = WC_Helper_Order::create_order();
+		$order->set_status( 'on-hold' );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		if ( WC_Stripe_Payment_Methods::SEPA_DEBIT === $payment_method_type ) {
+			$this->mock_webhook_handler->expects( $this->once() )->method( 'update_fees' );
+		} else {
+			$this->mock_webhook_handler->expects( $this->never() )->method( 'update_fees' );
+		}
+
+		$this->mock_webhook_handler->process_webhook_charge_succeeded( $notification );
+	}
+
+	/**
+	 * Provider for `test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_charge_succeeded_skipped_for_synchronous_payment_methods() {
+		return [
+			'card'           => [ WC_Stripe_Payment_Methods::CARD ],
+			'amazon_pay'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
+			'three_d_secure' => [ 'three_d_secure' ],
+			'sepa_debit'     => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
 		];
 	}
 }
