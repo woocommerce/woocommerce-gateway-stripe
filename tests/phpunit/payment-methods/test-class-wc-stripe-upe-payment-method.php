@@ -462,7 +462,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
 		$ach_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
 		$acss_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
-		$becs_debit_method         = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
+		$becs_debit_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
