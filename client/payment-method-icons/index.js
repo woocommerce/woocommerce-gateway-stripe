@@ -18,6 +18,7 @@ import WechatPayIcon from './wechat-pay';
 import CashAppIcon from './cashapp';
 import BankDebitIcon from './bank-debit';
 import BacsDebitIcon from './bacs-debit';
+import StripeIcon from './stripe';
 
 export default {
 	alipay: AlipayIcon,
@@ -42,4 +43,5 @@ export default {
 	bacs_debit: BacsDebitIcon,
 	acss_debit: BankDebitIcon,
 	au_becs_debit: BankDebitIcon,
+	stripe: StripeIcon,
 };
