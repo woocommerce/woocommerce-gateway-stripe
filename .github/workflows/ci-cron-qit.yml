@@ -31,29 +31,3 @@ jobs:
       test-woo-api: true
       test-woo-e2e: true
       test-malware: true
-  
-  #  handle-success:
-  #    if: ${{ success() }}
-  #    needs: qit-tests
-  #    name: Handle success
-  #    runs-on: ubuntu-latest
-  #    env:
-  #      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #    steps:
-  #      - uses: act10ns/slack@v2
-  #        with:
-  #          status: success
-  #          message: "Scheduled workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> passed."
-  
-  #  handle-error:
-  #    if: ${{ failure() }}
-  #    needs: qit-tests
-  #    name: Handle failure
-  #    runs-on: ubuntu-latest
-  #    env:
-  #      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  #    steps:
-  #      - uses: act10ns/slack@v2
-  #        with:
-  #          status: failure
-  #          message: "Scheduled workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> failed. You can find the results in the artifacts section."
