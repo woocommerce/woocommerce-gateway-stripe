@@ -526,7 +526,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
 		if ( empty( $notification->data->object ) ) {
-			WC_Stripe_Logger::log( 'Missing charge object in charge.succeeded webhook' );
+			WC_Stripe_Logger::log( 'Missing charge object in charge.succeeded webhook, Event ID: %s', $notification->id ?? 'unknown' );
 			return;
 		}
 
