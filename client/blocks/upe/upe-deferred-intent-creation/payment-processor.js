@@ -21,9 +21,14 @@ import {
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
+import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
 
 const noop = () => null;
+
 /**
  * Gets the Stripe element options.
  *
@@ -137,9 +142,11 @@ const PaymentProcessor = ( {
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
-		? testingInstructions
-		: '';
+	const testingInstructionsIfAppropriate =
+		getBlocksConfiguration()?.testMode &&
+		! getBlocksConfiguration()?.isSPEEnabled // @todo Temporary disabling testing instructions for SPE.
+			? testingInstructions
+			: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 
@@ -283,8 +290,8 @@ const PaymentProcessor = ( {
 		]
 	);
 
-	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
+		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
@@ -293,6 +300,13 @@ const PaymentProcessor = ( {
 			);
 		} else {
 			removeCashAppLimitNotice();
+		}
+		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
+		if (
+			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
+			getBlocksConfiguration()?.isSPEEnabled
+		) {
+			applySinglePaymentElementStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
 

@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
 * Dev - Implements the new Stripe order class into the PHP unit tests.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).

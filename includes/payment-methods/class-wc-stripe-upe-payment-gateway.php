@@ -2796,6 +2796,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool - True if the payment method is reusable and the saved cards feature is enabled for the gateway and there is no subscription item in the cart, false otherwise.
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
+		if ( $this->spe_enabled ) { // @todo Temporary disabling saving payment methods for SPE.
+			return false;
+		}
+
 		if ( $payment_method->is_reusable() ) {
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();
