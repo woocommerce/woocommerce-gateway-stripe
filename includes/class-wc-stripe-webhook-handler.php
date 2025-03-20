@@ -535,16 +535,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// The following payment methods are synchronous so does not need to be handled via webhook.
 		$payment_method_type = $this->get_payment_method_type_from_charge( $charge );
-		if (
-			in_array(
-				$payment_method_type,
-				[
-					WC_Stripe_Payment_Methods::CARD,
-					WC_Stripe_Payment_Methods::AMAZON_PAY,
-					'three_d_secure',
-				],
-				true
-			) ) {
+		$synchronous_methods = [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			'three_d_secure',
+		];
+
+		if ( in_array( $payment_method_type, $synchronous_methods, true ) ) {
 			return;
 		}
 
