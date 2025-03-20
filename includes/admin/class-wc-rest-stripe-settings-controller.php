@@ -35,6 +35,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Constructor.
 	 *
 	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 * @param WC_Stripe_API     $stripe_api Stripe API.
 	 */
 	public function __construct( WC_Gateway_Stripe $gateway, WC_Stripe_API $stripe_api ) {
 		$this->gateway = $gateway;
@@ -253,15 +254,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configuration();
 
-		foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-			if ( is_object( $payment_method ) &&
-				property_exists( $payment_method, 'display_preference' ) &&
-				property_exists( $payment_method->display_preference, 'preference' ) ) {
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( is_object( $payment_method ) &&
+					property_exists( $payment_method, 'display_preference' ) &&
+					property_exists( $payment_method->display_preference, 'value' ) ) {
 
-				$payment_method_status = 'on' === $payment_method->display_preference->preference;
+					$payment_method_status = 'on' === $payment_method->display_preference->value;
 
-				if ( $payment_method_status ) {
-					$enabled_payment_method_ids[] = $payment_method_id;
+					if ( $payment_method_status ) {
+						$enabled_payment_method_ids[] = $payment_method_id;
+					}
 				}
 			}
 		}
@@ -417,8 +420,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return array|null
 	 */
 	private function get_merchant_payment_method_configuration() {
-		$payment_method_configurations =
-			property_exists( $this->stripe_api->get_payment_method_configurations(), 'data' ) ? $this->stripe_api->get_payment_method_configurations()->data : null;
+		$payment_method_configurations = $this->stripe_api->get_payment_method_configurations() && property_exists( $this->stripe_api->get_payment_method_configurations(), 'data' )
+			? $this->stripe_api->get_payment_method_configurations()->data
+			: null;
 
 		if ( ! $payment_method_configurations ) {
 			return null;

@@ -81,7 +81,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		}
 
 		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Gateway_Stripe(), $this->stripe_api );
+		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway(), $this->stripe_api );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
@@ -98,9 +98,60 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Mock the payment method configurations.
+	 *
+	 * @param array $enabled_payment_method_ids
+	 * @param array $disabled_payment_method_ids
+	 */
+	private function mock_payment_method_configurations( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
+		$payment_method_configuration = [
+			'id'       => 'pmc_abcdef',
+			'object'   => 'payment_method_configuration',
+			'active'   => true,
+			'parent'   => true,
+		];
+
+		foreach ( $enabled_payment_method_ids as $payment_method ) {
+			$payment_method_configuration[ $payment_method ] = (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			];
+		}
+
+		foreach ( $disabled_payment_method_ids as $payment_method ) {
+			$payment_method_configuration[ $payment_method ] = (object) [
+				'display_preference' => (object) [ 'value' => 'off' ],
+			];
+		}
+
+		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
+			(object) [
+				'data' => [
+					(object) $payment_method_configuration,
+				],
+			],
+		);
+	}
+
+	/**
 	 * @dataProvider stripe_payment_method_configurations_provider
 	 */
-	public function test_stripe_payment_method_configurations_settings( $payment_method, $display_preference, $expected_result, $rest_key ) {
+	public function test_get_stripe_payment_method_configurations_settings( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+		$this->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
+
+		$response = $this->controller->get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		foreach ( $enabled_payment_method_ids as $payment_method ) {
+			$this->assertContains( $payment_method, $response->get_data()['enabled_payment_method_ids'] );
+		}
+		foreach ( $disabled_payment_method_ids as $payment_method ) {
+			$this->assertNotContains( $payment_method, $response->get_data()['enabled_payment_method_ids'] );
+		}
+	}
+
+	/**
+	 * Test that the update_settings method updates the payment method configurations settings.
+	 */
+	public function test_update_stripe_payment_method_configurations_settings() {
 		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
 			(object) [
 				'data' => [
@@ -109,18 +160,36 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 						'object'   => 'payment_method_configuration',
 						'active'   => true,
 						'parent'   => true,
-						$payment_method => (object) [
-							'display_preference' => (object) [ 'value' => $display_preference ],
-						],
 					],
 				],
 			],
 		);
 
-		$response = $this->controller->get_settings();
+		$this->stripe_api->method( 'update_payment_method_configurations' )->with(
+			$this->equalTo( 'pmc_abcdef' ),
+			$this->equalTo(
+				[
+					'amazon_pay' => [
+						'display_preference' => (object) [ 'value' => 'on' ],
+					],
+					'card'       => [
+						'display_preference' => (object) [ 'value' => 'on' ],
+					],
+					'boleto'     => [
+						'display_preference' => (object) [ 'preference' => 'on' ],
+					],
+					'link'       => [
+						'display_preference' => (object) [ 'preference' => 'off' ],
+					],
+				]
+			),
+		);
 
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+
+		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected_result, $response->get_data()[ $rest_key ] );
 	}
 
 	/**
@@ -363,13 +432,15 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
 		$cb = $this->create_can_manage_woocommerce_cap_override( false );
 		add_filter( 'user_has_cap', $cb );
-		$response = $this->rest_get_settings();
+		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
+		$response = rest_do_request( $request );
 		$this->assertEquals( 403, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
 
 		$cb = $this->create_can_manage_woocommerce_cap_override( true );
 		add_filter( 'user_has_cap', $cb );
-		$response = $this->rest_get_settings();
+		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
+		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
 	}
@@ -418,21 +489,15 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function stripe_payment_method_configurations_provider() {
 		return [
-			'amazon_pay' => [ 'amazon_pay', 'on', true, 'is_amazon_pay_enabled' ],
-			'amazon_pay' => [ 'amazon_pay', 'off', false, 'is_amazon_pay_enabled' ],
+			'amazon_pay' => [ [ 'amazon_pay' ], [] ],
+			'amazon_pay' => [ [], [ 'amazon_pay' ] ],
+			'card'       => [ [ 'card', 'link' ], [] ],
+			'card'       => [ [], [ 'card', 'link' ] ],
 		];
 	}
 
 	public function enum_field_provider() {
 		return [
-			'enabled_payment_method_ids'       => [
-				'enabled_payment_method_ids',
-				'upe_checkout_experience_accepted_payments',
-				[ WC_Stripe_Payment_Methods::CARD ],
-				[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::ALIPAY ],
-				[ 'foo' ],
-				true,
-			],
 			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
 				'payment_request_button_theme',
@@ -502,7 +567,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	private function rest_get_settings() {
 		$request = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 
-		return rest_do_request( $request );
+		return $this->controller->get_settings( $request );
 	}
 
 	/**

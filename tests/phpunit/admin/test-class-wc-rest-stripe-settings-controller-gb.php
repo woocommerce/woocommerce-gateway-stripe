@@ -24,6 +24,20 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	private static $gateway;
 
 	/**
+	 * Controller instance
+	 *
+	 * @var WC_REST_Stripe_Settings_Controller
+	 */
+	private $controller;
+
+	/**
+	 * Stripe API instance that the controller uses.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private $stripe_api;
+
+	/**
 	 * Enable UPE and store gateway instance.
 	 *
 	 * We are doing this here because if we did it in set_up(), the method body would get called before every single test
@@ -82,6 +96,25 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
+
+		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
+		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway(), $this->stripe_api );
+
+		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
+			(object) [
+				'data' => [
+					(object) [
+						'id'       => 'pmc_abcdef',
+						'object'   => 'payment_method_configuration',
+						'active'   => true,
+						'parent'   => true,
+						'card'     => (object) [
+							'display_preference' => (object) [ 'value' => 'on' ],
+						],
+					],
+				],
+			],
+		);
 
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
@@ -152,7 +185,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	private function rest_get_settings() {
 		$request = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 
-		return rest_do_request( $request );
+		return $this->controller->get_settings( $request );
 	}
 
 	/**
