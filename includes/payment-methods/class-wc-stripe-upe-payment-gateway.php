@@ -645,7 +645,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $this->testmode ) : ?>
+			<?php
+			// @todo Temporarily disabling test instructions when SPE is enabled.
+			if ( $this->testmode && ! $this->spe_enabled ) :
+				?>
 				<p class="testmode-info">
 					<?php
 					printf(
