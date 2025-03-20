@@ -1,4 +1,4 @@
-name: Build nad Upload Package
+name: Build and Upload Package
 
 on:
   workflow_call:
