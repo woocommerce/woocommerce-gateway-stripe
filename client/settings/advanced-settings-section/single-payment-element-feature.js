@@ -2,17 +2,17 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import { CheckboxControl, ExternalLink } from '@wordpress/components';
 import React, { useEffect } from 'react';
-import { useIsSpeEnabled, useIsUpeEnabled } from '../../data';
+import { useIsSPEEnabled, useIsUpeEnabled } from '../../data';
 
 const SinglePaymentElementFeature = () => {
-	const [ isSpeEnabled, setIsSpeEnabled ] = useIsSpeEnabled();
+	const [ isSPEEnabled, setIsSPEEnabled ] = useIsSPEEnabled();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
 
 	useEffect( () => {
 		if ( ! isUpeEnabled ) {
-			setIsSpeEnabled( false );
+			setIsSPEEnabled( false );
 		}
-	}, [ isUpeEnabled, setIsSpeEnabled ] );
+	}, [ isUpeEnabled, setIsSPEEnabled ] );
 
 	return (
 		<>
@@ -39,8 +39,8 @@ const SinglePaymentElementFeature = () => {
 						),
 					}
 				) }
-				checked={ isSpeEnabled }
-				onChange={ setIsSpeEnabled }
+				checked={ isSPEEnabled }
+				onChange={ setIsSPEEnabled }
 				disabled={ ! isUpeEnabled }
 			/>
 		</>

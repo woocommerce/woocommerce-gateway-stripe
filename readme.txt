@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
+* Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
 * Dev - Implements the new Stripe order class into the PHP unit tests.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
 * Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
@@ -118,12 +120,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
+* Add - Implements the Single Payment Element feature for the new checkout experience on the classic/shortcode checkout page.
 * Tweak - Record a Tracks event when enabling/disabling SPE
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
-* Fix - Fix variable dump in ACH customer error message when retrying a payment.
+* Fix - Prevent reuse of payment intents when order total doesn't match intent amount.
 * Update - Update payment method type for Amazon Pay orders.
+* Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

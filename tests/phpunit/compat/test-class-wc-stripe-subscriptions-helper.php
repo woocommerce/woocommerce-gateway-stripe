@@ -19,11 +19,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `get_detached_subscriptions`.
+	 * Test for `get_some_detached_subscriptions`.
 	 *
 	 * @return void
 	 */
-	public function test_get_detached_subscriptions() {
+	public function test_get_some_detached_subscriptions() {
 		$subscription_id = 1;
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
@@ -61,11 +61,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 			],
 		];
-		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
+		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions() );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 
 		// Test cached version
-		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
+		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions() );
 	}
 }
