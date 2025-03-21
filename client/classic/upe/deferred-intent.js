@@ -17,6 +17,7 @@ import {
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
+import { applySinglePaymentElementStyles } from 'wcstripe/classic/upe/apply-single-payment-element-styles';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
@@ -113,6 +114,10 @@ jQuery( function ( $ ) {
 			}
 
 			await mountStripePaymentElement( api, upeElement );
+		}
+
+		if ( getStripeServerData()?.isSPEEnabled ) {
+			applySinglePaymentElementStyles();
 		}
 	}
 
