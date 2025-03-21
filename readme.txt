@@ -128,5 +128,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent reuse of payment intents when order total doesn't match intent amount.
 * Update - Update payment method type for Amazon Pay orders.
 * Fix - Compatibility with email preview in the Auth Requested email
+* Update - Update Alipay and bank debit icons.
+* Tweak - Update payment method type check for charge.succeeded webhook.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
