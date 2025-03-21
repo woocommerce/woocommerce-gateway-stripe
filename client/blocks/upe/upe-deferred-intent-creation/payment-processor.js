@@ -21,11 +21,9 @@ import {
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
-import {
-	PAYMENT_METHOD_CARD,
-	PAYMENT_METHOD_CASHAPP,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
+import { handleDisplayOfSavingCheckboxForSpe } from 'wcstripe/blocks/upe/handle-display-of-saving-checkbox-for-spe';
 
 const noop = () => null;
 
@@ -290,8 +288,8 @@ const PaymentProcessor = ( {
 		]
 	);
 
+	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
-		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
@@ -302,10 +300,7 @@ const PaymentProcessor = ( {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
-		if (
-			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
-			getBlocksConfiguration()?.isSPEEnabled
-		) {
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
 			applySinglePaymentElementStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
@@ -330,6 +325,9 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			handleDisplayOfSavingCheckboxForSpe( value.type );
+		}
 	};
 
 	return (
