@@ -20,6 +20,11 @@ describe( 'applySinglePaymentElementStyles', () => {
 		);
 		expect( paymentMethodOptions.length ).toBe( 1 );
 
+		const paymentMethodStripeOption = document.querySelector(
+			'.wc-block-components-radio-control__option'
+		);
+		expect( paymentMethodStripeOption.style.display ).toBe( 'none' );
+
 		const stripeContent = document.getElementById(
 			'radio-control-wc-payment-method-options-stripe__content'
 		);
