@@ -8,7 +8,7 @@ import { Reorder } from 'framer-motion';
 import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
-import { PaymentMethod } from './payment-method';
+import PaymentMethod from './payment-method';
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
