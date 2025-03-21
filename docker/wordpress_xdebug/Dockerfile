@@ -3,9 +3,7 @@ RUN pecl install xdebug-3.1.6 \
 	&& echo 'xdebug.mode=off' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.start_with_request=yes' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.client_host=host.docker.internal' >> $PHP_INI_DIR/php.ini \
-	&& echo 'xdebug.discover_client_host=1' >> $PHP_INI_DIR/php.ini \
-	&& echo 'xdebug.client_port=9000' >> $PHP_INI_DIR/php.ini \
-	&& echo 'xdebug.log=/tmp/xdebug.log' >> $PHP_INI_DIR/php.ini \
+	&& echo 'xdebug.client_port=9009' >> $PHP_INI_DIR/php.ini \
 	&& docker-php-ext-enable xdebug
 RUN apt-get update \
 	&& apt-get install --assume-yes --quiet --no-install-recommends gnupg2 subversion mariadb-client less jq
