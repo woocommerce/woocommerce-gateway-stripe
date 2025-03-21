@@ -1,3 +1,5 @@
+const SINGLE_PAYMENT_ELEMENT_CLASS = 'single-payment-element';
+
 export const applySinglePaymentElementStyles = () => {
 	// Hide the Stripe radio button when it is the only available payment method.
 	const paymentMethodOptions = document.querySelectorAll(
@@ -14,12 +16,12 @@ export const applySinglePaymentElementStyles = () => {
 		.getElementById(
 			'radio-control-wc-payment-method-options-stripe__content'
 		)
-		.classList.add( 'single-payment-element' );
+		.classList.add( SINGLE_PAYMENT_ELEMENT_CLASS );
 	document
 		.getElementById(
 			'radio-control-wc-payment-method-options-stripe__label'
 		)
-		.classList.add( 'single-payment-element' );
+		.classList.add( SINGLE_PAYMENT_ELEMENT_CLASS );
 
 	// Style the Stripe iframe to remove the margin and set width to 100%.
 	const stripeIframe = document.querySelector(
