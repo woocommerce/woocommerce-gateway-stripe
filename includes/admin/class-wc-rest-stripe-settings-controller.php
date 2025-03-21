@@ -417,12 +417,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
-	 * @return array|null
+	 * @return object|null
 	 */
 	private function get_merchant_payment_method_configuration() {
-		$payment_method_configurations = $this->stripe_api->get_payment_method_configurations() && property_exists( $this->stripe_api->get_payment_method_configurations(), 'data' )
-			? $this->stripe_api->get_payment_method_configurations()->data
-			: null;
+		$result = $this->stripe_api->get_payment_method_configurations();
+		$payment_method_configurations = $result->data ?? null;
 
 		if ( ! $payment_method_configurations ) {
 			return null;
