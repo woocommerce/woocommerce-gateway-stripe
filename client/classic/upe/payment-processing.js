@@ -267,18 +267,18 @@ function createStripePaymentMethod(
 	}
 
 	// BLIK uses a controlled form instead of Stripe Elements.
-	const paymentMethodParams =
+	const paymentMethodData =
 		paymentMethodType === PAYMENT_METHOD_BLIK
 			? {
-					type: paymentMethodType,
 					billing_details: params?.billing_details,
 					blik: {},
+					type: paymentMethodType,
 			  }
 			: { elements, params };
 
 	return api
 		.getStripe( paymentMethodType )
-		.createPaymentMethod( paymentMethodParams )
+		.createPaymentMethod( paymentMethodData )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
 				throw paymentMethod.error;
