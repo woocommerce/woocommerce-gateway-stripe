@@ -121,7 +121,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
-
 		update_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME, 'yes' );
 
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
@@ -194,7 +193,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
-
 		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
 	}
 
