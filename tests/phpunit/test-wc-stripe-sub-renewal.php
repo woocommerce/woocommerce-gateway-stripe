@@ -10,6 +10,8 @@
  * @package     WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Renewal_Test
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * WC_Stripe_Subscription_Renewal_Test
  */
@@ -234,7 +236,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as processing (this is done in process_response()).
-		$this->assertEquals( $order->get_status(), 'processing' );
+		$this->assertEquals( $order->get_status(), OrderStatus::PROCESSING );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
@@ -352,7 +354,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as failed.
-		$this->assertEquals( $order->get_status(), 'failed' );
+		$this->assertEquals( $order->get_status(), OrderStatus::FAILED );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );

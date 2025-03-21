@@ -25,6 +25,7 @@ export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
 export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
+export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 
 /**
  * Payment method names constants with the `stripe` prefix
@@ -50,11 +51,13 @@ export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
+export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
 		card: PAYMENT_METHOD_STRIPE_CARD,
 		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
+		au_becs_debit: PAYMENT_METHOD_STRIPE_BECS,
 		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,

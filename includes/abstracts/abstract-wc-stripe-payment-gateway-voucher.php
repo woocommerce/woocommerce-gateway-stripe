@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -262,7 +265,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$intent = $this->create_or_update_payment_intent( $order );
 
 			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
@@ -283,7 +286,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 			$statuses = apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ],
+				[ OrderStatus::PENDING, OrderStatus::FAILED ],
 				$order
 			);
 
@@ -382,7 +385,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
 			$order->save();
 
