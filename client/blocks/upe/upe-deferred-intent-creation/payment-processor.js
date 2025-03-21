@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
+import { ValidatedTextInput } from '@woocommerce/blocks-checkout';
 import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
@@ -21,9 +22,13 @@ import {
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import {
+	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
 
 const noop = () => null;
+
 /**
  * Gets the Stripe element options.
  *
@@ -93,6 +98,23 @@ export function validateElements( elements ) {
 }
 
 /**
+ * Validates the BLIK code input before submitting checkout.
+ * If an error occurs, the function removes loading effect from the provided jQuery form and thus unblocks it,
+ * and shows an error message in the checkout.
+ *
+ * @return {void}
+ */
+export function validateBlikCode() {
+	const code = document?.querySelector( '#wc-stripe-blik-code' )?.value;
+
+	if ( ! /[0-9]{6}/.test( code ) ) {
+		throw new Error(
+			__( 'BLIK code is invalid', 'woocommerce-gateway-stripe' )
+		);
+	}
+}
+
+/**
  * Renders the payment processor for the Stripe UPE payment method with deferred intent creation.
  *
  * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
@@ -142,6 +164,8 @@ const PaymentProcessor = ( {
 		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
+	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
+	const [ blikCode, setBlikCode ] = useState( '' );
 
 	// Make sure shouldSavePayment is set to true if the cart contains a subscription.
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
@@ -176,7 +200,8 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					if ( ! isPaymentElementComplete ) {
+					// BLIK is a special case which is not handled through the Stripe element.
+					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
 						return {
 							type: 'error',
 							message: __(
@@ -206,29 +231,38 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					await validateElements( elements );
+					if ( isBlikSelected ) {
+						validateBlikCode();
+					} else {
+						await validateElements( elements );
+					}
 
 					const billingAddress = billing.billingAddress;
+					const params = {
+						billing_details: {
+							name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
+							email: billingAddress.email,
+							phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
+							address: {
+								city: billingAddress.city,
+								country: billingAddress.country,
+								line1: billingAddress.address_1,
+								line2: billingAddress.address_2,
+								postal_code: billingAddress.postcode,
+								state: billingAddress.state,
+							},
+						},
+					};
+					const paymentMethodData = isBlikSelected
+						? {
+								billing_details: params.billing_details,
+								blik: {},
+								type: selectedPaymentMethodType,
+						  }
+						: { elements, params };
 					const paymentMethodObject = await api
 						.getStripe()
-						.createPaymentMethod( {
-							elements,
-							params: {
-								billing_details: {
-									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
-									email: billingAddress.email,
-									phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
-									address: {
-										city: billingAddress.city,
-										country: billingAddress.country,
-										line1: billingAddress.address_1,
-										line2: billingAddress.address_2,
-										postal_code: billingAddress.postcode,
-										state: billingAddress.state,
-									},
-								},
-							},
-						} );
+						.createPaymentMethod( paymentMethodData );
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -237,10 +271,19 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					const dynamicPaymentData = isBlikSelected
+						? {
+								'wc-stripe-blik-code': document?.querySelector(
+									'#wc-stripe-blik-code'
+								)?.value,
+						  }
+						: {};
+
 					return {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
+								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-is-deferred-intent': true,
@@ -280,6 +323,8 @@ const PaymentProcessor = ( {
 			isPaymentElementComplete,
 			billing.billingAddress,
 			paymentIntentId,
+			selectedPaymentMethodType,
+			isBlikSelected,
 		]
 	);
 
@@ -332,12 +377,51 @@ const PaymentProcessor = ( {
 					__html: testingInstructionsIfAppropriate,
 				} }
 			/>
-			<PaymentElement
-				options={ getStripeElementOptions() }
-				onChange={ onSelectedPaymentMethodChange }
-				onLoadError={ setHasLoadError }
-				className="wcstripe-payment-element"
-			/>
+			{ isBlikSelected ? (
+				<>
+					<ValidatedTextInput
+						id="wc-stripe-blik-code"
+						label="BLIK Code"
+						maxLength={ 6 }
+						onChange={ setBlikCode }
+						pattern="[0-9]{6}"
+						value={ blikCode }
+						customValidityMessage={ ( validity ) => {
+							if ( validity.valueMissing ) {
+								return __(
+									'Please enter a valid BLIK code',
+									'woocommerce-gateway-stripe'
+								);
+							}
+
+							if ( validity.patternMismatch ) {
+								return __(
+									'BLIK code is invalid',
+									'woocommerce-gateway-stripe'
+								);
+							}
+						} }
+						required
+					/>
+					<p
+						style={ {
+							marginTop: 'var(--wp--preset--spacing--50)',
+						} }
+					>
+						{ __(
+							'After submitting your order, please authorize the payment in your mobile banking application.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</>
+			) : (
+				<PaymentElement
+					options={ getStripeElementOptions() }
+					onChange={ onSelectedPaymentMethodChange }
+					onLoadError={ setHasLoadError }
+					className="wcstripe-payment-element"
+				/>
+			) }
 		</>
 	);
 };
