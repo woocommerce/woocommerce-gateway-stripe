@@ -43,6 +43,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
+		WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
 	];
 
 	/**
@@ -186,6 +187,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Consider Bacs only if the feature is enabled.
 				if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+					continue;
+				}
+
+				// Show BECS Debit only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
 					continue;
 				}
 
