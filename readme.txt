@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the express checkout classes.
+* Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
 * Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
