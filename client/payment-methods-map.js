@@ -312,7 +312,7 @@ if ( isBacsEnabled ) {
 
 // Enable BECS Debit according to feature flag value.
 if ( isBecsDebitEnabled ) {
-	paymentMethodsMap.becs_debit = {
+	paymentMethodsMap.au_becs_debit = {
 		id: PAYMENT_METHOD_BECS,
 		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
