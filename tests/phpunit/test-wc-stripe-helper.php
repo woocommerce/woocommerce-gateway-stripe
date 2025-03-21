@@ -6,6 +6,8 @@
  * @package WooCommerce_Stripe/Tests/Helper
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * WC_Stripe_Helper_Test class.
  */
@@ -231,12 +233,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		return [
 			'regular table' => [
 				'custom orders table' => false,
-				'status'              => 'completed',
+				'status'              => OrderStatus::COMPLETED,
 				'success'             => true,
 			],
 			'trashed order' => [
 				'custom orders table' => false,
-				'status'              => 'trash',
+				'status'              => OrderStatus::TRASH,
 				'success'             => false,
 			],
 		];

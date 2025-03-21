@@ -104,6 +104,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
 
+	options = {
+		appearance: initializeUPEAppearance( api ),
+		paymentMethodCreation: 'manual',
+		fonts: getFontRulesFromPage(),
+	};
+
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
 		try {
@@ -138,9 +144,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
 		options = {
-			appearance: initializeUPEAppearance( api ),
-			paymentMethodCreation: 'manual',
-			fonts: getFontRulesFromPage(),
+			...options,
 			clientSecret: intent.client_secret,
 		};
 	} else {
@@ -148,14 +152,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 
 		options = {
+			...options,
 			mode: amount < 1 ? 'setup' : 'payment',
 			currency: getStripeServerData()?.currency.toLowerCase(),
 			amount,
-			paymentMethodCreation: 'manual',
-			paymentMethodTypes,
-			appearance: initializeUPEAppearance( api ),
-			fonts: getFontRulesFromPage(),
 		};
+
+		if ( getStripeServerData()?.isSPEEnabled ) {
+			options = {
+				...options,
+				paymentMethodConfiguration: 'pmc_...',
+			};
+		} else {
+			options = {
+				...options,
+				paymentMethodTypes,
+			};
+		}
 	}
 
 	const elements = api.getStripe().elements( options );
@@ -175,6 +188,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			applePay: 'never',
 			googlePay: 'never',
 		},
+		layout: 'accordion',
 	} );
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;

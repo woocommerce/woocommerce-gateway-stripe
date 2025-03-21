@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -44,6 +46,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
+		WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
 	];
 
 	/**
@@ -165,43 +168,56 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
-		$this->payment_methods = [];
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
+		$this->spe_enabled = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 
-			// Show ACH only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show ACSS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
-				continue;
-			}
-
-			// Consider Bacs only if the feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show BLIK only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
-				continue;
-			}
-
-			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-			 */
-			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
-				continue;
-			}
-
-			// Show giropay only on the orders page to allow refunds. It was deprecated.
-			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
-				continue;
-			}
-
-			$payment_method                                     = new $payment_method_class();
+		if ( $this->spe_enabled ) {
+			$payment_method                                     = new WC_Stripe_UPE_Payment_Method_CC();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+		} else {
+			$this->payment_methods = [];
+			foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+
+				// Show ACH only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+					continue;
+				}
+
+				// Show ACSS only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+					continue;
+				}
+
+				// Consider Bacs only if the feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+					continue;
+				}
+
+				// Show BECS Debit only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
+					continue;
+				}
+
+        // Show BLIK only if feature is enabled.
+        if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
+          continue;
+        }
+
+				/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+				 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+				 */
+				if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+					continue;
+				}
+
+				// Show giropay only on the orders page to allow refunds. It was deprecated.
+				if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
+					continue;
+				}
+
+				$payment_method                                     = new $payment_method_class();
+				$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+			}
 		}
 
 		$this->intent_controller        = new WC_Stripe_Intent_Controller();
@@ -219,13 +235,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		$main_settings                       = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                         = $this->payment_methods['card']->get_title();
 		$this->description                   = $this->payment_methods['card']->get_description();
 		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
 		$this->spe_enabled                   = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
+		$this->saved_cards                   = ! $this->spe_enabled && 'yes' === $this->get_option( 'saved_cards' ); // @todo Temporarily disabling saving of methods when SPE is enabled
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -644,7 +659,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $this->testmode ) : ?>
+			<?php
+			// @todo Temporarily disabling test instructions when SPE is enabled.
+			if ( $this->testmode && ! $this->spe_enabled ) :
+				?>
 				<p class="testmode-info">
 					<?php
 					printf(
@@ -804,7 +822,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
-				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
@@ -1104,7 +1122,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 		$order->update_status(
-			'failed',
+			OrderStatus::FAILED,
 			/* translators: localized exception message */
 			sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
 		);
@@ -1269,7 +1287,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			/* translators: error message */
-			$order->update_status( 'failed' );
+			$order->update_status( OrderStatus::FAILED );
 
 			return [
 				'result'   => 'fail',
@@ -1427,7 +1445,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] ) ) {
 			return;
 		}
 
@@ -1443,7 +1461,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			/* translators: localized exception message */
-			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			wc_add_notice( $e->getMessage(), 'error' );
 
@@ -2723,6 +2741,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return null;
 		}
 
+		// Check if the order total matches the existing intent amount.
+		$order_total = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		if ( $order_total !== $intent->amount ) {
+			return null;
+		}
+
 		// Check if the status of the intent still allows update.
 		if ( in_array( $intent->status, [ WC_Stripe_Intent_Status::CANCELED, WC_Stripe_Intent_Status::SUCCEEDED ], true ) ) {
 			return null;
@@ -2747,7 +2771,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string $selected_payment_type The payment type the shopper selected, if any.
 	 * @param int    $order_id              ID of the WC order we're handling.
 	 * @param string|null $express_payment_type  The express payment type, if any.
-	 * @param string|null $payment_method_type  The payment method type, if any.
 	 *
 	 * @return array
 	 */
@@ -2808,6 +2831,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool - True if the payment method is reusable and the saved cards feature is enabled for the gateway and there is no subscription item in the cart, false otherwise.
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
+		if ( $this->spe_enabled ) { // @todo Temporary disabling saving payment methods for SPE.
+			return false;
+		}
+
 		if ( $payment_method->is_reusable() ) {
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();
@@ -2891,12 +2918,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string The redirect URL.
 	 */
 	protected function get_redirect_url( $return_url, $payment_intent, $payment_information, $order, $payment_needed ) {
+		$selected_payment_type = $this->spe_enabled ? $payment_information['payment_method_details']->type : $payment_information['selected_payment_type'];
 		if ( isset( $payment_intent->payment_method_types ) && count( array_intersect( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, $payment_intent->payment_method_types ) ) !== 0 ) {
 			// For Voucher payment method types (Boleto/Oxxo/Multibanco), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			return sprintf(
 				'#wc-stripe-voucher-%s:%s:%s:%s',
 				$order->get_id(),
-				$payment_information['selected_payment_type'],
+				$selected_payment_type,
 				$payment_intent->client_secret,
 				rawurlencode( $return_url )
 			);
@@ -2905,7 +2933,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return sprintf(
 				'#wc-stripe-wallet-%s:%s:%s:%s:%s:%s',
 				$order->get_id(),
-				$payment_information['selected_payment_type'],
+				$selected_payment_type,
 				$payment_intent->object,
 				$payment_intent->client_secret,
 				rawurlencode( $return_url ),
@@ -2986,7 +3014,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( 'pending' ) ) {
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;

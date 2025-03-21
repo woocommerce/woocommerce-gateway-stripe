@@ -133,6 +133,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'wechat_pay_payments'          => 'inactive',
 		'us_bank_account_ach_payments' => 'inactive',
 		'bacs_debit_payments'          => 'inactive',
+		'au_becs_debit_payments'       => 'inactive',
 	];
 
 	/**
@@ -163,6 +164,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'acss_debit_payments'          => 'active',
 		'us_bank_account_ach_payments' => 'active',
 		'bacs_debit_payments'          => 'active',
+		'au_becs_debit_payments'       => 'active',
 	];
 
 	/**
@@ -291,6 +293,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_acss_details       = [
 			'type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
+		$mock_becs_debit_details = [
+			'type' => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		];
 
 		$blik_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BLIK ];
 		$card_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
@@ -307,6 +312,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
 		$ach_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
 		$acss_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		$becs_debit_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_id() );
 		$this->assertEquals( 'BLIK', $blik_method->get_label() );
@@ -430,6 +436,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertTrue( $acss_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACSS_DEBIT, $acss_method->get_retrievable_type() );
 		$this->assertEquals( '', $acss_method->get_testing_instructions() );
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::BECS_DEBIT, $becs_debit_method->get_id() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_label() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title( $mock_becs_debit_details ) );
+		$this->assertFalse( $becs_debit_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::BECS_DEBIT, $becs_debit_method->get_retrievable_type() );
+		$this->assertEquals( '', $becs_debit_method->get_testing_instructions() );
 	}
 
 	/**
@@ -463,6 +477,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
 		$ach_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
 		$acss_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		$becs_debit_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $blik_method->is_enabled_at_checkout() );
@@ -481,6 +496,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $ach_method->is_enabled_at_checkout() );
 		$this->assertFalse( $acss_method->is_enabled_at_checkout() );
+		$this->assertFalse( $becs_debit_method->is_enabled_at_checkout() );
 	}
 
 	/**
@@ -713,6 +729,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$payment_method_ids = [
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
 			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::KLARNA,
