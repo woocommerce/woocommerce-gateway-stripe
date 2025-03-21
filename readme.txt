@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
 * Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).

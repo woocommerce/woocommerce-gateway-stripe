@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Admin\Overrides\OrderRefund;
+use Automattic\WooCommerce\Enums\OrderStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -570,7 +571,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * that are asynchronous may take couple days to clear. Webhook will
 			 * take care of the status changes.
 			 */
-			if ( 'pending' === $response->status ) {
+			if ( OrderStatus::PENDING === $response->status ) {
 				$order_stock_reduced = $order->get_meta( '_order_stock_reduced', true );
 
 				if ( ! $order_stock_reduced ) {
@@ -579,7 +580,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 				$order->set_transaction_id( $response->id );
 				/* translators: transaction id */
-				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
+				$order->update_status( OrderStatus::ON_HOLD, sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
 
 			if ( 'succeeded' === $response->status ) {
@@ -619,12 +620,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		} else {
 			$order->set_transaction_id( $response->id );
 
-			if ( $order->has_status( [ 'pending', 'failed' ] ) ) {
+			if ( $order->has_status( [ OrderStatus::PENDING, OrderStatus::FAILED ] ) ) {
 				wc_reduce_stock_levels( $order_id );
 			}
 
 			/* translators: transaction id */
-			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization. Refunding is unavailable until payment has been captured.', 'woocommerce-gateway-stripe' ), $response->id ) );
+			$order->update_status( OrderStatus::ON_HOLD, sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization. Refunding is unavailable until payment has been captured.', 'woocommerce-gateway-stripe' ), $response->id ) );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -657,8 +658,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// will trigger its own failed order email.
 		if (
 			isset( $status_update['to'], $status_update['from'] ) &&
-			'failed' === $status_update['to'] &&
-			in_array( $status_update['from'], [ 'on-hold', 'pending' ], true )
+			OrderStatus::FAILED === $status_update['to'] &&
+			in_array( $status_update['from'], [ OrderStatus::ON_HOLD, OrderStatus::PENDING ], true )
 		) {
 			$callback  = [ $emails['WC_Email_Failed_Order'], 'trigger' ];
 			$hook_name = "woocommerce_order_status_{$status_update['from']}_to_failed_notification";
@@ -1214,7 +1215,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( 'yes' !== $captured ) {
 				/* translators: amount (including currency symbol) */
 				$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided.', 'woocommerce-gateway-stripe' ), $formatted_amount ) );
-				$order->update_status( 'cancelled' );
+				$order->update_status( OrderStatus::CANCELLED );
 				// If amount is set, that means this function was called from the manual refund form.
 				if ( ! is_null( $amount ) ) {
 					// Throw an exception to provide a custom message on why the refund failed.
@@ -2251,7 +2252,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $before_hold_status;
 		}
 
-		$default_before_hold_status = $order->needs_processing() ? 'processing' : 'completed';
+		$default_before_hold_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $order->get_id(), $order );
 	}
 
@@ -2267,7 +2268,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	protected function set_stripe_order_status_before_hold( $order, $status ) {
 		if ( 'default_payment_complete' === $status ) {
-			$payment_complete_status = $order->needs_processing() ? 'processing' : 'completed';
+			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
 		}
 
