@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -271,7 +274,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				$order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
-				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
 				}
@@ -292,8 +295,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 			// Mark order as failed if not already set,
 			// otherwise, make sure we add the order note so we can detect when someone fails to check out multiple times
-			if ( ! $order->has_status( 'failed' ) ) {
-				$order->update_status( 'failed', $order_note );
+			if ( ! $order->has_status( OrderStatus::FAILED ) ) {
+				$order->update_status( OrderStatus::FAILED, $order_note );
 			} else {
 				$order->add_order_note( $order_note );
 			}

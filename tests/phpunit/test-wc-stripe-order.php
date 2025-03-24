@@ -5,6 +5,8 @@
  * @package WooCommerce_Stripe/Tests/WC_Stripe_Order
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Class WC_Stripe_Order tests.
  */
@@ -17,7 +19,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function test_create() {
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -42,7 +44,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -62,7 +64,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order, WC_Stripe_Order::get_by_id( $order_id ) );
 
 		// query
-		$orders = WC_Stripe_Order::query( [ 'status' => 'pending' ] );
+		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ] );
 		$this->assertEquals( $order, $orders[0] );
 
 		// get_by_source_id
@@ -89,7 +91,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function test_properties() {
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -103,7 +105,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		$order->set_setup_intent( 'seti_123' );
 		$order->set_stripe_currency( 'usd' );
 		$order->set_card_brand( 'visa' );
-		$order->set_status_before_hold( 'pending' );
+		$order->set_status_before_hold( OrderStatus::PENDING );
 		$order->set_mandate_id( 'mandate_123' );
 		$order->set_upe_payment_type( 'card' );
 		$order->set_stripe_customer_id( 'cus_123' );
@@ -132,7 +134,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'seti_123', $order->get_setup_intent() );
 		$this->assertEquals( 'usd', $order->get_stripe_currency() );
 		$this->assertEquals( 'visa', $order->get_card_brand() );
-		$this->assertEquals( 'pending', $order->get_status_before_hold() );
+		$this->assertEquals( OrderStatus::PENDING, $order->get_status_before_hold() );
 		$this->assertEquals( 'mandate_123', $order->get_mandate_id() );
 		$this->assertEquals( 'card', $order->get_upe_payment_type() );
 		$this->assertEquals( 'cus_123', $order->get_stripe_customer_id() );
@@ -176,7 +178,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		// setup
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -205,7 +207,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		// setup
 		$order    = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -235,7 +237,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function test_validate_minimum_amount() {
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -258,7 +260,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function test_get_owner_details() {
 		$order = WC_Stripe_Order::create(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',
@@ -285,7 +287,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function test_to_instance() {
 		$order = wc_create_order(
 			[
-				'status'        => 'pending',
+				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
 				'customer_note' => '',
 				'total'         => '',

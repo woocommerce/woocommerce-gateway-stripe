@@ -1,0 +1,33 @@
+name: Scheduled Weekly QIT
+description: Builds a package and runs the QIT tests.
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # At 00:00 on Monday
+
+jobs:
+  
+  build-project:
+    name: Build package
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: 'weekly-test-package'
+  
+  qit-tests:
+    name: Run QIT
+    needs: build-project
+    uses: ./.github/workflows/run-qit.yml
+    secrets: inherit
+    with:
+      extension: 'woocommerce-gateway-stripe'
+      artifact: 'weekly-test-package'
+      wp-version: 'nightly'
+      wc-version: 'nightly'
+      test-activation: true
+      test-security: true
+      test-phpcompatibility: true
+      test-validation: true
+      test-phpstan: false # TODO: Enable this once the PHPStan tests are fixed
+      test-woo-api: true
+      test-woo-e2e: true
+      test-malware: true
