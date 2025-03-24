@@ -111,6 +111,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the express checkout classes.
+* Dev - Implements the new Stripe order class into the wp-admin related classes.
+* Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
+* Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
+* Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
 * Dev - Implements the new Stripe order class into the PHP unit tests.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
@@ -124,9 +129,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
-* Fix - Fix variable dump in ACH customer error message when retrying a payment.
+* Fix - Prevent reuse of payment intents when order total doesn't match intent amount.
 * Update - Update payment method type for Amazon Pay orders.
 * Fix - Compatibility with email preview in the Auth Requested email
+* Update - Update Alipay and bank debit icons.
+* Tweak - Update payment method type check for charge.succeeded webhook.
+* Add - Disable unsupported payment methods in Stripe settings
+* Update - Update handling of PR as a country in the terminal locations endpoint.
+* Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
 * Fix - Fix subscription renewal issues for Amazon Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

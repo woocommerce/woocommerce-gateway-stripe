@@ -20,6 +20,7 @@ import PaymentMethodMissingCurrencyPill from '../../components/payment-method-mi
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
@@ -77,7 +78,8 @@ const PaymentRequestSection = () => {
 	);
 
 	const isAmazonPayAvailable =
-		wc_stripe_settings_params.is_amazon_pay_available; // eslint-disable-line camelcase
+		wc_stripe_settings_params.is_amazon_pay_available && // eslint-disable-line camelcase
+		availablePaymentMethodIds.includes( PAYMENT_METHOD_AMAZON_PAY );
 
 	return (
 		<Card className="express-checkouts">

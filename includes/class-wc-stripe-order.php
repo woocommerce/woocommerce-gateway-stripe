@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -598,7 +601,7 @@ class WC_Stripe_Order extends WC_Order {
 	 */
 	public function set_status_before_hold( $status ) {
 		if ( 'default_payment_complete' === $status ) {
-			$payment_complete_status = $this->needs_processing() ? 'processing' : 'completed';
+			$payment_complete_status = $this->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $this->get_id(), $this );
 		}
 
@@ -617,7 +620,7 @@ class WC_Stripe_Order extends WC_Order {
 			return $before_hold_status;
 		}
 
-		$default_before_hold_status = $this->needs_processing() ? 'processing' : 'completed';
+		$default_before_hold_status = $this->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $this->get_id(), $this );
 	}
 
@@ -901,7 +904,7 @@ class WC_Stripe_Order extends WC_Order {
 			$order = self::get_by_id( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 
