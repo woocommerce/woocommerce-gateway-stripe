@@ -288,8 +288,8 @@ const PaymentProcessor = ( {
 		]
 	);
 
-	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
+		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
