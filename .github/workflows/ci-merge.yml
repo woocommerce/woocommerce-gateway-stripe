@@ -1,0 +1,61 @@
+name: Merge to Develop CI
+
+on:
+    pull_request:
+        branches:
+            - develop
+        types:
+            - closed
+
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: true
+
+jobs:
+    build_project:
+        if: github.event.pull_request.merged == true
+        name: Build package
+        uses: ./.github/workflows/build-upload-zip.yml
+        with:
+            artifact: 'pr-merge-test-package'
+
+    qit-tests:
+        if: github.event.pull_request.merged == true
+        name: Run QIT tests
+        needs: build_project
+        uses: ./.github/workflows/run-qit.yml
+        secrets: inherit
+        with:
+            extension: 'woocommerce-gateway-stripe'
+            artifact: 'pr-merge-test-package'
+            test-activation: true
+            test-security: true
+            test-phpcompatibility: true
+            test-validation: true
+            test-phpstan: false # TODO: Enable this once the PHPStan tests are fixed
+
+    handle-cancelled:
+        if: ${{ cancelled() }}
+        needs: qit-tests
+        name: Handle cancellation
+        runs-on: ubuntu-latest
+        env:
+            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        steps:
+            - uses: act10ns/slack@v2
+              with:
+                  status: cancelled
+                  message: 'Workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> in PR <{{refUrl}}|{{ref}}> cancelled.'
+
+    handle-error:
+        if: ${{ failure() }}
+        needs: qit-tests
+        name: Handle failure
+        runs-on: ubuntu-latest
+        env:
+            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        steps:
+            - uses: act10ns/slack@v2
+              with:
+                  status: failure
+                  message: 'Workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> in PR <{{refUrl}}|{{ref}}> failed.'
