@@ -142,10 +142,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		if ( getStripeServerData()?.isSPEEnabled ) {
 			options = {
 				...options,
-				layout: {
-					type: 'accordion',
-					radios: false,
-				},
 				paymentMethodConfiguration: 'pmc_...',
 			};
 		} else {

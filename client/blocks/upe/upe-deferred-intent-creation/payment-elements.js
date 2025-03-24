@@ -146,10 +146,6 @@ const PaymentElements = ( {
 			};
 			options = {
 				...options,
-				layout: {
-					type: 'accordion',
-					radios: false,
-				},
 				...{
 					paymentMethodConfiguration: 'pmc_...',
 				},
