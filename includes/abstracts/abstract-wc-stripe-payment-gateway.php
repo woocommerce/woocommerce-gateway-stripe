@@ -385,7 +385,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function validate_minimum_order_amount( $order ) {
-		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Helper::validate_minimum_amount' );
+		// _deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Helper::validate_minimum_amount' ); // @todo Re-enable this after all classes get updated.
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
