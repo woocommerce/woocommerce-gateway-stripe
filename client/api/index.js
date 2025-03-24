@@ -675,7 +675,7 @@ export default class WCStripeAPI {
 			.then( ( response ) => {
 				// TODO: make it fail
 				if ( ! response.success ) {
-					throw response.data.error;
+					throw response.data.messae;
 				}
 				return response.data;
 			} )
@@ -695,23 +695,13 @@ export default class WCStripeAPI {
 		if ( ! checkoutSessionId ) {
 			return;
 		}
+
 		return this.request(
 			this.getAjaxUrl( 'attach_payment_method_to_customer' ),
 			{
 				checkout_session_id: checkoutSessionId,
 				_ajax_nonce: this.options?.attachPaymentMethodToCustomerNonce,
 			}
-		)
-			.then( ( response ) => {
-				// TODO: make it fail
-				if ( ! response.success ) {
-					throw response.data.error;
-				}
-				return response.data;
-			} )
-			.catch( ( error ) => {
-				// eslint-disable-next-line no-console
-				console.error( { error } );
-			} );
+		);
 	}
 }

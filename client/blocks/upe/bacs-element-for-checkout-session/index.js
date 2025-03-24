@@ -5,11 +5,10 @@ const CheckoutSession = ( {
 	paymentMethodName,
 	upeMethods,
 	api,
-	...props
+	activePaymentMethod,
 } ) => {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( '' );
-	const [ bacsTokenId, setBacsTokenId ] = useState( '' );
-	const { activePaymentMethod } = props;
+
 	useEffect( () => {
 		const urlParams = new URLSearchParams( window.location.search );
 		const checkoutSessionIdFromURL = urlParams.get( 'checkout_session_id' );
@@ -20,29 +19,46 @@ const CheckoutSession = ( {
 
 	useEffect( () => {
 		const unsubscribe = onPaymentSetup( () => {
-			if ( upeMethods[ paymentMethodName ] !== activePaymentMethod ) {
-				return;
+			async function handlePaymentProcessing() {
+				if ( upeMethods[ paymentMethodName ] !== activePaymentMethod ) {
+					return;
+				}
+
+				// Attach payment method to customer.
+				const response = await api.attachPaymentMethodToCustomer(
+					checkoutSessionId
+				);
+
+				if ( ! response.success ) {
+					return {
+						type: 'error',
+						message: response.data.message,
+					};
+				}
+
+				const setup = {
+					type: 'success',
+					meta: {
+						paymentMethodData: {
+							'wc-stripe-new-payment-method': false,
+							'wc-stripe-payment-token': `${ response.data.bacs_token_id }`,
+							isSavedToken: true,
+							payment_method: upeMethods[ paymentMethodName ],
+							token: `${ response.data.bacs_token_id }`,
+							'wc-stripe_bacs_debit-payment-token': `${ response.data.bacs_token_id }`,
+						},
+					},
+				};
+				return setup;
 			}
 
-			const setup = {
-				type: 'success',
-				meta: {
-					paymentMethodData: {
-						'wc-stripe-new-payment-method': false,
-						'wc-stripe-payment-token': `${ bacsTokenId }`,
-						isSavedToken: true,
-						payment_method: upeMethods[ paymentMethodName ],
-						token: `${ bacsTokenId }`,
-						'wc-stripe_bacs_debit-payment-token': `${ bacsTokenId }`,
-					},
-				},
-			};
-			return setup;
+			return handlePaymentProcessing();
 		} );
 		return unsubscribe;
 	}, [
 		activePaymentMethod,
-		bacsTokenId,
+		api,
+		checkoutSessionId,
 		onPaymentSetup,
 		paymentMethodName,
 		upeMethods,
@@ -59,32 +75,10 @@ const CheckoutSession = ( {
 		}
 	};
 
-	const attachPaymentMethod = async ( e ) => {
-		e.preventDefault();
-		try {
-			const response = await api.attachPaymentMethodToCustomer(
-				checkoutSessionId
-			);
-			// Store the payment method to be sent at checkout..
-			setBacsTokenId( response.bacs_token_id );
-		} catch ( err ) {
-			// eslint-disable-next-line no-console
-			console.error(
-				'Error attaching the payment method to customer:',
-				err
-			);
-		}
-	};
-
 	return (
-		<>
-			<button onClick={ createCheckoutSession }>
-				Create a Checkout Session
-			</button>{ ' ' }
-			<button onClick={ attachPaymentMethod }>
-				Attach payment method to customer
-			</button>
-		</>
+		<button onClick={ createCheckoutSession }>
+			Create a Checkout Session
+		</button>
 	);
 };
 

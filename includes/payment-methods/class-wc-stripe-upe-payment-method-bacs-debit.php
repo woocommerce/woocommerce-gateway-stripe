@@ -198,28 +198,21 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// }
 
 			$checkout_session_id = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
+			$friendly_error_message = __( 'An error occurred while attaching the Bacs Direct Debit payment method to the customer.', 'woocommerce-gateway-stripe' );
 
 			// Get the Checkout Session data.
 			$response = WC_Stripe_API::request( [], "checkout/sessions/$checkout_session_id", 'GET' );
-			if ( is_wp_error( $response ) ) {
-				WC_Stripe_Logger::log( $e->get_error_message() );
-				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
-			}
 			if ( isset( $response->error ) ) {
 				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
 			$setup_intent_id = $response->setup_intent;
 
 			// Get the paymen method ID via the setup intent.
 			$response = WC_Stripe_API::request( [], "setup_intents/$setup_intent_id", 'GET' );
-			if ( is_wp_error( $response ) ) {
-				WC_Stripe_Logger::log( $e->get_error_message() );
-				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
-			}
 			if ( isset( $response->error ) ) {
 				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
 			$payment_method_id = $response->payment_method;
 
@@ -229,25 +222,16 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// TODO: If we end up passing the stripe customer ID in the request then we **must** verify the
 			// logged in user has the same stripe customer ID. Otherwise it should fail!
 			$response = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
-
-			// TODO: Trigger this error to determine if it’s truly necessary.
-			if ( is_wp_error( $response ) ) {
-				WC_Stripe_Logger::log( $e->get_error_message() );
-				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
-			}
 			if ( isset( $response->error ) ) {
 				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
 
-			// It's necessary to save the payment method here in order to get their DB ID.
+			// It's necessary to save the payment method here in order to get the token ID.
 			$pament_token = WC_Stripe_API::request( [], "payment_methods/$payment_method_id", 'GET' );
 			$bacs_token   = $this->create_payment_token_for_user( $user_id, $pament_token );
 
-			// We need to clear the cache so that in the next request, we can fetch the payment methods from Stripe and
-			// retrieve the newly added payment method for the Stripe user.
-			// quiza deberiamos volver a crear el transient aqui
-			// el problema es probablemente en WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+			// Clear the cache so that in the next request, we can fetch the payment methods from Stripe to keep local saved payment methods in sync with Stripe.
 			delete_transient( WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . WC_Stripe_Payment_Methods::BACS_DEBIT . $stripe_user->get_id() );
 
 			wp_send_json_success( [ 'bacs_token_id' => $bacs_token->get_id() ] );
