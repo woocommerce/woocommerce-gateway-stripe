@@ -181,7 +181,9 @@ jQuery( function ( $ ) {
 		return shippingAddressChangeHandler( api, event, elements );
 	};
 
+	// Check if the product is waiting for a variation to be selected.
 	const isVariationSelectionNeeded = () => {
+		// This check only makes sense on the product page.
 		const isProductPage = getExpressCheckoutData( 'is_product_page' );
 		if ( ! isProductPage ) {
 			return false;
