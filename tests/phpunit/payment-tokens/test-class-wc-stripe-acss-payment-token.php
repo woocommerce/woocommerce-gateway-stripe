@@ -44,9 +44,9 @@ class WC_Payment_Token_ACSS_Test extends WP_UnitTestCase {
 	}
 
 	public function test_is_equal_payment_method() {
-		$payment_method = new stdClass();
+		$payment_method       = new stdClass();
 		$payment_method->type = WC_Stripe_Payment_Methods::ACSS_DEBIT;
-		$payment_method->{WC_Stripe_Payment_Methods::ACSS_DEBIT} = new stdClass();
+		$payment_method->{WC_Stripe_Payment_Methods::ACSS_DEBIT}              = new stdClass();
 		$payment_method->{WC_Stripe_Payment_Methods::ACSS_DEBIT}->fingerprint = 'test_fingerprint';
 
 		$this->token->set_fingerprint( 'test_fingerprint' );

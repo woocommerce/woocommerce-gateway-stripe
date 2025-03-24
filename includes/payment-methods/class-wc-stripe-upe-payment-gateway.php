@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -43,6 +45,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
+		WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
 	];
 
 	/**
@@ -189,6 +192,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					continue;
 				}
 
+				// Show BECS Debit only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
+					continue;
+				}
+
 				/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 				 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 				 */
@@ -224,9 +232,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->title                         = $this->payment_methods['card']->get_title();
 		$this->description                   = $this->payment_methods['card']->get_description();
 		$this->enabled                       = $this->get_option( 'enabled' );
-		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
 		$this->spe_enabled                   = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
+		$this->saved_cards                   = ! $this->spe_enabled && 'yes' === $this->get_option( 'saved_cards' ); // @todo Temporarily disabling saving of methods when SPE is enabled
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -645,7 +653,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $this->testmode ) : ?>
+			<?php
+			// @todo Temporarily disabling test instructions when SPE is enabled.
+			if ( $this->testmode && ! $this->spe_enabled ) :
+				?>
 				<p class="testmode-info">
 					<?php
 					printf(
@@ -805,7 +816,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
-				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
@@ -1093,7 +1104,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 		$order->update_status(
-			'failed',
+			OrderStatus::FAILED,
 			/* translators: localized exception message */
 			sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
 		);
@@ -1258,7 +1269,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			/* translators: error message */
-			$order->update_status( 'failed' );
+			$order->update_status( OrderStatus::FAILED );
 
 			return [
 				'result'   => 'fail',
@@ -1416,7 +1427,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+		if ( $order->has_status( [ OrderStatus::PROCESSING, OrderStatus::COMPLETED, OrderStatus::ON_HOLD ] ) ) {
 			return;
 		}
 
@@ -1432,7 +1443,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			/* translators: localized exception message */
-			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			wc_add_notice( $e->getMessage(), 'error' );
 
@@ -2979,7 +2990,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( 'pending' ) ) {
+		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;
