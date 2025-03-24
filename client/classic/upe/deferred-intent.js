@@ -17,7 +17,7 @@ import {
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
-import { applySinglePaymentElementStyles } from 'wcstripe/classic/upe/apply-single-payment-element-styles';
+import { applySinglePaymentElementStyles } from 'wcstripe/classic/upe/spe/apply-single-payment-element-styles';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
