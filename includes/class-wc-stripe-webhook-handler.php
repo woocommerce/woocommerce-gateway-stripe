@@ -1329,7 +1329,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Fetches an order from a payment intent.
 	 *
 	 * @param stdClass $intent The Stripe PaymentIntent object.
-	 * @return WC_Order|false The order object, or false if not found.
+	 * @return WC_Stripe_Order|false The order object, or false if not found.
 	 */
 	private function get_order_from_intent( $intent ) {
 		// Attempt to get the order from the intent metadata.
@@ -1340,7 +1340,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$data      = explode( ':', $signature );
 
 				// Verify we received the order ID and signature (hash).
-				$order = isset( $data[0], $data[1] ) ? wc_get_order( absint( $data[0] ) ) : false;
+				$order = isset( $data[0], $data[1] ) ? WC_Stripe_Order::get_by_id( absint( $data[0] ) ) : false;
 
 				if ( $order ) {
 					$intent_id = WC_Stripe_Helper::get_intent_id_from_order( $order );
@@ -1362,7 +1362,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Try to retrieve from the metadata order ID.
 			if ( isset( $intent->metadata->order_id ) ) {
-				return wc_get_order( absint( $intent->metadata->order_id ) );
+				return WC_Stripe_Order::get_by_id( absint( $intent->metadata->order_id ) );
 			}
 		}
 
@@ -1370,11 +1370,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! empty( $intent->charges ) && is_array( $intent->charges ) ) {
 			$charge   = $intent->charges[0] ?? [];
 			$order_id = $charge->metadata->order_id ?? null;
-			return $order_id ? wc_get_order( $order_id ) : false;
+			return $order_id ? WC_Stripe_Order::get_by_id( $order_id ) : false;
 		}
 
 		// Fall back to finding the order via the intent ID.
-		return WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+		return WC_Stripe_Order::get_by_intent_id( $intent->id );
 	}
 
 	/**
