@@ -93,6 +93,23 @@ export const getCheckoutSessionElementForBacs = (
 	upeMethods,
 	api
 ) => {
+	// Select Bacs if the `checkout_session_id` query string is defined.
+	const targetNode = document.querySelector( '.wc-block-checkout' );
+	if ( targetNode ) {
+		const observer = new MutationObserver( () => {
+			const bacsRadioButtonSelector =
+				'#radio-control-wc-payment-method-options-stripe_bacs_debit';
+			const radioButton = document.querySelector(
+				bacsRadioButtonSelector
+			);
+			if ( radioButton ) {
+				radioButton.click();
+				observer.disconnect();
+			}
+		} );
+		observer.observe( targetNode, { childList: true, subtree: true } );
+	}
+
 	return (
 		<CheckoutSession
 			paymentMethodName={ paymentMethod }
