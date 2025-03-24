@@ -257,7 +257,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
+		$order = WC_Stripe_Order::get_by_source_id( $notification->data->object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $notification->data->object->id );
@@ -268,7 +268,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
-		if ( $this->lock_order_payment( $order ) ) {
+		if ( $order->lock_payment() ) {
 			return;
 		}
 
@@ -317,7 +317,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					// Unlock the order before retrying.
-					$this->unlock_order_payment( $order );
+					$order->unlock_payment();
 
 					if ( $retry ) {
 						// Don't do anymore retries after this.
@@ -371,7 +371,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**
@@ -678,7 +678,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order         = WC_Stripe_Order::get_by_refund_id( $refund_object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
@@ -718,7 +718,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $this->lock_order_refund( $order ) ) {
+			if ( $order->lock_refund() ) {
 				return;
 			}
 
@@ -749,7 +749,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->update_fees( $order, $refund_object->balance_transaction );
 				}
 
-				$this->unlock_order_refund( $order );
+				$order->unlock_refund();
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
@@ -1007,7 +1007,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( $order->lock_payment( $intent ) ) {
 			return;
 		}
 
@@ -1094,12 +1094,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	public function process_setup_intent( $notification ) {
 		$intent = $notification->data->object;
-		$order  = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent->id );
+		$order  = WC_Stripe_Order::get_by_setup_intent_id( $intent->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via setup intent ID: ' . $intent->id );
@@ -1115,7 +1115,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( $order->lock_payment( $intent ) ) {
 			return;
 		}
 
@@ -1145,7 +1145,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->send_failed_order_email( $order_id, $status_update );
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**
