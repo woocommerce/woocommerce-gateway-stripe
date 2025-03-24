@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
