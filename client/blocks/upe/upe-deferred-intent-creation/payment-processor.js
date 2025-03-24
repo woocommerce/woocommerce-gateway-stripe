@@ -80,6 +80,16 @@ const getStripeElementOptions = () => {
 		}
 	}
 
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		options = {
+			...options,
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
+		};
+	}
+
 	return options;
 };
 

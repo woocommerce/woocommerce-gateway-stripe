@@ -142,6 +142,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		if ( getStripeServerData()?.isSPEEnabled ) {
 			options = {
 				...options,
+				layout: {
+					type: 'accordion',
+					radios: false,
+				},
 				paymentMethodConfiguration: 'pmc_...',
 			};
 		} else {
@@ -169,7 +173,12 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-		layout: 'accordion',
+		layout: getStripeServerData()?.isSPEEnabled
+			? {
+					type: 'accordion',
+					radios: false,
+			  }
+			: 'accordion',
 	} );
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
