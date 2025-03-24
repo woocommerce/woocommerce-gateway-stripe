@@ -386,8 +386,6 @@ export const getSelectedUPEGatewayPaymentMethod = () => {
 		}
 	}
 
-	console.log( 'selectedPaymentMethod', selectedPaymentMethod );
-
 	return selectedPaymentMethod;
 };
 
