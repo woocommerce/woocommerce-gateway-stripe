@@ -1729,7 +1729,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent = null ) {
-		wc_deprecated_function( __FUNCTION__, '9.4.0', 'WC_Stripe_Order::lock_payment' );
+		// wc_deprecated_function( __FUNCTION__, '9.4.0', 'WC_Stripe_Order::lock_payment' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->read_meta_data( true );
 
 		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
@@ -1761,7 +1761,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		wc_deprecated_function( __FUNCTION__, '9.4.0', 'WC_Stripe_Order::unlock_payment' );
+		// wc_deprecated_function( __FUNCTION__, '9.4.0', 'WC_Stripe_Order::unlock_payment' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->delete_meta_data( '_stripe_lock_payment' );
 		$order->save_meta_data();
 	}
