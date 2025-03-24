@@ -2487,22 +2487,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param stdClass $payment_method_object  The payment method object retrieved from Stripe.
 	 * @param string   $payment_method_type    The payment method type, like `card`, `sepa_debit`, etc.
 	 */
-	protected function handle_saving_payment_method( WC_Order $order, stdClass $payment_method_object, string $payment_method_type ) {
+	protected function handle_saving_payment_method( WC_Order $order, $payment_method_object, string $payment_method_type ) {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
-		$payment_method_instance = null;
 		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
 		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_instance = $this->payment_methods['link'];
-		} elseif ( isset( $payment_method_object->type ) && $this->spe_enabled ) { // If SPE is enabled, we retrieve the payment method type from the Stripe object.
-			foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-				$payment_method = new $payment_method_class();
-				if ( $payment_method->get_id() === $payment_method_object->type ) {
-					$payment_method_instance = $payment_method;
-				}
-			}
 		} else {
 			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
