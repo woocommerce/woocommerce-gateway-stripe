@@ -383,14 +383,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_dispute( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$order = WC_Stripe_Order::get_by_charge_id( $notification->data->object->charge );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
 			return;
 		}
 
-		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
+		$order->set_status_before_hold( $order->get_status() );
 
 		$needs_response = in_array( $notification->data->object->status, [ 'needs_response', 'warning_needs_response' ], true );
 		if ( $needs_response ) {
@@ -833,14 +833,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_review_opened( $notification ) {
 		if ( isset( $notification->data->object->payment_intent ) ) {
-			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+			$order = WC_Stripe_Order::get_by_intent_id( $notification->data->object->payment_intent );
 
 			if ( ! $order ) {
 				WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
 				return;
 			}
 		} else {
-			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+			$order = WC_Stripe_Order::get_by_charge_id( $notification->data->object->charge );
 
 			if ( ! $order ) {
 				WC_Stripe_Logger::log( '[Review Opened] Could not find order via charge ID: ' . $notification->data->object->charge );
@@ -848,7 +848,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
+		$order->set_status_before_hold( $order->get_status() );
 
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
