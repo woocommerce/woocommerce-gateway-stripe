@@ -324,7 +324,7 @@ if ( isBecsDebitEnabled ) {
 		),
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
-  };
+	};
 }
 
 // Enable BLIK according to feature flag value.
