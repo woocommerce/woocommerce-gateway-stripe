@@ -664,4 +664,54 @@ export default class WCStripeAPI {
 			}
 		);
 	}
+
+	createCheckoutSession() {
+		return this.request(
+			this.getAjaxUrl( 'create_bacs_checkout_session' ),
+			{
+				_ajax_nonce: this.options?.createCheckoutSessionNonce,
+			}
+		)
+			.then( ( response ) => {
+				// TODO: make it fail
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// TODO: handle friendly error message
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
+				}
+			} );
+	}
+
+	attachPaymentMethodToCustomer( checkoutSessionId ) {
+		if ( ! checkoutSessionId ) {
+			return;
+		}
+		return this.request(
+			this.getAjaxUrl( 'attach_payment_method_to_customer' ),
+			{
+				checkout_session_id: checkoutSessionId,
+				_ajax_nonce: this.options?.attachPaymentMethodToCustomerNonce,
+			}
+		)
+			.then( ( response ) => {
+				// TODO: make it fail
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				// eslint-disable-next-line no-console
+				console.error( { error } );
+			} );
+	}
 }

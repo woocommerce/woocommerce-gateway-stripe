@@ -1,11 +1,12 @@
+import { getCheckoutSessionElementForBacs } from './bacs-element-for-checkout-session';
 import { getDeferredIntentCreationUPEFields } from 'wcstripe/blocks/upe/upe-deferred-intent-creation/payment-elements';
 import { SavedTokenHandler } from 'wcstripe/blocks/upe/saved-token-handler';
 import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_AFTERPAY,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_BACS,
+	PAYMENT_METHOD_CLEARPAY,
 } from 'wcstripe/stripe-utils/constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
@@ -38,17 +39,26 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		supports.style = getBlocksConfiguration()?.style ?? [];
 	}
 
+	const cartTotal = Number( getBlocksConfiguration()?.cartTotal );
+
 	return {
 		name: upeMethods[ paymentMethod ],
-		content: getDeferredIntentCreationUPEFields(
-			paymentMethod,
-			upeMethods,
-			api,
-			upeConfig.description,
-			upeConfig.testingInstructions,
-			upeConfig.showSaveOption ?? false,
-			upeConfig.supportsDeferredIntent
-		),
+		content:
+			cartTotal === 0 && paymentMethod === PAYMENT_METHOD_BACS
+				? getCheckoutSessionElementForBacs(
+						paymentMethod,
+						upeMethods,
+						api
+				  )
+				: getDeferredIntentCreationUPEFields(
+						paymentMethod,
+						upeMethods,
+						api,
+						upeConfig.description,
+						upeConfig.testingInstructions,
+						upeConfig.showSaveOption ?? false,
+						upeConfig.supportsDeferredIntent
+				  ),
 		edit: getDeferredIntentCreationUPEFields(
 			paymentMethod,
 			upeMethods,
@@ -65,19 +75,6 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			const isAvailableInTheCountry =
 				! isRestrictedInAnyCountry ||
 				upeConfig.countries.includes( billingCountry );
-
-			// Disable Bacs for subscriptions with free trial.
-			const cartContainsSubscriptions = cartData.cart.cartItems.every(
-				( item ) => item.type === 'subscription'
-			);
-			if (
-				paymentMethod === PAYMENT_METHOD_BACS &&
-				cartContainsSubscriptions &&
-				cartData.cartTotals.total_price === '0'
-			) {
-				return false;
-			}
-
 			return isAvailableInTheCountry && !! api.getStripe();
 		},
 		// see .wc-block-checkout__payment-method styles in blocks/style.scss

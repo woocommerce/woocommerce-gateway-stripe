@@ -39,6 +39,9 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$this->maybe_init_pre_orders();
 
 		$this->maybe_hide_bacs_payment_gateway();
+
+		// Add endpoints
+		$this->add_bacs_ajax_endpoints();
 	}
 
 	/**
@@ -101,7 +104,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			function ( $available_gateways ) {
 				if (
 					$this->should_hide_bacs_for_pre_orders_charge_upon_release() ||
-					$this->should_hide_bacs_for_subscriptions_with_free_trials() ||
 					$this->should_hide_bacs_on_add_payment_method_page()
 				) {
 					unset( $available_gateways['stripe_bacs_debit'] );
@@ -144,23 +146,116 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		return false;
 	}
 
-	/**
-	 * Determines whether the Bacs payment gateway should be hidden for subscriptions with free trials.
-	 *
-	 * If the cart contains a subscription with a free trial and the cart total amount is zero,
-	 * Bacs can't be used for now as setup intents are not supported for Bacs.
-	 *
-	 * @return bool True if Bacs should be hidden, false otherwise.
-	 */
-	public function should_hide_bacs_for_subscriptions_with_free_trials() {
-		$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
-		if ( is_checkout() || $is_update_order_review_ajax_request ) {
-			// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
-			// as long as another product increases the total amount, ensuring compatibility with Bacs.
-			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {
-				return true;
+	public function add_bacs_ajax_endpoints() {
+		add_action( 'wc_ajax_wc_stripe_create_bacs_checkout_session', [ $this, 'create_bacs_checkout_session_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_attach_payment_method_to_customer', [ $this, 'attach_payment_method_to_customer_ajax' ] );
+	}
+
+	public function create_bacs_checkout_session_ajax() {
+		try {
+			// $is_nonce_valid = check_ajax_referer( 'wc_stripe_create_bacs_checkout_session_nonce', false, false );
+			// if ( ! $is_nonce_valid ) {
+			// 	throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to create a Checkout Session this time', 'woocommerce-gateway-stripe' ) );
+			// }
+
+			$params = [
+				'success_url'            => wc_get_checkout_url() . '?checkout_session=created&checkout_session_id={CHECKOUT_SESSION_ID}',
+				'payment_method_types[]' => WC_Stripe_Payment_Methods::BACS_DEBIT,
+				'mode'                   => 'setup',
+				// TODO: Test this ui mode
+				// 'ui_mode'				 => 'embedded'
+			];
+			$response = WC_Stripe_API::request( $params, 'checkout/sessions', 'POST' );
+
+			// TODO: It would be good to include an identifier to group the error message by cart or user.
+			// This would make it easier to track errors.
+			// TODO: Trigger this error to determine if it’s truly necessary.
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An unexpected error occurred while creating the Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
+
+			if ( isset( $response->error ) ) {
+				throw new WC_Stripe_Exception( $response->error->message, __( 'An unexpected error occurred while creating the Checkout Session.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// It might be a good idea to add the Setup Intent ID to save a request when associating the payment method with the customer.
+			$redirect_url = $response->url;
+			wp_send_json_success( [ 'checkout_session_url' => $redirect_url ] );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( $e->getMessage() );
+
+			// Send a friendly error message to the frontend.
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
 		}
-		return false;
+	}
+
+	public function attach_payment_method_to_customer_ajax() {
+		// TODO: Validate ajax referer
+		try {
+			// $is_nonce_valid = check_ajax_referer( 'wc_stripe_attach_payment_method_to_customer_nonce', false, false );
+			// if ( ! $is_nonce_valid ) {
+			// 	throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to attach the payment method to the customer at this time.', 'woocommerce-gateway-stripe' ) );
+			// }
+
+			$checkout_session_id = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
+
+			// Get the Checkout Session data.
+			$response = WC_Stripe_API::request( [], "checkout/sessions/$checkout_session_id", 'GET' );
+			if ( is_wp_error( $response ) ) {
+				WC_Stripe_Logger::log( $e->get_error_message() );
+				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+			if ( isset( $response->error ) ) {
+				WC_Stripe_Logger::log( $response->error->message );
+				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+			$setup_intent_id = $response->setup_intent;
+
+			// Get the paymen method ID via the setup intent.
+			$response = WC_Stripe_API::request( [], "setup_intents/$setup_intent_id", 'GET' );
+			if ( is_wp_error( $response ) ) {
+				WC_Stripe_Logger::log( $e->get_error_message() );
+				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+			if ( isset( $response->error ) ) {
+				WC_Stripe_Logger::log( $response->error->message );
+				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+			$payment_method_id = $response->payment_method;
+
+			// Attach payment method to the user.
+			$user_id     = get_current_user_id();
+			$stripe_user = new WC_Stripe_Customer( $user_id );
+			// TODO: If we end up passing the stripe customer ID in the request then we **must** verify the
+			// logged in user has the same stripe customer ID. Otherwise it should fail!
+			$response = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
+
+			// TODO: Trigger this error to determine if it’s truly necessary.
+			if ( is_wp_error( $response ) ) {
+				WC_Stripe_Logger::log( $e->get_error_message() );
+				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+			if ( isset( $response->error ) ) {
+				WC_Stripe_Logger::log( $response->error->message );
+				throw new WC_Stripe_Exception( $response->error->message, __( 'An error occurred while attaching the payment method to the customer.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// It's necessary to save the payment method here in order to get their DB ID.
+			$pament_token = WC_Stripe_API::request( [], "payment_methods/$payment_method_id", 'GET' );
+			$bacs_token   = $this->create_payment_token_for_user( $user_id, $pament_token );
+
+			// We need to clear the cache so that in the next request, we can fetch the payment methods from Stripe and
+			// retrieve the newly added payment method for the Stripe user.
+			// quiza deberiamos volver a crear el transient aqui
+			// el problema es probablemente en WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+			delete_transient( WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . WC_Stripe_Payment_Methods::BACS_DEBIT . $stripe_user->get_id() );
+
+			wp_send_json_success( [ 'bacs_token_id' => $bacs_token->get_id() ] );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( $e->getMessage() );
+
+			// Send a friendly error message to the frontend.
+			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
+		}
 	}
 }

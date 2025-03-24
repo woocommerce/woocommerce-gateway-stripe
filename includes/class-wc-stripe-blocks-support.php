@@ -453,7 +453,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		 * to indicate that deferred intent should be used.
 		 */
 		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
-			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
+			// $context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
+			error_log( 'it should not enter here' );
 		}
 
 		// Hook into Stripe error processing so that we can capture the error to payment details.
