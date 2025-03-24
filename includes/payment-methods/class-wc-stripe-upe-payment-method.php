@@ -389,14 +389,19 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return WC_Payment_Token_SEPA
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$method_details = $payment_method->{ $payment_method->type };
+
 		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $payment_method->sepa_debit->last4 );
+		$token->set_last4( $method_details->last4 );
 		$token->set_gateway_id( $this->id );
 		$token->set_token( $payment_method->id );
 		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
-		$token->set_fingerprint( $payment_method->sepa_debit->fingerprint );
+		if ( ! empty( $method_details->fingerprint ) ) {
+			$token->set_fingerprint( $method_details->fingerprint );
+		}
 		$token->save();
+
 		return $token;
 	}
 
