@@ -12,6 +12,7 @@ import {
 	useCustomizePaymentMethodSettings,
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
+import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import {
 	PAYMENT_METHOD_ALIPAY,
@@ -30,6 +31,9 @@ jest.mock( 'wcstripe/data', () => ( {
 	useIndividualPaymentMethodSettings: jest.fn(),
 	useCustomizePaymentMethodSettings: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
+} ) );
+jest.mock( 'utils/use-payment-method-currencies', () => ( {
+	usePaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -610,5 +614,51 @@ describe( 'GeneralSettingsSection', () => {
 		expect(
 			screen.queryByTestId( 'upe-expandable-menu' )
 		).not.toBeInTheDocument();
+	} );
+
+	it( 'should disable the payment method checkbox when currency is not supported', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
+		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
+		window.wcSettings = { currency: { code: 'EUR' } };
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeDisabled();
+	} );
+
+	it( 'should enable the payment method checkbox when currency is supported', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
+		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
+		window.wcSettings = { currency: { code: 'USD' } };
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeEnabled();
 	} );
 } );
