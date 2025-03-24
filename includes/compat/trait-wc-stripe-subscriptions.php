@@ -760,7 +760,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
 			$mandate = $order->get_meta( '_stripe_mandate_id', true );
-			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				unset( $request['setup_future_usage'] );
 				return $request;
