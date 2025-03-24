@@ -8,6 +8,7 @@ import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
+	PAYMENT_METHOD_BECS,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -28,7 +29,8 @@ const accountCountry =
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
-
+const isBecsDebitEnabled =
+	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const paymentMethodsMap = {
 	card: {
 		id: PAYMENT_METHOD_CARD,
@@ -305,6 +307,20 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
+	};
+}
+
+// Enable BECS Debit according to feature flag value.
+if ( isBecsDebitEnabled ) {
+	paymentMethodsMap.au_becs_debit = {
+		id: PAYMENT_METHOD_BECS,
+		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'BECS Direct Debit enables customers in Australia to pay by providing their bank account details.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.au_becs_debit,
+		currencies: [ 'AUD' ],
 	};
 }
 

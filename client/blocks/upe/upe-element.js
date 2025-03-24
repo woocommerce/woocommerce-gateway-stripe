@@ -27,19 +27,7 @@ const upeMethods = getPaymentMethodsConstants();
  * @return {Object} The UPE payment method configuration.
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {
-	let iconName = paymentMethod;
-
-	// Afterpay/Clearpay have different icons for UK merchants.
-	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
-		iconName =
-			getBlocksConfiguration()?.accountCountry === 'GB'
-				? PAYMENT_METHOD_CLEARPAY
-				: PAYMENT_METHOD_AFTERPAY;
-	}
-
-	// Use checkout icons if available, otherwise fallback to default Icons
-	const Icon =
-		( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
+	const Icon = getUpeElementIcon( paymentMethod );
 	const supports = {
 		// Use `false` as fallback values in case server provided configuration is missing.
 		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
@@ -104,4 +92,29 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 		ariaLabel: 'Stripe',
 		supports,
 	};
+};
+
+/**
+ * Returns the icon for the UPE payment method.
+ *
+ * @param {string} paymentMethod The payment method name.
+ * @return {JSX.Element} The icon element.
+ */
+const getUpeElementIcon = ( paymentMethod ) => {
+	let iconName = paymentMethod;
+
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		iconName = 'stripe';
+	}
+
+	// Afterpay/Clearpay have different icons for UK merchants.
+	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {
+		iconName =
+			getBlocksConfiguration()?.accountCountry === 'GB'
+				? PAYMENT_METHOD_CLEARPAY
+				: PAYMENT_METHOD_AFTERPAY;
+	}
+
+	// Use checkout icons if available, otherwise fallback to default Icons
+	return ( checkoutIcons && checkoutIcons[ iconName ] ) || Icons[ iconName ];
 };

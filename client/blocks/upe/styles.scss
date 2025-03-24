@@ -15,7 +15,7 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	border-color: transparent;
 }
 .wc-block-checkout__payment-method .wc-block-components-radio-control__label > span {
-	width:95%;
+	width: 100%;
 }
 .wc-block-checkout__payment-method .wc-block-components-radio-control__label > span > span {
 	float:right;
@@ -23,3 +23,15 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	align-items: center;
 	justify-content: center;
 }
+/* stylelint-disable selector-id-pattern */
+#radio-control-wc-payment-method-options-stripe__content.single-payment-element {
+	padding: 0;
+
+	.content {
+		display: none;
+	}
+}
+#radio-control-wc-payment-method-options-stripe__label > span > span {
+	border: none;
+}
+/* stylelint-enable selector-id-pattern */
