@@ -24,7 +24,8 @@
 * Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons.
 * Tweak - Update payment method type check for charge.succeeded webhook.
-* Add - Disable unsupported payment methods in Stripe settings
+* Add - Disable unsupported payment methods in Stripe settings.
+* Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.

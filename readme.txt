@@ -134,6 +134,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons.
 * Tweak - Update payment method type check for charge.succeeded webhook.
-* Add - Disable unsupported payment methods in Stripe settings
+* Add - Disable unsupported payment methods in Stripe settings.
+* Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
