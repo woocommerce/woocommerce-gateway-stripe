@@ -896,6 +896,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args                 = [];
 
+			if ( $this->spe_enabled && isset( $payment_method_details->type ) ) {
+				foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+					$payment_method = new $payment_method_class();
+					if ( $payment_method->get_id() === $payment_method_details->type ) {
+						$upe_payment_method = $payment_method;
+					}
+				}
+			}
+
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
 			$this->set_customer_id_for_order( $order, $payment_information['customer'] );
@@ -1998,17 +2007,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$payment_method_id = $setup_intent->payment_method;
 
-			if ( isset( $this->payment_methods[ $payment_method_type ] ) ) {
-				$payment_method = $this->payment_methods[ $payment_method_type ];
-
-				if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
-					$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
+			$payment_method = null;
+			if ( $this->spe_enabled ) {
+				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
+				if ( ! empty( $payment_method_type ) ) {
+					foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+						$payment_method_instance = new $payment_method_class();
+						if ( $payment_method_instance->get_id() === $payment_method_type ) {
+							$payment_method = $payment_method_instance;
+						}
+					}
 				}
+			} else {
+				$payment_method = $this->payment_methods[ $payment_method_type ];
+			}
+
+			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+				$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
 			}
 
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
-
-			$payment_method = $this->payment_methods[ $payment_method_type ];
 
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 			$customer->clear_cache();
