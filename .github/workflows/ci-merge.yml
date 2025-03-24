@@ -1,61 +1,67 @@
 name: Merge to Develop CI
 
 on:
-    pull_request:
-        branches:
-            - develop
-        types:
-            - closed
+  pull_request:
+    branches:
+      - develop
+    types:
+      - closed
 
 concurrency:
-    group: ${{ github.workflow }}
-    cancel-in-progress: true
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
 
 jobs:
-    build_project:
-        if: github.event.pull_request.merged == true
-        name: Build package
-        uses: ./.github/workflows/build-upload-zip.yml
+  build_project:
+    if: github.event.pull_request.merged == true
+    name: Build package
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: 'pr-merge-test-package'
+
+  qit-tests:
+    if: github.event.pull_request.merged == true
+    name: Run QIT tests
+    needs: build_project
+    uses: ./.github/workflows/run-qit.yml
+    secrets: inherit
+    with:
+      extension: 'woocommerce-gateway-stripe'
+      artifact: 'pr-merge-test-package'
+      test-activation: true
+      test-security: true
+      test-phpcompatibility: true
+      test-validation: true
+      test-phpstan: false # TODO: Enable this once the PHPStan tests are fixed
+
+  handle-cancelled:
+    if: ${{ cancelled() }}
+    needs: qit-tests
+    name: Handle cancellation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
         with:
-            artifact: 'pr-merge-test-package'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-cancelled:"
+            status: "cancelled"
+            workflowName: "${{ github.workflow }} / ${{ github.ref }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-    qit-tests:
-        if: github.event.pull_request.merged == true
-        name: Run QIT tests
-        needs: build_project
-        uses: ./.github/workflows/run-qit.yml
-        secrets: inherit
+  handle-error:
+    if: ${{ failure() }}
+    needs: qit-tests
+    name: Handle failure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
         with:
-            extension: 'woocommerce-gateway-stripe'
-            artifact: 'pr-merge-test-package'
-            test-activation: true
-            test-security: true
-            test-phpcompatibility: true
-            test-validation: true
-            test-phpstan: false # TODO: Enable this once the PHPStan tests are fixed
-
-    handle-cancelled:
-        if: ${{ cancelled() }}
-        needs: qit-tests
-        name: Handle cancellation
-        runs-on: ubuntu-latest
-        env:
-            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        steps:
-            - uses: act10ns/slack@v2
-              with:
-                  status: cancelled
-                  message: 'Workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> in PR <{{refUrl}}|{{ref}}> cancelled.'
-
-    handle-error:
-        if: ${{ failure() }}
-        needs: qit-tests
-        name: Handle failure
-        runs-on: ubuntu-latest
-        env:
-            SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        steps:
-            - uses: act10ns/slack@v2
-              with:
-                  status: failure
-                  message: 'Workflow <{{workflowUrl}}|{{workflow}}> with run ID <{{workflowRunUrl}}|{{runId}}> in PR <{{refUrl}}|{{ref}}> failed.'
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-failed:"
+            status: "failed"
+            workflowName: "${{ github.workflow }} / ${{ github.ref }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
