@@ -68,7 +68,7 @@ const CheckoutSession = ( {
 		e.preventDefault();
 		try {
 			const response = await api.createCheckoutSession();
-			window.location.href = response.checkout_session_url;
+			window.location.href = response.data.checkout_session_url;
 		} catch ( err ) {
 			// eslint-disable-next-line no-console
 			console.error( 'Error creating checkout session:', err );

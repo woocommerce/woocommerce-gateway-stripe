@@ -671,24 +671,7 @@ export default class WCStripeAPI {
 			{
 				_ajax_nonce: this.options?.createCheckoutSessionNonce,
 			}
-		)
-			.then( ( response ) => {
-				// TODO: make it fail
-				if ( ! response.success ) {
-					throw response.data.messae;
-				}
-				return response.data;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// TODO: handle friendly error message
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
+		);
 	}
 
 	attachPaymentMethodToCustomer( checkoutSessionId ) {
