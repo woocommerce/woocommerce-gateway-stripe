@@ -1,6 +1,10 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import {
+	getStripeServerData,
+	getUPETerms,
+	maybeClearBlikCodeValidation,
+} from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
@@ -307,18 +311,7 @@ jQuery( function ( $ ) {
 				removeCashAppLimitNotice();
 			}
 
-			// Because the form change triggers WooCommerce form validation and BLIK contains a controlled input,
-			// we need to remove the invalid classes so it's not initially invalid.
-			if (
-				$( '#wc-stripe-blik-code_field input' ).val() === '' &&
-				$( '#wc-stripe-blik-code_field' ).hasClass(
-					'woocommerce-invalid'
-				)
-			) {
-				$( '#wc-stripe-blik-code_field' ).removeClass(
-					'woocommerce-invalid woocommerce-invalid-required-field'
-				);
-			}
+			maybeClearBlikCodeValidation();
 		} );
 
 	// Add terms parameter to UPE if save payment information checkbox is checked.

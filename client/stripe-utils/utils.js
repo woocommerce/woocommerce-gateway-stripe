@@ -767,7 +767,7 @@ export const getAdditionalSetupIntentData = ( jQueryForm ) => {
  * @param {Object|undefined} jQueryForm The jQuery object for the form being submitted.
  * @return {void}
  */
-export function validateBlikCode( jQueryForm = undefined ) {
+export const validateBlikCode = ( jQueryForm = undefined ) => {
 	const selector = '#wc-stripe-blik-code';
 	const code = jQueryForm
 		? jQueryForm?.find( selector )?.val()
@@ -778,4 +778,21 @@ export function validateBlikCode( jQueryForm = undefined ) {
 			__( 'BLIK Code is invalid', 'woocommerce-gateway-stripe' )
 		);
 	}
-}
+};
+
+/**
+ * Clears up the premature validation of the BLIK code input.
+ * This is necessary because the form change triggers WooCommerce form validation and BLIK contains a controlled input.
+ * This is supposed to be used in shortcode checkout only, Blocks checkout goes through the React validation.
+ */
+export const maybeClearBlikCodeValidation = () => {
+	if (
+		jQuery( '#wc-stripe-blik-code_field input' ).length &&
+		jQuery( '#wc-stripe-blik-code_field input' ).val() === '' &&
+		jQuery( '#wc-stripe-blik-code_field' ).hasClass( 'woocommerce-invalid' )
+	) {
+		jQuery( '#wc-stripe-blik-code_field' ).removeClass(
+			'woocommerce-invalid woocommerce-invalid-required-field'
+		);
+	}
+};
