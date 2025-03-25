@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update handling of PR as a country in the terminal locations endpoint.
 * Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
 * Fix - Fix subscription renewal issues for Amazon Pay.
+* Tweak - SPE: Remove radio buttons
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
