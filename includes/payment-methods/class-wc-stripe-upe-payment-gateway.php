@@ -1071,6 +1071,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
+			if ( $payment_information['save_payment_method_to_store'] ) {
+				$this->handle_saving_payment_method(
+					$order,
+					$payment_method,
+					$selected_payment_type
+				);
+			}
+
 			$return_url = $this->get_return_url( $order );
 
 			return [
@@ -2223,6 +2231,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
 				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			} elseif ( is_a( $token, 'WC_Payment_Token_Amazon_Pay' ) ) {
+				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID;
 			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -2253,45 +2263,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 			'use_stripe_sdk'                => 'true', // We want to use the SDK to handle next actions via the client payment elements. See https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			'has_subscription'              => $this->has_subscription( $order->get_id() ),
-			'payment_method'                => '',
+			'payment_method'                => $payment_method_id,
 			'payment_method_details'        => $payment_method_details,
 			'payment_type'                  => 'single', // single | recurring.
+			'save_payment_method_to_store'  => $save_payment_method_to_store,
+			'capture_method'                => $capture_method,
 		];
 
 		if ( WC_Stripe_Payment_Methods::ACH === $selected_payment_type ) {
 			WC_Stripe_API::attach_payment_method_to_customer( $payment_information['customer'], $payment_method_id );
-		}
-
-		if ( ! empty( $payment_method_id ) ) {
-			$payment_information['payment_method']               = $payment_method_id;
-			$payment_information['save_payment_method_to_store'] = $save_payment_method_to_store;
-			$payment_information['payment_method_options']       = $this->get_payment_method_options(
-				$selected_payment_type,
-				$order,
-				$payment_method_details
-			);
-			$payment_information['capture_method']               = $capture_method;
-		} else {
-			$confirmation_token_id                               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
-			$payment_information['confirmation_token']           = $confirmation_token_id;
-			$payment_information['save_payment_method_to_store'] = false;
-
-			// When using confirmation tokens with manual capture, we need to
-			// set the capture_method parameter under payment method options.
-			if ( 'manual' === $capture_method ) {
-				$payment_information['payment_method_options'] = [
-					$selected_payment_type => [
-						'capture_method' => 'manual',
-					],
-				];
-			} else {
-				$payment_information['capture_method'] = $capture_method;
-			}
-
-			// When using confirmation tokens for subscriptions, we need to set the setup_future_usage parameter under payment method options.
-			if ( $payment_information['has_subscription'] ) {
-				$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
-			}
 		}
 
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -2299,6 +2279,66 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
 			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
+
+		if ( empty( $payment_method_id ) && ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
+			// Add fields that are only set when using the confirmation token flow.
+			$payment_information = $this->prepare_payment_information_for_confirmation_token(
+				$payment_information,
+				$selected_payment_type,
+				$capture_method,
+			);
+		} else {
+			// Add fields that are only set when using the payment method flow.
+			$payment_information = $this->prepare_payment_information_for_payment_method( $payment_information, $selected_payment_type, $order );
+		}
+
+		return $payment_information;
+	}
+
+	/**
+	 * Add or remove payment information fields for the confirmation token flow.
+	 *
+	 * @param array $payment_information The base payment information.
+	 * @param string $selected_payment_type The selected payment type.
+	 * @param string $capture_method The capture method to be used.
+	 * @return array The customized payment information for the confirmation token flow.
+	 */
+	private function prepare_payment_information_for_confirmation_token( $payment_information, $selected_payment_type, $capture_method ) {
+		// These fields should not be set when using confirmation tokens to create a payment intent.
+		unset( $payment_information['payment_method'] );
+		unset( $payment_information['payment_method_details'] );
+
+		$confirmation_token_id                     = sanitize_text_field( wp_unslash( $_POST['wc-stripe-confirmation-token'] ?? '' ) );
+		$payment_information['confirmation_token'] = $confirmation_token_id;
+
+		// Some payment methods such as Amazon Pay will only accept a capture_method of 'manual'
+		// under payment_method_options instead of at the top level.
+		if ( 'manual' === $capture_method ) {
+			unset( $payment_information['capture_method'] );
+			$payment_information['payment_method_options'][ $selected_payment_type ]['capture_method'] = 'manual';
+		}
+
+		if ( $payment_information['has_subscription'] ) {
+			$payment_information['payment_method_options'][ $selected_payment_type ]['setup_future_usage'] = 'off_session';
+		}
+
+		return $payment_information;
+	}
+
+	/**
+	 * Add or remove payment information fields for the payment method flow.
+	 *
+	 * @param array $payment_information The base payment information.
+	 * @param string $selected_payment_type The selected payment type.
+	 * @param WC_Order $order The WC Order being processed.
+	 * @return array The customized payment information for the payment method flow.
+	 */
+	private function prepare_payment_information_for_payment_method( $payment_information, $selected_payment_type, $order ) {
+		$payment_information['payment_method_options'] = $this->get_payment_method_options(
+			$selected_payment_type,
+			$order,
+			$payment_information['payment_method_details']
+		);
 
 		return $payment_information;
 	}
