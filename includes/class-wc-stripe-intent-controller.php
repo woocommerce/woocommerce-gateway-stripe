@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -501,7 +504,7 @@ class WC_Stripe_Intent_Controller {
 
 			// Prevent any failures if updating the status of a subscription order.
 			if ( ! $gateway->has_subscription( $order_id ) ) {
-				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			}
 			$order->save();
 			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
@@ -639,14 +642,14 @@ class WC_Stripe_Intent_Controller {
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
 				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $e->getLocalizedMessage(),
 					],
 				]
 			);
@@ -709,7 +712,7 @@ class WC_Stripe_Intent_Controller {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( $order ) {
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 		}
 
@@ -787,6 +790,9 @@ class WC_Stripe_Intent_Controller {
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( ! $is_using_saved_token && $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
+
+			// When `confirm` is `false`, `return_url` and `mandate_data` are not accepted
+			unset( $request['return_url'], $request['mandate_data'] );
 		}
 
 		// Run the necessary filter to make sure mandate information is added when it's required.
@@ -1014,7 +1020,9 @@ class WC_Stripe_Intent_Controller {
 		$payment_methods_with_mandates = [
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::BANCONTACT,
 			WC_Stripe_Payment_Methods::IDEAL,

@@ -1,0 +1,52 @@
+name: Setup PHP and Node
+description: Composite Action with steps to setup PHP and Node
+
+inputs:
+  php-version:
+    type: string
+    default: '7.4'
+    
+runs:
+  using: "composite"
+  steps:
+
+    # PHP
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        tools: composer
+        coverage: none
+
+    - name: Cache Composer dependencies
+      id: composer-cache
+      uses: actions/cache@v4
+      with:
+        path: ./vendor
+        key: ${{ runner.os }}-vendor-${{ hashFiles('composer.lock') }}
+
+    - name: Install Composer dependencies
+      if: ${{ steps.composer-cache.outputs.cache-hit == false }}
+      shell: bash
+      run: composer install --no-progress
+        
+    # Node
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+
+    - name: Cache Node dependencies
+      id: node-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ./node_modules
+          ~/.cache/ms-playwright
+        key: ${{ runner.os }}-node_modules-${{ hashFiles('package-lock.json') }}
+
+    - name: Install Node dependencies
+      if: ${{ steps.node-cache.outputs.cache-hit == false }}
+      shell: bash
+      run: npm ci --no-optional --ignore-scripts

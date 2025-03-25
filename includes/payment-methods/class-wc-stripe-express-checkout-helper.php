@@ -41,7 +41,19 @@ class WC_Stripe_Express_Checkout_Helper {
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
+	}
 
+	/**
+	 * Returns the suffix set for the express payment method titles.
+	 *
+	 * @return string
+	 */
+	public static function get_payment_method_title_suffix() {
+		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
+		if ( ! empty( $suffix ) ) {
+			$suffix = " ($suffix)";
+		}
+		return $suffix;
 	}
 
 	/**

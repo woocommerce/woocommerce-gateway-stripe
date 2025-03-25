@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.3.0
+ * Version: 9.3.1
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.3.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.3.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '9.5' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.6' );
@@ -191,6 +191,7 @@ function woocommerce_gateway_stripe() {
 					require_once __DIR__ . '/includes/admin/class-wc-stripe-privacy.php';
 				}
 
+				require_once __DIR__ . '/includes/class-wc-stripe-order.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
@@ -218,6 +219,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-link-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-cash-app-payment-token.php';
 				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-bacs-payment-token.php';
+				require_once __DIR__ . '/includes/payment-tokens/class-wc-stripe-amazon-pay-payment-token.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-status.php';
 				require_once __DIR__ . '/includes/class-wc-gateway-stripe.php';
@@ -230,6 +232,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ach.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bacs-debit.php';
+				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-becs-debit.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once __DIR__ . '/includes/payment-methods/class-wc-stripe-upe-payment-method-klarna.php';
