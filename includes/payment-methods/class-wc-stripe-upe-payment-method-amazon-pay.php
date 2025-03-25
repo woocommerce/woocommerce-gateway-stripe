@@ -73,7 +73,8 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 			return false;
 		}
 
-		$upe_enabled_method_ids = WC_Stripe_Helper::get_settings( null, 'upe_checkout_experience_accepted_payments' );
+		$wc_stripe_upe_payment_method_amazon_pay = new self();
+		$upe_enabled_method_ids = $wc_stripe_upe_payment_method_amazon_pay->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
 	}
