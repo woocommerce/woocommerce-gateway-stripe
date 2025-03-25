@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
+* Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
@@ -137,5 +138,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update payment method type check for charge.succeeded webhook.
 * Add - Disable unsupported payment methods in Stripe settings
 * Update - Update handling of PR as a country in the terminal locations endpoint.
+* Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
+* Fix - Fix subscription renewal issues for Amazon Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

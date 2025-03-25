@@ -39,6 +39,17 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe Amazon Pay payment method.
+	 */
+	const MOCK_AMAZON_PAY_PAYMENT_METHOD_TEMPLATE = [
+		'id'              => 'pm_mock_payment_method_id',
+		'type'            => 'amazon_pay',
+		'billing_details' => [
+			'email' => 'test@test.com',
+		],
+	];
+
+	/**
 	 * Base template for Stripe ACH payment method.
 	 */
 	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
@@ -786,6 +797,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$token                    = $payment_method->create_payment_token_for_user( $user_id, $link_payment_method_mock );
 					$this->assertTrue( WC_Payment_Token_Link::class === get_class( $token ) );
 					$this->assertSame( $token->get_email(), $link_payment_method_mock->link->email );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID:
+					$amazon_payment_method_mock = $this->array_to_object( self::MOCK_AMAZON_PAY_PAYMENT_METHOD_TEMPLATE );
+					$token                      = $payment_method->create_payment_token_for_user( $user_id, $amazon_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_Amazon_Pay::class === get_class( $token ) );
+					$this->assertSame( $token->get_email(), $amazon_payment_method_mock->billing_details->email );
 					break;
 				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 					$cash_app_payment_method_mock = $this->array_to_object( self::MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE );
