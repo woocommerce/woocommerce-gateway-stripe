@@ -17,6 +17,7 @@ import {
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
+import { applySinglePaymentElementStyles } from 'wcstripe/classic/upe/apply-single-payment-element-styles';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
@@ -53,9 +54,14 @@ jQuery( function ( $ ) {
 		$( 'form#order_review' ).length
 	) {
 		maybeMountStripePaymentElement();
+
+		// For payment methods that don't support deferred intents, we mount the Payment Element only when the PM is selected.
+		$( 'input[name="payment_method"]' ).on( 'change', () => {
+			maybeMountStripePaymentElement();
+		} );
 	}
 
-	// For payment methods that don't support deferred intents, we mount the Payment Element only when it's selected.
+	// For payment methods that don't support deferred intents, we mount the Payment Element only when the PM is selected.
 	$( 'form.checkout' ).on( 'change', 'input[name="payment_method"]', () => {
 		maybeMountStripePaymentElement();
 	} );
@@ -108,6 +114,10 @@ jQuery( function ( $ ) {
 			}
 
 			await mountStripePaymentElement( api, upeElement );
+		}
+
+		if ( getStripeServerData()?.isSPEEnabled ) {
+			applySinglePaymentElementStyles();
 		}
 	}
 

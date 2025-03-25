@@ -11,6 +11,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
 
 		// Since it will be used by the mock, we need to set this beforehand.
 		$this->set_stripe_account_data( [ 'country' => 'GB' ] );
@@ -47,6 +48,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 	public function tear_down() {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 
 		parent::tear_down();
 	}
@@ -68,6 +70,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 				[
 					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,

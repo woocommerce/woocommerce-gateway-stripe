@@ -88,21 +88,22 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 
 	public function test_get_settings_returns_available_payment_method_ids_for_gb() {
 		$expected_method_ids = [
-			'card',
-			'alipay',
-			'klarna',
-			'afterpay_clearpay',
-			'eps',
-			'bancontact',
-			'boleto',
-			'ideal',
-			'oxxo',
-			'sepa_debit',
-			'p24',
-			'multibanco',
-			'link',
-			'wechat_pay',
-			'bacs_debit',
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::EPS,
+			WC_Stripe_Payment_Methods::BANCONTACT,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::IDEAL,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			WC_Stripe_Payment_Methods::P24,
+			WC_Stripe_Payment_Methods::MULTIBANCO,
+			WC_Stripe_Payment_Methods::LINK,
+			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 
 		$response             = $this->rest_get_settings();
@@ -117,21 +118,22 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	}
 
 	public function test_get_settings_returns_ordered_payment_method_ids_for_gb() {
+		// Link and Amazon Pay are excluded as they are express methods only.
 		$expected_ordered_method_ids = [
-			'card',
-			'alipay',
-			'klarna',
-			'afterpay_clearpay',
-			'eps',
-			'bancontact',
-			'boleto',
-			'ideal',
-			'oxxo',
-			'sepa_debit',
-			'p24',
-			'multibanco',
-			'wechat_pay',
-			'bacs_debit',
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::ALIPAY,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::EPS,
+			WC_Stripe_Payment_Methods::BANCONTACT,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::IDEAL,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			WC_Stripe_Payment_Methods::P24,
+			WC_Stripe_Payment_Methods::MULTIBANCO,
+			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 
 		$response = $this->rest_get_settings();

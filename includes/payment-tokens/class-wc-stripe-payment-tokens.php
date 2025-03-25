@@ -23,6 +23,7 @@ class WC_Stripe_Payment_Tokens {
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
@@ -30,6 +31,7 @@ class WC_Stripe_Payment_Tokens {
 		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 	];
 
 	/**
@@ -309,7 +311,8 @@ class WC_Stripe_Payment_Tokens {
 			}
 
 			// Add SEPA if it is disabled and iDEAL or Bancontact are enabled. iDEAL and Bancontact tokens are saved as SEPA tokens.
-			if ( $gateway->is_sepa_tokens_for_other_methods_enabled() && ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
+			// @todo Temporarily disabling the `is_sepa_tokens_for_other_methods_enabled` feature when SPE is enabled.
+			if ( ! $gateway->is_spe_enabled() && $gateway->is_sepa_tokens_for_other_methods_enabled() && ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
 				&& ( $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled()
 					|| $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID ]->is_enabled() ) ) {
 					$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
@@ -415,12 +418,24 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['brand'] = esc_html__( 'Cash App Pay', 'woocommerce-gateway-stripe' );
 				break;
 			case WC_Stripe_Payment_Methods::ACH:
-				$item['method']['brand'] = $payment_token->get_display_name();
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
+				break;
+			case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
 					/* translators: customer email */
 					esc_html__( 'Stripe Link (%s)', 'woocommerce-gateway-stripe' ),
+					esc_html( $payment_token->get_email() )
+				);
+				break;
+			case WC_Stripe_Payment_Methods::AMAZON_PAY:
+				$item['method']['brand'] = sprintf(
+					/* translators: customer email */
+					esc_html__( 'Amazon Pay (%s)', 'woocommerce-gateway-stripe' ),
 					esc_html( $payment_token->get_email() )
 				);
 				break;
@@ -548,6 +563,10 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
 				break;
+			case WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID:
+				$token = new WC_Payment_Token_Amazon_Pay();
+				$token->set_email( $payment_method->billing_details->email ?? '' );
+				break;
 			case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
 				$token = new WC_Payment_Token_ACH();
 				if ( isset( $payment_method->us_bank_account->last4 ) ) {
@@ -561,6 +580,18 @@ class WC_Stripe_Payment_Tokens {
 				}
 				if ( isset( $payment_method->us_bank_account->bank_name ) ) {
 					$token->set_bank_name( $payment_method->us_bank_account->bank_name );
+				}
+				break;
+			case WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID:
+				$token = new WC_Payment_Token_ACSS();
+				if ( isset( $payment_method->acss_debit->last4 ) ) {
+					$token->set_last4( $payment_method->acss_debit->last4 );
+				}
+				if ( isset( $payment_method->acss_debit->fingerprint ) ) {
+					$token->set_fingerprint( $payment_method->acss_debit->fingerprint );
+				}
+				if ( isset( $payment_method->acss_debit->bank_name ) ) {
+					$token->set_bank_name( $payment_method->acss_debit->bank_name );
 				}
 				break;
 			case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
@@ -620,9 +651,11 @@ class WC_Stripe_Payment_Tokens {
 		$label_overrides      = [];
 		$payment_method_types = [
 			WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {
@@ -717,7 +750,7 @@ class WC_Stripe_Payment_Tokens {
 			/**
 			 * Token object.
 			 *
-			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH $token
+			 * @var WC_Payment_Token_CashApp|WC_Stripe_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA|WC_Payment_Token_ACH|WC_Payment_Token_ACSS $token
 			 */
 			if ( $token->is_equal_payment_method( $payment_method ) ) {
 				return $token;
@@ -739,6 +772,9 @@ class WC_Stripe_Payment_Tokens {
 		}
 		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $type ) {
 			return WC_Payment_Token_ACH::class;
+		}
+		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $type ) {
+			return WC_Payment_Token_ACSS::class;
 		}
 		return $class;
 	}

@@ -129,9 +129,37 @@ const PaymentElements = ( {
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
 				currency: getBlocksConfiguration()?.currency.toLowerCase(),
-				paymentMethodTypes: getPaymentMethodTypes( paymentMethodId ),
 			},
 		};
+
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			options.appearance.rules = {
+				...options.appearance?.rules,
+				...{
+					'.RadioIcon': {
+						width: '2.1em',
+					},
+					'.RadioIconOuter': {
+						strokeWidth: '2px',
+					},
+				},
+			};
+			options = {
+				...options,
+				...{
+					paymentMethodConfiguration: 'pmc_...',
+				},
+			};
+		} else {
+			options = {
+				...options,
+				...{
+					paymentMethodTypes: getPaymentMethodTypes(
+						paymentMethodId
+					),
+				},
+			};
+		}
 
 		// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
 		if (

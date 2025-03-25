@@ -22,6 +22,10 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( 'john.doe@example.com' );
 				break;
+			case WC_Stripe_Payment_Methods::AMAZON_PAY:
+				$token = new WC_Payment_Token_Amazon_Pay();
+				$token->set_email( 'john.doe@example.com' );
+				break;
 			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
 				$token = new WC_Payment_Token_CashApp();
 				$token->set_cashtag( '$test_cashtag' );
@@ -42,14 +46,14 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_equal_payment_method() {
 		return [
-			'Unknown method' => [
+			'Unknown method'    => [
 				'token type'     => 'unknown',
 				'payment method' => (object) [
 					'type' => 'unknown',
 				],
 				'expected'       => false,
 			],
-			'CC, not equal'  => [
+			'CC, not equal'     => [
 				'token type'     => 'CC',
 				'payment_method' => (object) [
 					'type' => WC_Stripe_Payment_Methods::CARD,
@@ -59,7 +63,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				],
 				'expected'       => false,
 			],
-			'CC, equal'      => [
+			'CC, equal'         => [
 				'token type'     => 'CC',
 				'payment method' => (object) [
 					'type' => WC_Stripe_Payment_Methods::CARD,
@@ -69,7 +73,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				],
 				'expected'       => true,
 			],
-			'SEPA, equal'    => [
+			'SEPA, equal'       => [
 				'token type'     => WC_Stripe_Payment_Methods::SEPA,
 				'payment method' => (object) [
 					'type'       => WC_Stripe_Payment_Methods::SEPA_DEBIT,
@@ -79,7 +83,7 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				],
 				'expected'       => true,
 			],
-			'Link, equal'    => [
+			'Link, equal'       => [
 				'token type'     => WC_Stripe_Payment_Methods::LINK,
 				'payment method' => (object) [
 					'type' => WC_Stripe_Payment_Methods::LINK,
@@ -89,7 +93,17 @@ class WC_Stripe_Token_Comparison_Test extends WP_UnitTestCase {
 				],
 				'expected'       => true,
 			],
-			'CashApp, equal' => [
+			'Amazon Pay, equal' => [
+				'token type'     => WC_Stripe_Payment_Methods::AMAZON_PAY,
+				'payment method' => (object) [
+					'type'            => WC_Stripe_Payment_Methods::AMAZON_PAY,
+					'billing_details' => (object) [
+						'email' => 'john.doe@example.com',
+					],
+				],
+				'expected'       => true,
+			],
+			'CashApp, equal'    => [
 				'token type'     => WC_Stripe_Payment_Methods::CASHAPP_PAY,
 				'payment method' => (object) [
 					'type'    => WC_Stripe_Payment_Methods::CASHAPP_PAY,

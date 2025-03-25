@@ -22,13 +22,14 @@ import {
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
 	useSepaTokensForOtherMethods,
-	useIsSpeEnabled,
+	useIsSPEEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
 	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( '@wordpress/data' );
@@ -322,12 +323,6 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
-		useAmazonPayEnabledSettings: {
-			hook: useAmazonPayEnabledSettings,
-			storeKey: 'is_amazon_pay_enabled',
-			testedValue: true,
-			fallbackValue: false,
-		},
 		useAmazonPayButtonSize: {
 			hook: useAmazonPayButtonSize,
 			storeKey: 'amazon_pay_button_size',
@@ -340,8 +335,8 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
-		useIsSpeEnabledSettings: {
-			hook: useIsSpeEnabled,
+		useIsSPEEnabledSettings: {
+			hook: useIsSPEEnabled,
 			storeKey: 'is_spe_enabled',
 			testedValue: true,
 			fallbackValue: false,
@@ -399,4 +394,84 @@ describe( 'Settings hooks tests', () => {
 			} );
 		}
 	);
+
+	describe( 'useAmazonPayEnabledSettings()', () => {
+		test( 'returns true when PAYMENT_METHOD_AMAZON_PAY is in enabled_payment_method_ids', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					enabled_payment_method_ids: [ PAYMENT_METHOD_AMAZON_PAY ],
+				} ) ),
+			};
+
+			const { result } = renderHook( useAmazonPayEnabledSettings );
+			const [ value ] = result.current;
+
+			expect( value ).toBeTruthy();
+		} );
+
+		test( 'returns false when PAYMENT_METHOD_AMAZON_PAY is not in enabled_payment_method_ids', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					enabled_payment_method_ids: [ PAYMENT_METHOD_CARD ],
+				} ) ),
+			};
+
+			const { result } = renderHook( useAmazonPayEnabledSettings );
+			const [ value ] = result.current;
+
+			expect( value ).toBeFalsy();
+		} );
+
+		test( 'updates enabled_payment_method_ids when enabling Amazon Pay', () => {
+			actions = {
+				updateSettingsValues: jest.fn(),
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					enabled_payment_method_ids: [ PAYMENT_METHOD_CARD ],
+				} ) ),
+			};
+
+			const { result } = renderHook( useAmazonPayEnabledSettings );
+			const [ , action ] = result.current;
+
+			act( () => {
+				action( true );
+			} );
+
+			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+				enabled_payment_method_ids: [
+					PAYMENT_METHOD_CARD,
+					PAYMENT_METHOD_AMAZON_PAY,
+				],
+			} );
+		} );
+
+		test( 'updates enabled_payment_method_ids when disabling Amazon Pay', () => {
+			actions = {
+				updateSettingsValues: jest.fn(),
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					enabled_payment_method_ids: [
+						PAYMENT_METHOD_CARD,
+						PAYMENT_METHOD_AMAZON_PAY,
+					],
+				} ) ),
+			};
+
+			const { result } = renderHook( useAmazonPayEnabledSettings );
+			const [ , action ] = result.current;
+
+			act( () => {
+				action( false );
+			} );
+
+			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+				enabled_payment_method_ids: [ PAYMENT_METHOD_CARD ],
+			} );
+		} );
+	} );
 } );
