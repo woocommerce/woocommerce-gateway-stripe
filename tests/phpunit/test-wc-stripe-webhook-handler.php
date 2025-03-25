@@ -242,7 +242,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
 
 		if ( $charge_id ) { // Order not found charge ID.
-			$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+			$final_order = WC_Stripe_Order::get_by_id( $order->get_id(), false );
 			$this->assertEquals( $expected_status, $final_order->get_status() );
 
 			if ( $expected_note ) {
@@ -332,7 +332,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_dispute( $notification );
 
-		$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$final_order = WC_Stripe_Order::get_by_id( $order->get_id(), false );
 
 		$notes = wc_get_order_notes(
 			[
@@ -459,7 +459,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_payment_intent( $notification );
 
-		$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$final_order = WC_Stripe_Order::get_by_id( $order->get_id(), false );
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		if ( ! empty( $expected_note ) ) {
@@ -513,7 +513,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_payment_intent( $notification );
 
-		$updated_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$updated_order = WC_Stripe_Order::get_by_id( $order->get_id(), false );
 
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
