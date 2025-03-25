@@ -681,7 +681,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'failure', $response['result'] );
 
-		$processed_order = WC_Stripe_Order::get_by_id( $order_id );
+		$processed_order = WC_Stripe_Order::get_by_id( $order_id, false );
 		$this->assertEquals( OrderStatus::FAILED, $processed_order->get_status() );
 	}
 
@@ -750,7 +750,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'failure', $response['result'] );
 
-		$processed_order = WC_Stripe_Order::get_by_id( $order_id );
+		$processed_order = WC_Stripe_Order::get_by_id( $order_id, false );
 		$this->assertEquals( OrderStatus::FAILED, $processed_order->get_status() );
 	}
 
