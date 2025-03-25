@@ -24,6 +24,34 @@ class WC_Stripe_API {
 	private static $secret_key = '';
 
 	/**
+	 * Instance of WC_Stripe_API.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private static $instance;
+
+	/**
+	 * Get instance of WC_Stripe_API.
+	 *
+	 * @return WC_Stripe_API
+	 */
+	public static function get_instance() {
+		if ( ! isset( self::$instance ) ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Set instance of WC_Stripe_API.
+	 *
+	 * @param WC_Stripe_API $instance
+	 */
+	public static function set_instance( $instance ) {
+		self::$instance = $instance;
+	}
+
+	/**
 	 * Set secret API Key.
 	 *
 	 * @param string $key
