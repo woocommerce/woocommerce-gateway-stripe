@@ -479,9 +479,10 @@ class WC_Stripe_API {
 	 * @param array $payment_method_configurations The payment method configurations to update.
 	 */
 	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
-		return self::request(
+		$response = self::request(
 			$payment_method_configurations,
 			'payment_method_configurations/' . $id
 		);
+		return $response;
 	}
 }

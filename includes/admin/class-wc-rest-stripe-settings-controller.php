@@ -27,19 +27,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	/**
 	 * Stripe payment gateway.
 	 *
-	 * @var WC_Stripe_API
+	 * @var WC_Stripe_Payment_Method_Configurations
 	 */
-	private $stripe_api;
+	private $payment_method_configurations;
 
 	/**
 	 * Constructor.
 	 *
 	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
-	 * @param WC_Stripe_API     $stripe_api Stripe API.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway, WC_Stripe_API $stripe_api ) {
+	public function __construct( WC_Gateway_Stripe $gateway ) {
 		$this->gateway = $gateway;
-		$this->stripe_api = $stripe_api;
 	}
 
 	/**
@@ -250,24 +248,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = [];
-
-		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configuration();
-
-		if ( $merchant_payment_method_configuration ) {
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-				if ( is_object( $payment_method ) &&
-					property_exists( $payment_method, 'display_preference' ) &&
-					property_exists( $payment_method->display_preference, 'value' ) ) {
-
-					$payment_method_status = 'on' === $payment_method->display_preference->value;
-
-					if ( $payment_method_status ) {
-						$enabled_payment_method_ids[] = $payment_method_id;
-					}
-				}
-			}
-		}
+		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : [];
 
 		return new WP_REST_Response(
 			[
@@ -412,28 +393,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
-	}
-
-	/**
-	 * Get the merchant payment method configuration in Stripe.
-	 *
-	 * @return object|null
-	 */
-	private function get_merchant_payment_method_configuration() {
-		$result = $this->stripe_api->get_payment_method_configurations();
-		$payment_method_configurations = $result->data ?? null;
-
-		if ( ! $payment_method_configurations ) {
-			return null;
-		}
-
-		foreach ( $payment_method_configurations as $payment_method_configuration ) {
-			if ( $payment_method_configuration->active && $payment_method_configuration->parent ) {
-				return $payment_method_configuration;
-			}
-		}
-
-		return null;
 	}
 
 	/**
@@ -652,6 +611,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
+		if ( null === $payment_method_ids_to_enable ) {
+			return;
+		}
+
 		if ( ! $is_upe_enabled ) {
 			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
@@ -668,35 +631,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		if ( null === $payment_method_ids_to_enable ) {
-			return;
-		}
-
-		$payment_method_configuration          = [];
-		$merchant_payment_method_configuration = $this->get_merchant_payment_method_configuration();
-		$available_payment_methods             = $this->gateway->get_upe_available_payment_methods();
-
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $gateway_class ) {
-			$gateway = new $gateway_class();
-
-			if (
-				! in_array( $gateway->get_id(), $available_payment_methods, true ) ||
-				( $gateway->get_supported_currencies() && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currencies(), true ) )
-			) {
-				continue;
-			}
-
-			$payment_method_configuration[ $gateway::STRIPE_ID ] = [
-				'display_preference' => [
-					'preference' => in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ? 'on' : 'off',
-				],
-			];
-		}
-
-		$this->stripe_api->update_payment_method_configurations(
-			$merchant_payment_method_configuration->id,
-			$payment_method_configuration
-		);
+		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**

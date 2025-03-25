@@ -198,6 +198,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-exception.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-logger.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-helper.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-payment-method-configurations.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
 				require_once __DIR__ . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
@@ -756,7 +757,7 @@ function woocommerce_gateway_stripe() {
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
-					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway(), new WC_Stripe_API() );
+					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 					$settings_controller->register_routes();
 
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );

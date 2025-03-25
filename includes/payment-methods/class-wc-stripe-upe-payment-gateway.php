@@ -589,12 +589,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns the list of enabled payment method types for UPE.
+	 * Returns UPE enabled payment method IDs.
 	 *
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD ] );
+		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
 	}
 
 	/**
@@ -644,6 +644,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $available_payment_methods;
+	}
+
+	/**
+	 * Updates the enabled payment methods.
+	 *
+	 * @param string[] $payment_method_ids_to_enable
+	 */
+	public function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
+		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration( $payment_method_ids_to_enable, $this->get_stripe_supported_payment_methods() );
+	}
+
+	/**
+	 * Returns the list of supported payment method types for Stripe.
+	 *
+	 * @return string[]
+	 */
+	private function get_stripe_supported_payment_methods() {
+		$supported_stripe_ids         = [];
+		$available_payment_method_ids = $this->get_upe_available_payment_methods();
+
+		foreach ( self::UPE_AVAILABLE_METHODS as $gateway_class ) {
+			$gateway = new $gateway_class();
+
+			if (
+				! in_array( $gateway->get_id(), $available_payment_method_ids, true ) ||
+				( $gateway->get_supported_currencies() && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currencies(), true ) )
+			) {
+				continue;
+			}
+
+			$supported_stripe_ids[] = $gateway::STRIPE_ID;
+		}
+
+		return $supported_stripe_ids;
 	}
 
 	/**
