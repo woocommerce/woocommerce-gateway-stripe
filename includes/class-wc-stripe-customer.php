@@ -26,6 +26,7 @@ class WC_Stripe_Customer {
 		WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 	];
 
 	/**

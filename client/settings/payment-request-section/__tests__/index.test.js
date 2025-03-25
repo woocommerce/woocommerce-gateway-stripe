@@ -9,6 +9,7 @@ import {
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_AMAZON_PAY,
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -37,6 +38,7 @@ describe( 'PaymentRequestSection', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_LINK,
+			PAYMENT_METHOD_AMAZON_PAY,
 		] );
 		useAmazonPayEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 		global.wc_stripe_settings_params = {
@@ -133,6 +135,18 @@ describe( 'PaymentRequestSection', () => {
 			...globalValues,
 			is_amazon_pay_available: false,
 		};
+
+		render( <PaymentRequestSection /> );
+
+		expect( screen.queryByText( 'Amazon Pay' ) ).toBeNull();
+	} );
+
+	it( 'hide Amazon Pay if legacy checkout is enabled', () => {
+		// Amazon Pay is only available as a UPE payment method.
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+		] );
+		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <PaymentRequestSection /> );
 

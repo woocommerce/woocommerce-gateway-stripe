@@ -23,6 +23,7 @@ class WC_Stripe_Payment_Tokens {
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
 		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID,
 		WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID        => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
@@ -431,6 +432,13 @@ class WC_Stripe_Payment_Tokens {
 					esc_html( $payment_token->get_email() )
 				);
 				break;
+			case WC_Stripe_Payment_Methods::AMAZON_PAY:
+				$item['method']['brand'] = sprintf(
+					/* translators: customer email */
+					esc_html__( 'Amazon Pay (%s)', 'woocommerce-gateway-stripe' ),
+					esc_html( $payment_token->get_email() )
+				);
+				break;
 		}
 
 		return $item;
@@ -555,6 +563,10 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
 				break;
+			case WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID:
+				$token = new WC_Payment_Token_Amazon_Pay();
+				$token->set_email( $payment_method->billing_details->email ?? '' );
+				break;
 			case WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID:
 				$token = new WC_Payment_Token_ACH();
 				if ( isset( $payment_method->us_bank_account->last4 ) ) {
@@ -643,6 +655,7 @@ class WC_Stripe_Payment_Tokens {
 			WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 		];
 
 		foreach ( $payment_method_types as $stripe_id ) {

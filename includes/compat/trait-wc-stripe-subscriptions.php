@@ -1010,6 +1010,10 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
 							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
 							break 3;
+						case WC_Stripe_Payment_Methods::AMAZON_PAY:
+							/* translators: 1) the Amazon Pay payment method's email */
+							$payment_method_to_display = sprintf( __( 'Via Amazon Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->billing_details->email ?? '' );
+							break 3;
 					}
 				}
 			}
