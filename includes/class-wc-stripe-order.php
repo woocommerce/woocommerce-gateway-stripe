@@ -235,63 +235,74 @@ class WC_Stripe_Order extends WC_Order {
 	 * Wrapper to get orders using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $args array Arguments to pass to wc_get_orders.
+	 * @param bool $cached Whether to use cached instance.
 	 * @return array|WC_Stripe_Order[]
 	 */
-	public static function query( $args ) {
+	public static function query( $args, $cached = true ) {
 		$orders = wc_get_orders( $args );
 		if ( empty( $orders ) ) {
 			return [];
 		}
 
 		// Convert all orders to WC_Stripe_Order instances.
-		return array_map( [ self::class, 'to_instance' ], $orders );
+		return array_map(
+			function( $order ) use ( $cached ) {
+				return self::to_instance( $order, $cached );
+			},
+			$orders
+		);
 	}
 
 	/**
 	 * Gets the order by Stripe source ID.
 	 *
-	 * @param string $source_id
+	 * @param string $source_id The ID of the source.
+	 * @param bool $cached Whether to use cached instance.
 	 */
-	public static function get_by_source_id( $source_id ) {
-		return self::get_by_meta( self::META_STRIPE_SOURCE_ID, $source_id );
+	public static function get_by_source_id( $source_id, $cached = true ) {
+		return self::get_by_meta( self::META_STRIPE_SOURCE_ID, $source_id, $cached );
 	}
 
 	/**
 	 * Gets the order by Stripe charge ID.
 	 *
-	 * @param string $charge_id
+	 * @param string $charge_id The ID of the charge.
+	 * @param bool $cached Whether to use cached instance.
 	 */
-	public static function get_by_charge_id( $charge_id ) {
-		return self::get_by_meta( self::META_STRIPE_CHARGE_ID, $charge_id );
+	public static function get_by_charge_id( $charge_id, $cached = true ) {
+		return self::get_by_meta( self::META_STRIPE_CHARGE_ID, $charge_id, $cached );
 	}
 
 	/**
 	 * Gets the order by Stripe refund ID.
 	 *
 	 * @param string $refund_id
+	 * @param bool $cached Whether to use cached instance.
 	 */
-	public static function get_by_refund_id( $refund_id ) {
-		return self::get_by_meta( self::META_STRIPE_REFUND_ID, $refund_id );
+	public static function get_by_refund_id( $refund_id, $cached = true ) {
+		return self::get_by_meta( self::META_STRIPE_REFUND_ID, $refund_id, $cached );
 	}
 
 	/**
 	 * Gets the order by Stripe PaymentIntent ID.
 	 *
 	 * @param string $intent_id The ID of the intent.
+	 * @param bool $cached Whether to use cached instance.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
-	public static function get_by_intent_id( $intent_id ) {
-		return self::get_by_meta( self::META_STRIPE_INTENT_ID, $intent_id );
+	public static function get_by_intent_id( $intent_id, $cached = true ) {
+		return self::get_by_meta( self::META_STRIPE_INTENT_ID, $intent_id, $cached );
 	}
 
 	/**
 	 * Gets the order by Stripe SetupIntent ID.
 	 *
 	 * @param string $intent_id The ID of the intent.
+	 * @param bool $cached Whether to use cached instance.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
-	public static function get_by_setup_intent_id( $intent_id ) {
-		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT, $intent_id );
+	public static function get_by_setup_intent_id( $intent_id, $cached = true ) {
+		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT, $intent_id, $cached );
 	}
 
 	/**
@@ -893,9 +904,10 @@ class WC_Stripe_Order extends WC_Order {
 	 *
 	 * @param $meta_key string The meta key to search for.
 	 * @param $meta_value string The meta value to search for.
+	 * @param $cached bool Whether to use cached instance.
 	 * @return bool|WC_Stripe_Order
 	 */
-	private static function get_by_meta( $meta_key, $meta_value ) {
+	private static function get_by_meta( $meta_key, $meta_value, $cached = true ) {
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -912,14 +924,14 @@ class WC_Stripe_Order extends WC_Order {
 				];
 			}
 
-			$orders   = self::query( $params );
+			$orders   = self::query( $params, $cached );
 			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
 		} else {
 			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $meta_value, $meta_key ) );
 		}
 
 		if ( ! empty( $order_id ) ) {
-			$order = self::get_by_id( $order_id );
+			$order = self::get_by_id( $order_id, $cached );
 		}
 
 		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
