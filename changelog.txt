@@ -29,6 +29,7 @@
 * Update - Update handling of PR as a country in the terminal locations endpoint.
 * Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
 * Fix - Fix subscription renewal issues for Amazon Pay.
+* Tweak - SPE: Remove radio buttons
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
