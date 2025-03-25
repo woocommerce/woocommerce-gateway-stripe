@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_project:
+  build-project:
     if: github.event.pull_request.merged == true
     name: Build package
     uses: ./.github/workflows/build-upload-zip.yml
@@ -22,7 +22,7 @@ jobs:
   qit-tests:
     if: github.event.pull_request.merged == true
     name: Run QIT tests
-    needs: build_project
+    needs: build-project
     uses: ./.github/workflows/run-qit.yml
     secrets: inherit
     with:
