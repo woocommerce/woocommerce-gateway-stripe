@@ -23,7 +23,7 @@ import {
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
 import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/blocks/upe/spe/handle-display-of-saving-checkbox';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
 
@@ -333,7 +333,10 @@ const PaymentProcessor = ( {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox(
+				value.type,
+				'wc-block-components-payment-methods__save-card-info'
+			);
 		}
 	};
 

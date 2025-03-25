@@ -24,7 +24,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/classic/upe/spe/handle-display-of-saving-checkbox';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
@@ -332,7 +332,10 @@ export async function mountStripePaymentElement( api, domElement ) {
 	// If the SPE is enabled, we need to handle the display of the saving checkbox.
 	if ( getStripeServerData()?.isSPEEnabled ) {
 		upeElement.on( 'change', ( { value } ) => {
-			handleDisplayOfSavingCheckbox( value.type );
+			handleDisplayOfSavingCheckbox(
+				value.type,
+				'woocommerce-SavedPaymentMethods-saveNew'
+			);
 		} );
 	}
 
