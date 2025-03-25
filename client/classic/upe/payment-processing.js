@@ -162,20 +162,30 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	};
 
-	const createdStripePaymentElement = elements.create( 'payment', {
+	let paymentElementOptions = {
 		...getUpeSettings(),
 		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-		layout: getStripeServerData()?.isSPEEnabled
-			? {
-					type: 'accordion',
-					radios: false,
-			  }
-			: 'accordion',
-	} );
+	};
+
+	// Set the layout to accordion if SPE is enabled.
+	if ( getStripeServerData()?.isSPEEnabled ) {
+		paymentElementOptions = {
+			...paymentElementOptions,
+      layout: {
+        type: 'accordion',
+        radios: false,
+      }
+		};
+	}
+
+	const createdStripePaymentElement = elements.create(
+		'payment',
+		paymentElementOptions
+	);
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[
