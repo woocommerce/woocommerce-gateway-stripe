@@ -22,8 +22,8 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled } from 'wcstripe/stripe-utils';
 import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
+import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
 
 const noop = () => null;
 
@@ -306,9 +306,15 @@ const PaymentProcessor = ( {
 		} else {
 			removeCashAppLimitNotice();
 		}
+
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
-			applySinglePaymentElementStyles();
+			applyStyles(
+				'input[name=radio-control-wc-payment-method-options]',
+				'.wc-block-components-radio-control__option',
+				true,
+				true
+			);
 		}
 	}, [ selectedPaymentMethodType ] );
 
