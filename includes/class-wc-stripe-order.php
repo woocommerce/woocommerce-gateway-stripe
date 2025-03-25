@@ -235,10 +235,9 @@ class WC_Stripe_Order extends WC_Order {
 	 * Wrapper to get orders using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $args array Arguments to pass to wc_get_orders.
-	 * @param bool $cached Whether to use cached instance.
 	 * @return array|WC_Stripe_Order[]
 	 */
-	public static function query( $args, $cached = true ) {
+	public static function query( $args ) {
 		$orders = wc_get_orders( $args );
 		if ( empty( $orders ) ) {
 			return [];
@@ -246,8 +245,8 @@ class WC_Stripe_Order extends WC_Order {
 
 		// Convert all orders to WC_Stripe_Order instances.
 		return array_map(
-			function( $order ) use ( $cached ) {
-				return self::to_instance( $order, $cached );
+			function( $order ) {
+				return self::to_instance( $order, false );
 			},
 			$orders
 		);

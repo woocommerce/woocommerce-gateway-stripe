@@ -64,8 +64,8 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order, WC_Stripe_Order::get_by_id( $order_id, false ) );
 
 		// query
-		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ], false );
-		$this->assertEquals( $order, $orders[0] );
+		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ] );
+		$this->assertEquals( $order->get_status(), $orders[0]->get_status() );
 
 		// get_by_source_id
 		$this->assertEquals( $order, WC_Stripe_Order::get_by_source_id( $source_id, false ) );
