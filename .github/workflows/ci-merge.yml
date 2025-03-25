@@ -47,7 +47,7 @@ jobs:
           payload: |
             icon: ":workflow-cancelled:"
             status: "cancelled"
-            workflowName: "${{ github.workflow }} / ${{ github.head_ref }}"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref }}"
             workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   handle-error:
@@ -63,5 +63,5 @@ jobs:
           payload: |
             icon: ":workflow-failed:"
             status: "failed"
-            workflowName: "${{ github.workflow }} / ${{ github.head_ref }}"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref }}"
             workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
