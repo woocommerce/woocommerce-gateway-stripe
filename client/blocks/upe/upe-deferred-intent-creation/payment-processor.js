@@ -55,7 +55,6 @@ const getStripeElementOptions = () => {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-		layout: 'accordion',
 	};
 
 	// Prefill Link customer data if available.
@@ -76,6 +75,14 @@ const getStripeElementOptions = () => {
 				},
 			};
 		}
+	}
+
+	// Set the layout to accordion if SPE is enabled.
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		options = {
+			...options,
+			layout: 'accordion',
+		};
 	}
 
 	return options;
