@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
@@ -139,5 +140,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update handling of PR as a country in the terminal locations endpoint.
 * Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
 * Fix - Fix subscription renewal issues for Amazon Pay.
+* Tweak - SPE: Remove radio buttons
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

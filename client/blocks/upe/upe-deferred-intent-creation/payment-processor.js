@@ -59,7 +59,6 @@ const getStripeElementOptions = () => {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-		layout: 'accordion',
 	};
 
 	// Prefill Link customer data if available.
@@ -80,6 +79,16 @@ const getStripeElementOptions = () => {
 				},
 			};
 		}
+	}
+
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		options = {
+			...options,
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
+		};
 	}
 
 	return options;
