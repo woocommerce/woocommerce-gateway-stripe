@@ -2759,7 +2759,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the order total matches the existing intent amount.
 		$order_total = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		if ( $order_total !== $intent->amount ) {
+		if ( ( $intent->amount ?? null ) !== $order_total ) {
 			return null;
 		}
 
