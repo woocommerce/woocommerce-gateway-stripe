@@ -179,7 +179,6 @@ const getKlarnaCurrencies = () => {
 	const eeaCountries = [
 		'AT', // Austria
 		'BE', // Belgium
-		'BG', // Bulgaria
 		'HR', // Croatia
 		'CY', // Cyprus
 		'CZ', // Czech Republic
@@ -189,7 +188,6 @@ const getKlarnaCurrencies = () => {
 		'FR', // France
 		'DE', // Germany
 		'GR', // Greece
-		'HU', // Hungary
 		'IE', // Ireland
 		'IT', // Italy
 		'LV', // Latvia
