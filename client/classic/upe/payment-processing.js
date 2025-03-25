@@ -175,10 +175,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	if ( getStripeServerData()?.isSPEEnabled ) {
 		paymentElementOptions = {
 			...paymentElementOptions,
-      layout: {
-        type: 'accordion',
-        radios: false,
-      }
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
 		};
 	}
 
