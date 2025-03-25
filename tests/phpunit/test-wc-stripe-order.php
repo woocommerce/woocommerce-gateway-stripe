@@ -282,10 +282,24 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `to_instance`.
 	 *
+	 * @param WC_Stripe_Order $order Order.
 	 * @return void
+	 *
+	 * @dataProvider provide_test_to_instance
 	 */
-	public function test_to_instance() {
-		$order = wc_create_order(
+	public function test_to_instance( $order ) {
+		$this->assertInstanceOf( WC_Stripe_Order::class, WC_Stripe_Order::to_instance( $order ) );
+	}
+
+	/**
+	 * Provider for `test_to_instance`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_to_instance() {
+		$stripe_order = new WC_Stripe_Order();
+
+		$default_order = wc_create_order(
 			[
 				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
@@ -294,6 +308,26 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->assertInstanceOf( WC_Stripe_Order::class, WC_Stripe_Order::to_instance( $order ) );
+		$cached_order = wc_create_order(
+			[
+				'status'        => OrderStatus::PENDING,
+				'customer_id'   => 123,
+				'customer_note' => '',
+				'total'         => '',
+			]
+		);
+		$cached_order = WC_Stripe_Order::to_instance( $cached_order );
+
+		return [
+			'already a WC_Stripe_Order instance' => [
+				'order' => $stripe_order,
+			],
+			'not cached order'                   => [
+				'order' => $default_order,
+			],
+			'cached order'                       => [
+				'order' => $cached_order,
+			],
+		];
 	}
 }
