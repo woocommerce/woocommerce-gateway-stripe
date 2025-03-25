@@ -282,6 +282,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Returns the payment method instance for the given payment method name.
+	 *
+	 * @param $payment_method string The payment method name.
+	 * @return WC_Stripe_UPE_Payment_Method|null The payment method instance.
+	 */
+	public static function get_payment_method_instance( $payment_method ) {
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$payment_method_instance = new $payment_method_class();
+			if ( $payment_method_instance->get_id() === $payment_method ) {
+				return $payment_method_instance;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Removes all saved payment methods when the setting to save cards is disabled.
 	 *
 	 * @param  array $list         List of payment methods passed from wc_get_customer_saved_methods_list().
@@ -897,12 +913,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$response_args                 = [];
 
 			if ( $this->spe_enabled && isset( $payment_method_details->type ) ) {
-				foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_method_details->type ) {
-						$upe_payment_method = $payment_method;
-					}
-				}
+				$upe_payment_method = $this->get_payment_method_instance( $payment_method_details->type );
 			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
@@ -2019,12 +2030,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->spe_enabled ) {
 				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
 				if ( ! empty( $payment_method_type ) ) {
-					foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-						$payment_method_instance = new $payment_method_class();
-						if ( $payment_method_instance->get_id() === $payment_method_type ) {
-							$payment_method = $payment_method_instance;
-						}
-					}
+					$payment_method = $this->get_payment_method_instance( $payment_method_type );
 				}
 			} else {
 				$payment_method = $this->payment_methods[ $payment_method_type ];
