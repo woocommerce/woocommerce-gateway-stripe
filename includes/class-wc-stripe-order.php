@@ -180,15 +180,16 @@ class WC_Stripe_Order extends WC_Order {
 	 * Converts an order into WC_Stripe_Order if it is not already.
 	 *
 	 * @param $order WC_Stripe_Order|WC_Order Order object.
+	 * @param bool $cached Whether to use cached instance.
 	 * @return WC_Stripe_Order
 	 */
-	public static function to_instance( $order ) {
+	public static function to_instance( $order, $cached = true ) {
 		if ( $order instanceof WC_Stripe_Order ) {
 			return $order;
 		}
 
 		$order_id = $order->get_id();
-		if ( ! isset( self::$instances[ $order_id ] ) ) {
+		if ( ! $cached || ! isset( self::$instances[ $order_id ] ) ) {
 			self::$instances[ $order_id ] = new self( $order );
 		}
 
@@ -214,10 +215,11 @@ class WC_Stripe_Order extends WC_Order {
 	 * Wrapper to return an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_id int Order ID.
+	 * @param bool $cached Whether to use cached instance.
 	 * @return bool|WC_Stripe_Order
 	 */
-	public static function get_by_id( $order_id ) {
-		if ( isset( self::$instances[ $order_id ] ) ) {
+	public static function get_by_id( $order_id, $cached = true ) {
+		if ( $cached && isset( self::$instances[ $order_id ] ) ) {
 			return self::$instances[ $order_id ];
 		}
 
@@ -226,7 +228,7 @@ class WC_Stripe_Order extends WC_Order {
 			return false;
 		}
 
-		return self::to_instance( $order );
+		return self::to_instance( $order, $cached );
 	}
 
 	/**
