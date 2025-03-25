@@ -2880,4 +2880,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertTrue( $gateway->is_spe_enabled() );
 	}
+
+	/**
+	 * Test for `get_payment_method_instance`.
+	 *
+	 * @return void
+	 */
+	public function test_get_payment_method_instance() {
+		$actual = $this->mock_gateway->get_payment_method_instance( WC_Stripe_Payment_Methods::CARD );
+		$this->assertInstanceOf( WC_Stripe_UPE_Payment_Method_CC::class, $actual );
+	}
 }
