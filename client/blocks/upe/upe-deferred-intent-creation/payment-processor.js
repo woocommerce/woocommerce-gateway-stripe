@@ -2,7 +2,6 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { ValidatedTextInput } from '@woocommerce/blocks-checkout';
 import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
@@ -15,6 +14,7 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
+import BlikCodeElement from './blik-code-element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -169,7 +169,6 @@ const PaymentProcessor = ( {
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
-	const [ blikCode, setBlikCode ] = useState( '' );
 
 	// Make sure shouldSavePayment is set to true if the cart contains a subscription.
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
@@ -389,42 +388,7 @@ const PaymentProcessor = ( {
 				} }
 			/>
 			{ isBlikSelected ? (
-				<>
-					<ValidatedTextInput
-						id="wc-stripe-blik-code"
-						label="BLIK Code"
-						maxLength={ 6 }
-						onChange={ setBlikCode }
-						pattern="[0-9]{6}"
-						value={ blikCode }
-						customValidityMessage={ ( validity ) => {
-							if ( validity.valueMissing ) {
-								return __(
-									'Please enter a valid BLIK code',
-									'woocommerce-gateway-stripe'
-								);
-							}
-
-							if ( validity.patternMismatch ) {
-								return __(
-									'BLIK code is invalid',
-									'woocommerce-gateway-stripe'
-								);
-							}
-						} }
-						required
-					/>
-					<p
-						style={ {
-							marginTop: 'var(--wp--preset--spacing--50)',
-						} }
-					>
-						{ __(
-							'After submitting your order, please authorize the payment in your mobile banking application.',
-							'woocommerce-gateway-stripe'
-						) }
-					</p>
-				</>
+				<BlikCodeElement />
 			) : (
 				<PaymentElement
 					options={ getStripeElementOptions() }
