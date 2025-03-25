@@ -14,6 +14,7 @@ import {
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
+	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
@@ -67,24 +68,6 @@ export function validateElements( elements ) {
 			throw new Error( result.error.message );
 		}
 	} );
-}
-
-/**
- * Validates the BLIK code input before submitting checkout.
- * If an error occurs, the function removes loading effect from the provided jQuery form and thus unblocks it,
- * and shows an error message in the checkout.
- *
- * @param {Object} jQueryForm The jQuery object for the form being submitted.
- * @return {void}
- */
-export function validateBlikCode( jQueryForm ) {
-	const code = jQueryForm?.find( '#wc-stripe-blik-code' )?.val();
-
-	if ( ! /[0-9]{6}/.test( code ) ) {
-		throw new Error(
-			__( 'BLIK code is invalid.', 'woocommerce-gateway-stripe' )
-		);
-	}
 }
 
 /**

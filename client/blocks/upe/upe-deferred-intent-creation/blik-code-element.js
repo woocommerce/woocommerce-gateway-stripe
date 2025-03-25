@@ -24,7 +24,7 @@ const BlikCodeElement = () => {
 
 					if ( validity.patternMismatch ) {
 						return __(
-							'BLIK code is invalid',
+							'BLIK Code is invalid',
 							'woocommerce-gateway-stripe'
 						);
 					}

@@ -21,7 +21,7 @@ import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
+import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CARD,
@@ -97,23 +97,6 @@ export function validateElements( elements ) {
 			throw new Error( result.error.message );
 		}
 	} );
-}
-
-/**
- * Validates the BLIK code input before submitting checkout.
- * If an error occurs, the function removes loading effect from the provided jQuery form and thus unblocks it,
- * and shows an error message in the checkout.
- *
- * @return {void}
- */
-export function validateBlikCode() {
-	const code = document?.querySelector( '#wc-stripe-blik-code' )?.value;
-
-	if ( ! /[0-9]{6}/.test( code ) ) {
-		throw new Error(
-			__( 'BLIK code is invalid', 'woocommerce-gateway-stripe' )
-		);
-	}
 }
 
 /**

@@ -758,3 +758,24 @@ export const getAdditionalSetupIntentData = ( jQueryForm ) => {
 
 	return additionalData;
 };
+
+/**
+ * Validates the BLIK code input before submitting checkout.
+ * If it's invalid, the function removes loading effect from the provided jQuery form (if available) and thus unblocks it.
+ * Finally, it shows an error message in the checkout.
+ *
+ * @param {Object|undefined} jQueryForm The jQuery object for the form being submitted.
+ * @return {void}
+ */
+export function validateBlikCode( jQueryForm = undefined ) {
+	const selector = '#wc-stripe-blik-code';
+	const code = jQueryForm
+		? jQueryForm?.find( selector )?.val()
+		: document?.querySelector( selector )?.value;
+
+	if ( ! /[0-9]{6}/.test( code ) ) {
+		throw new Error(
+			__( 'BLIK Code is invalid', 'woocommerce-gateway-stripe' )
+		);
+	}
+}
