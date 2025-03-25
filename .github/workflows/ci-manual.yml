@@ -15,7 +15,7 @@ on:
       php-version:
         description: 'PHP version'
         type: choice
-        default: '8.4'
+        default: '7.4'
         options:
           - '7.4'
           - '8.0'
@@ -59,19 +59,21 @@ run-name: Tests with WP=${{ inputs.wp-version }} - WC=${{ inputs.wc-version }} -
 
 jobs:
 
-#  php-tests:
-#    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'Unit')
-#    name: Run PHP Unit
-#    uses: ./.github/workflows/run-unit-tests.yml
-#    with:
-#      wp_version: '[ "${{ inputs.wp-version }}" ]'
-#      wc_version: '[ "${{ inputs.wc-version }}" ]'
+  php-tests:
+    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'Unit')
+    name: Run PHP Unit
+    uses: ./.github/workflows/run-unit-tests.yml
+    with:
+      wp-version: '${{ inputs.wp-version }}'
+      wc-version: '${{ inputs.wc-version }}'
+      php-version: '${{ inputs.php-version }}'
   
   build-project:
     name: Build package
     uses: ./.github/workflows/build-upload-zip.yml
     with:
       artifact: 'manual-test-package'
+      php-version: '${{ inputs.php-version }}'
   
   qit-tests:
     name: Run QIT
@@ -114,7 +116,7 @@ jobs:
       (needs.qit-tests.result == 'success' || needs.qit-tests.result == 'skipped') &&
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
       (needs.php-tests.result == 'success' || needs.php-tests.result == 'skipped')
-    needs: [qit-tests]
+    needs: [php-tests, qit-tests]
     name: Handle success
     runs-on: ubuntu-latest
     steps:
@@ -130,7 +132,7 @@ jobs:
   
   handle-cancelled:
     if: cancelled()
-    needs: [qit-tests]
+    needs: [php-tests, qit-tests]
     name: Handle cancellation
     runs-on: ubuntu-latest
     steps:
@@ -146,7 +148,7 @@ jobs:
 
   handle-error:
     if: failure()
-    needs: [qit-tests]
+    needs: [php-tests, qit-tests]
     name: Handle failure
     runs-on: ubuntu-latest
     steps:
