@@ -170,13 +170,29 @@ class WC_Stripe_Order extends WC_Order {
 	const PAYMENT_LOCK_EXPIRATION = 5 * MINUTE_IN_SECONDS;
 
 	/**
+	 * The Stripe Order instances.
+	 *
+	 * @var array
+	 */
+	private static $instances = [];
+
+	/**
 	 * Converts an order into WC_Stripe_Order if it is not already.
 	 *
 	 * @param $order WC_Stripe_Order|WC_Order Order object.
 	 * @return WC_Stripe_Order
 	 */
 	public static function to_instance( $order ) {
-		return $order instanceof WC_Stripe_Order ? $order : new self( $order );
+		if ( $order instanceof WC_Stripe_Order ) {
+			return $order;
+		}
+
+		$order_id = $order->get_id();
+		if ( ! isset( self::$instances[ $order_id ] ) ) {
+			self::$instances[ $order_id ] = new self( $order );
+		}
+
+		return self::$instances[ $order_id ];
 	}
 
 	/**
@@ -191,7 +207,7 @@ class WC_Stripe_Order extends WC_Order {
 			return false;
 		}
 
-		return new WC_Stripe_Order( $order );
+		return self::to_instance( $order );
 	}
 
 	/**
@@ -201,12 +217,16 @@ class WC_Stripe_Order extends WC_Order {
 	 * @return bool|WC_Stripe_Order
 	 */
 	public static function get_by_id( $order_id ) {
+		if ( isset( self::$instances[ $order_id ] ) ) {
+			return self::$instances[ $order_id ];
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
 
-		return new WC_Stripe_Order( $order );
+		return self::to_instance( $order );
 	}
 
 	/**
@@ -221,12 +241,8 @@ class WC_Stripe_Order extends WC_Order {
 			return [];
 		}
 
-		return array_map(
-			function ( $order ) {
-				return new WC_Stripe_Order( $order );
-			},
-			$orders
-		);
+		// Convert all orders to WC_Stripe_Order instances.
+		return array_map( [ self::class, 'to_instance' ], $orders );
 	}
 
 	/**
