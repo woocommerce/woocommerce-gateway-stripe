@@ -1089,7 +1089,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
 
-		$final_order = WC_Stripe_Order::get_by_id( $order_id );
+		$final_order = WC_Stripe_Order::get_by_id( $order_id, false );
 
 		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );

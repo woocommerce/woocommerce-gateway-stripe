@@ -61,26 +61,26 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 
 		// get_by_id
 		$order_id = $order->get_id();
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_id( $order_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_id( $order_id, false ) );
 
 		// query
-		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ] );
+		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ], false );
 		$this->assertEquals( $order, $orders[0] );
 
 		// get_by_source_id
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_source_id( $source_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_source_id( $source_id, false ) );
 
 		// get_by_charge_id
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_charge_id( $charge_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_charge_id( $charge_id, false ) );
 
 		// get_by_refund_id
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_refund_id( $refund_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_refund_id( $refund_id, false ) );
 
 		// get_by_intent_id
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_intent_id( $intent_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_intent_id( $intent_id, false ) );
 
 		// get_by_setup_intent_id
-		$this->assertEquals( $order, WC_Stripe_Order::get_by_setup_intent_id( $setup_intent_id ) );
+		$this->assertEquals( $order, WC_Stripe_Order::get_by_setup_intent_id( $setup_intent_id, false ) );
 	}
 
 	/**
@@ -283,12 +283,13 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	 * Test for `to_instance`.
 	 *
 	 * @param WC_Stripe_Order $order Order.
+	 * @param bool            $bypass_cache Bypass cache.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_to_instance
 	 */
-	public function test_to_instance( $order ) {
-		$this->assertInstanceOf( WC_Stripe_Order::class, WC_Stripe_Order::to_instance( $order ) );
+	public function test_to_instance( $order, $bypass_cache = false ) {
+		$this->assertInstanceOf( WC_Stripe_Order::class, WC_Stripe_Order::to_instance( $order, ! $bypass_cache ) );
 	}
 
 	/**
@@ -327,6 +328,10 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 			],
 			'cached order'                       => [
 				'order' => $cached_order,
+			],
+			'cached order, but bypass cache'     => [
+				'order'        => $cached_order,
+				'bypass cache' => true,
 			],
 		];
 	}
