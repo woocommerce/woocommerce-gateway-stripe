@@ -13,9 +13,15 @@ on:
         type: string
         default: 'latest'
       php-version:
-        description: 'PHP version: Default is `8.4`'
-        type: string
+        description: 'PHP version'
+        type: choice
         default: '8.4'
+        options:
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.3'
+          - '8.4'
       qit-tests:
         description: 'QIT Tests'
         type: choice
