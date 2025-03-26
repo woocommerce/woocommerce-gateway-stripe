@@ -1,4 +1,7 @@
+import { StoreNotice } from '@woocommerce/blocks-checkout';
 import React, { useEffect, useState } from 'react';
+
+const defaultButtontext = 'Create a Checkout Session';
 
 const CheckoutSession = ( {
 	eventRegistration: { onPaymentSetup },
@@ -8,6 +11,9 @@ const CheckoutSession = ( {
 	activePaymentMethod,
 } ) => {
 	const [ checkoutSessionId, setCheckoutSessionId ] = useState( '' );
+	const [ isLoading, setIsLoading ] = useState( false );
+	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [ buttonText, setButtonText ] = useState( defaultButtontext );
 
 	useEffect( () => {
 		const urlParams = new URLSearchParams( window.location.search );
@@ -67,18 +73,34 @@ const CheckoutSession = ( {
 	const createCheckoutSession = async ( e ) => {
 		e.preventDefault();
 		try {
+			setIsLoading( true );
 			const response = await api.createCheckoutSession();
+			if ( ! response.success ) {
+				throw new Error( response.data.message );
+			}
+			setButtonText( 'Redirecting...' );
 			window.location.href = response.data.checkout_session_url;
 		} catch ( err ) {
-			// eslint-disable-next-line no-console
-			console.error( 'Error creating checkout session:', err );
+			setErrorMessage( err.message );
+			setIsLoading( false );
+			setButtonText( defaultButtontext );
 		}
 	};
 
 	return (
-		<button onClick={ createCheckoutSession }>
-			Create a Checkout Session
-		</button>
+		<>
+			{ errorMessage && (
+				<div className="wc-block-components-notices">
+					<StoreNotice status="error" isDismissible={ false }>
+						{ errorMessage }
+					</StoreNotice>
+				</div>
+			) }
+
+			<button onClick={ createCheckoutSession } disabled={ isLoading }>
+				{ buttonText }
+			</button>
+		</>
 	);
 };
 

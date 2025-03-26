@@ -153,10 +153,10 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 	public function create_bacs_checkout_session_ajax() {
 		try {
-			// $is_nonce_valid = check_ajax_referer( 'wc_stripe_create_bacs_checkout_session_nonce', false, false );
-			// if ( ! $is_nonce_valid ) {
-			// 	throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to create a Checkout Session this time', 'woocommerce-gateway-stripe' ) );
-			// }
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_bacs_checkout_session_nonce', false, false );
+			if ( $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'We couldn\'t create a Checkout Session for Bacs this time. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
 
 			$params = [
 				'success_url'            => wc_get_checkout_url() . '?checkout_session=created&checkout_session_id={CHECKOUT_SESSION_ID}',
@@ -181,6 +181,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// It might be a good idea to add the Setup Intent ID to save a request when associating the payment method with the customer.
 			$redirect_url = $response->url;
 			wp_send_json_success( [ 'checkout_session_url' => $redirect_url ] );
+		} catch ( Error $e ) {
+			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( $e->getMessage() );
 
@@ -197,7 +199,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// 	throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to attach the payment method to the customer at this time.', 'woocommerce-gateway-stripe' ) );
 			// }
 
-			$checkout_session_id = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
+			$checkout_session_id    = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
 			$friendly_error_message = __( 'An error occurred while attaching the Bacs Direct Debit payment method to the customer.', 'woocommerce-gateway-stripe' );
 
 			// Get the Checkout Session data.
