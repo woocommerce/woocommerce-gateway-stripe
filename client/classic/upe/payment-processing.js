@@ -14,10 +14,12 @@ import {
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
+	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -276,9 +278,19 @@ function createStripePaymentMethod(
 		};
 	}
 
+	// BLIK uses a controlled form instead of Stripe Elements.
+	const paymentMethodData =
+		paymentMethodType === PAYMENT_METHOD_BLIK
+			? {
+					billing_details: params?.billing_details,
+					blik: {},
+					type: paymentMethodType,
+			  }
+			: { elements, params };
+
 	return api
 		.getStripe( paymentMethodType )
-		.createPaymentMethod( { elements, params } )
+		.createPaymentMethod( paymentMethodData )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
 				throw paymentMethod.error;
@@ -418,7 +430,11 @@ export const processPayment = (
 				);
 			}
 
-			await validateElements( elements );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
+			} else {
+				await validateElements( elements );
+			}
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,

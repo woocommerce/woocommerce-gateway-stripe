@@ -990,6 +990,11 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
+		// BLIK requires additional information in the payment method options.
+		if ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type && isset( $payment_information['payment_method_options'] ) ) {
+			$request['payment_method_options'] = $payment_information['payment_method_options'];
+		}
+
 		return $request;
 	}
 
