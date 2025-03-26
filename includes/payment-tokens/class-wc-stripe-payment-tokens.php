@@ -427,7 +427,7 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::BECS_DEBIT:
-				$item['method']['brand'] = $payment_token->get_bank_name();
+				$item['method']['brand'] = esc_html__( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
 				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
@@ -616,9 +616,6 @@ class WC_Stripe_Payment_Tokens {
 					}
 					if ( isset( $au_becs_debit_fields->fingerprint ) ) {
 						$token->set_fingerprint( $au_becs_debit_fields->fingerprint );
-					}
-					if ( isset( $au_becs_debit_fields->bank_name ) ) {
-						$token->set_bank_name( $au_becs_debit_fields->bank_name );
 					}
 				}
 				break;

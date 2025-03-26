@@ -66,8 +66,6 @@ class WC_Stripe_UPE_Payment_Method_Becs_Debit extends WC_Stripe_UPE_Payment_Meth
 		$payment_token->set_user_id( $user_id );
 		$payment_token->set_token( $payment_method->id );
 		$payment_token->set_last4( $payment_method->{self::STRIPE_ID}->last4 );
-		$payment_token->set_bank_name( $payment_method->{self::STRIPE_ID}->bank_name );
-		$payment_token->set_account_type( $payment_method->{self::STRIPE_ID}->account_type );
 		$payment_token->set_fingerprint( $payment_method->{self::STRIPE_ID}->fingerprint );
 		$payment_token->save();
 

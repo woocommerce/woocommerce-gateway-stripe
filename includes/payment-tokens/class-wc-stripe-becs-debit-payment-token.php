@@ -31,8 +31,6 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 * @var array
 	 */
 	protected $extra_data = [
-		'bank_name'           => '',
-		'account_type'        => '',
 		'last4'               => '',
 		'payment_method_type' => WC_Stripe_Payment_Methods::BECS_DEBIT,
 		'fingerprint'         => '',
@@ -46,11 +44,9 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	 */
 	public function get_display_name( $deprecated = '' ) {
 		$display = sprintf(
-			/* translators: bank name, account type (checking, savings), last 4 digits of account. */
-			__( '%1$s account ending in %2$s (%3$s)', 'woocommerce-gateway-stripe' ),
-			ucfirst( $this->get_account_type() ),
+			/* translators: last 4 digits of account. */
+			__( 'Bank account ending in %s', 'woocommerce-gateway-stripe' ),
 			$this->get_last4(),
-			$this->get_bank_name()
 		);
 
 		return $display;
@@ -83,57 +79,11 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 			return false;
 		}
 
-		if ( ! $this->get_bank_name( 'edit' ) ) {
-			return false;
-		}
-
-		if ( ! $this->get_account_type( 'edit' ) ) {
-			return false;
-		}
-
 		if ( ! $this->get_fingerprint( 'edit' ) ) {
 			return false;
 		}
 
 		return true;
-	}
-
-	/**
-	 * Get the bank name.
-	 *
-	 * @param string $context What the value is for. Valid values are view and edit.
-	 * @return string
-	 */
-	public function get_bank_name( $context = 'view' ) {
-		return $this->get_prop( 'bank_name', $context );
-	}
-
-	/**
-	 * Set the bank name.
-	 *
-	 * @param string $bank_name
-	 */
-	public function set_bank_name( $bank_name ) {
-		$this->set_prop( 'bank_name', $bank_name );
-	}
-
-	/**
-	 * Get the account type.
-	 *
-	 * @param string $context What the value is for. Valid values are view and edit.
-	 * @return string
-	 */
-	public function get_account_type( $context = 'view' ) {
-		return $this->get_prop( 'account_type', $context );
-	}
-
-	/**
-	 * Set the account type.
-	 *
-	 * @param string $account_type
-	 */
-	public function set_account_type( $account_type ) {
-		$this->set_prop( 'account_type', $account_type );
 	}
 
 	/**
