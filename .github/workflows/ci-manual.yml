@@ -64,16 +64,26 @@ jobs:
     name: Run PHP Unit
     uses: ./.github/workflows/run-unit-tests.yml
     with:
-      wp-version: '${{ inputs.wp-version }}'
-      wc-version: '${{ inputs.wc-version }}'
-      php-version: '${{ inputs.php-version }}'
+      wp-version: ${{ inputs.wp-version }}
+      wc-version: ${{ inputs.wc-version }}
+      php-version: ${{ inputs.php-version }}
   
+  e2e-tests:
+    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'E2E')
+    name: Run E2E
+    uses: ./.github/workflows/run-e2e-tests.yml
+    secrets: inherit
+    with:
+      wp-version: ${{ inputs.wp-version }}
+      wc-version: ${{ inputs.wc-version }}
+      php-version: ${{ inputs.php-version }}
+
   build-project:
     name: Build package
     uses: ./.github/workflows/build-upload-zip.yml
     with:
       artifact: 'manual-test-package'
-      php-version: '${{ inputs.php-version }}'
+      php-version: ${{ inputs.php-version }}
   
   qit-tests:
     name: Run QIT
@@ -97,26 +107,14 @@ jobs:
       test-woo-e2e: ${{ contains(inputs.qit-tests, 'WooCommerce E2E') && true || false }}
       options: ${{ inputs.options }}
       wait: ${{ inputs.qit-wait }}
-  
-#  e2e-tests:
-#    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'E2E')
-#    name: E2E tests
-#    needs: build-project
-#    uses: ./.github/workflows/run-e2e.yml
-#    with:
-#      wp_version: '[ "${{ inputs.wp-version }}" ]'
-#      wc_version: '[ "${{ inputs.wc-version }}" ]'
-#      php_version: '[ "${{ inputs.php-version }}" ]'
-#      test_mode: '[ "legacy", "blocks" ]'
-#    secrets: inherit
-  
+
   handle-success:
     if: |
       always() &&
-      (needs.qit-tests.result == 'success' || needs.qit-tests.result == 'skipped') &&
+      (needs.php-tests.result == 'success' || needs.php-tests.result == 'skipped') &&
       (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
-      (needs.php-tests.result == 'success' || needs.php-tests.result == 'skipped')
-    needs: [php-tests, qit-tests]
+      (needs.qit-tests.result == 'success' || needs.qit-tests.result == 'skipped')
+    needs: [php-tests, e2e-tests, qit-tests]
     name: Handle success
     runs-on: ubuntu-latest
     steps:
@@ -132,7 +130,7 @@ jobs:
   
   handle-cancelled:
     if: cancelled()
-    needs: [php-tests, qit-tests]
+    needs: [php-tests, e2e-tests, qit-tests]
     name: Handle cancellation
     runs-on: ubuntu-latest
     steps:
@@ -148,7 +146,7 @@ jobs:
 
   handle-error:
     if: failure()
-    needs: [php-tests, qit-tests]
+    needs: [php-tests, e2e-tests, qit-tests]
     name: Handle failure
     runs-on: ubuntu-latest
     steps:
