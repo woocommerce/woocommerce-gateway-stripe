@@ -438,7 +438,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_label() );
 		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title() );
 		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title( $mock_becs_debit_details ) );
-		$this->assertFalse( $becs_debit_method->is_reusable() );
+		$this->assertTrue( $becs_debit_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::BECS_DEBIT, $becs_debit_method->get_retrievable_type() );
 		$this->assertEquals( '', $becs_debit_method->get_testing_instructions() );
 	}
