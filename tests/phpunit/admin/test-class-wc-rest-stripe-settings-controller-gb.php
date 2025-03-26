@@ -98,7 +98,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$upe_helper->reload_payment_gateways();
 
 		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway(), $this->stripe_api );
+		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
 		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
 			(object) [

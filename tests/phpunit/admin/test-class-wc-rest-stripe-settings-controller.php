@@ -81,7 +81,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		}
 
 		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway(), $this->stripe_api );
+		WC_Stripe_API::set_instance( $this->stripe_api );
+		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
@@ -165,21 +166,27 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			],
 		);
 
-		$this->stripe_api->method( 'update_payment_method_configurations' )->with(
+		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configurations' )->with(
 			$this->equalTo( 'pmc_abcdef' ),
 			$this->equalTo(
 				[
 					'amazon_pay' => [
-						'display_preference' => (object) [ 'value' => 'on' ],
+						'display_preference' => [ 'preference' => 'on' ],
 					],
 					'card'       => [
-						'display_preference' => (object) [ 'value' => 'on' ],
+						'display_preference' => [ 'preference' => 'on' ],
 					],
-					'boleto'     => [
-						'display_preference' => (object) [ 'preference' => 'on' ],
+					'us_bank_account' => [
+						'display_preference' => [ 'preference' => 'off' ],
 					],
-					'link'       => [
-						'display_preference' => (object) [ 'preference' => 'off' ],
+					'affirm' => [
+						'display_preference' => [ 'preference' => 'off' ],
+					],
+					'afterpay_clearpay' => [
+						'display_preference' => [ 'preference' => 'off' ],
+					],
+					'cashapp' => [
+						'display_preference' => [ 'preference' => 'off' ],
 					],
 				]
 			),
@@ -187,6 +194,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
+		$request->set_param( 'is_upe_enabled', true );
 
 		$response = $this->controller->update_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
