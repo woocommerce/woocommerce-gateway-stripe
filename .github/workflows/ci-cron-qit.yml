@@ -31,3 +31,19 @@ jobs:
       test-woo-api: true
       test-woo-e2e: true
       test-malware: true
+
+  handle-error:
+    if: ${{ failure() }}
+    needs: qit-tests
+    name: Handle failure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-failed:"
+            status: "failed"
+            workflowName: "${{ github.workflow }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
