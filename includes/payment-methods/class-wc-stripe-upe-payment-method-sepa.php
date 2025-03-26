@@ -36,6 +36,9 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
+
+		// Check if forced tokenization is enabled.
+		$this->maybe_init_forced_tokenization();
 	}
 
 	/**

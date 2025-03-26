@@ -104,6 +104,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
+		// Check if forced tokenization is enabled and add support for it.
+		$this->maybe_init_forced_tokenization();
+
 		// Get setting values.
 		$this->title                = $this->get_validated_option( 'title' );
 		$this->description          = $this->get_validated_option( 'description' );
