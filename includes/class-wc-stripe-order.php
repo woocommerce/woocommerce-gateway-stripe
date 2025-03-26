@@ -209,15 +209,16 @@ class WC_Stripe_Order extends WC_Order {
 	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_data array Order data.
+	 * @param bool $cache Whether to cache the instance.
 	 * @return bool|WC_Stripe_Order
 	 */
-	public static function create( $order_data = [] ) {
+	public static function create( $order_data = [], $cache = true ) {
 		$order = wc_create_order( $order_data );
 		if ( ! $order ) {
 			return false;
 		}
 
-		return self::to_instance( $order );
+		return self::to_instance( $order, ! $cache );
 	}
 
 	/**
