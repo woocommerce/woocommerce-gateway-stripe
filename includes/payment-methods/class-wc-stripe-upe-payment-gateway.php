@@ -2045,7 +2045,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					}
 				}
 			} else {
-				$payment_method = $this->payment_methods[ $payment_method_type ];
+				$payment_method = $this->payment_methods[ $payment_method_type ] ?? null;
+			}
+
+			if ( ! $payment_method ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
