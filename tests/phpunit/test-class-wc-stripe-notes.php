@@ -24,6 +24,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_mock;
 
+		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
+		WC_Stripe_API::set_instance( $this->stripe_api );
+
 		if ( version_compare( WC_VERSION, '4.4.0', '<' ) ) {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 			return;
@@ -68,6 +71,7 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 				]
 			)
 			->getMock();
+		$this->set_enabled_payment_methods( [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID ] );
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
@@ -162,14 +166,6 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 
 		$this->set_enabled_payment_methods( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
-		WC_Stripe_Helper::update_main_stripe_settings(
-			array_merge(
-				WC_Stripe_Helper::get_stripe_settings(),
-				[
-					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ],
-				]
-			)
-		);
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
@@ -177,13 +173,28 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	}
 
 	private function set_enabled_payment_methods( $payment_methods ) {
-		WC_Stripe_Helper::update_main_stripe_settings(
-			array_merge(
-				WC_Stripe_Helper::get_stripe_settings(),
-				[
-					'upe_checkout_experience_accepted_payments' => $payment_methods,
-				]
-			)
+		$stripe_api = $this->createMock( WC_Stripe_API::class );
+		WC_Stripe_API::set_instance( $stripe_api );
+
+		$payment_method_configuration = [
+			'id'       => 'pmc_abcdef',
+			'object'   => 'payment_method_configuration',
+			'active'   => true,
+			'parent'   => true,
+		];
+
+		foreach ( $payment_methods as $payment_method ) {
+			$payment_method_configuration[ $payment_method ] = (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			];
+		}
+
+		$stripe_api->method( 'get_payment_method_configurations' )->willReturn(
+			(object) [
+				'data' => [
+					(object) $payment_method_configuration,
+				],
+			],
 		);
 	}
 }
