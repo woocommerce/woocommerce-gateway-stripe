@@ -309,7 +309,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$cached_order = wc_create_order(
+		$cached_order = WC_Stripe_Order::create(
 			[
 				'status'        => OrderStatus::PENDING,
 				'customer_id'   => 123,
