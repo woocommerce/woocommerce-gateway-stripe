@@ -154,7 +154,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	public function create_bacs_checkout_session_ajax() {
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_bacs_checkout_session_nonce', false, false );
-			if ( $is_nonce_valid ) {
+
+			if ( ! $is_nonce_valid ) {
 				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'We couldn\'t create a Checkout Session for Bacs this time. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -192,12 +193,12 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	public function attach_payment_method_to_customer_ajax() {
-		// TODO: Validate ajax referer
 		try {
-			// $is_nonce_valid = check_ajax_referer( 'wc_stripe_attach_payment_method_to_customer_nonce', false, false );
-			// if ( ! $is_nonce_valid ) {
-			// 	throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to attach the payment method to the customer at this time.', 'woocommerce-gateway-stripe' ) );
-			// }
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_attach_payment_method_to_customer_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to attach the payment method to the customer at this time.', 'woocommerce-gateway-stripe' ) );
+			}
 
 			$checkout_session_id    = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
 			$friendly_error_message = __( 'An error occurred while attaching the Bacs Direct Debit payment method to the customer.', 'woocommerce-gateway-stripe' );
@@ -237,6 +238,8 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			delete_transient( WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . WC_Stripe_Payment_Methods::BACS_DEBIT . $stripe_user->get_id() );
 
 			wp_send_json_success( [ 'bacs_token_id' => $bacs_token->get_id() ] );
+		} catch ( Error $e ) {
+			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( $e->getMessage() );
 

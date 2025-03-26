@@ -30,32 +30,37 @@ const CheckoutSession = ( {
 					return;
 				}
 
-				// Attach payment method to customer.
-				const response = await api.attachPaymentMethodToCustomer(
-					checkoutSessionId
-				);
+				try {
+					// Attach payment method to customer.
+					const response = await api.attachPaymentMethodToCustomer(
+						checkoutSessionId
+					);
 
-				if ( ! response.success ) {
+					if ( ! response.success ) {
+						throw new Error( response.data.message );
+					}
+
+					const setup = {
+						type: 'success',
+						meta: {
+							paymentMethodData: {
+								'wc-stripe-new-payment-method': false,
+								'wc-stripe-payment-token': `${ response.data.bacs_token_id }`,
+								isSavedToken: true,
+								payment_method: upeMethods[ paymentMethodName ],
+								token: `${ response.data.bacs_token_id }`,
+								'wc-stripe_bacs_debit-payment-token': `${ response.data.bacs_token_id }`,
+							},
+						},
+					};
+
+					return setup;
+				} catch ( err ) {
 					return {
 						type: 'error',
-						message: response.data.message,
+						message: err.message,
 					};
 				}
-
-				const setup = {
-					type: 'success',
-					meta: {
-						paymentMethodData: {
-							'wc-stripe-new-payment-method': false,
-							'wc-stripe-payment-token': `${ response.data.bacs_token_id }`,
-							isSavedToken: true,
-							payment_method: upeMethods[ paymentMethodName ],
-							token: `${ response.data.bacs_token_id }`,
-							'wc-stripe_bacs_debit-payment-token': `${ response.data.bacs_token_id }`,
-						},
-					},
-				};
-				return setup;
 			}
 
 			return handlePaymentProcessing();
@@ -75,9 +80,11 @@ const CheckoutSession = ( {
 		try {
 			setIsLoading( true );
 			const response = await api.createCheckoutSession();
+
 			if ( ! response.success ) {
 				throw new Error( response.data.message );
 			}
+
 			setButtonText( 'Redirecting...' );
 			window.location.href = response.data.checkout_session_url;
 		} catch ( err ) {
