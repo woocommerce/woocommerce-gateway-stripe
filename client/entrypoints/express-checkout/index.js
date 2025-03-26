@@ -181,6 +181,24 @@ jQuery( function ( $ ) {
 		return shippingAddressChangeHandler( api, event, elements );
 	};
 
+	// Check if the product is waiting for a variation to be selected.
+	const isVariationSelectionNeeded = () => {
+		// This check only makes sense on the product page.
+		const isProductPage = getExpressCheckoutData( 'is_product_page' );
+		if ( ! isProductPage ) {
+			return false;
+		}
+
+		const isVariationProduct = document.querySelector(
+			'.single_variation_wrap'
+		);
+		const variationId = document.querySelector(
+			'input[name="variation_id"]'
+		)?.value;
+		const variationSelected = variationId && variationId !== '0';
+		return isVariationProduct && ! variationSelected;
+	};
+
 	const wcStripeECE = {
 		createButton: ( elements, options ) =>
 			elements.create( 'expressCheckout', options ),
@@ -418,6 +436,7 @@ jQuery( function ( $ ) {
 				onReadyHandler( onReadyParams );
 
 				if (
+					! isVariationSelectionNeeded() &&
 					onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
@@ -707,6 +726,11 @@ jQuery( function ( $ ) {
 			$( document.body )
 				.off( 'woocommerce_variation_has_changed' )
 				.on( 'woocommerce_variation_has_changed', () => {
+					if ( isVariationSelectionNeeded() ) {
+						wcStripeECE.hide();
+						return;
+					}
+
 					wcStripeECE.blockExpressCheckoutButton();
 
 					$.when( wcStripeECE.getSelectedProductData() )
@@ -737,6 +761,7 @@ jQuery( function ( $ ) {
 										response
 									);
 								}
+
 								wcStripeECE.show();
 							}
 						} )
@@ -746,6 +771,14 @@ jQuery( function ( $ ) {
 						.always( () => {
 							wcStripeECE.unblockExpressCheckoutButton();
 						} );
+				} );
+
+			$( document.body )
+				.off( 'woocommerce_update_variation_values' )
+				.on( 'woocommerce_update_variation_values', () => {
+					if ( isVariationSelectionNeeded() ) {
+						wcStripeECE.hide();
+					}
 				} );
 
 			$( '.quantity' )

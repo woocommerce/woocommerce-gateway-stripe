@@ -1,0 +1,67 @@
+name: Post PR Merge QIT
+
+on:
+  pull_request:
+    branches:
+      - develop
+    types:
+      - closed
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build-project:
+    if: github.event.pull_request.merged == true
+    name: Build package
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: 'pr-merge-test-package'
+
+  qit-tests:
+    if: github.event.pull_request.merged == true
+    name: Run QIT tests
+    needs: build-project
+    uses: ./.github/workflows/run-qit.yml
+    secrets: inherit
+    with:
+      extension: 'woocommerce-gateway-stripe'
+      artifact: 'pr-merge-test-package'
+      test-activation: true
+      test-security: true
+      test-phpcompatibility: true
+      test-validation: true
+      test-phpstan: false # TODO: Enable this once the PHPStan tests are fixed
+
+  handle-cancelled:
+    if: ${{ cancelled() }}
+    needs: qit-tests
+    name: Handle cancellation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-cancelled:"
+            status: "cancelled"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  handle-error:
+    if: ${{ failure() }}
+    needs: qit-tests
+    name: Handle failure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-failed:"
+            status: "failed"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
