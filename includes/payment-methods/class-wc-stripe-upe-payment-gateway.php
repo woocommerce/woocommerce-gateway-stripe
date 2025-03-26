@@ -27,6 +27,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Amazon_Pay::class,
+		WC_Stripe_UPE_Payment_Method_BLIK::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Affirm::class,
@@ -194,6 +195,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Show BECS Debit only if feature is enabled.
 				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
+					continue;
+				}
+
+				// Show BLIK only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
 					continue;
 				}
 
@@ -914,6 +920,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// Throw an exception when the payment method is a prepaid card and it's disallowed.
 			$this->maybe_disallow_prepaid_card( $payment_method );
 
+			// Until we know other payment methods need this, let's just set for BLIK.
+			if ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type ) {
+				$payment_information['payment_method_options'] = $this->get_payment_method_options(
+					$selected_payment_type,
+					$order,
+					$payment_method_details
+				);
+			}
+
 			// Update saved payment method to include billing details.
 			if ( $is_using_saved_payment_method ) {
 				$this->update_saved_payment_method( $payment_method_id, $order );
@@ -975,7 +990,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+			// Note: BLIK falls into this condition, but we want to skip this logic for it because from this point on,
+			// the confirming action is done by the customer and the confirmation comes through webhooks.
+			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true )
+				&& WC_Stripe_Payment_Methods::BLIK !== $selected_payment_type ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
@@ -2373,6 +2391,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					],
 				];
 			}
+		} elseif ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type ) {
+			$payment_method_options = [
+				WC_Stripe_Payment_Methods::BLIK => [
+					'code' => sanitize_text_field( wp_unslash( $_POST['wc-stripe-blik-code'] ?? '' ) ),
+				],
+			];
 		}
 
 		// Add the updated preferred credit card brand when defined
