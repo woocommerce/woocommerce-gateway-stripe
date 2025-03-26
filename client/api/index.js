@@ -676,7 +676,7 @@ export default class WCStripeAPI {
 
 	attachPaymentMethodToCustomer( checkoutSessionId ) {
 		if ( ! checkoutSessionId ) {
-			return;
+			throw new Error( 'Missing Checkout Session ID' );
 		}
 
 		return this.request(

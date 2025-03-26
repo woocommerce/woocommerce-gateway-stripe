@@ -1,7 +1,7 @@
 import { StoreNotice } from '@woocommerce/blocks-checkout';
 import React, { useEffect, useState } from 'react';
 
-const defaultButtontext = 'Create a Checkout Session';
+const defaultButtontext = 'Create a Bacs Direct Debit payment method';
 
 const CheckoutSession = ( {
 	eventRegistration: { onPaymentSetup },
@@ -31,6 +31,12 @@ const CheckoutSession = ( {
 				}
 
 				try {
+					if ( ! checkoutSessionId ) {
+						throw new Error(
+							'You must first create the Bacs Direct Debit payment method before proceeding with checkout.'
+						);
+					}
+
 					// Attach payment method to customer.
 					const response = await api.attachPaymentMethodToCustomer(
 						checkoutSessionId
