@@ -82,12 +82,17 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 	/**
 	 * Checks if forced tokenization is supported on this site.
 	 *
+	 * Forced tokenization is only supported under the following circumstances:
+	 * - The gateway supports tokenization.
+	 * - UPE Checkout is enabled (not supported for legacy checkouts)
+	 * - The WC_Checkout_Tokenization class exists.
+	 *
 	 * @since x.x.x
 	 *
 	 * @return bool
 	 */
 	public function is_forced_tokenization_enabled() {
-		return WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && class_exists( 'WC_Checkout_Tokenization' );
+		return $this->supports( 'tokenization' ) && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && class_exists( 'WC_Checkout_Tokenization' );
 	}
 
 	/**
