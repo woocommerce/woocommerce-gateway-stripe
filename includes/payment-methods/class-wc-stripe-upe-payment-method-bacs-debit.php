@@ -38,6 +38,9 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
 
+		// Check if forced tokenization is enabled.
+		$this->maybe_init_forced_tokenization();
+
 		$this->maybe_hide_bacs_payment_gateway();
 	}
 
