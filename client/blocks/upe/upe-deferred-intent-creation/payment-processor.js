@@ -77,11 +77,13 @@ const getStripeElementOptions = () => {
 		}
 	}
 
-	// Set the layout to accordion if SPE is enabled.
 	if ( getBlocksConfiguration()?.isSPEEnabled ) {
 		options = {
 			...options,
-			layout: 'accordion',
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
 		};
 	}
 
