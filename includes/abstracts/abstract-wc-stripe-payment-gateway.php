@@ -1627,8 +1627,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		$payment_intent_object = $intent->object ?? null;
-		if ( 'payment_intent' === $payment_intent_object ) {
+		if ( 'payment_intent' === $intent->object ) {
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
 			// Add the mandate id necessary for renewal payments with Indian cards if it's present.
@@ -1637,7 +1636,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
 			}
-		} elseif ( 'setup_intent' === $payment_intent_object ) {
+		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
 		}
 

@@ -975,7 +975,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( isset( $payment_intent->status ) && in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
@@ -1668,8 +1668,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Free trial subscriptions without a sign up fee, or any other type
 		// of order with a `0` amount should fall into the logic below.
 		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? WC_Stripe_Order::get_by_id( $order_id ) : null;
-		if ( is_a( $order, 'WC_Stripe_Order' ) ) {
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
 
@@ -2759,7 +2759,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the order total matches the existing intent amount.
 		$order_total = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		if ( ( $intent->amount ?? null ) !== $order_total ) {
+		if ( $order_total !== $intent->amount ) {
 			return null;
 		}
 
