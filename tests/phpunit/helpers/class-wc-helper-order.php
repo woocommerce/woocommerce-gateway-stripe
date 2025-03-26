@@ -43,10 +43,11 @@ class WC_Helper_Order {
 	 * @param int        $customer_id The ID of the customer the order is for.
 	 * @param WC_Product $product The product to add to the order.
 	 * @param array      $order_props Order properties.
+	 * @param bool       $cache Whether to cache the class instance.
 	 *
 	 * @return WC_Stripe_Order
 	 */
-	public static function create_order( $customer_id = 1, $product = null, $order_props = [] ) {
+	public static function create_order( $customer_id = 1, $product = null, $order_props = [], $cache = true ) {
 
 		if ( ! is_a( $product, 'WC_Product' ) ) {
 			$product = WC_Helper_Product::create_simple_product();
@@ -62,7 +63,7 @@ class WC_Helper_Order {
 		];
 
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Required, else wc_create_order throws an exception.
-		$order                  = WC_Stripe_Order::create( $order_data );
+		$order                  = WC_Stripe_Order::create( $order_data, $cache );
 
 		// Add order products.
 		$item = new WC_Order_Item_Product();

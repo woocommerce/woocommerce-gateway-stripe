@@ -11,6 +11,12 @@ use Automattic\WooCommerce\Enums\OrderStatus;
  * Class WC_Stripe_Order tests.
  */
 class WC_Stripe_Order_Test extends WP_UnitTestCase {
+	public function tear_down() {
+		parent::tear_down();
+
+		WC_Stripe_Order::clear_cache();
+	}
+
 	/**
 	 * Test for `create` method.
 	 *
@@ -300,23 +306,9 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 	public function provide_test_to_instance() {
 		$stripe_order = new WC_Stripe_Order();
 
-		$default_order = wc_create_order(
-			[
-				'status'        => OrderStatus::PENDING,
-				'customer_id'   => 123,
-				'customer_note' => '',
-				'total'         => '',
-			]
-		);
+		$default_order = WC_Helper_Order::create_order( 1, null, [], false );
 
-		$cached_order = WC_Stripe_Order::create(
-			[
-				'status'        => OrderStatus::PENDING,
-				'customer_id'   => 123,
-				'customer_note' => '',
-				'total'         => '',
-			]
-		);
+		$cached_order = WC_Helper_Order::create_order();
 		$cached_order = WC_Stripe_Order::to_instance( $cached_order );
 
 		return [
