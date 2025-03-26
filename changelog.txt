@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements a cache system for the new Stripe order class.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
