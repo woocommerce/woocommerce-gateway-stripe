@@ -197,6 +197,15 @@ class WC_Stripe_Order extends WC_Order {
 	}
 
 	/**
+	 * Clears the cache of instances.
+	 *
+	 * @return void
+	 */
+	public static function clear_cache() {
+		self::$instances = [];
+	}
+
+	/**
 	 * Wrapper to create an order using the extension's custom WC_Stripe_Order class.
 	 *
 	 * @param $order_data array Order data.
