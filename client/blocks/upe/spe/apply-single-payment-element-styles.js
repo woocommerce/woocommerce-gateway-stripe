@@ -1,11 +1,14 @@
 const SINGLE_PAYMENT_ELEMENT_CLASS = 'single-payment-element';
 
 export const applySinglePaymentElementStyles = () => {
-	// Hide the Stripe radio button when it is the only available payment method.
+	// Hide the Stripe radio button when it is the only available payment method and there are no saved tokens.
 	const paymentMethodOptions = document.querySelectorAll(
 		'input[name=radio-control-wc-payment-method-options]'
 	);
-	if ( paymentMethodOptions.length === 1 ) {
+	const savedTokens = document.querySelectorAll(
+		'input[name=radio-control-wc-payment-method-saved-tokens]'
+	);
+	if ( paymentMethodOptions.length === 1 && ! savedTokens.length ) {
 		document.querySelector(
 			'.wc-block-components-radio-control__option'
 		).style.display = 'none';
