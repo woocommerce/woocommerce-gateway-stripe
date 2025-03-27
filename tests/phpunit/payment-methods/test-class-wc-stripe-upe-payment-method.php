@@ -709,6 +709,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 			} elseif ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID === $payment_method_id ) {
 				$store_currency = WC_Stripe_Currency_Code::POUND_STERLING;
+			} elseif ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $payment_method_id ) {
+				$store_currency = WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR;
 			}
 
 			$account_currency = null;
