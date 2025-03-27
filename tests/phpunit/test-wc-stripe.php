@@ -150,9 +150,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-		$this->assertContains( WC_Stripe_Payment_Methods::CARD, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( WC_Stripe_Payment_Methods::LINK, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertCount( 2, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+		$this->upe_helper->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], [] );
 	}
 
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
@@ -161,6 +159,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		// Enable Alipay and iDEAL LPM gateways.
 		update_option( 'woocommerce_stripe_alipay_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
+		$this->upe_helper->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::ALIPAY, WC_Stripe_Payment_Methods::IDEAL ], [ WC_Stripe_Payment_Methods::CARD ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.
@@ -169,9 +168,6 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
-		$this->assertNotContains( WC_Stripe_Payment_Methods::CARD, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( WC_Stripe_Payment_Methods::ALIPAY, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-		$this->assertContains( WC_Stripe_Payment_Methods::IDEAL, $stripe_settings['upe_checkout_experience_accepted_payments'] );
 
 		// Make sure the Alipay and iDEAL LPMs were disabled.
 		$alipay_settings = get_option( 'woocommerce_stripe_alipay_settings' );
@@ -180,8 +176,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'no', $ideal_settings['enabled'] );
 
 		// Enable the EPS UPE method. Now when UPE is disabled, the EPS LPM should be enabled.
-		$stripe_settings['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::EPS;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::ALIPAY, WC_Stripe_Payment_Methods::IDEAL ] );
 
 		// Turn UPE off.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'no';

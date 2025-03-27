@@ -908,46 +908,32 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that UPE methods are only enabled if Stripe is enabled and the individual methods is enabled in the settings.
+	 * Tests that UPE methods are only enabled if Stripe is enabled.
 	 */
 	public function test_upe_method_enabled() {
-		// Enable Stripe and reset the accepted payment methods.
 		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled'] = 'yes';
-		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		// For each method we'll test the following combinations:
-		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
-		$upe_method_enabled_options = [ true, false ];
+		$upe_helper = new UPE_Test_Helper();
+		$upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method ) {
-			foreach ( $stripe_enabled_settings as $stripe_enabled ) {
-				foreach ( $upe_method_enabled_options as $upe_method_enabled_option ) {
-					// Update the settings.
-					$stripe_settings['enabled'] = $stripe_enabled;
+		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->assertTrue( $link_upe_method->is_enabled() );
+	}
 
-					$payment_method_index = array_search( $payment_method::STRIPE_ID, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+	/**
+	 * Tests that UPE methods are not enabled if Stripe is disabled.
+	 */
+	public function test_upe_method_disabled() {
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-					if ( $upe_method_enabled_option && false === $payment_method_index ) {
-						$stripe_settings['upe_checkout_experience_accepted_payments'][] = $payment_method::STRIPE_ID;
-					} elseif ( ! $upe_method_enabled_option && false !== $payment_method_index ) {
-						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
-					}
+		$upe_helper = new UPE_Test_Helper();
+		$upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
-					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-					// Verify that the payment method is enabled/disabled.
-					$payment_method_instance = new $payment_method();
-
-					// The UPE method is only enabled if Stripe is enabled and the method is enabled in the settings.
-					if ( 'yes' === $stripe_enabled && $upe_method_enabled_option ) {
-						$this->assertTrue( $payment_method_instance->is_enabled() );
-					} else {
-						$this->assertFalse( $payment_method_instance->is_enabled() );
-					}
-				}
-			}
-		}
+		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->assertFalse( $link_upe_method->is_enabled() );
 	}
 }

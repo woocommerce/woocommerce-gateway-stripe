@@ -193,15 +193,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
 		$this->upe_helper->enable_upe();
-
-		WC_Stripe_Helper::update_main_stripe_settings(
-			array_merge(
-				WC_Stripe_Helper::get_stripe_settings(),
-				[
-					'upe_checkout_experience_accepted_payments' => [ 'link' ],
-				]
-			)
-		);
+		$this->upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$this->assertTrue( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}
@@ -216,15 +208,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		// Disable Apple Pay/Google Pay
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
-		// Disable Link by Stripe
-		WC_Stripe_Helper::update_main_stripe_settings(
-			array_merge(
-				WC_Stripe_Helper::get_stripe_settings(),
-				[
-					'upe_checkout_experience_accepted_payments' => [ WC_Stripe_Payment_Methods::CARD ],
-				]
-			)
-		);
+		$this->upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ], [] );
 
 		$this->assertFalse( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}

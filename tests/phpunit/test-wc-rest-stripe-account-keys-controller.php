@@ -163,13 +163,13 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 
 		// Set initial payment methods
 		$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_gateway->update_option( 'upe_checkout_experience_accepted_payments', [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ] );
+		$upe_gateway->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
 
 		$this->controller->set_account_keys( $request );
 
 		// Retrieve the current enabled payment methods
 		$upe_gateway     = new WC_Stripe_UPE_Payment_Gateway();
-		$enabled_methods = count( $upe_gateway->get_option( 'upe_checkout_experience_accepted_payments' ) );
+		$enabled_methods = count( $upe_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
 
 		$this->assertEquals( 2, $enabled_methods ); // card and link are default payments
 	}

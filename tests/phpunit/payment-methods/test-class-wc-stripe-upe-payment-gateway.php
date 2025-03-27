@@ -35,6 +35,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	const MOCK_RETURN_URL = 'test_url';
 
 	/**
+	 * @var UPE_Test_Helper
+	 */
+	private $upe_helper;
+
+	/**
 	 * Base template for Stripe card payment method.
 	 */
 	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
@@ -131,8 +136,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		WC_Stripe_API::set_instance( $this->stripe_api );
+		$this->upe_helper = new UPE_Test_Helper();
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
@@ -205,41 +209,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Mock the payment method configurations.
-	 *
-	 * @param array $enabled_payment_method_ids
-	 * @param array $disabled_payment_method_ids
-	 */
-	private function mock_payment_method_configurations( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
-		$payment_method_configuration = [
-			'id'       => 'pmc_abcdef',
-			'object'   => 'payment_method_configuration',
-			'active'   => true,
-			'parent'   => true,
-		];
-
-		foreach ( $enabled_payment_method_ids as $payment_method ) {
-			$payment_method_configuration[ $payment_method ] = (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
-			];
-		}
-
-		foreach ( $disabled_payment_method_ids as $payment_method ) {
-			$payment_method_configuration[ $payment_method ] = (object) [
-				'display_preference' => (object) [ 'value' => 'off' ],
-			];
-		}
-
-		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
-			(object) [
-				'data' => [
-					(object) $payment_method_configuration,
-				],
-			],
-		);
-	}
-
-	/**
 	 * Helper function to set $_POST vars for saved payment method.
 	 */
 	private function set_postvars_for_saved_payment_method() {
@@ -300,7 +269,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
-		$this->mock_payment_method_configurations( $available_payment_methods );
+		$this->upe_helper->mock_payment_method_configurations( $available_payment_methods );
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
 	}
 

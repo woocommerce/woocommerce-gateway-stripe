@@ -96,25 +96,9 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
+		$upe_helper->mock_payment_method_configurations( [ 'card' ], [] );
 
-		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		WC_Stripe_API::set_instance( $this->stripe_api );
 		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
-		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
-			(object) [
-				'data' => [
-					(object) [
-						'id'       => 'pmc_abcdef',
-						'object'   => 'payment_method_configuration',
-						'active'   => true,
-						'parent'   => true,
-						'card'     => (object) [
-							'display_preference' => (object) [ 'value' => 'on' ],
-						],
-					],
-				],
-			],
-		);
 
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}

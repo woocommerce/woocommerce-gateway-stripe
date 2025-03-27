@@ -82,6 +82,11 @@ class WC_Stripe_Payment_Method_Configurations {
 			];
 		}
 
+		if ( ! $payment_method_configuration ) {
+			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
+			return;
+		}
+
 		WC_Stripe_API::get_instance()->update_payment_method_configurations(
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration

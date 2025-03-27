@@ -26,9 +26,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe API instance that the controller uses.
 	 *
-	 * @var WC_Stripe_API
+	 * @var UPE_Test_Helper
 	 */
-	private $stripe_api;
+	private $upe_helper;
 
 	/**
 	 * Gateway instance that the controller uses.
@@ -80,8 +80,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
 		}
 
-		$this->stripe_api = $this->createMock( WC_Stripe_API::class );
-		WC_Stripe_API::set_instance( $this->stripe_api );
+		$this->upe_helper = new UPE_Test_Helper();
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->get_gateway() );
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
@@ -99,45 +98,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Mock the payment method configurations.
-	 *
-	 * @param array $enabled_payment_method_ids
-	 * @param array $disabled_payment_method_ids
-	 */
-	private function mock_payment_method_configurations( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
-		$payment_method_configuration = [
-			'id'       => 'pmc_abcdef',
-			'object'   => 'payment_method_configuration',
-			'active'   => true,
-			'parent'   => true,
-		];
-
-		foreach ( $enabled_payment_method_ids as $payment_method ) {
-			$payment_method_configuration[ $payment_method ] = (object) [
-				'display_preference' => (object) [ 'value' => 'on' ],
-			];
-		}
-
-		foreach ( $disabled_payment_method_ids as $payment_method ) {
-			$payment_method_configuration[ $payment_method ] = (object) [
-				'display_preference' => (object) [ 'value' => 'off' ],
-			];
-		}
-
-		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
-			(object) [
-				'data' => [
-					(object) $payment_method_configuration,
-				],
-			],
-		);
-	}
-
-	/**
 	 * @dataProvider stripe_payment_method_configurations_provider
 	 */
 	public function test_get_stripe_payment_method_configurations_settings( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
-		$this->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
+		$this->upe_helper->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
 
 		$response = $this->controller->get_settings();
 		$this->assertEquals( 200, $response->get_status() );
@@ -153,44 +117,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Test that the update_settings method updates the payment method configurations settings.
 	 */
 	public function test_update_stripe_payment_method_configurations_settings() {
-		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
-			(object) [
-				'data' => [
-					(object) [
-						'id'       => 'pmc_abcdef',
-						'object'   => 'payment_method_configuration',
-						'active'   => true,
-						'parent'   => true,
-					],
-				],
-			],
-		);
-
-		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configurations' )->with(
-			$this->equalTo( 'pmc_abcdef' ),
-			$this->equalTo(
-				[
-					'amazon_pay' => [
-						'display_preference' => [ 'preference' => 'on' ],
-					],
-					'card'       => [
-						'display_preference' => [ 'preference' => 'on' ],
-					],
-					'us_bank_account' => [
-						'display_preference' => [ 'preference' => 'off' ],
-					],
-					'affirm' => [
-						'display_preference' => [ 'preference' => 'off' ],
-					],
-					'afterpay_clearpay' => [
-						'display_preference' => [ 'preference' => 'off' ],
-					],
-					'cashapp' => [
-						'display_preference' => [ 'preference' => 'off' ],
-					],
-				]
-			),
-		);
+		$this->upe_helper->mock_payment_method_configurations( [ 'card' ], [] );
+		$this->upe_helper->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ], [ 'us_bank_account', 'affirm', 'afterpay_clearpay', 'cashapp' ] );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );
