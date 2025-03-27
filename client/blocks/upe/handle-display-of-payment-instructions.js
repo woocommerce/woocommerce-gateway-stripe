@@ -3,7 +3,7 @@
  *
  * @param {string} method The payment method name.
  */
-export const handleDisplayOfPaymentMethodInstructions = ( method ) => {
+export const handleDisplayOfPaymentInstructions = ( method ) => {
 	document
 		.querySelectorAll( '.wc-stripe-payment-method-instruction' )
 		?.forEach( ( element ) => {
