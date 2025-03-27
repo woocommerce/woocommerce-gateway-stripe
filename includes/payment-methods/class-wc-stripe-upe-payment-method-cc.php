@@ -130,12 +130,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $is_smart_checkout Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions() {
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
-		$calling_method = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'] ?? '';
-		if ( $this->spe_enabled && 'get_testing_instructions_for_smart_checkout' !== $calling_method ) {
+	public function get_testing_instructions( $is_smart_checkout = false ) {
+		if ( $this->spe_enabled && ! $is_smart_checkout ) {
 			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_smart_checkout();
 		}
 
