@@ -1881,6 +1881,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $full_request['source'], $request );
 		}
 
+		// Add mandate if it exists.
+		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		if ( ! empty( $mandate ) ) {
+			$request['mandate'] = $mandate;
+		}
+
 		/**
 		 * Filter the value of the request.
 		 *
