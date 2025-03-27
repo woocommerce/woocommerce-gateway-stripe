@@ -113,6 +113,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
+	 * Whether Single Payment Element is enabled.
+	 *
+	 * @var bool
+	 */
+	protected $spe_enabled;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -125,6 +132,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
+		$this->spe_enabled              = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 	}
 
 	/**
@@ -342,7 +350,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( empty( $capabilities ) ) {
 			return false;
 		}
-		$key = $this->get_id() . '_payments';
+		$key = WC_Stripe_Helper::get_payment_method_capability_id( $this->get_id() );
 		return isset( $capabilities[ $key ] ) && 'active' === $capabilities[ $key ];
 	}
 

@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -737,7 +740,7 @@ class WC_Stripe_Helper {
 		$payment_method_ids_with_capability = [];
 
 		foreach ( $payment_method_ids as $payment_method_id ) {
-			$key = $payment_method_id . '_payments';
+			$key = self::get_payment_method_capability_id( $payment_method_id );
 			// Check if the payment method has capabilities set in the account data.
 			// Generally the key is the payment method id appended with '_payments' (i.e. 'card_payments', 'sepa_debit_payments', 'klarna_payments').
 			// In some cases, the Stripe account might have the legacy key set. For example, for Klarna, the legacy key is 'klarna'.
@@ -989,7 +992,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 
@@ -1490,7 +1493,17 @@ class WC_Stripe_Helper {
 	 * @return bool Whether the payment method allows manual capture.
 	 */
 	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
-		return in_array( $payment_method_id, [ 'stripe', 'stripe_affirm', 'stripe_klarna', 'stripe_afterpay_clearpay' ], true );
+		return in_array(
+			$payment_method_id,
+			[
+				'stripe',
+				'stripe_affirm',
+				'stripe_klarna',
+				'stripe_afterpay_clearpay',
+				'stripe_amazon_pay',
+			],
+			true
+		);
 	}
 
 	/**
@@ -1652,5 +1665,20 @@ class WC_Stripe_Helper {
 
 			WC_Stripe_Logger::log( 'Invalid IP address detected. Data: ' . wp_json_encode( $log_data ) );
 		}
+	}
+
+	/**
+	 * Return capability ID based on payment method ID.
+	 *
+	 * @param string $payment_method_id The payment method ID.
+	 * @return string The capability ID.
+	 */
+	public static function get_payment_method_capability_id( $payment_method_id ) {
+		// "_payments" is a suffix that comes from Stripe API, except when it is "transfers" or ACH.
+		if ( WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID === $payment_method_id ) {
+			return $payment_method_id . '_ach_payments';
+		}
+
+		return $payment_method_id . '_payments';
 	}
 }

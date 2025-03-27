@@ -22,6 +22,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order {
 
 	/**
+	 * The retry object for the order
+	 *
+	 * @var WCS_Retry|null
+	 */
+	protected $retry;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -30,7 +37,7 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 		$this->description = __( 'Payment authentication requested emails are sent to chosen recipient(s) when an attempt to automatically process a subscription renewal payment fails because the transaction requires an SCA verification, the customer is requested to authenticate the payment, and a retry rule has been applied to notify the customer again within a certain time period.', 'woocommerce-gateway-stripe' );
 
 		$this->heading = __( 'Automatic renewal payment failed due to authentication required', 'woocommerce-gateway-stripe' );
-		$this->subject = __( '[{site_title}] Automatic payment failed for {order_number}. Customer asked to authenticate payment and will be notified again {retry_time}', 'woocommerce-gateway-stripe' );
+		$this->subject = __( '[{site_title}] Automatic payment failed for {order_number}. Customer asked to authenticate payment and will be notified again in {retry_time}', 'woocommerce-gateway-stripe' );
 
 		$this->template_html  = 'emails/failed-renewal-authentication-requested.php';
 		$this->template_plain = 'emails/plain/failed-renewal-authentication-requested.php';
@@ -44,11 +51,31 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	}
 
 	/**
+	 * Get retry time.
+	 *
+	 * @return string
+	 */
+	public function get_retry_time() {
+		if ( apply_filters( 'woocommerce_is_email_preview', false ) ) {
+			$interval = 12 * HOUR_IN_SECONDS;
+			return human_time_diff( time(), time() + $interval );
+		}
+
+		return ( is_a( $this->retry, 'WCS_Retry' ) && method_exists( $this->retry, 'get_time' ) )
+			? wcs_get_human_time_diff( $this->retry->get_time() )
+			: '';
+	}
+
+	/**
 	 * Get the default e-mail subject.
 	 *
 	 * @return string
 	 */
 	public function get_default_subject() {
+		if ( apply_filters( 'woocommerce_is_email_preview', false ) ) {
+			$retry_time = $this->get_retry_time();
+			return str_replace( '{retry_time}', $retry_time, $this->subject );
+		}
 		return $this->subject;
 	}
 

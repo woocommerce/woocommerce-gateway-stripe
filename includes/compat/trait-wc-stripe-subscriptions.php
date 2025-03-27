@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -513,7 +516,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
 			/* translators: error message */
-			$renewal_order->update_status( 'failed' );
+			$renewal_order->update_status( OrderStatus::FAILED );
 			$this->unlock_order_payment( $renewal_order );
 
 			return;
@@ -533,7 +536,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -549,7 +552,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$attempt_time
 				);
 				$renewal_order->add_order_note( $message );
-				$renewal_order->update_status( 'pending' );
+				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -757,7 +760,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
 			$mandate = $order->get_meta( '_stripe_mandate_id', true );
-			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				unset( $request['setup_future_usage'] );
 				return $request;
@@ -1016,6 +1019,10 @@ trait WC_Stripe_Subscriptions_Trait {
 							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
 							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
 							break 3;
+						case WC_Stripe_Payment_Methods::AMAZON_PAY:
+							/* translators: 1) the Amazon Pay payment method's email */
+							$payment_method_to_display = sprintf( __( 'Via Amazon Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->billing_details->email ?? '' );
+							break 3;
 					}
 				}
 			}
@@ -1081,7 +1088,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$charge    = $this->get_latest_charge_from_intent( $existing_intent );
 		$charge_id = $charge->id;
 		/* translators: %s is the stripe charge Id */
-		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
+		$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;
 	}

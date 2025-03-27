@@ -13,10 +13,13 @@ const PaymentMethodsUnavailableList = () => {
 	const capabilities = useGetCapabilities();
 	const upePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const unavailablePaymentMethodIds = upePaymentMethodIds
-		.filter(
-			( methodId ) =>
-				! capabilities.hasOwnProperty( `${ methodId }_payments` )
-		)
+		.filter( ( methodId ) => {
+			const capabilityId =
+				methodId === 'us_bank_account'
+					? `${ methodId }_ach_payments`
+					: `${ methodId }_payments`;
+			return ! capabilities.hasOwnProperty( capabilityId );
+		} )
 		.filter(
 			( id ) =>
 				! [ PAYMENT_METHOD_LINK, PAYMENT_METHOD_AMAZON_PAY ].includes(
