@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Get Changed Files
         id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1
+        uses: hanseltimeindustries/get-changed-files@v1.1.2
         with:
           format: 'space-delimited'
           filter: '**/*.php'
