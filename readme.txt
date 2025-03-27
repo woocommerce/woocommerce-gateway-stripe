@@ -144,5 +144,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - SPE: Remove radio buttons
 * Update - Hide express checkout buttons when no product variation is selected.
 * Add - Add ACSS support for WC Subscriptions.
+* Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

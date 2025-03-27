@@ -35,6 +35,7 @@
 * Tweak - SPE: Remove radio buttons
 * Update - Hide express checkout buttons when no product variation is selected.
 * Add - Add ACSS support for WC Subscriptions.
+* Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
