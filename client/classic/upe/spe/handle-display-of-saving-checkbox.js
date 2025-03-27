@@ -11,7 +11,7 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 	const createAccountCheckbox = document.getElementById( 'createaccount' );
 	if (
 		( ! createAccountCheckbox || createAccountCheckbox?.checked ) &&
-		NON_REUSABLE_METHODS.includes( method )
+		! NON_REUSABLE_METHODS.includes( method )
 	) {
 		saveCardInfoContainer.style.display = 'block';
 	} else {
