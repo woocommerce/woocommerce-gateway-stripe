@@ -71,6 +71,8 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_testing_instructions
 	 */
 	public function test_get_testing_instructions( $smart_checkout_flag, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, $smart_checkout_flag ? 'yes' : 'no' );
+
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = $smart_checkout_flag ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
