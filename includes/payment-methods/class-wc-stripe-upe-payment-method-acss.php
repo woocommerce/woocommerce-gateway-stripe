@@ -32,6 +32,9 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 
 	/**
