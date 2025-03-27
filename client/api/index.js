@@ -687,4 +687,14 @@ export default class WCStripeAPI {
 			}
 		);
 	}
+
+	getPaymentMethodDetailsByCheckoutSessionId( checkoutSessionId ) {
+		if ( ! checkoutSessionId ) {
+			throw new Error( 'Missing Checkout Session ID' );
+		}
+
+		return jQuery.get( this.getAjaxUrl( 'get_payment_method_details' ), {
+			checkout_session_id: checkoutSessionId,
+		} );
+	}
 }

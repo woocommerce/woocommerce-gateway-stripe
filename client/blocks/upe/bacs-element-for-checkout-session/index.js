@@ -14,6 +14,9 @@ const CheckoutSession = ( {
 	const [ isLoading, setIsLoading ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
 	const [ buttonText, setButtonText ] = useState( defaultButtontext );
+	const [ paymentMethodLabel, setPaymentMethodLabel ] = useState(
+		'Loading payment method...'
+	);
 
 	useEffect( () => {
 		const urlParams = new URLSearchParams( window.location.search );
@@ -81,6 +84,32 @@ const CheckoutSession = ( {
 		upeMethods,
 	] );
 
+	// Perform an AJAX call when checkoutSessionId becomes true.
+	useEffect( () => {
+		if ( checkoutSessionId ) {
+			async function getPaymentMethodDetails( _checkoutSessionId ) {
+				try {
+					const response = await api.getPaymentMethodDetailsByCheckoutSessionId(
+						_checkoutSessionId
+					);
+
+					if ( ! response.success ) {
+						throw new Error( response.data.message );
+					}
+
+					setPaymentMethodLabel(
+						`Bacs Direct Debit ending in ${ response.data.last4 }`
+					);
+				} catch ( err ) {
+					// TODO: Test this flow.
+					setErrorMessage( err.message );
+				}
+			}
+
+			getPaymentMethodDetails( checkoutSessionId );
+		}
+	}, [ api, checkoutSessionId ] );
+
 	const createCheckoutSession = async ( e ) => {
 		e.preventDefault();
 		try {
@@ -109,10 +138,16 @@ const CheckoutSession = ( {
 					</StoreNotice>
 				</div>
 			) }
-
-			<button onClick={ createCheckoutSession } disabled={ isLoading }>
-				{ buttonText }
-			</button>
+			{ checkoutSessionId ? (
+				<span>{ paymentMethodLabel }</span>
+			) : (
+				<button
+					onClick={ createCheckoutSession }
+					disabled={ isLoading }
+				>
+					{ buttonText }
+				</button>
+			) }
 		</>
 	);
 };
