@@ -9,7 +9,10 @@ export const handleDisplayOfPaymentInstructions = ( method ) => {
 		?.forEach( ( element ) => {
 			element.style.display = 'none';
 		} );
-	document.getElementById(
+	const currentInstructionsDiv = document.getElementById(
 		'wc-stripe-payment-method-instructions-' + method
-	).style.display = 'block';
+	);
+	if ( currentInstructionsDiv ) {
+		currentInstructionsDiv.style.display = 'block';
+	}
 };

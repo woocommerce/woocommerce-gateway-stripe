@@ -28,7 +28,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
-import { handleDisplayOfPaymentInstructions } from 'wcstripe/blocks/upe/handle-display-of-payment-instructions';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
 
 const noop = () => null;
 
