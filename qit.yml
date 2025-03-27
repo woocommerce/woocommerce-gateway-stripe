@@ -1,0 +1,16 @@
+plugins:
+  disable-emails:
+    action: activate
+
+  woocommerce:
+    action: bootstrap
+    
+  woocommerce-subscriptions:
+    action: bootstrap
+
+  woocommerce-pre-orders:
+    action: bootstrap
+
+themes:
+  storefront:
+    action: activate

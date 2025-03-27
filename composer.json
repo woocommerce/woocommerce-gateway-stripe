@@ -21,5 +21,8 @@
     },
     "extra": {
       "installer-disable": true
+    },
+    "require": {
+        "woocommerce/qit-cli": "^0.8.8"
     }
 }

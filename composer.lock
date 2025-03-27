@@ -4,8 +4,42 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ce8e7d358061604e3feaeb46c9a8b909",
-    "packages": [],
+    "content-hash": "ad315e9d0df7f58404604ffa4c7c128c",
+    "packages": [
+        {
+            "name": "woocommerce/qit-cli",
+            "version": "0.8.8",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/woocommerce/qit-cli.git",
+                "reference": "6f8abc62ebb9da3a3add6671fc9f2db7c847101b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/woocommerce/qit-cli/zipball/6f8abc62ebb9da3a3add6671fc9f2db7c847101b",
+                "reference": "6f8abc62ebb9da3a3add6671fc9f2db7c847101b",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "php": "^7.2.5 | ^8"
+            },
+            "bin": [
+                "qit"
+            ],
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "description": "A command line interface for WooCommerce Quality Insights Toolkit (QIT).",
+            "support": {
+                "issues": "https://github.com/woocommerce/qit-cli/issues",
+                "source": "https://github.com/woocommerce/qit-cli/tree/0.8.8"
+            },
+            "time": "2025-03-26T11:49:48+00:00"
+        }
+    ],
     "packages-dev": [
         {
             "name": "composer/ca-bundle",
@@ -6981,11 +7015,11 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
-    "platform-dev": [],
+    "platform": {},
+    "platform-dev": {},
     "platform-overrides": {
         "php": "7.4"
     },
