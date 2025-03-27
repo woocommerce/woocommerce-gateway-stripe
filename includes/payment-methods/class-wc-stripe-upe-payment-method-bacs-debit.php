@@ -196,7 +196,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	public function get_payment_method_details_ajax() {
 		try {
 			$checkout_session_id    = filter_input( INPUT_GET, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
-			$friendly_error_message = __( 'An error occurred while getting the payment method details.', 'woocommerce-gateway-stripe' );
+			$friendly_error_message = __( 'An error occurred while getting the Bacs Direct Debit payment method details.', 'woocommerce-gateway-stripe' );
 
 			// Get the Checkout Session data.
 			$response = WC_Stripe_API::request( [], "checkout/sessions/$checkout_session_id", 'GET' );

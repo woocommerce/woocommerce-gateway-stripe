@@ -103,6 +103,8 @@ const CheckoutSession = ( {
 				} catch ( err ) {
 					// TODO: Test this flow.
 					setErrorMessage( err.message );
+					setPaymentMethodLabel( '' );
+					setCheckoutSessionId( '' );
 				}
 			}
 
