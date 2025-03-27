@@ -120,6 +120,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe AU BECS Debit Pay payment method.
+	 */
+	const MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE = [
+		'id'                                        => 'pm_mock_payment_method_id',
+		'type'                                      => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		WC_Stripe_Payment_Methods::BECS_DEBIT        => [
+			'last4'       => '4321',
+			'fingerprint' => 'F1ng3rpr1n7',
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
@@ -833,6 +845,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertTrue( WC_Payment_Token_ACSS::class === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $acss_payment_method_mock->acss_debit->last4 );
 					$this->assertSame( $token->get_bank_name(), $acss_payment_method_mock->acss_debit->bank_name );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID:
+					$becs_debit_payment_method_mock = $this->array_to_object( self::MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE );
+					$token                          = $payment_method->create_payment_token_for_user( $user_id, $becs_debit_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_Becs_Debit::class === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $becs_debit_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID}->last4 );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
