@@ -33,6 +33,6 @@ class WC_Stripe_Mode {
 	 * @return true
 	 */
 	public function random_method() {
-		return true;
+		return false;
 	}
 }
