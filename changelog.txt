@@ -1,6 +1,8 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+
+* Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
@@ -33,6 +35,7 @@
 * Tweak - SPE: Remove radio buttons
 * Update - Hide express checkout buttons when no product variation is selected.
 * Fix - Translation warning when initializing the status page information.
+* Add - Add ACSS support for WC Subscriptions.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
