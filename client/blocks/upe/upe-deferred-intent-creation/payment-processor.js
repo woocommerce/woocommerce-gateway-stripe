@@ -28,6 +28,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
+import { handleDisplayOfPaymentMethodInstructions } from 'wcstripe/blocks/upe/handle-display-of-payment-method-instructions';
 
 const noop = () => null;
 
@@ -361,6 +362,9 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			handleDisplayOfPaymentMethodInstructions( value.type );
+		}
 	};
 
 	return (
