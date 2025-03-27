@@ -34,6 +34,7 @@
 * Fix - Fix subscription renewal issues for Amazon Pay.
 * Tweak - SPE: Remove radio buttons
 * Update - Hide express checkout buttons when no product variation is selected.
+* Fix - Translation warning when initializing the status page information.
 * Add - Add ACSS support for WC Subscriptions.
 
 = 9.3.1 - 2025-03-14 =
