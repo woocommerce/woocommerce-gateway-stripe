@@ -142,23 +142,24 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			'</a>'
 		);
 
-		if ( $this->spe_enabled ) {
-			$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
-			$instructions          = sprintf( $base_instruction_html, self::STRIPE_ID, $credit_card_instructions );
-			foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-				if ( self::class === $payment_method_class ) {
-					continue;
-				}
-
-				$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions();
-				if ( $payment_method_instructions ) {
-					$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
-				}
-			}
-			return $instructions;
+		if ( ! $this->spe_enabled ) {
+			return $credit_card_instructions;
 		}
 
-		return $credit_card_instructions;
+		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
+		$instructions          = sprintf( $base_instruction_html, self::STRIPE_ID, $credit_card_instructions );
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			if ( self::class === $payment_method_class ) {
+				continue;
+			}
+
+			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions();
+			if ( $payment_method_instructions ) {
+				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
+			}
+		}
+
+		return $instructions;
 	}
 
 	/**
