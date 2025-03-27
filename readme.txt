@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
+* Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
@@ -143,6 +144,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix subscription renewal issues for Amazon Pay.
 * Tweak - SPE: Remove radio buttons
 * Update - Hide express checkout buttons when no product variation is selected.
+* Fix - Translation warning when initializing the status page information.
 * Add - Add ACSS support for WC Subscriptions.
+* Add - Add WooCommerce Pre-Orders support to ACSS.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

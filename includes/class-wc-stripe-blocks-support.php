@@ -110,7 +110,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * Registers the UPE JS scripts.
 	 */
 	private function register_upe_payment_method_script_handles() {
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe_blocks.asset.php';
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe-blocks.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
 		if ( file_exists( $asset_path ) ) {
@@ -125,14 +125,14 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		wp_enqueue_style(
 			'wc-stripe-blocks-checkout-style',
-			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.css',
+			WC_STRIPE_PLUGIN_URL . '/build/upe-blocks.css',
 			[],
 			$version
 		);
 
 		wp_register_script(
 			'wc-stripe-blocks-integration',
-			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',
+			WC_STRIPE_PLUGIN_URL . '/build/upe-blocks.js',
 			array_merge( [ 'stripe' ], $dependencies ),
 			$version,
 			true
