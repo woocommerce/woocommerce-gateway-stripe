@@ -133,7 +133,13 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_testing_instructions() {
-		$credit_card_instructions = sprintf(
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace
+		$calling_method = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 2 )[1]['function'] ?? '';
+		if ( $this->spe_enabled && 'get_testing_instructions_for_smart_checkout' !== $calling_method ) {
+			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_smart_checkout();
+		}
+
+		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
 			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
 			'<strong>',
@@ -141,25 +147,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			'<a href="https://docs.stripe.com/testing" target="_blank">',
 			'</a>'
 		);
-
-		if ( ! $this->spe_enabled ) {
-			return $credit_card_instructions;
-		}
-
-		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
-		$instructions          = sprintf( $base_instruction_html, self::STRIPE_ID, $credit_card_instructions );
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			if ( self::class === $payment_method_class ) {
-				continue;
-			}
-
-			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions();
-			if ( $payment_method_instructions ) {
-				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
-			}
-		}
-
-		return $instructions;
 	}
 
 	/**
