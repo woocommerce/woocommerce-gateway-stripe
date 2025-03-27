@@ -9,6 +9,7 @@ import {
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
 	PAYMENT_METHOD_BECS,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -31,6 +32,8 @@ const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
+const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
+
 const paymentMethodsMap = {
 	card: {
 		id: PAYMENT_METHOD_CARD,
@@ -321,6 +324,20 @@ if ( isBecsDebitEnabled ) {
 		),
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
+	};
+}
+
+// Enable BLIK according to feature flag value.
+if ( isBlikEnabled ) {
+	paymentMethodsMap.blik = {
+		id: PAYMENT_METHOD_BLIK,
+		label: 'BLIK',
+		description: __(
+			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.blik,
+		currencies: [ 'PLN' ],
 	};
 }
 

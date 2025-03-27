@@ -741,9 +741,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
 	 * take care of handling any authorizations.
 	 *
-	 * @param Array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
 	 * @param WC_Order $order            The renewal order.
-	 * @param Array    $prepared_source  The source object.
+	 * @param object   $prepared_source  The source object.
 	 */
 	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
@@ -783,6 +783,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
+		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
 		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
@@ -1000,10 +1001,18 @@ trait WC_Stripe_Subscriptions_Trait {
 							break 3;
 						case WC_Stripe_Payment_Methods::ACH:
 							$payment_method_to_display = sprintf(
-								/* translators: account type (checking, savings), last 4 digits of account. */
+								/* translators: 1) account type (checking, savings), 2) last 4 digits of account. */
 								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
 								ucfirst( $source->us_bank_account->account_type ),
 								$source->us_bank_account->last4
+							);
+							break 3;
+						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: 1) bank name, 2) last 4 digits of account. */
+								__( 'Via %1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+								$source->acss_debit->bank_name,
+								$source->acss_debit->last4
 							);
 							break 3;
 						case WC_Stripe_Payment_Methods::BACS_DEBIT:

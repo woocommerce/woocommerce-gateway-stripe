@@ -1,0 +1,161 @@
+name: Manual QIT
+description: Builds a package for the specified branch and runs the selected QIT tests.
+
+on:
+  workflow_dispatch:
+    inputs:
+      wp-version:
+        description: 'WordPress version: `latest` or a specific version number.'
+        type: string
+        default: 'latest'
+      wc-version:
+        description: 'WooCommerce version: `latest`, `nightly` or a specific version number.'
+        type: string
+        default: 'latest'
+      php-version:
+        description: 'PHP version'
+        type: choice
+        default: '7.4'
+        options:
+          - '7.4'
+          - '8.0'
+          - '8.1'
+          - '8.3'
+          - '8.4'
+      qit-tests:
+        description: 'QIT Tests'
+        type: choice
+        options:
+          - 'WooCommerce Pre-Release Tests (includes Activation, WooCommerce E2E and API tests)'
+          - 'Code Quality Checks (includes Security, PHP Compatibility, PHPStan, Malware, and Validation tests)'
+          - 'Activation'
+          - 'Security'
+          - 'PHP Compatibility'
+          - 'PHPStan'
+          - 'Malware'
+          - 'Plugin Checks (dotOrg metadata)'
+          - 'Validation'
+          - 'WooCommerce E2E and API tests'
+          - 'None'
+      extension-tests:
+        description: 'Extension Tests'
+        type: choice
+        default: 'All'
+        options:
+          - 'All'
+          - 'Unit Tests'
+          - 'E2E Tests'
+          - 'None'
+      qit-wait:
+        description: 'Wait for QIT? Requires additional time for the QIT tests to complete within GHA.'
+        type: boolean
+        default: true
+      options:
+        description: 'QIT additional options, like `--optional_features=hpos`.'
+        type: string
+        default: ''
+
+run-name: Tests with WP=${{ inputs.wp-version }} - WC=${{ inputs.wc-version }} - PHP=${{ inputs.php-version }} - Tests=${{ inputs.extension-tests }} - QIT=${{ inputs.qit-tests }}
+
+jobs:
+
+  php-tests:
+    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'Unit')
+    name: Run PHP Unit
+    uses: ./.github/workflows/run-unit-tests.yml
+    with:
+      wp-version: ${{ inputs.wp-version }}
+      wc-version: ${{ inputs.wc-version }}
+      php-version: ${{ inputs.php-version }}
+  
+  e2e-tests:
+    if: contains(inputs.extension-tests, 'All') || contains(inputs.extension-tests, 'E2E')
+    name: Run E2E
+    uses: ./.github/workflows/run-e2e-tests.yml
+    secrets: inherit
+    with:
+      wp-version: ${{ inputs.wp-version }}
+      wc-version: ${{ inputs.wc-version }}
+      php-version: ${{ inputs.php-version }}
+
+  build-project:
+    name: Build package
+    uses: ./.github/workflows/build-upload-zip.yml
+    with:
+      artifact: 'manual-test-package'
+      php-version: ${{ inputs.php-version }}
+  
+  qit-tests:
+    name: Run QIT
+    needs: build-project
+    uses: ./.github/workflows/run-qit.yml
+    secrets: inherit
+    with:
+      extension: 'woocommerce-gateway-stripe'
+      artifact: 'manual-test-package'
+      wp-version: ${{ inputs.wp-version == 'latest' && 'stable' || inputs.wp-version }}
+      wc-version: ${{ inputs.wc-version == 'latest' && 'stable' || contains( inputs.wc-version, 'rc' ) && 'rc' || inputs.wc-version }}
+      php-version: ${{ inputs.php-version }}
+      test-activation: ${{ contains(inputs.qit-tests, 'Activation') && true || false }}
+      test-security: ${{ contains(inputs.qit-tests, 'Security') && true || false }}
+      test-phpcompatibility: ${{ contains(inputs.qit-tests, 'Compatibility') && true || false }}
+      test-phpstan: ${{ contains(inputs.qit-tests, 'PHPStan') && true || false }}
+      test-malware: ${{ contains(inputs.qit-tests, 'Malware') && true || false }}
+      test-plugin-check: ${{ contains(inputs.qit-tests, 'dotOrg') && true || false }}
+      test-validation: ${{ contains(inputs.qit-tests, 'Validation') && true || false }}
+      test-woo-api: ${{ contains(inputs.qit-tests, 'API') && true || false }}
+      test-woo-e2e: ${{ contains(inputs.qit-tests, 'WooCommerce E2E') && true || false }}
+      options: ${{ inputs.options }}
+      wait: ${{ inputs.qit-wait }}
+
+  handle-success:
+    if: |
+      always() &&
+      (needs.php-tests.result == 'success' || needs.php-tests.result == 'skipped') &&
+      (needs.e2e-tests.result == 'success' || needs.e2e-tests.result == 'skipped') &&
+      (needs.qit-tests.result == 'success' || needs.qit-tests.result == 'skipped')
+    needs: [php-tests, e2e-tests, qit-tests]
+    name: Handle success
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-passed:"
+            status: "passed"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref || github.ref_name}}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+  
+  handle-cancelled:
+    if: cancelled()
+    needs: [php-tests, e2e-tests, qit-tests]
+    name: Handle cancellation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-cancelled:"
+            status: "cancelled"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref || github.ref_name}}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  handle-error:
+    if: failure()
+    needs: [php-tests, e2e-tests, qit-tests]
+    name: Handle failure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: webhook-trigger
+          payload: |
+            icon: ":workflow-failed:"
+            status: "failed"
+            workflowName: "${{ github.workflow }} | ${{ github.head_ref || github.ref_name }}"
+            workflowUrl: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
