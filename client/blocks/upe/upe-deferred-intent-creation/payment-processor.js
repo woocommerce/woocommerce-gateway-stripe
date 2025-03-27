@@ -153,11 +153,9 @@ const PaymentProcessor = ( {
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-	const testingInstructionsIfAppropriate =
-		getBlocksConfiguration()?.testMode &&
-		! getBlocksConfiguration()?.isSPEEnabled // @todo Temporary disabling testing instructions for SPE.
-			? testingInstructions
-			: '';
+	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
+		? testingInstructions
+		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;

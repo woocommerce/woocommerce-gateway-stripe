@@ -660,8 +660,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php endif; ?>
 
 			<?php
-			// @todo Temporarily disabling test instructions when SPE is enabled.
-			if ( $this->testmode && ! $this->spe_enabled ) :
+			if ( $this->testmode ) :
 				?>
 				<p class="testmode-info">
 					<?php
