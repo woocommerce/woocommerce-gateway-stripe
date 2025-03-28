@@ -72,6 +72,36 @@
 				"state_iso": "NY",
 				"postcode": "10012"
 			}
+		},
+		"customer_canada": {
+			"billing": {
+				"first_name": "Customer",
+				"last_name": "Customerson",
+				"company": "",
+				"country": "Canada",
+				"country_iso": "CA",
+				"address_1": "60 29th Street #343",
+				"address_2": "billing",
+				"city": "Toronto",
+				"state": "Ontario",
+				"state_iso": "ON",
+				"postcode": "M5T 2E9",
+				"phone": "2025550104",
+				"email": "e2e-customer-billing@woocommerce.com"
+			},
+			"shipping": {
+				"first_name": "Recipient",
+				"last_name": "Recipientson",
+				"company": "",
+				"country": "Canada",
+				"country_iso": "CA",
+				"address_1": "166 Crosby Street",
+				"address_2": "shipping",
+				"city": "Toronto",
+				"state": "Ontario",
+				"state_iso": "ON",
+				"postcode": "M5T 2E9"
+			}
 		}
 	},
 	"cards": {
