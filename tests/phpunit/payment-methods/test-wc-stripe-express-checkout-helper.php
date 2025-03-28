@@ -60,14 +60,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-				'is_pay_for_order_page',
 			]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_pay_for_order_page' )->willReturnOnConsecutiveCalls( true, false );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
@@ -78,37 +76,47 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		];
 
 		// Create virtual product and add to cart.
-		$virtual_product = WC_Helper_Product::create_simple_product();
-		$virtual_product->set_virtual( true );
-		$virtual_product->save();
+		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
+		$virtual_nontaxable_product->set_virtual( true );
+		$virtual_nontaxable_product->set_tax_status( 'none' );
+		$virtual_nontaxable_product->save();
 
 		WC()->session->init();
-		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
+		WC()->cart->add_to_cart( $virtual_nontaxable_product->get_id(), 1 );
 
-		// Do not hide if Pay for Order page.
-		update_option( 'woocommerce_tax_based_on', 'shipping' );
+		// Do not hide if taxes are not enabled.
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Hide if cart has virtual product and tax is based on shipping or billing address.
-		update_option( 'woocommerce_calc_taxes', 'yes' );
+		// Add a taxable virtual product to cart.
+		$virtual_taxable_product = WC_Helper_Product::create_simple_product();
+		$virtual_taxable_product->set_virtual( true );
+		$virtual_taxable_product->set_tax_status( 'taxable' );
+		$virtual_taxable_product->save();
+		WC()->cart->add_to_cart( $virtual_taxable_product->get_id(), 1 );
+
+		// Do not hide if Pay for Order page.
+		$_GET['pay_for_order'] = '1';
+		update_option( 'woocommerce_tax_based_on', 'billing' );
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		unset( $_GET['pay_for_order'] );
+
+		// Hide if cart has virtual product and tax is based on billing address.
 		update_option( 'woocommerce_tax_based_on', 'billing' );
 		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
+		// Do not hide if cart has virtual product and tax is based on shipping address.
 		update_option( 'woocommerce_tax_based_on', 'shipping' );
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
-		// Do not hide if taxes are not enabled.
-		update_option( 'woocommerce_calc_taxes', 'no' );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
 		// Do not hide if taxes are not based on customer billing or shipping address.
-		update_option( 'woocommerce_calc_taxes', 'yes' );
 		update_option( 'woocommerce_tax_based_on', 'base' );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
 		// Do not hide if cart requires shipping.
 		update_option( 'woocommerce_tax_based_on', 'billing' );
 		$shippable_product = WC_Helper_Product::create_simple_product();
+		$shippable_product->set_tax_status( 'taxable' );
+		$shippable_product->save();
 		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
