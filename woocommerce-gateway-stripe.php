@@ -316,10 +316,6 @@ function woocommerce_gateway_stripe() {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
-
-					// Initialize the class for handling the status page.
-					$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
-					$wcstripe_status->init_hooks();
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -344,9 +340,12 @@ function woocommerce_gateway_stripe() {
 
 				new WC_Stripe_UPE_Compatibility_Controller();
 
-				// Intitialize the class for updating subscriptions' Legacy SEPA payment methods.
+				// Initialize the class for updating subscriptions' Legacy SEPA payment methods.
 				add_action( 'init', [ $this, 'initialize_subscriptions_updater' ] );
 				add_action( 'init', [ $this, 'load_plugin_textdomain' ] );
+
+				// Initialize the class for handling the status page.
+				add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
 			}
 
 			/**
@@ -823,6 +822,20 @@ function woocommerce_gateway_stripe() {
 
 			public function load_plugin_textdomain() {
 				load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( __DIR__ ) . '/languages' );
+			}
+
+			/**
+			 * Initializes the status page.
+			 *
+			 * @return void
+			 */
+			public function initialize_status_page() {
+				if ( ! is_admin() ) {
+					return;
+				}
+
+				$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
+				$wcstripe_status->init_hooks();
 			}
 		}
 
