@@ -665,6 +665,14 @@ export default class WCStripeAPI {
 		);
 	}
 
+	/**
+	 * Creates a Bacs Direct Debit Checkout Session.
+	 *
+	 * This method sends a request to the server to create a Checkout Session for Bacs Direct Debit.
+	 *
+	 * @return {Promise} A promise that resolves with the server response.
+	 * @throws {Error} If the server response indicates a failure.
+	 */
 	createCheckoutSession() {
 		return this.request(
 			this.getAjaxUrl( 'create_bacs_checkout_session' ),
@@ -674,6 +682,16 @@ export default class WCStripeAPI {
 		);
 	}
 
+	/**
+	 * Attaches a payment method to a customer using a Checkout Session ID.
+	 *
+	 * This method sends a request to the server to attach a payment method (retrieved via the Checkout Session)
+	 * to the currently logged-in customer.
+	 *
+	 * @param {string} checkoutSessionId The ID of the Checkout Session.
+	 * @return {Promise} A promise that resolves with the server response.
+	 * @throws {Error} If the `checkoutSessionId` is missing or the server response indicates a failure.
+	 */
 	attachPaymentMethodToCustomer( checkoutSessionId ) {
 		if ( ! checkoutSessionId ) {
 			throw new Error( 'Missing Checkout Session ID' );
@@ -688,6 +706,16 @@ export default class WCStripeAPI {
 		);
 	}
 
+	/**
+	 * Retrieves payment method details using a Checkout Session ID.
+	 *
+	 * This method sends a request to the server to fetch details about the payment method
+	 * associated with the given Checkout Session ID.
+	 *
+	 * @param {string} checkoutSessionId The ID of the Checkout Session.
+	 * @return {Promise} A promise that resolves with the payment method details.
+	 * @throws {Error} If the `checkoutSessionId` is missing or the server response indicates a failure.
+	 */
 	getPaymentMethodDetailsByCheckoutSessionId( checkoutSessionId ) {
 		if ( ! checkoutSessionId ) {
 			throw new Error( 'Missing Checkout Session ID' );
