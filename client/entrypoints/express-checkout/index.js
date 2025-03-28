@@ -21,7 +21,6 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
-	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
@@ -433,8 +432,6 @@ jQuery( function ( $ ) {
 			} );
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
-				onReadyHandler( onReadyParams );
-
 				if (
 					! isVariationSelectionNeeded() &&
 					onReadyParams.availablePaymentMethods &&
