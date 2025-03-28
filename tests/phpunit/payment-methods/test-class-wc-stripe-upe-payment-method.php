@@ -2,7 +2,7 @@
 /**
  * Unit tests for UPE payment methods
  */
-class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Array of mocked UPE payment methods.
 	 *
@@ -915,8 +915,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$stripe_settings['enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$upe_helper = new UPE_Test_Helper();
-		$upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
 		$this->assertTrue( $link_upe_method->is_enabled() );
@@ -930,8 +929,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$stripe_settings['enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$upe_helper = new UPE_Test_Helper();
-		$upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
 		$this->assertFalse( $link_upe_method->is_enabled() );

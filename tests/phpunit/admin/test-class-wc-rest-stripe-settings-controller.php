@@ -9,7 +9,7 @@ use Automattic\WooCommerce\Blocks\RestApi;
 /**
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
-class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
+class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tested REST route.
@@ -23,12 +23,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	private $controller;
 
-	/**
-	 * Stripe API instance that the controller uses.
-	 *
-	 * @var UPE_Test_Helper
-	 */
-	private $upe_helper;
 
 	/**
 	 * Gateway instance that the controller uses.
@@ -101,7 +95,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @dataProvider stripe_payment_method_configurations_provider
 	 */
 	public function test_get_stripe_payment_method_configurations_settings( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
-		$this->upe_helper->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
+		$this->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
 
 		$response = $this->controller->get_settings();
 		$this->assertEquals( 200, $response->get_status() );
@@ -117,8 +111,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Test that the update_settings method updates the payment method configurations settings.
 	 */
 	public function test_update_stripe_payment_method_configurations_settings() {
-		$this->upe_helper->mock_payment_method_configurations( [ 'card' ], [] );
-		$this->upe_helper->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ], [ 'us_bank_account', 'affirm', 'afterpay_clearpay', 'cashapp' ] );
+		$this->mock_payment_method_configurations( [ 'card' ], [] );
+		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		$request->set_param( 'enabled_payment_method_ids', [ 'amazon_pay', 'card' ] );

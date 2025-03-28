@@ -25,13 +25,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private $gateway;
 
 	/**
-	 * Stripe payment gateway.
-	 *
-	 * @var WC_Stripe_Payment_Method_Configurations
-	 */
-	private $payment_method_configurations;
-
-	/**
 	 * Constructor.
 	 *
 	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
@@ -248,7 +241,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : [];
+		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
@@ -714,7 +707,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 
-	/**
+		/**
 	 * Record tracks events for each payment method that was enabled or disabled.
 	 *
 	 * @param array $enabled_methods An array of payment method ids that were enabled.

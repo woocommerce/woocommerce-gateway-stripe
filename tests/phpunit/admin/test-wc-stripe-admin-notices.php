@@ -1,11 +1,6 @@
 <?php
 
-class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
-
-	/**
-	 * @var UPE_Test_Helper
-	 */
-	private $upe_helper;
+class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function set_up() {
 		parent::set_up();
@@ -25,8 +20,6 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				'test' => 'test',
 			]
 		);
-
-		$this->upe_helper = new UPE_Test_Helper();
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
@@ -52,13 +45,6 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 	 * @dataProvider options_to_notices_map
 	 */
 	public function test_correct_stripe_notices_are_shown_in_all_scenarios( $options_to_set, $expected_notices = [], $expected_output = false, $query_params = [] ) {
-		$this->upe_helper->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::LINK,
-			]
-		);
-
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		foreach ( $query_params as $param => $value ) {
 			$_GET[ $param ] = $value;
@@ -109,7 +95,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			]
 		);
 
-		$this->upe_helper->mock_payment_method_configurations(
+		$this->mock_payment_method_configurations(
 			[
 				WC_Stripe_Payment_Methods::GIROPAY,
 				WC_Stripe_Payment_Methods::BANCONTACT,

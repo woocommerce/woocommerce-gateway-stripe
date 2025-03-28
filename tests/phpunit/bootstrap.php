@@ -51,6 +51,9 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
+# Load the WC Mock Stripe API Unit Test Case
+require_once __DIR__ . '/wc-mock-stripe-api-unit-test-case.php';
+
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
 require_once __DIR__ . '/helpers/class-upe-test-helper.php';

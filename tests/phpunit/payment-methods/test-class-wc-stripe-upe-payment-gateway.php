@@ -5,7 +5,7 @@ use Automattic\WooCommerce\Enums\OrderStatus;
 /**
  * Unit tests for the UPE payment gateway
  */
-class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Mock UPE Gateway
 	 *
@@ -33,11 +33,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @var string
 	 */
 	const MOCK_RETURN_URL = 'test_url';
-
-	/**
-	 * @var UPE_Test_Helper
-	 */
-	private $upe_helper;
 
 	/**
 	 * Base template for Stripe card payment method.
@@ -135,8 +130,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$this->upe_helper = new UPE_Test_Helper();
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
@@ -269,7 +262,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
-		$this->upe_helper->mock_payment_method_configurations( $available_payment_methods );
+		$this->mock_payment_method_configurations( $available_payment_methods );
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
 	}
 
@@ -2652,19 +2645,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'expected'    => [],
 			],
 		];
-	}
-
-	/**
-	 * @param array $account_data
-	 *
-	 * @return void
-	 */
-	private function set_stripe_account_data( $account_data ) {
-		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
-												->disableOriginalConstructor()
-												->setMethods( [ 'get_cached_account_data' ] )
-												->getMock();
-		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
 
 	/**

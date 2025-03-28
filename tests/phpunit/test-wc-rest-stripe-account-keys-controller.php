@@ -8,7 +8,7 @@
 /**
  * WC_REST_Stripe_Account_Keys_Controller unit tests.
  */
-class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
+class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tested REST route.
 	 */
@@ -162,8 +162,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'publishable_key', '' );
 
 		// Set initial payment methods
-		$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_gateway->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
 
 		$this->controller->set_account_keys( $request );
 

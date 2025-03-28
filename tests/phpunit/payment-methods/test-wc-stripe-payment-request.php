@@ -8,7 +8,7 @@
 /**
  * WC_Stripe_Payment_Request_Test class.
  */
-class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
+class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	const SHIPPING_ADDRESS = [
 		'country'   => 'US',
 		'state'     => 'CA',
@@ -193,7 +193,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
 		$this->upe_helper->enable_upe();
-		$this->upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$this->assertTrue( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}
@@ -208,7 +208,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		// Disable Apple Pay/Google Pay
 		$this->pr->stripe_settings = [ 'payment_request' => false ];
 
-		$this->upe_helper->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD ], [] );
 
 		$this->assertFalse( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}

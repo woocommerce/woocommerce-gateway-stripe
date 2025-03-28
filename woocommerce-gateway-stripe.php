@@ -656,7 +656,7 @@ function woocommerce_gateway_stripe() {
 					}
 				}
 				if ( empty( $payment_methods_to_enable ) ) {
-					$payment_methods_to_enable[] = [ 'card', 'link' ];
+					$payment_methods_to_enable = [ 'card', 'link' ];
 				} else {
 					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 					$settings['enabled'] = 'yes';

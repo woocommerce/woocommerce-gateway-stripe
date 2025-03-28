@@ -9,7 +9,7 @@ use Automattic\WooCommerce\Blocks\RestApi;
 /**
  * WC_REST_Stripe_Settings_Controller_Test_GB unit tests.
  */
-class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
+class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tested REST route.
@@ -29,13 +29,6 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	 * @var WC_REST_Stripe_Settings_Controller
 	 */
 	private $controller;
-
-	/**
-	 * Stripe API instance that the controller uses.
-	 *
-	 * @var WC_Stripe_API
-	 */
-	private $stripe_api;
 
 	/**
 	 * Enable UPE and store gateway instance.
@@ -96,7 +89,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
-		$upe_helper->mock_payment_method_configurations( [ 'card' ], [] );
+		$this->mock_payment_method_configurations( [ 'card' ], [] );
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
