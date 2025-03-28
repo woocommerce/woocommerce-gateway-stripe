@@ -353,6 +353,28 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Retrieves a Checkout Session object from Stripe using its ID.
+	 *
+	 * @param string $checkout_session_id The ID of the Checkout Session to retrieve.
+	 *
+	 * @return stdClass|WP_Error The Checkout Session object or a WP_Error if the request fails.
+	 */
+	public static function get_checkout_session( string $checkout_session_id ) {
+		return self::retrieve( "checkout/sessions/$checkout_session_id" );
+	}
+
+	/**
+	 * Retrieves a Setup Intent object from Stripe using its ID.
+	 *
+	 * @param string $setup_intent_id The ID of the Setup Intent to retrieve.
+	 *
+	 * @return stdClass|WP_Error The Setup Intent object or a WP_Error if the request fails.
+	 */
+	public static function get_setup_intent( string $setup_intent_id ) {
+		return self::retrieve( "setup_intents/$setup_intent_id" );
+	}
+
+	/**
 	 * Attaches a payment method to the given customer.
 	 *
 	 * @param string $customer_id        The ID of the customer the payment method should be attached to.

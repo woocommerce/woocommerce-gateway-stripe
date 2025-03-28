@@ -193,48 +193,69 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		}
 	}
 
+	/**
+	 * Handles the AJAX request to retrieve payment method details for a Bacs Direct Debit.
+	 *
+	 * This method retrieves the `checkout_session_id` from the request, fetches the checkout session object then
+	 * fetches the associated setup intent and payment method from Stripe, and returns the last 4 digits of the Bacs Direct Debit account.
+	 *
+	 * @return void Outputs a JSON response indicating success or failure.
+	 */
 	public function get_payment_method_details_ajax() {
 		try {
-			$checkout_session_id    = filter_input( INPUT_GET, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
+			// Retrieve and sanitize the checkout session ID from the request.
+			$checkout_session_id = filter_input( INPUT_GET, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
+
 			$friendly_error_message = __( 'An error occurred while getting the Bacs Direct Debit payment method details.', 'woocommerce-gateway-stripe' );
 
-			// Get the Checkout Session data.
-			$response = WC_Stripe_API::request( [], "checkout/sessions/$checkout_session_id", 'GET' );
+			// Get the Checkout Session data from Stripe.
+			$response = WC_Stripe_API::get_checkout_session( $checkout_session_id );
+
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $friendly_error_message );
+			}
+
 			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
 				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
+
 			$setup_intent_id = $response->setup_intent;
 
-			// Get the paymen method ID via the setup intent.
-			$response = WC_Stripe_API::request( [], "setup_intents/$setup_intent_id", 'GET' );
+			// Get the Setup Intent data from Stripe.
+			$response = WC_Stripe_API::get_setup_intent( $setup_intent_id );
+
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $friendly_error_message );
+			}
+
 			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
 				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
+
 			$payment_method_id = $response->payment_method;
 
-			// Get the payment method details
-			$response = WC_Stripe_API::request( [], "payment_methods/$payment_method_id", 'GET' );
-			error_log( '$response: ' . print_r( $response, true ) );
+			// Get the Payment Method details from Stripe.
+			$response = WC_Stripe_API::get_payment_method( $payment_method_id );
+
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $friendly_error_message );
+			}
+
 			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
 				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
 			}
+
 			$last_4 = $response->bacs_debit->last4;
 
-			// No need to expose more data.
+			// Return the last 4 digits in the response.
 			wp_send_json_success( [ 'last4' => $last_4 ] );
 		} catch ( Error $e ) {
+			// Handle generic PHP errors.
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( $e->getMessage() );
-
-			// Send a friendly error message to the frontend.
 			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
 		}
 	}
-
 
 	public function attach_payment_method_to_customer_ajax() {
 		try {
