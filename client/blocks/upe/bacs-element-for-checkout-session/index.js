@@ -101,7 +101,6 @@ const CheckoutSession = ( {
 						`Bacs Direct Debit ending in ${ response.data.last4 }`
 					);
 				} catch ( err ) {
-					// TODO: Test this flow.
 					setErrorMessage( err.message );
 					setPaymentMethodLabel( '' );
 					setCheckoutSessionId( '' );
