@@ -161,7 +161,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			}
 
 			$params = [
-				'success_url'            => wc_get_checkout_url() . '?checkout_session=created&checkout_session_id={CHECKOUT_SESSION_ID}',
+				'success_url'            => wc_get_checkout_url() . '?checkout_session_id={CHECKOUT_SESSION_ID}',
 				'payment_method_types[]' => WC_Stripe_Payment_Methods::BACS_DEBIT,
 				'mode'                   => 'setup',
 				// TODO: Test this ui mode
