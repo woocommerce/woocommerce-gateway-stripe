@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import config from 'config';
+import { config } from './config';
 
 /**
  * Empty the WC cart.
