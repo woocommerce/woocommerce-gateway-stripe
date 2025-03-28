@@ -146,12 +146,29 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		return false;
 	}
 
+	/**
+	 * Adds AJAX endpoints for BACS Direct Debit functionality.
+	 *
+	 * This method registers the AJAX actions required for creating a BACS Checkout Session,
+	 * attaching a payment method to a customer, and retrieving payment method details.
+	 *
+	 * @return void
+	 */
 	public function add_bacs_ajax_endpoints() {
 		add_action( 'wc_ajax_wc_stripe_create_bacs_checkout_session', [ $this, 'create_bacs_checkout_session_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_attach_payment_method_to_customer', [ $this, 'attach_payment_method_to_customer_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_get_payment_method_details', [ $this, 'get_payment_method_details_ajax' ] );
 	}
 
+
+	/**
+	 * Handles the AJAX request to create a Bacs Direct Debit Checkout Session.
+	 *
+	 * This method sends a request to Stripe to create a Checkout Session for Bacs Direct Debit.
+	 *
+	 * @return void Outputs a JSON response indicating success or failure.
+	 *              If an error occurs, a JSON response with an error message is sent.
+	 */
 	public function create_bacs_checkout_session_ajax() {
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_bacs_checkout_session_nonce', false, false );
@@ -263,6 +280,15 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 		}
 	}
 
+	/**
+	 * Handles the AJAX request to attach a payment method to a customer using a Checkout Session ID.
+	 *
+	 * This method retrieves the payment method details from Stripe using the Checkout Session ID
+	 * and attaches the payment method to the currently logged-in customer.
+	 *
+	 * @return void Outputs a JSON response indicating success or failure.
+	 *              If an error occurs, a JSON response with an error message is sent.
+	 */
 	public function attach_payment_method_to_customer_ajax() {
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_attach_payment_method_to_customer_nonce', false, false );
