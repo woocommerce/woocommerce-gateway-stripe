@@ -6,7 +6,10 @@ on:
       artifact:
         type: string
         default: 'woocommerce-gateway-stripe'
-  
+      php-version:
+        type: string
+        default: '7.4'
+
 jobs:
   build_project:
     name: Build and upload
@@ -19,7 +22,7 @@ jobs:
       - name: Setup PHP and Node
         uses: ./.github/actions/setup-env
         with:
-          php-version: '7.4'
+          php-version: ${{ inputs.php-version }}
 
       - name: Build
         run: npm run build

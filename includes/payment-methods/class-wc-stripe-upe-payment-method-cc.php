@@ -42,8 +42,20 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_title( $payment_details = false ) {
 		$wallet_type = $payment_details->card->wallet->type ?? null;
-		if ( $payment_details && $wallet_type ) {
-			return $this->get_card_wallet_type_title( $wallet_type );
+		if ( $payment_details ) {
+			if ( $wallet_type ) {
+				return $this->get_card_wallet_type_title( $wallet_type );
+			}
+
+			// Setting title for the order details page / thank you page (classic checkout) when SPE is enabled.
+			if ( $this->spe_enabled ) {
+				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+					$payment_method = new $payment_method_class();
+					if ( $payment_method->get_id() === $payment_details->type ) {
+						return $payment_method->get_title();
+					}
+				}
+			}
 		}
 
 		if ( $this->spe_enabled ) {

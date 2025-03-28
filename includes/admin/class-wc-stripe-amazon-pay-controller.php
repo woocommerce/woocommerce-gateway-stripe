@@ -17,7 +17,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/amazon_pay_settings.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/amazon-pay-settings.asset.php';
 		$asset_metadata    = file_exists( $script_asset_path )
 			? require $script_asset_path
 			: [
@@ -26,7 +26,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 			];
 		wp_register_script(
 			'wc-stripe-amazon-pay-settings',
-			plugins_url( 'build/amazon_pay_settings.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/amazon-pay-settings.js', WC_STRIPE_MAIN_FILE ),
 			$asset_metadata['dependencies'],
 			$asset_metadata['version'],
 			true
@@ -51,7 +51,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 
 		wp_register_style(
 			'wc-stripe-amazon-pay-settings',
-			plugins_url( 'build/amazon_pay_settings.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/amazon-pay-settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$asset_metadata['version']
 		);

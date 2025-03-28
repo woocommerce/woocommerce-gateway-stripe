@@ -347,8 +347,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$icon_list = [
 			WC_Stripe_Payment_Methods::ACH         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 			WC_Stripe_Payment_Methods::ACSS_DEBIT  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="' . __( 'Pre-Authorized Debit', 'woocommerce-gateway-stripe' ) . '" />',
-			WC_Stripe_Payment_Methods::BECS_DEBIT  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="' . __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ) . '" />',
 			WC_Stripe_Payment_Methods::ALIPAY      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
+			WC_Stripe_Payment_Methods::BECS_DEBIT  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="' . __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ) . '" />',
+			WC_Stripe_Payment_Methods::BLIK        => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/blik.svg" class="stripe-blik-icon stripe-icon" alt="BLIK" />',
 			WC_Stripe_Payment_Methods::WECHAT_PAY  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
 			WC_Stripe_Payment_Methods::BANCONTACT  => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
 			WC_Stripe_Payment_Methods::IDEAL       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal.svg" class="stripe-ideal-icon stripe-icon" alt="iDEAL" />',
@@ -569,9 +570,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
+		// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
+		// The mandate ID is not available for the intent object, so we need to fetch the charge.
+		// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			$mandate_id = $response->payment_method_details->card->mandate;
-			$order->set_mandate_id( $mandate_id );
+			$order->set_mandate_id( $response->payment_method_details->card->mandate );
+		} elseif ( isset( $response->payment_method_details->acss_debit->mandate ) ) {
+			$order->set_mandate_id( $response->payment_method_details->acss_debit->mandate );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -1655,14 +1660,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( 'payment_intent' === $intent->object ) {
 			$order->add_payment_intent_to_order( $intent->id );
 
-			// Add the mandate id necessary for renewal payments with Indian cards if it's present.
+			// TODO: Refactor and add mandate ID support for other payment methods, if necessary.
+			// The mandate ID is not available for the intent object, so we need to fetch the charge.
+			// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
 				$order->set_mandate_id( $charge->payment_method_details->card->mandate );
+			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
+				$order->set_mandate_id( $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->set_setup_intent( $intent->id );
+
+			// Add mandate for free trial subscriptions.
+			if ( isset( $intent->mandate ) ) {
+				$order->set_mandate_id( $intent->mandate );
+			}
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1899,6 +1913,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( isset( $full_request['source'] ) ) {
 			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $full_request['source'], $request );
+		}
+
+		// Add mandate if it exists.
+		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		if ( ! empty( $mandate ) ) {
+			$request['mandate'] = $mandate;
 		}
 
 		/**
