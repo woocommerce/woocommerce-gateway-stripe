@@ -203,6 +203,12 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function get_payment_method_details_ajax() {
 		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_get_payment_method_details_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'We couldn\'t get the payment method details this time. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			// Retrieve and sanitize the checkout session ID from the request.
 			$checkout_session_id = filter_input( INPUT_GET, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
 

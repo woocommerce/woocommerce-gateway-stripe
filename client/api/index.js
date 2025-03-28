@@ -723,6 +723,7 @@ export default class WCStripeAPI {
 
 		return jQuery.get( this.getAjaxUrl( 'get_payment_method_details' ), {
 			checkout_session_id: checkoutSessionId,
+			_ajax_nonce: this.options?.getPaymentMethodDetailsNonce,
 		} );
 	}
 }
