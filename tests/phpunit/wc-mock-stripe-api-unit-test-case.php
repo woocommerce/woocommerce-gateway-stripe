@@ -62,7 +62,8 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			'id'       => 'pmc_abcdef',
 			'object'   => 'payment_method_configuration',
 			'active'   => true,
-			'parent'   => true,
+			'parent'   => 'pmc_1LEKjBGX8lmJQndTBOzjqxSa',
+			'livemode' => false,
 		];
 
 		foreach ( $enabled_payment_method_ids as $payment_method ) {
