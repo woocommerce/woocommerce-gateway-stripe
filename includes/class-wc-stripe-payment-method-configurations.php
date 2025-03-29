@@ -9,11 +9,22 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Payment_Method_Configurations {
 	/**
+	 * The primary configuration.
+	 *
+	 * @var object|null
+	*/
+	private static $primary_configuration = null;
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @return object|null
 	*/
 	private static function get_primary_configuration() {
+		if ( null !== self::$primary_configuration ) {
+			return self::$primary_configuration;
+		}
+
 		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$payment_method_configurations = $result->data ?? null;
 
@@ -23,14 +34,15 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		foreach ( $payment_method_configurations as $payment_method_configuration ) {
 			if ( ! $payment_method_configuration->livemode && $payment_method_configuration->parent && 'pmc_1LEKjBGX8lmJQndTBOzjqxSa' === $payment_method_configuration->parent ) {
+				self::$primary_configuration = $payment_method_configuration;
 				return $payment_method_configuration;
 			}
 
 			if ( $payment_method_configuration->livemode && $payment_method_configuration->parent && 'pmc_1LEKjAGX8lmJQndTk2ziRchV' === $payment_method_configuration->parent ) {
+				self::$primary_configuration = $payment_method_configuration;
 				return $payment_method_configuration;
 			}
 		}
-
 		return null;
 	}
 
