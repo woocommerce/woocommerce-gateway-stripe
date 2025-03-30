@@ -451,12 +451,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		/**
 		 * When using UPE on the block checkout and a saved token is being used, we need to set a flag
 		 * to indicate that deferred intent should be used.
-		 *
-		 * For Bacs with empty carts we are not processing the order using deferred intents.
-		 * The payment method is created before hand then attached to the order.
 		 */
-		$is_using_bacs_with_cart_with_zero_amount = 0.0 === (float) wc()->cart->get_totals()['total'] && WC_Stripe_Payment_Methods::BACS_DEBIT === $payment_method_type;
-		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] && ! $is_using_bacs_with_cart_with_zero_amount ) {
+		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
 			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
 		}
 
