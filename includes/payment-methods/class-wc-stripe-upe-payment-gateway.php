@@ -1217,8 +1217,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request,
 					$order
 				);
-			} elseif ( $token->get_type() === WC_Stripe_Payment_Methods::BACS_DEBIT ) {
-				$payment_method_type = WC_Stripe_Payment_Methods::BACS_DEBIT;
 			} else {
 				$endpoint = false !== $intent ? "setup_intents/$intent->id" : 'setup_intents';
 				$request  = [
@@ -1237,48 +1235,42 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$intent = $this->stripe_request( $endpoint, $request );
 			}
+			$this->save_intent_to_order( $order, $intent );
 
-			// The following shouldn't apply for Bacs with free
-			// TODO: Check if it doesn't break for Bacs for subscriptions without free trials.
-			if ( $token->get_type() !== WC_Stripe_Payment_Methods::BACS_DEBIT ) {
-				// TODO: Double check if we should actually save the set up intent to the order.
-				$this->save_intent_to_order( $order, $intent );
+			if ( ! empty( $intent->error ) ) {
+				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
-				if ( ! empty( $intent->error ) ) {
-					$this->maybe_remove_non_existent_customer( $intent->error, $order );
-
-					// We want to retry (apparently).
-					if ( $this->is_retryable_error( $intent->error ) ) {
-						return $this->retry_after_error( $intent, $order, $can_retry );
-					}
-
-					$this->throw_localized_message( $intent, $order );
+				// We want to retry (apparently).
+				if ( $this->is_retryable_error( $intent->error ) ) {
+					return $this->retry_after_error( $intent, $order, $can_retry );
 				}
 
-				if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status || WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $intent->status ) {
-					if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
-						return [
-							'result'   => 'success',
-							'redirect' => $intent->next_action->redirect_to_url->url,
-						];
-					} else {
-						return [
-							'result'   => 'success',
-							// Include a new nonce for update_order_status to ensure the update order
-							// status call works when a guest user creates an account during checkout.
-							'redirect' => sprintf(
-								'#wc-stripe-confirm-%s:%s:%s:%s',
-								$payment_needed ? 'pi' : 'si',
-								$order_id,
-								$intent->client_secret,
-								wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
-							),
-						];
-					}
-				}
-
-				list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
+				$this->throw_localized_message( $intent, $order );
 			}
+
+			if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status || WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION === $intent->status ) {
+				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
+					return [
+						'result'   => 'success',
+						'redirect' => $intent->next_action->redirect_to_url->url,
+					];
+				} else {
+					return [
+						'result'   => 'success',
+						// Include a new nonce for update_order_status to ensure the update order
+						// status call works when a guest user creates an account during checkout.
+						'redirect' => sprintf(
+							'#wc-stripe-confirm-%s:%s:%s:%s',
+							$payment_needed ? 'pi' : 'si',
+							$order_id,
+							$intent->client_secret,
+							wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+						),
+					];
+				}
+			}
+
+			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
 
 			if ( $payment_needed ) {
 				// Use the last charge within the intent to proceed.
