@@ -5,6 +5,8 @@
  * @package WooCommerce\Tests
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Class WC_Helper_Order.
  *
@@ -19,7 +21,7 @@ class WC_Helper_Order {
 	 */
 	public static function delete_order( $order_id ) {
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		// Delete all products in the order.
 		foreach ( $order->get_items() as $item ) {
@@ -42,7 +44,7 @@ class WC_Helper_Order {
 	 * @param WC_Product $product The product to add to the order.
 	 * @param array      $order_props Order properties.
 	 *
-	 * @return WC_Order
+	 * @return WC_Stripe_Order
 	 */
 	public static function create_order( $customer_id = 1, $product = null, $order_props = [] ) {
 
@@ -53,14 +55,14 @@ class WC_Helper_Order {
 		WC_Helper_Shipping::create_simple_flat_rate();
 
 		$order_data = [
-			'status'        => 'pending',
+			'status'        => OrderStatus::PENDING,
 			'customer_id'   => $customer_id,
 			'customer_note' => '',
 			'total'         => '',
 		];
 
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Required, else wc_create_order throws an exception.
-		$order                  = wc_create_order( $order_data );
+		$order                  = WC_Stripe_Order::create( $order_data );
 
 		// Add order products.
 		$item = new WC_Order_Item_Product();

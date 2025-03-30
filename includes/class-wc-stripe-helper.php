@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -989,7 +992,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 
@@ -1490,7 +1493,17 @@ class WC_Stripe_Helper {
 	 * @return bool Whether the payment method allows manual capture.
 	 */
 	public static function payment_method_allows_manual_capture( string $payment_method_id ) {
-		return in_array( $payment_method_id, [ 'stripe', 'stripe_affirm', 'stripe_klarna', 'stripe_afterpay_clearpay' ], true );
+		return in_array(
+			$payment_method_id,
+			[
+				'stripe',
+				'stripe_affirm',
+				'stripe_klarna',
+				'stripe_afterpay_clearpay',
+				'stripe_amazon_pay',
+			],
+			true
+		);
 	}
 
 	/**

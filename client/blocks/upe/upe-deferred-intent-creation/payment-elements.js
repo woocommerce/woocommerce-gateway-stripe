@@ -52,10 +52,13 @@ const PaymentElements = ( {
 
 		async function createIntent() {
 			try {
-				const response = await api.createIntent(
-					getBlocksConfiguration()?.orderId,
-					paymentMethodId
-				);
+				const paymentNeeded = getBlocksConfiguration()?.isPaymentNeeded;
+				const response = paymentNeeded
+					? await api.createIntent(
+							getBlocksConfiguration()?.orderId,
+							paymentMethodId
+					  )
+					: await api.initSetupIntent( paymentMethodId );
 
 				setClientSecret( response.client_secret );
 				setPaymentIntentId( response.id );
@@ -133,6 +136,17 @@ const PaymentElements = ( {
 		};
 
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			options.appearance.rules = {
+				...options.appearance?.rules,
+				...{
+					'.RadioIcon': {
+						width: '2.1em',
+					},
+					'.RadioIconOuter': {
+						strokeWidth: '2px',
+					},
+				},
+			};
 			options = {
 				...options,
 				...{

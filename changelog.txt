@@ -1,13 +1,43 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+
+* Dev - Do not generate filenames with underscores.
+* Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
+* Dev - Implements the new Stripe order class into the express checkout classes.
+* Dev - Implements the new Stripe order class into the wp-admin related classes.
+* Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
+* Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
+* Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
+* Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
+* Dev - Implements the new Stripe order class into the PHP unit tests.
+* Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
+* Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
+* Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
 * Fix - Fixes an issue where the order signature retrieval method could throw a fatal error when the received order parameter is actually an OrderRefund object (instead of a WC_Order).
 * Fix - Fixes a possible fatal error when a product added to the cart cannot be found (with Payment Request Buttons).
 * Add - Add Amazon Pay payment method class.
+* Add - Implements the Single Payment Element feature for the new checkout experience on the classic/shortcode checkout page.
 * Tweak - Record a Tracks event when enabling/disabling SPE
 * Tweak - Updates the Single Payment Element setting copy. Now it is labeled "Smart Checkout".
 * Update - Enable/disable Amazon Pay by adding/removing it from the enabled payment methods list.
 * Add - Add ACSS payment tokenization.
+* Add - Add BLIK payment method.
+* Fix - Prevent reuse of payment intents when order total doesn't match intent amount.
+* Update - Update payment method type for Amazon Pay orders.
+* Fix - Compatibility with email preview in the Auth Requested email
+* Update - Update Alipay and bank debit icons.
+* Tweak - Update payment method type check for charge.succeeded webhook.
+* Fix - Fixed subscription features not being properly registered when hooks were already attached.
+* Add - Disable unsupported payment methods in Stripe settings
+* Update - Update handling of PR as a country in the terminal locations endpoint.
+* Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
+* Fix - Fix subscription renewal issues for Amazon Pay.
+* Tweak - SPE: Remove radio buttons
+* Update - Hide express checkout buttons when no product variation is selected.
+* Fix - Translation warning when initializing the status page information.
+* Add - Add ACSS support for WC Subscriptions.
+* Add - Add WooCommerce Pre-Orders support to ACSS.
 * Fix - Add `wc_stripe_generate_create_intent_request` filter to support mandate information in setup intent creation.
 
 = 9.3.1 - 2025-03-14 =
@@ -60,6 +90,7 @@
 * Fix - Prevent potential duplicate renewal charges by ensuring subscription integration hooks are only attached once per Gateway ID
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.
+* Fix - Fix variable dump in ACH customer error message when retrying a payment.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
