@@ -68,6 +68,21 @@ trait WC_Stripe_Forced_Tokenization_Trait {
 
 		$intent = $this->get_intent_from_order( $top_most_order );
 
+		if (
+			! $intent ||
+			! isset( $intent->setup_future_usage ) ||
+			! 'off_session' === $intent->setup_future_usage
+		) {
+			/*
+			 * The token is not valid for off-session payments.
+			 *
+			 * As the forced tokenization feature requires the token to
+			 * be available for re-use, do not consider the token to
+			 * be set.
+			 */
+			return $token;
+		}
+
 		$token = [
 			'gateway' => $this->id,
 			'token'   => $intent->id,
