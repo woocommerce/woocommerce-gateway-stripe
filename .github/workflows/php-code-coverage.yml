@@ -74,6 +74,7 @@ jobs:
           hide_and_recreate: true
           hide_classify: "OUTDATED"
           skip_unchanged: true
+          number: ${{ github.event.number }}
 #          append: true
           path: code-coverage-results-filtered.md
           
