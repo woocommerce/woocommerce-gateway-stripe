@@ -512,10 +512,12 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
+		await page.waitForTimeout( 1000 );
+
 		// Select ACSS in shortcode checkout.
 		await page.getByText( 'Pre-Authorized Debit' ).click();
 
-		await page.waitForTimeout( 2000 );
+		await page.waitForTimeout( 1000 );
 
 		// Wait for the iframe to be ready.
 		await page.waitForSelector(
