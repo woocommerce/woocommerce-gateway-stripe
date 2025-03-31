@@ -152,5 +152,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Dev - Fetch Stripe settings with Stripe configuration API
 * Add - Hook up payment methods configuration.
+* Dev - Add PMC to track events for newly enabled and disabled payment methods
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
