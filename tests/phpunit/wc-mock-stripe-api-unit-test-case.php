@@ -25,6 +25,14 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tear down.
+	 */
+	public function tear_down() {
+		parent::tear_down();
+		WC_Stripe_Payment_Method_Configurations::reset_primary_configuration();
+	}
+
+	/**
 	 * Expect payment method configuration to be updated with enabled payment method IDs and disabled payment method IDs.
 	 *
 	 * @param array $enabled_payment_method_ids
@@ -36,12 +44,12 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			$this->callback(
 				function( $actual ) use ( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 					foreach ( $enabled_payment_method_ids as $payment_method ) {
-						if ( ! isset( $actual[ $payment_method ] ) || $actual[ 'on' !== $payment_method ]['display_preference']['preference'] ) {
+						if ( ! isset( $actual[ $payment_method ] ) || 'on' !== $actual[ $payment_method ]['display_preference']['preference'] ) {
 							return false;
 						}
 					}
 					foreach ( $disabled_payment_method_ids as $payment_method ) {
-						if ( ! isset( $actual[ $payment_method ] ) || $actual[ 'off' !== $payment_method ]['display_preference']['preference'] ) {
+						if ( ! isset( $actual[ $payment_method ] ) || 'off' !== $actual[ $payment_method ]['display_preference']['preference'] ) {
 							return false;
 						}
 					}

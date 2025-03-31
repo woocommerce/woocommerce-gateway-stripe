@@ -16,6 +16,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static $primary_configuration = null;
 
 	/**
+	 * Reset the primary configuration.
+	 */
+	public static function reset_primary_configuration() {
+		self::$primary_configuration = null;
+	}
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @return object|null
@@ -52,8 +59,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	* @return array
 	*/
 	public static function get_upe_enabled_payment_method_ids() {
+		error_log( 'get_upe_enabled_payment_method_ids' );
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
+
+		error_log( print_r( $merchant_payment_method_configuration, true ) );
 
 		if ( $merchant_payment_method_configuration ) {
 			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
@@ -69,6 +79,8 @@ class WC_Stripe_Payment_Method_Configurations {
 				}
 			}
 		}
+
+		error_log( print_r( $enabled_payment_method_ids, true ) );
 
 		return $enabled_payment_method_ids;
 	}
