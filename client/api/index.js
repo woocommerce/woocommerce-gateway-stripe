@@ -664,4 +664,15 @@ export default class WCStripeAPI {
 			}
 		);
 	}
+
+	expressCheckoutGetUpdatedCartTotal( billingAddress ) {
+		return this.request(
+			getExpressCheckoutAjaxURL( 'get_updated_cart_total' ),
+			{
+				// security: getExpressCheckoutData( 'nonce' )
+				// 	?.get_updated_cart_total,
+				...billingAddress,
+			}
+		);
+	}
 }

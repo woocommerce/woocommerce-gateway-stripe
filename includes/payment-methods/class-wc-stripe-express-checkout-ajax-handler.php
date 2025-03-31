@@ -38,6 +38,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
+		add_action( 'wc_ajax_wc_stripe_get_updated_cart_total', [ $this, 'ajax_get_updated_cart_total' ] );
 	}
 
 	/**
@@ -408,6 +409,42 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				'messages' => $e->getMessage(),
 			];
 		}
+
+		wp_send_json( $result );
+	}
+
+	public function ajax_get_updated_cart_total() {
+		// TODO: check ajax referer
+
+		if ( ! isset( $_POST['country'] ) || ! isset( $_POST['state'] ) || ! isset( $_POST['postcode'] ) || ! isset( $_POST['city'] ) ) {
+			wp_send_json( [ 'result' => 'error' ], 400 );
+			return;
+		}
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		$country  = wc_clean( wp_unslash( $_POST['country'] ) );
+		$state    = wc_clean( wp_unslash( $_POST['state'] ) );
+		$postcode = wc_clean( wp_unslash( $_POST['postcode'] ) );
+		$city     = wc_clean( wp_unslash( $_POST['city'] ) );
+
+		add_filter(
+			'woocommerce_customer_taxable_address',
+			function() use ( $country, $state, $postcode, $city ) {
+				return [ $country, $state, $postcode, $city ];
+			}
+		);
+
+		WC()->cart->calculate_totals();
+
+		$cart_total = WC()->cart->total;
+
+		$result = [
+			'result' => 'success',
+			'total'  => WC_Stripe_Helper::get_stripe_amount( $cart_total ),
+		];
 
 		wp_send_json( $result );
 	}

@@ -50,14 +50,33 @@ export const shippingRateChangeHandler = async ( api, event, elements ) => {
 };
 
 export const onConfirmHandler = async ( params ) => {
-	const { abortPayment, elements, event } = params;
-
-	const submitResponse = await elements.submit();
-	if ( submitResponse?.error ) {
-		return abortPayment( event, submitResponse?.error?.message );
-	}
+	const { abortPayment, elements, event, api } = params;
 
 	if ( ! isManualPaymentMethodCreation( event.expressPaymentType ) ) {
+		const billingAddress = event?.billingDetails?.address;
+		if ( billingAddress ) {
+			const country = billingAddress?.country ?? '';
+			const state = billingAddress?.state ?? '';
+			const postcode = billingAddress?.postal_code ?? '';
+			const city = billingAddress?.city ?? '';
+			const response = await api.expressCheckoutGetUpdatedCartTotal( {
+				country,
+				state,
+				postcode,
+				city,
+			} );
+
+			// If current amount is not equal to updated cart total, update the amount.
+			if ( response.result === 'success' && response.total > 0 ) {
+				elements.update( { amount: response.total } );
+			}
+		}
+
+		const submitResponse = await elements.submit();
+		if ( submitResponse?.error ) {
+			return abortPayment( event, submitResponse?.error?.message );
+		}
+
 		return handleConfirmationTokenFlow( params );
 	}
 
