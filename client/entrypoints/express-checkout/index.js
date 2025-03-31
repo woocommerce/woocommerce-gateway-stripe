@@ -88,6 +88,13 @@ jQuery( function ( $ ) {
 		$( '.wc-bookings-booking-form' ).length > 0;
 
 	const resolveClickEvent = ( event, options ) => {
+		const getDefaultShippingRates = () => {
+			// Return a default shipping option when shipping is required but no rates are provided
+			const defaultShippingOption = getExpressCheckoutData( 'checkout' )
+				?.default_shipping_option;
+			return defaultShippingOption ? [ defaultShippingOption ] : [];
+		};
+
 		const clickOptions = {
 			lineItems: useLegacyCartEndpoints
 				? normalizeLineItems( options.displayItems )
@@ -95,7 +102,12 @@ jQuery( function ( $ ) {
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
-			shippingRates: options.shippingRates,
+			...( options.requestShipping && {
+				shippingRates:
+					options.shippingRates?.length > 0
+						? options.shippingRates
+						: getDefaultShippingRates(),
+			} ),
 		};
 
 		return event.resolve( clickOptions );
