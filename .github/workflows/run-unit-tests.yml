@@ -3,6 +3,9 @@ name: Unit Tests
 on:
   workflow_call:
     inputs:
+      name:
+        type: string
+        required: true
       wp-version:
         type: string
         default: 'latest'
@@ -15,13 +18,14 @@ on:
 
 jobs:  
   php-unit-tests:
+    name: ${{ inputs.name }}
     runs-on: ubuntu-latest
     env:
       WP_VERSION: ${{ inputs.wp-version }}
       WC_VERSION: ${{ inputs.wc-version }}
       PHP_VERSION: ${{ inputs.php-version }}
     steps:
-      - name: Checkout repository
+      - name: Testing with WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }}
         uses: actions/checkout@v4
 
       - name: Setup PHP and Node

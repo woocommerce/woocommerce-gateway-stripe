@@ -12,9 +12,10 @@ jobs:
         wordpress:   [ 'latest' ]
         php:         [ '7.4', '8.0', '8.1' ]
 
-    name: Beta (PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }})
+    name: Beta
     uses: ./.github/workflows/run-unit-tests.yml
     with:
+      name: WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}, PHP=${{ matrix.php }}
       wp-version: ${{ matrix.wordpress }}
       wc-version: ${{ matrix.woocommerce }}
       php-version: ${{ matrix.php }}
