@@ -162,15 +162,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$request->set_param( 'publishable_key', '' );
 
 		// Set initial payment methods
+		$this->set_stripe_account_data( [ 'country' => 'US' ] );
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::SEPA, WC_Stripe_Payment_Methods::IDEAL ], [] );
+		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ] );
 
 		$this->controller->set_account_keys( $request );
-
-		// Retrieve the current enabled payment methods
-		$upe_gateway     = new WC_Stripe_UPE_Payment_Gateway();
-		$enabled_methods = count( $upe_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
-
-		$this->assertEquals( 2, $enabled_methods ); // card and link are default payments
 	}
 
 	/**
