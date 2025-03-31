@@ -45,7 +45,7 @@ class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_
 	public function get_display_name( $deprecated = '' ) {
 		$display = sprintf(
 			/* translators: last 4 digits of account. */
-			__( 'Bank account ending in %s', 'woocommerce-gateway-stripe' ),
+			__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
 			$this->get_last4(),
 		);
 

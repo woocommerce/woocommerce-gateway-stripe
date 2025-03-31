@@ -46,7 +46,7 @@ class WC_Stripe_Payment_Tokens {
 
 		add_filter( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 		add_filter( 'woocommerce_payment_methods_list_item', [ $this, 'get_account_saved_payment_methods_list_item' ], 10, 2 );
-		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_sepa_label' ] );
+		add_filter( 'woocommerce_get_credit_card_type_label', [ $this, 'normalize_payment_method_label' ] );
 		add_filter( 'woocommerce_payment_token_class', [ $this, 'woocommerce_payment_token_class' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', [ $this, 'woocommerce_payment_token_set_default' ] );
@@ -63,19 +63,22 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Normalizes the SEPA IBAN label on My Account page.
+	 * Normalizes the payment method labels on My Account page.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since x.x.x
+	 * @version x.x.x
 	 * @param string $label
 	 * @return string $label
 	 */
-	public function normalize_sepa_label( $label ) {
-		if ( 'sepa iban' === strtolower( $label ) ) {
-			return 'SEPA IBAN';
+	public function normalize_payment_method_label( $label ) {
+		switch ( strtolower( $label ) ) {
+			case 'becs direct debit':
+				return 'BECS Direct Debit';
+			case 'sepa iban':
+				return 'SEPA IBAN';
+			default:
+				return $label;
 		}
-
-		return $label;
 	}
 
 	/**
@@ -427,8 +430,7 @@ class WC_Stripe_Payment_Tokens {
 				$item['method']['last4'] = $payment_token->get_last4();
 				break;
 			case WC_Stripe_Payment_Methods::BECS_DEBIT:
-				$item['method']['brand'] = esc_html__( 'BECS Direct Debit', 'woocommerce-gateway-stripe' );
-				$item['method']['last4'] = $payment_token->get_last4();
+				$item['method']['brand'] = $payment_token->get_display_name();
 				break;
 			case WC_Stripe_Payment_Methods::LINK:
 				$item['method']['brand'] = sprintf(
