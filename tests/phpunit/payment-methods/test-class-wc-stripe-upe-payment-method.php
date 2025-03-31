@@ -776,6 +776,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			// Restore original settings.
 			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
 		}
+
+		// Test custom name and description when SPE is enabled
+		$payment_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$this->assertEmpty( $payment_method->get_description() );
 	}
 
 	/**
