@@ -18,7 +18,7 @@ class WC_Payment_Token_Becs_Debit_Test extends WP_UnitTestCase {
 	public function test_get_display_name() {
 		$this->token->set_last4( '4356' );
 
-		$expected_display_name = 'Bank account ending in 4356';
+		$expected_display_name = 'BECS Direct Debit ending in 4356';
 		$this->assertEquals( $expected_display_name, $this->token->get_display_name() );
 	}
 
