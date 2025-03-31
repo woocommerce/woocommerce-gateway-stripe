@@ -56,7 +56,7 @@ test.describe( 'ACSS payment tests @blocks', () => {
 
 	test.describe.configure( { mode: 'parallel' } );
 
-	test.skip( 'customer can pay with ACSS @smoke', async ( { page } ) => {
+	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'blocks' );
 		await page.locator( 'text=Place order' ).click();
 		await fillACSSDetails( page );
