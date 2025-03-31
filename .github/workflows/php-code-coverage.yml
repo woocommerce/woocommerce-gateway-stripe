@@ -71,10 +71,7 @@ jobs:
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
-          hide_and_recreate: true
-          hide_classify: "OUTDATED"
           skip_unchanged: true
-          number: ${{ github.event.number }}
-#          append: true
+          append: true
           path: code-coverage-results-filtered.md
           
