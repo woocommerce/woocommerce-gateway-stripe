@@ -37,6 +37,7 @@
 * Update - Hide express checkout buttons when no product variation is selected.
 * Fix - Translation warning when initializing the status page information.
 * Add - Add ACSS support for WC Subscriptions.
+* Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 * Add - Add WooCommerce Pre-Orders support to ACSS.
 
 = 9.3.1 - 2025-03-14 =
