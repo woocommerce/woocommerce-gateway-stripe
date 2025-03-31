@@ -345,6 +345,23 @@ export async function mountStripePaymentElement( api, domElement ) {
 	// If the SPE is enabled, we need to handle the display of the saving checkbox.
 	if ( getStripeServerData()?.isSPEEnabled ) {
 		upeElement.on( 'change', ( { value } ) => {
+			// Bind the create account checkbox to the save card info container display function.
+			const createAccountCheckbox = document.getElementById(
+				'createaccount'
+			);
+			const updateCheckboxListener = () => {
+				handleDisplayOfSavingCheckbox( value.type );
+			};
+			if ( createAccountCheckbox ) {
+				createAccountCheckbox.removeEventListener(
+					'change',
+					updateCheckboxListener
+				);
+				createAccountCheckbox.addEventListener(
+					'change',
+					updateCheckboxListener
+				);
+			}
 			handleDisplayOfSavingCheckbox( value.type );
 		} );
 	}
