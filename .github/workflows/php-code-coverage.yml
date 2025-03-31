@@ -67,10 +67,16 @@ jobs:
           echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
           grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
-      
+
+      - name: Delete Old Coverage PR Comments
+        uses: marocchino/sticky-pull-request-comment@v2.9.1
+        with:
+          header: code-coverage
+          delete: true
+
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
-          recreate: true
+          header: code-coverage
           path: code-coverage-results-filtered.md
           
