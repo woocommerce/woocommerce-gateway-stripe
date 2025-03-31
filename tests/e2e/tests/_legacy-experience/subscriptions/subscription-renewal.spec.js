@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products, user } from '../../../utils';
 
@@ -12,7 +13,7 @@ let username, userEmail;
 
 test.beforeAll( async () => {
 	// This allow multiple tests to run in parallel.
-	const randomString = Date.now();
+	const randomString = randomUUID();
 	userEmail = randomString + '+' + config.get( 'users.customer.email' );
 	username = randomString + '.' + config.get( 'users.customer.username' );
 
