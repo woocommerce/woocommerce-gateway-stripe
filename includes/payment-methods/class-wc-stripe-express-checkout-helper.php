@@ -1236,22 +1236,24 @@ class WC_Stripe_Express_Checkout_Helper {
 		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
 		$has_deposits  = false;
 
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
-			if ( ! empty( $cart_item['is_deposit'] ) ) {
-				$has_deposits = true;
-				continue;
+		if ( $display_items ) {
+			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				// Hide itemization/subtotals for Apple Pay and Google Pay when deposits are present.
+				if ( ! empty( $cart_item['is_deposit'] ) ) {
+					$has_deposits = true;
+					continue;
+				}
+
+				$subtotal      += $cart_item['line_subtotal'];
+				$amount         = $cart_item['line_subtotal'];
+				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+				$product_name   = $cart_item['data']->get_name();
+
+				$lines[] = [
+					'label'  => $product_name . $quantity_label,
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
+				];
 			}
-
-			$subtotal      += $cart_item['line_subtotal'];
-			$amount         = $cart_item['line_subtotal'];
-			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
-			$product_name   = $cart_item['data']->get_name();
-
-			$lines[] = [
-				'label'  => $product_name . $quantity_label,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
-			];
 		}
 
 		if ( $display_items && ! $has_deposits ) {

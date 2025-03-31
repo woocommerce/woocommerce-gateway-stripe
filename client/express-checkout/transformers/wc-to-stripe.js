@@ -101,6 +101,24 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 		} );
 	}
 
+	const totalAmount = transformPrice(
+		parseInt( cartData.totals.total_price, 10 ) -
+			parseInt( cartData.totals.total_refund || 0, 10 ),
+		cartData.totals
+	);
+	const totalAmountOfDisplayItems = displayItems.reduce(
+		( acc, { amount } ) => acc + amount,
+		0
+	);
+
+	// if `totalAmount` is less than the total of `displayItems`, Stripe throws an error
+	// it can sometimes happen that the total is _slightly_ less, due to rounding errors on individual items/taxes/shipping
+	// (or with the `woocommerce_tax_round_at_subtotal` setting).
+	// if that happens, let's just not return any of the line items. This way, just the total amount will be displayed to the customer.
+	if ( totalAmount < totalAmountOfDisplayItems ) {
+		return [];
+	}
+
 	return displayItems;
 };
 
