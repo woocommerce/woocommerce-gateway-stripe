@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - '**.php'
-  pull_request:
-    paths:
-      - '**.php'
 
 permissions:
   pull-requests: write
@@ -73,6 +70,5 @@ jobs:
         with:
           skip_unchanged: true
           append: true
-          number: ${{ github.event.number }}
           path: code-coverage-results-filtered.md
           
