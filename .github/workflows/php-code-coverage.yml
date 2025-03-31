@@ -73,5 +73,6 @@ jobs:
         with:
           skip_unchanged: true
           append: true
+          number: ${{ github.event.number }}
           path: code-coverage-results-filtered.md
           
