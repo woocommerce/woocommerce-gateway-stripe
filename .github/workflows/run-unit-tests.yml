@@ -15,7 +15,6 @@ on:
 
 jobs:  
   php-unit-tests:
-    name: PHP Unit - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }}
     runs-on: ubuntu-latest
     env:
       WP_VERSION: ${{ inputs.wp-version }}
