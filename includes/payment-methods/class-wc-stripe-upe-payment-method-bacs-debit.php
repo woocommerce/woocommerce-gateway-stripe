@@ -186,9 +186,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			];
 			$response = WC_Stripe_API::request( $params, 'checkout/sessions', 'POST' );
 
-			// TODO: It would be good to include an identifier to group the error message by cart or user.
-			// This would make it easier to track errors.
-			// TODO: Trigger this error to determine if it’s truly necessary.
 			if ( is_wp_error( $response ) ) {
 				throw new WC_Stripe_Exception( $response->get_error_message(), __( 'An unexpected error occurred while creating the Checkout Session.', 'woocommerce-gateway-stripe' ) );
 			}
