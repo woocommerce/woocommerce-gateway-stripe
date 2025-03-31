@@ -137,6 +137,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons.
 * Tweak - Update payment method type check for charge.succeeded webhook.
+* Fix - Fixed subscription features not being properly registered when hooks were already attached.
 * Add - Disable unsupported payment methods in Stripe settings
 * Update - Update handling of PR as a country in the terminal locations endpoint.
 * Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
