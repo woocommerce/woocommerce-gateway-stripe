@@ -17,6 +17,7 @@ import {
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
+import ExpressCheckoutInaccurateTaxesPill from '../../components/express-checkout-inaccurate-taxes-pill';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -113,6 +114,12 @@ const PaymentRequestSection = () => {
 										'Apple Pay / Google Pay',
 										'woocommerce-gateway-stripe'
 									) }
+									<ExpressCheckoutInaccurateTaxesPill
+										taxBasedOn={
+											// eslint-disable-next-line camelcase
+											wc_stripe_settings_params.tax_based_on
+										}
+									/>
 								</div>
 								<div className="express-checkout__description">
 									{
@@ -183,6 +190,12 @@ const PaymentRequestSection = () => {
 										'Link by Stripe',
 										'woocommerce-gateway-stripe'
 									) }
+									<ExpressCheckoutInaccurateTaxesPill
+										taxBasedOn={
+											// eslint-disable-next-line camelcase
+											wc_stripe_settings_params.tax_based_on
+										}
+									/>
 								</div>
 								<div className="express-checkout__description">
 									{

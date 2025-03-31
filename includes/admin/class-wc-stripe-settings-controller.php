@@ -248,6 +248,7 @@ class WC_Stripe_Settings_Controller {
 			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_spe_available'          => WC_Stripe_Feature_Flags::is_spe_available(),
 			'oauth_nonce'               => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
+			'tax_based_on'              => get_option( 'woocommerce_tax_based_on' ),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
