@@ -1,17 +1,12 @@
 import {
 	normalizeShippingAddress,
 	normalizeLineItems,
-	getExpressCheckoutData,
 	isManualPaymentMethodCreation,
 } from './utils';
 import {
 	handleConfirmationTokenFlow,
 	handleManualPaymentMethodFlow,
 } from './payment-flow';
-import {
-	trackExpressCheckoutButtonClick,
-	trackExpressCheckoutButtonLoad,
-} from './tracking';
 
 export const shippingAddressChangeHandler = async ( api, event, elements ) => {
 	try {
@@ -69,19 +64,6 @@ export const onConfirmHandler = async ( params ) => {
 	return handleManualPaymentMethodFlow( params );
 };
 
-export const onReadyHandler = function ( { availablePaymentMethods } ) {
-	if ( availablePaymentMethods ) {
-		const enabledMethods = Object.entries( availablePaymentMethods )
-			.filter( ( [ , isEnabled ] ) => isEnabled )
-			.map( ( [ methodName ] ) => methodName );
-
-		trackExpressCheckoutButtonLoad( {
-			paymentMethods: enabledMethods,
-			source: getExpressCheckoutData( 'button_context' ),
-		} );
-	}
-};
-
 const blockUI = () => {
 	jQuery.blockUI( {
 		message: null,
@@ -96,12 +78,8 @@ const unblockUI = () => {
 	jQuery.unblockUI();
 };
 
-export const onClickHandler = function ( { expressPaymentType } ) {
+export const onClickHandler = function () {
 	blockUI();
-	trackExpressCheckoutButtonClick(
-		expressPaymentType,
-		getExpressCheckoutData( 'button_context' )
-	);
 };
 
 export const onAbortPaymentHandler = () => {
