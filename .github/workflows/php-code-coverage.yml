@@ -4,9 +4,13 @@ on:
   push:
     paths:
       - '**.php'
+  pull_request:
+    paths:
+      - '**.php'
 
 permissions:
   pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -19,7 +23,7 @@ jobs:
     steps:
       - name: Get Changed Files
         id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1
+        uses: hanseltimeindustries/get-changed-files@v1.1.2
         with:
           format: 'space-delimited'
           filter: '**/*.php'
@@ -65,10 +69,8 @@ jobs:
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
       
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
-          number: ${{ github.event.number }}
-          header: code-coverage
           recreate: true
           path: code-coverage-results-filtered.md
           
