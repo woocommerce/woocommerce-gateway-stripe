@@ -2284,6 +2284,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					],
 				],
 				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'amount'               => $amount,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
@@ -2430,6 +2431,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				'charges'              => (object) [
 					'data' => [],
 				],
+				'amount'               => $amount,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
