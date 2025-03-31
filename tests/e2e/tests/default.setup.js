@@ -1,8 +1,12 @@
 'use strict';
 
+import { admin } from '../utils';
 /* jshint node: true */
-
 import { expect, test as setup } from '@playwright/test';
+
+setup( 'Set store currency to USD', async ( { browser } ) => {
+	await admin.updateStoreCurrency( browser, 'USD' );
+} );
 
 setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 	const adminContext = await browser.newContext( {

@@ -14,6 +14,8 @@ const {
 test.describe( 'ACSS payment tests @blocks', () => {
 	let username, userEmail;
 
+	test.describe.configure( { mode: 'serial' } );
+
 	test.beforeAll( async ( { browser } ) => {
 		await test.step( 'Setup test environment', async () => {
 			// Create test user.
@@ -30,32 +32,8 @@ test.describe( 'ACSS payment tests @blocks', () => {
 				username,
 			};
 			await api.create.customer( testUser );
-
-			// Change store currency to CAD.
-			await admin.updateStoreCurrency( browser, 'CAD' );
-
-			// Enable ACSS in the admin.
-			await admin.togglePaymentMethod(
-				browser,
-				'Pre-Authorized Debit',
-				true
-			);
 		} );
 	} );
-
-	test.afterAll( async ( { browser } ) => {
-		// Reset store currency to USD.
-		await admin.updateStoreCurrency( browser, 'USD' );
-
-		// Disable ACSS in the admin.
-		await admin.togglePaymentMethod(
-			browser,
-			'Pre-Authorized Debit',
-			false
-		);
-	} );
-
-	test.describe.configure( { mode: 'parallel' } );
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'blocks' );
