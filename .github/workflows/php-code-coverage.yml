@@ -75,7 +75,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
           skip_unchanged: true
-          append: true
+          recreate: true
           number: ${{ steps.number.outputs.pr }}
           path: code-coverage-results-filtered.md
           
