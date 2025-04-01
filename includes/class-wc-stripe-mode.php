@@ -44,4 +44,13 @@ class WC_Stripe_Mode {
 	public function another_method() {
 		return true;
 	}
+
+	/**
+	 * Yet another random method to test workflow.
+	 *
+	 * @return true
+	 */
+	public function yet_another_method() {
+		return true;
+	}
 }
