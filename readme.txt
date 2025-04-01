@@ -149,5 +149,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add ACSS support for WC Subscriptions.
 * Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 * Add - Add WooCommerce Pre-Orders support to ACSS.
+* Update - Remove unused shopper tracking
+* Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
