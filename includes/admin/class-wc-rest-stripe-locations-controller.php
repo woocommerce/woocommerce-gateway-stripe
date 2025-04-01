@@ -123,7 +123,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			if ( ( isset( $location['country'] ) && 'PR' === $location['country'] ) ||
 				 ( isset( $location['state'] ) && 'PR' === $location['state'] ) ) {
 				$location['country'] = 'US';
-				$location['state'] = 'PR';
+				$location['state']   = 'PR';
 			}
 			return $location;
 		}
@@ -131,7 +131,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		if ( isset( $location->address->country ) && 'PR' === $location->address->country ||
 			 isset( $location->address->state ) && 'PR' === $location->address->state ) {
 			$location->address->country = 'US';
-			$location->address->state = 'PR';
+			$location->address->state   = 'PR';
 		}
 		return $location;
 	}
