@@ -2263,12 +2263,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		} elseif ( WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type && 0.0 === (float) WC()->cart->get_totals()['total'] ) {
 			$checkout_session_id = isset( $_POST['checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) ) : '';
-			// TODO: Throw error in case the checkout session Id is missing.
-			// Get payment method from Stripe using the Checout Session ID
-			$response          = WC_Stripe_API::get_checkout_session( $checkout_session_id );
-			$setup_intent_id   = $response->setup_intent;
-			$response          = WC_Stripe_API::get_setup_intent( $setup_intent_id );
-			$payment_method_id = $response->payment_method;
+			$payment_method_id   = $this->get_bacs_payment_method_from_checkout_session_id( $checkout_session_id );
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
@@ -2328,6 +2323,53 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $payment_information;
+	}
+
+	/**
+	 * Retrieves the payment method ID from a BACS Direct Debit Checkout Session.
+	 *
+	 * This method fetches the checkout session object using the passed $checkout_session_id,
+	 * then fetches the associated setup intent and payment method from Stripe.
+	 *
+	 * @param string $checkout_session_id The ID of the Checkout Session.
+	 *
+	 * @return string The payment method ID.
+	 *
+	 * @throws WC_Stripe_Exception If the Checkout Session ID is missing or if there is an error retrieving
+	 *                              the Checkout Session, Setup Intent, or Payment Method from Stripe.
+	 */
+	private function get_bacs_payment_method_from_checkout_session_id( string $checkout_session_id ) {
+		if ( ! $checkout_session_id ) {
+			throw new WC_Stripe_Exception( 'Missing Checkout Session ID', __( 'Missing Checkout Session ID.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$friendly_error_message = __( 'An error occurred while getting the Bacs Direct Debit payment method.', 'woocommerce-gateway-stripe' );
+
+		// Get the Checkout Session data from Stripe.
+		$response = WC_Stripe_API::get_checkout_session( $checkout_session_id );
+
+		if ( is_wp_error( $response ) ) {
+			throw new WC_Stripe_Exception( $response->get_error_message(), $friendly_error_message );
+		}
+
+		if ( isset( $response->error ) ) {
+			throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
+		}
+
+		$setup_intent_id = $response->setup_intent;
+
+		// Get the Setup Intent data from Stripe.
+		$response = WC_Stripe_API::get_setup_intent( $setup_intent_id );
+
+		if ( is_wp_error( $response ) ) {
+			throw new WC_Stripe_Exception( $response->get_error_message(), $friendly_error_message );
+		}
+
+		if ( isset( $response->error ) ) {
+			throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
+		}
+
+		return $response->payment_method;
 	}
 
 	/**
