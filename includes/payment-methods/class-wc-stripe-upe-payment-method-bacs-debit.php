@@ -177,7 +177,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'We couldn\'t create a Checkout Session for Bacs this time. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$params = [
+			$params   = [
 				'success_url'            => wc_get_checkout_url() . '?checkout_session_id={CHECKOUT_SESSION_ID}',
 				'payment_method_types[]' => WC_Stripe_Payment_Methods::BACS_DEBIT,
 				'mode'                   => 'setup',
@@ -314,7 +314,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// Attach payment method to the user.
 			$user_id     = get_current_user_id();
 			$stripe_user = new WC_Stripe_Customer( $user_id );
-			$response = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
+			$response    = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
 			if ( isset( $response->error ) ) {
 				WC_Stripe_Logger::log( $response->error->message );
 				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );

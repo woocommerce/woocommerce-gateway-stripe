@@ -946,7 +946,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-			} elseif ( $is_using_saved_payment_method && in_array( $selected_payment_type, [ WC_Stripe_Payment_Methods::CASHAPP_PAY, WC_Stripe_Payment_Methods::BACS_DEBIT ] ) ) {
+			} elseif ( ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) || WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type ) {
+				if ( WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type ) {
+					// Attach payment method to customer.
+					$customer = $payment_information['customer'];
+					WC_Stripe_API::request( [ 'customer' => $customer ], "payment_methods/$payment_method_id/attach", 'POST' );
+				}
+
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
 				$this->maybe_update_source_on_subscription_order(
 					$order,
@@ -2255,6 +2261,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} elseif ( is_a( $token, 'WC_Payment_Token_Amazon_Pay' ) ) {
 				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID;
 			}
+		} elseif ( WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type && 0.0 === (float) WC()->cart->get_totals()['total'] ) {
+			$checkout_session_id = isset( $_POST['checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) ) : '';
+			// TODO: Throw error in case the checkout session Id is missing.
+			// Get payment method from Stripe using the Checout Session ID
+			$response          = WC_Stripe_API::get_checkout_session( $checkout_session_id );
+			$setup_intent_id   = $response->setup_intent;
+			$response          = WC_Stripe_API::get_setup_intent( $setup_intent_id );
+			$payment_method_id = $response->payment_method;
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
