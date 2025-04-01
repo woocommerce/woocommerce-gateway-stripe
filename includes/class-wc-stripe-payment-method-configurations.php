@@ -78,15 +78,8 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		if ( $merchant_payment_method_configuration ) {
 			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
-				if ( is_object( $payment_method ) &&
-					property_exists( $payment_method, 'display_preference' ) &&
-					property_exists( $payment_method->display_preference, 'value' ) ) {
-
-					$payment_method_status = 'on' === $payment_method->display_preference->value;
-
-					if ( $payment_method_status ) {
-						$enabled_payment_method_ids[] = $payment_method_id;
-					}
+				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
+					$enabled_payment_method_ids[] = $payment_method_id;
 				}
 			}
 		}
