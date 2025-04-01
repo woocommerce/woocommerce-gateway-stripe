@@ -41,6 +41,7 @@
 * Add - Add WooCommerce Pre-Orders support to ACSS.
 * Update - Remove unused express checkout button tracking.
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
+* Fix - Checkout page focus loss
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
