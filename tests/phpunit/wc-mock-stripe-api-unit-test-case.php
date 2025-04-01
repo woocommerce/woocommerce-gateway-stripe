@@ -70,7 +70,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			'id'       => 'pmc_abcdef',
 			'object'   => 'payment_method_configuration',
 			'active'   => true,
-			'parent'   => 'pmc_1LEKjBGX8lmJQndTBOzjqxSa',
+			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
 			'livemode' => false,
 		];
 

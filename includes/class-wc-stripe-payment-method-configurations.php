@@ -16,6 +16,20 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static $primary_configuration = null;
 
 	/**
+	 * The test mode configuration parent ID.
+	 *
+	 * @var string|null
+	*/
+	const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
+
+	/**
+	 * The live mode configuration parent ID.
+	 *
+	 * @var string|null
+	*/
+	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
+
+	/**
 	 * Reset the primary configuration.
 	 */
 	public static function reset_primary_configuration() {
@@ -40,12 +54,12 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		foreach ( $payment_method_configurations as $payment_method_configuration ) {
-			if ( ! $payment_method_configuration->livemode && $payment_method_configuration->parent && 'pmc_1LEKjBGX8lmJQndTBOzjqxSa' === $payment_method_configuration->parent ) {
+			if ( ! $payment_method_configuration->livemode && $payment_method_configuration->parent && self::TEST_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
 				self::$primary_configuration = $payment_method_configuration;
 				return $payment_method_configuration;
 			}
 
-			if ( $payment_method_configuration->livemode && $payment_method_configuration->parent && 'pmc_1LEKjAGX8lmJQndTk2ziRchV' === $payment_method_configuration->parent ) {
+			if ( $payment_method_configuration->livemode && $payment_method_configuration->parent && self::LIVE_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
 				self::$primary_configuration = $payment_method_configuration;
 				return $payment_method_configuration;
 			}
