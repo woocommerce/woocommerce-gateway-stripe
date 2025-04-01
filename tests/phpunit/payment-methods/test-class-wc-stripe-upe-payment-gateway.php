@@ -2270,6 +2270,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$currency    = $order->get_currency();
 		$order_id    = $order->get_id();
 
+		list( $amount ) = $this->get_order_details( $order );
+
 		$mock_intent = (object) wp_parse_args(
 			[
 				'payment_method'       => 'pm_mock',
@@ -2420,6 +2422,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order_id    = $order->get_id();
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		list( $amount )      = $this->get_order_details( $order );
 
 		// Create a mock failed payment intent that would be attached to the order
 		$mock_failed_intent = (object) wp_parse_args(
