@@ -21,7 +21,13 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'Legacy' ]
+        include:
+          - checkout: 'Default'
+            project: 'default'
+          - checkout: 'Legacy'
+            project: 'legacy'
+          - checkout: 'ACSS'
+            project: 'acss'
 
     name: E2E - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }} Checkout=${{ matrix.checkout }}
     steps:
@@ -49,13 +55,13 @@ jobs:
         env:
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-        run: npm run test:e2e${{ matrix.checkout == 'Legacy' && '-legacy' || '' }}
+        run: npm run test:e2e -- --project=${{ matrix.project }}
 
       - name: Upload ${{ matrix.checkout }} E2E test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-WP_latest-WC_latest-results
+          name: ${{ matrix.checkout }}-WP_${{ inputs.wp-version }}-WC_${{ inputs.wc-version }}-results
           path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14
