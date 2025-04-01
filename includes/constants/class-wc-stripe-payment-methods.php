@@ -15,6 +15,7 @@ class WC_Stripe_Payment_Methods {
 	const AFTERPAY_CLEARPAY = 'afterpay_clearpay';
 	const ALIPAY            = 'alipay';
 	const BACS_DEBIT        = 'bacs_debit';
+	const BANK_TRANSFER     = 'customer_balance';
 	const BECS_DEBIT        = 'au_becs_debit';
 	const BANCONTACT        = 'bancontact';
 	const BLIK              = 'blik';

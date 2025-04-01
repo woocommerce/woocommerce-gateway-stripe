@@ -47,6 +47,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_ACSS::class,
 		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
 		WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
+		WC_Stripe_UPE_Payment_Method_Bank_Transfer::class,
 	];
 
 	/**
@@ -185,6 +186,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Show ACSS only if feature is enabled.
 				if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+					continue;
+				}
+
+				if ( WC_Stripe_UPE_Payment_Method_Bank_Transfer::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bank_transfer_lpm_enabled() ) {
 					continue;
 				}
 
