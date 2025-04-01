@@ -314,8 +314,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// Attach payment method to the user.
 			$user_id     = get_current_user_id();
 			$stripe_user = new WC_Stripe_Customer( $user_id );
-			// TODO: If we end up passing the stripe customer ID in the request then we **must** verify the
-			// logged in user has the same stripe customer ID. Otherwise it should fail!
 			$response = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
 			if ( isset( $response->error ) ) {
 				WC_Stripe_Logger::log( $response->error->message );
