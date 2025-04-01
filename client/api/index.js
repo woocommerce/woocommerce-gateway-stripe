@@ -683,30 +683,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Attaches a payment method to a customer using a Checkout Session ID.
-	 *
-	 * This method sends a request to the server to attach a payment method (retrieved via the Checkout Session)
-	 * to the currently logged-in customer.
-	 *
-	 * @param {string} checkoutSessionId The ID of the Checkout Session.
-	 * @return {Promise} A promise that resolves with the server response.
-	 * @throws {Error} If the `checkoutSessionId` is missing or the server response indicates a failure.
-	 */
-	attachPaymentMethodToCustomer( checkoutSessionId ) {
-		if ( ! checkoutSessionId ) {
-			throw new Error( 'Missing Checkout Session ID' );
-		}
-
-		return this.request(
-			this.getAjaxUrl( 'attach_payment_method_to_customer' ),
-			{
-				checkout_session_id: checkoutSessionId,
-				_ajax_nonce: this.options?.attachPaymentMethodToCustomerNonce,
-			}
-		);
-	}
-
-	/**
 	 * Retrieves payment method details using a Checkout Session ID.
 	 *
 	 * This method sends a request to the server to fetch details about the payment method
