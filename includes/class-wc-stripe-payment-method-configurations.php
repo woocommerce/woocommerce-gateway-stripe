@@ -46,7 +46,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			return self::$primary_configuration;
 		}
 
-		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		$result                        = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$payment_method_configurations = $result->data ?? null;
 
 		if ( ! $payment_method_configurations ) {

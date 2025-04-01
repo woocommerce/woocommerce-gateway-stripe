@@ -33,9 +33,17 @@ class WC_Stripe_Express_Checkout_Helper {
 	public $testmode;
 
 	/**
+	 * Gateway.
+	 *
+	 * @var WC_Gateway_Stripe
+	 */
+	private $gateway;
+
+	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	public function __construct( $gateway ) {
+		$this->gateway         = $gateway;
 		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
@@ -1452,7 +1460,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_payment_request_enabled() {
-		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
+		return $this->gateway->is_payment_request_enabled();
 	}
 
 	/**
