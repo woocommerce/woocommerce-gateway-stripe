@@ -4,16 +4,16 @@ import { admin } from '../utils';
 /* jshint node: true */
 import { expect, test as setup } from '@playwright/test';
 
-setup( 'Set store currency to USD', async ( { browser } ) => {
+setup( 'Configure store for default tests', async ( { browser } ) => {
+	// Set store currency to USD
 	await admin.updateStoreCurrency( browser, 'USD' );
-} );
 
-setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 	const adminContext = await browser.newContext( {
 		storageState: process.env.ADMINSTATE,
 	} );
 	const page = await adminContext.newPage();
 
+	// Disable legacy checkout experience.
 	await page.goto(
 		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
 	);
@@ -25,15 +25,7 @@ setup( 'Disable legacy checkout experience', async ( { browser } ) => {
 		page.getByTestId( 'legacy-checkout-experience-checkbox' )
 	).not.toBeChecked();
 
-	await adminContext.close();
-} );
-
-setup( 'enable Link', async ( { browser } ) => {
-	const adminContext = await browser.newContext( {
-		storageState: process.env.ADMINSTATE,
-	} );
-	const page = await adminContext.newPage();
-
+	// Enable Link.
 	await page.goto(
 		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
 	);
