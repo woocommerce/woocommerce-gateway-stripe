@@ -45,5 +45,6 @@ export default {
 	bacs_debit: BacsDebitIcon,
 	acss_debit: BankDebitIcon,
 	au_becs_debit: BankDebitIcon,
+	customer_balance: BankDebitIcon,
 	stripe: StripeIcon,
 };

@@ -8,6 +8,7 @@ import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
+	PAYMENT_METHOD_BANK_TRANSFER,
 	PAYMENT_METHOD_BECS,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
@@ -30,6 +31,8 @@ const accountCountry =
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
+const isBankTransferEnabled =
+	window.wc_stripe_settings_params?.is_bank_transfer_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
@@ -296,6 +299,18 @@ if ( isAcssEnabled ) {
 		),
 		Icon: icons.acss_debit,
 		currencies: [ 'CAD' ],
+	};
+}
+if ( isBankTransferEnabled ) {
+	paymentMethodsMap.customer_balance = {
+		id: PAYMENT_METHOD_BANK_TRANSFER,
+		label: __( 'Bank Transfer', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Bank Transfer enables customers to pay by transferring funds through the bank rails.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.customer_balance,
+		currencies: [ 'USD' ],
 	};
 }
 

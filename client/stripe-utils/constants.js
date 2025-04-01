@@ -26,6 +26,7 @@ export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
 export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
+export const PAYMENT_METHOD_BANK_TRANSFER = 'customer_balance';
 export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 
 /**
@@ -52,6 +53,7 @@ export const PAYMENT_METHOD_STRIPE_AFTERPAY_CLEARPAY =
 export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
+export const PAYMENT_METHOD_STRIPE_BANK_TRANSFER = 'stripe_customer_balance';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
 
@@ -78,6 +80,7 @@ export function getPaymentMethodsConstants() {
 		wechat_pay: PAYMENT_METHOD_STRIPE_WECHAT_PAY,
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
+		customer_balance: PAYMENT_METHOD_STRIPE_BANK_TRANSFER,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
 	};
 }
