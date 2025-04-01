@@ -48,6 +48,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_upe_availability_note() {
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
