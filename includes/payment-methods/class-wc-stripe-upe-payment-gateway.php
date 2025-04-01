@@ -948,9 +948,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 			} elseif ( ( $is_using_saved_payment_method && WC_Stripe_Payment_Methods::CASHAPP_PAY === $selected_payment_type ) || WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type ) {
 				if ( WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type ) {
-					// Attach payment method to customer.
-					$customer = $payment_information['customer'];
-					WC_Stripe_API::request( [ 'customer' => $customer ], "payment_methods/$payment_method_id/attach", 'POST' );
+					// We associate the payment method created in the Checkout Session with the customer created for the order,
+					// so that the payment method can be charged for future renewals.
+					WC_Stripe_API::request( [ 'customer' => $payment_information['customer'] ], "payment_methods/$payment_method_id/attach", 'POST' );
 				}
 
 				// If the payment method is Cash App Pay, the order has no cost, and a saved payment method is used, mark the order as paid.
