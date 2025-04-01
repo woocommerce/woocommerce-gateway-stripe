@@ -235,6 +235,7 @@ class WC_Stripe_Settings_Controller {
 			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'is_ach_enabled'            => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
 			'is_acss_enabled'           => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
+			'is_bank_transfer_enabled'  => WC_Stripe_Feature_Flags::is_bank_transfer_lpm_enabled(),
 			'is_bacs_enabled'           => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
 			'is_blik_enabled'           => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
 			'is_becs_debit_enabled'     => WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled(),

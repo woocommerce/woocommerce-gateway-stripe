@@ -10,6 +10,7 @@ class WC_Stripe_Feature_Flags {
 	const SPE_FEATURE_FLAG_NAME               = '_wcstripe_feature_spe';
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
+	const LPM_BANK_TRANSFER_FEATURE_FLAG_NAME = '_wcstripe_feature_lpm_bank_transfer';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
 	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
@@ -71,6 +72,10 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_acss_lpm_enabled() {
 		return 'yes' === self::get_option_with_default( self::LPM_ACSS_FEATURE_FLAG_NAME );
+	}
+
+	public static function is_bank_transfer_lpm_enabled() {
+		return 'yes' === self::get_option_with_default( self::LPM_BANK_TRANSFER_FEATURE_FLAG_NAME );
 	}
 
 	/**
