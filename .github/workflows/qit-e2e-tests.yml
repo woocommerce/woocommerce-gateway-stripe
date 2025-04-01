@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'Legacy' ]
+        project: ['default', 'legacy', 'acss']
 
-    name: ${{ matrix.checkout }} QIT E2E tests
+    name: ${{ matrix.project }} QIT E2E tests
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -70,7 +70,7 @@ jobs:
       # QIT CLI
       - name: Install QIT via composer
         run: composer require woocommerce/qit-cli --dev
-      
+
       - name: Add partner for QIT
         run: ./vendor/bin/qit partner:add --user='${{ secrets.PARTNER_USER }}' --application_password='${{ secrets.PARTNER_SECRET }}'
 
@@ -86,19 +86,19 @@ jobs:
           echo 'PAYPAL_CUSTOMER_EMAIL="${{ secrets.PAYPAL_CUSTOMER_EMAIL }}"' >> .env
           echo 'PAYPAL_CUSTOMER_PASSWORD="${{ secrets.PAYPAL_CUSTOMER_PASSWORD }}"' >> .env
 
-      - name: Run ${{ matrix.checkout }} E2E tests
+      - name: Run ${{ matrix.project }} E2E tests
         shell: bash
-        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe ${{ matrix.checkout == 'Legacy' && 'legacy' || '' }} --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --env_file .env
-      
+        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe --project=${{ matrix.project }} --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --env_file .env
+
       - name: Set the path in an env var
         if: ${{ failure() }}
         run: echo "E2E_REPORT_PATH=$(./vendor/bin/qit e2e-report --dir_only --local)/playwright" >> $GITHUB_ENV
 
-      - name: Upload ${{ matrix.checkout }} QIT E2E test results
+      - name: Upload ${{ matrix.project }} QIT E2E test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-qit-e2e-test-results
+          name: ${{ matrix.project }}-qit-e2e-test-results
           path: ${{ env.E2E_REPORT_PATH }}
           if-no-files-found: ignore
           retention-days: 14
