@@ -1,7 +1,9 @@
 import { useEffect } from '@wordpress/element';
 import { useSelect, useDispatch } from '@wordpress/data';
+import confirmBankTransferPayment from './confirm-bank-transfer-payment';
 import confirmCardPayment from './confirm-card-payment.js';
 import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
+import { PAYMENT_METHOD_BANK_TRANSFER } from 'wcstripe/stripe-utils/constants';
 
 /**
  * Handles the Block Checkout onCheckoutSuccess event.
@@ -15,6 +17,8 @@ import { WC_STORE_CART } from 'wcstripe/blocks/credit-card/constants';
  * @param {*} onCheckoutSuccess The onCheckoutSuccess event.
  * @param {*} emitResponse      Various helpers for usage with observer.
  * @param {*} shouldSavePayment Whether or not to save the payment method.
+ * @param {*} billingAddress    The billing address object.
+ * @param {*} paymentMethodId   The payment method ID.
  */
 export const usePaymentCompleteHandler = (
 	api,
@@ -22,18 +26,32 @@ export const usePaymentCompleteHandler = (
 	elements,
 	onCheckoutSuccess,
 	emitResponse,
-	shouldSavePayment
+	shouldSavePayment,
+	billingAddress = null,
+	paymentMethodId = null
 ) => {
 	// Once the server has completed payment processing, confirm the intent of necessary.
 	useEffect(
 		() =>
-			onCheckoutSuccess( ( { processingResponse: { paymentDetails } } ) =>
-				confirmCardPayment(
-					api,
-					paymentDetails,
-					emitResponse,
-					shouldSavePayment
-				)
+			onCheckoutSuccess(
+				( { processingResponse: { paymentDetails } } ) => {
+					if ( paymentMethodId === PAYMENT_METHOD_BANK_TRANSFER ) {
+						return confirmBankTransferPayment(
+							api,
+							paymentDetails.redirect_url || '',
+							billingAddress || {},
+							elements,
+							emitResponse
+						);
+					}
+
+					return confirmCardPayment(
+						api,
+						paymentDetails,
+						emitResponse,
+						shouldSavePayment
+					);
+				}
 			),
 		// not sure if we need to disable this, but kept it as-is to ensure nothing breaks. Please consider passing all the deps.
 		// eslint-disable-next-line react-hooks/exhaustive-deps

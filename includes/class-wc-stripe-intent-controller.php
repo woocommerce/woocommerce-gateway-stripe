@@ -374,8 +374,27 @@ class WC_Stripe_Intent_Controller {
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 			'currency'             => strtolower( $currency ),
 			'payment_method_types' => $enabled_payment_methods,
-			'capture_method'       => $capture ? 'automatic' : 'manual',
 		];
+
+		if ( WC_Stripe_Payment_Methods::BANK_TRANSFER === $payment_method_type ) {
+			// TODO: $args are hardcoded but may need to be passed from the frontend.
+			$args     = [
+				'name'  => 'Andy Anderson',
+				'email' => 'shopper_aa@email.localhost',
+			];
+			$user     = wp_get_current_user();
+			$customer = new WC_Stripe_Customer( $user->ID );
+
+			$request['customer']               = $customer->create_customer( $args );
+			$request['payment_method_options'] = [
+				'customer_balance' => [
+					'funding_type'  => 'bank_transfer',
+					'bank_transfer' => [ 'type' => 'us_bank_transfer' ],
+				],
+			];
+		} else {
+			$request['capture_method'] = $capture ? 'automatic' : 'manual';
+		}
 
 		$request = $this->maybe_add_mandate_options( $request, $payment_method_type );
 

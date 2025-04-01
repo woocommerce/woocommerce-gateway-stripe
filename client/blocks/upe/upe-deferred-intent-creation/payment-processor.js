@@ -23,6 +23,7 @@ import {
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
 import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
+	PAYMENT_METHOD_BANK_TRANSFER,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -255,9 +256,28 @@ const PaymentProcessor = ( {
 								type: selectedPaymentMethodType,
 						  }
 						: { elements, params };
-					const paymentMethodObject = await api
-						.getStripe()
-						.createPaymentMethod( paymentMethodData );
+
+					let paymentMethodObject;
+					let newPaymentIntentId;
+					if ( paymentMethodId === PAYMENT_METHOD_BANK_TRANSFER ) {
+						const paymentIntentResponse = await api.createIntent(
+							getBlocksConfiguration()?.orderId,
+							paymentMethodId
+						);
+						elements.update( {
+							clientSecret: paymentIntentResponse.client_secret,
+						} );
+						// TODO: Find a better way to address the following.
+						newPaymentIntentId = paymentIntentResponse.id;
+						paymentMethodObject = {
+							paymentMethod: { id: '' },
+						};
+					} else {
+						newPaymentIntentId = paymentIntentId;
+						paymentMethodObject = await api
+							.getStripe()
+							.createPaymentMethod( paymentMethodData );
+					}
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -280,10 +300,12 @@ const PaymentProcessor = ( {
 							paymentMethodData: {
 								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
-								wc_payment_intent_id: paymentIntentId ?? '',
-								'wc-stripe-is-deferred-intent': true,
-								'wc-stripe-payment-method':
-									paymentMethodObject.paymentMethod.id,
+								wc_payment_intent_id: newPaymentIntentId ?? '',
+								// TODO: Remove 'wc-stripe-is-deferred-intent' for 'Bank Transfer' payment method?
+								// 'wc-stripe-is-deferred-intent': true,
+								// TODO: Remove 'wc-stripe-payment-method' for 'Bank Transfer' payment method?
+								// 'wc-stripe-payment-method': paymentMethodObject.paymentMethod.id,
+								wc_stripe_selected_upe_payment_type: paymentMethodId,
 								save_payment_method: shouldSavePayment
 									? 'yes'
 									: 'no',
@@ -343,13 +365,30 @@ const PaymentProcessor = ( {
 		}
 	}, [ selectedPaymentMethodType ] );
 
+	const billingAddress = billing.billingAddress;
+	const billingDetails = {
+		name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
+		email: billingAddress.email,
+		phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
+		address: {
+			city: billingAddress.city,
+			country: billingAddress.country,
+			line1: billingAddress.address_1,
+			line2: billingAddress.address_2,
+			postal_code: billingAddress.postcode,
+			state: billingAddress.state,
+		},
+	};
+
 	usePaymentCompleteHandler(
 		api,
 		stripe,
 		elements,
 		onCheckoutSuccess,
 		emitResponse,
-		shouldSavePayment
+		shouldSavePayment,
+		billingDetails,
+		paymentMethodId
 	);
 
 	usePaymentFailHandler(
