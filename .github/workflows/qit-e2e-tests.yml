@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: ['default', 'legacy', 'acss']
+        project: [ 'default', 'legacy', 'acss' ]
 
     name: ${{ matrix.project }} QIT E2E tests
     steps:
@@ -88,7 +88,7 @@ jobs:
 
       - name: Run ${{ matrix.project }} E2E tests
         shell: bash
-        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe --project=${{ matrix.project }} --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --env_file .env
+        run: ./vendor/bin/qit run:e2e woocommerce-gateway-stripe --source ./ --plugin woocommerce --plugin woocommerce-subscriptions --plugin woocommerce-paypal-payments:test:setup-tests --env_file .env --options="--project=${{ matrix.project }}"
 
       - name: Set the path in an env var
         if: ${{ failure() }}
