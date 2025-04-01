@@ -40,24 +40,15 @@ const CheckoutSession = ( {
 						);
 					}
 
-					// Attach payment method to customer.
-					const response = await api.attachPaymentMethodToCustomer(
-						checkoutSessionId
-					);
-
-					if ( ! response.success ) {
-						throw new Error( response.data.message );
-					}
-
 					const setup = {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
 								'wc-stripe_bacs_debit-new-payment-method': false,
-								'wc-stripe_bacs_debit-payment-token': `${ response.data.bacs_token_id }`,
+								// required to act like paying with a saved payment method.
 								isSavedToken: true,
 								payment_method: upeMethods[ paymentMethodName ],
-								token: `${ response.data.bacs_token_id }`,
+								checkout_session_id: checkoutSessionId,
 							},
 						},
 					};
