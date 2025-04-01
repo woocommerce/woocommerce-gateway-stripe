@@ -42,6 +42,7 @@
 * Update - Remove unused express checkout button tracking.
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Dev - Fetch Stripe settings with Stripe configuration API.
+* Add - Hook up payment methods configuration.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
@@ -94,8 +95,6 @@
 * Update - Update Amazon Pay icon to use image from WooCommerce Design Library.
 * Add - Show upcoming legacy checkout experience deprecation notice.
 * Fix - Fix variable dump in ACH customer error message when retrying a payment.
-* Dev - Fetch Stripe settings with Stripe configuration API.
-* Add - Hook up payment methods configuration.
 
 = 9.2.0 - 2025-02-13 =
 * Fix - Fix missing product_id parameter for the express checkout add-to-cart operation.
