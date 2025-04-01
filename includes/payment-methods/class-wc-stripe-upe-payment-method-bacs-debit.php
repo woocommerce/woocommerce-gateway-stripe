@@ -156,7 +156,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function add_bacs_ajax_endpoints() {
 		add_action( 'wc_ajax_wc_stripe_create_bacs_checkout_session', [ $this, 'create_bacs_checkout_session_ajax' ] );
-		add_action( 'wc_ajax_wc_stripe_attach_payment_method_to_customer', [ $this, 'attach_payment_method_to_customer_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_get_payment_method_details', [ $this, 'get_payment_method_details_ajax' ] );
 	}
 
@@ -271,69 +270,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 			// Handle generic PHP errors.
 			wp_send_json_error( [ 'message' => $e->getMessage() ] );
 		} catch ( WC_Stripe_Exception $e ) {
-			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
-		}
-	}
-
-	/**
-	 * Handles the AJAX request to attach a payment method to a customer using a Checkout Session ID.
-	 *
-	 * This method retrieves the payment method details from Stripe using the Checkout Session ID
-	 * and attaches the payment method to the currently logged-in customer.
-	 *
-	 * @return void Outputs a JSON response indicating success or failure.
-	 *              If an error occurs, a JSON response with an error message is sent.
-	 */
-	public function attach_payment_method_to_customer_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_attach_payment_method_to_customer_nonce', false, false );
-
-			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'Unable to attach the payment method to the customer at this time.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$checkout_session_id    = filter_input( INPUT_POST, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
-			$friendly_error_message = __( 'An error occurred while attaching the Bacs Direct Debit payment method to the customer.', 'woocommerce-gateway-stripe' );
-
-			// Get the Checkout Session data.
-			$response = WC_Stripe_API::request( [], "checkout/sessions/$checkout_session_id", 'GET' );
-			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
-			}
-			$setup_intent_id = $response->setup_intent;
-
-			// Get the paymen method ID via the setup intent.
-			$response = WC_Stripe_API::request( [], "setup_intents/$setup_intent_id", 'GET' );
-			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
-			}
-			$payment_method_id = $response->payment_method;
-
-			// Attach payment method to the user.
-			$user_id     = get_current_user_id();
-			$stripe_user = new WC_Stripe_Customer( $user_id );
-			$response    = WC_Stripe_API::request( [ 'customer' => $stripe_user->get_id() ], "payment_methods/$payment_method_id/attach", 'POST' );
-			if ( isset( $response->error ) ) {
-				WC_Stripe_Logger::log( $response->error->message );
-				throw new WC_Stripe_Exception( $response->error->message, $friendly_error_message );
-			}
-
-			// It's necessary to save the payment method here in order to get the token ID.
-			$pament_token = WC_Stripe_API::request( [], "payment_methods/$payment_method_id", 'GET' );
-			$bacs_token   = $this->create_payment_token_for_user( $user_id, $pament_token );
-
-			// Clear the cache so that in the next request, we can fetch the payment methods from Stripe to keep local saved payment methods in sync with Stripe.
-			delete_transient( WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . WC_Stripe_Payment_Methods::BACS_DEBIT . $stripe_user->get_id() );
-
-			wp_send_json_success( [ 'bacs_token_id' => $bacs_token->get_id() ] );
-		} catch ( Error $e ) {
-			wp_send_json_error( [ 'message' => $e->getMessage() ] );
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( $e->getMessage() );
-
-			// Send a friendly error message to the frontend.
 			wp_send_json_error( [ 'message' => $e->getLocalizedMessage() ] );
 		}
 	}
