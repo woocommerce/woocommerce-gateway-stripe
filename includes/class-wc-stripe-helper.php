@@ -1466,7 +1466,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 9.3.0
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_payment_awaiting_action' );
+		// wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::set_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1485,7 +1485,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 9.3.0
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::remove_payment_awaiting_action' );
+		// wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::remove_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
