@@ -143,13 +143,18 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Update handling of PR as a country in the terminal locations endpoint.
 * Fix - Hide Amazon Pay in settings when legacy checkout is enabled.
 * Fix - Fix subscription renewal issues for Amazon Pay.
+* Fix - Fix ECE button width in shortcode cart page.
 * Tweak - SPE: Remove radio buttons
+* Add - Add Klarna support for some additional countries in EEA
 * Update - Hide express checkout buttons when no product variation is selected.
 * Fix - Translation warning when initializing the status page information.
 * Add - Add ACSS support for WC Subscriptions.
 * Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 * Add - Add WooCommerce Pre-Orders support to ACSS.
 * Update - Remove unused shopper tracking
+* Add - Add BLIK support for WooCommerce Pre-Orders
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
+* Fix - Checkout page focus loss
+* Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
