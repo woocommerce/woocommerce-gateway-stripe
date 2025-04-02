@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -1025,7 +1028,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 

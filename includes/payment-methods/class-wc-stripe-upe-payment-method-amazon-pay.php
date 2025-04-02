@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Amazon Pay Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::AMAZON_PAY;
 
@@ -24,6 +25,36 @@ class WC_Stripe_UPE_Payment_Method_Amazon_Pay extends WC_Stripe_UPE_Payment_Meth
 			'Amazon Pay is a payment method that allows customers to pay with their Amazon account.',
 			'woocommerce-gateway-stripe'
 		);
+		$this->supports[]           = 'tokenization';
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
+	}
+
+	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
+	 * Create new WC payment token and add to user.
+	 *
+	 * @param int $user_id        WP_User ID
+	 * @param object $payment_method Stripe payment method object
+	 *
+	 * @return WC_Payment_Token_Amazon_Pay
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Payment_Token_Amazon_Pay();
+		$token->set_email( $payment_method->billing_details->email ?? '' );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ self::STRIPE_ID ] );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user_id );
+		$token->save();
+		return $token;
 	}
 
 	/**

@@ -574,7 +574,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_is_spe_enabled( WP_REST_Request $request ) {
-		$is_spe_enabled = $request->get_param( 'is_spe_enabled' );
+		$is_spe_enabled      = $request->get_param( 'is_spe_enabled' );
 		$current_spe_enabled = $this->gateway->get_option( 'single_payment_element' );
 
 		if ( null === $is_spe_enabled ) {

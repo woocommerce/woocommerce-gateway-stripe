@@ -39,6 +39,17 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe Amazon Pay payment method.
+	 */
+	const MOCK_AMAZON_PAY_PAYMENT_METHOD_TEMPLATE = [
+		'id'              => 'pm_mock_payment_method_id',
+		'type'            => 'amazon_pay',
+		'billing_details' => [
+			'email' => 'test@test.com',
+		],
+	];
+
+	/**
 	 * Base template for Stripe ACH payment method.
 	 */
 	const MOCK_ACH_PAYMENT_METHOD_TEMPLATE = [
@@ -109,11 +120,24 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe AU BECS Debit Pay payment method.
+	 */
+	const MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE = [
+		'id'                                        => 'pm_mock_payment_method_id',
+		'type'                                      => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		WC_Stripe_Payment_Methods::BECS_DEBIT        => [
+			'last4'       => '4321',
+			'fingerprint' => 'F1ng3rpr1n7',
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
 		'alipay_payments'              => 'inactive',
 		'bancontact_payments'          => 'inactive',
+		'blik_payments'                => 'inactive',
 		'card_payments'                => 'inactive',
 		'eps_payments'                 => 'inactive',
 		'giropay_payments'             => 'inactive',
@@ -132,6 +156,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'wechat_pay_payments'          => 'inactive',
 		'us_bank_account_ach_payments' => 'inactive',
 		'bacs_debit_payments'          => 'inactive',
+		'au_becs_debit_payments'       => 'inactive',
 	];
 
 	/**
@@ -141,6 +166,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'alipay_payments'              => 'active',
 		'amazon_pay_payments'          => 'active',
 		'bancontact_payments'          => 'active',
+		'blik_payments'                => 'active',
 		'card_payments'                => 'active',
 		'eps_payments'                 => 'active',
 		'giropay_payments'             => 'active',
@@ -161,6 +187,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'acss_debit_payments'          => 'active',
 		'us_bank_account_ach_payments' => 'active',
 		'bacs_debit_payments'          => 'active',
+		'au_becs_debit_payments'       => 'active',
 	];
 
 	/**
@@ -172,6 +199,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME, 'yes' );
 		$this->reset_payment_method_mocks();
 	}
 
@@ -180,6 +208,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
 		parent::tear_down();
 	}
 
@@ -253,6 +282,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_alipay_details     = [
 			'type' => WC_Stripe_Payment_Methods::ALIPAY,
 		];
+		$mock_blik_details       = [
+			'type' => WC_Stripe_Payment_Methods::BLIK,
+		];
 		$mock_p24_details        = [
 			'type' => WC_Stripe_Payment_Methods::P24,
 		];
@@ -286,7 +318,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_acss_details       = [
 			'type' => WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
+		$mock_becs_debit_details = [
+			'type' => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		];
 
+		$blik_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BLIK ];
 		$card_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
 		$alipay_method     = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ALIPAY ];
 		$p24_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::P24 ];
@@ -301,6 +337,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
 		$ach_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
 		$acss_method       = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		$becs_debit_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_id() );
+		$this->assertEquals( 'BLIK', $blik_method->get_label() );
+		$this->assertEquals( 'BLIK', $blik_method->get_title() );
+		$this->assertEquals( 'BLIK', $blik_method->get_title( $mock_blik_details ) );
+		$this->assertFalse( $blik_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_retrievable_type() );
+		$this->assertEquals( '', $blik_method->get_testing_instructions() );
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
@@ -416,6 +461,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertTrue( $acss_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::ACSS_DEBIT, $acss_method->get_retrievable_type() );
 		$this->assertEquals( '', $acss_method->get_testing_instructions() );
+
+		$this->assertEquals( WC_Stripe_Payment_Methods::BECS_DEBIT, $becs_debit_method->get_id() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_label() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title() );
+		$this->assertEquals( 'BECS Direct Debit', $becs_debit_method->get_title( $mock_becs_debit_details ) );
+		$this->assertTrue( $becs_debit_method->is_reusable() );
+		$this->assertEquals( WC_Stripe_Payment_Methods::BECS_DEBIT, $becs_debit_method->get_retrievable_type() );
+		$this->assertEquals( '', $becs_debit_method->get_testing_instructions() );
 	}
 
 	/**
@@ -433,6 +486,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
+		$blik_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BLIK ];
 		$klarna_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::KLARNA ];
 		$afterpay_clearpay_method = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY ];
 		$affirm_method            = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::AFFIRM ];
@@ -448,8 +502,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$wechat_pay_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::WECHAT_PAY ];
 		$ach_method               = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACH ];
 		$acss_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::ACSS_DEBIT ];
+		$becs_debit_method        = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BECS_DEBIT ];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
+		$this->assertFalse( $blik_method->is_enabled_at_checkout() );
 		$this->assertFalse( $klarna_method->is_enabled_at_checkout() );
 		$this->assertFalse( $affirm_method->is_enabled_at_checkout() );
 		$this->assertFalse( $afterpay_clearpay_method->is_enabled_at_checkout() );
@@ -465,6 +521,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $wechat_pay_method->is_enabled_at_checkout() );
 		$this->assertFalse( $ach_method->is_enabled_at_checkout() );
 		$this->assertFalse( $acss_method->is_enabled_at_checkout() );
+		$this->assertFalse( $becs_debit_method->is_enabled_at_checkout() );
 	}
 
 	/**
@@ -668,6 +725,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
 			} elseif ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID === $payment_method_id ) {
 				$store_currency = WC_Stripe_Currency_Code::POUND_STERLING;
+			} elseif ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $payment_method_id ) {
+				$store_currency = WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR;
 			}
 
 			$account_currency = null;
@@ -697,6 +756,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$payment_method_ids = [
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
+			WC_Stripe_Payment_Methods::BLIK,
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::KLARNA,
 			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
@@ -770,6 +831,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertTrue( WC_Payment_Token_Link::class === get_class( $token ) );
 					$this->assertSame( $token->get_email(), $link_payment_method_mock->link->email );
 					break;
+				case WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID:
+					$amazon_payment_method_mock = $this->array_to_object( self::MOCK_AMAZON_PAY_PAYMENT_METHOD_TEMPLATE );
+					$token                      = $payment_method->create_payment_token_for_user( $user_id, $amazon_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_Amazon_Pay::class === get_class( $token ) );
+					$this->assertSame( $token->get_email(), $amazon_payment_method_mock->billing_details->email );
+					break;
 				case WC_Stripe_UPE_Payment_Method_Cash_App_Pay::STRIPE_ID:
 					$cash_app_payment_method_mock = $this->array_to_object( self::MOCK_CASH_APP_PAYMENT_METHOD_TEMPLATE );
 					$token                        = $payment_method->create_payment_token_for_user( $user_id, $cash_app_payment_method_mock );
@@ -797,6 +864,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					$this->assertTrue( WC_Payment_Token_ACSS::class === get_class( $token ) );
 					$this->assertSame( $token->get_last4(), $acss_payment_method_mock->acss_debit->last4 );
 					$this->assertSame( $token->get_bank_name(), $acss_payment_method_mock->acss_debit->bank_name );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID:
+					$becs_debit_payment_method_mock = $this->array_to_object( self::MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE );
+					$token                          = $payment_method->create_payment_token_for_user( $user_id, $becs_debit_payment_method_mock );
+					$this->assertTrue( WC_Payment_Token_Becs_Debit::class === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $becs_debit_payment_method_mock->{WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID}->last4 );
 					break;
 				default:
 					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );

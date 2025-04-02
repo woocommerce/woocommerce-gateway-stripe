@@ -5,6 +5,8 @@
  * @package WooCommerce\Tests
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Class WC_Helper_Order.
  *
@@ -53,7 +55,7 @@ class WC_Helper_Order {
 		WC_Helper_Shipping::create_simple_flat_rate();
 
 		$order_data = [
-			'status'        => 'pending',
+			'status'        => OrderStatus::PENDING,
 			'customer_id'   => $customer_id,
 			'customer_note' => '',
 			'total'         => '',
