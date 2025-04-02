@@ -21,7 +21,6 @@ import {
 	onClickHandler,
 	onCompletePaymentHandler,
 	onConfirmHandler,
-	onReadyHandler,
 	shippingAddressChangeHandler,
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
@@ -88,6 +87,13 @@ jQuery( function ( $ ) {
 		$( '.wc-bookings-booking-form' ).length > 0;
 
 	const resolveClickEvent = ( event, options ) => {
+		const getDefaultShippingRates = () => {
+			// Return a default shipping option when shipping is required but no rates are provided
+			const defaultShippingOption = getExpressCheckoutData( 'checkout' )
+				?.default_shipping_option;
+			return defaultShippingOption ? [ defaultShippingOption ] : [];
+		};
+
 		const clickOptions = {
 			lineItems: useLegacyCartEndpoints
 				? normalizeLineItems( options.displayItems )
@@ -95,7 +101,12 @@ jQuery( function ( $ ) {
 			emailRequired: true,
 			shippingAddressRequired: options.requestShipping,
 			phoneNumberRequired: options.requestPhone,
-			shippingRates: options.shippingRates,
+			...( options.requestShipping && {
+				shippingRates:
+					options.shippingRates?.length > 0
+						? options.shippingRates
+						: getDefaultShippingRates(),
+			} ),
 		};
 
 		return event.resolve( clickOptions );
@@ -179,6 +190,24 @@ jQuery( function ( $ ) {
 		}
 
 		return shippingAddressChangeHandler( api, event, elements );
+	};
+
+	// Check if the product is waiting for a variation to be selected.
+	const isVariationSelectionNeeded = () => {
+		// This check only makes sense on the product page.
+		const isProductPage = getExpressCheckoutData( 'is_product_page' );
+		if ( ! isProductPage ) {
+			return false;
+		}
+
+		const isVariationProduct = document.querySelector(
+			'.single_variation_wrap'
+		);
+		const variationId = document.querySelector(
+			'input[name="variation_id"]'
+		)?.value;
+		const variationSelected = variationId && variationId !== '0';
+		return isVariationProduct && ! variationSelected;
 	};
 
 	const wcStripeECE = {
@@ -415,9 +444,8 @@ jQuery( function ( $ ) {
 			} );
 
 			eceButton.on( 'ready', ( onReadyParams ) => {
-				onReadyHandler( onReadyParams );
-
 				if (
+					! isVariationSelectionNeeded() &&
 					onReadyParams.availablePaymentMethods &&
 					Object.values(
 						onReadyParams.availablePaymentMethods
@@ -707,6 +735,11 @@ jQuery( function ( $ ) {
 			$( document.body )
 				.off( 'woocommerce_variation_has_changed' )
 				.on( 'woocommerce_variation_has_changed', () => {
+					if ( isVariationSelectionNeeded() ) {
+						wcStripeECE.hide();
+						return;
+					}
+
 					wcStripeECE.blockExpressCheckoutButton();
 
 					$.when( wcStripeECE.getSelectedProductData() )
@@ -737,6 +770,7 @@ jQuery( function ( $ ) {
 										response
 									);
 								}
+
 								wcStripeECE.show();
 							}
 						} )
@@ -746,6 +780,14 @@ jQuery( function ( $ ) {
 						.always( () => {
 							wcStripeECE.unblockExpressCheckoutButton();
 						} );
+				} );
+
+			$( document.body )
+				.off( 'woocommerce_update_variation_values' )
+				.on( 'woocommerce_update_variation_values', () => {
+					if ( isVariationSelectionNeeded() ) {
+						wcStripeECE.hide();
+					}
 				} );
 
 			$( '.quantity' )

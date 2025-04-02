@@ -112,12 +112,12 @@ class WC_Stripe_Admin_Notices {
 			return;
 		}
 
-		$columns_count      = $wp_list_table->get_column_count();
-		$is_active          = is_plugin_active( $plugin_file );
-		$is_active_class    = $is_active ? 'active' : 'inactive';
+		$columns_count   = $wp_list_table->get_column_count();
+		$is_active       = is_plugin_active( $plugin_file );
+		$is_active_class = $is_active ? 'active' : 'inactive';
 
 		$setting_link = esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' ) );
-		$message = sprintf(
+		$message      = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
 			'<a href="' . $setting_link . '">',
@@ -374,7 +374,7 @@ class WC_Stripe_Admin_Notices {
 				// Show legacy deprecation notice in version 9.3.0 if legacy checkout experience is enabled.
 				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$setting_link = $this->get_setting_link();
-					$message = sprintf(
+					$message      = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 						__( 'WooCommerce Stripe Gateway legacy checkout experience will no longer be supported in a subsequent version of this plugin. Please %1$smigrate to the new checkout experience%2$s to access more payment methods and avoid disruptions. %3$sLearn more%4$s', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',

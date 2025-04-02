@@ -8,4 +8,9 @@
 	gap: 10px;
 	flex-wrap: wrap;
 	justify-content: center;
+
+	> div {
+		flex: 1;
+		min-width: 260px;
+	}
 }
