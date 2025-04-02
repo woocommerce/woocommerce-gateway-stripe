@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * The Canadian Pre-Authorized Debit (ACSS Debit) Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::ACSS_DEBIT;
 
@@ -27,6 +28,13 @@ class WC_Stripe_UPE_Payment_Method_ACSS extends WC_Stripe_UPE_Payment_Method {
 		);
 		$this->supports_deferred_intent = false;
 		$this->supports[]               = 'tokenization';
+		$this->supports[]               = 'subscriptions';
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 
 	/**

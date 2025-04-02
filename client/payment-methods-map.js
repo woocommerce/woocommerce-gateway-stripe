@@ -9,6 +9,7 @@ import {
 	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_BANCONTACT,
 	PAYMENT_METHOD_BECS,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
@@ -31,6 +32,8 @@ const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
+const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
+
 const paymentMethodsMap = {
 	card: {
 		id: PAYMENT_METHOD_CARD,
@@ -316,11 +319,25 @@ if ( isBecsDebitEnabled ) {
 		id: PAYMENT_METHOD_BECS,
 		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'BECS Direct Debit enables customers in Australia to pay by providing their bank account details.',
+			'Australia BECS Direct Debit enables your store to accept payments from customers with an Australian bank account.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
+	};
+}
+
+// Enable BLIK according to feature flag value.
+if ( isBlikEnabled ) {
+	paymentMethodsMap.blik = {
+		id: PAYMENT_METHOD_BLIK,
+		label: 'BLIK',
+		description: __(
+			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.blik,
+		currencies: [ 'PLN' ],
 	};
 }
 

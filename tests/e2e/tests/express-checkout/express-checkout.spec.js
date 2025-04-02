@@ -16,9 +16,7 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 	).toBeVisible();
 };
 
-const testLink = async ( page, navigateTo, isBlockPage = false ) => {
-	await page.goto( navigateTo );
-
+const getLinkButton = async ( page, isBlockPage = false ) => {
 	let frameLocator;
 	if ( isBlockPage ) {
 		frameLocator = await page.frameLocator(
@@ -32,6 +30,14 @@ const testLink = async ( page, navigateTo, isBlockPage = false ) => {
 	const linkButton = await frameLocator.getByRole( 'button', {
 		name: 'Pay with Link',
 	} );
+
+	return linkButton;
+};
+
+const testLink = async ( page, navigateTo, isBlockPage = false ) => {
+	await page.goto( navigateTo );
+
+	const linkButton = await getLinkButton( page, isBlockPage );
 	await expect( linkButton ).toBeEnabled();
 
 	const context = await page.context();
@@ -72,5 +78,31 @@ test.describe( 'customer can use Link express checkout', () => {
 	test( 'inside the checkout page (block)', async ( { page } ) => {
 		await addProductToCart( page );
 		await testLink( page, '/checkout', true );
+	} );
+} );
+
+test.describe( 'express checkout and variable products', () => {
+	test( 'is hidden when no product variation is selected', async ( {
+		page,
+	} ) => {
+		await page.goto( '/product/hoodie' );
+
+		// We want to wait for the express checkout element to be loaded,
+		// before asserting that it is hidden. Immedidately asserting that it is hidden
+		// might cause the test to pass only because the element is not yet loaded.
+		const linkContainer = page.locator(
+			'#wc-stripe-express-checkout-element-link iframe[name^="__privateStripeFrame"]'
+		);
+		await expect( linkContainer ).toHaveCount( 1 );
+		await expect( linkContainer ).toBeHidden();
+	} );
+
+	test( 'is visible when a product variation is selected', async ( {
+		page,
+	} ) => {
+		await page.goto( '/product/hoodie' );
+		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
+		const linkButton = await getLinkButton( page );
+		await expect( linkButton ).toBeVisible();
 	} );
 } );

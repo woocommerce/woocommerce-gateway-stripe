@@ -32,14 +32,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		/**
-		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
-		 * Therefore, we use a static flag at class level to indicate that they have been attached.
-		 */
-		if ( self::$has_attached_integration_hooks ) {
-			return;
-		}
-
 		$this->supports = array_merge(
 			$this->supports,
 			[
@@ -55,6 +47,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				'multiple_subscriptions',
 			]
 		);
+
+		/**
+		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
+		 * Therefore, we use a static flag at class level to indicate that they have been attached.
+		 */
+		if ( self::$has_attached_integration_hooks ) {
+			return;
+		}
 
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
 		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
@@ -741,9 +741,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
 	 * take care of handling any authorizations.
 	 *
-	 * @param Array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
 	 * @param WC_Order $order            The renewal order.
-	 * @param Array    $prepared_source  The source object.
+	 * @param object   $prepared_source  The source object.
 	 */
 	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
@@ -783,6 +783,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
+		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
 		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
@@ -895,6 +896,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options['reference']       = $order->get_id();
 		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
+		$mandate_options['currency']        = $currency;
 
 		return $mandate_options;
 	}
@@ -1000,10 +1002,18 @@ trait WC_Stripe_Subscriptions_Trait {
 							break 3;
 						case WC_Stripe_Payment_Methods::ACH:
 							$payment_method_to_display = sprintf(
-								/* translators: account type (checking, savings), last 4 digits of account. */
+								/* translators: 1) account type (checking, savings), 2) last 4 digits of account. */
 								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
 								ucfirst( $source->us_bank_account->account_type ),
 								$source->us_bank_account->last4
+							);
+							break 3;
+						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: 1) bank name, 2) last 4 digits of account. */
+								__( 'Via %1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+								$source->acss_debit->bank_name,
+								$source->acss_debit->last4
 							);
 							break 3;
 						case WC_Stripe_Payment_Methods::BACS_DEBIT:
