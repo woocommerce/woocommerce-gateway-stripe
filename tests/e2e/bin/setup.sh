@@ -63,7 +63,7 @@ redirect_output cli wp core install \
 
 if [[ -n "$WP_VERSION" && "$WP_VERSION" != "latest" ]]; then
 	echo " - Installing WordPress ${WP_VERSION}..."
-	redirect_output cli wp core update --version="$WP_VERSION" --force --quiet
+	redirect_output cli wp core update --version="$WP_VERSION" --forc_wcstripe_feature_lpm_becs_debitache --quiet
 else
 	echo " - Updating WordPress to the latest version"
 	redirect_output cli wp core update --quiet
@@ -138,7 +138,7 @@ echo " - Updating WooCommerce Gateway Stripe settings"
 redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\"}"
 
 echo " - Enabling the ACH feature flag"
-redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'
+redirect_output cli wp option update _wcstripe_feature_lpm_becs_debit 'yes'
 
 step "Installing Woo Subscriptions"
 echo " - Fetching latest version"
