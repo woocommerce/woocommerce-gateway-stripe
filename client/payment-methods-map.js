@@ -319,7 +319,7 @@ if ( isBecsDebitEnabled ) {
 		id: PAYMENT_METHOD_BECS,
 		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'BECS Direct Debit enables customers in Australia to pay by providing their bank account details.',
+			'Australia BECS Direct Debit enables your store to accept payments from customers with an Australian bank account.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: icons.au_becs_debit,
