@@ -402,11 +402,53 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->assertEquals( 'no', $notice_option );
 	}
 
+	/**
+	 * @dataProvider is_payment_request_enabled_provider
+	 */
+	public function test_is_payment_request_enabled( $is_enabled, $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+		$this->mock_payment_method_configurations(
+			$enabled_payment_method_ids,
+			$disabled_payment_method_ids
+		);
+		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
+		$response = $this->controller->get_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
+	}
+
+	public function is_payment_request_enabled_provider() {
+		return [
+			[ true, [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::GOOGLE_PAY ], [] ],
+			[ false, [], [ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::AMAZON_PAY ] ],
+		];
+	}
+
+	/**
+	 * @dataProvider is_payment_request_enabled_legacy_provider
+	 */
+	public function test_is_payment_request_enabled_legacy( $is_enabled, $option_value ) {
+		// Settings controller with non-UPE gateway.
+		$gateway = new WC_Gateway_Stripe();
+		$gateway->update_option( 'payment_request', $option_value );
+		$controller = new WC_REST_Stripe_Settings_Controller( $gateway );
+
+		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
+		$response = $controller->get_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $is_enabled, $response->get_data()['is_payment_request_enabled'] );
+	}
+
+	public function is_payment_request_enabled_legacy_provider() {
+		return [
+			[ true, 'yes' ],
+			[ false, 'no' ],
+		];
+	}
+
 	public function boolean_field_provider() {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
-			'is_payment_request_enabled'            => [ 'is_payment_request_enabled', 'payment_request' ],
 			'is_spe_enabled'                        => [ 'is_spe_enabled', 'single_payment_element' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
