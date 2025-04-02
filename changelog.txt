@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
 * Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
