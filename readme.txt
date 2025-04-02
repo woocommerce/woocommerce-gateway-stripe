@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
+* Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
