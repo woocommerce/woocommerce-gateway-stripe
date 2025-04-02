@@ -40,7 +40,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 		$this->maybe_hide_bacs_payment_gateway();
 
-		// Add endpoints
 		$this->add_bacs_ajax_endpoints();
 	}
 
