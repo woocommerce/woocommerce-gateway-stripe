@@ -488,8 +488,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
 		$stripe_params['isPaymentRequestEnabled']          = $express_checkout_helper->is_payment_request_enabled();
-		$stripe_params['isAmazonPayEnabled']               = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled();
-		$stripe_params['isLinkEnabled']                    = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
+		$stripe_params['isAmazonPayEnabled']               = $express_checkout_helper->is_amazon_pay_enabled();
+		$stripe_params['isLinkEnabled']                    = $express_checkout_helper->is_link_enabled();
 
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );

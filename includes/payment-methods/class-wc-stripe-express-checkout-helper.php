@@ -1450,8 +1450,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_express_checkout_enabled() {
 		return $this->is_payment_request_enabled() ||
-			WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled() ||
-			WC_Stripe_UPE_Payment_Method_Link::is_link_enabled();
+			$this->is_amazon_pay_enabled() ||
+			$this->is_link_enabled();
 	}
 
 	/**
@@ -1461,6 +1461,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function is_payment_request_enabled() {
 		return $this->gateway->is_payment_request_enabled();
+	}
+
+	/**
+	 * Returns whether Amazon Pay is enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_amazon_pay_enabled() {
+		return WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
+	}
+
+	/**
+	 * Returns whether Link is enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_link_enabled() {
+		return WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
 	}
 
 	/**
