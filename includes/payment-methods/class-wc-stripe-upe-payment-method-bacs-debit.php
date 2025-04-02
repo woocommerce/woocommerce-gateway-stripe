@@ -221,7 +221,6 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 				throw new WC_Stripe_Exception( 'Invalid nonce', __( 'We couldn\'t get the payment method details this time. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			// Retrieve and sanitize the checkout session ID from the request.
 			$checkout_session_id = filter_input( INPUT_GET, 'checkout_session_id', FILTER_SANITIZE_SPECIAL_CHARS );
 
 			$friendly_error_message = __( 'An error occurred while getting the Bacs Direct Debit payment method details.', 'woocommerce-gateway-stripe' );
