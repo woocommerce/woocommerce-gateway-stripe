@@ -451,6 +451,7 @@ class WC_Stripe_Intent_Controller {
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		$customer->maybe_create_customer();
 
 		if ( $intent_id ) {
 			$request = [
