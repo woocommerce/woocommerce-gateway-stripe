@@ -162,6 +162,8 @@ export const getCheckoutSessionElementForBacs = (
 					bacsRadioButtonSelector
 				);
 				if ( radioButton ) {
+					// The simplest way to select the Bacs payment method without using Redux,
+					// avoiding unnecessary extra code.
 					radioButton.click();
 					observer.disconnect();
 				}
