@@ -5,8 +5,8 @@ import {
 	getPaymentMethodsConstants,
 	PAYMENT_METHOD_AFTERPAY,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
-	PAYMENT_METHOD_BACS,
 	PAYMENT_METHOD_CLEARPAY,
+	PAYMENT_METHOD_BACS,
 } from 'wcstripe/stripe-utils/constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
