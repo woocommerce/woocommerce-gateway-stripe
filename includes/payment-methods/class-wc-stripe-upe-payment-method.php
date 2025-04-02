@@ -284,8 +284,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// If cart or order contains pre-order, enable payment method if it's reusable.
+		// BLIK supports pre-order when product is charged upfront. We're handling availability in WC_Stripe_UPE_Payment_Method_BLIK.
 		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
-			return $this->is_reusable();
+			return $this->is_reusable() || WC_Stripe_Payment_Methods::BLIK === $this->stripe_id;
 		}
 
 		// Note: this $this->is_automatic_capture_enabled() call will be handled by $this->__call() and fall through to the UPE gateway class.
