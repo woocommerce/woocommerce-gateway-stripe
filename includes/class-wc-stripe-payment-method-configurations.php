@@ -102,11 +102,11 @@ class WC_Stripe_Payment_Method_Configurations {
 		foreach ( $available_payment_method_ids as $stripe_id ) {
 			$will_enable = in_array( $stripe_id, $enabled_payment_method_ids, true );
 
-			if ( isset( $payment_method_configuration->$stripe_id->display_preference->value ) && 'on' === $payment_method_configuration->$stripe_id->display_preference->value && ! $will_enable ) {
+			if ( 'on' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && ! $will_enable ) {
 				$newly_disabled_methods[] = $stripe_id;
 			}
 
-			if ( isset( $payment_method_configuration->$stripe_id->display_preference->value ) && 'off' === $payment_method_configuration->$stripe_id->display_preference->value && $will_enable ) {
+			if ( 'off' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && $will_enable ) {
 				$newly_enabled_methods[] = $stripe_id;
 			}
 
