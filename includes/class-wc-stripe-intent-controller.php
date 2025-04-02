@@ -451,6 +451,7 @@ class WC_Stripe_Intent_Controller {
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		$customer->maybe_create_customer();
 
 		if ( $intent_id ) {
 			$request = [
@@ -1080,6 +1081,15 @@ class WC_Stripe_Intent_Controller {
 		if ( ! ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
+
+		$order = $payment_information['order'];
+		// Run the necessary filter to make sure mandate information is added when it's required.
+		$request = apply_filters(
+			'wc_stripe_generate_create_intent_request',
+			$request,
+			$order,
+			null // $prepared_source parameter is not necessary for adding mandate information.
+		);
 
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 

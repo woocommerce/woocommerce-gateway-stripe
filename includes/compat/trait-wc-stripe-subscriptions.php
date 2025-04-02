@@ -896,6 +896,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options['reference']       = $order->get_id();
 		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
+		$mandate_options['currency']        = $currency;
 
 		return $mandate_options;
 	}
