@@ -1082,6 +1082,15 @@ class WC_Stripe_Intent_Controller {
 			unset( $request['return_url'] );
 		}
 
+		$order = $payment_information['order'];
+		// Run the necessary filter to make sure mandate information is added when it's required.
+		$request = apply_filters(
+			'wc_stripe_generate_create_intent_request',
+			$request,
+			$order,
+			null // $prepared_source parameter is not necessary for adding mandate information.
+		);
+
 		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {

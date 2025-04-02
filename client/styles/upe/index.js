@@ -262,7 +262,7 @@ const hiddenElementsForUPE = {
 	},
 };
 
-export const getFieldStyles = ( selector, upeElement, focus = false ) => {
+export const getFieldStyles = ( selector, upeElement ) => {
 	if ( ! document.querySelector( selector ) ) {
 		return {};
 	}
@@ -270,9 +270,6 @@ export const getFieldStyles = ( selector, upeElement, focus = false ) => {
 	const validProperties = upeRestrictedProperties[ upeElement ];
 
 	const elem = document.querySelector( selector );
-	if ( focus ) {
-		elem.focus( { preventScroll: true } );
-	}
 
 	const styles = window.getComputedStyle( elem );
 
@@ -347,11 +344,6 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 	hiddenElementsForUPE.init( isBlocksCheckout );
 
 	const inputRules = getFieldStyles( selectors.hiddenInput, '.Input' );
-	const inputFocusRules = getFieldStyles(
-		selectors.hiddenInput,
-		'.Input',
-		true
-	);
 	const inputInvalidRules = getFieldStyles(
 		selectors.hiddenInvalidInput,
 		'.Input'
@@ -403,7 +395,6 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 		theme: isColorLight( backgroundColor ) ? 'stripe' : 'night',
 		rules: {
 			'.Input': inputRules,
-			'.Input:focus': inputFocusRules,
 			'.Input--invalid': inputInvalidRules,
 			'.Block': blockRules,
 			'.Label': labelRules,
