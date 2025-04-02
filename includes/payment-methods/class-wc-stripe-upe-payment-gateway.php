@@ -2261,6 +2261,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID;
 			}
 		} elseif ( WC_Stripe_Payment_Methods::BACS_DEBIT === $selected_payment_type && 0.0 === (float) WC()->cart->get_totals()['total'] ) {
+			// For Bacs, when attempting to pay for a zero-amount cart, the Checkout Session generates the payment method ID.
+			// So we need to set `$payment_method_id` to the payment method ID created by the Checkout Session.
 			$checkout_session_id = isset( $_POST['checkout_session_id'] ) ? wc_clean( wp_unslash( $_POST['checkout_session_id'] ) ) : '';
 			$payment_method_id   = $this->get_bacs_payment_method_from_checkout_session_id( $checkout_session_id );
 		} else {
