@@ -123,9 +123,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Base template for Stripe AU BECS Debit Pay payment method.
 	 */
 	const MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE = [
-		'id'                                        => 'pm_mock_payment_method_id',
-		'type'                                      => WC_Stripe_Payment_Methods::BECS_DEBIT,
-		WC_Stripe_Payment_Methods::BECS_DEBIT        => [
+		'id'                                  => 'pm_mock_payment_method_id',
+		'type'                                => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		WC_Stripe_Payment_Methods::BECS_DEBIT => [
 			'last4'       => '4321',
 			'fingerprint' => 'F1ng3rpr1n7',
 		],
