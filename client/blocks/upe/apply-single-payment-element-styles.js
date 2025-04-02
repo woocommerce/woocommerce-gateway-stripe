@@ -1,14 +1,4 @@
 export const applySinglePaymentElementStyles = () => {
-	// Hide the Stripe radio button when it is the only available payment method.
-	const paymentMethodOptions = document.querySelectorAll(
-		'input[name=radio-control-wc-payment-method-options]'
-	);
-	if ( paymentMethodOptions.length === 1 ) {
-		document.querySelector(
-			'.wc-block-components-radio-control__option'
-		).style.display = 'none';
-	}
-
 	// Add the single payment element class to the Stripe payment method elements.
 	document
 		.getElementById(
