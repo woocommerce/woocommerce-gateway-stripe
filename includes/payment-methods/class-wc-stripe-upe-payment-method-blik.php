@@ -26,6 +26,11 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 		$this->supports_deferred_intent = false;
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
+
+		$this->maybe_hide_blik();
 	}
 
 	/**
@@ -83,5 +88,42 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Determines whether BLIK should be hidden.
+	 *
+	 * It should hide for pre-orders that are charged upon release.
+	 * WooCommerce Pre-Orders allows merchants to choose when to charge customers.
+	 * BLIK only supports upfront charges.
+	 *
+	 * @return bool True if BLIK should be hidden, false otherwise.
+	 */
+	public function should_hide_blik() {
+		if ( $this->is_pre_order_item_in_cart() ) {
+			$product = $this->get_pre_order_product_from_cart();
+
+			if ( $this->is_pre_order_product_charged_upon_release( $product ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Conditionally hides BLIK in specific scenarios.
+	 */
+	public function maybe_hide_blik() {
+		add_filter(
+			'woocommerce_available_payment_gateways',
+			function ( $available_gateways ) {
+				if ( $this->should_hide_blik() ) {
+					unset( $available_gateways['stripe_blik'] );
+				}
+
+				return $available_gateways;
+			}
+		);
 	}
 }
