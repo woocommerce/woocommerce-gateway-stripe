@@ -1309,7 +1309,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 9.3.0
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::add_payment_intent' );
+		// wc_deprecated_function( __METHOD__, '9.3.0', 'WC_Stripe_Order::add_payment_intent' ); @todo Re-enable deprecation notice once all classes get updated.
 
 		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
 
