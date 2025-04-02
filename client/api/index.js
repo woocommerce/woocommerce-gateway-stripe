@@ -670,7 +670,7 @@ export default class WCStripeAPI {
 	 *
 	 * This method sends a request to the server to create a Checkout Session for Bacs Direct Debit.
 	 *
-	 * @return {Promise} A promise that resolves with the server response.
+	 * @return {Promise} A promise that resolves with the server response, including a `checkout_session_url` to which the user is redirected.
 	 * @throws {Error} If the server response indicates a failure.
 	 */
 	createCheckoutSession() {
@@ -689,7 +689,7 @@ export default class WCStripeAPI {
 	 * associated with the given Checkout Session ID.
 	 *
 	 * @param {string} checkoutSessionId The ID of the Checkout Session.
-	 * @return {Promise} A promise that resolves with the payment method details.
+	 * @return {Promise} A promise that resolves with the payment method details which includes the last 4 digits of the payment method.
 	 * @throws {Error} If the `checkoutSessionId` is missing or the server response indicates a failure.
 	 */
 	getPaymentMethodDetailsByCheckoutSessionId( checkoutSessionId ) {

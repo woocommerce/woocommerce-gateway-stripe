@@ -264,7 +264,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 
 			$last_4 = $response->bacs_debit->last4;
 
-			// Return the last 4 digits in the response.
+			// Return only the last four digits in the response; no additional details are needed.
 			wp_send_json_success( [ 'last4' => $last_4 ] );
 		} catch ( Error $e ) {
 			// Handle generic PHP errors.
