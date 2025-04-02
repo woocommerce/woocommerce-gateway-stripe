@@ -30,6 +30,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
+	 * The transient key for the UPE enabled payment method IDs.
+	 *
+	 * @var string
+	*/
+	const UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY = 'wc_stripe_upe_enabled_payment_method_ids';
+
+	/**
 	 * Reset the primary configuration.
 	 */
 	public static function reset_primary_configuration() {
@@ -73,6 +80,10 @@ class WC_Stripe_Payment_Method_Configurations {
 	* @return array
 	*/
 	public static function get_upe_enabled_payment_method_ids() {
+		if ( ( ! defined( 'REST_REQUEST' ) || REST_REQUEST ) && ! is_admin() && get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY ) ) {
+			return get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY );
+		}
+
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
@@ -84,6 +95,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
+		set_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY, $enabled_payment_method_ids, DAY_IN_SECONDS );
 		return $enabled_payment_method_ids;
 	}
 
