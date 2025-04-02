@@ -101,10 +101,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function admin_options() {
 		$form_fields = $this->get_form_fields();
+		$return_url  = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
 
-		echo '<h2>' . esc_html( $this->get_method_title() );
-		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
-		echo '</h2>';
+		if ( function_exists( 'wc_back_header' ) ) {
+			wc_back_header( $this->get_method_title(), __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+		} else {
+			// Until the wc_back_header function is available (WC Core 9.9) use the current available version.
+			echo '<h2>' . esc_html( $this->get_method_title() );
+			wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+			echo '</h2>';
+		}
 
 		$this->render_upe_settings();
 	}

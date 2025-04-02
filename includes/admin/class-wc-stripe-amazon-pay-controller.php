@@ -65,9 +65,17 @@ class WC_Stripe_Amazon_Pay_Controller {
 	public function admin_options() {
 		global $hide_save_button;
 		$hide_save_button = true;
-		echo '<h2>' . esc_html__( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		echo '</h2>';
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+		$header           = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+
+		if ( function_exists( 'wc_back_header' ) ) {
+			wc_back_header( $header, __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+		} else {
+			// Until the wc_back_header function is available (WC Core 9.9) use the current available version.
+			echo '<h2>' . esc_html( $header );
+			wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+			echo '</h2>';
+		}
 		echo '<div class="wrap"><div id="wc-stripe-amazon-pay-settings-container"></div></div>';
 	}
 }

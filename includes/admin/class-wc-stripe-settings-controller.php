@@ -104,11 +104,18 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
-		$hide_save_button = true;
 
-		echo '<h2>' . esc_html( $gateway->get_method_title() );
-		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
-		echo '</h2>';
+		$hide_save_button = true;
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
+
+		if ( function_exists( 'wc_back_header' ) ) {
+			wc_back_header( $gateway->get_method_title(), __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+		} else {
+			// Until the wc_back_header function is available (WC Core 9.9) use the current available version.
+			echo '<h2>' . esc_html( $gateway->get_method_title() );
+			wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), $return_url );
+			echo '</h2>';
+		}
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
