@@ -103,6 +103,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::LINK,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 
@@ -133,6 +134,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 			WC_Stripe_Payment_Methods::P24,
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
 

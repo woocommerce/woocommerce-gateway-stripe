@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
+* Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
 * Dev - Implements the new Stripe order class into the express checkout classes.
@@ -150,7 +152,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add ACSS support for WC Subscriptions.
 * Fix - ECE checkout error when using extensions that reduce total cart amount (eg: Gift Cards)
 * Add - Add WooCommerce Pre-Orders support to ACSS.
-* Fix - Add `wc_stripe_generate_create_intent_request` filter to support mandate information in setup intent creation.
 * Update - Remove unused shopper tracking
 * Add - Add BLIK support for WooCommerce Pre-Orders
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
