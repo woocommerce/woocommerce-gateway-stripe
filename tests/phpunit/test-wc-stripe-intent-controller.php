@@ -487,25 +487,27 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			// Verify card mandate options are present
 			$this->assertArrayHasKey( 'payment_method_options', $parsed_args['body'] );
 			$this->assertArrayHasKey( WC_Stripe_Payment_Methods::CARD, $parsed_args['body']['payment_method_options'] );
-			
+
 			// Verify mandate options for card include currency
-			$this->assertArrayHasKey( 'mandate_options', $parsed_args['body']['payment_method_options'][WC_Stripe_Payment_Methods::CARD] );
-			$this->assertArrayHasKey( 'currency', $parsed_args['body']['payment_method_options'][WC_Stripe_Payment_Methods::CARD]['mandate_options'] );
-			
+			$this->assertArrayHasKey( 'mandate_options', $parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ] );
+			$this->assertArrayHasKey( 'currency', $parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options'] );
+
 			// Verify currency matches order currency
 			$this->assertEquals(
-				strtolower($this->order->get_currency()),
-				$parsed_args['body']['payment_method_options'][WC_Stripe_Payment_Methods::CARD]['mandate_options']['currency']
+				strtolower( $this->order->get_currency() ),
+				$parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options']['currency']
 			);
 
 			return [
 				'response' => 200,
 				'headers'  => [ 'Content-Type' => 'application/json' ],
-				'body'     => json_encode([
-					'id'            => 'seti_mock',
-					'client_secret' => 'secret_mock',
-					'status'        => 'succeeded',
-				]),
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'succeeded',
+					]
+				),
 			];
 		};
 
