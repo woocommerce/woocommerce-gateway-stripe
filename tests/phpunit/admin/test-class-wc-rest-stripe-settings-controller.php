@@ -299,6 +299,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			// 'link', // Link is excluded as it is a express method.
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
@@ -347,6 +348,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			WC_Stripe_Payment_Methods::MULTIBANCO,
 			WC_Stripe_Payment_Methods::WECHAT_PAY,
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
 
 		$response           = $this->rest_get_settings();
