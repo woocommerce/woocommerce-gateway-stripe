@@ -571,92 +571,56 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		$product            = $this->get_product();
+		$should_show_button = false;
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
+		$stock_availability = in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
+			? array_column( $product->get_available_variations(), 'is_in_stock' )
+			: [ $product->is_in_stock() ];
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			WC_Stripe_Logger::log( 'Account is not connected.' );
-			return false;
-		}
-
-		// If no SSL bail.
-		if ( ! $this->testmode && ! is_ssl() ) {
+		} elseif ( ! $this->testmode && ! is_ssl() ) { // If no SSL bail.
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions
 			WC_Stripe_Logger::log( 'Stripe Express Checkout live mode requires SSL. ' . print_r( [ 'url' => get_permalink() ], true ) );
-			return false;
-		}
-
-		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( ! isset( $available_gateways['stripe'] ) ) {
+		} elseif ( ! isset( $available_gateways['stripe'] ) ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout requires the Stripe gateway to be enabled.' );
-			return false;
-		}
-
-		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
-		// shortcodes, with items in the cart that aren't supported.
-		if (
-			WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			&& ! $this->allowed_items_in_cart()
-		) {
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() && ! $this->allowed_items_in_cart() ) {
+			// Don't show if on the cart or checkout page, or if page contains the cart or checkout
+			// shortcodes, with items in the cart that aren't supported.
 			WC_Stripe_Logger::log( 'Some items in cart are not compatible with Stripe Express Checkout. ' );
-			return false;
-		}
-
-		// Don't show on cart if disabled.
-		if ( is_cart() && ! $this->should_show_ece_on_cart_page() ) {
+		} elseif ( is_cart() && ! $this->should_show_ece_on_cart_page() ) { // Don't show on cart if disabled.
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on cart is disabled. ' );
-			return false;
-		}
-
-		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		} elseif ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) { // Don't show on checkout if disabled.
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
-			return false;
-		}
-
-		// Don't show if product page ECE is disabled.
-		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
+		} elseif ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) { // Don't show if product page ECE is disabled.
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
-			return false;
-		}
-
-		// Don't show if product on current page is not supported.
-		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
-			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $this->get_product()->get_id() );
-			return false;
-		}
-
-		// Don't show if the total price is 0.
-		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
-			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
-		) {
+		} elseif ( $this->is_product() && ! $this->is_product_supported( $product ) ) { // Don't show if product on current page is not supported.
+			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
+		} elseif ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
+			|| ( $this->is_product() && 0.0 === (float) $product->get_price() )
+		) { // Don't show if the total price is 0.
+			// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
 			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
-			return false;
-		}
-
-		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
-			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
-			// Don't show if all product variations are out-of-stock.
-			if ( ! in_array( true, $stock_availability, true ) ) {
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product variations being out of stock. Product ID: ' . $this->get_product()->get_id() );
-				return false;
-			}
-		}
-
-		// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
-		if (
+		} elseif ( $this->is_product() && ! in_array( true, $stock_availability, true ) ) { // Don't show if all product variations are out-of-stock.
+			WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product variations being out of stock. Product ID: ' . $product->get_id() );
+		} elseif (
 			! $this->is_pay_for_order_page() &&
 			(
-				( is_product() && ! $this->product_needs_shipping( $this->get_product() ) ) ||
+				( is_product() && ! $this->product_needs_shipping( $product ) ) ||
 				( ( is_cart() || is_checkout() ) && ( ! WC()->cart || ! WC()->cart->needs_shipping() ) )
 			) &&
 			wc_tax_enabled() &&
 			in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true )
-		) {
+		) { // Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
 			WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
-			return false;
+		} else { // If all checks pass, show the button by default.
+			$should_show_button = true;
 		}
 
-		return true;
+		// Allow other plugins to filter the visibility of the button.
+		return apply_filters( 'should_show_express_checkout_button', $should_show_button );
 	}
 
 	/**
