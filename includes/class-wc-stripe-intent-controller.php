@@ -825,10 +825,11 @@ class WC_Stripe_Intent_Controller {
 	 * @param array       $request              The request array to add the mandate options to.
 	 * @param string|null $payment_method_type  The type of payment method to use for the intent.
 	 * @param bool        $is_setup_intent      Whether the request is for a setup intent.
+	 * @param WC_Order    $order                The order object.
 	 *
 	 * @return array
 	 */
-	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false ) {
+	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false, $order = null ) {
 		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
 				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
@@ -843,6 +844,21 @@ class WC_Stripe_Intent_Controller {
 			// If it's a setup intent, add the CAD currency parameter.
 			if ( $is_setup_intent ) {
 				$request['payment_method_options'][ WC_Stripe_Payment_Methods::ACSS_DEBIT ]['currency'] = strtolower( WC_Stripe_Currency_Code::CANADIAN_DOLLAR );
+			}
+		}
+
+		// Run the necessary filter to make sure mandate information is added when it's required for recurring card payments.
+		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_type && $order ) {
+			$request = apply_filters(
+				'wc_stripe_generate_create_intent_request',
+				$request,
+				$order,
+				null // $prepared_source parameter is not necessary for adding mandate information.
+			);
+
+			// Currency is required for mandate options when creating a setup intent for card payment methods.
+			if ( $is_setup_intent ) {
+				$request['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options']['currency'] = strtolower( $order->get_currency() );
 			}
 		}
 
@@ -1069,7 +1085,7 @@ class WC_Stripe_Intent_Controller {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
-		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true );
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true, $payment_information['order'] );
 
 		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
