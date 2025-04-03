@@ -184,6 +184,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$product->set_virtual( false );
 		$product->set_tax_status( 'none' );
 		$product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
 		WC()->cart->add_to_cart( $product->get_id(), 1 );
 
 		WC()->payment_gateways()->payment_gateways = [
@@ -196,7 +199,9 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
 		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Restore original gateways.
+		// Restore original settings.
+		WC()->session->cleanup_sessions();
+		WC()->cart->empty_cart();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
 	}
 
