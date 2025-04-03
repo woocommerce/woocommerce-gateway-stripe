@@ -576,9 +576,14 @@ class WC_Stripe_Express_Checkout_Helper {
 		$product               = $this->get_product();
 		$available_gateways    = WC()->payment_gateways->get_available_payment_gateways();
 		$tax_based_on_location = wc_tax_enabled() && in_array( get_option( 'woocommerce_tax_based_on' ), [ 'billing', 'shipping' ], true );
-		$stock_availability    = in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
-									? array_column( $product->get_available_variations(), 'is_in_stock' )
-									: [ $product->is_in_stock() ];
+
+		if ( $product ) {
+			$stock_availability = in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
+				? array_column( $product->get_available_variations(), 'is_in_stock' )
+				: [ $product->is_in_stock() ];
+		} else {
+			$stock_availability = [];
+		}
 
 		switch ( true ) {
 			case ! WC_Stripe::get_instance()->connect->is_connected():
