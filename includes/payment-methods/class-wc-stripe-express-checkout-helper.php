@@ -620,7 +620,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				break;
 			case $this->is_product() && ! in_array( true, $stock_availability, true ):
 				// Don't show if all product variations are out-of-stock.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product variations being out of stock. Product ID: ' . $product->get_id() );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due product variations being out of stock. Product ID: ' . $product->get_id() );
 				break;
 			case ( ! $this->is_pay_for_order_page() && isset( WC()->cart ) && 0.0 === (float) WC()->cart->get_total( false ) )
 				|| ( $this->is_product() && 0.0 === (float) $product->get_price() ):
@@ -633,7 +633,7 @@ class WC_Stripe_Express_Checkout_Helper {
 					|| ( ( is_cart() || is_checkout() ) && ( ! WC()->cart || ! WC()->cart->needs_shipping() ) )
 				) && $tax_based_on_location:
 				// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due product/cart not requiring shipping and tax being based on customer\'s billing or shipping address.' );
 				break;
 			default:
 				// If all checks pass, show the button by default.
