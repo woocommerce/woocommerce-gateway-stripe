@@ -896,7 +896,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options['reference']       = $order->get_id();
 		$mandate_options['start_date']      = time();
 		$mandate_options['supported_types'] = [ 'india' ];
-		$mandate_options['currency']        = $currency;
 
 		return $mandate_options;
 	}
@@ -1006,6 +1005,13 @@ trait WC_Stripe_Subscriptions_Trait {
 								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
 								ucfirst( $source->us_bank_account->account_type ),
 								$source->us_bank_account->last4
+							);
+							break 3;
+						case WC_Stripe_Payment_Methods::BECS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: last 4 digits of account. */
+								__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
+								$source->au_becs_debit->last4
 							);
 							break 3;
 						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
