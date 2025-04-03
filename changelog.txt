@@ -47,6 +47,7 @@
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
+* Fix - Add `wc_stripe_generate_create_intent_request` filter to support mandate information in setup intent creation.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
