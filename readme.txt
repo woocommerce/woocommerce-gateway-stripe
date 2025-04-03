@@ -157,6 +157,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
+* Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

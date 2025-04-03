@@ -1007,6 +1007,13 @@ trait WC_Stripe_Subscriptions_Trait {
 								$source->us_bank_account->last4
 							);
 							break 3;
+						case WC_Stripe_Payment_Methods::BECS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: last 4 digits of account. */
+								__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
+								$source->au_becs_debit->last4
+							);
+							break 3;
 						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
 							$payment_method_to_display = sprintf(
 								/* translators: 1) bank name, 2) last 4 digits of account. */

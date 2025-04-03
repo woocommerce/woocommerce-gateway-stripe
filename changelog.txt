@@ -47,6 +47,7 @@
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
+* Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 
 = 9.3.1 - 2025-03-14 =
