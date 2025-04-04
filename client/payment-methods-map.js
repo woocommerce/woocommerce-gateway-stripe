@@ -32,7 +32,6 @@ const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
-const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
@@ -268,6 +267,16 @@ const paymentMethodsMap = {
 		Icon: icons.cashapp,
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
+	},
+	blik: {
+		id: PAYMENT_METHOD_BLIK,
+		label: 'BLIK',
+		description: __(
+			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.blik,
+		currencies: [ 'PLN' ],
 	},
 };
 

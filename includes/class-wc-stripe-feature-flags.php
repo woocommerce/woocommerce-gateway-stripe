@@ -11,7 +11,6 @@ class WC_Stripe_Feature_Flags {
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
-	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
 
 	/**
@@ -29,7 +28,6 @@ class WC_Stripe_Feature_Flags {
 		self::LPM_ACSS_FEATURE_FLAG_NAME       => 'yes',
 		self::LPM_BACS_FEATURE_FLAG_NAME       => 'yes',
 		self::LPM_BECS_DEBIT_FEATURE_FLAG_NAME => 'yes',
-		self::LPM_BLIK_FEATURE_FLAG_NAME       => 'yes',
 	];
 
 	/**
@@ -90,16 +88,6 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_bacs_lpm_enabled(): bool {
 		return 'yes' === self::get_option_with_default( self::LPM_BACS_FEATURE_FLAG_NAME );
-	}
-
-	/**
-	 * Checks whether BLIK LPM (Local Payment Method) feature flag is enabled.
-	 * BLIK LPM is a feature that allows merchants to enable/disable the BLIK payment method.
-	 *
-	 * @return bool
-	 */
-	public static function is_blik_lpm_enabled(): bool {
-		return 'yes' === self::get_option_with_default( self::LPM_BLIK_FEATURE_FLAG_NAME );
 	}
 
 	/**
