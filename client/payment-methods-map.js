@@ -336,18 +336,4 @@ if ( isBecsDebitEnabled ) {
 	};
 }
 
-// Enable BLIK according to feature flag value.
-if ( isBlikEnabled ) {
-	paymentMethodsMap.blik = {
-		id: PAYMENT_METHOD_BLIK,
-		label: 'BLIK',
-		description: __(
-			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.blik,
-		currencies: [ 'PLN' ],
-	};
-}
-
 export default paymentMethodsMap;
