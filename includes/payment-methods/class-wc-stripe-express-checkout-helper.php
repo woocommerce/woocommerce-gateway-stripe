@@ -699,7 +699,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Cart or checkout page: the cart is taxable if any item in the cart
 		// is taxable.
-		if ( ! isset( WC()->cart ) || empty( WC()->cart ) ) {
+		if ( empty( WC()->cart ) ) {
 			return false;
 		}
 
@@ -735,7 +735,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Cart or checkout page.
-		if ( ! isset( WC()->cart ) || empty( WC()->cart ) ) {
+		if ( empty( WC()->cart ) ) {
 			return false;
 		}
 
