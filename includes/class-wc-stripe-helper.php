@@ -1681,4 +1681,23 @@ class WC_Stripe_Helper {
 
 		return $payment_method_id . '_payments';
 	}
+
+	/**
+	 * Renders the admin header with back link consistently across admin pages.
+	 *
+	 * @param string $header_text The text to display in the header.
+	 * @param string $return_text The text for the return link.
+	 * @param string $return_url  The URL for the return link.
+	 * @return void
+	 */
+	public static function render_admin_header( $header_text, $return_text, $return_url ) {
+		if ( function_exists( 'wc_back_header' ) ) {
+			wc_back_header( $header_text, $return_text, $return_url );
+		} else {
+			// Until the wc_back_header function is available (WC Core 9.9) use the current available version.
+			echo '<h2>' . esc_html( $header_text );
+			wc_back_link( $return_text, $return_url );
+			echo '</h2>';
+		}
+	}
 }

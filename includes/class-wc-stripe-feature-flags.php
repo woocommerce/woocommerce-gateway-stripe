@@ -28,7 +28,7 @@ class WC_Stripe_Feature_Flags {
 		self::LPM_ACH_FEATURE_FLAG_NAME        => 'yes',
 		self::LPM_ACSS_FEATURE_FLAG_NAME       => 'yes',
 		self::LPM_BACS_FEATURE_FLAG_NAME       => 'yes',
-		self::LPM_BECS_DEBIT_FEATURE_FLAG_NAME => 'no',
+		self::LPM_BECS_DEBIT_FEATURE_FLAG_NAME => 'yes',
 		self::LPM_BLIK_FEATURE_FLAG_NAME       => 'yes',
 	];
 
