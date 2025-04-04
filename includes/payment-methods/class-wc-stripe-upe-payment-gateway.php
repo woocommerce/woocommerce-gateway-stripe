@@ -193,11 +193,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					continue;
 				}
 
-				// Show BECS Debit only if feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
-					continue;
-				}
-
 				// Show BLIK only if feature is enabled.
 				if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
 					continue;
@@ -492,9 +487,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// BLIK LPM Feature flag.
 		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
-
-		// BECS Debit LPM Feature flag.
-		$stripe_params['is_becs_debit_enabled'] = WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled();
 
 		// Single Payment Element feature flag + setting.
 		$stripe_params['isSPEEnabled'] = $this->spe_enabled;

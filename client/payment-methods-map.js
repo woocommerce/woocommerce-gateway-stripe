@@ -30,8 +30,6 @@ const accountCountry =
 const isAchEnabled = window.wc_stripe_settings_params?.is_ach_enabled === '1';
 const isAcssEnabled = window.wc_stripe_settings_params?.is_acss_enabled === '1';
 const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
-const isBecsDebitEnabled =
-	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
 
 const paymentMethodsMap = {
@@ -269,6 +267,16 @@ const paymentMethodsMap = {
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
 	},
+	au_becs_debit: {
+		id: PAYMENT_METHOD_BECS,
+		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Australia BECS Direct Debit enables your store to accept payments from customers with an Australian bank account.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: icons.au_becs_debit,
+		currencies: [ 'AUD' ],
+	},
 };
 
 // Enable ACH according to feature flag value.
@@ -310,20 +318,6 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
-	};
-}
-
-// Enable BECS Debit according to feature flag value.
-if ( isBecsDebitEnabled ) {
-	paymentMethodsMap.au_becs_debit = {
-		id: PAYMENT_METHOD_BECS,
-		label: __( 'BECS Direct Debit', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Australia BECS Direct Debit enables your store to accept payments from customers with an Australian bank account.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: icons.au_becs_debit,
-		currencies: [ 'AUD' ],
 	};
 }
 
