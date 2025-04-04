@@ -628,7 +628,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Allow other plugins to filter the visibility of the button.
-		return apply_filters( 'should_show_express_checkout_button', $should_show_button );
+		return apply_filters( 'wc_stripe_should_show_express_checkout_button', $should_show_button );
 	}
 
 	/**
