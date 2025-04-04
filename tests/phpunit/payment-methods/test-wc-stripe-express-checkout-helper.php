@@ -12,6 +12,7 @@
 class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	private $shipping_zone;
 	private $shipping_method;
+	private $products;
 
 	public function set_up() {
 		parent::set_up();
@@ -49,9 +50,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 	/**
 	 * Test should_show_express_checkout_button, tax logic.
+	 *
+	 * @dataProvider provide_test_hides_ece_if_cannot_compute_taxes
 	 */
-	public function test_hides_ece_if_cannot_compute_taxes() {
+	public function test_hides_ece_if_cannot_compute_taxes( $cart_contents, $is_pay_for_order, $tax_based_on, $expected ) {
 		$this->set_up_shipping_methods();
+		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
@@ -60,60 +64,94 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-				'is_pay_for_order_page',
 			]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
-		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_pay_for_order_page' )->willReturnOnConsecutiveCalls( true, false );
 		$wc_stripe_ece_helper_mock->testmode = true;
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+
+		// Ensure that the 'stripe' gateway is available.
 		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe' => new WC_Gateway_Stripe(),
 		];
 
-		// Create virtual product and add to cart.
-		$virtual_product = WC_Helper_Product::create_simple_product();
-		$virtual_product->set_virtual( true );
-		$virtual_product->save();
+		if ( $is_pay_for_order ) {
+			$_GET['pay_for_order'] = 1;
+		}
+
+		update_option( 'woocommerce_calc_taxes', 'yes' ); // Should be overriden by product tax status.
+		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
 		WC()->session->init();
-		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
+		WC()->cart->empty_cart();
 
-		// Do not hide if Pay for Order page.
-		update_option( 'woocommerce_tax_based_on', 'shipping' );
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		foreach ( $cart_contents as $product_key ) {
+			$product = $this->products[ $product_key ];
+			WC()->cart->add_to_cart( $product->get_id(), 1 );
+		}
 
-		// Hide if cart has virtual product and tax is based on shipping or billing address.
-		update_option( 'woocommerce_calc_taxes', 'yes' );
-		update_option( 'woocommerce_tax_based_on', 'billing' );
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+		$this->assertEquals( $expected, $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		update_option( 'woocommerce_tax_based_on', 'shipping' );
-		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
-		// Do not hide if taxes are not enabled.
-		update_option( 'woocommerce_calc_taxes', 'no' );
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
-		// Do not hide if taxes are not based on customer billing or shipping address.
-		update_option( 'woocommerce_calc_taxes', 'yes' );
-		update_option( 'woocommerce_tax_based_on', 'base' );
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
-		// Do not hide if cart requires shipping.
-		update_option( 'woocommerce_tax_based_on', 'billing' );
-		$shippable_product = WC_Helper_Product::create_simple_product();
-		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
-		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
-
-		// Restore original gateways.
+		// Restore original settings.
+		unset( $_GET['pay_for_order'] );
+		WC()->cart->empty_cart();
+		WC()->session->cleanup_sessions();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+	}
+
+	/**
+	 * Create products for test_hides_ece_if_cannot_compute_taxes.
+	 */
+	private function create_products_for_test_hides_ece_if_cannot_compute_taxes() {
+		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
+		$virtual_nontaxable_product->set_virtual( true );
+		$virtual_nontaxable_product->set_tax_status( 'none' );
+		$virtual_nontaxable_product->save();
+
+		$virtual_taxable_product = WC_Helper_Product::create_simple_product();
+		$virtual_taxable_product->set_virtual( true );
+		$virtual_taxable_product->set_tax_status( 'taxable' );
+		$virtual_taxable_product->save();
+
+		$shippable_taxable_product = WC_Helper_Product::create_simple_product();
+		$shippable_taxable_product->set_virtual( false );
+		$shippable_taxable_product->set_tax_status( 'taxable' );
+		$shippable_taxable_product->save();
+		$this->products = [
+			'virtual_nontaxable' => $virtual_nontaxable_product,
+			'virtual_taxable'    => $virtual_taxable_product,
+			'shippable_taxable'  => $shippable_taxable_product,
+		];
+	}
+
+	/**
+	 * Provider for `test_hides_ece_if_cannot_compute_taxes`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_hides_ece_if_cannot_compute_taxes() {
+		$hide = false;
+		$show = true;
+		return [
+			// Hide if cart has virtual product and tax is based on billing address.
+			[ [ 'virtual_taxable', 'virtual_nontaxable' ], false, 'billing', $hide ],
+			// Do not hide if Pay for Order page.
+			[ [ 'virtual_taxable' ], true, 'billing', $show ],
+			// Do not hide if taxes are not enabled.
+			[ [ 'virtual_nontaxable' ], false, 'billing', $show ],
+			// Do not hide if cart has virtual product and tax is based on shipping address.
+			[ [ 'virtual_taxable', 'virtual_nontaxable' ], false, 'shipping', $show ],
+			// Do not hide if taxes are not based on customer billing or shipping address.
+			[ [ 'virtual_taxable' ], false, 'base', $show ],
+			// Do not hide if cart requires shipping.
+			[ [ 'shippable_taxable' ], false, 'billing', $show ],
+		];
 	}
 
 	/**
@@ -141,18 +179,29 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		}
 		$original_gateways = WC()->payment_gateways()->payment_gateways;
 
-		// Hide if 'stripe' gateway is unavailable.
-		update_option( 'woocommerce_calc_taxes', 'no' );
+		// Add a non-taxable product to the cart.
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( false );
+		$product->set_tax_status( 'none' );
+		$product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+		WC()->cart->add_to_cart( $product->get_id(), 1 );
+
 		WC()->payment_gateways()->payment_gateways = [
 			'stripe'        => new WC_Gateway_Stripe(),
 			'stripe_alipay' => new WC_Gateway_Stripe_Alipay(),
 		];
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
+		// Hide if 'stripe' gateway is unavailable.
 		unset( WC()->payment_gateways()->payment_gateways['stripe'] );
 		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
-		// Restore original gateways.
+		// Restore original settings.
+		WC()->session->cleanup_sessions();
+		WC()->cart->empty_cart();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
 	}
 
