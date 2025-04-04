@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Add - New filter to allow merchants to force the display of the express payment method buttons (`should_show_express_checkout_button`).
 * Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
