@@ -104,11 +104,13 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
-		$hide_save_button = true;
 
-		echo '<h2>' . esc_html( $gateway->get_method_title() );
-		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
-		echo '</h2>';
+		$hide_save_button = true;
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
+		$header          = $gateway->get_method_title();
+		$return_text     = __( 'Return to payments', 'woocommerce-gateway-stripe' );
+
+		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
