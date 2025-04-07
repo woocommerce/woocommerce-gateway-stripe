@@ -240,7 +240,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->enabled                       = $this->get_option( 'enabled' );
 		$this->sepa_tokens_for_other_methods = 'yes' === $this->get_option( 'sepa_tokens_for_other_methods' );
 		$this->spe_enabled                   = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
-		$this->saved_cards                   = ! $this->spe_enabled && 'yes' === $this->get_option( 'saved_cards' ); // @todo Temporarily disabling saving of methods when SPE is enabled
+		$this->saved_cards                   = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode                      = WC_Stripe_Mode::is_test();
 		$this->publishable_key               = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key                    = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -285,6 +285,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
+	}
+
+	/**
+	 * Returns the HTML for the bundled payment instructions when Smart Checkout is enabled.
+	 *
+	 * @return string
+	 */
+	public static function get_testing_instructions_for_smart_checkout() {
+		$instructions          = '';
+		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions( true );
+			if ( $payment_method_instructions ) {
+				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
+			}
+		}
+
+		return $instructions;
 	}
 
 	/**
@@ -660,9 +678,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php endif; ?>
 
 			<?php
-			// @todo Temporarily disabling test instructions when SPE is enabled.
-			if ( $this->testmode && ! $this->spe_enabled ) :
-				?>
+			if ( $this->testmode ) :
+				if ( $this->spe_enabled ) :
+					echo wp_kses_post( self::get_testing_instructions_for_smart_checkout() );
+				else :
+					?>
 				<p class="testmode-info">
 					<?php
 					printf(
@@ -675,7 +695,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					);
 					?>
 				</p>
-			<?php endif; ?>
+					<?php
+				endif;
+			endif;
+			?>
 
 			<?php
 			if ( $display_tokenization ) {
@@ -904,6 +927,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$is_using_saved_payment_method = $payment_information['is_using_saved_payment_method'];
 			$upe_payment_method            = $this->payment_methods[ $selected_payment_type ] ?? null;
 			$response_args                 = [];
+
+			if ( $this->spe_enabled && isset( $payment_method_details->type ) ) {
+				foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+					$payment_method = new $payment_method_class();
+					if ( $payment_method->get_id() === $payment_method_details->type ) {
+						$upe_payment_method = $payment_method;
+					}
+				}
+			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
@@ -2027,17 +2059,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$payment_method_id = $setup_intent->payment_method;
 
-			if ( isset( $this->payment_methods[ $payment_method_type ] ) ) {
-				$payment_method = $this->payment_methods[ $payment_method_type ];
-
-				if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
-					$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
+			$payment_method = null;
+			if ( $this->spe_enabled ) {
+				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
+				if ( ! empty( $payment_method_type ) ) {
+					foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+						$payment_method_instance = new $payment_method_class();
+						if ( $payment_method_instance->get_id() === $payment_method_type ) {
+							$payment_method = $payment_method_instance;
+						}
+					}
 				}
+			} else {
+				$payment_method = $this->payment_methods[ $payment_method_type ] ?? null;
+			}
+
+			if ( ! $payment_method ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+				$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
 			}
 
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
-
-			$payment_method = $this->payment_methods[ $payment_method_type ];
 
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 			$customer->clear_cache();
@@ -2871,10 +2916,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool - True if the payment method is reusable and the saved cards feature is enabled for the gateway and there is no subscription item in the cart, false otherwise.
 	 */
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
-		if ( $this->spe_enabled ) { // @todo Temporary disabling saving payment methods for SPE.
-			return false;
-		}
-
 		if ( $payment_method->is_reusable() ) {
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
 			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();

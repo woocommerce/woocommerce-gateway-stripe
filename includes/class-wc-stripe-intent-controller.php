@@ -968,7 +968,11 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		$payment_method_types  = $payment_information['payment_method_types'];
+		if ( $this->get_upe_gateway()->is_spe_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
+			$selected_payment_type = $payment_information['payment_method_details']->type;
+		}
+
+		$payment_method_types = $payment_information['payment_method_types'];
 
 		$request = [
 			'shipping' => $payment_information['shipping'],
