@@ -13,6 +13,7 @@ import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
+import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
@@ -27,7 +28,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/blocks/upe/spe/handle-display-of-saving-checkbox';
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
 
 const noop = () => null;
 
@@ -153,11 +154,9 @@ const PaymentProcessor = ( {
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-	const testingInstructionsIfAppropriate =
-		getBlocksConfiguration()?.testMode &&
-		! getBlocksConfiguration()?.isSPEEnabled // @todo Temporary disabling testing instructions for SPE.
-			? testingInstructions
-			: '';
+	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
+		? testingInstructions
+		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
@@ -361,6 +360,7 @@ const PaymentProcessor = ( {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			handleDisplayOfPaymentInstructions( value.type );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
 	};

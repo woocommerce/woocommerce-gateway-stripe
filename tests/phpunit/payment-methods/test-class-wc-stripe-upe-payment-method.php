@@ -792,6 +792,34 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			// Restore original settings.
 			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
 		}
+
+		// Test custom description when SPE is enabled. Should be always empty.
+		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+
+		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['single_payment_element'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
+		$custom_description                      = 'Custom description for ' . $payment_method_id;
+		$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
+		$updated_payment_settings                = $original_payment_settings;
+		$updated_payment_settings['description'] = $custom_description;
+		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
+
+		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->setMethods(
+				[
+					'get_capabilities_response',
+					'get_woocommerce_currency',
+					'is_subscription_item_in_cart',
+					'get_current_order_amount',
+					'is_inside_currency_limits',
+				]
+			)
+			->getMock();
+
+		$this->assertEmpty( $mocked_payment_method->get_description() );
 	}
 
 	/**

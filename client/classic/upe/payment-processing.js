@@ -26,6 +26,7 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/classic/upe/spe/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
@@ -341,6 +342,12 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
+	// If the SPE is enabled, we need to handle the display of the saving checkbox.
+	if ( getStripeServerData()?.isSPEEnabled ) {
+		upeElement.on( 'change', ( { value } ) => {
+			handleDisplayOfPaymentInstructions( value.type );
+		} );
+	}
 
 	// If the SPE is enabled, we need to handle the display of the saving checkbox.
 	if ( getStripeServerData()?.isSPEEnabled ) {
