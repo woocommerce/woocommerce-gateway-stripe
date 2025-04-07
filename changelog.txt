@@ -49,6 +49,7 @@
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 * Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
+* Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Add - Use Stripe Configuration API to manage payment methods enabled/disabled states.
 
 = 9.3.1 - 2025-03-14 =
