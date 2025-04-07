@@ -556,6 +556,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
+
+				do_action( 'wc_gateway_stripe_process_payment_auth_required', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
