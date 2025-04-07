@@ -699,6 +699,10 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Cart or checkout page: the cart is taxable if any item in the cart
 		// is taxable.
+		if ( empty( WC()->cart ) ) {
+			return false;
+		}
+
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$product = apply_filters(
 				'woocommerce_cart_item_product',
@@ -731,6 +735,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Cart or checkout page.
+		if ( empty( WC()->cart ) ) {
+			return false;
+		}
+
 		return WC()->cart->needs_shipping();
 	}
 
