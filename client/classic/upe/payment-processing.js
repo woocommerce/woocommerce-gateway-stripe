@@ -342,16 +342,11 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
-	// If the SPE is enabled, we need to handle the display of the saving checkbox.
 	if ( getStripeServerData()?.isSPEEnabled ) {
 		upeElement.on( 'change', ( { value } ) => {
+			// If the SPE is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type );
-		} );
-	}
 
-	// If the SPE is enabled, we need to handle the display of the saving checkbox.
-	if ( getStripeServerData()?.isSPEEnabled ) {
-		upeElement.on( 'change', ( { value } ) => {
 			// Bind the create account checkbox to the save card info container display function.
 			const createAccountCheckbox = document.getElementById(
 				'createaccount'
