@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
 * Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
