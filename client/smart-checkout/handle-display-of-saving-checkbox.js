@@ -15,10 +15,10 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 	}
 
 	// For classic checkout
-	const saveCardInfoContainer = document.querySelector(
+	const saveCardInfoContainerClassic = document.querySelector(
 		'.woocommerce-SavedPaymentMethods-saveNew'
 	);
-	if ( saveCardInfoContainer ) {
+	if ( saveCardInfoContainerClassic ) {
 		const createAccountCheckbox = document.getElementById(
 			'createaccount'
 		);
@@ -26,9 +26,9 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 			( ! createAccountCheckbox || createAccountCheckbox?.checked ) &&
 			! NON_REUSABLE_METHODS.includes( method )
 		) {
-			saveCardInfoContainer.style.display = 'block';
+			saveCardInfoContainerClassic.style.display = 'block';
 		} else {
-			saveCardInfoContainer.style.display = 'none';
+			saveCardInfoContainerClassic.style.display = 'none';
 		}
 	}
 };
