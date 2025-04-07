@@ -123,8 +123,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
-		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BLIK_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
 
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
@@ -195,6 +196,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BLIK_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
 	}
@@ -309,6 +311,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+				],
+			],
+			[ // TODO: Fix each payment method's `is_available_for_account_country` function to match supported countries.
+				'PL',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],

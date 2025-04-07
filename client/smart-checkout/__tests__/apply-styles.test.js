@@ -13,22 +13,12 @@ describe( 'applyStyles', () => {
 			</div>
 		`;
 
-		applyStyles(
-			'input[name=radio-control-wc-payment-method-options]',
-			'.wc-block-components-radio-control__option',
-			true,
-			true
-		);
+		applyStyles();
 
 		const paymentMethodOptions = document.querySelectorAll(
 			'input[name=radio-control-wc-payment-method-options]'
 		);
 		expect( paymentMethodOptions.length ).toBe( 1 );
-
-		const paymentMethodStripeOption = document.querySelector(
-			'.wc-block-components-radio-control__option'
-		);
-		expect( paymentMethodStripeOption.style.display ).toBe( 'none' );
 
 		const stripeContent = document.getElementById(
 			'radio-control-wc-payment-method-options-stripe__content'

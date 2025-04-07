@@ -27,6 +27,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_ACH::class,
 		WC_Stripe_UPE_Payment_Method_Alipay::class,
 		WC_Stripe_UPE_Payment_Method_Amazon_Pay::class,
+		WC_Stripe_UPE_Payment_Method_BLIK::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
 		WC_Stripe_UPE_Payment_Method_Klarna::class,
 		WC_Stripe_UPE_Payment_Method_Affirm::class,
@@ -197,6 +198,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					continue;
 				}
 
+				// Show BLIK only if feature is enabled.
+				if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
+					continue;
+				}
+
 				/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 				 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 				 */
@@ -287,14 +293,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param $payment_method string The payment method name.
 	 * @return WC_Stripe_UPE_Payment_Method|null The payment method instance.
 	 */
-	public static function get_payment_method_instance( $payment_method ) {
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+	public static function get_payment_method_instance( $payment_method )
+	{
+		foreach (self::UPE_AVAILABLE_METHODS as $payment_method_class) {
 			$payment_method_instance = new $payment_method_class();
-			if ( $payment_method_instance->get_id() === $payment_method ) {
+			if ($payment_method_instance->get_id() === $payment_method) {
 				return $payment_method_instance;
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the HTML for the bundled payment instructions when Smart Checkout is enabled.
+	 *
+	 * @return string
+	 */
+	public static function get_testing_instructions_for_smart_checkout() {
+		$instructions          = '';
+		$base_instruction_html = '<div id="wc-stripe-payment-method-instructions-%s" class="wc-stripe-payment-method-instruction" style="display: none;">%s</div>';
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$payment_method_instructions = ( new $payment_method_class() )->get_testing_instructions( true );
+			if ( $payment_method_instructions ) {
+				$instructions .= sprintf( $base_instruction_html, $payment_method_class::STRIPE_ID, $payment_method_instructions );
+			}
+		}
+
+		return $instructions;
 	}
 
 	/**
@@ -405,7 +430,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		wp_register_script(
 			'wc-stripe-upe-classic',
-			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.js',
+			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.js',
 			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
 			$version,
 			true
@@ -423,7 +448,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		wp_register_style(
 			'wc-stripe-upe-classic',
-			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.css',
+			WC_STRIPE_PLUGIN_URL . '/build/upe-classic.css',
 			[],
 			$version
 		);
@@ -669,7 +694,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
 
-			<?php if ( $this->testmode ) : ?>
+			<?php
+			if ( $this->testmode ) :
+				if ( $this->spe_enabled ) :
+					echo wp_kses_post( self::get_testing_instructions_for_smart_checkout() );
+				else :
+					?>
 				<p class="testmode-info">
 					<?php
 					printf(
@@ -682,7 +712,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					);
 					?>
 				</p>
-			<?php endif; ?>
+					<?php
+				endif;
+			endif;
+			?>
 
 			<?php
 			if ( $display_tokenization ) {
@@ -734,11 +767,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$order                 = WC_Stripe_Order::get_by_id( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
+		$save_payment_method   = $this->should_save_payment_method_from_request( $order_id, $selected_payment_type );
 
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
 			// Adds customer and metadata to PaymentIntent.
 			// These parameters cannot be added upon updating the intent via the `/confirm` API.
-			$this->intent_controller->update_payment_intent( $payment_intent_id, $order_id );
+			$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
 		}
 
 		// Flag for using a deferred intent. To be removed.
@@ -756,7 +790,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		$payment_needed            = $this->is_payment_needed( $order_id );
-		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
@@ -913,7 +946,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$response_args                 = [];
 
 			if ( $this->spe_enabled && isset( $payment_method_details->type ) ) {
-				$upe_payment_method = $this->get_payment_method_instance( $payment_method_details->type );
+				foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+					$payment_method = new $payment_method_class();
+					if ( $payment_method->get_id() === $payment_method_details->type ) {
+						$upe_payment_method = $payment_method;
+					}
+				}
 			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
@@ -930,6 +968,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Throw an exception when the payment method is a prepaid card and it's disallowed.
 			$this->maybe_disallow_prepaid_card( $payment_method );
+
+			// Until we know other payment methods need this, let's just set for BLIK.
+			if ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type ) {
+				$payment_information['payment_method_options'] = $this->get_payment_method_options(
+					$selected_payment_type,
+					$order,
+					$payment_method_details
+				);
+			}
 
 			// Update saved payment method to include billing details.
 			if ( $is_using_saved_payment_method ) {
@@ -992,7 +1039,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->maybe_set_preferred_card_brand_for_order( $order, $payment_method );
 
 			// Updates the redirect URL and add extra meta data to the order if the payment intent requires confirmation or action.
-			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
+			// Note: BLIK falls into this condition, but we want to skip this logic for it because from this point on,
+			// the confirming action is done by the customer and the confirmation comes through webhooks.
+			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true )
+				&& WC_Stripe_Payment_Methods::BLIK !== $selected_payment_type ) {
 				$wallet_and_voucher_methods        = array_merge( WC_Stripe_Payment_Methods::VOUCHER_PAYMENT_METHODS, WC_Stripe_Payment_Methods::WALLET_PAYMENT_METHODS );
 				$contains_wallet_or_voucher_method = isset( $payment_intent->payment_method_types ) && count( array_intersect( $wallet_and_voucher_methods, $payment_intent->payment_method_types ) ) !== 0;
 				$contains_redirect_next_action     = isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true )
@@ -2030,10 +2080,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $this->spe_enabled ) {
 				$payment_method_type = $payment_method_details['type'] ?? $payment_method_details->type ?? null;
 				if ( ! empty( $payment_method_type ) ) {
-					$payment_method = $this->get_payment_method_instance( $payment_method_type );
+					foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+						$payment_method_instance = new $payment_method_class();
+						if ( $payment_method_instance->get_id() === $payment_method_type ) {
+							$payment_method = $payment_method_instance;
+						}
+					}
 				}
 			} else {
-				$payment_method = $this->payment_methods[ $payment_method_type ];
+				$payment_method = $this->payment_methods[ $payment_method_type ] ?? null;
+			}
+
+			if ( ! $payment_method ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
@@ -2394,6 +2453,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					],
 				];
 			}
+		} elseif ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type ) {
+			$payment_method_options = [
+				WC_Stripe_Payment_Methods::BLIK => [
+					'code' => sanitize_text_field( wp_unslash( $_POST['wc-stripe-blik-code'] ?? '' ) ),
+				],
+			];
 		}
 
 		// Add the updated preferred credit card brand when defined

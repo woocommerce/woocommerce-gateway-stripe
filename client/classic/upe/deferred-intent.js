@@ -17,7 +17,6 @@ import {
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
-import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
@@ -114,14 +113,6 @@ jQuery( function ( $ ) {
 			}
 
 			await mountStripePaymentElement( api, upeElement );
-		}
-
-		// Apply styles to the Smart Checkout elements.
-		if ( getStripeServerData()?.isSPEEnabled ) {
-			applyStyles(
-				'input[name=payment_method]',
-				'label[for=payment_method_stripe]'
-			);
 		}
 	}
 
