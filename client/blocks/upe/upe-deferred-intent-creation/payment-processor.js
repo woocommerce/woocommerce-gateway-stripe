@@ -13,7 +13,6 @@ import { useEffect, useState, useRef } from 'react';
 /**
  * Internal dependencies
  */
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
@@ -29,6 +28,7 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/blocks/upe/spe/handle-display-of-saving-checkbox';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
+import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
 
 const noop = () => null;
 
