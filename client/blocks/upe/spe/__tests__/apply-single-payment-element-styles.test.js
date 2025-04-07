@@ -1,4 +1,4 @@
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
+import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
 
 describe( 'applySinglePaymentElementStyles', () => {
 	it( 'Correctly apply the required styles to HTML elements', () => {
