@@ -24,8 +24,12 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	justify-content: center;
 }
 /* stylelint-disable selector-id-pattern */
-#radio-control-wc-payment-method-options-stripe__content.single-payment-element .content {
-	display: none;
+#radio-control-wc-payment-method-options-stripe__content.single-payment-element {
+	padding: 0;
+
+	.wc-stripe-payment-method-instruction {
+		display: none;
+	}
 }
 #radio-control-wc-payment-method-options-stripe__label > span > span {
 	border: none;
