@@ -191,7 +191,7 @@ class WC_Stripe_Order extends WC_Order {
 			return false;
 		}
 
-		return new WC_Stripe_Order( $order );
+		return self::to_instance( $order );
 	}
 
 	/**
@@ -206,7 +206,7 @@ class WC_Stripe_Order extends WC_Order {
 			return false;
 		}
 
-		return new WC_Stripe_Order( $order );
+		return self::to_instance( $order );
 	}
 
 	/**
@@ -223,7 +223,7 @@ class WC_Stripe_Order extends WC_Order {
 
 		return array_map(
 			function ( $order ) {
-				return new WC_Stripe_Order( $order );
+				return self::to_instance( $order );
 			},
 			$orders
 		);
