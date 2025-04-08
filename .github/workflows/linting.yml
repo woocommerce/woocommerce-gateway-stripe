@@ -35,6 +35,7 @@ jobs:
           coverage:    none
       # install dependencies and run linter
       - run: composer self-update 2.0.6 && composer install --no-progress && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n ${{ steps.get-changed-files.outputs.all }}
+        if: ${{ steps.get-changed-files.outputs.all }}
   js_css_lint:
     name: JS & CSS linting
     runs-on: ubuntu-latest
