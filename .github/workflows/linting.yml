@@ -19,6 +19,13 @@ jobs:
         with:
           path: ~/.cache/composer/
           key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+      # get the changed files
+      - name: Get Changed Files
+        id: get-changed-files
+        uses: hanseltimeindustries/get-changed-files@v1.1.2
+        with:
+          format: 'space-delimited'
+          filter: '**/*.php'
       # setup PHP, but without debug extensions for reasonable performance
       - uses: shivammathur/setup-php@v2
         with:
@@ -26,7 +33,7 @@ jobs:
           tools:       composer
           coverage:    none
       # install dependencies and run linter
-      - run: composer self-update 2.0.6 && composer install --no-progress && ./vendor/bin/phpcs --config-set cache true && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)
+      - run: composer self-update 2.0.6 && composer install --no-progress && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n ${{ steps.get-changed-files.outputs.all }}
   js_css_lint:
     name: JS & CSS linting
     runs-on: ubuntu-latest
