@@ -136,17 +136,6 @@ const PaymentElements = ( {
 		};
 
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
-			options.appearance.rules = {
-				...options.appearance?.rules,
-				...{
-					'.RadioIcon': {
-						width: '2.1em',
-					},
-					'.RadioIconOuter': {
-						strokeWidth: '2px',
-					},
-				},
-			};
 			options = {
 				...options,
 				...{

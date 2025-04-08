@@ -218,6 +218,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
+		if ( $this->spe_enabled ) { // Disable the description when SPE is enabled.
+			return '';
+		}
+
 		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
 		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
 	}
@@ -492,9 +496,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions() {
+	public function get_testing_instructions( bool $show_smart_checkout_instruction = false ) {
 		return '';
 	}
 

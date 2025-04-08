@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
+* Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
 * Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
@@ -158,5 +160,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 * Fix - Add `wc_stripe_generate_create_intent_request` filter to support mandate information in setup intent creation.
+* Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
+* Update - Back button on the settings pages.
+* Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
