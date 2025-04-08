@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
 * Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
@@ -162,5 +163,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
+* Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

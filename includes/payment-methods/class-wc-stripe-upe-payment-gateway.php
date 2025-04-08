@@ -288,6 +288,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Returns the payment method instance for the given payment method name.
+	 *
+	 * @param $payment_method string The payment method name.
+	 * @return WC_Stripe_UPE_Payment_Method|null The payment method instance.
+	 */
+	public static function get_payment_method_instance( $payment_method ) {
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$payment_method_instance = new $payment_method_class();
+			if ( $payment_method_instance->get_id() === $payment_method ) {
+				return $payment_method_instance;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Returns the HTML for the bundled payment instructions when Smart Checkout is enabled.
 	 *
 	 * @return string
