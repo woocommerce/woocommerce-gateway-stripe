@@ -708,7 +708,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 
-		/**
+	/**
 	 * Record tracks events for each payment method that was enabled or disabled.
 	 *
 	 * @param array $enabled_methods An array of payment method ids that were enabled.
