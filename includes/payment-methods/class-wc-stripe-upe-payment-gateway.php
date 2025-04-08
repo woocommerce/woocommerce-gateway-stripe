@@ -293,11 +293,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param $payment_method string The payment method name.
 	 * @return WC_Stripe_UPE_Payment_Method|null The payment method instance.
 	 */
-	public static function get_payment_method_instance( $payment_method )
-	{
-		foreach (self::UPE_AVAILABLE_METHODS as $payment_method_class) {
+	public static function get_payment_method_instance( $payment_method ) {
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$payment_method_instance = new $payment_method_class();
-			if ($payment_method_instance->get_id() === $payment_method) {
+			if ( $payment_method_instance->get_id() === $payment_method ) {
 				return $payment_method_instance;
 			}
 		}
