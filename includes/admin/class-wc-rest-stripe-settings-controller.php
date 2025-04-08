@@ -419,7 +419,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_is_payment_request_enabled_for_legacy_checkout( WP_REST_Request $request ) {
-		if ( ! $request->get_param( 'is_upe_enabled' ) ) {
+		if ( $request->get_param( 'is_upe_enabled' ) ) {
 			return;
 		}
 
