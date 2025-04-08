@@ -135,13 +135,6 @@ describe( 'Getting styles for automated theming', () => {
 						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 					outline: '1px solid rgb(150, 88, 138)',
 				},
-				'.Input:focus': {
-					backgroundColor: 'rgba(0, 0, 0, 0)',
-					color: 'rgb(109, 109, 109)',
-					fontFamily:
-						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
-					outline: '1px solid rgb(150, 88, 138)',
-				},
 				'.Label': {
 					color: 'rgb(109, 109, 109)',
 					fontFamily:

@@ -4,9 +4,6 @@ on:
   push:
     paths:
       - '**.php'
-  pull_request:
-    paths:
-      - '**.php'
 
 permissions:
   pull-requests: write
@@ -27,7 +24,13 @@ jobs:
         with:
           format: 'space-delimited'
           filter: '**/*.php'
-      
+
+      - name: Get PR number
+        id: number
+        uses: bcgov-nr/action-get-pr@v0.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checking out
         uses: actions/checkout@v2
 
@@ -67,10 +70,12 @@ jobs:
           echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
           grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
-      
+
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
+          skip_unchanged: true
           recreate: true
+          number: ${{ steps.number.outputs.pr }}
           path: code-coverage-results-filtered.md
           
