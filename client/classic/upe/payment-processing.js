@@ -14,16 +14,20 @@ import {
 	unblockBlockCheckout,
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
+	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
+	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
@@ -85,10 +89,25 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
 
+	options = {
+		appearance: initializeUPEAppearance( api ),
+		paymentMethodCreation: 'manual',
+		fonts: getFontRulesFromPage(),
+	};
+
 	// If the payment method doesn't support deferred intent, the intent must be created here.
 	if ( ! supportsDeferredIntent ) {
 		try {
-			intent = await api.createIntent( null, paymentMethodType );
+			const isSetupIntent =
+				document.getElementById( 'add_payment_method' ) ||
+				! getStripeServerData()?.isPaymentNeeded ||
+				getStripeServerData()?.isChangingPayment;
+
+			if ( isSetupIntent ) {
+				intent = await api.initSetupIntent( paymentMethodType );
+			} else {
+				intent = await api.createIntent( null, paymentMethodType );
+			}
 		} catch ( error ) {
 			showErrorPaymentMethod(
 				error?.message ??
@@ -110,9 +129,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		gatewayUPEComponents[ paymentMethodType ].intentId = intent.id;
 
 		options = {
-			appearance: initializeUPEAppearance( api ),
-			paymentMethodCreation: 'manual',
-			fonts: getFontRulesFromPage(),
+			...options,
 			clientSecret: intent.client_secret,
 		};
 	} else {
@@ -120,14 +137,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		const paymentMethodTypes = getPaymentMethodTypes( paymentMethodType );
 
 		options = {
+			...options,
 			mode: amount < 1 ? 'setup' : 'payment',
 			currency: getStripeServerData()?.currency.toLowerCase(),
 			amount,
-			paymentMethodCreation: 'manual',
-			paymentMethodTypes,
-			appearance: initializeUPEAppearance( api ),
-			fonts: getFontRulesFromPage(),
 		};
+
+		if ( getStripeServerData()?.isSPEEnabled ) {
+			options = {
+				...options,
+				paymentMethodConfiguration: 'pmc_...',
+			};
+		} else {
+			options = {
+				...options,
+				paymentMethodTypes,
+			};
+		}
 	}
 
 	const elements = api.getStripe().elements( options );
@@ -140,14 +166,30 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		}
 	};
 
-	const createdStripePaymentElement = elements.create( 'payment', {
+	let paymentElementOptions = {
 		...getUpeSettings(),
 		...getDefaultValues(),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-	} );
+	};
+
+	// Set the layout to accordion if SPE is enabled.
+	if ( getStripeServerData()?.isSPEEnabled ) {
+		paymentElementOptions = {
+			...paymentElementOptions,
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
+		};
+	}
+
+	const createdStripePaymentElement = elements.create(
+		'payment',
+		paymentElementOptions
+	);
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[
@@ -238,9 +280,19 @@ function createStripePaymentMethod(
 		};
 	}
 
+	// BLIK uses a controlled form instead of Stripe Elements.
+	const paymentMethodData =
+		paymentMethodType === PAYMENT_METHOD_BLIK
+			? {
+					billing_details: params?.billing_details,
+					blik: {},
+					type: paymentMethodType,
+			  }
+			: { elements, params };
+
 	return api
 		.getStripe( paymentMethodType )
-		.createPaymentMethod( { elements, params } )
+		.createPaymentMethod( paymentMethodData )
 		.then( ( paymentMethod ) => {
 			if ( paymentMethod.error ) {
 				throw paymentMethod.error;
@@ -290,6 +342,31 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
+	if ( getStripeServerData()?.isSPEEnabled ) {
+		upeElement.on( 'change', ( { value } ) => {
+			// If the SPE is enabled, we need to handle the display of the saving checkbox.
+			handleDisplayOfPaymentInstructions( value.type );
+
+			// Bind the create account checkbox to the save card info container display function.
+			const createAccountCheckbox = document.getElementById(
+				'createaccount'
+			);
+			const updateCheckboxListener = () => {
+				handleDisplayOfSavingCheckbox( value.type );
+			};
+			if ( createAccountCheckbox ) {
+				createAccountCheckbox.removeEventListener(
+					'change',
+					updateCheckboxListener
+				);
+				createAccountCheckbox.addEventListener(
+					'change',
+					updateCheckboxListener
+				);
+			}
+			handleDisplayOfSavingCheckbox( value.type );
+		} );
+	}
 
 	return gatewayUPEComponents[ paymentMethodType ];
 }
@@ -380,7 +457,11 @@ export const processPayment = (
 				);
 			}
 
-			await validateElements( elements );
+			if ( paymentMethodType === PAYMENT_METHOD_BLIK ) {
+				validateBlikCode( jQueryForm );
+			} else {
+				await validateElements( elements );
+			}
 
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,

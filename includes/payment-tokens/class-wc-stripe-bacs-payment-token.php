@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Token for Bacs Direct Debit.
  *
- * @since x.x.x
+ * @since 9.3.0
  */
 class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	use WC_Stripe_Fingerprint_Trait;

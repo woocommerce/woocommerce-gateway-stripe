@@ -14,16 +14,24 @@ import { useEffect, useState, useRef } from 'react';
  * Internal dependencies
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
+import BlikCodeElement from './blik-code-element';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	maybeShowCashAppLimitNotice,
 	removeCashAppLimitNotice,
 } from 'wcstripe/stripe-utils/cash-app-limit-notice-handler';
-import { isLinkEnabled } from 'wcstripe/stripe-utils';
-import { PAYMENT_METHOD_CASHAPP } from 'wcstripe/stripe-utils/constants';
+import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
+import {
+	PAYMENT_METHOD_BLIK,
+	PAYMENT_METHOD_CASHAPP,
+} from 'wcstripe/stripe-utils/constants';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
+import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
+
 /**
  * Gets the Stripe element options.
  *
@@ -52,7 +60,6 @@ const getStripeElementOptions = () => {
 			applePay: 'never',
 			googlePay: 'never',
 		},
-		layout: 'accordion',
 	};
 
 	// Prefill Link customer data if available.
@@ -73,6 +80,16 @@ const getStripeElementOptions = () => {
 				},
 			};
 		}
+	}
+
+	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		options = {
+			...options,
+			layout: {
+				type: 'accordion',
+				radios: false,
+			},
+		};
 	}
 
 	return options;
@@ -142,6 +159,7 @@ const PaymentProcessor = ( {
 		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
+	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
 
 	// Make sure shouldSavePayment is set to true if the cart contains a subscription.
 	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
@@ -176,7 +194,8 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					if ( ! isPaymentElementComplete ) {
+					// BLIK is a special case which is not handled through the Stripe element.
+					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
 						return {
 							type: 'error',
 							message: __(
@@ -206,29 +225,38 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					await validateElements( elements );
+					if ( isBlikSelected ) {
+						validateBlikCode();
+					} else {
+						await validateElements( elements );
+					}
 
 					const billingAddress = billing.billingAddress;
+					const params = {
+						billing_details: {
+							name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
+							email: billingAddress.email,
+							phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
+							address: {
+								city: billingAddress.city,
+								country: billingAddress.country,
+								line1: billingAddress.address_1,
+								line2: billingAddress.address_2,
+								postal_code: billingAddress.postcode,
+								state: billingAddress.state,
+							},
+						},
+					};
+					const paymentMethodData = isBlikSelected
+						? {
+								billing_details: params.billing_details,
+								blik: {},
+								type: selectedPaymentMethodType,
+						  }
+						: { elements, params };
 					const paymentMethodObject = await api
 						.getStripe()
-						.createPaymentMethod( {
-							elements,
-							params: {
-								billing_details: {
-									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
-									email: billingAddress.email,
-									phone: billingAddress.phone || null, // Phone is optional, but an empty string is not allowed by Stripe.
-									address: {
-										city: billingAddress.city,
-										country: billingAddress.country,
-										line1: billingAddress.address_1,
-										line2: billingAddress.address_2,
-										postal_code: billingAddress.postcode,
-										state: billingAddress.state,
-									},
-								},
-							},
-						} );
+						.createPaymentMethod( paymentMethodData );
 
 					if ( paymentMethodObject.error ) {
 						return {
@@ -237,10 +265,19 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					const dynamicPaymentData = isBlikSelected
+						? {
+								'wc-stripe-blik-code': document?.querySelector(
+									'#wc-stripe-blik-code'
+								)?.value,
+						  }
+						: {};
+
 					return {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
+								...dynamicPaymentData,
 								payment_method: upeMethods[ paymentMethodId ],
 								wc_payment_intent_id: paymentIntentId ?? '',
 								'wc-stripe-is-deferred-intent': true,
@@ -280,11 +317,13 @@ const PaymentProcessor = ( {
 			isPaymentElementComplete,
 			billing.billingAddress,
 			paymentIntentId,
+			selectedPaymentMethodType,
+			isBlikSelected,
 		]
 	);
 
-	// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 	useEffect( () => {
+		// Show the Cash App limit notice if the payment method is selected and the cart amount is higher than 2000 USD.
 		if ( selectedPaymentMethodType === PAYMENT_METHOD_CASHAPP ) {
 			maybeShowCashAppLimitNotice(
 				'.wc-block-checkout__payment-method .wc-block-components-notices',
@@ -293,6 +332,10 @@ const PaymentProcessor = ( {
 			);
 		} else {
 			removeCashAppLimitNotice();
+		}
+		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			applyStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
 
@@ -316,6 +359,10 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			handleDisplayOfPaymentInstructions( value.type );
+			handleDisplayOfSavingCheckbox( value.type );
+		}
 	};
 
 	return (
@@ -332,12 +379,16 @@ const PaymentProcessor = ( {
 					__html: testingInstructionsIfAppropriate,
 				} }
 			/>
-			<PaymentElement
-				options={ getStripeElementOptions() }
-				onChange={ onSelectedPaymentMethodChange }
-				onLoadError={ setHasLoadError }
-				className="wcstripe-payment-element"
-			/>
+			{ isBlikSelected ? (
+				<BlikCodeElement />
+			) : (
+				<PaymentElement
+					options={ getStripeElementOptions() }
+					onChange={ onSelectedPaymentMethodChange }
+					onLoadError={ setHasLoadError }
+					className="wcstripe-payment-element"
+				/>
+			) }
 		</>
 	);
 };

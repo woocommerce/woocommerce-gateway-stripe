@@ -6,6 +6,8 @@
  * @package WooCommerce_Stripe/Tests/Helper
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * WC_Stripe_Helper_Test class.
  */
@@ -207,15 +209,16 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 		$order->set_status( $status );
 
 		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+		$order->set_intent_id( $intent_id );
+		$order->save_meta_data();
 
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		$order = WC_Stripe_Order::get_by_intent_id( $intent_id );
 		if ( $success ) {
-			$this->assertInstanceOf( WC_Order::class, $order );
+			$this->assertInstanceOf( WC_Stripe_Order::class, $order );
 		} else {
 			$this->assertFalse( $order );
 		}
@@ -230,12 +233,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		return [
 			'regular table' => [
 				'custom orders table' => false,
-				'status'              => 'completed',
+				'status'              => OrderStatus::COMPLETED,
 				'success'             => true,
 			],
 			'trashed order' => [
 				'custom orders table' => false,
-				'status'              => 'trash',
+				'status'              => OrderStatus::TRASH,
 				'success'             => false,
 			],
 		];
@@ -344,6 +347,10 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 				'payment_method' => 'stripe_eps',
 				'expected'       => false,
 			],
+			'AmazonPay'         => [
+				'payment_method' => 'stripe_amazon_pay',
+				'expected'       => true,
+			],
 		];
 	}
 
@@ -389,6 +396,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [ 'test' => 'test' ], $current_settings );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $current_settings );

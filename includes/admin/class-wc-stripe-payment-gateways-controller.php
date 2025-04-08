@@ -28,7 +28,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 	}
 
 	public function register_payments_scripts() {
-		$payment_gateways_script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment_gateways.asset.php';
+		$payment_gateways_script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment-gateways.asset.php';
 		$payment_gateways_script_asset      = file_exists( $payment_gateways_script_asset_path )
 			? require_once $payment_gateways_script_asset_path
 			: [
@@ -38,7 +38,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 
 		wp_register_script(
 			'woocommerce_stripe_payment_gateways_page',
-			plugins_url( 'build/payment_gateways.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/payment-gateways.js', WC_STRIPE_MAIN_FILE ),
 			$payment_gateways_script_asset['dependencies'],
 			$payment_gateways_script_asset['version'],
 			true
@@ -49,7 +49,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 		);
 		wp_register_style(
 			'woocommerce_stripe_payment_gateways_page',
-			plugins_url( 'build/payment_gateways.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/payment-gateways.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$payment_gateways_script_asset['version']
 		);

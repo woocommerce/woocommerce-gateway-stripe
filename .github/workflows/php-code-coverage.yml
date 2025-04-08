@@ -7,6 +7,7 @@ on:
 
 permissions:
   pull-requests: write
+  contents: read
 
 jobs:
   test:
@@ -19,11 +20,17 @@ jobs:
     steps:
       - name: Get Changed Files
         id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1
+        uses: hanseltimeindustries/get-changed-files@v1.1.2
         with:
           format: 'space-delimited'
           filter: '**/*.php'
-      
+
+      - name: Get PR number
+        id: number
+        uses: bcgov-nr/action-get-pr@v0.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checking out
         uses: actions/checkout@v2
 
@@ -63,12 +70,12 @@ jobs:
           echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
           grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
           tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
-      
+
       - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v2.9.1
         with:
-          number: ${{ github.event.number }}
-          header: code-coverage
+          skip_unchanged: true
           recreate: true
+          number: ${{ steps.number.outputs.pr }}
           path: code-coverage-results-filtered.md
           

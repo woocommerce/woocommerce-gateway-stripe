@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -230,7 +233,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order = WC_Stripe_Order::get_by_id( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 
@@ -280,7 +283,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( $this->has_subscription( $order_id ) ) {
 				$force_save_source = true;
@@ -312,7 +315,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 			if ( $order->get_total() > 0 ) {
 				// This will throw exception if not valid.
-				$this->validate_minimum_order_amount( $order );
+				$order->validate_minimum_amount();
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
@@ -396,7 +399,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			if ( $order->has_status(
 				apply_filters(
 					'wc_stripe_allowed_payment_processing_statuses',
-					[ 'pending', 'failed' ],
+					[ OrderStatus::PENDING, OrderStatus::FAILED ],
 					$order
 				)
 			) ) {

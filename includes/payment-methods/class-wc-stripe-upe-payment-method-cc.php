@@ -41,9 +41,27 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		$wallet_type = WC_Stripe_Payment_Methods::AMAZON_PAY === ( $payment_details->type ?? null ) ? WC_Stripe_Payment_Methods::AMAZON_PAY : ( $payment_details->card->wallet->type ?? null );
-		if ( $payment_details && $wallet_type ) {
-			return $this->get_card_wallet_type_title( $wallet_type );
+		$wallet_type = $payment_details->card->wallet->type ?? null;
+		if ( $payment_details ) {
+			if ( $wallet_type ) {
+				return $this->get_card_wallet_type_title( $wallet_type );
+			}
+
+			// Setting title for the order details page / thank you page (classic checkout) when SPE is enabled.
+			if ( $this->spe_enabled ) {
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
+			}
+		}
+
+		if ( $this->spe_enabled ) {
+			if ( $payment_details ) { // Setting title for the order details page / thank you page.
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
+			}
+
+			// Classic checkout page
+			return __( 'Stripe', 'woocommerce-gateway-stripe' );
 		}
 
 		return parent::get_title();
@@ -104,9 +122,14 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions() {
+	public function get_testing_instructions( $show_smart_checkout_instruction = false ) {
+		if ( $this->spe_enabled && ! $show_smart_checkout_instruction ) {
+			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_smart_checkout();
+		}
+
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
 			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
@@ -126,24 +149,13 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string The title for the card wallet type.
 	 */
 	private function get_card_wallet_type_title( $express_payment_type ) {
-		$express_payment_titles = [
-			'apple_pay'                           => 'Apple Pay',
-			'google_pay'                          => 'Google Pay',
-			WC_Stripe_Payment_Methods::AMAZON_PAY => 'Amazon Pay',
-		];
-
-		$payment_method_title = $express_payment_titles[ $express_payment_type ] ?? false;
+		$express_payment_titles = WC_Stripe_Payment_Methods::EXPRESS_METHODS_LABELS;
+		$payment_method_title   = $express_payment_titles[ $express_payment_type ] ?? false;
 
 		if ( ! $payment_method_title ) {
 			return parent::get_title();
 		}
 
-		$suffix = apply_filters( 'wc_stripe_payment_request_payment_method_title_suffix', 'Stripe' );
-
-		if ( ! empty( $suffix ) ) {
-			$suffix = " ($suffix)";
-		}
-
-		return $payment_method_title . $suffix;
+		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 	}
 }

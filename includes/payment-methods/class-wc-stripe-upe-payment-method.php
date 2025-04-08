@@ -113,6 +113,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
+	 * Whether Single Payment Element is enabled.
+	 *
+	 * @var bool
+	 */
+	protected $spe_enabled;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -125,6 +132,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
+		$this->spe_enabled              = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
 	}
 
 	/**
@@ -210,6 +218,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
+		if ( $this->spe_enabled ) { // Disable the description when SPE is enabled.
+			return '';
+		}
+
 		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
 		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
 	}
@@ -276,8 +288,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// If cart or order contains pre-order, enable payment method if it's reusable.
+		// BLIK supports pre-order when product is charged upfront. We're handling availability in WC_Stripe_UPE_Payment_Method_BLIK.
 		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
-			return $this->is_reusable();
+			return $this->is_reusable() || WC_Stripe_Payment_Methods::BLIK === $this->stripe_id;
 		}
 
 		// Note: this $this->is_automatic_capture_enabled() call will be handled by $this->__call() and fall through to the UPE gateway class.
@@ -342,7 +355,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		if ( empty( $capabilities ) ) {
 			return false;
 		}
-		$key = $this->get_id() . '_payments';
+		$key = WC_Stripe_Helper::get_payment_method_capability_id( $this->get_id() );
 		return isset( $capabilities[ $key ] ) && 'active' === $capabilities[ $key ];
 	}
 
@@ -483,9 +496,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions() {
+	public function get_testing_instructions( bool $show_smart_checkout_instruction = false ) {
 		return '';
 	}
 
@@ -584,23 +598,24 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<?php if ( ! empty( $this->get_description() ) ) : ?>
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
+
+			<?php
+			if ( $display_tokenization ) {
+				$this->tokenization_script();
+				$this->saved_payment_methods();
+			}
+			?>
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
 				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
-
 			if ( $this->should_show_save_option() ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
-			}
-
-			if ( $display_tokenization ) {
-				$this->tokenization_script();
-				$this->saved_payment_methods();
 			}
 
 			do_action( 'wc_stripe_payment_fields_' . $this->id, $this->id );

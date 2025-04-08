@@ -1,6 +1,10 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import {
+	getStripeServerData,
+	getUPETerms,
+	maybeClearBlikCodeValidation,
+} from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
@@ -306,6 +310,8 @@ jQuery( function ( $ ) {
 			} else {
 				removeCashAppLimitNotice();
 			}
+
+			maybeClearBlikCodeValidation();
 		} );
 
 	// Add terms parameter to UPE if save payment information checkbox is checked.

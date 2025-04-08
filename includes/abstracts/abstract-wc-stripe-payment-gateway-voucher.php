@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -224,7 +227,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 		if ( $this->is_valid_pay_for_order_endpoint() ) {
 			$order_id                          = absint( get_query_var( 'order-pay' ) );
-			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? wc_get_order( $order_id )->get_order_key() : null;
+			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? WC_Stripe_Order::get_by_id( $order_id )->get_order_key() : null;
 		}
 
 		return $stripe_params;
@@ -253,7 +256,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( ! in_array( $order->get_billing_country(), $this->supported_countries ) ) {
 				throw new \Exception( __( 'This payment method is not available in the selected country', 'woocommerce-gateway-stripe' ) );
@@ -261,11 +264,11 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->set_upe_payment_type( $this->stripe_id );
+			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
-			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
+			$order->add_payment_intent_to_order( $intent->id );
 
 			return [
 				'result'               => 'success',
@@ -283,7 +286,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 			$statuses = apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ],
+				[ OrderStatus::PENDING, OrderStatus::FAILED ],
 				$order
 			);
 
@@ -372,7 +375,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 				throw new \Exception( __( 'Order Id not found, send an order id', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			$order_key = isset( $_POST['stripe_order_key'] ) ? wc_clean( wp_unslash( $_POST['stripe_order_key'] ) ) : null;
 			if ( $order->get_order_key() !== $order_key ) {
@@ -382,8 +385,8 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
+			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->set_upe_payment_type( $this->stripe_id );
 			$order->save();
 
 			wp_send_json(

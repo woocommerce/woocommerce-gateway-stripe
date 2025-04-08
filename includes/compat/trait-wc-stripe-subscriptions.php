@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -45,6 +48,14 @@ trait WC_Stripe_Subscriptions_Trait {
 			]
 		);
 
+		/**
+		 * We need to attach the callbacks below once per Gateway (CC, SEPA, etc.), but only once.
+		 * Therefore, we use a static flag at class level to indicate that they have been attached.
+		 */
+		if ( self::$has_attached_integration_hooks ) {
+			return;
+		}
+
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
 		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
 
@@ -61,15 +72,15 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Validate the payment method meta data set on a subscription.
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 
+		self::$has_attached_integration_hooks = true;
+
 		/**
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
+		if ( WC_Gateway_Stripe::ID !== $this->id ) {
 			return;
 		}
-
-		self::$has_attached_integration_hooks = true;
 
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
@@ -505,7 +516,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
 			/* translators: error message */
-			$renewal_order->update_status( 'failed' );
+			$renewal_order->update_status( OrderStatus::FAILED );
 			$this->unlock_order_payment( $renewal_order );
 
 			return;
@@ -525,7 +536,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -541,7 +552,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$attempt_time
 				);
 				$renewal_order->add_order_note( $message );
-				$renewal_order->update_status( 'pending' );
+				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -730,9 +741,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
 	 * take care of handling any authorizations.
 	 *
-	 * @param Array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
 	 * @param WC_Order $order            The renewal order.
-	 * @param Array    $prepared_source  The source object.
+	 * @param object   $prepared_source  The source object.
 	 */
 	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
@@ -749,7 +760,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			//       so it's probably needed here too?
 			// If we've already created a mandate for this order; use that.
 			$mandate = $order->get_meta( '_stripe_mandate_id', true );
-			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOLEAN ) && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				unset( $request['setup_future_usage'] );
 				return $request;
@@ -772,6 +783,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
+		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
 		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
@@ -989,15 +1001,34 @@ trait WC_Stripe_Subscriptions_Trait {
 							break 3;
 						case WC_Stripe_Payment_Methods::ACH:
 							$payment_method_to_display = sprintf(
-								/* translators: account type (checking, savings), last 4 digits of account. */
+								/* translators: 1) account type (checking, savings), 2) last 4 digits of account. */
 								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
 								ucfirst( $source->us_bank_account->account_type ),
 								$source->us_bank_account->last4
 							);
 							break 3;
+						case WC_Stripe_Payment_Methods::BECS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: last 4 digits of account. */
+								__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
+								$source->au_becs_debit->last4
+							);
+							break 3;
+						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+							$payment_method_to_display = sprintf(
+								/* translators: 1) bank name, 2) last 4 digits of account. */
+								__( 'Via %1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+								$source->acss_debit->bank_name,
+								$source->acss_debit->last4
+							);
+							break 3;
 						case WC_Stripe_Payment_Methods::BACS_DEBIT:
 							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
 							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
+							break 3;
+						case WC_Stripe_Payment_Methods::AMAZON_PAY:
+							/* translators: 1) the Amazon Pay payment method's email */
+							$payment_method_to_display = sprintf( __( 'Via Amazon Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->billing_details->email ?? '' );
 							break 3;
 					}
 				}
@@ -1064,7 +1095,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$charge    = $this->get_latest_charge_from_intent( $existing_intent );
 		$charge_id = $charge->id;
 		/* translators: %s is the stripe charge Id */
-		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
+		$renewal_order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;
 	}

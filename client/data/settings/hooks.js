@@ -1,6 +1,7 @@
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+import { PAYMENT_METHOD_AMAZON_PAY } from 'wcstripe/stripe-utils/constants';
 
 const EMPTY_ARR = [];
 
@@ -156,9 +157,32 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	'payment_request_button_locations',
 	EMPTY_ARR
 );
-export const useAmazonPayEnabledSettings = makeSettingsHook(
-	'is_amazon_pay_enabled'
-);
+export const useAmazonPayEnabledSettings = () => {
+	const [
+		enabledMethodIds,
+		updateEnabledMethodIds,
+	] = useEnabledPaymentMethodIds();
+	const isAmazonPayEnabled = enabledMethodIds.includes(
+		PAYMENT_METHOD_AMAZON_PAY
+	);
+
+	const updateIsAmazonPayEnabled = ( isEnabled ) => {
+		if ( isEnabled ) {
+			updateEnabledMethodIds( [
+				...enabledMethodIds,
+				PAYMENT_METHOD_AMAZON_PAY,
+			] );
+		} else {
+			updateEnabledMethodIds( [
+				...enabledMethodIds.filter(
+					( id ) => id !== PAYMENT_METHOD_AMAZON_PAY
+				),
+			] );
+		}
+	};
+
+	return [ isAmazonPayEnabled, updateIsAmazonPayEnabled ];
+};
 export const useAmazonPayButtonSize = makeSettingsHook(
 	'amazon_pay_button_size',
 	''
@@ -182,7 +206,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
-export const useIsSpeEnabled = makeSettingsHook( 'is_spe_enabled' );
+export const useIsSPEEnabled = makeSettingsHook( 'is_spe_enabled' );
 
 export const useIndividualPaymentMethodSettings = makeSettingsHook(
 	'individual_payment_method_settings',

@@ -17,7 +17,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/amazon_pay_settings.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/amazon-pay-settings.asset.php';
 		$asset_metadata    = file_exists( $script_asset_path )
 			? require $script_asset_path
 			: [
@@ -26,7 +26,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 			];
 		wp_register_script(
 			'wc-stripe-amazon-pay-settings',
-			plugins_url( 'build/amazon_pay_settings.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/amazon-pay-settings.js', WC_STRIPE_MAIN_FILE ),
 			$asset_metadata['dependencies'],
 			$asset_metadata['version'],
 			true
@@ -51,7 +51,7 @@ class WC_Stripe_Amazon_Pay_Controller {
 
 		wp_register_style(
 			'wc-stripe-amazon-pay-settings',
-			plugins_url( 'build/amazon_pay_settings.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/amazon-pay-settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$asset_metadata['version']
 		);
@@ -65,9 +65,11 @@ class WC_Stripe_Amazon_Pay_Controller {
 	public function admin_options() {
 		global $hide_save_button;
 		$hide_save_button = true;
-		echo '<h2>' . esc_html__( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
-		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		echo '</h2>';
+		$return_url      = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+		$header          = __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
+		$return_text     = __( 'Return to Stripe', 'woocommerce-gateway-stripe' );
+
+		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 		echo '<div class="wrap"><div id="wc-stripe-amazon-pay-settings-container"></div></div>';
 	}
 }

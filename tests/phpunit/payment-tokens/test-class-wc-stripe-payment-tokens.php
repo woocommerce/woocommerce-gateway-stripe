@@ -84,6 +84,25 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 		$token->set_user_id( 1 );
 		$token->save();
 
+		// BECS Debit token.
+		$token = new WC_Payment_Token_Becs_Debit();
+		$token->set_last4( '4356' );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID ] );
+		$token->set_token( 'pm_1234' );
+		$token->set_user_id( 1 );
+		$token->save();
+
+		// ACSS token.
+		$token = new WC_Payment_Token_ACSS();
+		$token->set_last4( '4321' );
+		$token->set_bank_name( 'Test Bank' );
+		$token->set_fingerprint( 'Fxxxxxxxxxxxxxxx' );
+		$token->set_gateway_id( WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID ] );
+		$token->set_token( 'pm_1234' );
+		$token->set_user_id( 1 );
+		$token->save();
+
 		$gateway_id = WC_Stripe_Payment_Tokens::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method->type ];
 
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method, 1, $gateway_id );
@@ -173,29 +192,56 @@ class WC_Stripe_Payment_Tokens_Test extends WP_UnitTestCase {
 			],
 		];
 
+		$payment_method_becs_debit = [
+			'id'                                  => 'pm_mock_payment_method_id',
+			'type'                                => WC_Stripe_Payment_Methods::BECS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT => (object) [
+				'last4'       => '4356',
+				'fingerprint' => 'Fxxxxxxxxxxxxxxx',
+			],
+		];
+
+		$payment_method_acss = [
+			'id'                                  => 'pm_mock_payment_method_id',
+			'type'                                => WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT => (object) [
+				'last4'       => '4321',
+				'bank_name'   => 'Test Bank',
+				'fingerprint' => 'Fxxxxxxxxxxxxxxx',
+			],
+		];
+
 		return [
-			'existing CC'      => [
+			'existing CC'         => [
 				'payment method' => (object) $payment_method_cc,
 				'expected'       => true,
 			],
-			'unknown CC'       => [
+			'unknown CC'          => [
 				'payment method' => (object) $payment_method_cc_unknown,
 				'expected'       => false,
 			],
-			'existing CashApp' => [
+			'existing CashApp'    => [
 				'payment method' => (object) $payment_method_cashapp,
 				'expected'       => true,
 			],
-			'existing Sepa'    => [
+			'existing Sepa'       => [
 				'payment method' => (object) $payment_method_sepa,
 				'expected'       => true,
 			],
-			'existing Link'    => [
+			'existing Link'       => [
 				'payment method' => (object) $payment_method_link,
 				'expected'       => false,
 			],
-			'existing ACH'     => [
+			'existing ACH'        => [
 				'payment method' => (object) $payment_method_ach,
+				'expected'       => true,
+			],
+			'existing BECS Debit' => [
+				'payment method' => (object) $payment_method_becs_debit,
+				'expected'       => true,
+			],
+			'existing ACSS'       => [
+				'payment method' => (object) $payment_method_acss,
 				'expected'       => true,
 			],
 		];
