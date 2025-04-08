@@ -575,6 +575,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		$product            = $this->get_product();
+		$is_free_cart       = isset( WC()->cart ) && ! WC()->cart->is_empty() && WC()->cart->get_total( false ) === 0.0;
 		$stock_availability = $product
 							? ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
 								? array_column( $product->get_available_variations(), 'is_in_stock' )
@@ -617,6 +618,12 @@ class WC_Stripe_Express_Checkout_Helper {
 			case $this->is_product() && ! in_array( true, $stock_availability, true ):
 				// Don't show if all product variations are out-of-stock.
 				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
+				break;
+			case ( ! $this->is_pay_for_order_page() && ! $this->is_product() && $is_free_cart )
+				|| ( $this->is_product() && (float) $this->get_product()->get_price() === 0.0 ):
+				// Don't show if the total price is 0.
+				// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to cart being empty or product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
 				break;
 			case $this->should_hide_ece_based_on_tax_setup():
 				// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
