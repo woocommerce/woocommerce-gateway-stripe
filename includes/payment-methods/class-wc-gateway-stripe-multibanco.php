@@ -183,7 +183,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order = WC_Stripe_Order::get_by_id( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 
@@ -241,14 +241,14 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.1.0
 	 * @version 4.1.0
-	 * @param int|WC_Order $order
+	 * @param int|WC_Stripe_Order $order
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
 		if ( true === is_int( $order ) ) {
-			$order = wc_get_order( $order );
+			$order = WC_Stripe_Order::get_by_id( $order );
 		}
 
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = $order->get_multibanco_data();
 
 		if ( $plain_text ) {
 			esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ) . "\n\n";
@@ -287,7 +287,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.1.0
 	 * @version 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @param object $source_object
 	 */
 	public function save_instructions( $order, $source_object ) {
@@ -297,9 +297,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			'reference' => $source_object->multibanco->reference,
 		];
 
-		$order_id = $order->get_id();
-
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		$order->set_multibanco_data( $data );
 	}
 
 	/**
@@ -307,7 +305,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.1.0
 	 * @version 4.1.0
-	 * @param object $order
+	 * @param WC_Stripe_Order $order
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
@@ -317,7 +315,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
 		$post_data['type']     = WC_Stripe_Payment_Methods::MULTIBANCO;
-		$post_data['owner']    = $this->get_owner_details( $order );
+		$post_data['owner']    = $order->get_owner_details();
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 
 		if ( ! empty( $this->statement_descriptor ) ) {
@@ -342,10 +340,10 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			$order->validate_minimum_amount();
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
@@ -364,7 +362,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 				throw new Exception( $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->set_source_id( $response->id );
 			$order->save();
 
 			$this->save_instructions( $order, $response );

@@ -315,11 +315,16 @@ class WC_Stripe_Payment_Tokens {
 			}
 
 			// Add SEPA if it is disabled and iDEAL or Bancontact are enabled. iDEAL and Bancontact tokens are saved as SEPA tokens.
-			// @todo Temporarily disabling the `is_sepa_tokens_for_other_methods_enabled` feature when SPE is enabled.
-			if ( ! $gateway->is_spe_enabled() && $gateway->is_sepa_tokens_for_other_methods_enabled() && ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
-				&& ( $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled()
-					|| $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID ]->is_enabled() ) ) {
+			if ( $gateway->is_sepa_tokens_for_other_methods_enabled() ) {
+				if ( $gateway->is_spe_enabled() ) {
 					$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+				} else {
+					if ( ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
+						&& ( $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled()
+							|| $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID ]->is_enabled() ) ) {
+						$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
+					}
+				}
 			}
 
 			$payment_methods = array_merge( ...$payment_methods );
@@ -336,7 +341,7 @@ class WC_Stripe_Payment_Tokens {
 				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 
 				// The corresponding method for the payment method type is not enabled, skipping.
-				if ( ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
+				if ( ! $gateway->is_spe_enabled() && ! $gateway->payment_methods[ $payment_method_type ]->is_enabled() ) {
 					continue;
 				}
 
@@ -355,6 +360,7 @@ class WC_Stripe_Payment_Tokens {
 					unset( $stored_tokens[ $payment_method->id ] );
 				}
 			}
+
 			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
 			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
