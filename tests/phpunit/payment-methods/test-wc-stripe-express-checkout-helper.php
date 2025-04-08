@@ -68,7 +68,6 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-				'is_pay_for_order_page',
 			],
 			[ $gateway ]
 		);
@@ -116,6 +115,14 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Create products for test_hides_ece_if_cannot_compute_taxes.
 	 */
 	private function create_products_for_test_hides_ece_if_cannot_compute_taxes() {
+		if (
+			isset( $this->products['virtual_nontaxable'] ) &&
+			isset( $this->products['virtual_taxable'] ) &&
+			isset( $this->products['shippable_taxable'] )
+		) {
+			return;
+		}
+
 		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_nontaxable_product->set_virtual( true );
 		$virtual_nontaxable_product->set_tax_status( 'none' );
