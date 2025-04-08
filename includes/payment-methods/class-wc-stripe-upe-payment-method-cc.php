@@ -49,23 +49,15 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 			// Setting title for the order details page / thank you page (classic checkout) when SPE is enabled.
 			if ( $this->spe_enabled ) {
-				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_details->type ) {
-						return $payment_method->get_title();
-					}
-				}
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
 			}
 		}
 
 		if ( $this->spe_enabled ) {
 			if ( $payment_details ) { // Setting title for the order details page / thank you page.
-				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_details->type ) {
-						return $payment_method->get_title();
-					}
-				}
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
 			}
 
 			// Classic checkout page
@@ -130,9 +122,14 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions() {
+	public function get_testing_instructions( $show_smart_checkout_instruction = false ) {
+		if ( $this->spe_enabled && ! $show_smart_checkout_instruction ) {
+			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_smart_checkout();
+		}
+
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
 			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),

@@ -24,10 +24,11 @@ import {
 import { isLinkEnabled, validateBlikCode } from 'wcstripe/stripe-utils';
 import {
 	PAYMENT_METHOD_BLIK,
-	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/apply-single-payment-element-styles';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
+import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
 
@@ -153,11 +154,9 @@ const PaymentProcessor = ( {
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-	const testingInstructionsIfAppropriate =
-		getBlocksConfiguration()?.testMode &&
-		! getBlocksConfiguration()?.isSPEEnabled // @todo Temporary disabling testing instructions for SPE.
-			? testingInstructions
-			: '';
+	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
+		? testingInstructions
+		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 	const isBlikSelected = selectedPaymentMethodType === PAYMENT_METHOD_BLIK;
@@ -335,11 +334,8 @@ const PaymentProcessor = ( {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
-		if (
-			selectedPaymentMethodType === PAYMENT_METHOD_CARD &&
-			getBlocksConfiguration()?.isSPEEnabled
-		) {
-			applySinglePaymentElementStyles();
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			applyStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
 
@@ -363,6 +359,10 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
+		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+			handleDisplayOfPaymentInstructions( value.type );
+			handleDisplayOfSavingCheckbox( value.type );
+		}
 	};
 
 	return (
