@@ -163,5 +163,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Add - Use Stripe Configuration API to manage payment methods enabled/disabled states.
+* Dev - Add track events when enabling/disabling payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
