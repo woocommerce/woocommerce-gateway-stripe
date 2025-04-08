@@ -623,7 +623,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				|| ( $this->is_product() && (float) $this->get_product()->get_price() === 0.0 ):
 				// Don't show if the total price is 0.
 				// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to cart being empty or product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to cart amount or product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
 				break;
 			case $this->should_hide_ece_based_on_tax_setup():
 				// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
