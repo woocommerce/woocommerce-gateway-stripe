@@ -47,6 +47,8 @@ export const initializeCheckoutIcons = ( isAdmin ) => {
 			klarna: createIconComponent( 'klarna' ),
 			affirm: createIconComponent( 'affirm' ),
 			cashapp: createIconComponent( 'cashapp' ),
+			au_becs_debit: createIconComponent( 'bank-debit' ),
+			acss_debit: createIconComponent( 'bank-debit' ),
 		};
 
 		// Replace the icons in the payment methods map

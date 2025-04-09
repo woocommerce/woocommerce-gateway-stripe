@@ -80,8 +80,19 @@ const config = {
 		{
 			name: 'default',
 			testMatch: '**/*.spec.js',
-			testIgnore: /_legacy-experience/,
+			testIgnore: [ '**/_legacy-experience/**', '**/acss.spec.js' ],
 			dependencies: [ 'default-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'acss-setup',
+			testMatch: '/acss.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'acss',
+			testMatch: '**/acss.spec.js',
+			dependencies: [ 'acss-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

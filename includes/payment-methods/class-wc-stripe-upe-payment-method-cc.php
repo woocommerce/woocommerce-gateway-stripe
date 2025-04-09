@@ -49,23 +49,15 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 			// Setting title for the order details page / thank you page (classic checkout) when SPE is enabled.
 			if ( $this->spe_enabled ) {
-				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_details->type ) {
-						return $payment_method->get_title();
-					}
-				}
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
 			}
 		}
 
 		if ( $this->spe_enabled ) {
 			if ( $payment_details ) { // Setting title for the order details page / thank you page.
-				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-					$payment_method = new $payment_method_class();
-					if ( $payment_method->get_id() === $payment_details->type ) {
-						return $payment_method->get_title();
-					}
-				}
+				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+				return $payment_method->get_title();
 			}
 
 			// Classic checkout page
