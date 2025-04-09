@@ -575,7 +575,7 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		$product            = $this->get_product();
-		$is_free_cart       = isset( WC()->cart ) && ! WC()->cart->is_empty() && WC()->cart->get_total( false ) === 0.0;
+		$is_free_cart       = isset( WC()->cart ) && ! WC()->cart->is_empty() && (float) WC()->cart->get_total( false ) === 0.0;
 		$stock_availability = $product
 							? ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
 								? array_column( $product->get_available_variations(), 'is_in_stock' )
