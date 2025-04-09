@@ -635,7 +635,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Allow other plugins to filter the visibility of the button.
-		$should_show_button_filtered = apply_filters( 'wc_stripe_payment_request_button_enabled', $should_show_button );
+		$should_show_button_filtered = apply_filters( 'wc_stripe_should_show_express_checkout_button', $should_show_button );
 		if ( $should_show_button_filtered !== $should_show_button ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout visibility is overridden by the filter.' );
 		}
