@@ -620,7 +620,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				break;
 			case ( ! $this->is_pay_for_order_page() && ! $this->is_product() && $is_free_cart )
-				|| ( $this->is_product() && (float) $this->get_product()->get_price() === 0.0 ):
+				|| ( $this->is_product() && (float) $product->get_price() === 0.0 ):
 				// Don't show if the total price is 0.
 				// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
 				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the cart amount or the product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
