@@ -58,9 +58,12 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
 		if ( ! is_null( $filter_value ) ) {
-			add_filter( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', function() use ( $filter_value ) {
-				return $filter_value;
-			} );
+			add_filter(
+				'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup',
+				function() use ( $filter_value ) {
+					return $filter_value;
+				}
+			);
 		} else {
 			remove_filter( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', '__return_true' );
 		}
