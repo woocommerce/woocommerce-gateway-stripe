@@ -91,6 +91,15 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns the supported customer locations for which charges for BLIK can be processed.
+	 *
+	 * @return array Supported customer locations.
+	 */
+	public function get_available_billing_countries() {
+		return [ 'PL' ];
+	}
+
+	/**
 	 * Determines whether BLIK should be hidden.
 	 *
 	 * It should hide for pre-orders that are charged upon release.
