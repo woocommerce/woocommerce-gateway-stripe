@@ -18,15 +18,15 @@ fi
 TEST_ENV="NODE_CONFIG_DIR='tests/e2e/test-data'"
 
 TEST_ARGS=""
-accepted_args=("--base_url")
+accepted_args=("--base_url" "--project")
 for arg in "$@"; do
 	key=$(echo $arg | cut -f1 -d=)
 	value=$(echo $arg | cut -f2 -d=)
 
 	if [[ ${accepted_args[*]} =~ "${key}" ]]; then
-        v="${key/--/}"
-        declare $v="${value}"
-    else
+		v="${key/--/}"
+		declare $v="${value}"
+	else
 		TEST_ARGS="$TEST_ARGS $arg"
 	fi
 done
@@ -39,4 +39,4 @@ fi
 TEST_ENV="$TEST_ENV DOCKER=true E2E_ROOT=${E2E_ROOT} BASE_URL='http://localhost:8088'"
 TEST_ENV="$TEST_ENV ADMIN_USER='admin' ADMIN_PASSWORD='admin'"
 
-cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS
+cross-env $TEST_ENV playwright test --config=tests/e2e/config/playwright.config.js $TEST_ARGS ${project:+--project=$project}

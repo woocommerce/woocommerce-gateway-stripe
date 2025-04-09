@@ -51,3 +51,32 @@ export const togglePaymentMethod = async (
 		await context.close();
 	}
 };
+
+/**
+ * Update the store currency in WooCommerce settings.
+ * @param {Browser} browser Playwright browser fixture.
+ * @param {string} currency The currency to set.
+ */
+export const updateStoreCurrency = async ( browser, currency ) => {
+	const { context, page } = await getAdminPage( browser );
+
+	try {
+		await page.goto( '/wp-admin/admin.php?page=wc-settings&tab=general' );
+
+		// Check if the store currency is already set to the desired currency.
+		if (
+			currency ===
+			( await page.$eval( '#woocommerce_currency', ( el ) => el.value ) )
+		) {
+			return;
+		}
+
+		await page.selectOption( '#woocommerce_currency', { value: currency } );
+		await page.click( 'text=Save changes' );
+		await expect(
+			page.getByText( 'Your settings have been saved.' )
+		).toBeDefined();
+	} finally {
+		await context.close();
+	}
+};
