@@ -255,6 +255,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
 
 		// Restore original settings.
+		remove_filter( 'wc_stripe_should_show_express_checkout_button', '__return_false' );
 		WC()->session->cleanup_sessions();
 		WC()->cart->empty_cart();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
