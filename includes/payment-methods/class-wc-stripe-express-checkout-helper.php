@@ -623,7 +623,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				|| ( $this->is_product() && (float) $product->get_price() === 0.0 ):
 				// Don't show if the total price is 0.
 				// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the cart amount or the product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the cart amount or the product price being 0.' );
 				break;
 			case $this->should_hide_ece_based_on_tax_setup():
 				// Hide if cart/product doesn't require shipping and tax is based on billing address.
@@ -635,7 +635,12 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Allow other plugins to filter the visibility of the button.
-		return apply_filters( 'wc_stripe_should_show_express_checkout_button', $should_show_button );
+		$should_show_button_filtered = apply_filters( 'wc_stripe_payment_request_button_enabled', $should_show_button );
+		if ( $should_show_button_filtered !== $should_show_button ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout visibility is overridden by the filter.' );
+		}
+
+		return $should_show_button_filtered;
 	}
 
 	/**
