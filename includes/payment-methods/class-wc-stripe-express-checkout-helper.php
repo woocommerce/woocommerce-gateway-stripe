@@ -626,8 +626,8 @@ class WC_Stripe_Express_Checkout_Helper {
 				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the cart amount or the product price being 0. ' . print_r( [ 'url' => get_permalink() ], true ) );
 				break;
 			case $this->should_hide_ece_based_on_tax_setup():
-				// Hide if cart/product doesn't require shipping and tax is based on billing or shipping address.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the product/cart not requiring shipping and tax being based on the customer\'s billing or shipping address.' );
+				// Hide if cart/product doesn't require shipping and tax is based on billing address.
+				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the product/cart not requiring shipping and tax being based on the customer\'s billing address.' );
 				break;
 			default:
 				// If all checks pass, show the button by default.
