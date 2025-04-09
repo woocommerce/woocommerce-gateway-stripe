@@ -573,74 +573,74 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_express_checkout_button() {
 		$should_show_button = false;
 
-		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
-		$product            = $this->get_product();
-		$is_free_cart       = isset( WC()->cart ) && ! WC()->cart->is_empty() && (float) WC()->cart->get_total( false ) === 0.0;
-		$stock_availability = $product
-							? ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
-								? array_column( $product->get_available_variations(), 'is_in_stock' )
-								: [ $product->is_in_stock() ] )
-							: [];
+		$available_gateways       = WC()->payment_gateways->get_available_payment_gateways();
+		$product                  = $this->get_product();
+		$is_free_cart             = isset( WC()->cart ) && ! WC()->cart->is_empty() && (float) WC()->cart->get_total( false ) === 0.0;
+		$hide_due_to_tax          = $this->should_hide_ece_based_on_tax_setup();
+		$hide_due_to_tax_filtered = apply_filters( 'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup', $hide_due_to_tax ); // Allow other plugins to filter the visibility of the button.
+		$stock_availability       = $product
+									? ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true )
+										? array_column( $product->get_available_variations(), 'is_in_stock' )
+										: [ $product->is_in_stock() ] )
+									: [];
 
 		switch ( true ) {
 			case ! WC_Stripe::get_instance()->connect->is_connected(): // Bail if account is not connected.
 				// If the account is not connected, don't show the button.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the account not being connected.' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the account not being connected.' );
 				break;
 			case ! $this->testmode && ! is_ssl(): // If no SSL bail.
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to it requiring SSL enabled for live mode. ' . print_r( [ 'url' => get_permalink() ], true ) );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to it requiring SSL enabled for live mode. ' . print_r( [ 'url' => get_permalink() ], true ) );
 				break;
 			case ! isset( $available_gateways['stripe'] ): // If the Stripe gateway is not enabled, don't show the button.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the Stripe gateway being disabled.' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the Stripe gateway being disabled.' );
 				break;
 			case WC_Stripe_Helper::has_cart_or_checkout_on_current_page() && ! $this->allowed_items_in_cart():
 				// Don't show if on the cart or checkout page, or if page contains the cart or checkout
 				// shortcodes, with items in the cart that aren't supported.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to some items in the cart not being compatible with it. ' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to some items in the cart not being compatible with it. ' );
 				break;
 			case is_cart() && ! $this->should_show_ece_on_cart_page():
 				// Don't show on cart if disabled.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to buttons display on the cart being disabled. ' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to buttons display on the cart being disabled. ' );
 				break;
 			case is_checkout() && ! $this->should_show_ece_on_checkout_page():
 				// Don't show on checkout if disabled.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to buttons display on checkout being disabled. ' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to buttons display on checkout being disabled. ' );
 				break;
 			case $this->is_product() && ! $this->should_show_ece_on_product_pages():
 				// Don't show if product page ECE is disabled.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to buttons display on product pages being disabled. ' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to buttons display on product pages being disabled. ' );
 				break;
 			case $this->is_product() && ! $this->is_product_supported( $product ):
 				// Don't show if product on current page is not supported.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the product not being supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the product not being supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
 				break;
 			case $this->is_product() && ! in_array( true, $stock_availability, true ):
 				// Don't show if all product variations are out-of-stock.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				break;
 			case ( ! $this->is_pay_for_order_page() && ! $this->is_product() && $is_free_cart )
 				|| ( $this->is_product() && (float) $product->get_price() === 0.0 ):
 				// Don't show if the total price is 0.
 				// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the cart amount or the product price being 0.' );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the cart amount or the product price being 0.' );
 				break;
-			case $this->should_hide_ece_based_on_tax_setup():
+			case $hide_due_to_tax_filtered:
 				// Hide if cart/product doesn't require shipping and tax is based on billing address.
-				WC_Stripe_Logger::log( 'Stripe Express Checkout may be hidden due to the product/cart not requiring shipping and tax being based on the customer\'s billing address.' );
+				if ( $hide_due_to_tax_filtered !== $hide_due_to_tax ) {
+					WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the tax setup being overridden by the filter.' );
+				} else {
+					WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to the product/cart not requiring shipping and tax being based on the customer\'s billing address.' );
+				}
 				break;
 			default:
 				// If all checks pass, show the button by default.
 				$should_show_button = true;
 		}
 
-		// Allow other plugins to filter the visibility of the button.
-		$should_show_button_filtered = apply_filters( 'wc_stripe_should_show_express_checkout_button', $should_show_button );
-		if ( $should_show_button_filtered !== $should_show_button ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout visibility is overridden by the filter.' );
-		}
-
-		return $should_show_button_filtered;
+		return $should_show_button;
 	}
 
 	/**
