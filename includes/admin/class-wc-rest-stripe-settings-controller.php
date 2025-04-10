@@ -298,7 +298,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( ! $is_upe_enabled ) {
+		if ( ! $is_upe_enabled || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
@@ -419,10 +419,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_is_payment_request_enabled_for_legacy_checkout( WP_REST_Request $request ) {
-		if ( $request->get_param( 'is_upe_enabled' ) ) {
-			return;
-		}
-
 		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
 
 		if ( null === $is_payment_request_enabled ) {
@@ -651,8 +647,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
+		$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 	}
 
 	/**

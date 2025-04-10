@@ -18,8 +18,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 	public function __construct() {
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 		$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
-		$upe_gateway                  = new WC_Stripe_UPE_Payment_Gateway();
-		$enabled_upe_payment_methods  = $upe_gateway->get_upe_enabled_payment_method_ids();
+		$enabled_upe_payment_methods  = WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
 		$upe_payment_requests_enabled = 'yes' === $stripe_settings['payment_request'];
 
 		if ( ( is_array( $enabled_upe_payment_methods ) && count( $enabled_upe_payment_methods ) > 0 ) || $upe_payment_requests_enabled ) {
