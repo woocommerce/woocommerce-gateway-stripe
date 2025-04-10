@@ -157,12 +157,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add WooCommerce Pre-Orders support to ACSS.
 * Update - Remove unused shopper tracking
 * Add - Add BLIK support for WooCommerce Pre-Orders
+* Add - Test mode instructions for BLIK.
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 * Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
+* Fix - Ensure the subscription object is not converted into a Stripe order object.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 * Fix - Fix express checkout for block cart and block checkout for WooCommerce 9.8.0+.
 
