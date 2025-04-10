@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
 import config from 'config';
 import { api, payments, products } from '../../../utils';
 
@@ -20,11 +21,14 @@ test( 'customer can purchase a subscription product @smoke @subscriptions', asyn
 	await page.goto( `?p=${ productId }` );
 	await page.locator( 'button[name="add-to-cart"]' ).click();
 
+	const randomString = randomUUID();
 	// Subscriptions will create an account for this checkout, we need a random email.
 	const customerData = {
 		...config.get( 'addresses.customer.billing' ),
 		email:
-			Date.now() + '+' + config.get( 'addresses.customer.billing.email' ),
+			randomString +
+			'+' +
+			config.get( 'addresses.customer.billing.email' ),
 	};
 
 	await setupShortcodeCheckout( page, customerData );

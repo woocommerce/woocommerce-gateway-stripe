@@ -26,9 +26,9 @@ import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/blocks/upe/spe/handle-display-of-saving-checkbox';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
+import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
 
@@ -335,7 +335,7 @@ const PaymentProcessor = ( {
 		}
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
 		if ( getBlocksConfiguration()?.isSPEEnabled ) {
-			applySinglePaymentElementStyles();
+			applyStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
 
