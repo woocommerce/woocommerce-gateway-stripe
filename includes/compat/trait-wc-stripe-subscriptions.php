@@ -838,8 +838,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options = [];
 		$currency        = strtolower( $order->get_currency() );
 
-			// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
-			if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
+		// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
+		if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
 			return [];
 		}
 
