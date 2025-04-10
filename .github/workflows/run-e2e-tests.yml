@@ -14,16 +14,15 @@ on:
         default: '7.4'
 
 jobs:
-
   e2e-tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'Legacy' ]
+        project: [ 'default', 'legacy', 'acss' ]
 
-    name: E2E - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }} Checkout=${{ matrix.checkout }}
+    name: E2E - ${{ matrix.project }} (WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }})
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,7 +36,6 @@ jobs:
         run: npm run build
 
       # E2E test environment
-
       - name: Prepare test environment
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
@@ -45,17 +43,17 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
-      - name: Run ${{ matrix.checkout }} E2E tests
+      - name: Run E2E tests
         env:
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-        run: npm run test:e2e${{ matrix.checkout == 'Legacy' && '-legacy' || '' }}
+        run: npm run test:e2e -- --project=${{ matrix.project }}
 
-      - name: Upload ${{ matrix.checkout }} E2E test results
+      - name: Upload E2E test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.checkout }}-WP_latest-WC_latest-results
+          name: ${{ matrix.project }}-WP_${{ inputs.wp-version }}-WC_${{ inputs.wc-version }}-results
           path: tests/e2e/test-results
           if-no-files-found: ignore
           retention-days: 14

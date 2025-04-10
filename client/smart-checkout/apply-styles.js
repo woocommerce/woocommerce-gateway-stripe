@@ -1,6 +1,6 @@
 const SINGLE_PAYMENT_ELEMENT_CLASS = 'single-payment-element';
 
-export const applySinglePaymentElementStyles = () => {
+export const applyStyles = () => {
 	// Add the single payment element class to the Stripe payment method elements.
 	document
 		.getElementById(
