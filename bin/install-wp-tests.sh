@@ -33,9 +33,7 @@ wp() {
 	if [ ! -f $TMPDIR/wp-cli.phar ]; then
 		download https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar  "$TMPDIR/wp-cli.phar"
 	fi
-
-	# Increase memory limit to 256M for PHP 8.1, as we hit OOMs with the default limit.
-	php -d memory_limit=256M "$TMPDIR/wp-cli.phar" $@
+	php "$TMPDIR/wp-cli.phar" $@
 
 	cd "$WORKING_DIR"
 }
