@@ -61,17 +61,19 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			<?php endif; ?>
 
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form" style="font-size: inherit;">
-				<?php
-					woocommerce_form_field(
-						'wc-stripe-blik-code',
-						[
-							'maxlength' => 6,
-							'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-							'required' => true,
-							'type' => 'text',
-						]
-					);
-				?>
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>">
+					<?php
+						woocommerce_form_field(
+							'wc-stripe-blik-code',
+							[
+								'maxlength' => 6,
+								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required' => true,
+								'type' => 'text',
+							]
+						);
+					?>
+				</div>
 				<p>
 					<?php echo esc_html__( 'After submitting your order, please authorize the payment in your mobile banking application.', 'woocommerce-gateway-stripe' ); ?>
 				</p>
