@@ -1700,4 +1700,32 @@ class WC_Stripe_Helper {
 			echo '</h2>';
 		}
 	}
+
+	/**
+	 * Checks if a given currency is supported for Indian recurring payment mandates.
+	 *
+	 * @since 9.4.0
+	 * @param string $currency The currency code to check (e.g., 'usd', 'eur').
+	 * @return bool True if the currency is supported, false otherwise.
+	 */
+	public static function is_currency_supported_for_indian_recurring_payment_mandate( $currency ) {
+		// India recurring payment mandates can only be requested for the following currencies.
+		$supported_currencies = [
+			'inr', // Indian Rupee
+			'usd', // US Dollar
+			'eur', // Euro
+			'gbp', // British Pound
+			'sgd', // Singapore Dollar
+			'cad', // Canadian Dollar
+			'chf', // Swiss Franc
+			'sek', // Swedish Krona
+			'aed', // UAE Dirham
+			'jpy', // Japanese Yen
+			'nok', // Norwegian Krone
+			'myr', // Malaysian Ringgit
+			'hkd', // Hong Kong Dollar
+		];
+
+		return in_array( strtolower( $currency ), $supported_currencies, true );
+	}
 }
