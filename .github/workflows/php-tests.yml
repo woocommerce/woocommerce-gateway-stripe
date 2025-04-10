@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       fail-fast:    false
-      max-parallel: 10
+      max-parallel: 16
       matrix:
         woocommerce_support_policy: [ 'L', 'L-1', 'L-2' ]
         wordpress_support_policy:   [ 'L', 'L-1', 'L-2' ]
