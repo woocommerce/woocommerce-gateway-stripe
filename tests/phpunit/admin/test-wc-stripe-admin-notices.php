@@ -92,6 +92,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'publishable_key'                 => 'pk_live_valid_test_key',
 				'secret_key'                      => 'sk_live_valid_test_key',
 				'upe_checkout_experience_enabled' => 'yes',
+				'connection_type'                 => 'connect',
 			]
 		);
 

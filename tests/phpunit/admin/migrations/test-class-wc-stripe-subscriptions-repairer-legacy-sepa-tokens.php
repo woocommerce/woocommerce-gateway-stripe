@@ -68,6 +68,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 								   ->setConstructorArgs( [ $this->logger_mock ] )
 								   ->setMethods( [ 'init', 'schedule_repair' ] )
 								   ->getMock();
+
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'test_connection_type' => 'connect' ] );
 	}
 
 	/**

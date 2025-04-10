@@ -63,6 +63,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
+				'connection_type'                 => 'connect',
 			]
 		);
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK, WC_Stripe_Payment_Methods::CARD ] );
@@ -90,6 +91,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
+				'connection_type'                 => 'connect',
 			]
 		);
 

@@ -77,6 +77,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		$stripe_settings['country']              = 'GB';
+		$stripe_settings['test_connection_type'] = 'connect';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
