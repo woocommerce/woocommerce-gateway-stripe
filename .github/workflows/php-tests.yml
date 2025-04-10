@@ -12,7 +12,7 @@ jobs:
       matrix:
         woocommerce_support_policy: [ 'L', 'L-1', 'L-2' ]
         wordpress_support_policy:   [ 'L', 'L-1', 'L-2' ]
-        php_support_policy:         [ 'L', 'L-1', 'L-2', 'L-3', 'PHP7' ]
+        php_support_policy:         [ '8.3', '8.2', '8.1', '8.0', '7.4' ]
         include:
           # WooCommerce
           - woocommerce_support_policy: L
@@ -31,15 +31,15 @@ jobs:
           - wordpress_support_policy: L-2
             wordpress: '6.6'
           # PHP
-          - php_support_policy: L
+          - php_support_policy: '8.3'
             php: '8.3'
-          - php_support_policy: L-1
+          - php_support_policy: '8.2'
             php: '8.2'
-          - php_support_policy: L-2
+          - php_support_policy: '8.1'
             php: '8.1'
-          - php_support_policy: L-3
+          - php_support_policy: '8.0'
             php: '8.0'
-          - php_support_policy: PHP7
+          - php_support_policy: '7.4'
             php: '7.4'
         exclude: # incompatible versions of PHP, WordPress, and WooCommerce
           - woocommerce_support_policy: L
