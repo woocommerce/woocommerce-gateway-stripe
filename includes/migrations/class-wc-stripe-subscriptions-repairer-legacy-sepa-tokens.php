@@ -33,14 +33,14 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	 *
 	 * @var string
 	 */
-	private $scheduled_hook;
+	protected $scheduled_hook;
 
 	/**
 	 * The repair hook.
 	 *
 	 * @var string
 	 */
-	private $repair_hook;
+	protected $repair_hook;
 
 	/**
 	 * Constructor
