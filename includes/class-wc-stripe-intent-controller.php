@@ -1102,7 +1102,7 @@ class WC_Stripe_Intent_Controller {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
-		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true, $payment_information['order'] );
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true, $payment_information['order'] ?? null );
 
 		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
