@@ -73,6 +73,7 @@ if ( getBlocksConfiguration()?.isECEEnabled ) {
 	}
 } else {
 	// Register Stripe Payment Request.
+	// TODO: We can remove this once we're sure everyone on the new checkout (UPE) has been migrated to ECE.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
