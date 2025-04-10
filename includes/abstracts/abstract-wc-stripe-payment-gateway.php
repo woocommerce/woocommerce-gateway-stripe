@@ -1651,12 +1651,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass                 $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
-		$order = WC_Stripe_Order::to_instance( $order );
-
 		// Don't save any intent information on a subscription.
 		if ( $this->is_subscription( $order ) ) {
 			return;
 		}
+
+		$order = WC_Stripe_Order::to_instance( $order );
 
 		if ( 'payment_intent' === $intent->object ) {
 			$order->add_payment_intent_to_order( $intent->id );
