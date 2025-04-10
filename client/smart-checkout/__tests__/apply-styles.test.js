@@ -1,6 +1,6 @@
-import { applySinglePaymentElementStyles } from 'wcstripe/blocks/upe/spe/apply-single-payment-element-styles';
+import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
 
-describe( 'applySinglePaymentElementStyles', () => {
+describe( 'applyStyles', () => {
 	it( 'Correctly apply the required styles to HTML elements', () => {
 		document.body.innerHTML = `
 			<label class="wc-block-components-radio-control__option">
@@ -13,7 +13,7 @@ describe( 'applySinglePaymentElementStyles', () => {
 			</div>
 		`;
 
-		applySinglePaymentElementStyles();
+		applyStyles();
 
 		const paymentMethodOptions = document.querySelectorAll(
 			'input[name=radio-control-wc-payment-method-options]'
