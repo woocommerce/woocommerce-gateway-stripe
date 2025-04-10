@@ -942,14 +942,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Tests that UPE methods are enabled if Stripe is enabled and the account is connected to the platform.
 	 */
 	public function test_upe_method_enabled() {
-		$stripe_settings                                    = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['enabled']                         = 'yes';
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		$stripe_settings['connection_type']                 = 'connect';
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['test_connection_type'] = 'connect';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->set_stripe_account_data( [ 'country' => 'US' ] );
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], [] );
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
 		$this->assertTrue( $link_upe_method->is_enabled() );
