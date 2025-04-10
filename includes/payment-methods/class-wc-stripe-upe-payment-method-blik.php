@@ -50,6 +50,21 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		return $this->get_id();
 	}
 
+	/**
+	 * Returns testing instructions to be printed at checkout in test mode.
+	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
+	 * @return string
+	 */
+	public function get_testing_instructions( $show_smart_checkout_instruction = false ) {
+		return sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+			esc_html__( '%1$sTest mode:%2$s use any 6-digit number to authorize payment.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>',
+		);
+	}
+
 	public function payment_fields() {
 		try {
 			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>

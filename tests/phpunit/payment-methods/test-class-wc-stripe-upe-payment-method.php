@@ -345,7 +345,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->assertEquals( 'BLIK', $blik_method->get_title( $mock_blik_details ) );
 		$this->assertFalse( $blik_method->is_reusable() );
 		$this->assertEquals( WC_Stripe_Payment_Methods::BLIK, $blik_method->get_retrievable_type() );
-		$this->assertEquals( '', $blik_method->get_testing_instructions() );
+		$this->assertEquals(
+			'<strong>Test mode:</strong> use any 6-digit number to authorize payment.',
+			$blik_method->get_testing_instructions()
+		);
 
 		$this->assertEquals( WC_Stripe_Payment_Methods::CARD, $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );

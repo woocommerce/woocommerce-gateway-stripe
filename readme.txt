@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.3.1
+Stable tag: 9.3.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -157,12 +157,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add WooCommerce Pre-Orders support to ACSS.
 * Update - Remove unused shopper tracking
 * Add - Add BLIK support for WooCommerce Pre-Orders
+* Add - Test mode instructions for BLIK.
 * Tweak - Add save payment method parameter to update intent call for non-deferred intent payment methods.
 * Fix - Checkout page focus loss
 * Fix - Updated payment method radio button selector to correctly find the selected payment method in different themes.
 * Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
+* Fix - Ensure the subscription object is not converted into a Stripe order object.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 * Add - Use Stripe Configuration API to manage payment methods enabled/disabled states.
 * Dev - Add track events when enabling/disabling payment methods.
