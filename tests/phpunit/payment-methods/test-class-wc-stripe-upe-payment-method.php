@@ -984,6 +984,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method ) {
 			foreach ( $stripe_enabled_settings as $stripe_enabled ) {
 				foreach ( $upe_method_enabled_options as $upe_method_enabled_option ) {
+					// CARD is always enabled for UPE and non connected accounts.
+					if ( WC_Stripe_Payment_Methods::CARD === $payment_method::STRIPE_ID && ! $upe_method_enabled_option ) {
+						continue;
+					}
+
 					// Update the settings.
 					$stripe_settings['enabled'] = $stripe_enabled;
 
