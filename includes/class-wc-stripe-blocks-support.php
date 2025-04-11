@@ -200,6 +200,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
 				'style'                           => $this->get_style(),
+				'baseLocation'                    => wc_get_base_location(),
 			]
 		);
 	}
