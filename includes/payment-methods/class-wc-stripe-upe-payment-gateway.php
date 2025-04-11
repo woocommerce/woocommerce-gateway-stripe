@@ -23,30 +23,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @type WC_Stripe_UPE_Payment_Method[]
 	 */
 	const UPE_AVAILABLE_METHODS = [
-		WC_Stripe_UPE_Payment_Method_CC::class,
-		WC_Stripe_UPE_Payment_Method_ACH::class,
-		WC_Stripe_UPE_Payment_Method_Alipay::class,
-		WC_Stripe_UPE_Payment_Method_Amazon_Pay::class,
-		WC_Stripe_UPE_Payment_Method_BLIK::class,
-		WC_Stripe_UPE_Payment_Method_Giropay::class,
-		WC_Stripe_UPE_Payment_Method_Klarna::class,
-		WC_Stripe_UPE_Payment_Method_Affirm::class,
-		WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
-		WC_Stripe_UPE_Payment_Method_Eps::class,
-		WC_Stripe_UPE_Payment_Method_Bancontact::class,
-		WC_Stripe_UPE_Payment_Method_Boleto::class,
-		WC_Stripe_UPE_Payment_Method_Ideal::class,
-		WC_Stripe_UPE_Payment_Method_Oxxo::class,
-		WC_Stripe_UPE_Payment_Method_Sepa::class,
-		WC_Stripe_UPE_Payment_Method_P24::class,
-		WC_Stripe_UPE_Payment_Method_Sofort::class,
-		WC_Stripe_UPE_Payment_Method_Multibanco::class,
-		WC_Stripe_UPE_Payment_Method_Link::class,
-		WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
-		WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
-		WC_Stripe_UPE_Payment_Method_ACSS::class,
-		WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
-		WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
+		WC_Stripe_Payment_Methods::CARD              => WC_Stripe_UPE_Payment_Method_CC::class,
+		WC_Stripe_Payment_Methods::ACH               => WC_Stripe_UPE_Payment_Method_ACH::class,
+		WC_Stripe_Payment_Methods::ALIPAY            => WC_Stripe_UPE_Payment_Method_Alipay::class,
+		WC_Stripe_Payment_Methods::AMAZON_PAY        => WC_Stripe_UPE_Payment_Method_Amazon_Pay::class,
+		WC_Stripe_Payment_Methods::BLIK              => WC_Stripe_UPE_Payment_Method_BLIK::class,
+		WC_Stripe_Payment_Methods::GIROPAY           => WC_Stripe_UPE_Payment_Method_Giropay::class,
+		WC_Stripe_Payment_Methods::KLARNA            => WC_Stripe_UPE_Payment_Method_Klarna::class,
+		WC_Stripe_Payment_Methods::AFFIRM            => WC_Stripe_UPE_Payment_Method_Affirm::class,
+		WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY => WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay::class,
+		WC_Stripe_Payment_Methods::EPS               => WC_Stripe_UPE_Payment_Method_Eps::class,
+		WC_Stripe_Payment_Methods::BANCONTACT        => WC_Stripe_UPE_Payment_Method_Bancontact::class,
+		WC_Stripe_Payment_Methods::BOLETO            => WC_Stripe_UPE_Payment_Method_Boleto::class,
+		WC_Stripe_Payment_Methods::IDEAL             => WC_Stripe_UPE_Payment_Method_Ideal::class,
+		WC_Stripe_Payment_Methods::OXXO              => WC_Stripe_UPE_Payment_Method_Oxxo::class,
+		WC_Stripe_Payment_Methods::SEPA              => WC_Stripe_UPE_Payment_Method_Sepa::class,
+		WC_Stripe_Payment_Methods::P24               => WC_Stripe_UPE_Payment_Method_P24::class,
+		WC_Stripe_Payment_Methods::SOFORT            => WC_Stripe_UPE_Payment_Method_Sofort::class,
+		WC_Stripe_Payment_Methods::MULTIBANCO        => WC_Stripe_UPE_Payment_Method_Multibanco::class,
+		WC_Stripe_Payment_Methods::LINK              => WC_Stripe_UPE_Payment_Method_Link::class,
+		WC_Stripe_Payment_Methods::WECHAT_PAY        => WC_Stripe_UPE_Payment_Method_Wechat_Pay::class,
+		WC_Stripe_Payment_Methods::CASHAPP_PAY       => WC_Stripe_UPE_Payment_Method_Cash_App_Pay::class,
+		WC_Stripe_Payment_Methods::ACSS_DEBIT        => WC_Stripe_UPE_Payment_Method_ACSS::class,
+		WC_Stripe_Payment_Methods::BACS_DEBIT        => WC_Stripe_UPE_Payment_Method_Bacs_Debit::class,
+		WC_Stripe_Payment_Methods::BECS_DEBIT        => WC_Stripe_UPE_Payment_Method_Becs_Debit::class,
 	];
 
 	/**
@@ -294,13 +294,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return WC_Stripe_UPE_Payment_Method|null The payment method instance.
 	 */
 	public static function get_payment_method_instance( $payment_method ) {
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method_instance = new $payment_method_class();
-			if ( $payment_method_instance->get_id() === $payment_method ) {
-				return $payment_method_instance;
-			}
+		$payment_method_class = self::UPE_AVAILABLE_METHODS[ $payment_method ] ?? null;
+		if ( ! $payment_method_class ) {
+			return null;
 		}
-		return null;
+		return new $payment_method_class();
 	}
 
 	/**
