@@ -81,6 +81,9 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
+		// Migrate payment methods from DB to Stripe PMC if needed
+		self::maybe_migrate_payment_methods_from_db_to_pmc();
+
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
@@ -192,5 +195,60 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$key             = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
 		return isset( $stripe_settings[ $key ] ) && 'connect' === $stripe_settings[ $key ];
+	}
+
+	/**
+	 * Migrates the payment methods from the DB option to PMC if needed.
+	 */
+	private static function maybe_migrate_payment_methods_from_db_to_pmc() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// Skip if PMC is not enabled or migration already done
+		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_migration_complete'] ) ) {
+			return;
+		}
+
+		if ( ! isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
+			return;
+		}
+
+		$enabled_payment_methods = $stripe_settings['upe_checkout_experience_accepted_payments'];
+		if ( empty( $enabled_payment_methods ) ) {
+			return;
+		}
+
+		try {
+			$merchant_payment_method_configuration = self::get_primary_configuration();
+			if ( ! $merchant_payment_method_configuration ) {
+				return;
+			}
+
+			// Add Google Pay and Apple Pay to the list if payment_request is enabled
+			if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+				$enabled_payment_methods = array_merge(
+					$enabled_payment_methods,
+					[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
+				);
+			}
+
+			// Update each payment method to be enabled
+			foreach ( $enabled_payment_methods as $payment_method_id ) {
+				if ( isset( $merchant_payment_method_configuration[ $payment_method_id ] ) ) {
+					$merchant_payment_method_configuration[ $payment_method_id ]->display_preference->value = 'on';
+				}
+			}
+
+			// Update the configuration
+			self::update_payment_method_configuration(
+				$enabled_payment_methods,
+				array_keys( $merchant_payment_method_configuration )
+			);
+
+			// Mark migration as complete in stripe settings
+			$stripe_settings['pmc_migration_complete'] = true;
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error migrating payment methods to PMC: ' . $e->getMessage() );
+		}
 	}
 }
