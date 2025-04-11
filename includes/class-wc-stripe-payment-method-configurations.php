@@ -204,7 +204,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// Skip if PMC is not enabled or migration already done
-		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_migration_complete'] ) ) {
+		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_enabled'] ) ) {
 			return;
 		}
 
@@ -231,21 +231,23 @@ class WC_Stripe_Payment_Method_Configurations {
 				);
 			}
 
-			// Update each payment method to be enabled
-			foreach ( $enabled_payment_methods as $payment_method_id ) {
-				if ( isset( $merchant_payment_method_configuration[ $payment_method_id ] ) ) {
-					$merchant_payment_method_configuration[ $payment_method_id ]->display_preference->value = 'on';
+			// Get all available payment method IDs from the configuration.
+			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
+			$available_payment_method_ids = [];
+			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( $payment_method->display_preference ) ) {
+					$available_payment_method_ids[] = $payment_method_id;
 				}
 			}
 
 			// Update the configuration
 			self::update_payment_method_configuration(
 				$enabled_payment_methods,
-				array_keys( $merchant_payment_method_configuration )
+				$available_payment_method_ids
 			);
 
 			// Mark migration as complete in stripe settings
-			$stripe_settings['pmc_migration_complete'] = true;
+			$stripe_settings['pmc_enabled'] = 'yes';
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error migrating payment methods to PMC: ' . $e->getMessage() );
