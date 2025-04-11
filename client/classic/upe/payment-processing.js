@@ -18,6 +18,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
+	LIVE_MODE_CONFIGURATION_PARENT_ID,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
@@ -25,6 +26,7 @@ import {
 	PAYMENT_METHOD_CASHAPP,
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
+	TEST_MODE_CONFIGURATION_PARENT_ID,
 } from 'wcstripe/stripe-utils/constants';
 import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
 import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
@@ -146,7 +148,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		if ( getStripeServerData()?.isSPEEnabled ) {
 			options = {
 				...options,
-				paymentMethodConfiguration: 'pmc_...',
+				paymentMethodConfiguration: getStripeServerData()?.testMode
+					? TEST_MODE_CONFIGURATION_PARENT_ID
+					: LIVE_MODE_CONFIGURATION_PARENT_ID,
 			};
 		} else {
 			options = {
