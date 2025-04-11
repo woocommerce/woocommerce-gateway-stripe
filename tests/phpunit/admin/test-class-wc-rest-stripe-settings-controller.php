@@ -111,7 +111,14 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * Test that the update_settings method updates the payment method configurations settings.
 	 */
 	public function test_update_stripe_payment_method_configurations_settings() {
+		// Set up initial state with only card enabled
 		$this->mock_payment_method_configurations( [ 'card' ], [] );
+
+		// Set pmc_enabled to yes to prevent migration
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
 		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
