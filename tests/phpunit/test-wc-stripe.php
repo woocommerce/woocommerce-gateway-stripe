@@ -137,8 +137,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
 		$this->upe_helper->enable_upe_feature_flag();
-		// Store default stripe options
-		WC_Stripe_Helper::update_main_stripe_settings( [] );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
