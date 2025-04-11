@@ -688,8 +688,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function update_enabled_payment_methods( $payment_method_ids_to_enable ) {
 		// If the payment method configurations API is not enabled, we fallback to store the enabled payment methods in the DB.
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
-			// update_option( 'upe_checkout_experience_accepted_payments', $payment_method_ids_to_enable );
-
 			$currently_enabled_payment_method_ids      = (array) $this->get_option( 'upe_checkout_experience_accepted_payments' );
 			$upe_checkout_experience_accepted_payments = [];
 
