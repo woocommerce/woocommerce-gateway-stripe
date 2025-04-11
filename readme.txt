@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.5
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 9.3.1
+Stable tag: 9.3.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Dev - Updates the Code Sniffer package to version 1.0.0.
+* Add - New filter to allow merchants to bypass the default visibility of the express payment method buttons when taxes are based on customer's billing address (`wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`).
 * Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
@@ -167,5 +168,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Fix - Ensure the subscription object is not converted into a Stripe order object.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
+* Fix - Fix BLIK visibility based on account and billing countries.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

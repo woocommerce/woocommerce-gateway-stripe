@@ -2,6 +2,7 @@
 
 = 9.4.0 - xxxx-xx-xx =
 * Dev - Updates the Code Sniffer package to version 1.0.0.
+* Add - New filter to allow merchants to bypass the default visibility of the express payment method buttons when taxes are based on customer's billing address (`wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`).
 * Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
@@ -57,6 +58,10 @@
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Fix - Ensure the subscription object is not converted into a Stripe order object.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
+* Fix - Fix BLIK visibility based on account and billing countries.
+
+= 9.3.2 - 2025-04-10 =
+* Fix - Fix express checkout for block cart and block checkout for WooCommerce 9.8.0+.
 
 = 9.3.1 - 2025-03-14 =
 * Fix - Temporarily disables the subscriptions detached notice feature due to long loading times on stores with many subscriptions.
