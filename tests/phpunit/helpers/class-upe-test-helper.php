@@ -41,6 +41,7 @@ class UPE_Test_Helper {
 		$settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$settings['connection_type']      = 'connect';
 		$settings['test_connection_type'] = 'connect';
+		$settings['pmc_enabled']          = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}

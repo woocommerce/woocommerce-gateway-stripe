@@ -46,12 +46,14 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 	public function test_migration_executed_when_pmc_enabled_is_not_set() {
 		// Set pmc_enabled to '' to trigger migration
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['pmc_enabled'] = '';
+		$stripe_settings['test_connection_type']                      = 'connect';
+		$stripe_settings['payment_request']                           = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [ 'link', 'sepa_debit' ];
+		$stripe_settings['pmc_enabled']                               = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->mock_payment_method_configurations( [ 'link', 'sepa_debit' ], [] );
-		$this->expect_payment_method_configurations_update( [ 'link', 'sepa_debit' ] );
+		$this->mock_payment_method_configurations( [], [ 'link', 'sepa_debit', 'google_pay', 'apple_pay' ] );
+		$this->expect_payment_method_configurations_update( [ 'link', 'sepa_debit', 'google_pay', 'apple_pay' ], [] );
 
 		// Execute migration
 		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
