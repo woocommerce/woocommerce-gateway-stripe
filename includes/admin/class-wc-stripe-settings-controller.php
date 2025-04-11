@@ -104,11 +104,13 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
-		$hide_save_button = true;
 
-		echo '<h2>' . esc_html( $gateway->get_method_title() );
-		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
-		echo '</h2>';
+		$hide_save_button = true;
+		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
+		$header          = $gateway->get_method_title();
+		$return_text     = __( 'Return to payments', 'woocommerce-gateway-stripe' );
+
+		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
@@ -188,7 +190,7 @@ class WC_Stripe_Settings_Controller {
 		}
 
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe-settings.asset.php';
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path
 			: [
@@ -198,14 +200,14 @@ class WC_Stripe_Settings_Controller {
 
 		wp_register_script(
 			'woocommerce_stripe_admin',
-			plugins_url( 'build/upe_settings.js', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/upe-settings.js', WC_STRIPE_MAIN_FILE ),
 			$script_asset['dependencies'],
 			$script_asset['version'],
 			true
 		);
 		wp_register_style(
 			'woocommerce_stripe_admin',
-			plugins_url( 'build/upe_settings.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/upe-settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$script_asset['version']
 		);
