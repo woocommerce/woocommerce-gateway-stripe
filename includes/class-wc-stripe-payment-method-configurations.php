@@ -76,7 +76,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
 			$stripe_settings              = WC_Stripe_Helper::get_stripe_settings();
-			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ? $stripe_settings['upe_checkout_experience_accepted_payments'] : [];
+			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ? $stripe_settings['upe_checkout_experience_accepted_payments'] : [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
 		$enabled_payment_method_ids            = [];
