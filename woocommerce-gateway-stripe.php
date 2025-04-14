@@ -307,7 +307,7 @@ function woocommerce_gateway_stripe() {
 						require_once __DIR__ . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} elseif ( isset( $_GET['area'] ) && 'amazon_pay' === $_GET['area'] && WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
-						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
+						require_once __DIR__ . '/includes/admin/class-wc-stripe-amazon-pay-controller.php';
 						new WC_Stripe_Amazon_Pay_Controller();
 					} else {
 						new WC_Stripe_Settings_Controller( $this->account );
@@ -521,7 +521,7 @@ function woocommerce_gateway_stripe() {
 				if ( is_admin() ) {
 					$methods = array_filter(
 						$methods,
-						function( $method ) {
+						function ( $method ) {
 							return ! is_a( $method, WC_Stripe_UPE_Payment_Method_Link::class );
 						}
 					);
@@ -906,7 +906,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		// already registered.
 		add_action(
 			'woocommerce_blocks_payment_method_type_registration',
-			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+			function ( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
 				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
 				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) || ! class_exists( 'WC_Stripe_Express_Checkout_Element' ) ) {
 					return;
@@ -916,7 +916,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 				// registers as shared instance.
 				$container->register(
 					WC_Stripe_Blocks_Support::class,
-					function() {
+					function () {
 						if ( class_exists( 'WC_Stripe' ) ) {
 							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
 						} else {
@@ -935,7 +935,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 
 add_action(
 	'before_woocommerce_init',
-	function() {
+	function () {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'cart_checkout_blocks', __FILE__, true );
 			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );

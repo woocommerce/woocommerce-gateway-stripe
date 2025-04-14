@@ -60,7 +60,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		if ( ! is_null( $filter_value ) ) {
 			add_filter(
 				'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup',
-				function() use ( $filter_value ) {
+				function () use ( $filter_value ) {
 					return $filter_value;
 				}
 			);
@@ -151,53 +151,53 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$show = true;
 		return [
 			'Hide if cart has virtual product and tax is based on billing address.' => [
-				'cart contents' => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'billing',
-				'filter value' => null,
-				'expected' => $hide,
+				'tax based on'     => 'billing',
+				'filter value'     => null,
+				'expected'         => $hide,
 			],
 			'Do not hide if cart has virtual product and tax is based on billing address, but filter forces to show.' => [
-				'cart contents' => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'billing',
-				'filter value' => false,
-				'expected' => $show,
+				'tax based on'     => 'billing',
+				'filter value'     => false,
+				'expected'         => $show,
 			],
-			'Do not hide if Pay for Order page.' => [
-				'cart contents' => [ 'virtual_taxable' ],
+			'Do not hide if Pay for Order page.'     => [
+				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => true,
-				'tax based on' => 'billing',
-				'filter value' => null,
-				'expected' => $show,
+				'tax based on'     => 'billing',
+				'filter value'     => null,
+				'expected'         => $show,
 			],
-			'Do not hide if taxes are not enabled.' => [
-				'cart contents' => [ 'virtual_nontaxable' ],
+			'Do not hide if taxes are not enabled.'  => [
+				'cart contents'    => [ 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'billing',
-				'filter value' => null,
-				'expected' => $show,
+				'tax based on'     => 'billing',
+				'filter value'     => null,
+				'expected'         => $show,
 			],
 			'Do not hide if cart has virtual product and tax is based on shipping address.' => [
-				'cart contents' => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'shipping',
-				'filter value' => null,
-				'expected' => $show,
+				'tax based on'     => 'shipping',
+				'filter value'     => null,
+				'expected'         => $show,
 			],
 			'Do not hide if taxes are not based on customer billing or shipping address.' => [
-				'cart contents' => [ 'virtual_taxable' ],
+				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'base',
-				'filter value' => null,
-				'expected' => $show,
+				'tax based on'     => 'base',
+				'filter value'     => null,
+				'expected'         => $show,
 			],
 			'Do not hide if cart requires shipping.' => [
-				'cart contents' => [ 'shippable_taxable' ],
+				'cart contents'    => [ 'shippable_taxable' ],
 				'is pay for order' => false,
-				'tax based on' => 'billing',
-				'filter value' => null,
-				'expected' => $show,
+				'tax based on'     => 'billing',
+				'filter value'     => null,
+				'expected'         => $show,
 			],
 		];
 	}
