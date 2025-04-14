@@ -822,10 +822,10 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Adds mandate options to the request if required.
 	 *
-	 * @param array       $request              The request array to add the mandate options to.
-	 * @param string|null $payment_method_type  The type of payment method to use for the intent.
-	 * @param bool        $is_setup_intent      Whether the request is for a setup intent.
-	 * @param WC_Order    $order                The order object.
+	 * @param array            $request              The request array to add the mandate options to.
+	 * @param string|null      $payment_method_type  The type of payment method to use for the intent.
+	 * @param bool             $is_setup_intent      Whether the request is for a setup intent.
+	 * @param WC_Order|null    $order                The order object.
 	 *
 	 * @return array
 	 */
