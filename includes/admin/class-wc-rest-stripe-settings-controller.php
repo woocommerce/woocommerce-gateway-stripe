@@ -588,7 +588,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
 			);
 		}
-
 	}
 
 	/**

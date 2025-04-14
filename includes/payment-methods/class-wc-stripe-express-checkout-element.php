@@ -435,7 +435,7 @@ class WC_Stripe_Express_Checkout_Element {
 			$suffix                = WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
 			array_walk(
 				$express_method_titles,
-				function( &$value, $key ) use ( $suffix ) {
+				function ( &$value, $key ) use ( $suffix ) {
 					$value .= $suffix;
 				}
 			);

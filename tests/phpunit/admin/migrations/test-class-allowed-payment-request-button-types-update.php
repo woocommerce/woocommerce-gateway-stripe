@@ -75,7 +75,6 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 							}
 						);
 		$this->migration->method( 'get_gateway' )->willReturn( $this->gateway_mock );
-
 	}
 
 	public function deprecated_values_provider() {
