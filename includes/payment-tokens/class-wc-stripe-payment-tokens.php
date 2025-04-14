@@ -301,16 +301,28 @@ class WC_Stripe_Payment_Tokens {
 
 			// Retrieve the payment methods for the enabled reusable gateways.
 			$payment_methods = [];
-			foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $reausable_gateway_id ) {
-
-				// The payment method type doesn't match the ones we use. Nothing to do here.
-				if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
-					continue;
+			if ( $gateway->is_spe_enabled() ) {
+				// For SPE, get all available payment method types
+				foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $reausable_gateway_id ) {
+					$payment_method_instance = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_method_type );
+					if ( $payment_method_instance ) {
+						$retrieved_methods = $customer->get_payment_methods( $payment_method_type );
+						if ( ! empty( $retrieved_methods ) ) {
+							$payment_methods[] = $retrieved_methods;
+						}
+					}
 				}
+			} else {
+				foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $reausable_gateway_id ) {
+					// The payment method type doesn't match the ones we use. Nothing to do here.
+					if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
+						continue;
+					}
 
-				$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
-				if ( $payment_method_instance->is_enabled() ) {
-					$payment_methods[] = $customer->get_payment_methods( $payment_method_type );
+					$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
+					if ( $payment_method_instance->is_enabled() ) {
+						$payment_methods[] = $customer->get_payment_methods( $payment_method_type );
+					}
 				}
 			}
 
