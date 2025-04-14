@@ -1060,7 +1060,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( $source->customer ) {
 				$order->update_meta_data( '_stripe_customer_id', $customer_id );
 			}
-	
+
 			if ( $source->source ) {
 				$order->update_meta_data( '_stripe_source_id', $source_id );
 			}
