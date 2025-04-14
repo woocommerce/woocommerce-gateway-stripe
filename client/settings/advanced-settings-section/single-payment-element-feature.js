@@ -6,15 +6,11 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import React, { useEffect } from 'react';
-import {
-	useIsSPEEnabled,
-	useIsUpeEnabled,
-	useSPEElementTitle,
-} from '../../data';
+import { useIsSPEEnabled, useIsUpeEnabled, useSPETitle } from '../../data';
 
 const SinglePaymentElementFeature = () => {
 	const [ isSPEEnabled, setIsSPEEnabled ] = useIsSPEEnabled();
-	const [ SPEElementTitle, setSPEElementTitle ] = useSPEElementTitle();
+	const [ SPETitle, setSPETitle ] = useSPETitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
 
 	useEffect( () => {
@@ -59,8 +55,8 @@ const SinglePaymentElementFeature = () => {
 						'woocommerce-gateway-stripe'
 					) }
 					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
-					value={ SPEElementTitle }
-					onChange={ setSPEElementTitle }
+					value={ SPETitle }
+					onChange={ setSPETitle }
 				/>
 			) }
 		</>

@@ -140,7 +140,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
 		$this->spe_enabled              = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
-		$this->spe_title                = $this->get_option( 'spe_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		$this->spe_title                = $this->get_option( 'single_payment_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**

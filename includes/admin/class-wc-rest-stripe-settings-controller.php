@@ -285,7 +285,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
-				'spe_title'                                => $this->gateway->get_validated_option( 'spe_title' ),
+				'spe_title'                                => $this->gateway->get_validated_option( 'single_payment_element_title' ),
 			]
 		);
 	}
@@ -580,19 +580,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_spe_settings( WP_REST_Request $request ) {
-		$attributes = [ 'is_spe_enabled', 'spe_title' ];
-		$attributes = array_combine( $attributes, $attributes );
+		$attributes = [
+			'is_spe_enabled' => 'single_payment_element',
+			'spe_title'      => 'single_payment_element_title',
+		];
 		foreach ( $attributes as $request_key => $attribute ) {
-			if ( null === $request->get_param( $request_key ) ) {
+			$value = $request->get_param( $request_key );
+
+			if ( null === $value ) {
 				continue;
 			}
 
-			$value         = $request->get_param( $request_key );
+			$value         = 'is_spe_enabled' === $request_key ? ( $value ? 'yes' : 'no' ) : $value;
 			$current_value = $this->gateway->get_option( $attribute );
 
 			$this->gateway->update_validated_option( $attribute, $value );
 
-			if ( 'is_spe_enabled' === $attribute && $value !== $current_value ) {
+			if ( 'is_spe_enabled' === $request_key && $value !== $current_value ) {
 				wc_admin_record_tracks_event(
 					$value ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
 					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
