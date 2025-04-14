@@ -369,7 +369,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 		$settings  = WC_Stripe_Helper::get_stripe_settings();
 		if ( 'yes' === $settings['single_payment_element'] ) {
-			$icon_list['cards'] = '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/stripe.svg" class="stripe-cards-icon stripe-icon" alt="' . __( 'Stripe', 'woocommerce-gateway-stripe' ) . '" />';
+			$icon_list['cards'] = '';
 		}
 		return apply_filters( 'wc_stripe_payment_icons', $icon_list );
 	}
