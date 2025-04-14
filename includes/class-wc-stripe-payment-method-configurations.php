@@ -81,6 +81,9 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
+		// Migrate payment methods from DB to Stripe PMC if needed
+		self::maybe_migrate_payment_methods_from_db_to_pmc();
+
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
@@ -192,5 +195,63 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$key             = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
 		return isset( $stripe_settings[ $key ] ) && 'connect' === $stripe_settings[ $key ];
+	}
+
+	/**
+	 * Migrates the payment methods from the DB option to PMC if needed.
+	 */
+	public static function maybe_migrate_payment_methods_from_db_to_pmc() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// Skip if PMC is not enabled or migration already done
+		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_enabled'] ) ) {
+			return;
+		}
+
+		// Skip if there is no PMC available
+		$merchant_payment_method_configuration = self::get_primary_configuration();
+		if ( ! $merchant_payment_method_configuration ) {
+			return;
+		}
+
+		$enabled_payment_methods = [];
+
+		if ( isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
+				! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
+			$enabled_payment_methods = array_merge(
+				$enabled_payment_methods,
+				$stripe_settings['upe_checkout_experience_accepted_payments']
+			);
+		}
+
+		// Add Google Pay and Apple Pay to the list if payment_request is enabled
+		if ( ! empty( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'] ) {
+			$enabled_payment_methods = array_merge(
+				$enabled_payment_methods,
+				[ WC_Stripe_Payment_Methods::GOOGLE_PAY, WC_Stripe_Payment_Methods::APPLE_PAY ]
+			);
+		}
+
+		// Update the PMC if there are any enabled payment methods
+		if ( ! empty( $enabled_payment_methods ) ) {
+
+			// Get all available payment method IDs from the configuration.
+			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
+			$available_payment_method_ids = [];
+			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( $payment_method->display_preference ) ) {
+					$available_payment_method_ids[] = $payment_method_id;
+				}
+			}
+
+			self::update_payment_method_configuration(
+				$enabled_payment_methods,
+				$available_payment_method_ids
+			);
+		}
+
+		// Mark migration as complete in stripe settings
+		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 }
