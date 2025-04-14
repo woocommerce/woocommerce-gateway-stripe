@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [ 'PL' ];
+		$this->supported_countries      = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE' ];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -50,6 +50,21 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		return $this->get_id();
 	}
 
+	/**
+	 * Returns testing instructions to be printed at checkout in test mode.
+	 *
+	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
+	 * @return string
+	 */
+	public function get_testing_instructions( $show_smart_checkout_instruction = false ) {
+		return sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+			esc_html__( '%1$sTest mode:%2$s use any 6-digit number to authorize payment.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>',
+		);
+	}
+
 	public function payment_fields() {
 		try {
 			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
@@ -61,17 +76,19 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			<?php endif; ?>
 
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form" style="font-size: inherit;">
-				<?php
-					woocommerce_form_field(
-						'wc-stripe-blik-code',
-						[
-							'maxlength' => 6,
-							'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-							'required' => true,
-							'type' => 'text',
-						]
-					);
-				?>
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>">
+					<?php
+						woocommerce_form_field(
+							'wc-stripe-blik-code',
+							[
+								'maxlength' => 6,
+								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required' => true,
+								'type' => 'text',
+							]
+						);
+					?>
+				</div>
 				<p>
 					<?php echo esc_html__( 'After submitting your order, please authorize the payment in your mobile banking application.', 'woocommerce-gateway-stripe' ); ?>
 				</p>
@@ -88,6 +105,15 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for BLIK can be processed.
+	 *
+	 * @return array Supported customer locations.
+	 */
+	public function get_available_billing_countries() {
+		return [ 'PL' ];
 	}
 
 	/**

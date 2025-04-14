@@ -786,7 +786,13 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
 		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
-			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
+			if ( ! isset( $request['payment_method_options']['card']['mandate_options'] ) ) {
+				$request['payment_method_options']['card']['mandate_options'] = [];
+			}
+			$request['payment_method_options']['card']['mandate_options'] = array_merge(
+				$request['payment_method_options']['card']['mandate_options'],
+				$mandate_options
+			);
 		}
 
 		return $request;
@@ -832,8 +838,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options = [];
 		$currency        = strtolower( $order->get_currency() );
 
-		// India recurring payment mandates can only be requested for the following currencies.
-		if ( ! in_array( $currency, [ 'inr', 'usd', 'eur', 'gbp', 'sgd', 'cad', 'chf', 'sek', 'aed', 'jpy', 'nok', 'myr', 'hkd' ], true ) ) {
+		// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
+		if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
 			return [];
 		}
 
