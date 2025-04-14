@@ -88,7 +88,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'spe_element_title'                  => [
+					'spe_title'                          => [
 						'description'       => __( 'The default title to show above the Smart Checkout element.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -285,7 +285,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
-				'spe_element_title'                        => $this->gateway->get_validated_option( 'spe_element_title' ),
+				'spe_title'                                => $this->gateway->get_validated_option( 'spe_title' ),
 			]
 		);
 	}
@@ -580,7 +580,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_spe_settings( WP_REST_Request $request ) {
-		$attributes = [ 'is_spe_enabled', 'spe_element_title' ];
+		$attributes = [ 'is_spe_enabled', 'spe_title' ];
 		$attributes = array_combine( $attributes, $attributes );
 		foreach ( $attributes as $request_key => $attribute ) {
 			if ( null === $request->get_param( $request_key ) ) {
