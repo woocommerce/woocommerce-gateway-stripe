@@ -61,7 +61,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			}
 
 			// Classic checkout page
-			return __( 'Stripe', 'woocommerce-gateway-stripe' );
+			return $this->spe_title;
 		}
 
 		return parent::get_title();
