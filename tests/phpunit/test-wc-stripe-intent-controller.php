@@ -311,4 +311,210 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->mock_controller->create_and_confirm_payment_intent( $payment_information );
 	}
+
+	/**
+	 * Test for create_and_confirm_setup_intent method.
+	 */
+	public function test_create_and_confirm_setup_intent() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'              => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			// Verify the request is made to the setup_intents endpoint
+			$this->assertStringContainsString( 'setup_intents', $url );
+
+			// Verify required parameters
+			$this->assertEquals( 'pm_mock', $parsed_args['body']['payment_method'] );
+			$this->assertEquals( 'cus_mock', $parsed_args['body']['customer'] );
+			$this->assertEquals( 'true', $parsed_args['body']['confirm'] );
+			$this->assertEquals( 'true', $parsed_args['body']['use_stripe_sdk'] );
+			// Return URL should not be included for card payment.
+			$this->assertArrayNotHasKey( 'return_url', $parsed_args['body'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'succeeded',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		$result = $this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+
+		$this->assertEquals( 'seti_mock', $result->id );
+		$this->assertEquals( 'secret_mock', $result->client_secret );
+		$this->assertEquals( 'succeeded', $result->status );
+	}
+
+	/**
+	 * Test that SEPA setup intents include mandate data.
+	 */
+	public function test_create_and_confirm_setup_intent_with_sepa() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'              => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			// Verify mandate data is included for SEPA
+			$this->assertArrayHasKey( 'mandate_data', $parsed_args['body'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'succeeded',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		$result = $this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+
+		$this->assertEquals( 'seti_mock', $result->id );
+	}
+
+	/**
+	 * Test that Boleto setup intents have delayed confirmation.
+	 */
+	public function test_create_and_confirm_setup_intent_with_boleto() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'              => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::BOLETO,
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::BOLETO ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $this->order,
+			'use_stripe_sdk'        => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			// Verify confirmation is delayed for Boleto
+			$this->assertEquals( 'false', $parsed_args['body']['confirm'] );
+			// Return URL should not be included when confirm is false
+			$this->assertArrayNotHasKey( 'return_url', $parsed_args['body'] );
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'requires_confirmation',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		$result = $this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+
+		$this->assertEquals( 'requires_confirmation', $result->status );
+	}
+
+	/**
+	 * Test error handling in setup intent creation.
+	 */
+	public function test_create_and_confirm_setup_intent_error() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'             => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'           => 'https://example.com/return',
+			'order'               => $this->order,
+			'use_stripe_sdk'      => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'error' => [
+							'message' => 'Invalid payment method',
+						],
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->expectException( WC_Stripe_Exception::class );
+		$this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+	}
+
+	/**
+	 * Test mandate options for card payment method in setup intent.
+	 */
+	public function test_mandate_options_for_card_setup_intent() {
+		$payment_information = [
+			'payment_method'        => 'pm_mock',
+			'customer'             => 'cus_mock',
+			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
+			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'           => 'https://example.com/return',
+			'order'               => $this->order,
+			'use_stripe_sdk'      => 'true',
+		];
+
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			// Verify card mandate options are present
+			$this->assertArrayHasKey( 'payment_method_options', $parsed_args['body'] );
+			$this->assertArrayHasKey( WC_Stripe_Payment_Methods::CARD, $parsed_args['body']['payment_method_options'] );
+
+			// Verify mandate options for card include currency
+			$this->assertArrayHasKey( 'mandate_options', $parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ] );
+			$this->assertArrayHasKey( 'currency', $parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options'] );
+
+			// Verify currency matches order currency
+			$this->assertEquals(
+				strtolower( $this->order->get_currency() ),
+				$parsed_args['body']['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options']['currency']
+			);
+
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'            => 'seti_mock',
+						'client_secret' => 'secret_mock',
+						'status'        => 'succeeded',
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+		$result = $this->mock_controller->create_and_confirm_setup_intent( $payment_information );
+
+		$this->assertEquals( 'succeeded', $result->status );
+	}
+
 }
