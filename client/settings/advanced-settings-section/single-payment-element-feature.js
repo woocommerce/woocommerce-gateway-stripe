@@ -1,11 +1,20 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
-import { CheckboxControl, ExternalLink } from '@wordpress/components';
+import {
+	CheckboxControl,
+	ExternalLink,
+	TextControl,
+} from '@wordpress/components';
 import React, { useEffect } from 'react';
-import { useIsSPEEnabled, useIsUpeEnabled } from '../../data';
+import {
+	useIsSPEEnabled,
+	useIsUpeEnabled,
+	useSPEElementTitle,
+} from '../../data';
 
 const SinglePaymentElementFeature = () => {
 	const [ isSPEEnabled, setIsSPEEnabled ] = useIsSPEEnabled();
+	const [ SPEElementTitle, setSPEElementTitle ] = useSPEElementTitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
 
 	useEffect( () => {
@@ -43,6 +52,17 @@ const SinglePaymentElementFeature = () => {
 				onChange={ setIsSPEEnabled }
 				disabled={ ! isUpeEnabled }
 			/>
+			{ isSPEEnabled && (
+				<TextControl
+					help={ __(
+						'This will appear as the title of the Smart Checkout payment element on checkout.',
+						'woocommerce-gateway-stripe'
+					) }
+					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
+					value={ SPEElementTitle }
+					onChange={ setSPEElementTitle }
+				/>
+			) }
 		</>
 	);
 };
