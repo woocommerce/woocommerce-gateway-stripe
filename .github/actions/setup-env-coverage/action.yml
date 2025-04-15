@@ -1,0 +1,28 @@
+name: Setup PHP for PHP Code Coverage
+description: Composite Action with steps to setup PHP and dependencies for PHP Code Coverage
+
+inputs:
+  php-version:
+    type: string
+    default: '7.4'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checking out
+      uses: actions/checkout@v2
+
+    - name: Set up dependencies caching
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/composer/
+        key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        coverage:    xdebug
+
+    - name: Set up PHPUnit 9.5
+      run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
