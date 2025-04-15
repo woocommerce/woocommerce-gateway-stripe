@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 		$this->title                    = 'BLIK';
 		$this->is_reusable              = false;
 		$this->supported_currencies     = [ WC_Stripe_Currency_Code::POLISH_ZLOTY ];
-		$this->supported_countries      = [ 'PL' ];
+		$this->supported_countries      = [ 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IS', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE' ];
 		$this->label                    = 'BLIK';
 		$this->description              = __(
 			'BLIK enables customers in Poland to pay directly via online payouts from their bank account.',
@@ -76,17 +76,19 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			<?php endif; ?>
 
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form" style="font-size: inherit;">
-				<?php
-					woocommerce_form_field(
-						'wc-stripe-blik-code',
-						[
-							'maxlength' => 6,
-							'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
-							'required' => true,
-							'type' => 'text',
-						]
-					);
-				?>
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>">
+					<?php
+						woocommerce_form_field(
+							'wc-stripe-blik-code',
+							[
+								'maxlength' => 6,
+								'label' => esc_html__( 'BLIK Code', 'woocommerce-gateway-stripe' ),
+								'required' => true,
+								'type' => 'text',
+							]
+						);
+					?>
+				</div>
 				<p>
 					<?php echo esc_html__( 'After submitting your order, please authorize the payment in your mobile banking application.', 'woocommerce-gateway-stripe' ); ?>
 				</p>
@@ -103,6 +105,15 @@ class WC_Stripe_UPE_Payment_Method_BLIK extends WC_Stripe_UPE_Payment_Method {
 			</div>
 			<?php
 		}
+	}
+
+	/**
+	 * Returns the supported customer locations for which charges for BLIK can be processed.
+	 *
+	 * @return array Supported customer locations.
+	 */
+	public function get_available_billing_countries() {
+		return [ 'PL' ];
 	}
 
 	/**

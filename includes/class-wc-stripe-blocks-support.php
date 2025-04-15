@@ -200,6 +200,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
 				'style'                           => $this->get_style(),
+				'baseLocation'                    => wc_get_base_location(),
 			]
 		);
 	}
@@ -460,7 +461,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// This error would have been registered via wc_add_notice() and thus is not helpful for block checkout processing.
 		add_action(
 			'wc_gateway_stripe_process_payment_error',
-			function( $error ) use ( &$result ) {
+			function ( $error ) use ( &$result ) {
 				$payment_details                 = $result->payment_details;
 				$payment_details['errorMessage'] = wp_strip_all_tags( $error->getLocalizedMessage() );
 				$result->set_payment_details( $payment_details );

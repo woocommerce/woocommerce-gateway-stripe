@@ -232,7 +232,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		// Run test without cleaning up webhook secret.
 		add_filter(
 			'wc_stripe_webhook_is_user_agent_valid',
-			function() {
+			function () {
 				return false;
 			}
 		);

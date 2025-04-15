@@ -1,4 +1,3 @@
-import { getSetting } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
@@ -56,7 +55,8 @@ const paymentRequestPaymentMethod = {
 						pending: true,
 					},
 					currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
-					country_code: getSetting( 'baseLocation', {} )?.country,
+					country_code: getBlocksConfiguration()?.baseLocation
+						?.country,
 					displayItems: [],
 				},
 				shipping_required: false,

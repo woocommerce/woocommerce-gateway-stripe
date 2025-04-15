@@ -318,12 +318,11 @@ class WC_Stripe_Payment_Tokens {
 			if ( $gateway->is_sepa_tokens_for_other_methods_enabled() ) {
 				if ( $gateway->is_spe_enabled() ) {
 					$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
-				} else {
-					if ( ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
+				} elseif ( ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
 						&& ( $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled()
 							|| $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID ]->is_enabled() ) ) {
+
 						$payment_methods[] = $customer->get_payment_methods( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID );
-					}
 				}
 			}
 
