@@ -1057,11 +1057,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_id   = $source->source ?? null;
 
 		if ( $this->is_subscription( $order ) || $this->has_pre_order( $order->get_id() ) ) {
-			if ( $source->customer ) {
+			if ( $customer_id ) {
 				$order->update_meta_data( '_stripe_customer_id', $customer_id );
 			}
 
-			if ( $source->source ) {
+			if ( $source_id ) {
 				$order->update_meta_data( '_stripe_source_id', $source_id );
 			}
 		} else {
