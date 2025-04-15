@@ -133,6 +133,15 @@ const deletePost = {
 			force: true,
 		} );
 	},
+	customer: async ( email ) => {
+		// First get the customer ID by email
+		const customers = await api.get( 'customers', { email: email } );
+		if ( customers.data && customers.data.length > 0 ) {
+			await api.delete( `customers/${ customers.data[ 0 ].id }`, {
+				force: true,
+			} );
+		}
+	},
 };
 
 module.exports = {
