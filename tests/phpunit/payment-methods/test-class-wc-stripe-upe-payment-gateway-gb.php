@@ -4,6 +4,13 @@
  */
 class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 	/**
+	 * The mock gateway.
+	 *
+	 * @var WC_Stripe_UPE_Payment_Gateway
+	 */
+	private $mock_gateway;
+
+	/**
 	 * Initial setup.
 	 */
 	public function set_up() {

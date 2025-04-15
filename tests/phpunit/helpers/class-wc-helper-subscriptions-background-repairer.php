@@ -10,6 +10,20 @@
  */
 class WCS_Background_Repairer {
 
+	/**
+	 * The WC_Logger instance.
+	 *
+	 * @var WC_Logger_Interface
+	 */
+	protected $logger;
+
+	/**
+	 * The log handle.
+	 *
+	 * @var string
+	 */
+	protected $log_handle;
+
 	public function __construct( $logger ) {
 		$this->logger = $logger;
 	}
