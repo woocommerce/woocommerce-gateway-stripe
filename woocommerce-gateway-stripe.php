@@ -198,6 +198,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-exception.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-logger.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-helper.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-payment-method-configurations.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
 				require_once __DIR__ . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
@@ -291,7 +292,7 @@ function woocommerce_gateway_stripe() {
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				// Express checkout configurations.
-				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper();
+				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper( $this->get_main_stripe_gateway() );
 				$express_checkout_ajax_handler        = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
 				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
 				$this->express_checkout_configuration->init();
@@ -620,7 +621,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function enable_upe( $settings ) {
-				$settings['upe_checkout_experience_accepted_payments'] = [];
+				$payment_methods_to_enable = [];
 
 				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
@@ -646,20 +647,23 @@ function woocommerce_gateway_stripe() {
 							'yes'
 						);
 						// ENABLE UPE METHOD
-						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
+						$payment_methods_to_enable[] = $method_class::STRIPE_ID;
 					}
 
 					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
-						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
-						$settings['upe_checkout_experience_accepted_payments'][] = 'link';
+						$payment_methods_to_enable[] = 'card';
+						$payment_methods_to_enable[] = 'link';
 					}
 				}
-				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-					$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
+				if ( empty( $payment_methods_to_enable ) ) {
+					$payment_methods_to_enable = [ 'card', 'link' ];
 				} else {
 					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 					$settings['enabled'] = 'yes';
 				}
+
+				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+				$upe_gateway->update_enabled_payment_methods( $payment_methods_to_enable );
 
 				return $settings;
 			}
@@ -689,9 +693,7 @@ function woocommerce_gateway_stripe() {
 					$settings['enabled'] = 'no';
 				}
 				// DISABLE ALL UPE METHODS
-				if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-					$settings['upe_checkout_experience_accepted_payments'] = [];
-				}
+				$upe_gateway->update_enabled_payment_methods( [] );
 				return $settings;
 			}
 
@@ -793,7 +795,8 @@ function woocommerce_gateway_stripe() {
 			 * @return array WooCommerce checkout fields.
 			 */
 			public function checkout_update_email_field_priority( $fields ) {
-				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
+				$gateway = $this->get_main_stripe_gateway();
+				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $gateway ) ) {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 
