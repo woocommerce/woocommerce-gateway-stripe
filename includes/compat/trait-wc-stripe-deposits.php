@@ -25,7 +25,7 @@ trait WC_Stripe_Deposits_Trait {
 	 * @since x.x.x
 	 */
 	public function maybe_init_deposits() {
-		if ( ! $this->is_forced_tokenization_enabled() ) {
+		if ( ! $this->is_deposits_enabled() ) {
 			return;
 		}
 
@@ -95,19 +95,19 @@ trait WC_Stripe_Deposits_Trait {
 	}
 
 	/**
-	 * Checks if forced tokenization is supported on this site.
+	 * Checks if the deposits feature is supported on this site.
 	 *
-	 * Forced tokenization is only supported under the following circumstances:
+	 * Deposits is only supported under the following circumstances:
 	 * - The gateway supports tokenization.
 	 * - UPE Checkout is enabled (not supported for legacy checkouts)
-	 * - The WC_Checkout_Tokenization class exists.
+	 * - The wc_deposits_init function exists.
 	 *
 	 * @since x.x.x
 	 *
 	 * @return bool
 	 */
-	public function is_forced_tokenization_enabled() {
-		return $this->supports( 'tokenization' ) && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && class_exists( 'WC_Checkout_Tokenization' );
+	public function is_deposits_enabled() {
+		return $this->supports( 'tokenization' ) && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && function_exists( 'wc_deposits_init' );
 	}
 
 	/**
@@ -119,7 +119,7 @@ trait WC_Stripe_Deposits_Trait {
 	 * @return bool
 	 */
 	public function cart_requires_order_payment_token() {
-		return $this->is_forced_tokenization_enabled() && WC_Checkout_Tokenization::cart_requires_order_payment_token();
+		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::cart_requires_order_payment_token();
 	}
 
 	/**
@@ -136,7 +136,7 @@ trait WC_Stripe_Deposits_Trait {
 			return false;
 		}
 
-		return $this->is_forced_tokenization_enabled() && WC_Checkout_Tokenization::order_requires_order_payment_token( $order );
+		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::order_requires_order_payment_token( $order );
 	}
 
 	/**
@@ -147,7 +147,7 @@ trait WC_Stripe_Deposits_Trait {
 	 * @return bool True if the cart requires the user to save a payment method, false otherwise.
 	 */
 	public function cart_requires_user_payment_method() {
-		return $this->is_forced_tokenization_enabled() && WC_Checkout_Tokenization::cart_requires_user_payment_method();
+		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::cart_requires_user_payment_method();
 	}
 
 	/**
@@ -164,7 +164,7 @@ trait WC_Stripe_Deposits_Trait {
 			return false;
 		}
 
-		return $this->is_forced_tokenization_enabled() && WC_Checkout_Tokenization::order_requires_user_payment_method( $order );
+		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::order_requires_user_payment_method( $order );
 	}
 
 	/**
