@@ -80,5 +80,4 @@ class WC_Stripe_Payment_Gateways_Controller {
 		?><div id="wc-stripe-payment-gateways-container" />
 		<?php
 	}
-
 }

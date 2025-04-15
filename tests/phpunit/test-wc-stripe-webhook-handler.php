@@ -121,7 +121,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'handle_deferred_payment_intent_succeeded' )
 			->with(
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
 					}
 				),
@@ -148,7 +148,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'get_intent_from_order' )
 			->with(
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -193,7 +193,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->with(
 				self::MOCK_PAYMENT_INTENT['charges']['data'][0],
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -343,7 +343,6 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		$this->assertMatchesRegularExpression( $expected_note, $notes[0]->content );
-
 	}
 
 	/**
