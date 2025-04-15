@@ -41,7 +41,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @return object|null
 	 */
-	public static function get_primary_configuration() {
+	private static function get_primary_configuration() {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
@@ -65,6 +65,15 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Get the parent configuration ID.
+	 *
+	 * @return string|null
+	 */
+	public static function get_parent_configuration_id() {
+		return self::get_primary_configuration()->parent ?? self::TEST_MODE_CONFIGURATION_PARENT_ID;
 	}
 
 	/**
