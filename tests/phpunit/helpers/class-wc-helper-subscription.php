@@ -29,7 +29,7 @@ class WC_Subscription extends WC_Order {
 		// Add the subscription to the order types so retrieving the subscription doesn't trigger an "Invalid order" exception.
 		add_filter(
 			'wc_order_types',
-			function( $order_types ) {
+			function ( $order_types ) {
 				if ( ! in_array( $this->order_type, $order_types, true ) ) {
 					$order_types[] = $this->order_type;
 				}
