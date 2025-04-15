@@ -87,7 +87,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
 		$expected_intent = (object) [ 'id' => 'pi_123' ];
-		$callback        = function( $preempt, $request_args, $url ) use ( $expected_intent ) {
+		$callback        = function ( $preempt, $request_args, $url ) use ( $expected_intent ) {
 			$response = [
 				'headers'  => [],
 				'body'     => wp_json_encode( $expected_intent ),
@@ -123,7 +123,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 				'message' => 'error_message',
 			],
 		];
-		$callback       = function( $preempt, $request_args, $url ) use ( $response_error ) {
+		$callback       = function ( $preempt, $request_args, $url ) use ( $response_error ) {
 			$response = [
 				'headers'  => [],
 				'body'     => wp_json_encode( $response_error ),
@@ -711,7 +711,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_id = $order->get_id();
 
 		// Mock the Stripe API refund response
-		$callback = function( $preempt, $request_args, $url ) {
+		$callback = function ( $preempt, $request_args, $url ) {
 			if ( strpos( $url, 'refunds' ) !== false ) {
 				$response = [
 					'headers'  => [],
@@ -742,5 +742,4 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $callback );
 	}
-
 }

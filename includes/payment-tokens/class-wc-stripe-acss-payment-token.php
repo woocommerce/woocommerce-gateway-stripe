@@ -130,4 +130,3 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 		return 'woocommerce_payment_token_acss_get_';
 	}
 }
-

@@ -171,19 +171,19 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		$total_charged     = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
 		$sum_of_unit_costs = array_reduce(
 			$result['line_items'],
-			function( $sum, $item ) {
+			function ( $sum, $item ) {
 				return $sum + $item->quantity * $item->unit_cost;
 			}
 		);
 		$sum_of_taxes      = array_reduce(
 			$result['line_items'],
-			function( $sum, $item ) {
+			function ( $sum, $item ) {
 				return $sum + $item->tax_amount;
 			}
 		);
 		$sum_of_discounts  = array_reduce(
 			$result['line_items'],
-			function( $sum, $item ) {
+			function ( $sum, $item ) {
 				return $sum + $item->discount_amount;
 			}
 		);

@@ -46,9 +46,6 @@ jobs:
           php-version: ${{ env.PHP_VERSION }}
           coverage:    xdebug
 
-      - name: Set up PHPUnit 9.5
-        run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
-        
       - name: Run CI checks
         run: bash bin/run-ci-tests.bash
         
