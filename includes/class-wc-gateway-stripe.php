@@ -205,7 +205,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
+		$this->form_fields = require __DIR__ . '/admin/stripe-settings.php';
 	}
 
 	/**
@@ -225,11 +225,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
 			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
-		} else {
-			if ( $user->ID ) {
+		} elseif ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
 				$user_email = $user_email ? $user_email : $user->user_email;
-			}
 		}
 
 		if ( is_add_payment_method_page() ) {
@@ -647,7 +645,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		sleep( $this->retry_interval );
-		$this->retry_interval++;
+		++$this->retry_interval;
 
 		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error, $use_order_source );
 	}
@@ -1007,7 +1005,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
 
 		// Checks whether a value has transitioned from a non-empty value to a new one.
-		$has_changed = function( $old_value, $new_value ) {
+		$has_changed = function ( $old_value, $new_value ) {
 			return ! empty( $old_value ) && ( $old_value !== $new_value );
 		};
 

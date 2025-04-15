@@ -13,8 +13,8 @@
 
 	<!-- Configs -->
 	<config name="minimum_supported_wp_version" value="6.3" />
-	<config name="testVersion" value="7.4-" />	
-	<arg name="parallel" value="8" />	
+	<config name="testVersion" value="7.4-" />
+	<arg name="parallel" value="8" />
 	<arg value="ps" />
 
 	<!-- Rules -->
@@ -24,6 +24,23 @@
 		<!-- The rules are ignored for now, they will be activated in a future PR -->
 		<exclude name="Squiz.Commenting"/>
 		<exclude name="WordPress.Security.NonceVerification.Missing"/>
+	</rule>
+
+	<rule ref="WordPress-Core">
+		<!-- Disallow short array syntax -->
+		<exclude name="Universal.Arrays.DisallowShortArraySyntax" />
+
+		<!-- FIXME: Resolve these issues and remove these rules. -->
+		<exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped" />
+
+		<!-- FIXME: Resolve these issues and remove these rules. -->
+		<exclude name="WooCommerce.Commenting.CommentHooks.MissingHookComment" />
+		<exclude name="WooCommerce.Commenting.CommentHooks.MissingSinceComment" />
+		<exclude name="WooCommerce.Commenting.CommentHooks.HookCommentWrongStyle" />
+	</rule>
+
+	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
+		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
 
 	<!-- Disallow long array syntax -->
@@ -55,4 +72,5 @@
 	<rule ref="WordPress.Security.NonceVerification.Recommended">
 		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
+
 </ruleset>
