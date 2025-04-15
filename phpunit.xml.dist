@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
 	bootstrap="tests/phpunit/bootstrap.php"
 	backupGlobals="false"
 	colors="true"
@@ -13,10 +15,15 @@
 			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
-	<filter>
-		<whitelist>
+	<coverage cacheDirectory=".phpunit.cache/code-coverage">
+		<include>
 			<file>./woocommerce-gateway-stripe.php</file>
 			<directory>./includes</directory>
-		</whitelist>
-	</filter>
+		</include>
+		<report>
+			<cobertura outputFile="php-coverage.xml"/>
+			<html outputDirectory="phpunit-html"/>
+		</report>
+	</coverage>
+
 </phpunit>
