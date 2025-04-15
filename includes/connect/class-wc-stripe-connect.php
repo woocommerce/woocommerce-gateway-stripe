@@ -199,6 +199,12 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			}
 
+			// If we are already using the UPE gateway, update the PMC with the currently enabled payment methods.
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				$gateway->update_enabled_payment_methods( $options['upe_checkout_experience_accepted_payments'] );
+			}
+
 			return $result;
 		}
 
