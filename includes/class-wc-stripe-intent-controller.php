@@ -1111,7 +1111,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Removes the return URL if Single Payment Element is not enabled or if the request doesn't need redirection.
-		if ( ! ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
+		if ( ( ! $this->get_upe_gateway()->is_spe_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
 
