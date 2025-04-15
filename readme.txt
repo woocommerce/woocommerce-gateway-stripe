@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.4.0 - xxxx-xx-xx =
 * Tweak - Removes the Stripe icon beside the Smart Checkout payment element from the checkout pages.
+* Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Add - New filter to allow merchants to bypass the default visibility of the express payment method buttons when taxes are based on customer's billing address (`wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`).
@@ -170,7 +171,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Fix - Ensure the subscription object is not converted into a Stripe order object.
+* Fix - Ensure the subscription and pre-order objects are not converted into a Stripe order object in legacy experience.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 * Fix - Fix BLIK visibility based on account and billing countries.
+* Fix - Prepare mandate data from subscription object on change payment method page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

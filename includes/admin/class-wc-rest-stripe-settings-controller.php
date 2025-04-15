@@ -88,6 +88,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'spe_title'                          => [
+						'description'       => __( 'The default title to show above the Smart Checkout element.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'amazon_pay_button_size'             => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
@@ -280,6 +285,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
+				'spe_title'                                => $this->gateway->get_validated_option( 'single_payment_element_title' ),
 			]
 		);
 	}
@@ -313,7 +319,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
-		$this->update_is_spe_enabled( $request );
+		$this->update_spe_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -569,24 +575,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates the "Single Payment Element" enable/disable settings.
+	 * Updates the "Single Payment Element" settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_is_spe_enabled( WP_REST_Request $request ) {
-		$is_spe_enabled      = $request->get_param( 'is_spe_enabled' );
-		$current_spe_enabled = $this->gateway->get_option( 'single_payment_element' );
+	private function update_spe_settings( WP_REST_Request $request ) {
+		$attributes = [
+			'is_spe_enabled' => 'single_payment_element',
+			'spe_title'      => 'single_payment_element_title',
+		];
+		foreach ( $attributes as $request_key => $attribute ) {
+			$value = $request->get_param( $request_key );
 
-		if ( null === $is_spe_enabled ) {
-			return;
-		}
+			if ( null === $value ) {
+				continue;
+			}
 
-		if ( $is_spe_enabled !== $current_spe_enabled ) {
-			$this->gateway->update_option( 'single_payment_element', $is_spe_enabled ? 'yes' : 'no' );
-			wc_admin_record_tracks_event(
-				$is_spe_enabled ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
-				[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
-			);
+			$value         = 'is_spe_enabled' === $request_key ? ( $value ? 'yes' : 'no' ) : $value;
+			$current_value = $this->gateway->get_option( $attribute );
+
+			$this->gateway->update_validated_option( $attribute, $value );
+
+			if ( 'is_spe_enabled' === $request_key && $value !== $current_value ) {
+				wc_admin_record_tracks_event(
+					$value ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
+					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+				);
+			}
 		}
 	}
 
