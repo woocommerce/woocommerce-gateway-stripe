@@ -1004,7 +1004,7 @@ class WC_Stripe_Helper {
 	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
-		// _deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_intent_id' ); // @todo Re-enable this after all classes get updated.
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_intent_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
