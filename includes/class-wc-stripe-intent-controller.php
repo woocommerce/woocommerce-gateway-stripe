@@ -757,7 +757,7 @@ class WC_Stripe_Intent_Controller {
 
 		$this->validate_payment_intent_required_params( $required_params, $non_empty_params, $instance_params, $payment_information );
 
-		$order                 = $payment_information['order'];
+		$order                 = WC_Stripe_Order::to_instance( $payment_information['order'] );
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
 		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
