@@ -516,4 +516,5 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'succeeded', $result->status );
 	}
+
 }

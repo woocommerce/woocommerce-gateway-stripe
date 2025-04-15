@@ -29,20 +29,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens extends WCS_Background
 	private $display_notice_transient = 'wc_stripe_legacy_sepa_tokens_repair_notice';
 
 	/**
-	 * The scheduled hook.
-	 *
-	 * @var string
-	 */
-	protected $scheduled_hook;
-
-	/**
-	 * The repair hook.
-	 *
-	 * @var string
-	 */
-	protected $repair_hook;
-
-	/**
 	 * Constructor
 	 *
 	 * @param WC_Logger_Interface $logger The WC_Logger instance.

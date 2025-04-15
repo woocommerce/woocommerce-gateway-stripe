@@ -12,15 +12,10 @@ import PaymentProcessor from './payment-processor';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
-	getStripeServerData,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
-import {
-	LIVE_MODE_CONFIGURATION_PARENT_ID,
-	TEST_MODE_CONFIGURATION_PARENT_ID,
-} from 'wcstripe/stripe-utils/constants';
 
 /**
  * Renders a Stripe Payment elements component.
@@ -144,9 +139,7 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: getStripeServerData()?.testMode
-						? TEST_MODE_CONFIGURATION_PARENT_ID
-						: LIVE_MODE_CONFIGURATION_PARENT_ID,
+					paymentMethodConfiguration: 'pmc_...',
 				},
 			};
 		} else {

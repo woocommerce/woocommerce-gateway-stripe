@@ -149,17 +149,3 @@ export const NON_REUSABLE_METHODS = [
 	PAYMENT_METHOD_OXXO,
 	PAYMENT_METHOD_WECHAT_PAY,
 ];
-
-/**
- * Payment method configuration ID for Smart Checkout (Single Payment Element), test mode.
- *
- * @type {string}
- */
-export const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
-
-/**
- * Payment method configuration ID for Smart Checkout (Single Payment Element), live mode.
- *
- * @type {string}
- */
-export const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';

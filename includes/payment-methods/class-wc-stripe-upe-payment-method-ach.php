@@ -81,4 +81,5 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 
 		return $payment_token;
 	}
+
 }
