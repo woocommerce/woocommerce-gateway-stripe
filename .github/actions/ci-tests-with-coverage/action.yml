@@ -1,10 +1,10 @@
-name: Setup PHP for PHP Code Coverage
-description: Composite Action with steps to setup PHP and dependencies for PHP Code Coverage
+name: PHP Code Coverage Comment
+description: Composite Action with steps to add a comment to a PR with PHP Code Coverage results
 
 inputs:
   php-version:
     type: string
-    default: '7.4'
+    default: ''
 
 runs:
   using: "composite"
@@ -26,3 +26,6 @@ runs:
 
     - name: Set up PHPUnit 9.5
       run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
+
+    - name: Run CI tests with coverage report
+      run: bash bin/run-ci-tests.bash

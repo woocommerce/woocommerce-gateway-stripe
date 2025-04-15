@@ -26,23 +26,18 @@ jobs:
           filter: '**/*.php'
 
       - name: Get PR number
-        if: ${{ steps.get-changed-files.outputs.all }}
         id: number
         uses: bcgov-nr/action-get-pr@v0.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up PHP for Code Coverage
+      - name: Run CI tests with coverage report
         if: ${{ steps.get-changed-files.outputs.all }}
-        uses: ./.github/actions/setup-env
+        uses: ./.github/actions/ci-tests-with-coverage
         with:
           php-version: ${{ env.PHP_VERSION }}
-
-      - name: Run CI checks
-        if: ${{ steps.get-changed-files.outputs.all }}
-        run: bash bin/run-ci-tests.bash
         
-      - name: Code Coverage Report Comment
+      - name: Code coverage report comment
         if: ${{ steps.get-changed-files.outputs.all }}
         uses: ./.github/actions/php-coverage-comment
         with:
