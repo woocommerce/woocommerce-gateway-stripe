@@ -207,6 +207,7 @@ export const useIsShortAccountStatementEnabled = makeSettingsHook(
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsSPEEnabled = makeSettingsHook( 'is_spe_enabled' );
+export const useSPETitle = makeSettingsHook( 'spe_title', 'Stripe' );
 
 export const useIndividualPaymentMethodSettings = makeSettingsHook(
 	'individual_payment_method_settings',
