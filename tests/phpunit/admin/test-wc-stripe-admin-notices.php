@@ -80,7 +80,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_currency_notice_is_shown_for_upe_methods() {
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
-			function() {
+			function () {
 				return 'yes';
 			}
 		);

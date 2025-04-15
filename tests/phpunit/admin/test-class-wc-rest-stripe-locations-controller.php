@@ -235,5 +235,4 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
-
 }

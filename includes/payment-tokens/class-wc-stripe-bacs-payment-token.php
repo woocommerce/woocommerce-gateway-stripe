@@ -110,4 +110,3 @@ class WC_Payment_Token_Bacs_Debit extends WC_Payment_Token implements WC_Stripe_
 		return $display;
 	}
 }
-

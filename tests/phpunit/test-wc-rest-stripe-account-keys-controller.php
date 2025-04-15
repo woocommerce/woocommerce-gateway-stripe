@@ -291,5 +291,4 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 			$this->assertEquals( $expected, $response, "Testing param: $param" );
 		}
 	}
-
 }

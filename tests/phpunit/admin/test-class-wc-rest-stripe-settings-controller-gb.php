@@ -174,5 +174,4 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 	private function get_gateway() {
 		return self::$gateway;
 	}
-
 }
