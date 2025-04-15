@@ -42,7 +42,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configurations' )->with(
 			$this->equalTo( 'pmc_abcdef' ),
 			$this->callback(
-				function( $actual ) use ( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
+				function ( $actual ) use ( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 					foreach ( $enabled_payment_method_ids as $payment_method ) {
 						if ( ! isset( $actual[ $payment_method ] ) || 'on' !== $actual[ $payment_method ]['display_preference']['preference'] ) {
 							return false;
