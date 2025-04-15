@@ -3,6 +3,7 @@ description: Composite Action with steps to add a comment to a PR with PHP Code 
 
 inputs:
   php-version:
+    description: PHP version to use
     type: string
     default: ''
 
@@ -25,7 +26,9 @@ runs:
         coverage:    xdebug
 
     - name: Set up PHPUnit 9.5
+      shell: bash
       run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
 
     - name: Run CI tests with coverage report
+      shell: bash
       run: bash bin/run-ci-tests.bash
