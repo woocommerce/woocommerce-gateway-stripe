@@ -470,9 +470,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 	public function stripe_payment_method_configurations_provider() {
 		return [
-			'amazon_pay' => [ [ 'amazon_pay' ], [] ],
 			'amazon_pay' => [ [], [ 'amazon_pay' ] ],
-			'card'       => [ [ 'card', 'link' ], [] ],
 			'card'       => [ [], [ 'card', 'link' ] ],
 		];
 	}
