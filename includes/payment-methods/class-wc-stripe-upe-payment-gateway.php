@@ -239,7 +239,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->maybe_init_pre_orders();
 
 		// Check if forced tokenization is enabled and add support for it.
-		$this->maybe_init_forced_tokenization();
+		$this->maybe_init_deposits();
 
 		$this->title                         = $this->payment_methods['card']->get_title();
 		$this->description                   = $this->payment_methods['card']->get_description();

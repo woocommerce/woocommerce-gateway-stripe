@@ -92,7 +92,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		$this->maybe_init_pre_orders();
 
 		// Check if forced tokenization is enabled.
-		$this->maybe_init_forced_tokenization();
+		$this->maybe_init_deposits();
 
 		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
 		$this->title                = $this->get_option( 'title' );

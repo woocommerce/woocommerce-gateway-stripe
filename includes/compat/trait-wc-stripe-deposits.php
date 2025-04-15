@@ -4,27 +4,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Trait for Forced Tokenization compatibility.
+ * Trait for Deposits compatibility.
  *
  * @since x.x.x
  */
-trait WC_Stripe_Forced_Tokenization_Trait {
+trait WC_Stripe_Deposits_Trait {
 
 	/**
 	 * Stores a flag to indicate if the forced tokenization integration hooks have been attached.
 	 *
-	 * The callbacks attached as part of maybe_init_forced_tokenization() only need to be attached once to avoid duplication.
+	 * The callbacks attached as part of maybe_init_deposits() only need to be attached once to avoid duplication.
 	 *
 	 * @var bool False by default, true once the callbacks have been attached.
 	 */
 	private static $has_attached_forced_tokenization_integration_hooks = false;
 
 	/**
-	 * Initialize pre-orders hook.
+	 * Initialize deposits hooks.
 	 *
 	 * @since x.x.x
 	 */
-	public function maybe_init_forced_tokenization() {
+	public function maybe_init_deposits() {
 		if ( ! $this->is_forced_tokenization_enabled() ) {
 			return;
 		}
