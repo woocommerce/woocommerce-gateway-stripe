@@ -845,8 +845,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$sub_amount = 0;
 
+		$cart_contain_switches      = WC_Subscriptions_Switcher::cart_contains_switches();
+		$is_changing_payment_method = $this->is_changing_payment_method_for_subscription();
+
 		// If this is a switch order we set the mandate options based on the new subscription.
-		$cart_contain_switches = WC_Subscriptions_Switcher::cart_contains_switches();
 		if ( $cart_contain_switches ) {
 			foreach ( WC()->cart->cart_contents as $cart_item ) {
 				$subscription_price = WC_Subscriptions_Product::get_price( $cart_item['data'] );
@@ -858,6 +860,13 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$sub_billing_period   = WC_Subscriptions_Product::get_period( $cart_item['data'] );
 			$sub_billing_interval = absint( WC_Subscriptions_Product::get_interval( $cart_item['data'] ) );
+		} elseif ( $is_changing_payment_method ) {
+			// On the change payment method page, the $order object sent in this function is actually a subscription.
+			$subscription = $order;
+
+			$sub_amount           = WC_Stripe_Helper::get_stripe_amount( $subscription->get_subtotal(), $currency );
+			$sub_billing_period   = strtolower( $subscription->get_billing_period() );
+			$sub_billing_interval = $subscription->get_billing_interval();
 		} else {
 			// If this is the first order, not a renewal, then get the subscriptions for the parent order.
 			if ( empty( $subscriptions ) ) {
@@ -887,7 +896,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		$has_interval = $sub_billing_period && $sub_billing_interval > 0;
-		if ( $has_interval && ( 1 === count( $subscriptions ) || $cart_contain_switches ) ) {
+		if ( $has_interval && ( 1 === count( $subscriptions ) || $cart_contain_switches || $is_changing_payment_method ) ) {
 			$mandate_options['amount_type']    = 'fixed';
 			$mandate_options['interval']       = $sub_billing_period;
 			$mandate_options['interval_count'] = $sub_billing_interval;
