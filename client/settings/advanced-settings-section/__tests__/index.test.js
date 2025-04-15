@@ -78,4 +78,19 @@ describe( 'AdvancedSettings', () => {
 			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
 		).toBeInTheDocument();
 	} );
+
+	it( 'should display the Smart Checkout title setting if the Smart Checkout feature is enabled', () => {
+		global.wc_stripe_settings_params = { is_spe_available: true };
+
+		useIsSPEEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		render( <AdvancedSettings /> );
+
+		expect(
+			screen.queryByText(
+				'This will appear as the title of the Smart Checkout payment element on checkout.'
+			)
+		).toBeInTheDocument();
+		expect( screen.queryByLabelText( 'Title' ) ).toBeInTheDocument();
+	} );
 } );
