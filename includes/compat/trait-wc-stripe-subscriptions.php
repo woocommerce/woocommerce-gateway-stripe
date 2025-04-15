@@ -636,10 +636,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Don't transfer Stripe fee/ID meta to renewal orders.
 	 *
-	 * @param WC_Stripe_Order|WC_Order $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
+	 * @param WC_Order $renewal_order The renewal order created for the subscription.
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		$renewal_order = WC_Stripe_Order::get_by_id( $renewal_order );
+		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
 
 		$renewal_order->delete_fee();
 		$renewal_order->delete_net();
