@@ -41,7 +41,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 *
 	 * @return object|null
 	 */
-	private static function get_primary_configuration() {
+	public static function get_primary_configuration() {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
