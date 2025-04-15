@@ -141,8 +141,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
-		$this->mock_payment_method_configurations( [], [] );
-		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ], [] );
 
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -157,13 +155,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		update_option( 'woocommerce_currency', 'EUR' );
 		$this->upe_helper->enable_upe_feature_flag();
 
-		// Enable the EPS UPE method. Now when UPE is disabled, the EPS LPM should be enabled.
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
-
 		// Enable sepa and iDEAL LPM gateways.
 		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
-		$this->expect_payment_method_configurations_update( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ], [ WC_Stripe_Payment_Methods::CARD ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.

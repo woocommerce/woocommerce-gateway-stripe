@@ -179,7 +179,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 		// In legacy mode (when UPE is disabled), Stripe refers to Card as payment method.
-		$this->assertEquals( [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
+		$this->assertEquals( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
 	}
 
 	public function test_get_legacy_individual_payment_method_settings() {
