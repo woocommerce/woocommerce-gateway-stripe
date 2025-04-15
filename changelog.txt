@@ -60,8 +60,10 @@
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
 * Fix - Ensure the subscription object is not converted into a Stripe order object.
+* Fix - Ensure the subscription and pre-order objects are not converted into a Stripe order object in legacy experience.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 * Fix - Fix BLIK visibility based on account and billing countries.
+* Fix - Prepare mandate data from subscription object on change payment method page.
 
 = 9.3.2 - 2025-04-10 =
 * Fix - Fix express checkout for block cart and block checkout for WooCommerce 9.8.0+.
