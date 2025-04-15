@@ -5,6 +5,7 @@ import AdvancedSettings from '..';
 import {
 	useDebugLog,
 	useIsUpeEnabled,
+	useSPETitle,
 	useGetSavingError,
 	useSettings,
 	useIsSPEEnabled,
@@ -14,6 +15,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
 	useIsSPEEnabled: jest.fn(),
+	useSPETitle: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
 } ) );
@@ -25,6 +27,7 @@ describe( 'AdvancedSettings', () => {
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsSPEEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useSPETitle.mockReturnValue( 'Stripe' );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
