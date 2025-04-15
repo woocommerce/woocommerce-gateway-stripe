@@ -111,32 +111,41 @@ trait WC_Stripe_Deposits_Trait {
 	}
 
 	/**
-	 * Whether the current cart require a payment token stored against the order.
+	 * Whether the current cart contains a deposit.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param  int $order_id
 	 * @return bool
 	 */
-	public function cart_requires_order_payment_token() {
-		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::cart_requires_order_payment_token();
+	public function cart_contains_deposit() {
+		if ( ! $this->is_deposits_enabled() || ! class_exists( 'WC_Deposits_Cart_Manager' ) ) {
+			return false;
+		}
+		$cart_manager = WC_Deposits_Cart_Manager::get_instance();
+		return $cart_manager->has_deposit();
 	}
 
 	/**
-	 * Whether the current order requires a payment token be stored against the order.
+	 * Whether the current order contains a deposit.
 	 *
 	 * @since x.x.x
 	 *
 	 * @param int|\WC_Order $order_id The order ID or order object.
-	 * @return bool True if the order requires a payment token stored against the order, false otherwise.
+	 * @return bool True if the order includes a deposit item, false otherwise.
 	 */
-	public function order_requires_order_payment_token( $order_id ) {
+	public function order_contains_deposit( $order_id ) {
+		if ( ! $this->is_deposits_enabled() || ! class_exists( 'WC_Deposits_Order_Manager' ) ) {
+			return false;
+		}
+
 		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
 
-		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::order_requires_order_payment_token( $order );
+		$order_manager = WC_Deposits_Order_Manager::get_instance();
+		return $order_manager->has_deposit( $order );
 	}
 
 	/**
@@ -186,7 +195,7 @@ trait WC_Stripe_Deposits_Trait {
 			return $display_save_option;
 		}
 
-		if ( $this->cart_requires_order_payment_token() || $this->cart_requires_user_payment_method() ) {
+		if ( $this->cart_contains_deposit() || $this->cart_requires_user_payment_method() ) {
 			$display_save_option = false;
 		}
 
