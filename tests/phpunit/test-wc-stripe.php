@@ -118,7 +118,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
 
 		$loaded_gateway_classes = array_map(
-			function( $gateway ) {
+			function ( $gateway ) {
 				return get_class( $gateway );
 			},
 			WC()->payment_gateways->payment_gateways()
