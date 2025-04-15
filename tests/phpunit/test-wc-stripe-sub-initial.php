@@ -104,7 +104,11 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			->method( 'has_subscription' )
 			->will( $this->returnValue( true ) );
 
-		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+		$pre_http_request_response_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
 			$stripe_amount,
 			$currency,
 			$customer,

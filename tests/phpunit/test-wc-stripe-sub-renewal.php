@@ -113,7 +113,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
 		// Note: There are assertions in the callback function.
-		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+		$pre_http_request_response_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
 			$renewal_order,
 			$stripe_amount,
 			$currency,
@@ -293,7 +297,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			);
 
 		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
-		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+		$pre_http_request_response_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
 			$renewal_order,
 			$stripe_amount,
 			$currency,

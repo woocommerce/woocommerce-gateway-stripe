@@ -1419,7 +1419,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1507,7 +1507,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1581,7 +1581,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1665,7 +1665,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1771,7 +1771,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -2577,7 +2577,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -2806,7 +2806,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_filter_my_account_my_orders_actions( $payment_method_title ) {
 		add_filter(
 			'woocommerce_is_order_received_page',
-			function() {
+			function () {
 				return true;
 			}
 		);
