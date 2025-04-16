@@ -296,9 +296,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Payments accepted on checkout + Express checkouts */
 		$payment_method_ids_to_enable = $this->get_payment_method_ids_to_enable( $request );
-		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$this->update_enabled_payment_methods( $payment_method_ids_to_enable, $is_upe_enabled );
-		if ( ! $is_upe_enabled || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() || ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
