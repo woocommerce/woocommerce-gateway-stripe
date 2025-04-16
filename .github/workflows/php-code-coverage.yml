@@ -32,14 +32,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run CI tests with coverage report
-        if: ${{ steps.get-changed-files.outputs.all }}
+        if: ${{ steps.get-changed-files.outputs.added_modified }}
         uses: ./.github/actions/ci-tests-with-coverage
         with:
           php-version: ${{ env.PHP_VERSION }}
         
       - name: Code coverage report comment
-        if: ${{ steps.get-changed-files.outputs.all }}
+        if: ${{ steps.get-changed-files.outputs.added_modified }}
         uses: ./.github/actions/php-coverage-comment
         with:
-          changed-files: ${{ steps.get-changed-files.outputs.all }}
+          changed-files: ${{ steps.get-changed-files.outputs.added_modified }}
           pr-number: ${{ steps.number.outputs.pr }}
