@@ -1218,4 +1218,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		return $this->validate_text_field( $field_key, $field_value );
 	}
+
+	/**
+	 * Returns whether Google Pay and Apple Pay (PRBs) are enabled,
+	 * for the legacy checkout.
+	 *
+	 * WC_Stripe_UPE_Payment_Gateway overrides this method.
+	 *
+	 * @return bool
+	 */
+	public function is_payment_request_enabled() {
+		return 'yes' === $this->get_option( 'payment_request' );
+	}
 }

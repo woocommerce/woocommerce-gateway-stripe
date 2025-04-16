@@ -198,6 +198,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-exception.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-logger.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-helper.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-payment-method-configurations.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
 				require_once __DIR__ . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
@@ -291,7 +292,7 @@ function woocommerce_gateway_stripe() {
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				// Express checkout configurations.
-				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper();
+				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper( $this->get_main_stripe_gateway() );
 				$express_checkout_ajax_handler        = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
 				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
 				$this->express_checkout_configuration->init();
@@ -793,7 +794,8 @@ function woocommerce_gateway_stripe() {
 			 * @return array WooCommerce checkout fields.
 			 */
 			public function checkout_update_email_field_priority( $fields ) {
-				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
+				$gateway = $this->get_main_stripe_gateway();
+				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $gateway ) ) {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 

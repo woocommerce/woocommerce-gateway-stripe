@@ -2,7 +2,7 @@
 /**
  * Unit tests for UPE payment methods
  */
-class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Array of mocked UPE payment methods.
 	 *
@@ -939,9 +939,38 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that UPE methods are only enabled if Stripe is enabled and the individual methods is enabled in the settings.
+	 * Tests that UPE methods are enabled if Stripe is enabled and the account is connected to the platform.
 	 */
 	public function test_upe_method_enabled() {
+		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['test_connection_type'] = 'connect';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
+
+		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->assertTrue( $link_upe_method->is_enabled() );
+	}
+
+	/**
+	 * Tests that UPE methods are not enabled if Stripe is disabled.
+	 */
+	public function test_upe_method_disabled() {
+		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
+
+		$link_upe_method = new WC_Stripe_UPE_Payment_Method_Link();
+		$this->assertFalse( $link_upe_method->is_enabled() );
+	}
+
+	/**
+	 * Tests that UPE methods are only enabled if Stripe is enabled and the account is not connected to the platform.
+	 */
+	public function test_upe_method_enabled_for_non_connected_accounts() {
 		// Enable Stripe and reset the accepted payment methods.
 		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled'] = 'yes';
@@ -955,11 +984,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method ) {
 			foreach ( $stripe_enabled_settings as $stripe_enabled ) {
 				foreach ( $upe_method_enabled_options as $upe_method_enabled_option ) {
+					// CARD is always enabled for UPE and non connected accounts.
+					if ( WC_Stripe_Payment_Methods::CARD === $payment_method::STRIPE_ID && ! $upe_method_enabled_option ) {
+						continue;
+					}
+
 					// Update the settings.
 					$stripe_settings['enabled'] = $stripe_enabled;
 
 					$payment_method_index = array_search( $payment_method::STRIPE_ID, $stripe_settings['upe_checkout_experience_accepted_payments'] );
-
 					if ( $upe_method_enabled_option && false === $payment_method_index ) {
 						$stripe_settings['upe_checkout_experience_accepted_payments'][] = $payment_method::STRIPE_ID;
 					} elseif ( ! $upe_method_enabled_option && false !== $payment_method_index ) {
@@ -970,7 +1003,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 					// Verify that the payment method is enabled/disabled.
 					$payment_method_instance = new $payment_method();
-
 					// The UPE method is only enabled if Stripe is enabled and the method is enabled in the settings.
 					if ( 'yes' === $stripe_enabled && $upe_method_enabled_option ) {
 						$this->assertTrue( $payment_method_instance->is_enabled() );

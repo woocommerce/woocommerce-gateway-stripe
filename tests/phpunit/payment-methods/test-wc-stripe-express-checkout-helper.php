@@ -57,6 +57,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
 		if ( ! is_null( $filter_value ) ) {
 			add_filter(
 				'wc_stripe_should_hide_express_checkout_button_based_on_tax_setup',
@@ -75,8 +79,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-			]
+			],
+			[ $gateway ]
 		);
+
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
@@ -120,6 +126,14 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Create products for test_hides_ece_if_cannot_compute_taxes.
 	 */
 	private function create_products_for_test_hides_ece_if_cannot_compute_taxes() {
+		if (
+			isset( $this->products['virtual_nontaxable'] ) &&
+			isset( $this->products['virtual_taxable'] ) &&
+			isset( $this->products['shippable_taxable'] )
+		) {
+			return;
+		}
+
 		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_nontaxable_product->set_virtual( true );
 		$virtual_nontaxable_product->set_tax_status( 'none' );
@@ -208,6 +222,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function test_hides_ece_if_stripe_gateway_unavailable() {
 		$this->set_up_shipping_methods();
 
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
@@ -215,7 +233,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'allowed_items_in_cart',
 				'should_show_ece_on_cart_page',
 				'should_show_ece_on_checkout_page',
-			]
+			],
+			[ $gateway ]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( false );
 		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
@@ -265,7 +284,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->set_up_shipping_methods();
 
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 
 		$this->assertNotEmpty( $checkout_data['url'] );
@@ -285,7 +308,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_checkout_data_no_shipping_zones() {
 		// When no shipping zones are set up, the default shipping option should be empty.
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 		$this->assertEmpty( $checkout_data['default_shipping_option'] );
 	}
@@ -294,11 +321,16 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_authentication_required().
 	 */
 	public function test_is_authentication_required() {
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
 				'is_account_creation_possible',
-			]
+			],
+			[ $gateway ]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )
 			->method( 'is_account_creation_possible' )
@@ -321,11 +353,16 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * Test for is_account_creation_possible().
 	 */
 	public function test_is_account_creation_possible() {
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
 		$wc_stripe_ece_helper_mock = $this->createPartialMock(
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
 				'has_subscription_product',
-			]
+			],
+			[ $gateway ]
 		);
 		$wc_stripe_ece_helper_mock->expects( $this->any() )
 			->method( 'has_subscription_product' )
@@ -348,7 +385,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			WC_Stripe_Express_Checkout_Helper::class,
 			[
 				'has_subscription_product',
-			]
+			],
+			[ $gateway ]
 		);
 		$wc_stripe_ece_helper_mock2->expects( $this->any() )
 			->method( 'has_subscription_product' )
@@ -375,7 +413,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_normalized_postal_code
 	 */
 	public function test_get_normalized_postal_code( $postal_code, $country, $expected ) {
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_postal_code( $postal_code, $country ) );
 	}
 

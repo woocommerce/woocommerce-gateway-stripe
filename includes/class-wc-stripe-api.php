@@ -24,6 +24,34 @@ class WC_Stripe_API {
 	private static $secret_key = '';
 
 	/**
+	 * Instance of WC_Stripe_API.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private static $instance;
+
+	/**
+	 * Get instance of WC_Stripe_API.
+	 *
+	 * @return WC_Stripe_API
+	 */
+	public static function get_instance() {
+		if ( ! isset( self::$instance ) ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Set instance of WC_Stripe_API.
+	 *
+	 * @param WC_Stripe_API $instance
+	 */
+	public static function set_instance( $instance ) {
+		self::$instance = $instance;
+	}
+
+	/**
 	 * Set secret API Key.
 	 *
 	 * @param string $key
@@ -434,5 +462,27 @@ class WC_Stripe_API {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get the payment method configuration.
+	 *
+	 * @return array The response from the API request.
+	 */
+	public function get_payment_method_configurations() {
+		return self::retrieve( 'payment_method_configurations' );
+	}
+
+	/**
+	 * Update the payment method configuration.
+	 *
+	 * @param array $payment_method_configurations The payment method configurations to update.
+	 */
+	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
+		$response = self::request(
+			$payment_method_configurations,
+			'payment_method_configurations/' . $id
+		);
+		return $response;
 	}
 }

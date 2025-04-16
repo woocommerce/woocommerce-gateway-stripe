@@ -5,7 +5,7 @@ use Automattic\WooCommerce\Enums\OrderStatus;
 /**
  * Unit tests for the UPE payment gateway
  */
-class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
+class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Mock UPE Gateway
 	 *
@@ -21,11 +21,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	private $mock_stripe_customer;
 
 	/**
-	 * Array mapping Stripe IDs to mock WC_Stripe_UPE_Payment_Methods.
+	 * Array of available payment methods.
 	 *
 	 * @var array
 	 */
-	private $mock_payment_methods;
+	private $available_payment_methods;
 
 	/**
 	 * Mocked value of return_url.
@@ -262,13 +262,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 		];
-		$this->mock_gateway->update_option(
-			'upe_checkout_experience_accepted_payments',
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::LINK,
-			]
-		);
+		$this->mock_payment_method_configurations( $available_payment_methods );
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
 	}
 
@@ -2276,6 +2270,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$currency    = $order->get_currency();
 		$order_id    = $order->get_id();
 
+		list( $amount ) = $this->get_order_details( $order );
+
 		$mock_intent = (object) wp_parse_args(
 			[
 				'payment_method'       => 'pm_mock',
@@ -2290,6 +2286,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'status'               => WC_Stripe_Intent_Status::REQUIRES_ACTION,
+				'amount'               => $amount,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
@@ -2425,6 +2422,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_id    = $order->get_id();
 
 		$mock_payment_method = (object) self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		list( $amount )      = $this->get_order_details( $order );
 
 		// Create a mock failed payment intent that would be attached to the order
 		$mock_failed_intent = (object) wp_parse_args(
@@ -2436,6 +2434,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'charges'              => (object) [
 					'data' => [],
 				],
+				'amount'               => $amount,
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
@@ -2651,19 +2650,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'expected'    => [],
 			],
 		];
-	}
-
-	/**
-	 * @param array $account_data
-	 *
-	 * @return void
-	 */
-	private function set_stripe_account_data( $account_data ) {
-		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
-												->disableOriginalConstructor()
-												->setMethods( [ 'get_cached_account_data' ] )
-												->getMock();
-		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
 
 	/**
