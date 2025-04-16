@@ -509,7 +509,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		! isMyAccountPage
 	) {
 		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
-			context: 'default',
+			context: 'wc/checkout/payments', // Display the notice in the payments context.
 		} );
 		return;
 	}
