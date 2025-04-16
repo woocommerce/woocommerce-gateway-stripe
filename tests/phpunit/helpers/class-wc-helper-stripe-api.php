@@ -11,7 +11,7 @@
  * This helper class should ONLY be used for unit tests!.
  * This helper class is used to mock static functions of WC_Stripe_API
  */
-class WC_Helper_Stripe_Api {
+class WC_Helper_Stripe_Api extends WC_Stripe_API {
 
 	/**
 	 * Retrieve response.
