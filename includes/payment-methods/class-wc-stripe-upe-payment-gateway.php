@@ -170,8 +170,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$this->spe_enabled = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
+		$is_checkout       = is_checkout() || has_block( 'woocommerce/checkout' );
 
-		if ( $this->spe_enabled ) {
+		if ( $this->spe_enabled && ( $is_checkout || parent::is_valid_pay_for_order_endpoint() || is_add_payment_method_page() ) ) {
 			$payment_method                                     = new WC_Stripe_UPE_Payment_Method_CC();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		} else {
