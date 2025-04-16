@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.4.0 - xxxx-xx-xx =
+* Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
 * Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
