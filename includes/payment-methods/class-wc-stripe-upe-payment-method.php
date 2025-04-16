@@ -120,6 +120,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $spe_enabled;
 
 	/**
+	 * The default title for the Single Payment Element.
+	 *
+	 * @var string
+	 */
+	protected $spe_title;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -133,6 +140,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
 		$this->spe_enabled              = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
+		$this->spe_title                = $this->get_option( 'single_payment_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
