@@ -199,6 +199,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			}
 
+			// If we are already using the UPE gateway, update the PMC with the currently enabled payment methods.
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				// The UPE accepted payment list does not include Apple Pay/Google Pay, but PMC does, so we need to add them (if they are enabled).
+				$enabled_payment_methods = array_merge(
+					$options['upe_checkout_experience_accepted_payments'],
+					$gateway->is_payment_request_enabled() ? [ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ] : []
+				);
+				$gateway->update_enabled_payment_methods( $enabled_payment_methods );
+			}
+
 			return $result;
 		}
 
