@@ -9,9 +9,6 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_parent_configuration_id() {
-		$this->assertSame(
-			WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
-			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
-		);
+		$this->assertNull( WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id() );
 	}
 }
