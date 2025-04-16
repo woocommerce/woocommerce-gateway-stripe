@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -197,10 +200,10 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 */
 	public function process_pre_order( $order_id ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
+			$order->validate_minimum_amount(); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), true ); // @phpstan-ignore-line (prepare_source is defined in the classes that use this trait)
 
@@ -271,7 +274,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 				$order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
-				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
 				}
@@ -292,8 +295,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 
 			// Mark order as failed if not already set,
 			// otherwise, make sure we add the order note so we can detect when someone fails to check out multiple times
-			if ( ! $order->has_status( 'failed' ) ) {
-				$order->update_status( 'failed', $order_note );
+			if ( ! $order->has_status( OrderStatus::FAILED ) ) {
+				$order->update_status( OrderStatus::FAILED, $order_note );
 			} else {
 				$order->add_order_note( $order_note );
 			}

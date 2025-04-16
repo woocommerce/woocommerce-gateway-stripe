@@ -1,6 +1,7 @@
 /**
  * Payment method name constants without the `stripe` prefix
  */
+export const PAYMENT_METHOD_BLIK = 'blik';
 export const PAYMENT_METHOD_CARD = 'card';
 export const PAYMENT_METHOD_GIROPAY = 'giropay';
 export const PAYMENT_METHOD_EPS = 'eps';
@@ -25,12 +26,14 @@ export const PAYMENT_METHOD_AMAZON_PAY = 'amazon_pay';
 export const PAYMENT_METHOD_ACH = 'us_bank_account';
 export const PAYMENT_METHOD_ACSS = 'acss_debit';
 export const PAYMENT_METHOD_BACS = 'bacs_debit';
+export const PAYMENT_METHOD_BECS = 'au_becs_debit';
 
 /**
  * Payment method names constants with the `stripe` prefix
  */
 export const PAYMENT_METHOD_STRIPE_CARD = 'stripe';
 export const PAYMENT_METHOD_STRIPE_ACH = 'stripe_us_bank_account';
+export const PAYMENT_METHOD_STRIPE_BLIK = 'stripe_blik';
 export const PAYMENT_METHOD_STRIPE_GIROPAY = 'stripe_giropay';
 export const PAYMENT_METHOD_STRIPE_EPS = 'stripe_eps';
 export const PAYMENT_METHOD_STRIPE_IDEAL = 'stripe_ideal';
@@ -50,11 +53,14 @@ export const PAYMENT_METHOD_STRIPE_WECHAT_PAY = 'stripe_wechat_pay';
 export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
+export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
 
 export function getPaymentMethodsConstants() {
 	return {
+		blik: PAYMENT_METHOD_STRIPE_BLIK,
 		card: PAYMENT_METHOD_STRIPE_CARD,
 		us_bank_account: PAYMENT_METHOD_STRIPE_ACH,
+		au_becs_debit: PAYMENT_METHOD_STRIPE_BECS,
 		giropay: PAYMENT_METHOD_STRIPE_GIROPAY,
 		eps: PAYMENT_METHOD_STRIPE_EPS,
 		ideal: PAYMENT_METHOD_STRIPE_IDEAL,
@@ -125,3 +131,21 @@ export const EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY = 'amazonPay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY = 'applePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
+
+/**
+ * List of payment methods that are not recurring
+ */
+export const NON_REUSABLE_METHODS = [
+	PAYMENT_METHOD_ALIPAY,
+	PAYMENT_METHOD_AFFIRM,
+	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
+	PAYMENT_METHOD_BECS,
+	PAYMENT_METHOD_BOLETO,
+	PAYMENT_METHOD_EPS,
+	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_KLARNA,
+	PAYMENT_METHOD_MULTIBANCO,
+	PAYMENT_METHOD_P24,
+	PAYMENT_METHOD_OXXO,
+	PAYMENT_METHOD_WECHAT_PAY,
+];

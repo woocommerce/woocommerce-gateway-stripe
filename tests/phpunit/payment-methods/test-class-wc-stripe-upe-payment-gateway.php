@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * Unit tests for the UPE payment gateway
  */
@@ -120,7 +123,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::LPM_BLIK_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
+
 		$stripe_settings                                  = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
@@ -190,7 +196,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BLIK_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
+		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
 	}
 
 	/**
@@ -246,7 +254,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
 		$this->set_stripe_account_data( [ 'country' => $country ] ); // TODO: Verify if the country is actually changing in the gateway.
-		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
+		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods(), "Available payment methods are not the same for $country" );
 	}
 
 	public function test_get_upe_enabled_at_checkout_payment_method_ids() {
@@ -303,6 +311,26 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
+				],
+			],
+			[ // TODO: Fix each payment method's `is_available_for_account_country` function to match supported countries.
+				'PL',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Alipay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_BLIK::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Klarna::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 				],
 			],
@@ -676,7 +704,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failure', $response['result'] );
 
 		$processed_order = WC_Stripe_Order::get_by_id( $order_id );
-		$this->assertEquals( 'failed', $processed_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $processed_order->get_status() );
 	}
 
 	/**
@@ -745,7 +773,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failure', $response['result'] );
 
 		$processed_order = WC_Stripe_Order::get_by_id( $order_id );
-		$this->assertEquals( 'failed', $processed_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $processed_order->get_status() );
 	}
 
 	/**
@@ -814,7 +842,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failure', $response['result'] );
 
 		$processed_order = WC_Stripe_Order::get_by_id( $order_id );
-		$this->assertEquals( 'failed', $processed_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $processed_order->get_status() );
 	}
 
 	/**
@@ -897,7 +925,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			]
 		)[1];
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertTrue( $final_order->is_upe_redirect_processed() );
@@ -962,14 +990,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[1];
 
 		// assert successful order processing
-		$this->assertEquals( 'processing', $success_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $success_order->get_status() );
 		$this->assertEquals( 'Credit / Debit Card', $success_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $success_order->get_intent_id() );
 		$this->assertTrue( $success_order->is_upe_redirect_processed() );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 
 		// simulate an order getting marked as failed as if from a webhook
-		$order->set_status( 'failed' );
+		$order->set_status( OrderStatus::FAILED );
 		$order->save();
 
 		// attempt to reprocess the order and confirm status is unchanged
@@ -977,7 +1005,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertEquals( 'failed', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 	}
 
 	/**
@@ -1023,7 +1051,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
 		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
@@ -1085,7 +1113,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
@@ -1153,7 +1181,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $generated_payment_method_id, $final_order->get_source_id() );
@@ -1212,7 +1240,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $generated_payment_method_id, $final_order->get_source_id() );
 	}
@@ -1292,7 +1320,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertFalse( $test_order->is_charge_captured() );
 		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
-		$this->assertEquals( 'on-hold', $test_order->get_status() );
+		$this->assertEquals( OrderStatus::ON_HOLD, $test_order->get_status() );
 
 		// Test charge succeeds.
 		$charge_mock['captured'] = true;
@@ -1301,7 +1329,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$test_order = WC_Stripe_Order::get_by_id( $order_id );
 
 		$this->assertTrue( $test_order->is_charge_captured() );
-		$this->assertEquals( 'processing', $test_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $test_order->get_status() );
 
 		// Test charge pending.
 		$charge_mock['status'] = 'pending';
@@ -1311,7 +1339,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $test_order->is_charge_captured() );
 		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
-		$this->assertEquals( 'on-hold', $test_order->get_status() );
+		$this->assertEquals( OrderStatus::ON_HOLD, $test_order->get_status() );
 
 		// Test charge failed.
 		$charge_mock['status'] = 'failed';
@@ -1391,7 +1419,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1418,7 +1446,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[0];
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
@@ -1479,7 +1507,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1501,7 +1529,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$client_secret = $payment_intent_mock->client_secret;
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( 'pending', $final_order->get_status() ); // Order status should be pending until 3DS is completed.
+		$this->assertEquals( OrderStatus::PENDING, $final_order->get_status() ); // Order status should be pending until 3DS is completed.
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
@@ -1553,7 +1581,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1563,7 +1591,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
 		$this->assertEquals( 'failure', $response['result'] );
-		$this->assertEquals( 'failed', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
 	}
@@ -1637,7 +1665,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1664,7 +1692,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[0];
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_intent_id() );
 		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
 		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
@@ -1743,7 +1771,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -1753,7 +1781,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
 
 		$this->assertEquals( 'failure', $response['result'] );
-		$this->assertEquals( 'failed', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( '', $final_order->get_stripe_customer_id() );
 	}
 
@@ -1953,7 +1981,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			]
 		)[0];
 
-		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::PROCESSING, $final_order->get_status() );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
@@ -2055,7 +2083,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			]
 		)[0];
 
-		$this->assertEquals( 'failed', $final_order->get_status() );
+		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
 		$this->assertMatchesRegularExpression( '/pending/i', $note->content );
 		// Assert: Our hook was called once.
@@ -2549,7 +2577,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with(
 				$this->equalTo( $payment_method_id ),
 				$this->callback(
-					function( $passed_order ) use ( $order ) {
+					function ( $passed_order ) use ( $order ) {
 						return $order->get_id() === $passed_order->get_id();
 					}
 				)
@@ -2778,14 +2806,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_filter_my_account_my_orders_actions( $payment_method_title ) {
 		add_filter(
 			'woocommerce_is_order_received_page',
-			function() {
+			function () {
 				return true;
 			}
 		);
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_payment_method_title( $payment_method_title );
-		$order->set_status( 'pending' );
+		$order->set_status( OrderStatus::PENDING );
 
 		$actions = [
 			'pay'    => [
@@ -2851,5 +2879,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertTrue( $gateway->is_spe_enabled() );
+	}
+
+	/**
+	 * Test for `get_payment_method_instance`.
+	 *
+	 * @return void
+	 */
+	public function test_get_payment_method_instance() {
+		$actual = $this->mock_gateway->get_payment_method_instance( WC_Stripe_Payment_Methods::CARD );
+		$this->assertInstanceOf( WC_Stripe_UPE_Payment_Method_CC::class, $actual );
 	}
 }

@@ -4,6 +4,13 @@
  */
 class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 	/**
+	 * The mock gateway.
+	 *
+	 * @var WC_Stripe_UPE_Payment_Gateway
+	 */
+	private $mock_gateway;
+
+	/**
 	 * Initial setup.
 	 */
 	public function set_up() {
@@ -83,6 +90,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WP_UnitTestCase {
 					WC_Stripe_UPE_Payment_Method_Multibanco::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, // TODO: Verify if Link is actually returned/needed in the frontend.
 					WC_Stripe_UPE_Payment_Method_Wechat_Pay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID,
 					WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID,
 				],
 			],

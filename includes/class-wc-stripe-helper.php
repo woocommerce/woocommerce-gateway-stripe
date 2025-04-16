@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -989,7 +992,7 @@ class WC_Stripe_Helper {
 			$order = wc_get_order( $order_id );
 		}
 
-		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
 			return $order;
 		}
 
@@ -1677,5 +1680,52 @@ class WC_Stripe_Helper {
 		}
 
 		return $payment_method_id . '_payments';
+	}
+
+	/**
+	 * Renders the admin header with back link consistently across admin pages.
+	 *
+	 * @param string $header_text The text to display in the header.
+	 * @param string $return_text The text for the return link.
+	 * @param string $return_url  The URL for the return link.
+	 * @return void
+	 */
+	public static function render_admin_header( $header_text, $return_text, $return_url ) {
+		if ( function_exists( 'wc_back_header' ) ) {
+			wc_back_header( $header_text, $return_text, $return_url );
+		} else {
+			// Until the wc_back_header function is available (WC Core 9.9) use the current available version.
+			echo '<h2>' . esc_html( $header_text );
+			wc_back_link( $return_text, $return_url );
+			echo '</h2>';
+		}
+	}
+
+	/**
+	 * Checks if a given currency is supported for Indian recurring payment mandates.
+	 *
+	 * @since 9.4.0
+	 * @param string $currency The currency code to check (e.g., 'usd', 'eur').
+	 * @return bool True if the currency is supported, false otherwise.
+	 */
+	public static function is_currency_supported_for_indian_recurring_payment_mandate( $currency ) {
+		// India recurring payment mandates can only be requested for the following currencies.
+		$supported_currencies = [
+			'inr', // Indian Rupee
+			'usd', // US Dollar
+			'eur', // Euro
+			'gbp', // British Pound
+			'sgd', // Singapore Dollar
+			'cad', // Canadian Dollar
+			'chf', // Swiss Franc
+			'sek', // Swedish Krona
+			'aed', // UAE Dirham
+			'jpy', // Japanese Yen
+			'nok', // Norwegian Krone
+			'myr', // Malaysian Ringgit
+			'hkd', // Hong Kong Dollar
+		];
+
+		return in_array( strtolower( $currency ), $supported_currencies, true );
 	}
 }

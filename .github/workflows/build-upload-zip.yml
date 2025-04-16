@@ -1,0 +1,34 @@
+name: Build and Upload Package
+
+on:
+  workflow_call:
+    inputs:
+      artifact:
+        type: string
+        default: 'woocommerce-gateway-stripe'
+      php-version:
+        type: string
+        default: '7.4'
+
+jobs:
+  build_project:
+    name: Build and upload
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP and Node
+        uses: ./.github/actions/setup-env
+        with:
+          php-version: ${{ inputs.php-version }}
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact }}
+          path: ${{ github.workspace }}/woocommerce-gateway-stripe.zip

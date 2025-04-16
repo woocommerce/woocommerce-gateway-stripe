@@ -295,5 +295,4 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 			$this->assertEquals( $expected, $response, "Testing param: $param" );
 		}
 	}
-
 }

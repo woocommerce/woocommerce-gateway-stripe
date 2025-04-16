@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -410,7 +413,7 @@ class WC_Stripe_Intent_Controller {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( $this->update_payment_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
+			wp_send_json_success( $this->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
 		} catch ( Exception $e ) {
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
@@ -424,11 +427,12 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Updates payment intent to be able to save payment method.
+	 * Updates payment intent or setup intent to be able to save payment method.
 	 *
 	 * @since 5.6.0
+	 * @version x.x.x
 	 *
-	 * @param {string}  $payment_intent_id         The id of the payment intent to update.
+	 * @param {string}  $intent_id                 The id of the payment intent or setup intent to update.
 	 * @param {int}     $order_id                  The id of the order if intent created from Order.
 	 * @param {boolean} $save_payment_method       True if saving the payment method.
 	 * @param {string}  $selected_upe_payment_type The name of the selected UPE payment type or empty string.
@@ -436,7 +440,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception  If the update intent call returns with an error.
 	 * @return array|null An array with result of the update, or nothing
 	 */
-	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
+	public function update_intent( $intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
 		$order = wc_get_order( $order_id );
 
 		if ( ! is_a( $order, 'WC_Order' ) ) {
@@ -447,16 +451,21 @@ class WC_Stripe_Intent_Controller {
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		$customer->maybe_create_customer();
 
-		if ( $payment_intent_id ) {
-
+		if ( $intent_id ) {
 			$request = [
-				'amount'      => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
-				'currency'    => strtolower( $currency ),
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
 				/* translators: 1) blog name 2) order number */
 				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 			];
+
+			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
+			if ( ! $is_setup_intent ) {
+				// These parameters are only supported for payment intents.
+				$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) );
+				$request['currency'] = strtolower( $currency );
+			}
 
 			if ( '' !== $selected_upe_payment_type ) {
 				// Only update the payment_method_types if we have a reference to the payment type the customer selected.
@@ -485,16 +494,21 @@ class WC_Stripe_Intent_Controller {
 
 			$level3_data = $gateway->get_level3_data_from_order( $order );
 
+			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
+			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
 			WC_Stripe_API::request_with_level3_data(
 				$request,
-				"payment_intents/{$payment_intent_id}",
+				"{$endpoint}/{$intent_id}",
 				$level3_data,
 				$order
 			);
 
-			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			// Prevent any failures if updating the status of a subscription order.
+			if ( ! $gateway->has_subscription( $order_id ) ) {
+				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			}
 			$order->save();
-			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+			WC_Stripe_Helper::add_payment_intent_to_order( $intent_id, $order );
 		}
 
 		return [
@@ -629,7 +643,7 @@ class WC_Stripe_Intent_Controller {
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
 				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 
 			// Send back error so it can be displayed to the customer.
@@ -699,7 +713,7 @@ class WC_Stripe_Intent_Controller {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( $order ) {
-				$order->update_status( 'failed' );
+				$order->update_status( OrderStatus::FAILED );
 			}
 		}
 
@@ -808,19 +822,20 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Adds mandate options to the request if required.
 	 *
-	 * @param array       $request              The request array to add the mandate options to.
-	 * @param string|null $payment_method_type  The type of payment method to use for the intent.
-	 * @param bool        $is_setup_intent      Whether the request is for a setup intent.
+	 * @param array            $request              The request array to add the mandate options to.
+	 * @param string|null      $payment_method_type  The type of payment method to use for the intent.
+	 * @param bool             $is_setup_intent      Whether the request is for a setup intent.
+	 * @param WC_Order|null    $order                The order object.
 	 *
 	 * @return array
 	 */
-	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false ) {
+	private function maybe_add_mandate_options( $request, $payment_method_type, $is_setup_intent = false, $order = null ) {
 		if ( WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_type ) {
 			$request['payment_method_options'] = [
 				WC_Stripe_Payment_Methods::ACSS_DEBIT => [
 					'mandate_options' => [
-						'payment_schedule'     => 'interval',
-						'interval_description' => __( 'One-time payment', 'woocommerce-gateway-stripe' ), // TODO: Change to cadence if purchasing a subscription.
+						'payment_schedule'     => 'combined',
+						'interval_description' => __( 'Payments as per agreement', 'woocommerce-gateway-stripe' ),
 						'transaction_type'     => 'personal',
 					],
 				],
@@ -830,6 +845,34 @@ class WC_Stripe_Intent_Controller {
 			if ( $is_setup_intent ) {
 				$request['payment_method_options'][ WC_Stripe_Payment_Methods::ACSS_DEBIT ]['currency'] = strtolower( WC_Stripe_Currency_Code::CANADIAN_DOLLAR );
 			}
+		}
+
+		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_type && $order && $is_setup_intent ) {
+			$currency = $order->get_currency();
+			// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
+			if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
+				return $request;
+			}
+
+			$mandate_options = [
+				'currency'        => strtolower( $currency ), // Currency is required for mandate options when creating a setup intent for card payment methods.
+				'reference'       => $order->get_id(),
+				'amount_type'     => 'fixed',
+				'amount'          => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+				'start_date'      => time(),
+				'interval'        => 'sporadic',
+				'supported_types' => [ 'india' ],
+			];
+
+			$request['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options'] = $mandate_options;
+
+			// Run the necessary filter to make sure correct mandate information is added for recurring card payments for subscriptions.
+			$request = apply_filters(
+				'wc_stripe_generate_create_intent_request',
+				$request,
+				$order,
+				null // $prepared_source parameter is not necessary for adding mandate information.
+			);
 		}
 
 		return $request;
@@ -954,7 +997,11 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		$payment_method_types  = $payment_information['payment_method_types'];
+		if ( $this->get_upe_gateway()->is_spe_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
+			$selected_payment_type = $payment_information['payment_method_details']->type;
+		}
+
+		$payment_method_types = $payment_information['payment_method_types'];
 
 		$request = [
 			'shipping' => $payment_information['shipping'],
@@ -987,6 +1034,11 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
+		// BLIK requires additional information in the payment method options.
+		if ( WC_Stripe_Payment_Methods::BLIK === $selected_payment_type && isset( $payment_information['payment_method_options'] ) ) {
+			$request['payment_method_options'] = $payment_information['payment_method_options'];
+		}
+
 		return $request;
 	}
 
@@ -1007,7 +1059,9 @@ class WC_Stripe_Intent_Controller {
 		$payment_methods_with_mandates = [
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::AMAZON_PAY,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
 			WC_Stripe_Payment_Methods::SEPA_DEBIT,
 			WC_Stripe_Payment_Methods::BANCONTACT,
 			WC_Stripe_Payment_Methods::IDEAL,
@@ -1048,7 +1102,7 @@ class WC_Stripe_Intent_Controller {
 			$request = WC_Stripe_Helper::add_mandate_data( $request );
 		}
 
-		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true );
+		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'], true, $payment_information['order'] ?? null );
 
 		// For voucher payment methods type like Boleto, Oxxo, Multibanco, and Cash App, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
@@ -1057,7 +1111,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Removes the return URL if Single Payment Element is not enabled or if the request doesn't need redirection.
-		if ( ! ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
+		if ( ( ! $this->get_upe_gateway()->is_spe_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
 

@@ -9,7 +9,7 @@ class UPE_Test_Helper {
 		// Force the UPE feature flag on.
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
-			function() {
+			function () {
 				return 'yes';
 			}
 		);

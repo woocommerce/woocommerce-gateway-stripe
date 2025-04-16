@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
 import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
 
@@ -16,7 +17,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	test.beforeAll( async ( { browser } ) => {
 		await test.step( 'Setup test environment', async () => {
 			// Create test user
-			const randomString = Date.now();
+			const randomString = randomUUID();
 			userEmail =
 				randomString + '+' + config.get( 'users.customer.email' );
 			username =

@@ -1,0 +1,37 @@
+name: Unit Tests
+
+on:
+  workflow_call:
+    inputs:
+      wp-version:
+        type: string
+        default: 'latest'
+      wc-version:
+        type: string
+        default: 'latest'
+      php-version:
+        type: string
+        default: '7.4'
+
+jobs:  
+  php-unit-tests:
+    name: PHP Unit - WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }}
+    runs-on: ubuntu-latest
+    env:
+      WP_VERSION: ${{ inputs.wp-version }}
+      WC_VERSION: ${{ inputs.wc-version }}
+      PHP_VERSION: ${{ inputs.php-version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP and Node
+        uses: ./.github/actions/setup-env
+        with:
+          php-version: ${{ inputs.php-version }}
+
+      - name: Install SVN
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Run CI tests
+        run: bash bin/run-ci-tests.bash

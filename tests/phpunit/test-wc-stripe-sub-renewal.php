@@ -10,6 +10,8 @@
  * @package     WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Renewal_Test
  */
 
+use Automattic\WooCommerce\Enums\OrderStatus;
+
 /**
  * WC_Stripe_Subscription_Renewal_Test
  */
@@ -111,7 +113,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
 		// Note: There are assertions in the callback function.
-		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+		$pre_http_request_response_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
 			$renewal_order,
 			$stripe_amount,
 			$currency,
@@ -234,7 +240,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as processing (this is done in process_response()).
-		$this->assertEquals( $order->get_status(), 'processing' );
+		$this->assertEquals( $order->get_status(), OrderStatus::PROCESSING );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
@@ -291,7 +297,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			);
 
 		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
-		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+		$pre_http_request_response_callback = function (
+			$preempt,
+			$request_args,
+			$url
+		) use (
 			$renewal_order,
 			$stripe_amount,
 			$currency,
@@ -352,7 +362,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as failed.
-		$this->assertEquals( $order->get_status(), 'failed' );
+		$this->assertEquals( $order->get_status(), OrderStatus::FAILED );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );

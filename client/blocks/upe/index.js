@@ -46,8 +46,9 @@ const methodsToFilter = [
 
 // Register UPE Elements.
 if ( getBlocksConfiguration()?.isSPEEnabled ) {
-	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
-	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
+	registerPaymentMethod(
+		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
+	);
 } else {
 	Object.entries( paymentMethodsConfig )
 		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
@@ -56,21 +57,24 @@ if ( getBlocksConfiguration()?.isSPEEnabled ) {
 		} );
 }
 
-// Register Express Checkout Elements.
-if (
-	getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
-	getBlocksConfiguration()?.isAmazonPayEnabled
-) {
-	registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
-}
-if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
-	registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
-	registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
-}
-if ( getBlocksConfiguration()?.isLinkEnabled ) {
-	registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
+if ( getBlocksConfiguration()?.isECEEnabled ) {
+	// Register Express Checkout Elements.
+	if (
+		getBlocksConfiguration()?.isAmazonPayAvailable && // Hide behind feature flag so the editor does not show the button.
+		getBlocksConfiguration()?.isAmazonPayEnabled
+	) {
+		registerExpressPaymentMethod( expressCheckoutElementAmazonPay( api ) );
+	}
+	if ( getBlocksConfiguration()?.isPaymentRequestEnabled ) {
+		registerExpressPaymentMethod( expressCheckoutElementApplePay( api ) );
+		registerExpressPaymentMethod( expressCheckoutElementGooglePay( api ) );
+	}
+	if ( getBlocksConfiguration()?.isLinkEnabled ) {
+		registerExpressPaymentMethod( expressCheckoutElementStripeLink( api ) );
+	}
 } else {
 	// Register Stripe Payment Request.
+	// TODO: We can remove this once we're sure everyone on the new checkout (UPE) has been migrated to ECE.
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }
 
