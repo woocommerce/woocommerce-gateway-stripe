@@ -110,6 +110,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
+= 9.4.1 - xxxx-xx-xx =
+* Dev - Forces rollback of version 9.4.0.
+
 = 9.4.0 - 2025-04-16 =
 * Add - New filter to allow merchants to bypass the default visibility of the express payment method buttons when taxes are based on customer's billing address (`wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`).
 * Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
