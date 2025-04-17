@@ -742,4 +742,101 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $callback );
 	}
+
+	/**
+	 * Tests for `payment_icons`.
+	 *
+	 * @param bool   $smart_checkout_enabled Whether Smart Checkout is enabled.
+	 * @param mixed  $filter                 The filter to apply.
+	 * @param array  $expected               The expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_payment_icons
+	 */
+	public function test_payment_icons( $smart_checkout_enabled, $filter, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, $smart_checkout_enabled ? 'yes' : 'no' );
+
+		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['single_payment_element'] = $smart_checkout_enabled ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		if ( $filter ) {
+			add_filter( 'wc_stripe_payment_icons', $filter );
+		} else {
+			remove_filter( 'wc_stripe_payment_icons', [] );
+		}
+
+		$this->assertSame( $expected, $this->gateway->payment_icons() );
+	}
+
+	/**
+	 * Provider for `test_payment_icons`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_payment_icons() {
+		$mocked_filter = function () {
+			return [];
+		};
+
+		return [
+			'default'                => [
+				'smart checkout enabled' => false,
+				'filter'                 => null,
+				'expected'               => [
+					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
+					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
+					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
+					'au_becs_debit'   => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="BECS Direct Debit" />',
+					'blik'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/blik.svg" class="stripe-blik-icon stripe-icon" alt="BLIK" />',
+					'wechat_pay'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
+					'bancontact'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
+					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal.svg" class="stripe-ideal-icon stripe-icon" alt="iDEAL" />',
+					'p24'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/p24.svg" class="stripe-p24-icon stripe-icon" alt="P24" />',
+					'giropay'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/giropay.svg" class="stripe-giropay-icon stripe-icon" alt="giropay" />',
+					'klarna'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/klarna.svg" class="stripe-klarna-icon stripe-icon" alt="Klarna" />',
+					'affirm'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/affirm.svg" class="stripe-affirm-icon stripe-icon" alt="Affirm" />',
+					'eps'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/eps.svg" class="stripe-eps-icon stripe-icon" alt="EPS" />',
+					'multibanco'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/multibanco.svg" class="stripe-multibanco-icon stripe-icon" alt="Multibanco" />',
+					'sofort'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sofort.svg" class="stripe-sofort-icon stripe-icon" alt="Sofort" />',
+					'sepa'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sepa.svg" class="stripe-sepa-icon stripe-icon" alt="SEPA" />',
+					'boleto'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/boleto.svg" class="stripe-boleto-icon stripe-icon" alt="Boleto" />',
+					'oxxo'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
+					'cards'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="Credit / Debit Card" />',
+					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
+				],
+			],
+			'Smart Checkout enabled' => [
+				'smart checkout enabled' => true,
+				'filter'                 => null,
+				'expected'               => [
+					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
+					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
+					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
+					'au_becs_debit'   => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="BECS Direct Debit" />',
+					'blik'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/blik.svg" class="stripe-blik-icon stripe-icon" alt="BLIK" />',
+					'wechat_pay'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/wechat.svg" class="stripe-wechat-icon stripe-icon" alt="Wechat Pay" />',
+					'bancontact'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bancontact.svg" class="stripe-bancontact-icon stripe-icon" alt="Bancontact" />',
+					'ideal'           => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/ideal.svg" class="stripe-ideal-icon stripe-icon" alt="iDEAL" />',
+					'p24'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/p24.svg" class="stripe-p24-icon stripe-icon" alt="P24" />',
+					'giropay'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/giropay.svg" class="stripe-giropay-icon stripe-icon" alt="giropay" />',
+					'klarna'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/klarna.svg" class="stripe-klarna-icon stripe-icon" alt="Klarna" />',
+					'affirm'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/affirm.svg" class="stripe-affirm-icon stripe-icon" alt="Affirm" />',
+					'eps'             => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/eps.svg" class="stripe-eps-icon stripe-icon" alt="EPS" />',
+					'multibanco'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/multibanco.svg" class="stripe-multibanco-icon stripe-icon" alt="Multibanco" />',
+					'sofort'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sofort.svg" class="stripe-sofort-icon stripe-icon" alt="Sofort" />',
+					'sepa'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sepa.svg" class="stripe-sepa-icon stripe-icon" alt="SEPA" />',
+					'boleto'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/boleto.svg" class="stripe-boleto-icon stripe-icon" alt="Boleto" />',
+					'oxxo'            => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
+					'cards'           => '',
+					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
+				],
+			],
+			'filter applied'         => [
+				'smart checkout enabled' => false,
+				'filter'                 => $mocked_filter,
+				'expected'               => [],
+			],
+		];
+	}
 }

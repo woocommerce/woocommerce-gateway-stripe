@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Representation of a payment token for BECS.
  *
  * @class    WC_Payment_Token_Becs_Debit
- * @since    x.x.x
+ * @since    9.4.0
  */
 class WC_Payment_Token_Becs_Debit extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 

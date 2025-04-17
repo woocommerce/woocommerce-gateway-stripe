@@ -68,6 +68,15 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the parent configuration ID.
+	 *
+	 * @return string|null
+	 */
+	public static function get_parent_configuration_id() {
+		return self::get_primary_configuration()->parent ?? null;
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @return array
