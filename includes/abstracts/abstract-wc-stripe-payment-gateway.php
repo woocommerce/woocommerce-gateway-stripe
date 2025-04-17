@@ -31,9 +31,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration.
 	 * @return string[]
 	 */
-	public function get_upe_enabled_payment_method_ids() {
+	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
 		return [ WC_Stripe_Payment_Methods::CARD ];
 	}
 

@@ -762,9 +762,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns UPE enabled payment method IDs.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration.
 	 * @return string[]
 	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
+	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
+		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( $force_refresh );
 	}
 }
