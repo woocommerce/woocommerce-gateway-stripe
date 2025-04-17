@@ -33,7 +33,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_enabled_payment_method_ids() {
+	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
 		return [ WC_Stripe_Payment_Methods::CARD ];
 	}
 
@@ -42,7 +42,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_available_payment_methods( $force_refresh = false ) {
+	public function get_upe_available_payment_methods() {
 		return [ WC_Stripe_Payment_Methods::CARD ];
 	}
 
