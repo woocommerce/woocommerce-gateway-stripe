@@ -89,15 +89,15 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
+		// Migrate payment methods from DB to Stripe PMC if needed
+		self::maybe_migrate_payment_methods_from_db_to_pmc();
+
 		if ( ! $force_refresh && ! empty( get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY ) ) ) {
 			return get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY );
 		}
 
 		$enabled_payment_method_ids            = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
-
-		// Migrate payment methods from DB to Stripe PMC if needed
-		self::maybe_migrate_payment_methods_from_db_to_pmc( $merchant_payment_method_configuration );
 
 		if ( $merchant_payment_method_configuration ) {
 			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
@@ -216,10 +216,8 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Migrates the payment methods from the DB option to PMC if needed.
-	 *
-	 * @param object $merchant_payment_method_configuration The payment method configuration in Stripe dashboard.
 	 */
-	public static function maybe_migrate_payment_methods_from_db_to_pmc( $merchant_payment_method_configuration ) {
+	public static function maybe_migrate_payment_methods_from_db_to_pmc() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// Skip if PMC is not enabled or migration already done
@@ -228,6 +226,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Skip if there is no PMC available
+		$merchant_payment_method_configuration = self::get_primary_configuration();
 		if ( ! $merchant_payment_method_configuration ) {
 			return;
 		}
