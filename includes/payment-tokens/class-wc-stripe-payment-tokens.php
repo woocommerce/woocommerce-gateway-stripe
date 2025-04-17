@@ -65,8 +65,8 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Normalizes the payment method labels on My Account page.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 9.4.0
+	 * @version 9.4.0
 	 * @param string $label
 	 * @return string $label
 	 */

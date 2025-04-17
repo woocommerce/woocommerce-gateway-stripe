@@ -430,7 +430,7 @@ class WC_Stripe_Intent_Controller {
 	 * Updates payment intent or setup intent to be able to save payment method.
 	 *
 	 * @since 5.6.0
-	 * @version x.x.x
+	 * @version 9.4.0
 	 *
 	 * @param {string}  $intent_id                 The id of the payment intent or setup intent to update.
 	 * @param {int}     $order_id                  The id of the order if intent created from Order.
@@ -520,7 +520,7 @@ class WC_Stripe_Intent_Controller {
 	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
 	 *
 	 * @since 5.6.0
-	 * @version x.x.x
+	 * @version 9.4.0
 	 */
 	public function init_setup_intent_ajax() {
 		try {
@@ -548,7 +548,7 @@ class WC_Stripe_Intent_Controller {
 	 * Creates a setup intent without confirmation.
 	 *
 	 * @since 5.6.0
-	 * @version x.x.x
+	 * @version 9.4.0
 	 *
 	 * @param string|null $payment_method_type The type of payment method to use for the intent.
 	 * @return array

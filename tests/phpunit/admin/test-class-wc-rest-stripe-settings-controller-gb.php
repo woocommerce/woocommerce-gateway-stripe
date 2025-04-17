@@ -9,7 +9,7 @@ use Automattic\WooCommerce\Blocks\RestApi;
 /**
  * WC_REST_Stripe_Settings_Controller_Test_GB unit tests.
  */
-class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
+class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tested REST route.
@@ -22,6 +22,13 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	 * @var WC_Gateway_Stripe
 	 */
 	private static $gateway;
+
+	/**
+	 * Controller instance
+	 *
+	 * @var WC_REST_Stripe_Settings_Controller
+	 */
+	private $controller;
 
 	/**
 	 * Enable UPE and store gateway instance.
@@ -70,6 +77,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		$stripe_settings['country']              = 'GB';
+		$stripe_settings['test_connection_type'] = 'connect';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -82,6 +90,9 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
+		$this->mock_payment_method_configurations( [ 'card' ], [] );
+
+		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
@@ -154,7 +165,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WP_UnitTestCase {
 	private function rest_get_settings() {
 		$request = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 
-		return rest_do_request( $request );
+		return $this->controller->get_settings( $request );
 	}
 
 	/**
