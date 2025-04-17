@@ -8,118 +8,116 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Payment_Method_Configurations
  */
 class WC_Stripe_Payment_Method_Configurations {
+
 	/**
-	 * The primary configuration.
+	 * The PMC (Payment Method Configuration).
 	 *
 	 * @var object|null
 	 */
-	private static $primary_configuration = null;
+	private static $pmc = null;
 
 	/**
-	 * The test mode configuration parent ID.
+	 * The Test mode PMC ID of the WooCommerce Platform account
 	 *
 	 * @var string|null
 	 */
-	const TEST_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
+	const TEST_PLATFORM_PMC_ID = 'pmc_1LEKjBGX8lmJQndTBOzjqxSa';
 
 	/**
-	 * The live mode configuration parent ID.
+	 * The Live mode PMC ID of the WooCommerce Platform account.
 	 *
 	 * @var string|null
 	 */
-	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
+	const LIVE_PLATFORM_PMC_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
-	 * The primary configuration transient key (for cache purposes).
+	 * The PMC transient key (for cache purposes).
 	 *
 	 * @var string
 	 */
-	const PRIMARY_CONFIGURATION_TRANSIENT_KEY = 'wcstripe_primary_configuration';
+	const PMC_CACHE_TRANSIENT_KEY = 'wcstripe_payment_method_configuration_cache';
 
 	/**
-	 * Get the merchant payment method configuration in Stripe.
+	 * The PMC transient expiration (for cache purposes).
 	 *
-	 * @param bool $force_refresh Whether to force a refresh of the configuration from Stripe.
+	 * @var int
+	 */
+	const PMC_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
+
+	/**
+	 * Get the PMC from Stripe.
+	 *
+	 * @param bool $force_refresh Whether to force a refresh of the PMC from Stripe.
 	 * @return object|null
 	 */
-	private static function get_primary_configuration( $force_refresh = false ) {
+	private static function get_pmc( $force_refresh = false ) {
 		if ( ! $force_refresh ) {
-			$cached_configuration = self::get_primary_configuration_from_cache();
-			if ( $cached_configuration ) {
-				return $cached_configuration;
+			$cached_pmc = self::get_pmc_from_cache();
+			if ( $cached_pmc ) {
+				return $cached_pmc;
 			}
 		}
 
-		return self::get_primary_configuration_from_stripe();
+		return self::get_pmc_from_stripe();
 	}
 
 	/**
-	 * Get the primary configuration from cache.
+	 * Get the PMC from cache.
 	 *
 	 * @return object|null
 	 */
-	private static function get_primary_configuration_from_cache() {
-		if ( null !== self::$primary_configuration ) {
-			return self::$primary_configuration;
+	private static function get_pmc_from_cache() {
+		if ( null !== self::$pmc ) {
+			return self::$pmc;
 		}
 
-		$cached_configuration = get_transient( self::PRIMARY_CONFIGURATION_TRANSIENT_KEY );
-		if ( false === $cached_configuration || null === $cached_configuration || ! is_array( $cached_configuration ) ) {
+		$cached_pmc = get_transient( self::PMC_CACHE_TRANSIENT_KEY );
+		if ( false === $cached_pmc || null === $cached_pmc ) {
 			return null;
 		}
 
-		self::$primary_configuration = $cached_configuration;
-		return self::$primary_configuration;
+		self::$pmc = $cached_pmc;
+		return self::$pmc;
 	}
 
 	/**
-	 * Clear the primary configuration from cache.
+	 * Clear the PMC from cache.
 	 */
-	public static function clear_primary_configuration_cache() {
-		self::$primary_configuration = null;
-		delete_transient( self::PRIMARY_CONFIGURATION_TRANSIENT_KEY );
+	public static function clear_pmc_cache() {
+		self::$pmc = null;
+		delete_transient( self::PMC_CACHE_TRANSIENT_KEY );
 	}
 
 	/**
-	 * Cache the primary configuration.
+	 * Cache the PMC.
 	 *
-	 * @param object|array $configuration The configuration to set in cache.
+	 * @param object|array $pmc The PMC to set in cache.
 	 */
-	private static function set_primary_configuration_cache( $configuration ) {
-		if ( is_object( $configuration ) ) {
-			$configuration_array = (array) $configuration;
-		} elseif ( is_array( $configuration ) ) {
-			$configuration_array = $configuration;
-		} else {
-			return;
-		}
-
-		set_transient( self::PRIMARY_CONFIGURATION_TRANSIENT_KEY, $configuration_array, 10 * MINUTE_IN_SECONDS );
+	private static function set_pmc_cache( $pmc ) {
+		self::$pmc = $pmc;
+		set_transient( self::PMC_CACHE_TRANSIENT_KEY, $pmc, self::PMC_CACHE_TRANSIENT_EXPIRATION );
 	}
 
 	/**
-	 * Get the primary configuration from Stripe.
+	 * Get the PMC from Stripe.
 	 *
 	 * @return object|null
 	 */
-	private static function get_primary_configuration_from_stripe() {
-		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
-		$payment_method_configurations = $result->data ?? null;
+	private static function get_pmc_from_stripe() {
+		$result         = WC_Stripe_API::get_instance()->get_all_payment_method_configurations();
+		$configurations = $result->data ?? null;
 
-		if ( ! $payment_method_configurations ) {
+		if ( ! $configurations ) {
 			return null;
 		}
 
-		foreach ( $payment_method_configurations as $payment_method_configuration ) {
-			if ( ! $payment_method_configuration->livemode && $payment_method_configuration->parent && self::TEST_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
-				self::$primary_configuration = $payment_method_configuration;
-
-				return $payment_method_configuration;
-			}
-
-			if ( $payment_method_configuration->livemode && $payment_method_configuration->parent && self::LIVE_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
-				self::$primary_configuration = $payment_method_configuration;
-				return $payment_method_configuration;
+		// When connecting to the WooCommerce Platform account a new PMC is created for the merchant. This new PMC
+		// has the WooCommerce Platform PMC as parent, and inherits it's default payment methods.
+		foreach ( $configurations as $pmc ) {
+			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
+			if ( $pmc->parent && ( self::LIVE_PLATFORM_PMC_ID === $pmc->parent || self::TEST_PLATFORM_PMC_ID === $pmc->parent ) ) {
+				self::set_pmc_cache( $pmc );
+				return $pmc;
 			}
 		}
 
@@ -129,11 +127,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
-	 * @param bool $force_refresh Whether to force a refresh of the configuration from Stripe.
+	 * @param bool $force_refresh Whether to force a refresh of the PMC from Stripe.
 	 * @return array
 	 */
 	public static function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
-		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
+		// If the Payment Method Configurations is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] )
@@ -141,14 +139,14 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
-		// Migrate payment methods from DB to Stripe PMC if not already done.
+		// Migrate payment methods from DB to Stripe's PMC if not already done.
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
 
-		$enabled_payment_method_ids            = [];
-		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
+		$enabled_payment_method_ids = [];
+		$pmc                        = self::get_pmc( $force_refresh );
 
-		if ( $merchant_payment_method_configuration ) {
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+		if ( $pmc ) {
+			foreach ( $pmc as $payment_method_id => $payment_method ) {
 				if ( isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value ) {
 					$enabled_payment_method_ids[] = $payment_method_id;
 				}
@@ -159,46 +157,43 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
-	 * Update the payment method configuration.
+	 * Update the enabled payment methods in the PMC.
 	 *
 	 * @param array $enabled_payment_method_ids
 	 * @param array $available_payment_method_ids
 	 */
-	public static function update_payment_method_configuration( $enabled_payment_method_ids, $available_payment_method_ids ) {
-		$payment_method_configuration         = self::get_primary_configuration();
-		$updated_payment_method_configuration = [];
-		$newly_enabled_methods                = [];
-		$newly_disabled_methods               = [];
+	public static function update_pmc( $enabled_payment_method_ids, $available_payment_method_ids ) {
+		$pmc                     = self::get_pmc();
+		$updated_payment_methods = [];
+
+		$newly_enabled_methods  = [];
+		$newly_disabled_methods = [];
+
+		if ( ! $pmc ) {
+			WC_Stripe_Logger::log( 'No PMC found while updating payment method configuration' );
+			return;
+		}
 
 		foreach ( $available_payment_method_ids as $stripe_id ) {
 			$will_enable = in_array( $stripe_id, $enabled_payment_method_ids, true );
 
-			if ( 'on' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && ! $will_enable ) {
+			if ( 'on' === ( $pmc->$stripe_id->display_preference->value ?? null ) && ! $will_enable ) {
 				$newly_disabled_methods[] = $stripe_id;
 			}
 
-			if ( 'off' === ( $payment_method_configuration->$stripe_id->display_preference->value ?? null ) && $will_enable ) {
+			if ( 'off' === ( $pmc->$stripe_id->display_preference->value ?? null ) && $will_enable ) {
 				$newly_enabled_methods[] = $stripe_id;
 			}
 
-			$updated_payment_method_configuration[ $stripe_id ] = [
+			$updated_payment_methods[ $stripe_id ] = [
 				'display_preference' => [
 					'preference' => in_array( $stripe_id, $enabled_payment_method_ids, true ) ? 'on' : 'off',
 				],
 			];
 		}
 
-		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
-			return;
-		}
-
-		WC_Stripe_API::get_instance()->update_payment_method_configurations(
-			$payment_method_configuration->id,
-			$updated_payment_method_configuration
-		);
-
-		self::clear_primary_configuration_cache();
+		WC_Stripe_API::get_instance()->update_payment_method_configuration( $pmc->id, $updated_payment_methods );
+		self::clear_pmc_cache();
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 	}
@@ -271,15 +266,14 @@ class WC_Stripe_Payment_Method_Configurations {
 		}
 
 		// Skip if there is no PMC available
-		$merchant_payment_method_configuration = self::get_primary_configuration();
-		if ( ! $merchant_payment_method_configuration ) {
+		$pmc = self::get_pmc();
+		if ( ! $pmc ) {
 			return;
 		}
 
 		$enabled_payment_methods = [];
 
-		if ( isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
-				! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
+		if ( ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ) {
 			$enabled_payment_methods = array_merge(
 				$enabled_payment_methods,
 				$stripe_settings['upe_checkout_experience_accepted_payments']
@@ -300,13 +294,13 @@ class WC_Stripe_Payment_Method_Configurations {
 			// Get all available payment method IDs from the configuration.
 			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
 			$available_payment_method_ids = [];
-			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+			foreach ( $pmc as $payment_method_id => $payment_method ) {
 				if ( isset( $payment_method->display_preference ) ) {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 			}
 
-			self::update_payment_method_configuration(
+			self::update_pmc(
 				$enabled_payment_methods,
 				$available_payment_method_ids
 			);

@@ -709,7 +709,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
 
-		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
+		WC_Stripe_Payment_Method_Configurations::update_pmc(
 			$payment_method_ids_to_enable,
 			$payment_method_ids_to_update
 		);
