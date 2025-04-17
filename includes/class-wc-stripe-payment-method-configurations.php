@@ -37,24 +37,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	const PRIMARY_CONFIGURATION_TRANSIENT_KEY = 'wcstripe_primary_configuration';
 
 	/**
-	 * Reset the primary configuration.
-	 */
-	public static function reset_primary_configuration() {
-		self::$primary_configuration = null;
-		self::clear_primary_configuration_cache();
-	}
-
-	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the configuration from Stripe.
 	 * @return object|null
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
-		if ( null !== self::$primary_configuration && ! $force_refresh ) {
-			return self::$primary_configuration;
-		}
-
 		if ( ! $force_refresh ) {
 			$cached_configuration = self::get_primary_configuration_from_cache();
 			if ( $cached_configuration ) {
@@ -71,21 +59,24 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_primary_configuration_from_cache() {
+		if ( null !== self::$primary_configuration ) {
+			return self::$primary_configuration;
+		}
+
 		$cached_configuration = get_transient( self::PRIMARY_CONFIGURATION_TRANSIENT_KEY );
 		if ( false === $cached_configuration || null === $cached_configuration || ! is_array( $cached_configuration ) ) {
 			return null;
 		}
 
-		$hydrated_configuration = (object) $cached_configuration;
-		self::$primary_configuration = $hydrated_configuration;
-
-		return $hydrated_configuration;
+		self::$primary_configuration = $cached_configuration;
+		return self::$primary_configuration;
 	}
 
 	/**
 	 * Clear the primary configuration from cache.
 	 */
 	public static function clear_primary_configuration_cache() {
+		self::$primary_configuration = null;
 		delete_transient( self::PRIMARY_CONFIGURATION_TRANSIENT_KEY );
 	}
 
@@ -150,7 +141,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
-		// Migrate payment methods from DB to Stripe PMC if needed
+		// Migrate payment methods from DB to Stripe PMC if not already done.
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
 
 		$enabled_payment_method_ids            = [];
@@ -202,16 +193,12 @@ class WC_Stripe_Payment_Method_Configurations {
 			return;
 		}
 
-		// TODO: I think there are two issues to address here:
-		// 1. `reset_primary_configuration()` is already calling clear_primary_configuration_cache(), so this could effectively trigger two database calls.
-		// 2. I am not sure if we should clear the cache before or after the API call -- I think after would be better, to make sure another API call doesn't populate the cache before we get the response from Stripe.
-		self::reset_primary_configuration();
-		self::clear_primary_configuration_cache();
-
 		WC_Stripe_API::get_instance()->update_payment_method_configurations(
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration
 		);
+
+		self::clear_primary_configuration_cache();
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 	}
