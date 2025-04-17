@@ -139,7 +139,8 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: 'pmc_...',
+					paymentMethodConfiguration: getBlocksConfiguration()
+						?.paymentMethodConfigurationParentId,
 				},
 			};
 		} else {

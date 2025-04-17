@@ -43,8 +43,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function __construct( $payment_request_configuration = null, $express_checkout_configuration = null ) {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
-		$this->payment_request_configuration  = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
-		$this->express_checkout_configuration = null !== $express_checkout_configuration ? $express_checkout_configuration : new WC_Stripe_Express_Checkout_Element();
+		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
+
+		if ( null === $express_checkout_configuration ) {
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			$helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
+			$ajax_handler = new WC_Stripe_Express_Checkout_Ajax_Handler( $helper );
+			$express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
+		}
+		$this->express_checkout_configuration = $express_checkout_configuration;
 	}
 
 	/**
