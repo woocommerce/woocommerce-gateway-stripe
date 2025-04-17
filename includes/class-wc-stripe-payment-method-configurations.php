@@ -138,6 +138,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the configuration from Stripe.
 	 * @return array
 	 */
 	public static function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
