@@ -60,6 +60,26 @@ class WC_Stripe_Payment_Method_Configurations {
 			return $configuration_cache;
 		}
 
+		// If not, fetch it from Stripe and cache it.
+		return self::cache_primary_configuration();
+	}
+
+	/**
+	 * Get the primary configuration from the cache.
+	 *
+	 * @return object
+	 */
+	private static function read_primary_configuration_from_cache() {
+		$configuration_cache = json_decode( wp_json_encode( get_transient( self::PRIMARY_CONFIGURATION_OPTION ) ) );
+		return false === $configuration_cache ? new stdClass() : $configuration_cache;
+	}
+
+	/**
+	 * Cache the primary configuration data.
+	 *
+	 * @return object|null empty when no data found in transient, otherwise returns cached data
+	 */
+	private static function cache_primary_configuration() {
 		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$payment_method_configurations = $result->data ?? null;
 
@@ -79,17 +99,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
-		return null;
-	}
+		if ( ! self::$primary_configuration ) {
+			return null;
+		}
 
-	/**
-	 * Get the primary configuration from the cache.
-	 *
-	 * @return object
-	 */
-	private static function read_primary_configuration_from_cache() {
-		$configuration_cache = json_decode( wp_json_encode( get_transient( self::PRIMARY_CONFIGURATION_OPTION ) ) );
-		return false === $configuration_cache ? new stdClass() : $configuration_cache;
+		// Create or update the account option cache.
+		set_transient( self::PRIMARY_CONFIGURATION_OPTION, self::$primary_configuration, 20 * MINUTE_IN_SECONDS );
+
+		return json_decode( wp_json_encode( self::$primary_configuration ) );
 	}
 
 	/**
