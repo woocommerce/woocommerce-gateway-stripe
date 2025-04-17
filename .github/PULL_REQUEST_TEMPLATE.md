@@ -6,7 +6,7 @@ Did I add a title? A descriptive, yet concise, title.
 Issue: Link to the GitHub issue this PR addresses (if appropriate).
 -->
 
-Fixes STRIPE-<issue_id>
+Fixes STRIPE-<linear_issue_id>, #<github_issue_id>
 
 ## Changes proposed in this Pull Request:
 
