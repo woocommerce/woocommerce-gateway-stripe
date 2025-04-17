@@ -29,11 +29,11 @@ setup( 'Configure store for default tests', async ( { browser } ) => {
 	await page.goto(
 		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'
 	);
-	await page.getByLabel( 'Link by Stripe Input' ).check();
+	await page.getByLabel( 'Link by Stripe' ).check();
 	await page.click( 'text=Save changes' );
 
 	await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
-	await expect( page.getByLabel( 'Link by Stripe Input' ) ).toBeChecked();
+	await expect( page.getByLabel( 'Link by Stripe' ) ).toBeChecked();
 
 	await adminContext.close();
 } );
