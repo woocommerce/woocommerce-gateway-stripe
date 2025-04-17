@@ -30,6 +30,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
+	 * The transient key for the UPE enabled payment method IDs.
+	 *
+	 * @var string
+	*/
+	const UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY = 'wc_stripe_upe_enabled_payment_method_ids';
+
+	/**
 	 * Reset the primary configuration.
 	 */
 	public static function reset_primary_configuration() {
@@ -70,15 +77,20 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration.
 	 * @return array
 	 */
-	public static function get_upe_enabled_payment_method_ids() {
+	public static function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 			return isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) && ! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] )
 				? $stripe_settings['upe_checkout_experience_accepted_payments']
 				: [ WC_Stripe_Payment_Methods::CARD ];
+		}
+
+		if ( ! $force_refresh && ! empty( get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY ) ) ) {
+			return get_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY );
 		}
 
 		$enabled_payment_method_ids            = [];
@@ -94,6 +106,8 @@ class WC_Stripe_Payment_Method_Configurations {
 				}
 			}
 		}
+
+		set_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY, $enabled_payment_method_ids, HOUR_IN_SECONDS );
 
 		return $enabled_payment_method_ids;
 	}
@@ -137,6 +151,9 @@ class WC_Stripe_Payment_Method_Configurations {
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration
 		);
+
+		// clear transient to force a refresh on the next call.
+		delete_transient( self::UPE_ENABLED_PAYMENT_METHOD_IDS_TRANSIENT_KEY );
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 	}
