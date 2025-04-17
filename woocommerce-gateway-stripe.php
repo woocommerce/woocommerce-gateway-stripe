@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.3.2
+ * Version: 9.4.0
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.3.2' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.4.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '9.5' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.6' );
@@ -291,11 +291,8 @@ function woocommerce_gateway_stripe() {
 				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
-				// Express checkout configurations.
-				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper( $this->get_main_stripe_gateway() );
-				$express_checkout_ajax_handler        = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
-				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
-				$this->express_checkout_configuration->init();
+				// Initialize Express Checkout after translations are loaded
+				add_action( 'init', [ $this, 'init_express_checkout' ], 11 );
 
 				$intent_controller = new WC_Stripe_Intent_Controller();
 				$intent_controller->init_hooks();
@@ -348,6 +345,17 @@ function woocommerce_gateway_stripe() {
 
 				// Initialize the class for handling the status page.
 				add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
+			}
+
+			/**
+			 * Initialize Express Checkout after translations are loaded.
+			 */
+			public function init_express_checkout() {
+				// Express checkout configurations.
+				$express_checkout_helper              = new WC_Stripe_Express_Checkout_Helper( $this->get_main_stripe_gateway() );
+				$express_checkout_ajax_handler        = new WC_Stripe_Express_Checkout_Ajax_Handler( $express_checkout_helper );
+				$this->express_checkout_configuration = new WC_Stripe_Express_Checkout_Element( $express_checkout_ajax_handler, $express_checkout_helper );
+				$this->express_checkout_configuration->init();
 			}
 
 			/**
@@ -621,7 +629,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function enable_upe( $settings ) {
-				$payment_methods_to_enable = [];
+				$settings['upe_checkout_experience_accepted_payments'] = [];
 
 				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
@@ -647,23 +655,20 @@ function woocommerce_gateway_stripe() {
 							'yes'
 						);
 						// ENABLE UPE METHOD
-						$payment_methods_to_enable[] = $method_class::STRIPE_ID;
+						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 					}
 
 					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
-						$payment_methods_to_enable[] = 'card';
-						$payment_methods_to_enable[] = 'link';
+						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
+						$settings['upe_checkout_experience_accepted_payments'][] = 'link';
 					}
 				}
-				if ( empty( $payment_methods_to_enable ) ) {
-					$payment_methods_to_enable = [ 'card', 'link' ];
+				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+					$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
 				} else {
 					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 					$settings['enabled'] = 'yes';
 				}
-
-				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-				$upe_gateway->update_enabled_payment_methods( $payment_methods_to_enable );
 
 				return $settings;
 			}
@@ -693,7 +698,9 @@ function woocommerce_gateway_stripe() {
 					$settings['enabled'] = 'no';
 				}
 				// DISABLE ALL UPE METHODS
-				$upe_gateway->update_enabled_payment_methods( [] );
+				if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+					$settings['upe_checkout_experience_accepted_payments'] = [];
+				}
 				return $settings;
 			}
 
