@@ -27,8 +27,13 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
 			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
+			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 
 		$this->element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -60,8 +65,12 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
 			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
 			->getMock();
 
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
@@ -87,8 +96,12 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
 			->disableOriginalConstructor()
+			->getMock();
+
+		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
+			->setConstructorArgs( [ $gateway ] )
 			->setMethods( [ 'is_page_supported', 'should_show_express_checkout_button' ] )
 			->getMock();
 

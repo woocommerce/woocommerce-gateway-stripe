@@ -31,15 +31,16 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Return if Stripe Link is enabled
 	 *
+	 * @param WC_Gateway_Stripe $gateway The gateway instance.
 	 * @return bool
 	 */
-	public static function is_link_enabled() {
+	public static function is_link_enabled( WC_Gateway_Stripe $gateway ) {
 		// Assume Link is disabled if UPE is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
 		}
 
-		$upe_enabled_method_ids = WC_Stripe_Helper::get_settings( null, 'upe_checkout_experience_accepted_payments' );
+		$upe_enabled_method_ids = $gateway->get_upe_enabled_payment_method_ids();
 
 		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
 	}

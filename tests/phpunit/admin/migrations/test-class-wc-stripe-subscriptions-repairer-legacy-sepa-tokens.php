@@ -68,6 +68,8 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 								   ->setConstructorArgs( [ $this->logger_mock ] )
 								   ->setMethods( [ 'init', 'schedule_repair' ] )
 								   ->getMock();
+
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'test_connection_type' => 'connect' ] );
 	}
 
 	/**
@@ -262,7 +264,6 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_get_updated_sepa_token_by_source_id_returns_the_updated_token() {
-		$this->upe_helper->enable_upe_feature_flag();
 		$this->upe_helper->enable_upe();
 
 		// Retrieve the actual subscription.
