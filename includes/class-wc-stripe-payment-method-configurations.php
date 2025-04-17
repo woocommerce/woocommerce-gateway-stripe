@@ -30,6 +30,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
+	 * The primary configuration option key (for cache purposes).
+	 *
+	 * @var string
+	 */
+	const PRIMARY_CONFIGURATION_OPTION = 'wcstripe_primary_configuration';
+
+	/**
 	 * Reset the primary configuration.
 	 */
 	public static function reset_primary_configuration() {
@@ -44,6 +51,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_primary_configuration() {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
+		}
+
+		// Check if the primary configuration is already cached.
+		$configuration_cache = self::read_primary_configuration_from_cache();
+		if ( ! empty( $configuration_cache ) && isset( $configuration_cache->id ) ) {
+			self::$primary_configuration = $configuration_cache;
+			return $configuration_cache;
 		}
 
 		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
@@ -64,7 +78,18 @@ class WC_Stripe_Payment_Method_Configurations {
 				return $payment_method_configuration;
 			}
 		}
+
 		return null;
+	}
+
+	/**
+	 * Get the primary configuration from the cache.
+	 *
+	 * @return object
+	 */
+	private static function read_primary_configuration_from_cache() {
+		$configuration_cache = json_decode( wp_json_encode( get_transient( self::PRIMARY_CONFIGURATION_OPTION ) ) );
+		return false === $configuration_cache ? new stdClass() : $configuration_cache;
 	}
 
 	/**
