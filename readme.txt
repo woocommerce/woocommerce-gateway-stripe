@@ -115,5 +115,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
+* Fix - Show error notice when 'Add payment method' fails on My Account page in block-based themes.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
