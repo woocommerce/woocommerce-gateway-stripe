@@ -37,7 +37,7 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 		expect( noticeText ).toBeInTheDocument();
 	} );
 
-	it( 'should make an API call to dismiss the banner on button click', () => {
+	it( 'should make an API call to dismiss the banner on button click', async () => {
 		const dismissNoticeMock = jest.fn( () =>
 			Promise.resolve( { data: {} } )
 		);
@@ -53,8 +53,8 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 			'aria-label': 'Dismiss the notice',
 		} );
 		expect( dismissButton ).toBeInTheDocument();
-		act( () => {
-			userEvent.click( dismissButton );
+		await act( async () => {
+			await userEvent.click( dismissButton );
 		} );
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 	} );

@@ -37,8 +37,21 @@ const setShowPromotionalBanner = jest.fn();
 const setPromotionalBannerType = jest.fn();
 
 describe( 'PromotionalBanner', () => {
+	// Keep the original function.
+	const reload = window.location.reload;
 	beforeEach( () => {
+		Object.defineProperty( window, 'location', {
+			value: { reload: jest.fn() },
+		} );
 		global.wc_stripe_settings_params = { are_apms_deprecated: false };
+	} );
+
+	afterEach( () => {
+		// Set the original function back to keep further tests working as expected.
+		Object.defineProperty( window, 'location', {
+			value: { reload },
+		} );
+		jest.restoreAllMocks();
 	} );
 
 	it( 'dismiss function should be called', () => {
