@@ -106,6 +106,17 @@ const config = {
 			dependencies: [ 'legacy-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
+		{
+			name: 'spe-setup',
+			testMatch: '/spe.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'spe',
+			testMatch: '**/spe.spec.js',
+			dependencies: [ 'spe-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
 	],
 };
 
