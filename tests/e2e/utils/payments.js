@@ -528,6 +528,61 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 };
 
 /**
+ * Set up the checkout page for SPE.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const setupSPECheckout = async ( page, checkoutType = 'blocks' ) => {
+	await emptyCart( page );
+	await setupCart( page );
+
+	if ( checkoutType === 'blocks' ) {
+		await setupBlocksCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+
+		await page.waitForTimeout( 1000 );
+
+		// Wait for the Stripe iframe within payment options container
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
+		);
+
+		const paymentFrame = await page
+			.locator(
+				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
+			)
+			.contentFrame();
+
+		if ( ! paymentFrame ) {
+			throw new Error( 'Could not find Stripe payment element frame' );
+		}
+	} else {
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer.billing' )
+		);
+
+		// Wait for the Stripe iframe within WooCommerce Stripe container
+		await page.waitForSelector(
+			'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]'
+		);
+
+		const paymentFrame = await page
+			.locator(
+				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]'
+			)
+			.contentFrame();
+
+		if ( ! paymentFrame ) {
+			throw new Error( 'Could not find Stripe payment element frame' );
+		}
+	}
+};
+
+/**
  * Interact with the Stripe Elements iframe to fill in the ACSS details.
  *
  * @param {Page} page Playwright page fixture.
@@ -661,3 +716,37 @@ export async function handleCheckoutCashAppPay(
 		.getByRole( 'link', { name: 'Authorize Test Payment' } )
 		.click();
 }
+
+/**
+ * Fill in the payment details for Stripe Payment Element (SPE) checkout.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const fillSPEDetails = async ( page, card, checkoutType = 'blocks' ) => {
+	// Determine the appropriate iframe selector based on checkout type
+	const iframeSelector =
+		checkoutType === 'blocks'
+			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
+			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
+
+	// Wait for the Stripe iframe to be visible
+	await page.waitForSelector( iframeSelector, {
+		state: 'visible',
+		timeout: 10000,
+	} );
+
+	const paymentFrame = await page.locator( iframeSelector ).contentFrame();
+
+	if ( ! paymentFrame ) {
+		throw new Error( 'Could not find Stripe payment element frame' );
+	}
+
+	// Fill in test card details
+	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
+	await paymentFrame
+		.locator( '[name="expiry"]' )
+		.fill( card.expires.month + card.expires.year );
+	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+};
