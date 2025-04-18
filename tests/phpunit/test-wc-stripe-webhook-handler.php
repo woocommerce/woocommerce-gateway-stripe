@@ -686,4 +686,85 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'sepa_debit'     => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
 		];
 	}
+
+	/**
+	 * Test for `process_webhook_refund`.
+	 */
+	public function test_process_webhook_refund() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( 'ch_mock123' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+		$order->save();
+
+		$refund_id     = 're_mock123';
+		$refund_amount = 1000;
+		$refund_object = (object) [
+			'id'                  => $refund_id,
+			'amount'              => $refund_amount,
+			'balance_transaction' => (object) [
+				'fee' => 50,
+			],
+		];
+		$notification  = (object) [
+			'type' => 'charge.refunded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'              => 'ch_mock123',
+					'amount_refunded' => $refund_amount,
+					'currency'        => 'usd',
+					'refunds'         => (object) [
+						'data' => [
+							$refund_object,
+						],
+					],
+				],
+			],
+		];
+
+		$mock_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
+			->setMethods( [ 'get_refund_object', 'get_refund_amount', 'update_fees' ] )
+			->getMock();
+
+		// Mock the get_refund_object method to return our mock refund
+		$mock_handler->expects( $this->once() )
+			->method( 'get_refund_object' )
+			->with( $notification )
+			->willReturn( $refund_object );
+
+		$mock_handler->expects( $this->once() )
+			->method( 'get_refund_amount' )
+			->with( $notification )
+			->willReturn( $refund_amount / 100 );
+
+		$mock_handler->expects( $this->once() )
+			->method( 'update_fees' )
+			->with(
+				$this->callback(
+					function ( $order ) {
+						return $order instanceof WC_Order;
+					}
+				),
+				$refund_object->balance_transaction
+			);
+
+		// Process the webhook refund
+		$mock_handler->process_webhook_refund( $notification );
+
+		// Refresh order from database to ensure we have the latest metadata
+		$order = wc_get_order( $order->get_id() );
+
+		// Verify the refund was processed correctly
+		$this->assertEquals( 10.0, $order->get_total_refunded(), 'Refund amount was not set correctly' );
+		$this->assertEquals( $refund_id, $order->get_meta( '_stripe_refund_id' ), 'Refund ID was not saved correctly' );
+
+		// Verify an order note was added
+		$order_notes = wc_get_order_notes( [ 'order_id' => $order->get_id() ] );
+		$this->assertStringContainsString(
+			'Refunded via Stripe Dashboard',
+			$order_notes[0]->content,
+			'Refund note was not added correctly'
+		);
+		$this->assertStringContainsString( $refund_id, $order_notes[0]->content, 'Refund ID not found in order note' );
+	}
 }
