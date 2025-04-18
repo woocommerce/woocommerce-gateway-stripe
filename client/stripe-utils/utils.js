@@ -516,7 +516,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 	let messageWrapper = '';
 	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
-		const MyComponent = () => (
+		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
 			</StoreNotice>
@@ -527,7 +527,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		$container.find( '.wc-block-components-notices' ).remove();
 
 		$container.prepend( wrapper );
-		ReactDOM.createRoot( wrapper ).render( <MyComponent /> );
+		ReactDOM.createRoot( wrapper ).render( <NoticeComponent /> );
 	} else {
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;
