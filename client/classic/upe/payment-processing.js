@@ -147,7 +147,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			options = {
 				...options,
 				paymentMethodConfiguration: getStripeServerData()
-					?.paymentMethodConfigurationParentId,
+					?.paymentMethodConfigurationId,
 			};
 		} else {
 			options = {
