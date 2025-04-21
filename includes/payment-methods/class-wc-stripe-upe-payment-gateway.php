@@ -2675,7 +2675,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_type = $payment_method_object->type;
 			}
 
-			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
+			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
 
 		// Searches for an existing duplicate token to update.
