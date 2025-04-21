@@ -1,5 +1,4 @@
-import { test as setup } from '@playwright/test';
-import { admin } from '../utils';
+import { test as setup, expect } from '@playwright/test';
 
 setup( 'Configure store for SPE tests', async ( { browser } ) => {
 	const adminContext = await browser.newContext( {

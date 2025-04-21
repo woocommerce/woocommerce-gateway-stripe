@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { admin, payments, api, user } from '../../../utils';
+import { payments, api, user } from '../../../utils';
 
 const {
 	emptyCart,
