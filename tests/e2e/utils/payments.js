@@ -548,7 +548,6 @@ export const setupSPECheckout = async (
 		await setupCart( page );
 	}
 
-	// Define selectors based on checkout type
 	const selectors = {
 		blocks: {
 			iframe:
@@ -585,7 +584,7 @@ export const setupSPECheckout = async (
 			);
 		}
 
-		// Wait for the Stripe iframe with configurable timeout
+		// Wait for the Stripe iframe
 		await page.waitForSelector( currentSelectors.iframe, {
 			state: 'visible',
 			timeout: options.timeout,
@@ -594,7 +593,8 @@ export const setupSPECheckout = async (
 		// Get the payment frame
 		const paymentFrame = await page
 			.locator( currentSelectors.iframe )
-			.contentFrame();
+			.contentFrame()
+			.first();
 
 		if ( ! paymentFrame ) {
 			throw new Error(
@@ -764,7 +764,10 @@ export const fillSPEDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		timeout: 10000,
 	} );
 
-	const paymentFrame = await page.locator( iframeSelector ).contentFrame();
+	const paymentFrame = await page
+		.locator( iframeSelector )
+		.contentFrame()
+		.first();
 
 	if ( ! paymentFrame ) {
 		throw new Error( 'Could not find Stripe payment element frame' );
