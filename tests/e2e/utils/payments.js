@@ -528,57 +528,84 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 };
 
 /**
- * Set up the checkout page for SPE.
+ * Set up the checkout page for Stripe Payment Element (SPE).
  *
  * @param {Page} page Playwright page fixture.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @param {Object} options Optional configuration parameters.
+ * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
+ * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @returns {Promise<void>} Resolves when setup is complete.
+ * @throws {Error} If iframe cannot be found or initialization fails.
  */
-export const setupSPECheckout = async ( page, checkoutType = 'blocks' ) => {
-	await emptyCart( page );
-	await setupCart( page );
+export const setupSPECheckout = async (
+	page,
+	checkoutType = 'blocks',
+	options = { timeout: 10000, skipCartSetup: false }
+) => {
+	if ( ! options.skipCartSetup ) {
+		await emptyCart( page );
+		await setupCart( page );
+	}
 
-	if ( checkoutType === 'blocks' ) {
-		await setupBlocksCheckout(
-			page,
-			config.get( 'addresses.customer.billing' )
-		);
+	// Define selectors based on checkout type
+	const selectors = {
+		blocks: {
+			iframe:
+				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
+			container:
+				'#radio-control-wc-payment-method-options-stripe__content',
+		},
+		shortcode: {
+			iframe:
+				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
+			container: '#wc-stripe-upe-form',
+		},
+	};
 
-		await page.waitForTimeout( 1000 );
+	try {
+		// Set up appropriate checkout type
+		if ( checkoutType === 'blocks' ) {
+			await setupBlocksCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+		} else {
+			await setupShortcodeCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+		}
 
-		// Wait for the Stripe iframe within payment options container
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
-		);
+		// Get the correct selectors for this checkout type
+		const currentSelectors = selectors[ checkoutType ];
+		if ( ! currentSelectors ) {
+			throw new Error(
+				`Invalid checkout type: ${ checkoutType }. Must be 'blocks' or 'shortcode'.`
+			);
+		}
 
+		// Wait for the Stripe iframe with configurable timeout
+		await page.waitForSelector( currentSelectors.iframe, {
+			state: 'visible',
+			timeout: options.timeout,
+		} );
+
+		// Get the payment frame
 		const paymentFrame = await page
-			.locator(
-				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
-			)
+			.locator( currentSelectors.iframe )
 			.contentFrame();
 
 		if ( ! paymentFrame ) {
-			throw new Error( 'Could not find Stripe payment element frame' );
+			throw new Error(
+				`Could not find Stripe payment element frame in ${ currentSelectors.container }`
+			);
 		}
-	} else {
-		await setupShortcodeCheckout(
-			page,
-			config.get( 'addresses.customer.billing' )
-		);
 
-		// Wait for the Stripe iframe within WooCommerce Stripe container
-		await page.waitForSelector(
-			'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]'
-		);
-
-		const paymentFrame = await page
-			.locator(
-				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]'
-			)
-			.contentFrame();
-
-		if ( ! paymentFrame ) {
-			throw new Error( 'Could not find Stripe payment element frame' );
-		}
+		// Select the card payment method
+		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
+	} catch ( error ) {
+		throw new Error( `Failed to set up SPE checkout: ${ error.message }` );
 	}
 };
 
