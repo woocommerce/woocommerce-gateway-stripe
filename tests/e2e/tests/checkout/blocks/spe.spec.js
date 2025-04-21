@@ -45,7 +45,7 @@ test.describe( 'SPE payment tests @blocks', () => {
 		);
 	} );
 
-	test( 'customer can save and reuse ACSS payment method @smoke', async ( {
+	test( 'customer can save and reuse SPE payment method @smoke', async ( {
 		page,
 	} ) => {
 		// First order - Save the payment method.
