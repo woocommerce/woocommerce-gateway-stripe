@@ -18,7 +18,11 @@ setup( 'Configure store for SPE tests', async ( { browser } ) => {
 	if ( ! isChecked ) {
 		await checkbox.click();
 		await page.click( 'text=Save changes' );
-		await expect( page.getByText( 'Settings saved.' ) ).toBeVisible();
+		await expect(
+			page.locator(
+				'.components-snackbar__content:has-text("Settings saved.")'
+			)
+		).toBeVisible();
 		await expect(
 			page.getByTestId( 'single-payment-element-checkbox' )
 		).toBeChecked();
