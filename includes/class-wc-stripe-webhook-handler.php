@@ -678,7 +678,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook_refund( $notification ) {
 		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Order::get_by_refund_id( $refund_object->id );
+		// TODO: For testing only. Remove before merging.
+		// TODO: For testing only. Remove before merging.
+		// TODO: For testing only. Remove before merging.
+		$order = null; //WC_Stripe_Order::get_by_refund_id( $refund_object->id );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
