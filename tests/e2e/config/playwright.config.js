@@ -80,7 +80,11 @@ const config = {
 		{
 			name: 'default',
 			testMatch: '**/*.spec.js',
-			testIgnore: [ '**/_legacy-experience/**', '**/acss.spec.js' ],
+			testIgnore: [
+				'**/_legacy-experience/**',
+				'**/acss.spec.js',
+				'**/spe.spec.js',
+			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
@@ -104,6 +108,17 @@ const config = {
 			name: 'legacy',
 			testMatch: '/_legacy-experience/**/*.spec.js',
 			dependencies: [ 'legacy-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'spe-setup',
+			testMatch: '/spe.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'spe',
+			testMatch: '**/spe.spec.js',
+			dependencies: [ 'spe-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],

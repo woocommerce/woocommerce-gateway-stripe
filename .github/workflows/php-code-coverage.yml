@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ ! contains( github.event.head_commit.message, 'Merge branch' ) }}
     runs-on: ubuntu-22.04
     name: PHP=8.1, WP=6.7, WC=9.5.2
     env:
@@ -31,48 +32,15 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checking out
-        uses: actions/checkout@v2
-
-      - name: Set up dependencies caching
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/composer/
-          key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
+      - name: Run CI tests with coverage report
+        if: ${{ steps.get-changed-files.outputs.added_modified }}
+        uses: ./.github/actions/ci-tests-with-coverage
         with:
           php-version: ${{ env.PHP_VERSION }}
-          coverage:    xdebug
-
-      - name: Run CI checks
-        run: bash bin/run-ci-tests.bash
         
-      - name: Code Coverage Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
+      - name: Code coverage report comment
+        if: ${{ steps.get-changed-files.outputs.added_modified }}
+        uses: ./.github/actions/php-coverage-comment
         with:
-          filename: php-coverage.xml
-          format: markdown
-          hide_branch_rate: false
-          hide_complexity: true
-          indicators: true
-          output: both
-          thresholds: '60 80'
-          
-      - name: Filter Changed Files in Report
-        run: |
-          echo "### 📈 PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
-          echo "Package | Line Rate | Health" >> code-coverage-results-filtered.md 
-          echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
-          grep -E "$(echo ${{ steps.get-changed-files.outputs.all }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
-          tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
-
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2.9.1
-        with:
-          skip_unchanged: true
-          recreate: true
-          number: ${{ steps.number.outputs.pr }}
-          path: code-coverage-results-filtered.md
-          
+          changed-files: ${{ steps.get-changed-files.outputs.added_modified }}
+          pr-number: ${{ steps.number.outputs.pr }}
