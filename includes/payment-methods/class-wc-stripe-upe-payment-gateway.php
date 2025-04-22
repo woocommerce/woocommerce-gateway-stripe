@@ -170,8 +170,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$main_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$this->spe_enabled = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
+		$is_checkout       = is_checkout() || has_block( 'woocommerce/checkout' );
 
-		if ( $this->spe_enabled ) {
+		if ( $this->spe_enabled && ( $is_checkout || parent::is_valid_pay_for_order_endpoint() || is_add_payment_method_page() ) ) {
 			$payment_method                                     = new WC_Stripe_UPE_Payment_Method_CC();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		} else {
@@ -1513,7 +1514,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_payment_intent( int $order_id, string $intent_id ): bool {
-		$order_from_payment_intent = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		$order_from_payment_intent = WC_Stripe_Order::get_by_intent_id( $intent_id );
 		return $order_from_payment_intent && $order_from_payment_intent->get_id() === $order_id;
 	}
 
