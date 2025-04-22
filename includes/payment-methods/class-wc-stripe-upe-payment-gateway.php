@@ -2666,17 +2666,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
-		// If the payment method object is a Link payment method, use the Link payment method instance to create the payment token.
+		// If the payment method object is a Link payment method, use Link as the payment method type.
 		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
-			$payment_method_instance = $this->payment_methods['link'];
-		} else {
+			$payment_method_type = WC_Stripe_Payment_Methods::LINK;
+		} elseif ( $this->spe_enabled && isset( $payment_method_object->type ) ) {
 			// When SPE is enabled, use the payment method type from the payment method object
-			if ( $this->spe_enabled && isset( $payment_method_object->type ) ) {
-				$payment_method_type = $payment_method_object->type;
-			}
-
-			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
+			$payment_method_type = $payment_method_object->type;
 		}
+
+		$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
 
 		// Searches for an existing duplicate token to update.
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
