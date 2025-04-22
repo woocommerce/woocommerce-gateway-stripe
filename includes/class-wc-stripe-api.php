@@ -465,7 +465,7 @@ class WC_Stripe_API {
 	}
 
 	/**
-	 * Get the payment method configurations.
+	 * Get the payment method configuration.
 	 *
 	 * @return array The response from the API request.
 	 */

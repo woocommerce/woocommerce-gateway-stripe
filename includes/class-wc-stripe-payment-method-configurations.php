@@ -31,11 +31,18 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
-	 * The payment method configuration transient key (for cache purposes).
+	 * The test mode payment method configuration transient key (for cache purposes).
 	 *
 	 * @var string
 	 */
-	const CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_payment_method_configuration_cache';
+	const TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_test_payment_method_configuration_cache';
+
+	/**
+	 * The live mode payment method configuration transient key (for cache purposes).
+	 *
+	 * @var string
+	 */
+	const LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_live_payment_method_configuration_cache';
 
 	/**
 	 * The payment method configuration transient expiration (for cache purposes).
@@ -71,7 +78,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			return self::$primary_configuration;
 		}
 
-		$cached_primary_configuration = get_transient( self::CONFIGURATION_CACHE_TRANSIENT_KEY );
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cached_primary_configuration = get_transient( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
 			return null;
 		}
@@ -85,7 +93,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		delete_transient( self::CONFIGURATION_CACHE_TRANSIENT_KEY );
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		delete_transient( $cache_key );
 	}
 
 	/**
@@ -95,7 +104,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		set_transient( self::CONFIGURATION_CACHE_TRANSIENT_KEY, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
 	}
 
 	/**
@@ -178,7 +188,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$newly_disabled_methods               = [];
 
 		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No PMC found while updating payment method configuration' );
+			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
 			return;
 		}
 
