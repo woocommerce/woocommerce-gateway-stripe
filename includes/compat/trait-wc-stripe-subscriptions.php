@@ -546,12 +546,23 @@ trait WC_Stripe_Subscriptions_Trait {
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
-				$message = sprintf(
-					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
-					$attempt_date,
-					$attempt_time
-				);
+				$message = '';
+				if ( ! empty( $response->processing->card->customer_notification->approval_requested ) ) {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				} else {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The charge will be attempted on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				}
+
 				$renewal_order->add_order_note( $message );
 				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
