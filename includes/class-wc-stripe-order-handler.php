@@ -51,7 +51,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param $order_id
 	 */
 	public function show_warning_for_uncaptured_orders( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 		// Bail if payment method is not manual capture supporting stripe method.
 		if ( ! WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			return;
@@ -100,7 +100,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( ! is_object( $order ) ) {
 				return;
@@ -114,12 +114,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$response = null;
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			$order->validate_minimum_amount();
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Lock the order or return if the order is already locked.
-			if ( $this->lock_order_payment( $order ) ) {
+			if ( $order->lock_payment( $order ) ) {
 				return;
 			}
 
@@ -184,7 +184,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					// Unlock the order before retrying.
-					$this->unlock_order_payment( $order );
+					$order->unlock_payment();
 
 					if ( $retry ) {
 						// Don't do anymore retries after this.
@@ -232,7 +232,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( OrderStatus::FAILED, sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
 			// Unlock the order.
-			$this->unlock_order_payment( $order );
+			$order->unlock_payment();
 
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
@@ -240,7 +240,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Unlock the order.
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 	}
 
 	/**
@@ -284,14 +284,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function capture_payment( $order_id ) {
 		$result = new stdClass();
-		$order  = wc_get_order( $order_id );
+		$order  = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
-			$captured           = $order->get_meta( '_stripe_charge_captured', true );
+			$captured           = $order->is_charge_captured();
 			$is_stripe_captured = false;
 
-			if ( $charge && 'no' === $captured ) {
+			if ( $charge && ! $captured ) {
 				$order_total = $order->get_total();
 
 				if ( 0 < $order->get_total_refunded() ) {
@@ -361,7 +361,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_stripe_captured ) {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-					$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+					$order->set_charge_captured( 'yes' );
 
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
@@ -392,12 +392,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param  int $order_id
 	 */
 	public function cancel_payment( $order_id ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = $order->get_meta( '_stripe_charge_captured', true );
-
-			if ( 'no' === $captured ) {
+			if ( ! $order->is_charge_captured() ) {
 				// To cancel a pre-auth, we need to refund the charge.
 				$this->process_refund( $order_id );
 			}
@@ -455,7 +453,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 6.9.0
 	 *
 	 * @param bool     $cancel_order Whether to cancel the order.
-	 * @param WC_Order $order        The order object.
+	 * @param WC_Stripe_Order $order The order object.
 	 *
 	 * @return bool
 	 */
@@ -464,13 +462,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return $cancel_order;
 		}
 
+		$order = WC_Stripe_Order::to_instance( $order );
+
 		// Bail if payment method is not stripe or `stripe_{apm_method}` or doesn't have an intent yet.
 		if ( substr( (string) $order->get_payment_method(), 0, 6 ) !== 'stripe' || ! $this->get_intent_from_order( $order ) ) {
 			return $cancel_order;
 		}
 
 		// If the order is awaiting action and was modified within the last day, don't cancel it.
-		if ( wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) ) && $order->get_date_modified( 'edit' )->getTimestamp() > strtotime( '-1 day' ) ) {
+		if ( $order->is_payment_awaiting_action() && $order->get_date_modified( 'edit' )->getTimestamp() > strtotime( '-1 day' ) ) {
 			$cancel_order = false;
 		}
 

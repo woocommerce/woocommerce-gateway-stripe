@@ -91,7 +91,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Retrieve the order.
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! $order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
@@ -329,7 +329,7 @@ class WC_Stripe_Intent_Controller {
 			$payment_method_type = isset( $_POST['payment_method_type'] ) ? wc_clean( wp_unslash( $_POST['payment_method_type'] ) ) : '';
 
 			if ( $order_id ) {
-				$order = wc_get_order( $order_id );
+				$order = WC_Stripe_Order::get_by_id( $order_id );
 				if ( ! $order || ! $order->needs_payment() ) {
 					throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 				}
@@ -360,7 +360,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function create_payment_intent( $order_id = null, $payment_method_type = null ) {
 		$amount = WC()->cart->get_total( false );
-		$order  = wc_get_order( $order_id );
+		$order  = WC_Stripe_Order::get_by_id( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -408,7 +408,7 @@ class WC_Stripe_Intent_Controller {
 			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 			$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			$order_from_payment = WC_Stripe_Order::get_by_intent_id( $payment_intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -441,7 +441,7 @@ class WC_Stripe_Intent_Controller {
 	 * @return array|null An array with result of the update, or nothing
 	 */
 	public function update_intent( $intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
@@ -483,7 +483,7 @@ class WC_Stripe_Intent_Controller {
 						WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 					];
 				}
-				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+				$order->set_upe_payment_type( $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
@@ -508,7 +508,7 @@ class WC_Stripe_Intent_Controller {
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			}
 			$order->save();
-			WC_Stripe_Helper::add_payment_intent_to_order( $intent_id, $order );
+			$order->add_payment_intent_to_order( $intent_id );
 		}
 
 		return [
@@ -609,7 +609,7 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
-			$order    = wc_get_order( $order_id );
+			$order    = WC_Stripe_Order::get_by_id( $order_id );
 			if ( ! $order ) {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -642,7 +642,7 @@ class WC_Stripe_Intent_Controller {
 			/* translators: error message */
 			if ( $order ) {
 				// Remove the awaiting confirmation order meta, don't save the order since it'll be saved in the next `update_status()` call.
-				WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
+				$order->remove_payment_awaiting_action();
 				$order->update_status( OrderStatus::FAILED );
 			}
 
@@ -673,9 +673,9 @@ class WC_Stripe_Intent_Controller {
 
 			$order_id  = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
 			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
-			$order     = wc_get_order( $order_id );
+			$order     = WC_Stripe_Order::get_by_id( $order_id );
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			$order_from_payment = WC_Stripe_Order::get_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -757,7 +757,7 @@ class WC_Stripe_Intent_Controller {
 
 		$this->validate_payment_intent_required_params( $required_params, $non_empty_params, $instance_params, $payment_information );
 
-		$order                 = $payment_information['order'];
+		$order                 = WC_Stripe_Order::to_instance( $payment_information['order'] );
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
 		$is_using_saved_token  = $payment_information['is_using_saved_payment_method'] ?? false;
@@ -813,7 +813,7 @@ class WC_Stripe_Intent_Controller {
 
 		// Only update the payment_type if we have a reference to the payment type the customer selected.
 		if ( '' !== $selected_payment_type ) {
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+			$order->set_upe_payment_type( $selected_payment_type );
 		}
 
 		return $payment_intent;
