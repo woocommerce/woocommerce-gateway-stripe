@@ -223,7 +223,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// If paying for order, we need to get email from the order not the user account.
 		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
+			$order      = WC_Stripe_Order::get_by_id( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
 		} elseif ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -388,7 +388,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
+			$order = WC_Stripe_Order::get_by_id( $order_id );
 
 			if ( $this->has_subscription( $order_id ) ) {
 				$force_save_source = true;
@@ -443,7 +443,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			$order->validate_minimum_amount();
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
@@ -455,7 +455,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Confirm the intent after locking the order to make sure webhooks will not interfere.
 			if ( empty( $intent->error ) ) {
-				$this->lock_order_payment( $order, $intent );
+				$order->lock_payment( $intent );
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
@@ -469,7 +469,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
 				}
 
-				$this->unlock_order_payment( $order );
+				$order->unlock_payment();
 				$this->throw_localized_message( $intent, $order );
 			}
 
@@ -483,10 +483,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $intent->status ) {
-					$this->unlock_order_payment( $order );
+					$order->unlock_payment();
 
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-					WC_Stripe_Helper::set_payment_awaiting_action( $order );
+					$order->set_payment_awaiting_action();
 
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
@@ -521,7 +521,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Unlock the order.
-			$this->unlock_order_payment( $order );
+			$order->unlock_payment();
 
 			// Return thank you page redirect.
 			return [
@@ -557,10 +557,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$fee      = WC_Stripe_Helper::get_stripe_fee( $order );
-		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
+		$fee      = $order->get_fee();
+		$currency = $order->get_stripe_currency();
 
 		if ( ! $fee || ! $currency ) {
 			return;
@@ -594,10 +594,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = wc_get_order( $order_id );
+		$order = WC_Stripe_Order::get_by_id( $order_id );
 
-		$net      = WC_Stripe_Helper::get_stripe_net( $order );
-		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
+		$net      = $order->get_net();
+		$currency = $order->get_stripe_currency();
 
 		if ( ! $net || ! $currency ) {
 			return;
@@ -700,7 +700,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function prepare_intent_for_order_pay_page( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			$order = WC_Stripe_Order::get_by_id( absint( get_query_var( 'order-pay' ) ) );
 		}
 		$intent = $this->get_intent_from_order( $order );
 
@@ -745,7 +745,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function render_payment_intent_inputs( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
-			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+			$order = WC_Stripe_Order::get_by_id( absint( get_query_var( 'order-pay' ) ) );
 		}
 		if ( ! isset( $this->order_pay_intent ) ) {
 			$this->prepare_intent_for_order_pay_page( $order );
@@ -791,7 +791,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = wc_get_order( absint( $order_id ) );
+		$order = WC_Stripe_Order::get_by_id( absint( $order_id ) );
 
 		if ( ! $order ) {
 			return;
@@ -867,7 +867,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * method updates orders based on the status of associated PaymentIntents.
 	 *
 	 * @since 4.2.0
-	 * @param WC_Order $order The order which is in a transitional state.
+	 * @param WC_Stripe_Order $order The order which is in a transitional state.
 	 */
 	public function verify_intent_after_checkout( $order ) {
 		$payment_method = $order->get_payment_method();
@@ -884,7 +884,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// A webhook might have modified or locked the order while the intent was retreived. This ensures we are reading the right status.
 		clean_post_cache( $order->get_id() );
-		$order = wc_get_order( $order->get_id() );
+		$order = WC_Stripe_Order::get_by_id( $order->get_id() );
 
 		if ( ! $order->has_status(
 			apply_filters(
@@ -897,7 +897,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( $order->lock_payment( $intent ) ) {
 			return;
 		}
 
@@ -916,13 +916,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->handle_intent_verification_failure( $order, $intent );
 		}
 
-		$this->unlock_order_payment( $order );
+		$order->unlock_payment();
 
 		/**
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
 		 * Now that payment is confirmed, we can remove this meta.
 		 */
-		WC_Stripe_Helper::remove_payment_awaiting_action( $order );
+		$order->remove_payment_awaiting_action();
 	}
 
 	/**

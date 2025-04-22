@@ -64,10 +64,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $currency
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -79,10 +82,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param string $currency
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -94,10 +100,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -121,10 +130,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -136,9 +148,12 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::delete_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -151,10 +166,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -178,10 +196,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -193,9 +214,12 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::delete_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -867,8 +891,11 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $source_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_source_id( $source_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_source_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -901,8 +928,11 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_charge_id' );
 		global $wpdb;
 
 		if ( empty( $charge_id ) ) {
@@ -933,8 +963,11 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 7.5.0
 	 * @param string $refund_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_refund_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -967,8 +1000,11 @@ class WC_Stripe_Helper {
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_intent_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -1005,8 +1041,11 @@ class WC_Stripe_Helper {
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_setup_intent_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -1265,9 +1304,12 @@ class WC_Stripe_Helper {
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @param $payment_intent_id
-	 * @param $order
+	 * @param $order WC_Order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::add_payment_intent' ); @todo Re-enable deprecation notice once all classes get updated.
 
 		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
 
@@ -1378,15 +1420,16 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the payment intent or setup intent ID from a given order object.
 	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 * @param WC_Stripe_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
+		$order = WC_Stripe_Order::to_instance( $order );
 
+		$intent_id = $order->get_intent_id();
 		if ( ! $intent_id ) {
-			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+			$intent_id = $order->get_setup_intent();
 		}
 
 		return $intent_id ?? false;
@@ -1419,8 +1462,11 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1435,8 +1481,11 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::remove_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
