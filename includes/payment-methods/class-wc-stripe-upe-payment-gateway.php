@@ -1514,7 +1514,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_payment_intent( int $order_id, string $intent_id ): bool {
-		$order_from_payment_intent = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		$order_from_payment_intent = WC_Stripe_Order::get_by_intent_id( $intent_id );
 		return $order_from_payment_intent && $order_from_payment_intent->get_id() === $order_id;
 	}
 
