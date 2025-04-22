@@ -24,6 +24,7 @@ runs:
         thresholds: '60 80'
 
     - name: Filter Changed Files in Report
+      shell: bash    
       run: |
         echo "### 📈 PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
         echo "Package | Line Rate | Health" >> code-coverage-results-filtered.md 
