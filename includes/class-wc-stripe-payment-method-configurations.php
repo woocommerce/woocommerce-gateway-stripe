@@ -210,10 +210,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			];
 		}
 
-		WC_Stripe_API::get_instance()->update_payment_method_configurations(
+		$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration
 		);
+		if ( ! empty( $response->error ) ) {
+			WC_Stripe_Logger::log( 'Error: ' . $response->error->message . ': ' . $response->error->request_log_url );
+		}
+
 		self::clear_payment_method_configuration_cache();
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
