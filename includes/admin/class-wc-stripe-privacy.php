@@ -198,7 +198,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription->get_meta( '_stripe_source_id', true ),
+							'value' => $subscription->get_source_id(),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
@@ -350,7 +350,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$subscription = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$stripe_source_id = $subscription->get_source_id();
 
 		if ( empty( $stripe_source_id ) ) {
 			return [ false, false, [] ];

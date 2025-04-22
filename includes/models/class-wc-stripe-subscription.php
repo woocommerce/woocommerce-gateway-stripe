@@ -17,4 +17,23 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @var string
 	 */
 	const META_STRIPE_SOURCE_ID = '_stripe_source_id';
+
+	/**
+	 * Set the Stripe source ID.
+	 *
+	 * @param $source_id string The Stripe source ID.
+	 * @return void
+	 */
+	public function set_source_id( $source_id ) {
+		$this->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+	}
+
+	/**
+	 * Get the Stripe source ID.
+	 *
+	 * @return string
+	 */
+	public function get_source_id() {
+		return $this->get_meta( self::META_STRIPE_SOURCE_ID );
+	}
 }

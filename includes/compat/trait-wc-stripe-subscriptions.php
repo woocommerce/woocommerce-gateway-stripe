@@ -681,7 +681,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = $subscription->get_id();
-		$source_id       = $subscription->get_meta( '_stripe_source_id', true );
+		$source_id       = $subscription->get_source_id();
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
@@ -941,7 +941,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $payment_method_to_display;
 		}
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$stripe_source_id = $subscription->get_source_id();
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
