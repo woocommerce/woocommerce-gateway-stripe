@@ -67,7 +67,7 @@ test.describe( 'SPE payment tests @shortcode', () => {
 					.getByRole( 'checkbox', {
 						name: 'Save payment information to',
 					} )
-					.click();
+					.check();
 				await page.locator( 'text=Place order' ).click();
 				await fillSPEDetails(
 					page,
