@@ -140,7 +140,7 @@ const PaymentElements = ( {
 				...options,
 				...{
 					paymentMethodConfiguration: getBlocksConfiguration()
-						?.paymentMethodConfigurationId,
+						?.paymentMethodConfigurationParentId,
 				},
 			};
 		} else {

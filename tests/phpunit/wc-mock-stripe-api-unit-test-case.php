@@ -29,7 +29,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		parent::tear_down();
-		WC_Stripe_Payment_Method_Configurations::clear_pmc_cache();
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 	}
 
 	/**
@@ -39,7 +39,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 * @param array $disabled_payment_method_ids
 	 */
 	protected function expect_payment_method_configurations_update( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
-		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configuration' )->with(
+		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configurations' )->with(
 			$this->equalTo( 'pmc_abcdef' ),
 			$this->callback(
 				function ( $actual ) use ( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
@@ -70,7 +70,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			'id'       => 'pmc_abcdef',
 			'object'   => 'payment_method_configuration',
 			'active'   => true,
-			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_PLATFORM_PMC_ID,
+			'parent'   => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
 			'livemode' => false,
 		];
 
@@ -86,7 +86,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 			];
 		}
 
-		$this->stripe_api->method( 'get_all_payment_method_configurations' )->willReturn(
+		$this->stripe_api->method( 'get_payment_method_configurations' )->willReturn(
 			(object) [
 				'data' => [
 					(object) $payment_method_configuration,

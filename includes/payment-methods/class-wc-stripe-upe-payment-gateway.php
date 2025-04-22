@@ -532,8 +532,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Single Payment Element feature flag + setting.
 		$stripe_params['isSPEEnabled'] = $this->spe_enabled;
 
-		// Single Payment Element PMC ID
-		$stripe_params['paymentMethodConfigurationId'] = $this->testmode ? WC_Stripe_Payment_Method_Configurations::TEST_PLATFORM_PMC_ID : WC_Stripe_Payment_Method_Configurations::LIVE_PLATFORM_PMC_ID;
+		// Single Payment Element payment method parent configuration ID
+		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -713,7 +713,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
 
-		WC_Stripe_Payment_Method_Configurations::update_pmc(
+		WC_Stripe_Payment_Method_Configurations::update_payment_method_configuration(
 			$payment_method_ids_to_enable,
 			$payment_method_ids_to_update
 		);

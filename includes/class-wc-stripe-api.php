@@ -465,22 +465,22 @@ class WC_Stripe_API {
 	}
 
 	/**
-	 * Gets all the payment method configurations.
+	 * Get the payment method configurations.
 	 *
 	 * @return array The response from the API request.
 	 */
-	public function get_all_payment_method_configurations() {
+	public function get_payment_method_configurations() {
 		return self::retrieve( 'payment_method_configurations' );
 	}
 
 	/**
 	 * Update the payment method configuration.
 	 *
-	 * @param array $updated_payment_methods The payment methods data to update.
+	 * @param array $payment_method_configurations The payment method configurations to update.
 	 */
-	public function update_payment_method_configuration( $id, $updated_payment_methods ) {
+	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
 		$response = self::request(
-			$updated_payment_methods,
+			$payment_method_configurations,
 			'payment_method_configurations/' . $id
 		);
 		return $response;

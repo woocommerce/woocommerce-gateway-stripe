@@ -40,7 +40,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 		// Verify payment method configurations were not updated
 		$this->stripe_api->expects( $this->never() )
-			->method( 'update_payment_method_configuration' );
+			->method( 'update_payment_method_configurations' );
 	}
 
 	public function test_migration_executed_when_pmc_enabled_is_not_set() {
