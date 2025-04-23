@@ -144,6 +144,32 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
+	 * Get the UPE available payment method IDs.
+	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
+	 * @return array
+	 */
+	public static function get_upe_available_payment_methods( $force_refresh = false ) {
+		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
+		if ( ! self::is_enabled() ) {
+			return false;
+		}
+
+		$available_payment_method_ids          = [];
+		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
+
+		if ( $merchant_payment_method_configuration ) {
+			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
+				if ( isset( $payment_method->display_preference->value ) && isset( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS[ $payment_method_id ] ) ) {
+					$available_payment_method_ids[] = $payment_method_id;
+				}
+			}
+		}
+
+		return $available_payment_method_ids;
+	}
+
+	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
