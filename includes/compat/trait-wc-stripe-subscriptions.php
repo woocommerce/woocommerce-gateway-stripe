@@ -308,7 +308,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			if ( in_array( $payment_intent->status, WC_Stripe_Intent_Status::REQUIRES_CONFIRMATION_OR_ACTION_STATUSES, true ) ) {
 				// Because we're filtering woocommerce_subscriptions_update_payment_via_pay_shortcode, we need to manually set this delayed update all flag here.
 				if ( isset( $_POST['update_all_subscriptions_payment_method'] ) && wc_clean( wp_unslash( $_POST['update_all_subscriptions_payment_method'] ) ) ) {
-					$subscription->update_meta_data( '_delayed_update_payment_method_all', $new_payment_method );
+					$subscription->set_delayed_update_payment_all( $new_payment_method );
 					$subscription->save();
 				}
 
@@ -600,12 +600,12 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
+			$subscription->set_stripe_customer_id( $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
-				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
+				$subscription->set_source_id( $source->payment_method );
 			} else {
-				$subscription->update_meta_data( '_stripe_source_id', $source->source );
+				$subscription->set_source_id( $source->source );
 			}
 
 			// Update the payment method.
@@ -664,8 +664,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		$customer_id = $renewal_order->get_customer_id();
 		$source_id   = $renewal_order->get_source_id();
 
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->set_stripe_customer_id( $customer_id );
+		$subscription->set_source_id( $source_id );
 		$subscription->save();
 	}
 
@@ -685,10 +685,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$source_id = $subscription->get_stripe_card_id();
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $source_id );
+			$subscription->set_source_id( $source_id );
 			$subscription->delete_meta_data( '_stripe_card_id' );
 			$subscription->save();
 		}
@@ -696,7 +696,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$payment_meta[ $this->id ] = [
 			'post_meta' => [
 				'_stripe_customer_id' => [
-					'value' => $subscription->get_meta( '_stripe_customer_id', true ),
+					'value' => $subscription->get_stripe_customer_id(),
 					'label' => 'Stripe Customer ID',
 				],
 				'_stripe_source_id'   => [
@@ -945,15 +945,15 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$stripe_source_id = $subscription->get_stripe_card_id();
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id );
+			$subscription->set_source_id( $stripe_source_id );
 			$subscription->save();
 		}
 
 		$stripe_customer    = new WC_Stripe_Customer();
-		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
+		$stripe_customer_id = $subscription->get_stripe_customer_id();
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
