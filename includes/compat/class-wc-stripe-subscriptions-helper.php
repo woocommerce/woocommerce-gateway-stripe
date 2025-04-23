@@ -35,7 +35,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_subscriptions;
 		}
 
-		$subscriptions = wcs_get_subscriptions(
+		$subscriptions = WC_Stripe_Subscription::query(
 			[
 				'subscriptions_per_page' => 50,
 				'page'                   => 1,
@@ -53,7 +53,7 @@ class WC_Stripe_Subscriptions_Helper {
 				if ( empty( $payment_method->customer ) ) {
 					$detached_subscriptions[] = [
 						'id'                        => $subscription->get_id(),
-						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+						'customer_id'               => $subscription->get_stripe_customer_id(),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
 					if ( count( $detached_subscriptions ) >= 5 ) {
