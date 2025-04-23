@@ -52,7 +52,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return bool|WC_Stripe_Subscription
 	 */
 	public static function get_by_id( $subscription_id ) {
-		$subscription = wcs_get_subscription( $subscription_id );
+		$subscription = function_exists( 'wcs_get_subscription' ) ? wcs_get_subscription( $subscription_id ) : false;
 		if ( ! $subscription ) {
 			return false;
 		}

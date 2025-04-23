@@ -879,7 +879,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		} else {
 			// If this is the first order, not a renewal, then get the subscriptions for the parent order.
 			if ( empty( $subscriptions ) ) {
-				$subscriptions = function_exists( 'wcs_get_subscriptions_for_order' ) ? wcs_get_subscriptions_for_order( $order ) : [];
+				$subscriptions = WC_Stripe_Subscription::get_for_order( $order );
 			}
 
 			// If there are no subscriptions we just return since mandates aren't required.
@@ -1150,8 +1150,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	protected function maybe_process_subscription_early_renewal_success( $order, $intent ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			if ( function_exists( 'wcs_update_dates_after_early_renewal' ) && function_exists( 'wcs_get_subscription' ) ) {
-				wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
+			$subscription = WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) );
+			if ( function_exists( 'wcs_update_dates_after_early_renewal' ) && $subscription ) {
+				wcs_update_dates_after_early_renewal( $subscription, $order );
 			}
 			if ( function_exists( 'wc_add_notice' ) ) {
 				wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
@@ -1169,9 +1170,12 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
-			$renewal_url = ( function_exists( 'wcs_get_early_renewal_url' ) && function_exists( 'wcs_get_subscription' ) )
-				? wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) )
+
+			$subscription = WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) );
+			$renewal_url  = function_exists( 'wcs_get_early_renewal_url' ) && $subscription
+				? wcs_get_early_renewal_url( WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) ) )
 				: '';
+
 			wp_safe_redirect( $renewal_url );
 			exit;
 		}
@@ -1198,11 +1202,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param string   $payment_method_type The payment method ID. eg 'stripe', 'stripe_sepa'.
 	 */
 	public function update_subscription_payment_method_from_order( $order, $payment_method_type ) {
-		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() || ! function_exists( 'wcs_get_subscriptions_for_order' ) ) {
+		if ( ! WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			return;
 		}
 
-		foreach ( wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] ) as $subscription ) {
+		foreach ( WC_Stripe_Subscription::get_for_order( $order ) as $subscription ) {
 			$subscription->set_payment_method( $payment_method_type );
 			$subscription->save();
 		}
