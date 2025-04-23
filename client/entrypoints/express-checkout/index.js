@@ -229,9 +229,11 @@ jQuery( function ( $ ) {
 		renderButton: ( eceButton, expressPaymentType ) => {
 			if ( $( '#wc-stripe-express-checkout-element' ).length ) {
 				const containerName = `wc-stripe-express-checkout-element-${ expressPaymentType }`;
-				$( '#wc-stripe-express-checkout-element' ).append(
-					`<div id="${ containerName }"></div>`
-				);
+				if ( ! $( `#${ containerName }` ).length ) {
+					$( '#wc-stripe-express-checkout-element' ).append(
+						`<div id="${ containerName }"></div>`
+					);
+				}
 
 				eceButton.mount( `#${ containerName }` );
 
