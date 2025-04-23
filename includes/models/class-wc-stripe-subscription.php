@@ -39,6 +39,31 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	const META_DELAYED_UPDATE_PAYMENT_METHOD_ALL = '_delayed_update_payment_method_all';
 
 	/**
+	 * Wrapper to return an order using the extension's custom WC_Stripe_Subscription class.
+	 *
+	 * @param $subscription_id int Subscription ID.
+	 * @return bool|WC_Stripe_Subscription
+	 */
+	public static function get_by_id( $subscription_id ) {
+		$subscription = wcs_get_subscription( $subscription_id );
+		if ( ! $subscription ) {
+			return false;
+		}
+
+		return self::to_instance( $subscription );
+	}
+
+	/**
+	 * Converts an order into WC_Stripe_Order if it is not already.
+	 *
+	 * @param $subscription WC_Stripe_Subscription|WC_Subscription Order object.
+	 * @return WC_Stripe_Subscription
+	 */
+	public static function to_instance( $subscription ) {
+		return $subscription instanceof WC_Stripe_Subscription ? $subscription : new self( $subscription );
+	}
+
+	/**
 	 * Set the Stripe source ID.
 	 *
 	 * @param $source_id string The Stripe source ID.
@@ -93,6 +118,15 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 */
 	public function get_stripe_card_id() {
 		return $this->get_meta( self::META_STRIPE_CARD_ID );
+	}
+
+	/**
+	 * Deletes the Stripe card ID.
+	 *
+	 * @return void
+	 */
+	public function delete_stripe_card_id() {
+		$this->delete_meta_data( self::META_STRIPE_CARD_ID );
 	}
 
 	/**

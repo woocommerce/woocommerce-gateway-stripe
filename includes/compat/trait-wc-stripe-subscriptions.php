@@ -265,7 +265,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return array
 	 */
 	public function process_change_subscription_payment_with_deferred_intent( $subscription_id ) {
-		$subscription = wcs_get_subscription( $subscription_id );
+		$subscription = WC_Stripe_Subscription::get_by_id( $subscription_id );
 
 		if ( ! $subscription ) {
 			return [
@@ -659,6 +659,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
+		$subscription  = WC_Stripe_Subscription::to_instance( $subscription );
 		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
 
 		$customer_id = $renewal_order->get_customer_id();
@@ -680,7 +681,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return array
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
-		$subscription_id = $subscription->get_id();
+		$subscription    = WC_Stripe_Subscription::to_instance( $subscription );
 		$source_id       = $subscription->get_source_id();
 
 		// For BW compat will remove in future.
@@ -689,7 +690,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Take this opportunity to update the key name.
 			$subscription->set_source_id( $source_id );
-			$subscription->delete_meta_data( '_stripe_card_id' );
+			$subscription->delete_stripe_card_id();
 			$subscription->save();
 		}
 
@@ -934,6 +935,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return string the subscription payment method
 	 */
 	public function maybe_render_subscription_payment_method( $payment_method_to_display, $subscription ) {
+		$subscription  = WC_Stripe_Subscription::to_instance( $subscription );
 		$customer_user = $subscription->get_customer_id();
 
 		// bail for other payment methods
