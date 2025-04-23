@@ -534,6 +534,12 @@ jQuery( function ( $ ) {
 							parseInt( cart.totals.total_refund || 0, 10 ),
 						cart.totals
 					);
+
+					if ( total === 0 ) {
+						wcStripeECE.hide();
+						return;
+					}
+
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total,
