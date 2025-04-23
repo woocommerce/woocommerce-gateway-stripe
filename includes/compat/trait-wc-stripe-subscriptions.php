@@ -592,9 +592,9 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// Also store it on the subscriptions being purchased or paid for in the order
 		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
-			$subscriptions = function_exists( 'wcs_get_subscriptions_for_order' ) ? wcs_get_subscriptions_for_order( $order_id ) : [];
+			$subscriptions = WC_Stripe_Subscription::get_for_order( $order_id );
 		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
-			$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order_id ) : [];
+			$subscriptions = WC_Stripe_Subscription::get_for_renewal_order( $order_id );
 		} else {
 			$subscriptions = [];
 		}
@@ -775,7 +775,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				return $request;
 			}
 
-			$subscriptions_for_renewal_order = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
+			$subscriptions_for_renewal_order = WC_Stripe_Subscription::get_for_renewal_order( $order );
 
 			// Check if mandate already exists.
 			if ( 1 === count( $subscriptions_for_renewal_order ) ) {

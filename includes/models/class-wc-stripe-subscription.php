@@ -39,6 +39,13 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	const META_DELAYED_UPDATE_PAYMENT_METHOD_ALL = '_delayed_update_payment_method_all';
 
 	/**
+	 * Meta key for the Stripe refund ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_REFUND_ID = '_stripe_refund_id';
+
+	/**
 	 * Wrapper to return an order using the extension's custom WC_Stripe_Subscription class.
 	 *
 	 * @param $subscription_id int Subscription ID.
@@ -51,6 +58,66 @@ class WC_Stripe_Subscription extends WC_Subscription {
 		}
 
 		return self::to_instance( $subscription );
+	}
+
+	/**
+	 * Wrapper to get subscriptions using the extension's custom WC_Stripe_Subscription class.
+	 *
+	 * @param $args array Arguments to pass to wcs_get_subscriptions.
+	 * @return array|WC_Stripe_Subscription[]
+	 */
+	public static function query( $args ) {
+		$subscriptions = function_exists( 'wcs_get_subscriptions' ) ? wcs_get_subscriptions( $args ) : [];
+		if ( empty( $subscriptions ) ) {
+			return [];
+		}
+
+		return array_map(
+			function ( $subscription ) {
+				return self::to_instance( $subscription );
+			},
+			$subscriptions
+		);
+	}
+
+	/**
+	 * Wrapper to get subscriptions for an order using the extension's custom WC_Stripe_Subscription class.
+	 *
+	 * @param $order int|WC_Order Order object or ID.
+	 * @return array|WC_Stripe_Subscription[]
+	 */
+	public static function get_for_order( $order ) {
+		$subscriptions = function_exists( 'wcs_get_subscriptions_for_order' ) ? wcs_get_subscriptions_for_order( $order ) : [];
+		if ( empty( $subscriptions ) ) {
+			return [];
+		}
+
+		return array_map(
+			function ( $subscription ) {
+				return self::to_instance( $subscription );
+			},
+			$subscriptions
+		);
+	}
+
+	/**
+	 * Wrapper to get subscriptions for a renewal order using the extension's custom WC_Stripe_Subscription class.
+	 *
+	 * @param $order int|WC_Order Order object or ID.
+	 * @return array|WC_Stripe_Subscription[]
+	 */
+	public static function get_for_renewal_order( $order ) {
+		$subscriptions = function_exists( 'wcs_get_subscriptions_for_renewal_order' ) ? wcs_get_subscriptions_for_renewal_order( $order ) : [];
+		if ( empty( $subscriptions ) ) {
+			return [];
+		}
+
+		return array_map(
+			function ( $subscription ) {
+				return self::to_instance( $subscription );
+			},
+			$subscriptions
+		);
 	}
 
 	/**
@@ -83,6 +150,15 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	}
 
 	/**
+	 * Deletes the Stripe source ID.
+	 *
+	 * @return void
+	 */
+	public function delete_source_id() {
+		$this->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+	}
+
+	/**
 	 * Set the Stripe customer ID.
 	 *
 	 * @param $customer_id string The Stripe customer ID.
@@ -99,6 +175,15 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 */
 	public function get_stripe_customer_id() {
 		return $this->get_meta( self::META_STRIPE_CUSTOMER_ID );
+	}
+
+	/**
+	 * Deletes the Stripe customer ID.
+	 *
+	 * @return void
+	 */
+	public function delete_stripe_customer_id() {
+		$this->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -146,5 +231,33 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 */
 	public function get_delayed_update_payment_all() {
 		return $this->get_meta( self::META_DELAYED_UPDATE_PAYMENT_METHOD_ALL );
+	}
+
+	/**
+	 * Set the refund ID.
+	 *
+	 * @param $refund_id string The refund ID to set.
+	 * @return void
+	 */
+	public function set_refund_id( $refund_id ) {
+		$this->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+	}
+
+	/**
+	 * Get the refund ID.
+	 *
+	 * @return string
+	 */
+	public function get_refund_id() {
+		return $this->get_meta( self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
+	 * Deletes the refund ID.
+	 *
+	 * @return void
+	 */
+	public function delete_refund_id() {
+		$this->delete_meta_data( self::META_STRIPE_REFUND_ID );
 	}
 }

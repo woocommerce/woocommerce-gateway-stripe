@@ -6,7 +6,7 @@
 /**
  * A function to mock wcs_get_subscriptions_for_order.
  *
- * @param WC_Order $order
+ * @param int|WC_Order $order The order object or ID.
  * @return array
  */
 function wcs_get_subscriptions_for_order( $order ) {
