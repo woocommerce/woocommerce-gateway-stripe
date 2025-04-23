@@ -1,0 +1,41 @@
+name: PHP Code Coverage Comment
+description: Composite Action with steps to add a comment to a PR with PHP Code Coverage results
+
+inputs:
+  changed-files:
+    type: string
+    default: ''
+  pr-number:
+    type: number
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Code Coverage Report
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: php-coverage.xml
+        format: markdown
+        hide_branch_rate: false
+        hide_complexity: true
+        indicators: true
+        output: both
+        thresholds: '60 80'
+
+    - name: Filter Changed Files in Report
+      shell: bash    
+      run: |
+        echo "### 📈 PHP Unit Code Coverage Report" > code-coverage-results-filtered.md 
+        echo "Package | Line Rate | Health" >> code-coverage-results-filtered.md 
+        echo "-------- | --------- | ------" >> code-coverage-results-filtered.md
+        grep -E "$(echo ${{ inputs.changed-files }} | tr ' ' '|')" code-coverage-results.md >> code-coverage-results-filtered.md
+        tail -n1 code-coverage-results.md >> code-coverage-results-filtered.md
+
+    - name: Add Coverage PR Comment
+      uses: marocchino/sticky-pull-request-comment@v2.9.1
+      with:
+        skip_unchanged: true
+        recreate: true
+        number: ${{ inputs.pr-number }}
+        path: code-coverage-results-filtered.md

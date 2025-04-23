@@ -1,6 +1,8 @@
 *** Changelog ***
 
 = 9.5.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the new checkout experience files.
+* Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
 * Dev - Implements the new Stripe order class into the root extension files.
 * Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
 * Tweak - Passes the correct parent payment method configuration ID (retrieved from the backend) to the Smart Checkout payment element.
@@ -9,6 +11,9 @@
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Fix - Prevent deletion of webhooks for other tools
+
+= 9.4.1 - 2025-04-17 =
+* Dev - Forces rollback of version 9.4.0.
 
 = 9.4.0 - 2025-04-16 =
 * Add - New filter to allow merchants to bypass the default visibility of the express payment method buttons when taxes are based on customer's billing address (`wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`).
