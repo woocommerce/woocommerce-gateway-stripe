@@ -122,5 +122,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Fix - Add caching for the Stripe Payment Method Configuration API
 * Fix - Prevent deletion of webhooks for other tools
+* Fix - Address an edge case with webhook URL comparisons
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
