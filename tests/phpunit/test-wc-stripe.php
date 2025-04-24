@@ -203,4 +203,32 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
 		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
 	}
+
+	/**
+	 * Test that {@see WC_Stripe_Helper::is_webhook_url()} works as expected.
+	 *
+	 * @dataProvider is_webhook_url_provider
+	 * @covers WC_Stripe_Helper::is_webhook_url()
+	 */
+	public function test_is_webhook_url( $url, $webhook_url, $expected_result ) {
+		$this->assertEquals( $expected_result, WC_Stripe_Helper::is_webhook_url( $url, $webhook_url ) );
+	}
+
+	/**
+	 * Data provider for {@see test_is_webhook_url()}.
+	 *
+	 * @return array
+	 */
+	public function is_webhook_url_provider() {
+		return [
+			'webhook URLs with mismatched protocol should match'       => [ 'https://example.com/?wc-api=wc_stripe', 'http://example.com/?wc-api=wc_stripe', true ],
+			'webhook URLs with mismatched host should not match'       => [ 'https://example.com/?wc-api=wc_stripe', 'https://test.example.com/?wc-api=wc_stripe', false ],
+			'webhook URLs with mismatched path should not match'       => [ 'https://example.com/foo?wc-api=wc_stripe', 'https://example.com/bar?wc-api=wc_stripe', false ],
+			'webhook URL with empty query string should match'         => [ 'https://example.com/test/', 'https://example.com/test/', true ],
+			'webhook URL with empty comparison query should not match' => [ 'https://example.com/test/?foo=bar', 'https://example.com/test/', false ],
+			'webhook URL with missing parameter should not match'      => [ 'https://example.com/test/?wc-api=wc_stripe', 'https://example.com/test/?wc-api=wc_stripe&foo=bar', false ],
+			'webhook URL with wrong parameter should not match'        => [ 'https://example.com/test/?wc-api=wc_stripe_BAD', 'https://example.com/test/?wc-api=wc_stripe', false ],
+			'webhook URL with extra parameters should match'           => [ 'https://example.com/test/?wc-api=wc_stripe&foo=bar', 'https://example.com/test/?wc-api=wc_stripe', true ],
+		];
+	}
 }
