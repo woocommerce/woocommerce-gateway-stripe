@@ -515,7 +515,10 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 	let messageWrapper = '';
 	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
-		const { StoreNotice } = window.wc.blocksCheckout;
+		const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
+		if ( ! StoreNotice ) {
+			return;
+		}
 		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
