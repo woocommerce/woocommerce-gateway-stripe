@@ -345,9 +345,12 @@ const PaymentProcessor = ( {
 				'change',
 				function () {
 					elements.update( {
-						setupFutureUsage: savingPaymentMethodCheckbox?.checked
-							? 'off_session'
-							: null,
+						setupFutureUsage:
+							getBlocksConfiguration()
+								?.cartContainsSubscription ||
+							savingPaymentMethodCheckbox?.checked
+								? 'off_session'
+								: null,
 					} );
 				}
 			);
