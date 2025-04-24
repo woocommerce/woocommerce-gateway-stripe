@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Dev - Implements the new Stripe order class into the new checkout experience files.
+* Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
 * Dev - Implements the new Stripe order class into the root extension files.
 * Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
 * Tweak - Passes the correct parent payment method configuration ID (retrieved from the backend) to the Smart Checkout payment element.
