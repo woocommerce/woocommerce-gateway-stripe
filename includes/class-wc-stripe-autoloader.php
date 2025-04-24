@@ -92,6 +92,7 @@ class WC_Stripe_Autoloader {
 			'WC_Stripe_Account'                                     => __DIR__ . '/class-wc-stripe-account.php',
 			'WC_Stripe_Action_Scheduler_Service'                    => __DIR__ . '/class-wc-stripe-action-scheduler-service.php',
 			'WC_Stripe_API'                                         => __DIR__ . '/class-wc-stripe-api.php',
+			'WC_Stripe_Apple_Pay'                                   => __DIR__ . '/deprecated/class-wc-stripe-apple-pay.php',
 			'WC_Stripe_Apple_Pay_Registration'                      => __DIR__ . '/class-wc-stripe-apple-pay-registration.php',
 			'WC_Stripe_Blocks_Support'                              => __DIR__ . '/class-wc-stripe-blocks-support.php',
 			'WC_Stripe_Co_Branded_CC_Compatibility'                 => __DIR__ . '/class-wc-stripe-co-branded-cc-compatibility.php',
