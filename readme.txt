@@ -121,5 +121,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Fix - Add caching for the Stripe Payment Method Configuration API
+* Fix - Prevent deletion of webhooks for other tools
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
