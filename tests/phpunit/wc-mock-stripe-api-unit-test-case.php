@@ -29,7 +29,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		parent::tear_down();
-		WC_Stripe_Payment_Method_Configurations::reset_primary_configuration();
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 	}
 
 	/**
