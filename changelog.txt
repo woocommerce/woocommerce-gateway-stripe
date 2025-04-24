@@ -12,6 +12,7 @@
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Fix - Add caching for the Stripe Payment Method Configuration API
 * Fix - Prevent deletion of webhooks for other tools
+* Dev - Improve SPE e2e tests to reduce flakiness
 
 = 9.4.1 - 2025-04-17 =
 * Dev - Forces rollback of version 9.4.0.
