@@ -153,6 +153,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			options = {
 				...options,
 				paymentMethodTypes,
+				...( getStripeServerData()?.elementsOptions || {} ),
 			};
 		}
 	}

@@ -132,6 +132,7 @@ const PaymentElements = ( {
 				mode: amount < 1 ? 'setup' : 'payment',
 				amount,
 				currency: getBlocksConfiguration()?.currency.toLowerCase(),
+				...( getBlocksConfiguration()?.elementsOptions || {} ),
 			},
 		};
 
