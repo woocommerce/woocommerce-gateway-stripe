@@ -485,7 +485,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper( $this );
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 
 		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
