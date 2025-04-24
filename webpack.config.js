@@ -1,7 +1,7 @@
 const path = require( 'path' );
 const webpack = require( 'webpack' );
-const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
+const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 module.exports = {
 	...defaultConfig,
@@ -17,11 +17,15 @@ module.exports = {
 					// wp-scripts does not allow to override the Terser minimizer sourceMap option, without this
 					// `devtool: 'hidden-source-map'` is not generated for js files.
 					plugin.options.sourceMap = true;
+					plugin.options.terserOptions = {
+						...plugin.options.terserOptions,
+						sourceMap: true,
+					};
 				}
 				return plugin;
 			} ),
 		],
-		splitChunks: undefined,
+		splitChunks: false,
 	},
 	plugins: [
 		...defaultConfig.plugins.filter(
@@ -76,13 +80,18 @@ module.exports = {
 				test: /\.mjs$/,
 				include: /node_modules/,
 				type: 'javascript/auto',
+				resolve: {
+					fullySpecified: false,
+				},
 			},
 		],
 	},
 	resolve: {
+		...defaultConfig.resolve,
 		extensions: [ '.json', '.js', '.jsx', '.mjs' ],
 		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
 		alias: {
+			...defaultConfig.resolve.alias,
 			wcstripe: path.resolve( __dirname, 'client' ),
 		},
 	},
