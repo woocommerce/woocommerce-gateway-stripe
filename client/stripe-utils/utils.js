@@ -1,7 +1,6 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import { StoreNotice } from '@woocommerce/blocks-checkout';
 import ReactDOM from 'react-dom';
 import { getAppearance } from '../styles/upe';
 import {
@@ -516,6 +515,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 	let messageWrapper = '';
 	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
+		const { StoreNotice } = window.wc.blocksCheckout;
 		const NoticeComponent = () => (
 			<StoreNotice status="error" isDismissible={ true }>
 				{ errorMessage }
