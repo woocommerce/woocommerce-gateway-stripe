@@ -601,5 +601,3 @@ class WC_Stripe_Admin_Notices {
 		}
 	}
 }
-
-new WC_Stripe_Admin_Notices();

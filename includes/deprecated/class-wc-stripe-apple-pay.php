@@ -33,5 +33,3 @@ if ( ! class_exists( 'WC_Stripe_Apple_Pay' ) ) {
 		}
 	}
 }
-
-new WC_Stripe_Apple_Pay();

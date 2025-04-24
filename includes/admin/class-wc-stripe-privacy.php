@@ -447,5 +447,3 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		return $is_expired;
 	}
 }
-
-new WC_Stripe_Privacy();
