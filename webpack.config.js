@@ -5,6 +5,10 @@ const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 module.exports = {
 	...defaultConfig,
+	output: {
+		...defaultConfig.output,
+		devtoolModuleFilenameTemplate: 'webpack://[resource-path]',
+	},
 	devtool:
 		process.env.NODE_ENV === 'production'
 			? 'hidden-source-map'
@@ -17,10 +21,6 @@ module.exports = {
 					// wp-scripts does not allow to override the Terser minimizer sourceMap option, without this
 					// `devtool: 'hidden-source-map'` is not generated for js files.
 					plugin.options.sourceMap = true;
-					plugin.options.terserOptions = {
-						...plugin.options.terserOptions,
-						sourceMap: true,
-					};
 				}
 				return plugin;
 			} ),
