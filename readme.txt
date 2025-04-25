@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Fix - Fixes the availability of WeChat Pay when the Smart Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
 * Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
 * Dev - Implements the new Stripe order class into the root extension files.
