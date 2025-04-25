@@ -9,6 +9,7 @@ const {
 	setupShortcodeCheckout,
 	setupSPECheckout,
 	fillSPEDetails,
+	clickPlaceOrder,
 } = payments;
 
 test.describe( 'SPE payment tests @shortcode', () => {
@@ -38,7 +39,7 @@ test.describe( 'SPE payment tests @shortcode', () => {
 	test( 'customer can pay with SPE @smoke', async ( { page } ) => {
 		await setupSPECheckout( page, 'shortcode' );
 		await fillSPEDetails( page, config.get( 'cards.basic' ), 'shortcode' );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
@@ -68,7 +69,7 @@ test.describe( 'SPE payment tests @shortcode', () => {
 						name: 'Save payment information to',
 					} )
 					.check( { force: true } );
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await fillSPEDetails(
 					page,
 					config.get( 'cards.basic' ),
@@ -97,7 +98,7 @@ test.describe( 'SPE payment tests @shortcode', () => {
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
