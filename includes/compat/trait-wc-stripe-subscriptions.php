@@ -475,7 +475,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 
 						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
 					} else {
@@ -541,22 +541,35 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
-			} elseif ( $this->must_authorize_off_session( $response ) ) {
+			} elseif ( $this->is_charge_attempt_delayed( $response ) ) {
 				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
-				$message = sprintf(
-					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
-					$attempt_date,
-					$attempt_time
-				);
+				$message = '';
+				if ( ! empty( $response->processing->card->customer_notification->approval_requested ) ) {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				} else {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The charge will be attempted on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				}
+
 				$renewal_order->add_order_note( $message );
 				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
+
+				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
@@ -1176,14 +1189,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Returns true if a subscription payment must be authorized by the customer off session.
+	 * Returns true if Stripe will attempt the charges at a future date.
 	 *
-	 * This is only valid when using mandates for Indian 3DS regulations.
+	 * This applies to subscription payments and Indian 3DS regulations.
+	 * https://docs.stripe.com/india-recurring-payments?integration=subscriptions#predebit-notification
 	 *
 	 * @param StdClass $payment_intent the Payment Intent to be evaluated.
-	 * @return bool true if payment intent must be authorized off session, false otherwise.
+	 * @return bool true if the charge attempt is delayed, false otherwise.
 	 */
-	protected function must_authorize_off_session( $payment_intent ) {
+	protected function is_charge_attempt_delayed( $payment_intent ) {
 		return ! empty( $payment_intent->status )
 			&& WC_Stripe_Intent_Status::PROCESSING === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );

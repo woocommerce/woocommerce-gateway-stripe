@@ -631,8 +631,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
+	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
+		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( $force_refresh );
 	}
 
 	/**
