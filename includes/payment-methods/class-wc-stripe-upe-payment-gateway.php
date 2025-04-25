@@ -485,7 +485,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper( $this );
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 
 		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
@@ -631,8 +631,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids();
+	public function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
+		return WC_Stripe_Payment_Method_Configurations::get_upe_enabled_payment_method_ids( $force_refresh );
 	}
 
 	/**

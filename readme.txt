@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
 * Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
 * Dev - Implements the new Stripe order class into the root extension files.
@@ -121,5 +122,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Add - Add WordPress Action for processing payments with delayed charge attempts due to pre-debit notification period.
+* Fix - Add caching for the Stripe Payment Method Configuration API
+* Fix - Prevent deletion of webhooks for other tools
+* Dev - Improve SPE e2e tests to reduce flakiness
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
