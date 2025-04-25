@@ -569,7 +569,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 
-				do_action( 'wc_gateway_stripe_process_payment_charge_attempt_delayed', $response, $renewal_order );
+				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
