@@ -2276,7 +2276,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception(
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 					print_r( $payment_intent, true ),
-					$payment_intent->error->message
+					$this->get_payment_intent_error_message( $payment_intent )
 				);
 			}
 
@@ -2300,6 +2300,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $payment_intent;
+	}
+
+	/**
+	 * Return specific error messages for payment intent errors.
+	 *
+	 * @param stdClass $payment_intent The payment intent object.
+	 * @return string The error message.
+	 */
+	private function get_payment_intent_error_message( $payment_intent ) {
+		if ( isset( $payment_intent->error->payment_intent->payment_method_types[0] ) &&
+			'amazon_pay' === $payment_intent->error->payment_intent->payment_method_types[0] &&
+			isset( $payment_intent->error->decline_code ) &&
+			'generic_decline' === $payment_intent->error->decline_code
+		) {
+			return __(
+				'Amazon Pay is not compatible for this order. Please try a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
+		return $payment_intent->error->message;
 	}
 
 	/**
