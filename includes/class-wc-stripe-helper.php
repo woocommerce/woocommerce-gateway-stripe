@@ -1589,8 +1589,8 @@ class WC_Stripe_Helper {
 			$webhook_url = self::get_webhook_url();
 		}
 
-		$url         = untrailingslashit( trim( strtolower( $url ) ) );
-		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+		$url         = trim( strtolower( $url ) );
+		$webhook_url = trim( strtolower( $webhook_url ) );
 
 		// If the URLs are the exact same, no need to compare further.
 		if ( $url === $webhook_url ) {
