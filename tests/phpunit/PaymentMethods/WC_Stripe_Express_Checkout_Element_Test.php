@@ -355,15 +355,6 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$helper = $this->getMockBuilder( WC_Stripe_Express_Checkout_Helper::class )
-			->disableOriginalConstructor()
-			->setMethods( [ 'get_button_locations' ] )
-			->getMock();
-
-		$helper->expects( $this->any() )
-			->method( 'get_button_locations' )
-			->willReturn( [ $button_location ] );
-
 		$element = new WC_Stripe_Express_Checkout_Element( $ajax_handler, $helper );
 
 		ob_start();

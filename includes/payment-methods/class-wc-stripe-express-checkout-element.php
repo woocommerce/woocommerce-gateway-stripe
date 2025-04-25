@@ -548,7 +548,7 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		if ( is_checkout() && ! in_array( 'checkout', $this->express_checkout_helper->get_button_locations(), true ) ) {
+		if ( is_checkout() && ! $this->express_checkout_helper->should_show_on_checkout_page() ) {
 			return;
 		}
 

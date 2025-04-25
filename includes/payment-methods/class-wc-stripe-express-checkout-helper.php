@@ -677,13 +677,13 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! $this->should_show_ece_on_cart_page() ) {
+		if ( $this->is_cart() && ! $this->should_show_ece_on_cart_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on cart is disabled. ' );
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		if ( $this->is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
@@ -842,13 +842,13 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on the cart page, false
+	 * Returns true if any express checkout buttons are enabled on the cart page, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on the cart page, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on the cart page, false otherwise.
 	 */
 	public function should_show_ece_on_cart_page() {
-		$should_show_on_cart_page = in_array( 'cart', $this->get_button_locations(), true );
+		$should_show_on_cart_page = $this->should_show_ece_on_page( 'cart' );
 
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
@@ -865,7 +865,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function should_show_ece_on_checkout_page() {
 		global $post;
 
-		$should_show_on_checkout_page = in_array( 'checkout', $this->get_button_locations(), true );
+		$should_show_on_checkout_page = $this->should_show_ece_on_page( 'checkout' );
 
 		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
@@ -875,15 +875,15 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if express checkout buttons are enabled on product pages, false
+	 * Returns true if any express checkout buttons are enabled on product pages, false
 	 * otherwise.
 	 *
-	 * @return  boolean  True if express checkout buttons are enabled on product pages, false otherwise
+	 * @return  boolean  True if any express checkout buttons are enabled on product pages, false otherwise
 	 */
 	public function should_show_ece_on_product_pages() {
 		global $post;
 
-		$should_show_on_product_page = in_array( 'product', $this->get_button_locations(), true );
+		$should_show_on_product_page = $this->should_show_ece_on_page( 'product' );
 
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
 		return ! apply_filters(
@@ -891,6 +891,18 @@ class WC_Stripe_Express_Checkout_Helper {
 			! $should_show_on_product_page,
 			$post
 		);
+	}
+
+	/**
+	 * Returns true if any express checkout buttons are enabled on the given page, false
+	 * otherwise.
+	 *
+	 * @param string $page The page to check.
+	 * @return boolean True if any express checkout buttons are enabled on the given page, false otherwise.
+	 */
+	private function should_show_ece_on_page( $page ) {
+		return $this->is_enabled_for_location( 'payment_request', $page ) ||
+			$this->is_enabled_for_location( 'amazon_pay', $page );
 	}
 
 	/**
@@ -1379,6 +1391,15 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Checks if this is the cart page or content contains a cart block.
+	 *
+	 * @return boolean
+	 */
+	public function is_cart() {
+		return is_cart() || has_block( 'woocommerce/cart' );
+	}
+
+	/**
 	 * Builds the shippings methods to pass to express checkout elements.
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
@@ -1549,22 +1570,52 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Pages where the express checkout buttons should be displayed.
 	 *
+	 * @param string $express_checkout_type The type of express checkout.
 	 * @return array
 	 */
-	public function get_button_locations() {
-		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
-			return [ 'product', 'cart' ];
+	public function get_button_locations( $express_checkout_type ) {
+		switch ( $express_checkout_type ) {
+			case 'payment_request':
+				$key = 'payment_request_button_locations';
+				break;
+			case 'link':
+				// Link does not yet have its own Customize page. It shares the same location settings
+				// as Apple Pay and Google Pay.
+				$key = 'payment_request_button_locations';
+				break;
+			case 'amazon_pay':
+				$key = 'amazon_pay_button_locations';
+				break;
+			default:
+				$key = 'payment_request_button_locations';
+				break;
 		}
 
-		// If all locations are removed through the settings UI the location config will be set to
-		// an empty string "". If that's the case (and if the settings are not an array for any
-		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
-			return [];
+		if ( ! isset( $this->stripe_settings[ $key ] ) ) {
+			// If the locations have not been set/modified, return the default setting.
+			$enabled_locations = [ 'product', 'cart' ];
+		} elseif ( ! is_array( $this->stripe_settings[ $key ] ) ) {
+			// If all locations are removed through the settings UI the location config will be set to
+			// an empty string "". If that's the case (and if the settings are not an array for any
+			// other reason) we should return an empty array.
+			$enabled_locations = [];
+		} else {
+			$enabled_locations = $this->stripe_settings[ $key ];
 		}
 
-		return $this->stripe_settings['payment_request_button_locations'];
+		return $enabled_locations;
+	}
+
+	/**
+	 * Check if the express checkout type is enabled for the given location.
+	 *
+	 * @param string $express_checkout_type The type of express checkout.
+	 * @param string $location The location to check.
+	 * @return boolean
+	 */
+	public function is_enabled_for_location( $express_checkout_type = 'payment_request', $location = '' ) {
+		$enabled_locations = $this->get_button_locations( $express_checkout_type );
+		return in_array( $location, $enabled_locations, true );
 	}
 
 	/**
@@ -1584,7 +1635,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_payment_request_enabled() {
-		return $this->gateway->is_payment_request_enabled();
+		$is_enabled = $this->gateway->is_payment_request_enabled();
+		if ( is_product() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'product' );
+		} elseif ( is_cart() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'payment_request', 'cart' );
+		}
+
+		return $is_enabled;
 	}
 
 	/**
@@ -1593,7 +1651,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_amazon_pay_enabled() {
-		return WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
+		$is_enabled = WC_Stripe_UPE_Payment_Method_Amazon_Pay::is_amazon_pay_enabled( $this->gateway );
+		if ( is_product() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'product' );
+		} elseif ( is_cart() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'amazon_pay', 'cart' );
+		}
+
+		return $is_enabled;
 	}
 
 	/**
@@ -1602,7 +1667,14 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return boolean
 	 */
 	public function is_link_enabled() {
-		return WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
+		$is_enabled = WC_Stripe_UPE_Payment_Method_Link::is_link_enabled( $this->gateway );
+		if ( is_product() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'link', 'product' );
+		} elseif ( is_cart() ) {
+			return $is_enabled && $this->is_enabled_for_location( 'link', 'cart' );
+		}
+
+		return $is_enabled;
 	}
 
 	/**
