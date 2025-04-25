@@ -92,6 +92,12 @@ async function main() {
             value: feature,
         }));
 
+        // Ensure we have an escape hatch!
+        features.unshift({
+            name: '\u001B[3mNever mind (No feature)\u001B[23m', // Escape sequences start and stop italics
+            value: null,
+        });
+
         // Get user input
         const answers = await inquirer.prompt([
             {
@@ -120,7 +126,7 @@ async function main() {
                 name: 'feature',
                 message: 'Select the feature:',
                 choices: features,
-                default: null,
+                default: 0,
             }
         ]);
         const feature = featureAnswer?.feature ?? null;
