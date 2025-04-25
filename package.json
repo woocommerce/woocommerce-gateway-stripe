@@ -87,7 +87,7 @@
     "node-ssh": "^13.0.0",
     "node-wp-i18n": "~1.2.1",
     "playwright": "^1.40.1",
-    "prettier": "^3.2.5",
+    "prettier": "npm:wp-prettier@3.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rimraf": "^5.0.0",
@@ -185,8 +185,8 @@
     "changelog": "node bin/changelog.js"
   },
   "engines": {
-    "node": "20.19.1",
-    "npm": ">=8.15.0"
+    "node": ">=20.10.0",
+    "npm": ">=10.2.3"
   },
   "config": {
     "wp_org_slug": "woocommerce-gateway-stripe",
