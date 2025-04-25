@@ -221,6 +221,10 @@ class WC_Stripe_Express_Checkout_Helper {
 		$product      = $this->get_product();
 		$variation_id = 0;
 
+		if ( ! $product ) {
+			return false;
+		}
+
 		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
@@ -513,6 +517,9 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		if ( $this->is_product() ) {
 			$product = $this->get_product();
+			if ( ! $product ) {
+				return false;
+			}
 			if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return true;
 			}
@@ -540,7 +547,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	/**
 	 * Get product from product page or product_page shortcode.
 	 *
-	 * @return WC_Product Product object.
+	 * @return WC_Product|false Product object, or false if product is not found.
 	 */
 	public function get_product() {
 		global $post;
@@ -620,33 +627,43 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		$is_product = $this->is_product();
+
 		// Don't show if product page ECE is disabled.
-		if ( $this->is_product() && ! $this->should_show_ece_on_product_pages() ) {
+		if ( $is_product && ! $this->should_show_ece_on_product_pages() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on product pages is disabled. ' );
 			return false;
 		}
 
+		$product = $this->get_product();
+
+		if ( $is_product && ! $product ) {
+			$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
+			WC_Stripe_Logger::log( 'Failed to identify product; not showing Stripe Express Checkout. Current URI: ' . $request_uri );
+			return false;
+		}
+
 		// Don't show if product on current page is not supported.
-		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
-			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $this->get_product()->get_id() );
+		if ( $is_product && ! $this->is_product_supported( $product ) ) {
+			WC_Stripe_Logger::log( 'Product is not supported by Stripe Express Checkout. Product ID: ' . $product->get_id() );
 			return false;
 		}
 
 		// Don't show if the total price is 0.
 		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( ( ! ( $this->is_pay_for_order_page() || $this->is_product() ) &&
+		if ( ( ! ( $this->is_pay_for_order_page() || $is_product ) &&
 			isset( WC()->cart ) && ! WC()->cart->is_empty() && 0.0 === (float) WC()->cart->get_total( false ) )
-			|| ( $this->is_product() && 0.0 === (float) $this->get_product()->get_price() )
+			|| ( $is_product && $product && 0.0 === (float) $product->get_price() )
 		) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
 			return false;
 		}
 
-		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
-			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
+		if ( $is_product && $product && in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
-				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $this->get_product()->get_id() );
+				WC_Stripe_Logger::log( 'Stripe Express Checkout is hidden due to product variations being out of stock. Product ID: ' . $product->get_id() );
 				return false;
 			}
 		}
@@ -708,6 +725,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		// Product page: check the product's tax status.
 		if ( is_product() ) {
 			$product = $this->get_product();
+			if ( ! $product ) {
+				return false;
+			}
 			return $product->get_tax_status() !== 'none';
 		}
 
@@ -743,6 +763,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		// Product page.
 		if ( is_product() ) {
 			$product = $this->get_product();
+			if ( ! $product ) {
+				return false;
+			}
 			return wc_shipping_enabled() &&
 				0 !== wc_get_shipping_method_count( true ) &&
 				$product->needs_shipping();
@@ -809,7 +832,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
-	 * Returns true if a the provided product is supported, false otherwise.
+	 * Returns true if the provided product is supported, false otherwise.
 	 *
 	 * @param WC_Product $param  The product that's being checked for support.
 	 *

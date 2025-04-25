@@ -9,6 +9,7 @@ const {
 	setupBlocksCheckout,
 	setupSPECheckout,
 	fillSPEDetails,
+	clickPlaceOrder,
 } = payments;
 
 test.describe( 'SPE payment tests @blocks', () => {
@@ -38,7 +39,7 @@ test.describe( 'SPE payment tests @blocks', () => {
 	test( 'customer can pay with SPE @smoke', async ( { page } ) => {
 		await setupSPECheckout( page, 'blocks' );
 		await fillSPEDetails( page, config.get( 'cards.basic' ) );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
@@ -59,9 +60,8 @@ test.describe( 'SPE payment tests @blocks', () => {
 				);
 				await setupSPECheckout( page, 'blocks' );
 				await page.getByLabel( 'Save payment information' ).click();
-				// await page.locator( 'text=Place order' ).click();
 				await fillSPEDetails( page, config.get( 'cards.basic' ) );
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
@@ -83,7 +83,7 @@ test.describe( 'SPE payment tests @blocks', () => {
 					.locator( 'label' )
 					.filter( { hasText: 'Visa ending in 4242 (expires' } )
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
