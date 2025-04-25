@@ -28,20 +28,31 @@ async function findUpcomingVersionSection(content) {
     throw new Error('Could not find upcoming version section (xxxx-xx-xx)');
 }
 
-async function insertChangelogEntry(filePath, entry) {
+async function insertChangelogEntry(filePath, entry, feature) {
     try {
         const content = await fs.readFile(filePath, 'utf8');
         const lines = content.split('\n');
         const { startLine, endLine } = await findUpcomingVersionSection(content);
-        
+
+        const featurePrefix = feature ? `* [${feature.tag}] ` : null;
         // Find the last entry in the current version section
+        // If we have a feature tag, track the last line with that tag
         let insertPosition = startLine + 1;
+        let lastFeatureTagLine = null;
         for (let i = startLine + 1; i <= endLine; i++) {
-            if (lines[i].trim().startsWith('*')) {
+            const currentLine = lines[i].trim();
+            if (currentLine.startsWith('*')) {
+                if (featurePrefix && currentLine.startsWith(featurePrefix)) {
+                    lastFeatureTagLine = i;
+                }
                 insertPosition = i + 1;
             }
         }
-        
+
+        if ( lastFeatureTagLine ) {
+            insertPosition = lastFeatureTagLine + 1;
+        }
+
         // Insert the new entry after the last existing entry
         lines.splice(insertPosition, 0, entry);
         
@@ -51,12 +62,34 @@ async function insertChangelogEntry(filePath, entry) {
     }
 }
 
+async function getChangelogFeatures() {
+    try {
+        const featureFileContents = await fs.readFile('.changelog.features.json', 'utf8');
+        const featureFileJSON = JSON.parse(featureFileContents);
+        if ( Array.isArray(featureFileJSON.features) ) {
+            // Require a tag and description for each feature
+            return featureFileJSON.features.filter(feature => feature.tag && feature.description);
+        }
+
+        // If 
+        throw new Error('Invalid features array in .changelog.features.json');
+    } catch (error) {
+        throw new Error(`Failed to read .changelog.features.json: ${error.message}`);
+    }
+}
+
 async function main() {
     try {
         // Prepare type choices for inquirer
         const typeChoices = Object.entries(CHANGE_TYPES).map(([type, description]) => ({
             name: `${type} - ${description}`,
             value: type
+        }));
+
+        const rawFeatures = await getChangelogFeatures();
+        const features = rawFeatures.map(feature => ({
+            name: `[${feature.tag}] - ${feature.description}` + (feature.type ? ` (${feature.type})` : ''),
+            value: feature,
         }));
 
         // Get user input
@@ -72,15 +105,33 @@ async function main() {
                 name: 'message',
                 message: 'Enter the changelog message:',
                 validate: input => input.trim().length > 0 || 'Message cannot be empty'
-            }
+            },
+            {
+                type: 'confirm',
+                name: 'isForFeature',
+                message: 'Is this change for a feature?',
+                default: false
+            },
         ]);
 
-        const entry = `* ${answers.changeType} - ${answers.message.trim()}`;
-        
+        const featureAnswer = !answers.isForFeature ? null : await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'feature',
+                message: 'Select the feature:',
+                choices: features,
+                default: null,
+            }
+        ]);
+        const feature = featureAnswer?.feature ?? null;
+
+        const entryPrefix = '* ' + (feature ? `[${feature.tag}] ` : '');
+        const entry = `${entryPrefix}${answers.changeType} - ${answers.message.trim()}`;
+
         // Update both files
         const files = ['changelog.txt', 'readme.txt'];
         for (const file of files) {
-            await insertChangelogEntry(file, entry);
+            await insertChangelogEntry(file, entry, feature);
         }
 
         console.log('✅ Changelog entries added successfully to changelog.txt and readme.txt');

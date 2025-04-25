@@ -1,0 +1,32 @@
+{
+	"features": [
+		{
+			"tag": "ACSS",
+			"description": "Add support for ACSS payments in Canada",
+			"type": "Local payment method"
+		},
+		{
+			"tag": "Amazon Pay",
+			"description": "Add support for Amazon Pay to express checkout",
+			"type": "Express checkout"
+		},
+		{
+			"tag": "BECS",
+			"description": "Add support for BECS Direct Debits in Australia",
+			"type": "Local payment method"
+		},
+		{
+			"tag": "BLIK",
+			"description": "Add support for BLIK payments in Poland",
+			"type": "Local payment method"
+		},
+		{
+			"tag": "Settings Sync",
+			"description": "Synchronize payment method settings with Stripe dashboard"
+		},
+		{
+			"tag": "Smart Checkout",
+			"description": "Add support for Smart Checkout/ Dynamic Payment Element"
+		}
+	]
+}
