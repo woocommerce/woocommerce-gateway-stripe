@@ -1,9 +1,9 @@
-import { dispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
-import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE } from '../constants';
 import { refreshAccount } from '../account/actions';
 import ACTION_TYPES from './action-types';
+import { dispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
+import { apiFetch } from '@wordpress/data-controls';
 
 export function updateAccountKeysValues( payload ) {
 	return {
