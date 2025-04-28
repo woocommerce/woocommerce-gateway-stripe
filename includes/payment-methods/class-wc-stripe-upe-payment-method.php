@@ -325,7 +325,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		// If cart or order contains a product that requires a payment token, enable payment method if it's reusable.
-		if ( $this->cart_requires_order_payment_token() || ( ! empty( $order_id ) && $this->order_requires_order_payment_token( $order_id ) ) ) {
+		if ( $this->cart_contains_deposit() || ( ! empty( $order_id ) && $this->order_contains_deposit( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
 
