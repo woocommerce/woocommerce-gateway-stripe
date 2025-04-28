@@ -9,7 +9,7 @@
  * @param int|WC_Order $order The order object or ID.
  * @return array
  */
-function wcs_get_subscriptions_for_order( $order ) {
+function wcs_get_subscriptions_for_order( $order ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order ) {
 		return [];
 	}
@@ -23,12 +23,26 @@ function wcs_get_subscriptions_for_order( $order ) {
  * @param array $args A set of name value pairs to determine the return value.
  * @return array
  */
-function wcs_get_subscriptions( $args ) {
+function wcs_get_subscriptions( $args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
 	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions ) {
 		return [];
 	}
 
 	return (array) WC_Subscriptions_Helpers::$wcs_get_subscriptions;
+}
+
+/**
+ * A function to mock wcs_get_subscriptions_for_renewal_order.
+ *
+ * @param int|WC_Order $order The order object or ID.
+ * @return array
+ */
+function wcs_get_subscriptions_for_renewal_order( $order ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter
+	if ( ! WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order ) {
+		return [];
+	}
+
+	return (array) WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order;
 }
 
 /**
@@ -49,4 +63,11 @@ class WC_Subscriptions_Helpers {
 	 * @var array
 	 */
 	public static $wcs_get_subscriptions = null;
+
+	/**
+	 * Mock for wcs_get_subscriptions_for_renewal_order.
+	 *
+	 * @var array
+	 */
+	public static $wcs_get_subscriptions_for_renewal_order = null;
 }
