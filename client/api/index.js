@@ -684,8 +684,9 @@ export default class WCStripeAPI {
 		return this.request(
 			getExpressCheckoutAjaxURL( 'get_selected_product_data' ),
 			{
-				security: getExpressCheckoutData( 'nonce' )
-					?.get_selected_product_data,
+				security:
+					getExpressCheckoutData( 'nonce' )
+						?.get_selected_product_data,
 				...productData,
 			}
 		);
