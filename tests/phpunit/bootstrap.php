@@ -66,3 +66,6 @@ require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-cart.php';
 require_once __DIR__ . '/helpers/class-wc-helper-token.php';
 require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
 require_once __DIR__ . '/helpers/class-wc-subscriptions-helper.php';
+
+# Load the WC Stripe Subscription Model class. Since we use the mocked `WC_Subscription` class, we need to load the model class after it.
+require_once WC_STRIPE_PLUGIN_PATH . '/includes/models/class-wc-stripe-subscription.php';
