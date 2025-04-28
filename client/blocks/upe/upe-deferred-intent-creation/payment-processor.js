@@ -16,6 +16,7 @@ import { useEffect, useState, useRef } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
+import { __ } from '@wordpress/i18n';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {

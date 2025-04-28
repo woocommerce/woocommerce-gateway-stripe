@@ -9,6 +9,8 @@ import { Elements } from '@stripe/react-stripe-js';
  * Internal dependencies
  */
 import PaymentProcessor from './payment-processor';
+import { __, sprintf } from '@wordpress/i18n';
+import { useEffect, useState } from '@wordpress/element';
 import WCStripeAPI from 'wcstripe/api';
 import {
 	getPaymentMethodTypes,
@@ -143,17 +145,17 @@ const PaymentElements = ( {
 			options = {
 				...options,
 				...{
-					paymentMethodConfiguration: getBlocksConfiguration()
-						?.paymentMethodConfigurationParentId,
+					paymentMethodConfiguration:
+						getBlocksConfiguration()
+							?.paymentMethodConfigurationParentId,
 				},
 			};
 		} else {
 			options = {
 				...options,
 				...{
-					paymentMethodTypes: getPaymentMethodTypes(
-						paymentMethodId
-					),
+					paymentMethodTypes:
+						getPaymentMethodTypes( paymentMethodId ),
 				},
 			};
 
