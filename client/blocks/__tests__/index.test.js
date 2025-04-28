@@ -28,6 +28,7 @@ jest.mock( 'wcstripe/blocks/utils' );
 jest.mock(
 	'wcstripe/express-checkout/utils/check-payment-method-availability'
 );
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
 // Mock the express button previews
 jest.mock( 'wcstripe/blocks/express-checkout/express-button-previews', () => ( {
