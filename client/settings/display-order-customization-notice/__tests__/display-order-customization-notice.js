@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import apiFetch from '@wordpress/api-fetch';
 import DisplayOrderCustomizationNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
+import apiFetch from '@wordpress/api-fetch';
 
 jest.mock( '@wordpress/api-fetch' );
 

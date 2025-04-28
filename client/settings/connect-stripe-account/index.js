@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
-import { Button, Card, ExternalLink } from '@wordpress/components';
 import CardBody from '../card-body';
+import { Button, Card, ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 import { recordEvent } from 'wcstripe/tracking';
 import InlineNotice from 'wcstripe/components/inline-notice';
