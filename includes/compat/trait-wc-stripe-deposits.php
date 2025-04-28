@@ -147,6 +147,39 @@ trait WC_Stripe_Deposits_Trait {
 	}
 
 	/**
+	 * Return the top-most order function in a hierarchy.
+	 *
+	 * Payment tokens are stored against the top-most order in a hierarchy. This function
+	 * traverses the order hierarchy to find one that does not have a parent.
+	 *
+	 * Not having a parent may be because the order parent is set to zero or because
+	 * the order parent references an order that does not exist.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param \WC_Order $order The order.
+	 * @return \WC_Order|false The top-most order in the hierarchy. False if the order does not exist.
+	 */
+	public function get_top_most_order( $order ) {
+		$order = wc_get_order( $order );
+		if ( ! $order ) {
+			return false;
+		}
+
+		$top_most_order = $order;
+		while ( $top_most_order->get_parent_id() ) {
+			$order_backup   = $top_most_order;
+			$top_most_order = wc_get_order( $top_most_order->get_parent_id() );
+			if ( ! $top_most_order ) {
+				// If the parent order does not exist, return the current order.
+				return $order_backup;
+			}
+		}
+
+		return $top_most_order;
+	}
+
+	/**
 	 * Process a payment and store a reusable token against the order.
 	 *
 	 * @param WC_Order $order Order object.
@@ -235,7 +268,7 @@ trait WC_Stripe_Deposits_Trait {
 	 */
 	public function process_order_token_payment( $order, $retry = true, $previous_error = false ) {
 		$amount         = $order->get_total();
-		$top_most_order = WC_Checkout_Tokenization::get_top_most_order( $order );
+		$top_most_order = $this->get_top_most_order( $order );
 
 		try {
 			$order_id = $order->get_id();
