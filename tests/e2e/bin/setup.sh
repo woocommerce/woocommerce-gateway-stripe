@@ -111,12 +111,12 @@ redirect_output cli wp option set woocommerce_coming_soon "no"
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate
 
-redirect_output cli wp wc --user=${ADMIN_USER} tool run install_pages
+redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
 echo " - Configuring Shipping and Taxes"
-redirect_output cli wp wc shipping_zone create --name="Everywhere" --order=1 --user=${ADMIN_USER}
-redirect_output cli wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ADMIN_USER}
-redirect_output cli wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ADMIN_USER}
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone create --name="Everywhere" --order=1
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --method_id="flat_rate"
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --method_id="free_shipping"
 redirect_output cli wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'
 
 echo " - Creating Cart and Checkout shortcode pages"
