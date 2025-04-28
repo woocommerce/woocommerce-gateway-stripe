@@ -1,11 +1,11 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Button } from '@wordpress/components';
 import {
 	useEnabledPaymentMethodIds,
 	usePaymentRequestEnabledSettings,
 } from '../../data';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
+import { Button } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import './style.scss';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
@@ -13,9 +13,8 @@ import { PAYMENT_METHOD_LINK } from 'wcstripe/stripe-utils/constants';
 
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const [
-		paymentRequestEnabledSettings,
-	] = usePaymentRequestEnabledSettings();
+	const [ paymentRequestEnabledSettings ] =
+		usePaymentRequestEnabledSettings();
 
 	const enabledMethodIds = enabledPaymentMethodIds.filter(
 		( methodId ) => methodId !== PAYMENT_METHOD_LINK
