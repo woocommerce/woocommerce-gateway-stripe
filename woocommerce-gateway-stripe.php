@@ -193,9 +193,11 @@ function woocommerce_gateway_stripe() {
 				if ( file_exists( __DIR__ . '/includes/class-wc-stripe-feature-flags.php' ) ) {
 					require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
 				}
+				if ( class_exists( 'WC_Subscription' ) ) {
+					require_once __DIR__ . '/includes/models/class-wc-stripe-subscription.php';
+				}
 
 				require_once __DIR__ . '/includes/models/class-wc-stripe-order.php';
-				require_once __DIR__ . '/includes/models/class-wc-stripe-subscription.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-exception.php';
