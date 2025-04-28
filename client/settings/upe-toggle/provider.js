@@ -1,7 +1,7 @@
-import { useDispatch } from '@wordpress/data';
 import { useCallback, useMemo, useState } from 'react';
-import apiFetch from '@wordpress/api-fetch';
 import UpeToggleContext from './context';
+import { useDispatch } from '@wordpress/data';
+import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE, STORE_NAME } from 'wcstripe/data/constants';
 import { recordEvent } from 'wcstripe/tracking';
 

@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import { help, link, linkOff } from '@wordpress/icons';
+import { __ } from '@wordpress/i18n';
 import { Icon } from '@wordpress/components';
 import Chip from 'wcstripe/components/chip';
 import Tooltip from 'wcstripe/components/tooltip';
