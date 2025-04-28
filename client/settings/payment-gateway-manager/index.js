@@ -1,4 +1,3 @@
-import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import { ExternalLink } from '@wordpress/components';
@@ -7,6 +6,8 @@ import SettingsSection from '../settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
 import SavePaymentGatewaySection from '../save-payment-gateway-section';
 import { gatewaysInfo } from './constants';
+import { ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 const GatewayDescription = () => {
 	const { section } = getQuery();

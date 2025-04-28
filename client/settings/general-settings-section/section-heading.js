@@ -1,8 +1,8 @@
-import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { moreVertical } from '@wordpress/icons';
 import { Button, CardHeader, DropdownMenu } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import { useAccount } from 'wcstripe/data/account';
 import { useGetOrderedPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -50,11 +50,8 @@ const ActionItems = styled.div`
 const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const [ isOCEnabled ] = useIsOCEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const {
-		orderedPaymentMethodIds,
-		isSaving,
-		saveOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, isSaving, saveOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 
 	const { refreshAccount } = useAccount();
 
