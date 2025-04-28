@@ -193,7 +193,7 @@ trait WC_Stripe_Deposits_Trait {
 				return false;
 			}
 
-			$future_payments = function( $request ) {
+			$future_payments = function ( $request ) {
 				$request['setup_future_usage'] = 'off_session';
 				return $request;
 			};
@@ -212,7 +212,6 @@ trait WC_Stripe_Deposits_Trait {
 					throw new Exception( $response->error->message );
 				}
 				$this->remove_order_source_before_retry( $order );
-				// $this->process_pre_order_release_payment( $order, false );
 			} elseif ( $is_authentication_required ) {
 				$charge = $this->get_latest_charge_from_intent( $response->error->payment_intent );
 				$id     = $charge->id;
@@ -330,7 +329,7 @@ trait WC_Stripe_Deposits_Trait {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 
 						return $this->process_order_token_payment( $order, true, $response->error );
 					} else {
