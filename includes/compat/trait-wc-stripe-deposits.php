@@ -41,8 +41,6 @@ trait WC_Stripe_Deposits_Trait {
 			return;
 		}
 
-		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'hide_save_payment_for_forced_tokenization' ] );
-
 		add_filter( 'pre_wc_checkout_tokenization_get_order_payment_token', [ $this, 'get_order_payment_token' ], 10, 2 );
 
 		add_action( 'wc_checkout_tokenization_delete_order_payment_token', [ $this, 'delete_order_payment_token' ], 10, 2 );
@@ -146,60 +144,6 @@ trait WC_Stripe_Deposits_Trait {
 
 		$order_manager = WC_Deposits_Order_Manager::get_instance();
 		return $order_manager->has_deposit( $order );
-	}
-
-	/**
-	 * Whether the current cart requires the user to save a payment method.
-	 *
-	 * @since x.x.x
-	 *
-	 * @return bool True if the cart requires the user to save a payment method, false otherwise.
-	 */
-	public function cart_requires_user_payment_method() {
-		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::cart_requires_user_payment_method();
-	}
-
-	/**
-	 * Whether the current order requires the user to save a payment method.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param int|\WC_Order $order_id The order ID or order object.
-	 * @return bool True if the order requires the user to save a payment method, false otherwise.
-	 */
-	public function order_requires_user_payment_method( $order_id ) {
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			return false;
-		}
-
-		return $this->is_deposits_enabled() && WC_Checkout_Tokenization::order_requires_user_payment_method( $order );
-	}
-
-	/**
-	 * Hide the save payment method checkbox when forced tokenization is enabled.
-	 *
-	 * Hides the save payment checkbox when a payment token is required for the
-	 * user or the order.
-	 *
-	 * Runs on the filter `wc_stripe_display_save_payment_method_checkbox`.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param bool $display_save_option Whether to display the save payment method checkbox.
-	 * @return bool Modified value of $display_save_option.
-	 */
-	public function hide_save_payment_for_forced_tokenization( $display_save_option ) {
-		if ( ! $display_save_option ) {
-			// No further checking required.
-			return $display_save_option;
-		}
-
-		if ( $this->cart_contains_deposit() || $this->cart_requires_user_payment_method() ) {
-			$display_save_option = false;
-		}
-
-		return $display_save_option;
 	}
 
 	/**
