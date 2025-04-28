@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Dev - Introducing and implementing a new subscription model wrapper class.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
 * Dev - Implements the new Stripe order class into the root extension files.
 * Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
