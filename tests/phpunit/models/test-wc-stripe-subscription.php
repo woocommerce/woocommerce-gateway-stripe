@@ -22,7 +22,7 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 
 		// get_by_id
 		$order_id = $subscription->get_id();
-		$this->assertEquals( $subscription, WC_Stripe_Subscription::get_by_id( $order_id ) );
+		$this->assertEquals( $subscription->get_id(), ( WC_Stripe_Subscription::get_by_id( $order_id ) )->get_id() );
 
 		// query
 		$subscriptions = WC_Stripe_Subscription::query( [ 'status' => 'pending' ] );

@@ -28,13 +28,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
 
-		$subscription = new WC_Subscription();
+		$subscription = new WC_Stripe_Subscription();
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
 		$subscription->save();
 
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->set_stripe_customer_id( $customer_id );
+		$subscription->set_source_id( $source_id );
 		$subscription->save_meta_data();
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = [ $subscription ];
