@@ -37,7 +37,9 @@
 		<exclude name="WooCommerce.Commenting.CommentHooks.MissingHookComment" />
 		<exclude name="WooCommerce.Commenting.CommentHooks.MissingSinceComment" />
 		<exclude name="WooCommerce.Commenting.CommentHooks.HookCommentWrongStyle" />
-	</rule>
+
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase" />
+\	</rule>
 
 	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
 		<exclude-pattern>tests/</exclude-pattern>
