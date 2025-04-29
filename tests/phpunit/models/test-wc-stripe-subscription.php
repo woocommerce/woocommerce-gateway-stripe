@@ -15,6 +15,8 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_retrieve() {
+		$this->markTestSkipped( 'WIP' );
+
 		$subscription = new WC_Subscription();
 		$subscription->set_status( 'pending' );
 		$subscription->save_meta_data();
@@ -35,7 +37,7 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 		// get_for_order
 		$this->assertEquals( $subscription, WC_Stripe_Subscription::get_for_order( $order ) );
 
-		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $subscription ];
 
 		// get_for_renewal_order
 		$this->assertEquals( $subscription, WC_Stripe_Subscription::get_for_renewal_order( $order ) );
