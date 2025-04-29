@@ -367,8 +367,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'cards'                                => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="' . __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' ) . '" />',
 			WC_Stripe_Payment_Methods::CASHAPP_PAY => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 		];
-		$settings  = WC_Stripe_Helper::get_stripe_settings();
-		if ( 'yes' === $settings['single_payment_element'] ) {
+		$settings    = WC_Stripe_Helper::get_stripe_settings();
+		$spe_setting = $settings['single_payment_element'] ?? null;
+		if ( 'yes' === $spe_setting ) {
 			$icon_list['cards'] = '';
 		}
 		return apply_filters( 'wc_stripe_payment_icons', $icon_list );
