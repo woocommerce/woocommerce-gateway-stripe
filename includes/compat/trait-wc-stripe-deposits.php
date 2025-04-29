@@ -31,7 +31,7 @@ trait WC_Stripe_Deposits_Trait {
 
 		$this->supports[] = 'forced-tokenization'; // @phpstan-ignore-line (supports is defined in the classes that use this trait)
 
-		add_action( 'wc_checkout_tokenization_' . $this->id . '_charge_order_token', [ $this, 'charge_order_token' ], 10, 2 ); // @phpstan-ignore-line (id is defined in the classes that use this trait)
+		add_action( 'wc_deposits_' . $this->id . '_charge_order_token', [ $this, 'charge_order_token' ], 10, 2 ); // @phpstan-ignore-line (id is defined in the classes that use this trait)
 
 		/**
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
@@ -41,9 +41,9 @@ trait WC_Stripe_Deposits_Trait {
 			return;
 		}
 
-		add_filter( 'pre_wc_checkout_tokenization_get_order_payment_token', [ $this, 'get_order_payment_token' ], 10, 2 );
+		add_filter( 'pre_wc_deposits_get_order_payment_token', [ $this, 'get_order_payment_token' ], 10, 2 );
 
-		add_action( 'wc_checkout_tokenization_delete_order_payment_token', [ $this, 'delete_order_payment_token' ], 10, 2 );
+		add_action( 'wc_deposits_delete_order_payment_token', [ $this, 'delete_order_payment_token' ], 10, 2 );
 
 		self::$has_attached_forced_tokenization_integration_hooks = true;
 	}
@@ -51,7 +51,7 @@ trait WC_Stripe_Deposits_Trait {
 	/**
 	 * Filter the order payment token to include the source and intent.
 	 *
-	 * Runs on the `pre_wc_checkout_tokenization_get_order_payment_token` filter.
+	 * Runs on the `pre_wc_deposits_get_order_payment_token` filter.
 	 *
 	 * @since x.x.x
 	 *
@@ -157,26 +157,21 @@ trait WC_Stripe_Deposits_Trait {
 	 *
 	 * @since x.x.x
 	 *
-	 * @param \WC_Order $order The order.
+	 * @param \WC_Order|int $order The order.
 	 * @return \WC_Order|false The top-most order in the hierarchy. False if the order does not exist.
 	 */
 	public function get_top_most_order( $order ) {
+		if ( ! $this->is_deposits_enabled() || ! class_exists( 'WC_Deposits_Order_Manager' ) ) {
+			return false;
+		}
+
 		$order = wc_get_order( $order );
 		if ( ! $order ) {
 			return false;
 		}
 
-		$top_most_order = $order;
-		while ( $top_most_order->get_parent_id() ) {
-			$order_backup   = $top_most_order;
-			$top_most_order = wc_get_order( $top_most_order->get_parent_id() );
-			if ( ! $top_most_order ) {
-				// If the parent order does not exist, return the current order.
-				return $order_backup;
-			}
-		}
-
-		return $top_most_order;
+		$order_manager = WC_Deposits_Order_Manager::get_instance();
+		return $order_manager->get_top_most_order( $order );
 	}
 
 	/**
@@ -250,7 +245,7 @@ trait WC_Stripe_Deposits_Trait {
 	/**
 	 * Process a scheduled payment for an order with forced tokenization.
 	 *
-	 * Runs on the "wc_checkout_tokenization_{$this->id}_charge_order_token" action.
+	 * Runs on the "wc_deposits_{$this->id}_charge_order_token" action.
 	 *
 	 * @param WC_Order $order Scheduled order.
 	 */
