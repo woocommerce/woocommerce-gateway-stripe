@@ -13,6 +13,7 @@
 	<testsuites>
 		<testsuite name="WCStripe">
 			<directory suffix=".php">./tests/phpunit</directory>
+			<exclude>./tests/phpunit/WP_UnitTestCase.php</exclude>
 		</testsuite>
 	</testsuites>
 	<coverage cacheDirectory=".phpunit.cache/code-coverage">
