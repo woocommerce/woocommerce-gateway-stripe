@@ -155,6 +155,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'has_pre_order',
 					'is_subscriptions_enabled',
 					'update_saved_payment_method',
+					'cart_contains_deposit',
+					'order_contains_deposit',
 				]
 			)
 			->getMock();
@@ -2239,6 +2241,64 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+	}
+
+	/**
+	 * Deposits order sets up payment intent.
+	 */
+	public function test_deposit_product_uses_setup_intents() {
+		$setup_intent_id   = 'seti_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		$order->set_total( 2 );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = $setup_intent_id;
+		$setup_intent_mock['payment_method'] = $payment_method_mock;
+		$setup_intent_mock['latest_charge']  = [];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_stripe_customer_from_order' )
+			->with( WC_Stripe_Order::get_by_id( $order_id ) )
+			->will(
+				$this->returnValue( $this->mock_stripe_customer )
+			);
+
+		// Mock order has pre-order product.
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'order_contains_deposit' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'cart_contains_deposit' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
+			->will(
+				$this->returnValue(
+					$this->array_to_object( $setup_intent_mock )
+				)
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
+
+		$final_order = WC_Stripe_Order::get_by_id( $order_id );
+
+		$this->assertEquals( $payment_method_id, $final_order->get_source_id() );
+		$this->assertEquals( $customer_id, $final_order->get_stripe_customer_id() );
+		$this->assertTrue( $final_order->is_upe_redirect_processed() );
 	}
 
 	/**
