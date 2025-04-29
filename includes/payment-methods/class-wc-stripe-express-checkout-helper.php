@@ -649,12 +649,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show if the total price is 0.
+		// Don't show in the product page if the product price is 0.
 		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( ( ! ( $this->is_pay_for_order_page() || $is_product ) &&
-			isset( WC()->cart ) && ! WC()->cart->is_empty() && 0.0 === (float) WC()->cart->get_total( false ) )
-			|| ( $is_product && $product && 0.0 === (float) $product->get_price() )
-		) {
+		if ( $is_product && $product && 0.0 === (float) $product->get_price() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
 			return false;
 		}
