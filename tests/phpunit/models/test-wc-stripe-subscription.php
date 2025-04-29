@@ -49,6 +49,11 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 		// get_for_renewal_order
 		$subscriptions = WC_Stripe_Subscription::get_for_renewal_order( $order );
 		$this->assertEquals( $subscription_id, $subscriptions[0]->get_id() );
+
+		// cleanup
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions                   = null;
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order         = null;
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = null;
 	}
 
 	/**
