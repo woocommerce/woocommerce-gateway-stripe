@@ -12,6 +12,8 @@ import {
 	shippingRateChangeHandler,
 } from 'wcstripe/express-checkout/event-handler';
 
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
+
 describe( 'Express checkout event handlers', () => {
 	describe( 'shippingAddressChangeHandler', () => {
 		let api;
