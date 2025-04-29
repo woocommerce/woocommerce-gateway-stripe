@@ -248,7 +248,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
 			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
