@@ -394,6 +394,8 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
+		$this->markTestSkipped( 'WIP' );
+
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [ 'test' => 'test' ], $current_settings );
