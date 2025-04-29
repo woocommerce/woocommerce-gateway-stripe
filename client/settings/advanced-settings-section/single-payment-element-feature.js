@@ -23,19 +23,19 @@ const SinglePaymentElementFeature = () => {
 		<>
 			<h4>
 				{ __(
-					'Enable Smart Checkout (Recommended)',
+					'Enable Optimized Checkout Suite (recommended)',
 					'woocommerce-gateway-stripe'
 				) }
 			</h4>
 			<CheckboxControl
 				data-testid="single-payment-element-checkbox"
 				label={ __(
-					'Enable Smart Checkout to display payment methods',
+					'Automatically display the most relevant payment methods',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						"Automatically display the most relevant payment methods for each customer with Stripe's AI-driven Dynamic Payment Methods to optimize your checkout for conversions. <learnMoreLink>Learn more</learnMoreLink>.",
+						"Maximize conversions by enabling Stripe's Optimized Checkout Suite. Display the most relevant payment methods for each of your customers automatically. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{
@@ -51,7 +51,7 @@ const SinglePaymentElementFeature = () => {
 			{ isSPEEnabled && (
 				<TextControl
 					help={ __(
-						'This will appear as the title of the Smart Checkout payment element on checkout.',
+						'This will appear as the title of the Optimized Checkout Suite payment element on checkout.',
 						'woocommerce-gateway-stripe'
 					) }
 					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
