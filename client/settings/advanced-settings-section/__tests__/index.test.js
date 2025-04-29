@@ -65,7 +65,9 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
-			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
+			screen.queryByText(
+				'Enable Optimized Checkout Suite (recommended)'
+			)
 		).not.toBeInTheDocument();
 	} );
 
@@ -75,7 +77,9 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
-			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
+			screen.queryByText(
+				'Enable Optimized Checkout Suite (recommended)'
+			)
 		).toBeInTheDocument();
 	} );
 
@@ -88,7 +92,7 @@ describe( 'AdvancedSettings', () => {
 
 		expect(
 			screen.queryByText(
-				'This will appear as the title of the Smart Checkout payment element on checkout.'
+				'This will appear as the title of the Optimized Checkout Suite payment element on checkout.'
 			)
 		).toBeInTheDocument();
 		expect( screen.queryByLabelText( 'Title' ) ).toBeInTheDocument();
