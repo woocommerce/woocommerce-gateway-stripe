@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Improve SPE e2e tests to reduce flakiness
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
+* Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
