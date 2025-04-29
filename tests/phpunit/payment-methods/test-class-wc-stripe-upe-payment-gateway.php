@@ -2674,7 +2674,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( 'SEPA Direct Debit', $order->get_payment_method_title() );
 
 		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
-		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_1->get_payment_method() );
 
 		/**
 		 * iDEAL
@@ -2686,7 +2686,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// iDEAL subscriptions should be set to SEPA as it's the processing payment method of subscription payments for iDEAL.
 		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
-		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe_sepa_debit', $mock_subscription_1->get_payment_method() );
 
 		/**
 		 * Cards
@@ -2698,18 +2698,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$this->assertEquals( 'Credit / Debit Card', $order->get_payment_method_title() );
 
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
-		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe', $mock_subscription_1->get_payment_method() );
 
 		/**
 		 * Link
 		 */
 		$this->mock_gateway->set_payment_method_title_for_order( $order, WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID );
+
 		// Cards should be set to `stripe`.
 		$this->assertEquals( 'stripe', $order->get_payment_method() );
 		$this->assertEquals( 'Link', $order->get_payment_method_title() );
 
 		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
-		$this->assertEquals( 'stripe', $mock_subscription_0->get_payment_method() );
+		$this->assertEquals( 'stripe', $mock_subscription_1->get_payment_method() );
+
+		// Unset the subscriptions mock.
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = null;
 	}
 
 	/**
