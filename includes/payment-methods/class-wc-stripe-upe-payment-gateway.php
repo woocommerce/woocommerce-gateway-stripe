@@ -478,14 +478,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'apiVersion'   => WC_Stripe_API::STRIPE_API_VERSION,
 		];
 
-		$enabled_billing_fields = [];
-		foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
-			if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
-				$enabled_billing_fields[] = $billing_field;
-			}
-		}
-
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
+		// $enabled_billing_fields = [];
+		// foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
+		//  if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
+		//      $enabled_billing_fields[] = $billing_field;
+		//  }
+		// }
 
 		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
@@ -502,11 +500,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
-		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
-		$stripe_params['accountCountry']                   = WC_Stripe::get_instance()->account->get_account_country();
-		$stripe_params['isPaymentRequestEnabled']          = $express_checkout_helper->is_payment_request_enabled();
-		$stripe_params['isAmazonPayEnabled']               = $express_checkout_helper->is_amazon_pay_enabled();
-		$stripe_params['isLinkEnabled']                    = $express_checkout_helper->is_link_enabled();
+		//$stripe_params['customCheckoutFields']             = $custom_checkout_fields;
+		$stripe_params['cartContainsSubscription'] = $this->is_subscription_item_in_cart();
+		$stripe_params['accountCountry']           = WC_Stripe::get_instance()->account->get_account_country();
+		$stripe_params['isPaymentRequestEnabled']  = $express_checkout_helper->is_payment_request_enabled();
+		$stripe_params['isAmazonPayEnabled']       = $express_checkout_helper->is_amazon_pay_enabled();
+		$stripe_params['isLinkEnabled']            = $express_checkout_helper->is_link_enabled();
 
 		// Add appearance settings.
 		$stripe_params['appearance']          = get_transient( $this->get_appearance_transient_key() );

@@ -142,51 +142,53 @@ jQuery( function( $ ) {
 				data.shipping_postcode   = shipping.postalCode;
 			}
 
-			data = wc_stripe_payment_request.getRequiredFieldDataFromCheckoutForm( data );
+			const customData = wc_stripe_payment_request.getCustomFieldDataFromCheckoutForm();
 
-			return { ...data, ...wc_stripe_payment_request.extractOrderAttributionData() };
+			return { ...data, ...customData, ...wc_stripe_payment_request.extractOrderAttributionData() };
 		},
 
-		/**
-		 * Get required field values from the checkout form if they are filled and add to the order data.
-		 *
-		 * @param {Object} data Order data.
-		 *
-		 * @return {Object}
-		 */
-		getRequiredFieldDataFromCheckoutForm: function( data ) {
-			const requiredfields = $( 'form.checkout' ).find( '.validate-required' );
+		getCustomFieldDataFromCheckoutForm: function() {
+			const customCheckoutFields = wc_stripe_payment_request_params.customCheckoutFields;
+			const customData = {};
 
-			if ( requiredfields.length ) {
-				requiredfields.each( function() {
-					const field = $( this ).find( ':input' );
-					const name = field.attr( 'name' );
+			for ( const field of Object.keys( customCheckoutFields ) ) {
+				// Handle radio buttons
+				const radioField = $( 'form.checkout' ).find( `input[type="radio"][name="${ field }"]:checked` );
+				if ( radioField.length ) {
+					const fieldValue = radioField.val();
+					if ( fieldValue ) {
+						customData[ field ] = fieldValue;
+					}
+					continue;
+				}
 
-					let value = '';
-					if ( field.attr( 'type' ) === 'checkbox' ) {
-						value = field.is( ':checked' );
+				// Handle checkboxes
+				const checkboxField = $( 'form.checkout' ).find( `input[type="checkbox"][name="${ field }"]` );
+				if ( checkboxField.length ) {
+					// For single checkbox, store boolean
+					if ( checkboxField.length === 1 ) {
+						customData[ field ] = checkboxField.is(':checked');
 					} else {
-						value = field.val();
+						// For multiple checkboxes with same name, store array of checked values
+						const checkedValues = checkboxField.filter(':checked').map(function() {
+							return $(this).val();
+						}).get();
+						customData[ field ] = checkedValues;
 					}
+					continue;
+				}
 
-					if ( value && name ) {
-						if ( ! data[ name ] ) {
-							data[ name ] = value;
-						}
-
-						// if shipping same as billing is selected, copy the billing field to shipping field.
-						const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
-						if ( ! shipToDiffAddress ) {
-							var shippingFieldName = name.replace( 'billing_', 'shipping_' );
-							if ( ! data[ shippingFieldName ] && data[ name ] ) {
-								data[ shippingFieldName ] = data[ name ];
-							}
-						}
+				// Handle other input types
+				const fieldForm = $( 'form.checkout' ).find( `input[name="${ field }"]` );
+				if ( fieldForm.length ) {
+					const fieldValue = fieldForm.val();
+					if ( fieldValue ) {
+						customData[ field ] = fieldValue;
 					}
-				});
+				}
 			}
 
-			return data;
+			return customData;
 		},
 
 		/**

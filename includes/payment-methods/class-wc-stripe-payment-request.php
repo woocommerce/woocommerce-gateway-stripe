@@ -806,16 +806,29 @@ class WC_Stripe_Payment_Request {
 			$needs_shipping = 'yes';
 		}
 
+		$checkout_fields        = WC()->checkout()->get_checkout_fields();
+		$custom_checkout_fields = [];
+		foreach ( $checkout_fields as $fieldset => $fields ) {
+			foreach ( $fields as $field => $field_options ) {
+				if ( isset( $field_options['custom'] ) && $field_options['custom'] ) {
+					$custom_checkout_fields[ $field ] = [
+						'name'     => $field,
+						'required' => isset( $field_options['required'] ) ? $field_options['required'] : false,
+					];
+				}
+			}
+		}
+
 		return [
-			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-			'stripe'             => [
+			'ajax_url'             => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe'               => [
 				'key'                        => $this->publishable_key,
 				'allow_prepaid_card'         => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 				'is_link_enabled'            => false, // Link is not available for PRB.
 				'is_payment_request_enabled' => $this->is_payment_request_enabled(),
 			],
-			'nonce'              => [
+			'nonce'                => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
@@ -825,12 +838,12 @@ class WC_Stripe_Payment_Request {
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
 			],
-			'i18n'               => [
+			'i18n'                 => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			],
-			'checkout'           => [
+			'checkout'             => [
 				'url'               => wc_get_checkout_url(),
 				'currency_code'     => strtolower( get_woocommerce_currency() ),
 				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
@@ -838,10 +851,11 @@ class WC_Stripe_Payment_Request {
 				// Defaults to 'required' to match how core initializes this option.
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
-			'button'             => $this->get_button_settings(),
-			'login_confirmation' => $this->get_login_confirmation_settings(),
-			'is_product_page'    => $this->is_product(),
-			'product'            => $this->get_product_data(),
+			'button'               => $this->get_button_settings(),
+			'login_confirmation'   => $this->get_login_confirmation_settings(),
+			'is_product_page'      => $this->is_product(),
+			'product'              => $this->get_product_data(),
+			'customCheckoutFields' => $custom_checkout_fields,
 		];
 	}
 
@@ -1729,6 +1743,7 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.1.0
 	 */
 	public function ajax_create_order() {
+		error_log( 'ajax_create_order' );
 		if ( WC()->cart->is_empty() ) {
 			wp_send_json_error( __( 'Empty cart', 'woocommerce-gateway-stripe' ) );
 		}
