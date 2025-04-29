@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
 * Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
 * Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
