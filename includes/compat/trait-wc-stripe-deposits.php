@@ -93,19 +93,23 @@ trait WC_Stripe_Deposits_Trait {
 	}
 
 	/**
-	 * Checks if the deposits feature is supported on this site.
+	 * Checks if the deposits gateway feature is supported on this site.
 	 *
 	 * Deposits is only supported under the following circumstances:
 	 * - The gateway supports tokenization.
 	 * - UPE Checkout is enabled (not supported for legacy checkouts)
-	 * - The wc_deposits_init function exists.
+	 * - The wc_deposits_feature_support function exists.
+	 * - `wc_deposits_feature_support( 'deposits_payment_gateway_feature' )` returns true.
 	 *
 	 * @since x.x.x
 	 *
 	 * @return bool
 	 */
 	public function is_deposits_enabled() {
-		return $this->supports( 'tokenization' ) && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && function_exists( 'wc_deposits_init' );
+		return $this->supports( 'tokenization' )
+			&& WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
+			&& function_exists( 'wc_deposits_feature_support' )
+			&& wc_deposits_feature_support( 'deposits_payment_gateway_feature' );
 	}
 
 	/**
