@@ -241,7 +241,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
 			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
@@ -2268,7 +2268,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception(
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 					print_r( $payment_intent, true ),
-					$payment_intent->error->message
+					$this->get_payment_intent_error_message( $payment_intent )
 				);
 			}
 
@@ -2292,6 +2292,27 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $payment_intent;
+	}
+
+	/**
+	 * Return specific error messages for payment intent errors.
+	 *
+	 * @param stdClass $payment_intent The payment intent object.
+	 * @return string The error message.
+	 */
+	private function get_payment_intent_error_message( $payment_intent ) {
+		if ( isset( $payment_intent->error->payment_intent->payment_method_types[0] ) &&
+			'amazon_pay' === $payment_intent->error->payment_intent->payment_method_types[0] &&
+			isset( $payment_intent->error->decline_code ) &&
+			'generic_decline' === $payment_intent->error->decline_code
+		) {
+			return __(
+				'Amazon Pay is not compatible for this order. Please try a different payment method.',
+				'woocommerce-gateway-stripe'
+			);
+		}
+
+		return $payment_intent->error->message;
 	}
 
 	/**
