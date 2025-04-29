@@ -3,15 +3,14 @@ import { getQuery } from '@woocommerce/navigation';
 import { STORE_NAME } from '../constants';
 import { useSelect, useDispatch } from '@wordpress/data';
 
-const makeReadOnlyPaymentGatewayHook = (
-	fieldName,
-	fieldDefaultValue = false
-) => () =>
-	useSelect( ( select ) => {
-		const { getPaymentGateway } = select( STORE_NAME );
+const makeReadOnlyPaymentGatewayHook =
+	( fieldName, fieldDefaultValue = false ) =>
+	() =>
+		useSelect( ( select ) => {
+			const { getPaymentGateway } = select( STORE_NAME );
 
-		return getPaymentGateway()[ fieldName ] || fieldDefaultValue;
-	}, [] );
+			return getPaymentGateway()[ fieldName ] || fieldDefaultValue;
+		}, [] );
 
 const makePaymentGatewayHook =
 	( fieldName, fieldDefaultValue = false ) =>
