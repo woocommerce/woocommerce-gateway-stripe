@@ -15,32 +15,40 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_retrieve() {
-		$this->markTestSkipped( 'WIP' );
-
 		$subscription = new WC_Subscription();
 		$subscription->set_status( 'pending' );
 		$subscription->save_meta_data();
 		$subscription->save();
 
 		// get_by_id
-		$order_id = $subscription->get_id();
-		$this->assertEquals( $subscription->get_id(), ( WC_Stripe_Subscription::get_by_id( $order_id ) )->get_id() );
+		WC_Subscriptions::set_wcs_get_subscription(
+			function () use ( $subscription ) {
+				return $subscription;
+			}
+		);
+
+		$subscription_id = $subscription->get_id();
+		$this->assertEquals( $subscription_id, ( WC_Stripe_Subscription::get_by_id( $subscription_id ) )->get_id() );
 
 		// query
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions = [ $subscription ];
+
 		$subscriptions = WC_Stripe_Subscription::query( [ 'status' => 'pending' ] );
-		$this->assertEquals( $subscription, $subscriptions[0] );
+		$this->assertEquals( $subscription_id, $subscriptions[0]->get_id() );
 
 		$order = WC_Helper_Order::create_order( 1, WC_Helper_Product::create_simple_product() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
 
 		// get_for_order
-		$this->assertEquals( $subscription, WC_Stripe_Subscription::get_for_order( $order ) );
+		$subscriptions = WC_Stripe_Subscription::get_for_order( $order );
+		$this->assertEquals( $subscription_id, $subscriptions[0]->get_id() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_renewal_order = [ $subscription ];
 
 		// get_for_renewal_order
-		$this->assertEquals( $subscription, WC_Stripe_Subscription::get_for_renewal_order( $order ) );
+		$subscriptions = WC_Stripe_Subscription::get_for_renewal_order( $order );
+		$this->assertEquals( $subscription_id, $subscriptions[0]->get_id() );
 	}
 
 	/**
