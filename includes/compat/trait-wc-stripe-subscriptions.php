@@ -1220,7 +1220,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return;
 		}
 
-		foreach ( WC_Stripe_Subscription::get_for_order( $order ) as $subscription ) {
+		// @todo Replace with the model class method
+		foreach ( wcs_get_subscriptions_for_order( $order, [ 'order_type' => 'any' ] ) as $subscription ) {
 			$subscription->set_payment_method( $payment_method_type );
 			$subscription->save();
 		}
