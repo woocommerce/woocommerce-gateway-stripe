@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import AmazonPayPage from './amazon-pay-page';
 
 const amazonPayContainer = document.getElementById(
@@ -7,5 +7,6 @@ const amazonPayContainer = document.getElementById(
 );
 
 if ( amazonPayContainer ) {
-	ReactDOM.render( <AmazonPayPage />, amazonPayContainer );
+	const amazonPayRoot = createRoot( amazonPayContainer );
+	amazonPayRoot.render( <AmazonPayPage /> );
 }

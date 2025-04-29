@@ -1,13 +1,11 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import PaymentGatewaysConfirmation from './payment-gateways-confirmation';
 
 const paymentGatewaysContainer = document.getElementById(
 	'wc-stripe-payment-gateways-container'
 );
 if ( paymentGatewaysContainer ) {
-	ReactDOM.render(
-		<PaymentGatewaysConfirmation />,
-		paymentGatewaysContainer
-	);
+	const paymentGatewaysRoot = createRoot( paymentGatewaysContainer );
+	paymentGatewaysRoot.render( <PaymentGatewaysConfirmation /> );
 }
