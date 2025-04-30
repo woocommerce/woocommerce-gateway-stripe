@@ -575,11 +575,13 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
 	 */
 	public function test_render_subscription_payment_method() {
-		$mock_subscription = new WC_Stripe_Subscription( new WC_Subscription() );
+		$mock_subscription = new WC_Subscription();
 		$mock_subscription->set_payment_method( 'stripe' );
+		$mock_subscription->set_customer_id( 1 );
+		$mock_subscription->set_status( 'pending' );
 
-		$mock_subscription->set_source_id( 'src_mock' );
-		$mock_subscription->set_stripe_customer_id( 'cus_mock' );
+		$mock_subscription->update_meta_data( WC_Stripe_Subscription::META_STRIPE_SOURCE_ID, 'src_mock' );
+		$mock_subscription->update_meta_data( WC_Stripe_Subscription::META_STRIPE_CUSTOMER_ID, 'cus_mock' );
 		$mock_subscription->save();
 
 		// This is the key the customer's payment methods are stored under in the transient.
