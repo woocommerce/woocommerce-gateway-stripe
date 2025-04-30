@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Wrapper for the original WC_Subscription class to allow custom getters and setter with the extension's specific metadata.
  */
-class WC_Stripe_Subscription extends WC_Subscription {
+class WC_Stripe_Subscription {
 	/**
 	 * Meta key for the Stripe source ID.
 	 *
@@ -68,6 +68,20 @@ class WC_Stripe_Subscription extends WC_Subscription {
 			$type = is_object( $subscription ) ? get_class( $subscription ) : gettype( $subscription );
 			throw new InvalidArgumentException( 'WC_Stripe_Subscription requires a valid underlying WC_Subscription; supplied $subscription argument was ' . $type );
 		}
+	}
+
+	/**
+	 * Magic method to call methods on the underlying WC_Subscription object.
+	 *
+	 * @param string $name The name of the method to call.
+	 * @param array $arguments The arguments to pass to the method.
+	 */
+	public function __call( $name, $arguments ) {
+		if ( method_exists( 'WC_Subscription', $name ) ) {
+			return call_user_func_array( [ $this->wc_subscription, $name ], $arguments );
+		}
+
+		throw new BadMethodCallException( 'Method ' . $name . ' does not exist in WC_Stripe_Subscription' );
 	}
 
 	/**
