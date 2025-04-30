@@ -21,6 +21,7 @@
     "@playwright/test": "^1.40.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.1.2",
+    "@testing-library/react-hooks": "^8.0.1",
     "@testing-library/user-event": "^14.5.2",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
@@ -109,7 +110,6 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^1.36.0",
-    "@testing-library/react-hooks": "^8.0.1",
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@woocommerce/settings": "^1.0.0",
     "@wordpress/html-entities": "^3.6.1",
