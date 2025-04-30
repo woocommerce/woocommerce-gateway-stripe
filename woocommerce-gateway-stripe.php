@@ -82,7 +82,9 @@ function woocommerce_gateway_stripe() {
 
 	if ( ! isset( $plugin ) ) {
 
+		// Initialize our autoloader.
 		require_once __DIR__ . '/includes/class-wc-stripe-autoloader.php';
+		WC_Stripe_Autoloader::init();
 
 		class WC_Stripe {
 

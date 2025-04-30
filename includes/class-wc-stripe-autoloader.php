@@ -215,5 +215,3 @@ class WC_Stripe_Autoloader {
 		];
 	}
 }
-
-WC_Stripe_Autoloader::init();
