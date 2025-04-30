@@ -39,7 +39,7 @@ class WC_Mock_Stripe_API_Unit_Test_Case extends WP_UnitTestCase {
 	 * @param array $disabled_payment_method_ids
 	 */
 	protected function expect_payment_method_configurations_update( $enabled_payment_method_ids = [], $disabled_payment_method_ids = [] ) {
-		$this->stripe_api->expects( $this->once() )->method( 'update_payment_method_configurations' )->with(
+		$this->stripe_api->expects( $this->exactly( 2 ) )->method( 'update_payment_method_configurations' )->with(
 			$this->equalTo( 'pmc_abcdef' ),
 			$this->callback(
 				function ( $actual ) use ( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
