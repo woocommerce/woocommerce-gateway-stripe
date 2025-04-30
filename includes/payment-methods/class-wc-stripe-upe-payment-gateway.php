@@ -2692,12 +2692,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If the payment method object is a Link payment method, use Link as the payment method type.
 		if ( isset( $payment_method_object->type ) && WC_Stripe_Payment_Methods::LINK === $payment_method_object->type ) {
 			$payment_method_type = WC_Stripe_Payment_Methods::LINK;
+			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
 		} elseif ( $this->spe_enabled && isset( $payment_method_object->type ) ) {
 			// When SPE is enabled, use the payment method type from the payment method object
 			$payment_method_type = $payment_method_object->type;
+			$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
+		} else {
+			$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		}
-
-		$payment_method_instance = $this->get_payment_method_instance( $payment_method_type );
 
 		// Searches for an existing duplicate token to update.
 		$found_token = WC_Stripe_Payment_Tokens::get_duplicate_token( $payment_method_object, $customer->get_user_id(), $this->id );
@@ -2737,6 +2739,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Set the payment metadata for payment method id for subscription.
+	 *
+	 * @param WC_Subscription $order The order.
+	 * @param string   $payment_method_id The value to be set.
+	 */
+	public function set_payment_method_id_for_subscription( $subscription, string $payment_method_id ) {
+		$subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
+		$subscription->save_meta_data();
+	}
+
+	/**
 	 * Set the payment metadata for customer id.
 	 *
 	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
@@ -2747,6 +2760,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
 		$order->set_stripe_customer_id( $customer_id );
 		$order->save_meta_data();
+	}
+
+	/**
+	 * Set the payment metadata for customer id for subscription.
+	 *
+	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
+	 *
+	 * @param WC_Stripe_Order $order The order.
+	 * @param string   $customer_id The value to be set.
+	 */
+	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
+		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
+		$subscription->save_meta_data();
 	}
 
 	/**
