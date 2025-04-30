@@ -13,16 +13,21 @@ class WC_Stripe_Autoloader {
 
 	/**
 	 * Cached in-memory class map. Will be populated from {@see get_classmap()}.
+	 *
+	 * @var string[]|null
 	 */
 	private static $classmap = null;
 
 	/**
 	 * Cached in-memory class map for admin code. Will be populated from {@see get_admin_classmap()}.
+	 *
+	 * @var string[]|null
 	 */
 	private static $admin_classmap = null;
 
 	/**
-	 * Tries to autoloads a class based on the classmap from {@see get_classmap()}.
+	 * Tries to autoloads a class based on the classmap from {@see get_classmap()}
+	 * and when {@see is_admin()} is true, we access {@see get_admin_classmap()} as well.
 	 *
 	 * @param string $class The class to autoload.
 	 * @return boolean True if the class was autoloaded, false otherwise.
