@@ -46,6 +46,31 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	const META_STRIPE_REFUND_ID = '_stripe_refund_id';
 
 	/**
+	 * The subscription object.
+	 *
+	 * @var WC_Subscription
+	 */
+	private $wc_subscription;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param $subscription WC_Subscription|WC_Stripe_Subscription The subscription object.
+	 */
+	public function __construct( $subscription ) {
+		if ( $subscription instanceof WC_Stripe_Subscription ) {
+			$this->wc_subscription = $subscription->wc_subscription;
+		} elseif ( class_exists( 'WC_Subscription' ) && $subscription instanceof WC_Subscription ) {
+			$this->wc_subscription = $subscription;
+		}
+
+		if ( ! $this->wc_subscription ) {
+			$type = is_object( $subscription ) ? get_class( $subscription ) : gettype( $subscription );
+			throw new InvalidArgumentException( 'WC_Stripe_Subscription requires a valid underlying WC_Subscription; supplied $subscription argument was ' . $type );
+		}
+	}
+
+	/**
 	 * Wrapper to return an order using the extension's custom WC_Stripe_Subscription class.
 	 *
 	 * @param $subscription_id int Subscription ID.
@@ -53,11 +78,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 */
 	public static function get_by_id( $subscription_id ) {
 		$subscription = function_exists( 'wcs_get_subscription' ) ? wcs_get_subscription( $subscription_id ) : false;
-		if ( ! $subscription ) {
-			return false;
-		}
-
-		return self::to_instance( $subscription );
+		return $subscription ? self::to_instance( $subscription ) : false;
 	}
 
 	/**
@@ -137,7 +158,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function set_source_id( $source_id ) {
-		$this->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+		$this->wc_subscription->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -146,7 +167,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return string
 	 */
 	public function get_source_id() {
-		return $this->get_meta( self::META_STRIPE_SOURCE_ID );
+		return $this->wc_subscription->get_meta( self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -155,7 +176,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function delete_source_id() {
-		$this->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+		$this->wc_subscription->delete_meta_data( self::META_STRIPE_SOURCE_ID );
 	}
 
 	/**
@@ -165,7 +186,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function set_stripe_customer_id( $customer_id ) {
-		$this->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
+		$this->wc_subscription->update_meta_data( self::META_STRIPE_CUSTOMER_ID, $customer_id );
 	}
 
 	/**
@@ -174,7 +195,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return string
 	 */
 	public function get_stripe_customer_id() {
-		return $this->get_meta( self::META_STRIPE_CUSTOMER_ID );
+		return $this->wc_subscription->get_meta( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -183,7 +204,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function delete_stripe_customer_id() {
-		$this->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
+		$this->wc_subscription->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**
@@ -193,7 +214,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function set_stripe_card_id( $card_id ) {
-		$this->update_meta_data( self::META_STRIPE_CARD_ID, $card_id );
+		$this->wc_subscription->update_meta_data( self::META_STRIPE_CARD_ID, $card_id );
 	}
 
 	/**
@@ -202,7 +223,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return string
 	 */
 	public function get_stripe_card_id() {
-		return $this->get_meta( self::META_STRIPE_CARD_ID );
+		return $this->wc_subscription->get_meta( self::META_STRIPE_CARD_ID );
 	}
 
 	/**
@@ -211,7 +232,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function delete_stripe_card_id() {
-		$this->delete_meta_data( self::META_STRIPE_CARD_ID );
+		$this->wc_subscription->delete_meta_data( self::META_STRIPE_CARD_ID );
 	}
 
 	/**
@@ -221,7 +242,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function set_delayed_update_payment_all( $payment_method ) {
-		$this->update_meta_data( self::META_DELAYED_UPDATE_PAYMENT_METHOD_ALL, $payment_method );
+		$this->wc_subscription->update_meta_data( self::META_DELAYED_UPDATE_PAYMENT_METHOD_ALL, $payment_method );
 	}
 
 	/**
@@ -230,7 +251,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return string
 	 */
 	public function get_delayed_update_payment_all() {
-		return $this->get_meta( self::META_DELAYED_UPDATE_PAYMENT_METHOD_ALL );
+		return $this->wc_subscription->get_meta( self::META_DELAYED_UPDATE_PAYMENT_METHOD_ALL );
 	}
 
 	/**
@@ -240,7 +261,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function set_refund_id( $refund_id ) {
-		$this->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+		$this->wc_subscription->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -249,7 +270,7 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return string
 	 */
 	public function get_refund_id() {
-		return $this->get_meta( self::META_STRIPE_REFUND_ID );
+		return $this->wc_subscription->get_meta( self::META_STRIPE_REFUND_ID );
 	}
 
 	/**
@@ -258,6 +279,6 @@ class WC_Stripe_Subscription extends WC_Subscription {
 	 * @return void
 	 */
 	public function delete_refund_id() {
-		$this->delete_meta_data( self::META_STRIPE_REFUND_ID );
+		$this->wc_subscription->delete_meta_data( self::META_STRIPE_REFUND_ID );
 	}
 }
