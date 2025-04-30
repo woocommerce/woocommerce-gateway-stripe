@@ -70,6 +70,7 @@
     "eslint": "^8.57.1",
     "eslint-plugin-jest": "^26.9.0",
     "eslint-import-resolver-webpack": "^0.13.8",
+    "eslint-plugin-jest": "^27.9.0",
     "eslint-plugin-jsdoc": "^46.0.0",
     "eslint-plugin-prettier": "^5.2.6",
     "eslint-plugin-react-hooks": "4.3",
