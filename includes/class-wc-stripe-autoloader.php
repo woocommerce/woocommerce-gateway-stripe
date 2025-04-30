@@ -139,6 +139,7 @@ class WC_Stripe_Autoloader {
 			'wc_stripe_fingerprint_trait'                           => __DIR__ . '/payment-tokens/trait-wc-stripe-fingerprint.php',
 			'wc_stripe_helper'                                      => __DIR__ . '/class-wc-stripe-helper.php',
 			'wc_stripe_hong_kong_states'                            => __DIR__ . '/constants/class-wc-stripe-hong-kong-states.php',
+			'wc_stripe_inbox_notes'                                 => __DIR__ . '/admin/class-wc-stripe-inbox-notes.php',
 			'wc_stripe_intent_controller'                           => __DIR__ . '/class-wc-stripe-intent-controller.php',
 			'wc_stripe_intent_status'                               => __DIR__ . '/constants/class-wc-stripe-intent-status.php',
 			'wc_stripe_logger'                                      => __DIR__ . '/class-wc-stripe-logger.php',
@@ -210,8 +211,6 @@ class WC_Stripe_Autoloader {
 		return [
 			'wc_stripe_admin_inbox_notes'                           => __DIR__ . '/admin/class-wc-stripe-inbox-notes.php',
 			'wc_stripe_admin_notices'                               => __DIR__ . '/admin/class-wc-stripe-admin-notices.php',
-			// Disabled as this class is used in non-admin contexts, and it instantiates the class as a side effect.
-			//'wc_stripe_inbox_notes'                                 => __DIR__ . '/admin/class-wc-stripe-inbox-notes.php',
 			'wc_stripe_privacy'                                     => __DIR__ . '/admin/class-wc-stripe-privacy.php',
 		];
 	}

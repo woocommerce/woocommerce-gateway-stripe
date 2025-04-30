@@ -193,8 +193,7 @@ function woocommerce_gateway_stripe() {
 					new WC_Stripe_Privacy();
 				}
 
-				require_once __DIR__ . '/includes/admin/class-wc-stripe-inbox-notes.php';
-
+				new WC_Stripe_Inbox_Notes();
 				new WC_Stripe_Apple_Pay_Registration();
 
 				new Allowed_Payment_Request_Button_Types_Update();
