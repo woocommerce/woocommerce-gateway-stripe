@@ -2292,6 +2292,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				)
 			);
 
+		$charge = [
+			'id'                     => 'ch_mock',
+			'captured'               => true,
+			'status'                 => 'succeeded',
+			'payment_method_details' => $payment_method_mock,
+		];
+		$this->mock_gateway
+			->expects( $this->exactly( 2 ) )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( $this->array_to_object( $charge ) );
+
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
 
 		$final_order = WC_Stripe_Order::get_by_id( $order_id );
