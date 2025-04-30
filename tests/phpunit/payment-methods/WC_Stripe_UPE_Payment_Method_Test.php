@@ -829,8 +829,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Test the type of payment token created for the user.
 	 */
 	public function test_create_payment_token_for_user() {
-		$this->markTestSkipped( 'WIP' );
-
 		$user_id = 1;
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
