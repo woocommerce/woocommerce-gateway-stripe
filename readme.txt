@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
 * Fix - Show correct gateway name in non payments settings pages.
+* Dev - Implement a class autoloader for the plugin to reduce unnecessary file loads
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
