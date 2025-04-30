@@ -1059,11 +1059,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( $this->is_subscription( $order ) || $this->has_pre_order( $order->get_id() ) ) {
 			if ( $customer_id ) {
-				$order->update_meta_data( '_stripe_customer_id', $customer_id );
+				$order->update_meta_data( WC_Stripe_Order::META_STRIPE_CUSTOMER_ID, $customer_id );
 			}
 
 			if ( $source_id ) {
-				$order->update_meta_data( '_stripe_source_id', $source_id );
+				$order->update_meta_data( WC_Stripe_Order::META_STRIPE_SOURCE_ID, $source_id );
 			}
 		} else {
 			$order = WC_Stripe_Order::to_instance( $order );

@@ -739,6 +739,15 @@ class WC_Stripe_Order extends WC_Order {
 	}
 
 	/**
+	 * Deletes the refund ID.
+	 *
+	 * @return void
+	 */
+	public function delete_refund_id() {
+		$this->delete_meta_data( self::META_STRIPE_REFUND_ID );
+	}
+
+	/**
 	 * Set the Multibanco data.
 	 *
 	 * @param $data array The Multibanco data to set.
@@ -815,6 +824,15 @@ class WC_Stripe_Order extends WC_Order {
 	}
 
 	/**
+	 * Deletes the Stripe source ID.
+	 *
+	 * @return void
+	 */
+	public function delete_source_id() {
+		$this->delete_meta_data( self::META_STRIPE_SOURCE_ID );
+	}
+
+	/**
 	 * Set the Stripe customer ID.
 	 *
 	 * @param $customer_id string The Stripe customer ID.
@@ -831,6 +849,15 @@ class WC_Stripe_Order extends WC_Order {
 	 */
 	public function get_stripe_customer_id() {
 		return $this->get_meta( self::META_STRIPE_CUSTOMER_ID );
+	}
+
+	/**
+	 * Deletes the Stripe customer ID.
+	 *
+	 * @return void
+	 */
+	public function delete_stripe_customer_id() {
+		$this->delete_meta_data( self::META_STRIPE_CUSTOMER_ID );
 	}
 
 	/**

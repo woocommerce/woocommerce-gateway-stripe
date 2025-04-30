@@ -401,9 +401,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, false, [] ];
 		}
 
-		$order->delete_meta_data( '_stripe_source_id' );
-		$order->delete_meta_data( '_stripe_refund_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		$order->delete_source_id();
+		$order->delete_refund_id();
+		$order->delete_stripe_customer_id();
 
 		return [ true, false, [ __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}
