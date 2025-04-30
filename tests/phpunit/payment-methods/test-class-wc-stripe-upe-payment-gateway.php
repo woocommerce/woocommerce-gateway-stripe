@@ -155,6 +155,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'has_pre_order',
 					'is_subscriptions_enabled',
 					'update_saved_payment_method',
+					'is_deposits_enabled',
 					'cart_contains_deposit',
 					'order_contains_deposit',
 				]
@@ -2253,8 +2254,30 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
 
-		$order->set_total( 2 );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		foreach ( $order->get_items() as $item ) {
+			$order->remove_item( $item->get_id() );
+		}
+
+		// Add item with deposit to order.
+		$product = WC_Helper_Product::create_simple_product();
+		$item    = new WC_Order_Item_Product();
+		$item->set_props(
+			[
+				'product'                       => $product,
+				'quantity'                      => 1,
+				'subtotal'                      => wc_get_price_excluding_tax( $product ),
+				'total'                         => wc_get_price_excluding_tax( $product ),
+				'is_deposit'                    => true,
+				'deposit_full_amount'           => 20,
+				'deposit_full_amount_ex_tax'    => 20,
+				'deposit_deposit_amount_ex_tax' => 10,
+			]
+		);
+		$item->save();
+		$order->add_item( $item );
+		$order->set_total( 10 );
 		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
@@ -2276,7 +2299,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		// Mock order has pre-order product.
 		$this->mock_gateway->expects( $this->once() )
-			->method( 'order_contains_deposit' )
+			->method( 'is_deposits_enabled' )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
@@ -2285,7 +2308,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
+			->with( "payment_intents/$setup_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $setup_intent_mock )
