@@ -68,7 +68,7 @@ class WC_Stripe_Subscription_Test extends WP_UnitTestCase {
 		$payment_method = 'pm_123';
 		$refund_id      = 'refund_123';
 
-		$subscription = new WC_Stripe_Subscription();
+		$subscription = new WC_Stripe_Subscription( new WC_Subscription() );
 		$subscription->set_source_id( $source_id );
 		$subscription->set_stripe_customer_id( $customer_id );
 		$subscription->set_stripe_card_id( $card_id );

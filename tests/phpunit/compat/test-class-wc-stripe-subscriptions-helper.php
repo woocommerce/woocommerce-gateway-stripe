@@ -28,7 +28,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
 
-		$subscription = new WC_Stripe_Subscription();
+		$subscription = new WC_Stripe_Subscription( new WC_Subscription() );
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
 		$subscription->save();
