@@ -238,7 +238,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		// Check if forced tokenization is enabled and add support for it.
+		// Check if WooCommerce Deposits is enabled and add support for it.
 		$this->maybe_init_deposits();
 
 		$this->title                         = $this->payment_methods['card']->get_title();

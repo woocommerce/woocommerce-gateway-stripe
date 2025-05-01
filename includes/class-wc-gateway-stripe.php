@@ -104,7 +104,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		// Check if forced tokenization is enabled and add support for it.
+		// Check if WooCommerce Deposits is enabled and add support for it.
 		$this->maybe_init_deposits();
 
 		// Get setting values.

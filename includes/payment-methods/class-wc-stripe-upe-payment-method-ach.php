@@ -38,7 +38,7 @@ class WC_Stripe_UPE_Payment_Method_ACH extends WC_Stripe_UPE_Payment_Method {
 		// Add support for pre-orders.
 		$this->maybe_init_pre_orders();
 
-		// Check if forced tokenization is enabled.
+		// Check if WooCommerce Deposits is enabled and add support for it.
 		$this->maybe_init_deposits();
 	}
 

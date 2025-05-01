@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 trait WC_Stripe_Deposits_Trait {
 
 	/**
-	 * Stores a flag to indicate if the forced tokenization integration hooks have been attached.
+	 * Stores a flag to indicate if the deposits integration hooks have been attached.
 	 *
 	 * The callbacks attached as part of maybe_init_deposits() only need to be attached once to avoid duplication.
 	 *
@@ -74,7 +74,7 @@ trait WC_Stripe_Deposits_Trait {
 			/*
 			 * The token is not valid for off-session payments.
 			 *
-			 * As the forced tokenization feature requires the token to
+			 * As the deposits plugin feature requires the token to
 			 * be available for re-use, do not consider the token to
 			 * be set.
 			 */
@@ -247,7 +247,7 @@ trait WC_Stripe_Deposits_Trait {
 	}
 
 	/**
-	 * Process a scheduled payment for an order with forced tokenization.
+	 * Process a scheduled payment for a deposits order.
 	 *
 	 * Runs on the "wc_deposits_{$this->id}_charge_order_token" action.
 	 *

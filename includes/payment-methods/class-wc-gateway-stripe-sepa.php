@@ -91,7 +91,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		// Check if pre-orders are enabled and add support for them.
 		$this->maybe_init_pre_orders();
 
-		// Check if forced tokenization is enabled.
+		// Check if WooCommerce Deposits is enabled and add support for it.
 		$this->maybe_init_deposits();
 
 		$main_settings              = WC_Stripe_Helper::get_stripe_settings();
