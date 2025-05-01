@@ -116,15 +116,33 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Whether Single Payment Element is enabled.
 	 *
 	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `$oc_enabled` instead.
 	 */
 	protected $spe_enabled;
+
+	/**
+	 * Whether Optimized Checkout (previously known as SPE) is enabled.
+	 *
+	 * @var bool
+	 */
+	protected $oc_enabled;
 
 	/**
 	 * The default title for the Single Payment Element.
 	 *
 	 * @var string
+	 *
+	 * @deprecated 9.5.0 Use `$oc_title` instead.
 	 */
 	protected $spe_title;
+
+	/**
+	 * The default title for the Optimized Checkout element (previously known as SPE).
+	 *
+	 * @var string
+	 */
+	protected $oc_title;
 
 	/**
 	 * Create instance of payment method
@@ -139,8 +157,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
-		$this->spe_enabled              = WC_Stripe_Feature_Flags::is_spe_available() && 'yes' === $this->get_option( 'single_payment_element' );
-		$this->spe_title                = $this->get_option( 'single_payment_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
+		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->oc_title                 = $this->get_option( 'optimized_checkout_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
@@ -226,7 +244,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		if ( $this->spe_enabled ) { // Disable the description when SPE is enabled.
+		if ( $this->oc_enabled ) { // Disable the description when OC is enabled.
 			return '';
 		}
 
@@ -504,10 +522,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
+	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions( bool $show_smart_checkout_instruction = false ) {
+	public function get_testing_instructions( bool $show_optimized_checkout_instruction = false ) {
 		return '';
 	}
 

@@ -6,36 +6,36 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import React, { useEffect } from 'react';
-import { useIsSPEEnabled, useIsUpeEnabled, useSPETitle } from '../../data';
+import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
 const SinglePaymentElementFeature = () => {
-	const [ isSPEEnabled, setIsSPEEnabled ] = useIsSPEEnabled();
-	const [ SPETitle, setSPETitle ] = useSPETitle();
+	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const [ OCTitle, setOCTitle ] = useOCTitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
 
 	useEffect( () => {
 		if ( ! isUpeEnabled ) {
-			setIsSPEEnabled( false );
+			setIsOCEnabled( false );
 		}
-	}, [ isUpeEnabled, setIsSPEEnabled ] );
+	}, [ isUpeEnabled, setIsOCEnabled ] );
 
 	return (
 		<>
 			<h4>
 				{ __(
-					'Enable Smart Checkout (Recommended)',
+					'Enable Optimized Checkout Suite (recommended)',
 					'woocommerce-gateway-stripe'
 				) }
 			</h4>
 			<CheckboxControl
 				data-testid="single-payment-element-checkbox"
 				label={ __(
-					'Enable Smart Checkout to display payment methods',
+					'Automatically display the most relevant payment methods',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						"Automatically display the most relevant payment methods for each customer with Stripe's AI-driven Dynamic Payment Methods to optimize your checkout for conversions. <learnMoreLink>Learn more</learnMoreLink>.",
+						"Maximize conversions by enabling Stripe's Optimized Checkout Suite. Display the most relevant payment methods for each of your customers automatically. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{
@@ -44,19 +44,19 @@ const SinglePaymentElementFeature = () => {
 						),
 					}
 				) }
-				checked={ isSPEEnabled }
-				onChange={ setIsSPEEnabled }
+				checked={ isOCEnabled }
+				onChange={ setIsOCEnabled }
 				disabled={ ! isUpeEnabled }
 			/>
-			{ isSPEEnabled && (
+			{ isOCEnabled && (
 				<TextControl
 					help={ __(
-						'This will appear as the title of the Smart Checkout payment element on checkout.',
+						'This will appear as the title of the Optimized Checkout Suite payment element on checkout.',
 						'woocommerce-gateway-stripe'
 					) }
 					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
-					value={ SPETitle }
-					onChange={ setSPETitle }
+					value={ OCTitle }
+					onChange={ setOCTitle }
 				/>
 			) }
 		</>

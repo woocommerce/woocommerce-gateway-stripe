@@ -135,7 +135,7 @@ const PaymentElements = ( {
 			},
 		};
 
-		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			options = {
 				...options,
 				...{

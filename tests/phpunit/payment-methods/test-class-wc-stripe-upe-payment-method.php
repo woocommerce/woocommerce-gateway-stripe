@@ -797,10 +797,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		}
 
 		// Test custom description when SPE is enabled. Should be always empty.
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['single_payment_element'] = 'yes';
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
