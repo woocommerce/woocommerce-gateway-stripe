@@ -1241,8 +1241,8 @@ class WC_Stripe_Intent_Controller {
 
 			// Set the new Stripe payment method ID and customer ID on the subscription.
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-			$gateway->set_customer_id_for_order( $subscription, $customer->get_id() );
-			$gateway->set_payment_method_id_for_order( $subscription, $token->get_token() );
+			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
+			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {
