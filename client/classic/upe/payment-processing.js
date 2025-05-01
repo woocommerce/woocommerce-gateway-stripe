@@ -148,6 +148,10 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration: getStripeServerData()
 					?.paymentMethodConfigurationParentId,
+				// There's no way to update this option in the classic checkout dynamically (for SPE).
+				// So, we cannot update this based on the value of the saving payment method checkbox.
+				// Setting this value to `off_session` to avoid issues with methods that do not work with this option (i.e. WeChat Pay, BNPLs)
+				setupFutureUsage: 'off_session',
 			};
 		} else {
 			options = {
