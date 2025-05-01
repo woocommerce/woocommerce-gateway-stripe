@@ -226,7 +226,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				'is_subscription_item_in_cart',
 				'get_current_order_amount',
 				'is_inside_currency_limits',
-				'is_oc_enabled',
 			];
 
 			// Remove any methods that should not be mocked.
@@ -709,8 +708,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 	/**
 	 * If subscription product is in cart, enabled payment methods must be reusable.
-	 *
-	 * @return void
 	 */
 	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
@@ -811,21 +808,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
 		$updated_payment_settings                = $original_payment_settings;
 		$updated_payment_settings['description'] = $custom_description;
-
 		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
 
-		$mocked_methods = [
-			'get_capabilities_response',
-			'get_woocommerce_currency',
-			'is_subscription_item_in_cart',
-			'get_current_order_amount',
-			'is_inside_currency_limits',
-		];
-
-		// Test for the WeChat payment method.
-		/** @var WC_Stripe_UPE_Payment_Method_Wechat_Pay $mocked_payment_method */
-		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Wechat_Pay::class )
-			->onlyMethods( $mocked_methods )
+		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
+			->setMethods(
+				[
+					'get_capabilities_response',
+					'get_woocommerce_currency',
+					'is_subscription_item_in_cart',
+					'get_current_order_amount',
+					'is_inside_currency_limits',
+				]
+			)
 			->getMock();
 
 		$this->assertEmpty( $mocked_payment_method->get_description() );
