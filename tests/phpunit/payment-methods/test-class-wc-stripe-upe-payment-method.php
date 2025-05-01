@@ -713,12 +713,99 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * @return void
 	 * @group stripe
 	 */
-	public function test_non_card_methods_are_not_available_when_smart_checkout_is_enabled() {
-		// Enable smart checkout.
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['single_payment_element'] = 'yes';
+	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
+		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150 );
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+
+		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			$store_currency = 'EUR';
+			if ( in_array(
+				$payment_method_id,
+				[
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_ACH::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
+				],
+				true
+			) ) {
+				$store_currency = WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR;
+			} elseif ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::STRIPE_ID === $payment_method_id ) {
+				$store_currency = WC_Stripe_Currency_Code::POUND_STERLING;
+			} elseif ( WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID === $payment_method_id ) {
+				$store_currency = WC_Stripe_Currency_Code::AUSTRALIAN_DOLLAR;
+			}
+
+			$account_currency = null;
+
+			// Use different currencies for ACSS or payment methods that have domestic transactions restrictions.
+			if ( $payment_method->has_domestic_transactions_restrictions() || WC_Stripe_UPE_Payment_Method_ACSS::STRIPE_ID === $payment_method_id ) {
+				$store_currency   = $payment_method->get_supported_currencies()[0];
+				$account_currency = $store_currency;
+			}
+
+			$payment_method
+				->expects( $this->any() )
+				->method( 'get_woocommerce_currency' )
+				->will(
+					$this->returnValue( $store_currency )
+				);
+
+			if ( $payment_method->is_reusable() ) {
+				$this->assertTrue( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is not enabled" );
+			} else {
+				$this->assertFalse( $payment_method->is_enabled_at_checkout( null, $account_currency ), "Payment method {$payment_method_id} is enabled" );
+			}
+		}
+	}
+
+	public function test_payment_methods_support_custom_name_and_description() {
+		$payment_method_ids = [
+			WC_Stripe_Payment_Methods::ACH,
+			WC_Stripe_Payment_Methods::ACSS_DEBIT,
+			WC_Stripe_Payment_Methods::BECS_DEBIT,
+			WC_Stripe_Payment_Methods::BLIK,
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::KLARNA,
+			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
+			WC_Stripe_Payment_Methods::AFFIRM,
+			WC_Stripe_Payment_Methods::P24,
+			WC_Stripe_Payment_Methods::EPS,
+			WC_Stripe_Payment_Methods::SEPA_DEBIT,
+			WC_Stripe_Payment_Methods::SOFORT,
+			WC_Stripe_Payment_Methods::BANCONTACT,
+			WC_Stripe_Payment_Methods::IDEAL,
+			WC_Stripe_Payment_Methods::BOLETO,
+			WC_Stripe_Payment_Methods::MULTIBANCO,
+			WC_Stripe_Payment_Methods::OXXO,
+			WC_Stripe_Payment_Methods::WECHAT_PAY,
+		];
+
+		foreach ( $payment_method_ids as $payment_method_id ) {
+			$payment_method = $this->mock_payment_methods[ $payment_method_id ];
+
+			// Update the payment method settings to have a custom name and description.
+			$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
+			$updated_payment_settings                = $original_payment_settings;
+			$custom_name                             = 'Custom Name for ' . $payment_method_id;
+			$custom_description                      = 'Custom description for ' . $payment_method_id;
+			$updated_payment_settings['title']       = $custom_name;
+			$updated_payment_settings['description'] = $custom_description;
+			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
+
+			$this->assertEquals( $custom_name, $payment_method->get_title() );
+			$this->assertEquals( $custom_description, $payment_method->get_description() );
+
+			// Restore original settings.
+			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
+		}
+
+		// Test custom description when SPE is enabled. Should be always empty.
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
+
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
 			'get_capabilities_response',

@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
+* Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
 * Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
 * Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
@@ -130,5 +132,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
 * Fix - Show correct gateway name in non payments settings pages.
+* Dev - Minor fix to e2e setup code
+* Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

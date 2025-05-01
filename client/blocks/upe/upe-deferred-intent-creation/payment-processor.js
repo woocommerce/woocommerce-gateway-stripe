@@ -26,9 +26,9 @@ import {
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_CASHAPP,
 } from 'wcstripe/stripe-utils/constants';
-import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
-import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
+import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const noop = () => null;
 
@@ -82,7 +82,7 @@ const getStripeElementOptions = () => {
 		}
 	}
 
-	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+	if ( getBlocksConfiguration()?.isOCEnabled ) {
 		options = {
 			...options,
 			layout: {
@@ -334,7 +334,7 @@ const PaymentProcessor = ( {
 			removeCashAppLimitNotice();
 		}
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
-		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			applyStyles();
 		}
 	}, [ selectedPaymentMethodType ] );
@@ -359,7 +359,7 @@ const PaymentProcessor = ( {
 	const onSelectedPaymentMethodChange = ( { value, complete } ) => {
 		setSelectedPaymentMethodType( value.type );
 		setIsPaymentElementComplete( complete );
-		if ( getBlocksConfiguration()?.isSPEEnabled ) {
+		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			handleDisplayOfPaymentInstructions( value.type );
 			handleDisplayOfSavingCheckbox( value.type );
 		}
