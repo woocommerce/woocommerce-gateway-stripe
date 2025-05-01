@@ -759,7 +759,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Test that the payment method is available when optimized checkout is enabled.
 	 *
 	 * @return void
-	 * @group stripe
 	 */
 	public function test_non_card_methods_are_not_available_when_optimized_checkout_is_enabled() {
 		// Enable optimized checkout.
