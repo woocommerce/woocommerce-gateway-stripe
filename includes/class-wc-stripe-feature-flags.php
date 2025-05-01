@@ -7,7 +7,7 @@ class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-	const SPE_FEATURE_FLAG_NAME               = '_wcstripe_feature_spe';
+	const OC_FEATURE_FLAG_NAME                = '_wcstripe_feature_oc';
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
@@ -24,7 +24,7 @@ class WC_Stripe_Feature_Flags {
 		'_wcstripe_feature_upe'                => 'yes',
 		self::ECE_FEATURE_FLAG_NAME            => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::SPE_FEATURE_FLAG_NAME            => 'no',
+		self::OC_FEATURE_FLAG_NAME             => 'no',
 		self::LPM_ACH_FEATURE_FLAG_NAME        => 'yes',
 		self::LPM_ACSS_FEATURE_FLAG_NAME       => 'yes',
 		self::LPM_BACS_FEATURE_FLAG_NAME       => 'yes',
@@ -164,11 +164,11 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Single Payment Element (SPE) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC, previously known as SPE) feature flag is enabled.
 	 *
 	 * @return bool
 	 */
-	public static function is_spe_available() {
-		return 'yes' === self::get_option_with_default( self::SPE_FEATURE_FLAG_NAME );
+	public static function is_oc_available() {
+		return 'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
 	}
 }
