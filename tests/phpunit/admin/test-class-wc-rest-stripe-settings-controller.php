@@ -456,7 +456,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
 			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
-			'is_spe_enabled'                        => [ 'is_spe_enabled', 'single_payment_element' ],
+			'is_oc_enabled'                         => [ 'is_oc_enabled', 'optimized_checkout_element' ],
 			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
 			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
 			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],
