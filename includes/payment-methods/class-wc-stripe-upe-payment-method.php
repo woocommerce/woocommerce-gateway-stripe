@@ -210,8 +210,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		// When SPE is enabled, we use the card payment container to render all the methods.
-		if ( $this->spe_enabled && WC_Stripe_Payment_Methods::CARD !== $this->stripe_id ) {
+		// When OC is enabled, we use the card payment container to render all the methods.
+		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::CARD !== $this->stripe_id ) {
 			return false;
 		}
 

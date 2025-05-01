@@ -226,7 +226,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				'is_subscription_item_in_cart',
 				'get_current_order_amount',
 				'is_inside_currency_limits',
-				'is_spe_enabled',
+				'is_oc_enabled',
 			];
 
 			// Remove any methods that should not be mocked.
@@ -708,10 +708,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	/**
-	 * Test that the payment method is available when smart checkout is enabled.
+	 * If subscription product is in cart, enabled payment methods must be reusable.
 	 *
 	 * @return void
-	 * @group stripe
 	 */
 	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
@@ -807,6 +806,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings['optimized_checkout_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
+		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
+		$custom_description                      = 'Custom description for ' . $payment_method_id;
+		$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
+		$updated_payment_settings                = $original_payment_settings;
+		$updated_payment_settings['description'] = $custom_description;
+
+		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
+
 		$mocked_methods = [
 			'get_capabilities_response',
 			'get_woocommerce_currency',
@@ -821,7 +828,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			->onlyMethods( $mocked_methods )
 			->getMock();
 
-		$this->assertFalse( $mocked_payment_method->is_available() );
+		$this->assertEmpty( $mocked_payment_method->get_description() );
 	}
 
 	/**
