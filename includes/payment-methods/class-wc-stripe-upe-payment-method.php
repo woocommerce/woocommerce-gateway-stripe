@@ -324,7 +324,13 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return $this->is_reusable() || WC_Stripe_Payment_Methods::BLIK === $this->stripe_id;
 		}
 
-		// If cart or order contains a product that requires a payment token, enable payment method if it's reusable.
+		/*
+		 * If cart or order contains a deposit product, enable payment method if it's reusable.
+		 *
+		 * These methods include checks that deposits are enabled and that the version of the deposits
+		 * extension supports payment tokens stored against the order. This is to ensure that we don't
+		 * store payment tokens when they are not able to be reused.
+		 */
 		if ( $this->cart_contains_deposit() || ( ! empty( $order_id ) && $this->order_contains_deposit( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
