@@ -17,7 +17,7 @@ trait WC_Stripe_Deposits_Trait {
 	 *
 	 * @var bool False by default, true once the callbacks have been attached.
 	 */
-	private static $has_attached_forced_tokenization_integration_hooks = false;
+	private static $has_attached_deposits_integration_hooks = false;
 
 	/**
 	 * Initialize deposits hooks.
@@ -37,7 +37,7 @@ trait WC_Stripe_Deposits_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_forced_tokenization_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
+		if ( self::$has_attached_deposits_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) { // @phpstan-ignore-line (id is defined in the classes that use this trait)
 			return;
 		}
 
@@ -45,7 +45,7 @@ trait WC_Stripe_Deposits_Trait {
 
 		add_action( 'wc_deposits_delete_order_payment_token', [ $this, 'delete_order_payment_token' ], 10, 2 );
 
-		self::$has_attached_forced_tokenization_integration_hooks = true;
+		self::$has_attached_deposits_integration_hooks = true;
 	}
 
 	/**
