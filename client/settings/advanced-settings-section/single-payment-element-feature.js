@@ -6,18 +6,18 @@ import {
 	TextControl,
 } from '@wordpress/components';
 import React, { useEffect } from 'react';
-import { useIsSPEEnabled, useIsUpeEnabled, useSPETitle } from '../../data';
+import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
 const SinglePaymentElementFeature = () => {
-	const [ isSPEEnabled, setIsSPEEnabled ] = useIsSPEEnabled();
-	const [ SPETitle, setSPETitle ] = useSPETitle();
+	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const [ OCTitle, setOCTitle ] = useOCTitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
 
 	useEffect( () => {
 		if ( ! isUpeEnabled ) {
-			setIsSPEEnabled( false );
+			setIsOCEnabled( false );
 		}
-	}, [ isUpeEnabled, setIsSPEEnabled ] );
+	}, [ isUpeEnabled, setIsOCEnabled ] );
 
 	return (
 		<>
@@ -44,19 +44,19 @@ const SinglePaymentElementFeature = () => {
 						),
 					}
 				) }
-				checked={ isSPEEnabled }
-				onChange={ setIsSPEEnabled }
+				checked={ isOCEnabled }
+				onChange={ setIsOCEnabled }
 				disabled={ ! isUpeEnabled }
 			/>
-			{ isSPEEnabled && (
+			{ isOCEnabled && (
 				<TextControl
 					help={ __(
 						'This will appear as the title of the Optimized Checkout Suite payment element on checkout.',
 						'woocommerce-gateway-stripe'
 					) }
 					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
-					value={ SPETitle }
-					onChange={ setSPETitle }
+					value={ OCTitle }
+					onChange={ setOCTitle }
 				/>
 			) }
 		</>

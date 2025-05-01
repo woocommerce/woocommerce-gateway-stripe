@@ -45,7 +45,7 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-if ( getBlocksConfiguration()?.isSPEEnabled ) {
+if ( getBlocksConfiguration()?.isOCEnabled ) {
 	registerPaymentMethod(
 		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
 	);
