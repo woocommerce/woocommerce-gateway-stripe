@@ -3,6 +3,7 @@ import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { applyFilters } from '@wordpress/hooks';
 import {
+	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
 	getRequiredFieldDataFromCheckoutForm,
@@ -610,6 +611,7 @@ export default class WCStripeAPI {
 	expressCheckoutECECreateOrder( paymentData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
 			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+			customer_note: getCustomerNote(),
 		} );
 	}
 

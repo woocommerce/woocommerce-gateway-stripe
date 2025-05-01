@@ -336,8 +336,26 @@ const PaymentProcessor = ( {
 		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
 		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			applyStyles();
+
+			// Maybe change the value of `setupFutureUsage` depending on the saving payment method checkbox state.
+			const savingPaymentMethodCheckbox = document.querySelector(
+				'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
+			);
+			savingPaymentMethodCheckbox.addEventListener(
+				'change',
+				function () {
+					elements.update( {
+						setupFutureUsage:
+							getBlocksConfiguration()
+								?.cartContainsSubscription ||
+							savingPaymentMethodCheckbox?.checked
+								? 'off_session'
+								: null,
+					} );
+				}
+			);
 		}
-	}, [ selectedPaymentMethodType ] );
+	}, [ selectedPaymentMethodType, elements ] );
 
 	usePaymentCompleteHandler(
 		api,

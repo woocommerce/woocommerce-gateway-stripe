@@ -75,7 +75,6 @@ export const normalizeOrderData = ( {
 			postcode: shipping?.address?.postal_code ?? '',
 			method: [ event?.shippingRate?.id ?? null ],
 		},
-		customer_note: event?.order_comments,
 		payment_method: 'stripe',
 		payment_data: buildBlocksAPIPaymentData( {
 			expressPaymentType: event?.expressPaymentType,
