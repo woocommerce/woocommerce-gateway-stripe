@@ -86,8 +86,10 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return string Whether Apple Pay required settings are enabled.
 	 */
 	private function is_enabled() {
-		$stripe_enabled                 = 'yes' === $this->get_option( 'enabled', 'no' );
-		$payment_request_button_enabled = 'yes' === $this->get_option( 'payment_request', 'yes' );
+		$stripe_enabled = 'yes' === $this->get_option( 'enabled', 'no' );
+
+		$gateway                        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$payment_request_button_enabled = $gateway->is_payment_request_enabled();
 
 		return $stripe_enabled && $payment_request_button_enabled;
 	}
