@@ -15,6 +15,13 @@ class WC_Stripe_Feature_Flags {
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
 
 	/**
+	 * Feature flag to control SPE (Single Payment Element, now OC - Optimized CHeckout) feature availability.
+	 *
+	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
+	 */
+	const SPE_FEATURE_FLAG_NAME = '_wcstripe_feature_spe';
+
+	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -161,6 +168,17 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function are_apms_deprecated() {
 		return ( new \DateTime() )->format( 'Y-m-d' ) > '2024-10-28' && ! self::is_upe_checkout_enabled();
+	}
+
+	/**
+	 * Whether the Single Payment Element (SPE) feature flag is enabled.
+	 *
+	 * @return bool
+	 *
+	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
+	 */
+	public static function is_spe_available() {
+		return self::is_oc_available();
 	}
 
 	/**
