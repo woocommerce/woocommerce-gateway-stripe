@@ -83,7 +83,7 @@ const config = {
 			testIgnore: [
 				'**/_legacy-experience/**',
 				'**/acss.spec.js',
-				'**/spe.spec.js',
+				'**/optimized-checkout.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
