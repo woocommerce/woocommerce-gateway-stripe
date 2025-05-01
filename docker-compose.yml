@@ -14,9 +14,11 @@ services:
     volumes:
       - ./docker/wordpress:/var/www/html/
       - ./docker/logs/apache2/:/var/log/apache2
+      - ./docker/logs/php/:/var/log/php
       - .:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
       - ./tests/phpunit:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/phpunit
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
+      - ./docker/override-php-error-logging.ini:/usr/local/etc/php/conf.d/override-php-error-logging.ini
       - ./docker/bin:/var/scripts
     extra_hosts:
       - "host.docker.internal:host-gateway"

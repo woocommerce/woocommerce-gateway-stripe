@@ -1,17 +1,17 @@
-const SINGLE_PAYMENT_ELEMENT_CLASS = 'single-payment-element';
+const OPTIMIZED_CHECKOUT_ELEMENT_CLASS = 'optimized-checkout-element';
 
 export const applyStyles = () => {
-	// Add the single payment element class to the Stripe payment method elements.
+	// Add the optimized checkout element class to the Stripe payment method elements.
 	document
 		.getElementById(
 			'radio-control-wc-payment-method-options-stripe__content'
 		)
-		.classList.add( SINGLE_PAYMENT_ELEMENT_CLASS );
+		.classList.add( OPTIMIZED_CHECKOUT_ELEMENT_CLASS );
 	document
 		.getElementById(
 			'radio-control-wc-payment-method-options-stripe__label'
 		)
-		.classList.add( SINGLE_PAYMENT_ELEMENT_CLASS );
+		.classList.add( OPTIMIZED_CHECKOUT_ELEMENT_CLASS );
 
 	// Style the Stripe iframe to remove the margin and set width to 100%.
 	const stripeIframe = document.querySelector(
