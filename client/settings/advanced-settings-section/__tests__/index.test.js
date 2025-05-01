@@ -5,29 +5,29 @@ import AdvancedSettings from '..';
 import {
 	useDebugLog,
 	useIsUpeEnabled,
-	useSPETitle,
+	useOCTitle,
 	useGetSavingError,
 	useSettings,
-	useIsSPEEnabled,
+	useIsOCEnabled,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
-	useIsSPEEnabled: jest.fn(),
-	useSPETitle: jest.fn(),
+	useIsOCEnabled: jest.fn(),
+	useOCTitle: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
 } ) );
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = { is_spe_available: false };
+		global.wc_stripe_settings_params = { is_oc_available: false };
 
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
-		useIsSPEEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useSPETitle.mockReturnValue( 'Stripe' );
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useOCTitle.mockReturnValue( 'Stripe' );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
@@ -61,7 +61,7 @@ describe( 'AdvancedSettings', () => {
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should not display single payment element setting if the feature flag is disabled', () => {
+	it( 'should not display optimized checkout element setting if the feature flag is disabled', () => {
 		render( <AdvancedSettings /> );
 
 		expect(
@@ -71,8 +71,8 @@ describe( 'AdvancedSettings', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should display single payment element setting if the feature flag is enabled', () => {
-		global.wc_stripe_settings_params = { is_spe_available: true };
+	it( 'should display optimized checkout element setting if the feature flag is enabled', () => {
+		global.wc_stripe_settings_params = { is_oc_available: true };
 
 		render( <AdvancedSettings /> );
 
@@ -83,10 +83,10 @@ describe( 'AdvancedSettings', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should display the Smart Checkout title setting if the Smart Checkout feature is enabled', () => {
-		global.wc_stripe_settings_params = { is_spe_available: true };
+	it( 'should display the Optimized Checkout title setting if the Optimized Checkout feature is enabled', () => {
+		global.wc_stripe_settings_params = { is_oc_available: true };
 
-		useIsSPEEnabled.mockReturnValue( [ true, jest.fn() ] );
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <AdvancedSettings /> );
 

@@ -10,24 +10,24 @@
  */
 class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	/**
-	 * Test for `is_spe_available`.
+	 * Test for `is_oc_available`.
 	 *
 	 * @param string $option_value The value of the feature flag option.
 	 * @param bool   $expected     The expected result.
 	 * @return void
-	 * @dataProvider provide_test_is_spe_available
+	 * @dataProvider provide_test_is_oc_available
 	 */
-	public function test_is_spe_available( $option_value, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, $option_value );
-		$this->assertSame( $expected, WC_Stripe_Feature_Flags::is_spe_available() );
+	public function test_is_oc_available( $option_value, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $option_value );
+		$this->assertSame( $expected, WC_Stripe_Feature_Flags::is_oc_available() );
 	}
 
 	/**
-	 * Provider for `test_is_spe_available`.
+	 * Provider for `test_is_oc_available`.
 	 *
 	 * @return array
 	 */
-	public function provide_test_is_spe_available() {
+	public function provide_test_is_oc_available() {
 		return [
 			'available'     => [
 				'option value' => 'yes',

@@ -2849,22 +2849,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 *
 	 * @return void
 	 */
-	public function test_is_spe_enabled() {
+	public function test_is_oc_enabled() {
 		// Disabled
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'no' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'no' );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$this->assertFalse( $gateway->is_spe_enabled() );
+		$this->assertFalse( $gateway->is_oc_enabled() );
 
 		// Enabled
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['single_payment_element'] = 'yes';
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$this->assertTrue( $gateway->is_spe_enabled() );
+		$this->assertTrue( $gateway->is_oc_enabled() );
 	}
 
 	/**
