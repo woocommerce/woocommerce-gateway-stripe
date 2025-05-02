@@ -38,7 +38,7 @@ runs:
       # - returns the last version for each major.minor version
       run: |
         echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
-        cat all-wordpress-versions.json | jq '.offers | [.[].version] | unique | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][0]]' >> $GITHUB_OUTPUT
+        cat all-wordpress-versions.json | jq '.offers | [.[].version] | unique | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get WordPress versions in text format
