@@ -33,7 +33,7 @@ runs:
       id: get-plugin-info
       shell: bash
       run: |
-        curl -s 'https://api.wordpress.org/plugins/info/1.0/${{ inputs.plugin-slug }}.json' > '${{ inputs.plugin-slug }}.json
+        curl -s 'https://api.wordpress.org/plugins/info/1.0/${{ inputs.plugin-slug }}.json' > '${{ inputs.plugin-slug }}.json'
 
     - name: Get versions as JSON
       id: get-versions-json
@@ -45,10 +45,14 @@ runs:
       # - limits the number of major.versions to the number specified in the version-count input
       # - returns the last version for each major.minor version
       run: |
-        echo "versions-json=$(cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:3] | [.[][-1]]' )" >> $GITHUB_OUTPUT
+        echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
+        cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:3] | [.[][-1]]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get versions in text format
       id: get-versions-text
       shell: bash
       run: |
-        echo "versions-text=$(echo ${{ steps.get-versions-json.outputs.versions-json }} | jq -r '.[]' )" >> $GITHUB_OUTPUT
+        echo 'versions-text<<EOF' >> $GITHUB_OUTPUT
+        echo '${{ steps.get-versions-json.outputs.versions-json }}' | jq -r '.[]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
