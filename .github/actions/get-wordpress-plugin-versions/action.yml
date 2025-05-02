@@ -21,14 +21,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Debug details
-      id: debug-details
-      shell: bash
-      run: |
-        echo "plugin-slug: ${{ inputs.plugin-slug }}"
-        echo "version-count: ${{ inputs.version-count }}"
-        which curl
-
     - name: Get plugin info
       id: get-plugin-info
       shell: bash
@@ -46,7 +38,7 @@ runs:
       # - returns the last version for each major.minor version
       run: |
         echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
-        cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:3] | [.[][-1]]' >> $GITHUB_OUTPUT
+        cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get versions in text format
