@@ -4,8 +4,23 @@ on:
   pull_request
 
 jobs:
+  get-woocommerce-versions:
+    runs-on: ubuntu-22.04
+    outputs:
+        woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get WooCommerce plugin versions
+        id: get-released-woocommerce-versions
+        uses: ./.github/actions/get-wordpress-plugin-versions
+        with:
+          plugin-slug: woocommerce
+          version-count: 3
   test:
     runs-on: ubuntu-22.04
+    needs: get-woocommerce-versions
     strategy:
       fail-fast:    false
       max-parallel: 16
@@ -16,11 +31,11 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '9.8.1'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
           - woocommerce_support_policy: L-1
-            woocommerce: '9.7.1'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[1] }}
           - woocommerce_support_policy: L-2
-            woocommerce: '9.6.2'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[2] }}
           # WordPress
           - wordpress_support_policy: L
             wordpress: '6.7.2'
