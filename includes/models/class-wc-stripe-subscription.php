@@ -166,6 +166,15 @@ class WC_Stripe_Subscription {
 	}
 
 	/**
+	 * Get the underlying WC_Subscription object.
+	 *
+	 * @return WC_Subscription
+	 */
+	public function get_wc_subscription() {
+		return $this->wc_subscription;
+	}
+
+	/**
 	 * Set the Stripe source ID.
 	 *
 	 * @param $source_id string The Stripe source ID.

@@ -1165,7 +1165,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$subscription = WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) );
 			if ( function_exists( 'wcs_update_dates_after_early_renewal' ) && $subscription ) {
-				wcs_update_dates_after_early_renewal( $subscription, $order );
+				wcs_update_dates_after_early_renewal( $subscription->get_wc_subscription(), $order );
 			}
 			if ( function_exists( 'wc_add_notice' ) ) {
 				wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
