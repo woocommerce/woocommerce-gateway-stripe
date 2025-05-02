@@ -341,7 +341,7 @@ const PaymentProcessor = ( {
 			const savingPaymentMethodCheckbox = document.querySelector(
 				'.wc-block-components-payment-methods__save-card-info input[type=checkbox]'
 			);
-			savingPaymentMethodCheckbox.addEventListener(
+			savingPaymentMethodCheckbox?.addEventListener(
 				'change',
 				function () {
 					elements.update( {
