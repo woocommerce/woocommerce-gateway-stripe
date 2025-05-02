@@ -350,7 +350,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, false, [] ];
 		}
 
-		$subscription     = current( $subscriptions );
+		$subscription     = reset( $subscriptions );
 		$stripe_source_id = $subscription->get_source_id();
 
 		if ( empty( $stripe_source_id ) ) {
