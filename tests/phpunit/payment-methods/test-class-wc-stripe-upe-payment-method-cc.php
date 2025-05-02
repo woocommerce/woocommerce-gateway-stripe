@@ -64,17 +64,17 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `get_testing_instructions`.
 	 *
-	 * @param bool   $smart_checkout_flag Smart Checkout flag.
+	 * @param bool   $optimized_checkout_flag Optimized Checkout flag.
 	 * @param string $expected Expected instructions.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_testing_instructions
 	 */
-	public function test_get_testing_instructions( $smart_checkout_flag, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, $smart_checkout_flag ? 'yes' : 'no' );
+	public function test_get_testing_instructions( $optimized_checkout_flag, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_flag ? 'yes' : 'no' );
 
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['single_payment_element'] = $smart_checkout_flag ? 'yes' : 'no';
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_flag ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
@@ -89,13 +89,13 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_get_testing_instructions() {
 		return [
-			'Smart Checkout enabled'  => [
-				'smart checkout flag' => true,
-				'expected'            => '<div id="wc-stripe-payment-method-instructions-card" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.</div><div id="wc-stripe-payment-method-instructions-blik" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use any 6-digit number to authorize payment.</div><div id="wc-stripe-payment-method-instructions-sepa_debit" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.</div>',
+			'Optimized Checkout enabled'  => [
+				'optimized checkout flag' => true,
+				'expected'                => '<div id="wc-stripe-payment-method-instructions-card" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.</div><div id="wc-stripe-payment-method-instructions-blik" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use any 6-digit number to authorize payment.</div><div id="wc-stripe-payment-method-instructions-sepa_debit" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.</div>',
 			],
-			'Smart Checkout disabled' => [
-				'smart checkout flag' => false,
-				'expected'            => '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
+			'Optimized Checkout disabled' => [
+				'optimized checkout flag' => false,
+				'expected'                => '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
 			],
 		];
 	}

@@ -1,4 +1,4 @@
-import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
 
 describe( 'handleDisplayOfPaymentInstructions', () => {
 	document.body.innerHTML = `

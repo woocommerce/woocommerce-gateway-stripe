@@ -997,7 +997,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_spe_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
+		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
 			$selected_payment_type = $payment_information['payment_method_details']->type;
 		}
 
@@ -1024,7 +1024,7 @@ class WC_Stripe_Intent_Controller {
 		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
 
 		// Does not set the return URL if Single Payment Element is enabled or if the request needs redirection.
-		if ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
+		if ( $this->get_upe_gateway()->is_oc_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
@@ -1111,7 +1111,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Removes the return URL if Single Payment Element is not enabled or if the request doesn't need redirection.
-		if ( ( ! $this->get_upe_gateway()->is_spe_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
+		if ( ( ! $this->get_upe_gateway()->is_oc_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
 
