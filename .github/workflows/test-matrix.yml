@@ -1,0 +1,38 @@
+name: Test matrix computation for Woo versions
+
+on:
+  pull_request
+
+jobs:
+  debug-action:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Debug action
+        uses: ./.github/actions/debug-action
+        with:
+          plugin-slug: 'woocommerce'
+          version-count: '3'
+  get-matrix:
+    runs-on: ubuntu-22.04
+    outputs:
+        woocommerce-versions-json: ${{ steps.get-woo-versions.outputs.versions-json }}
+    steps:
+      - name: Get Woo plugin versions
+        id: get-woo-versions
+        uses: ./.github/actions/get-wordpress-plugin-versions
+        with:
+          plugin-slug: 'woocommerce'
+      - name: Debug Woo versions
+        run: |
+          echo "Woo versions (JSON): ${{ steps.get-woo-versions.outputs.versions-json }}"
+          echo "Woo versions (text): ${{ steps.get-woo-versions.outputs.versions-text }}"
+  debug-matrix:
+    needs: get-matrix
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        woocommerce-version: ${{ fromJson( needs.get-matrix.outputs.woocommerce-versions-json ) }}
+    steps:
+      - name: Debug matrix
+        run: |
+          echo "WooCommerce version: ${{ matrix.woocommerce-version }}"

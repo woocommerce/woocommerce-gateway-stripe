@@ -1,0 +1,54 @@
+name: Get released versions for a WordPress plugin
+description: Action to return the released versions for a WordPress plugin
+
+inputs:
+  plugin-slug:
+    description: The WordPress plugin slug
+    type: string
+    required: true
+  version-count:
+    description: The number of released versions to return
+    type: number
+    default: '3'
+outputs:
+  versions-json:
+    description: The released versions for the plugin as a JSON array
+    value: ${{ steps.get-versions-json.outputs.versions-json }}
+  versions-text:
+    description: The released versions for the plugin as a newline-separated list
+    value: ${{ steps.get-versions-text.outputs.versions-text }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Debug details
+      id: debug-details
+      shell: bash
+      run: |
+        echo "plugin-slug: ${{ inputs.plugin-slug }}"
+        echo "version-count: ${{ inputs.version-count }}"
+        which curl
+
+    - name: Get plugin info
+      id: get-plugin-info
+      shell: bash
+      run: |
+        curl -s 'https://api.wordpress.org/plugins/info/1.0/${{ inputs.plugin-slug }}.json' > '${{ inputs.plugin-slug }}.json
+
+    - name: Get versions as JSON
+      id: get-versions-json
+      shell: bash
+      # jq does the following:
+      # - filters the versions to only include x.y.z versions, i.e. ignoring beta, rc, and dev versions etc
+      # - groups the versions by the first two parts of the version number, i.e. major.minor
+      # - reverses the order of the versions, so the highest major.minor versions are first
+      # - limits the number of major.versions to the number specified in the version-count input
+      # - returns the last version for each major.minor version
+      run: |
+        echo "versions-json=$(cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:3] | [.[][-1]]' )" >> $GITHUB_OUTPUT
+
+    - name: Get versions in text format
+      id: get-versions-text
+      shell: bash
+      run: |
+        echo "versions-text=$(echo ${{ steps.get-versions-json.outputs.versions-json }} | jq -r '.[]' )" >> $GITHUB_OUTPUT
