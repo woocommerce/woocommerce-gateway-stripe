@@ -47,21 +47,21 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 				return $this->get_card_wallet_type_title( $wallet_type );
 			}
 
-			// Setting title for the order details page / thank you page (classic checkout) when SPE is enabled.
-			if ( $this->spe_enabled ) {
+			// Setting title for the order details page / thank you page (classic checkout) when OC is enabled.
+			if ( $this->oc_enabled ) {
 				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
 				return $payment_method->get_title();
 			}
 		}
 
-		if ( $this->spe_enabled ) {
+		if ( $this->oc_enabled ) {
 			if ( $payment_details ) { // Setting title for the order details page / thank you page.
 				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
 				return $payment_method->get_title();
 			}
 
 			// Classic checkout page
-			return $this->spe_title;
+			return $this->oc_title;
 		}
 
 		return parent::get_title();
@@ -122,12 +122,12 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns testing credentials to be printed at checkout in test mode.
 	 *
-	 * @param bool $show_smart_checkout_instruction Whether this is being called through the Smart Checkout instructions method. Used to avoid an infinite loop call.
+	 * @param bool $show_optimized_checkout_instruction Whether this is being called through the Optimized Checkout instructions method. Used to avoid an infinite loop call.
 	 * @return string
 	 */
-	public function get_testing_instructions( $show_smart_checkout_instruction = false ) {
-		if ( $this->spe_enabled && ! $show_smart_checkout_instruction ) {
-			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_smart_checkout();
+	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
+		if ( $this->oc_enabled && ! $show_optimized_checkout_instruction ) {
+			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_optimized_checkout();
 		}
 
 		return sprintf(

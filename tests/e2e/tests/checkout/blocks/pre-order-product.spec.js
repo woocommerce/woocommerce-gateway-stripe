@@ -43,7 +43,7 @@ test( 'customer can purchase a pre-order product @blocks @pre-orders', async ( {
 	await setupBlocksCheckout( page, customerData );
 	await fillCreditCardDetails( page, config.get( 'cards.no-3ds' ) );
 
-	await page.locator( 'text="Place Order"' ).click();
+	await page.locator( 'text="Place pre-order now"' ).click();
 	await page.waitForURL( '**/checkout/order-received/**' );
 
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(

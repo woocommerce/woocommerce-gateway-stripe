@@ -319,8 +319,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $new_payment_method );
 
 				// Attach the new payment method ID and the customer ID to the subscription on success.
-				$this->set_payment_method_id_for_order( $subscription, $payment_method_id );
-				$this->set_customer_id_for_order( $subscription, $payment_information['customer'] );
+				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
+				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(

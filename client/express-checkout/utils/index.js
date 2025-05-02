@@ -171,6 +171,29 @@ export const getExpressCheckoutButtonStyleSettings = () => {
 	};
 };
 
+/**
+ * Get the customer note from the checkout form.
+ *
+ * @return {string} The customer note.
+ */
+export const getCustomerNote = () => {
+	const classicCheckoutOrderNotes = document.querySelector(
+		'form.checkout textarea[name="order_comments"]'
+	);
+	if ( classicCheckoutOrderNotes ) {
+		return classicCheckoutOrderNotes.value;
+	}
+
+	const blockCheckoutOrderNotes = document.querySelector(
+		'form.wc-block-checkout__form #order-notes textarea'
+	);
+	if ( blockCheckoutOrderNotes ) {
+		return blockCheckoutOrderNotes.value;
+	}
+
+	return '';
+};
+
 export const getRequiredFieldDataFromCheckoutForm = ( data ) => {
 	return getExpressCheckoutData( 'has_block' )
 		? getRequiredFieldDataFromBlockCheckoutForm( data )

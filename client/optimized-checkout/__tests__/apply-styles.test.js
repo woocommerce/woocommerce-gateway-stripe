@@ -1,4 +1,4 @@
-import { applyStyles } from 'wcstripe/smart-checkout/apply-styles';
+import { applyStyles } from 'wcstripe/optimized-checkout/apply-styles';
 
 describe( 'applyStyles', () => {
 	it( 'Correctly apply the required styles to HTML elements', () => {
@@ -24,14 +24,14 @@ describe( 'applyStyles', () => {
 			'radio-control-wc-payment-method-options-stripe__content'
 		);
 		expect(
-			stripeContent.classList.contains( 'single-payment-element' )
+			stripeContent.classList.contains( 'optimized-checkout-element' )
 		).toBe( true );
 
 		const stripeLabel = document.getElementById(
 			'radio-control-wc-payment-method-options-stripe__label'
 		);
 		expect(
-			stripeLabel.classList.contains( 'single-payment-element' )
+			stripeLabel.classList.contains( 'optimized-checkout-element' )
 		).toBe( true );
 
 		const stripeIframe = document.querySelector(

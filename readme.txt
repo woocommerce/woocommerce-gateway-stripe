@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.5.0 - xxxx-xx-xx =
 * Dev - Introducing and implementing a new subscription model wrapper class.
+* Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
+* Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
+* Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
 * Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
 * Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
@@ -131,5 +134,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
 * Fix - Show correct gateway name in non payments settings pages.
+* Update - Add support for customer order notes and express checkout
+* Dev - Minor fix to e2e setup code
+* Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
