@@ -20,17 +20,25 @@ runs:
   using: "composite"
   steps:
     - name: Get WordPress versions
-      id: get-wordpress-versions
+      id: get-all-wordpress-versions
       shell: bash
       run: |
-        curl -s 'https://api.wordpress.org/core/version-check/1.7/' | jq '[.offers.[].version] | unique | reverse' > wordpress-versions.json
+        curl -s 'https://api.wordpress.org/core/version-check/1.7/' > all-wordpress-versions.json
 
     - name: Get WordPress versions as JSON
       id: get-versions-json
       shell: bash
+      # The jq filtering does the following:
+      # - extracts the offers array
+      # - filters the offers to keep only the version field for each entry
+      # - removes duplicate versions
+      # - groups the versions by the first two parts of the version number, i.e. major.minor
+      # - reverses the order of the versions, so the highest major.minor versions are first
+      # - limits the number of major.minor versions to the number specified in the version-count input
+      # - returns the last version for each major.minor version
       run: |
         echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
-        cat wordpress-versions.json | jq 'group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][0]]' >> $GITHUB_OUTPUT
+        cat all-wordpress-versions.json | jq '.offers | [.[].version] | unique | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][0]]' >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get WordPress versions in text format
