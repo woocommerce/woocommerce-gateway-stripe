@@ -1186,7 +1186,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$subscription = WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) );
 			$renewal_url  = function_exists( 'wcs_get_early_renewal_url' ) && $subscription
-				? wcs_get_early_renewal_url( WC_Stripe_Subscription::get_by_id( $order->get_meta( '_subscription_renewal' ) ) )
+				? wcs_get_early_renewal_url( $subscription->get_id() )
 				: '';
 
 			wp_safe_redirect( $renewal_url );
