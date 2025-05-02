@@ -91,8 +91,14 @@ class WC_Stripe_Subscription {
 	 * @return bool|WC_Stripe_Subscription
 	 */
 	public static function get_by_id( $subscription_id ) {
-		$subscription = function_exists( 'wcs_get_subscription' ) ? wcs_get_subscription( $subscription_id ) : false;
-		return $subscription ? self::to_instance( $subscription ) : false;
+		if ( ! function_exists( 'wcs_get_subscription' ) ) {
+			return false;
+		}
+		$subscription = wcs_get_subscription( $subscription_id );
+		if ( ! $subscription ) {
+			return false;
+		}
+		return self::to_instance( $subscription );
 	}
 
 	/**
