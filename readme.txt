@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
 * Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
 * Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
 * Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.

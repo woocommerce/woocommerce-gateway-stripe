@@ -755,6 +755,35 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		}
 	}
 
+	/**
+	 * Test that the payment method is available when optimized checkout is enabled.
+	 *
+	 * @return void
+	 */
+	public function test_non_card_methods_are_not_available_when_optimized_checkout_is_enabled() {
+		// Enable optimized checkout.
+		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['single_payment_element'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+
+		$mocked_methods = [
+			'get_capabilities_response',
+			'get_woocommerce_currency',
+			'is_subscription_item_in_cart',
+			'get_current_order_amount',
+			'is_inside_currency_limits',
+		];
+
+		// Test for the WeChat payment method.
+		/** @var WC_Stripe_UPE_Payment_Method_Wechat_Pay $mocked_payment_method */
+		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_Wechat_Pay::class )
+			->onlyMethods( $mocked_methods )
+			->getMock();
+
+		$this->assertFalse( $mocked_payment_method->is_available() );
+	}
+
 	public function test_payment_methods_support_custom_name_and_description() {
 		$payment_method_ids = [
 			WC_Stripe_Payment_Methods::ACH,
