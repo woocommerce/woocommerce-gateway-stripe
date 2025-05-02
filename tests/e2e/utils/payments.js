@@ -528,7 +528,7 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 };
 
 /**
- * Set up the checkout page for Stripe Payment Element (SPE).
+ * Set up the checkout page for Optimized Checkout (OC).
  *
  * @param {Page} page Playwright page fixture.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
@@ -538,7 +538,7 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
  * @returns {Promise<void>} Resolves when setup is complete.
  * @throws {Error} If iframe cannot be found or initialization fails.
  */
-export const setupSPECheckout = async (
+export const setupOptimizedCheckout = async (
 	page,
 	checkoutType = 'blocks',
 	options = { timeout: 10000, skipCartSetup: false }
@@ -605,7 +605,9 @@ export const setupSPECheckout = async (
 		// Select the card payment method
 		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
 	} catch ( error ) {
-		throw new Error( `Failed to set up SPE checkout: ${ error.message }` );
+		throw new Error(
+			`Failed to set up Optimized Checkout: ${ error.message }`
+		);
 	}
 };
 
@@ -745,13 +747,13 @@ export async function handleCheckoutCashAppPay(
 }
 
 /**
- * Fill in the payment details for Stripe Payment Element (SPE) checkout.
+ * Fill in the payment details for Optimized Checkout (OC).
  *
  * @param {Page} page Playwright page fixture.
  * @param {Object} card The CC info in the format provided on the test-data.
  * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
  */
-export const fillSPEDetails = async ( page, card, checkoutType = 'blocks' ) => {
+export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 	// Determine the appropriate iframe selector based on checkout type
 	const iframeSelector =
 		checkoutType === 'blocks'
