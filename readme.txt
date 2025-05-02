@@ -134,6 +134,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
 * Fix - Show correct gateway name in non payments settings pages.
+* Update - Add support for customer order notes and express checkout
 * Dev - Minor fix to e2e setup code
 * Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
 
