@@ -1,5 +1,3 @@
-// tests/js/jest.config.js
-
 module.exports = {
 	testEnvironment: 'jsdom',
 	testEnvironmentOptions: {
@@ -21,6 +19,7 @@ module.exports = {
 
 	moduleNameMapper: {
 		'^@wordpress/date$': '<rootDir>/node_modules/@wordpress/date$1',
+
 		// Global mock for wordpress/data but individual tests can override if necessary
 		'^@wordpress/data$': '<rootDir>/tests/js/__mocks__/wordpress-data.js',
 
@@ -32,15 +31,16 @@ module.exports = {
 		'^react$': '<rootDir>/node_modules/react',
 		'^react-dom$': '<rootDir>/node_modules/react-dom',
 
-		// Alias your client code
+		// Alias client code
 		'^wcstripe(.*)$': '<rootDir>/client$1',
 	},
 
 	// Patch @wordpress/date before any tests run
 	globalSetup: '<rootDir>/tests/js/jest-global-setup.js',
 
-	// Only WP’s own global setup script
+	// WP’s own global setup script
 	setupFiles: [
+		// Could also add an early mocks here if it would be useful.
 		require.resolve(
 			'@wordpress/jest-preset-default/scripts/setup-globals.js'
 		),
