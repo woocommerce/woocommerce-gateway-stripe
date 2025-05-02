@@ -1,0 +1,42 @@
+name: Get released versions of WordPress
+description: Action to return the released versions of WordPress
+
+inputs:
+  version-count:
+    description: The number of released versions to return
+    type: number
+    default: '3'
+
+outputs:
+  versions-json:
+    description: The released WordPress versions as a JSON array
+    value: ${{ steps.get-versions-json.outputs.versions-json }}
+  versions-text:
+    description: The released WordPress versions as a newline-separated list
+    value: ${{ steps.get-versions-text.outputs.versions-text }}
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get WordPress versions
+      id: get-wordpress-versions
+      shell: bash
+      run: |
+        curl -s 'https://api.wordpress.org/core/version-check/1.7/' | jq '[.offers.[].version] | unique | reverse' > wordpress-versions.json
+
+    - name: Get WordPress versions as JSON
+      id: get-versions-json
+      shell: bash
+      run: |
+        echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
+        cat wordpress-versions.json | jq 'group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+
+    - name: Get WordPress versions in text format
+      id: get-versions-text
+      shell: bash
+      run: |
+        echo 'versions-text<<EOF' >> $GITHUB_OUTPUT
+        echo '${{ steps.get-versions-json.outputs.versions-json }}' | jq -r '.[]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
