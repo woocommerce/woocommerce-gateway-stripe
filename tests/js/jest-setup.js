@@ -38,3 +38,35 @@ afterEach( () => {
 
 	throw new Error( nockError );
 } );
+
+jest.mock( '@wordpress/date', () => {
+	const nop = () => null;
+	const ident = ( x ) => x;
+	return {
+		add: nop,
+		sub: nop,
+		isBefore: nop,
+		isAfter: nop,
+		isSameDay: nop,
+		isSameMinute: nop,
+		format: ident,
+		dateI18n: ident,
+		getSettings: () => ( {
+			timezone: { offset: 0, string: 'UTC', zone: 'UTC' },
+		} ),
+		setSettings: nop,
+		__experimentalGetSettings: () => ( {
+			offset: 0,
+			string: 'UTC',
+			zone: 'UTC',
+		} ),
+	};
+} );
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: jest.fn( () => ( { panel: 'stripe' } ) ),
+	updateQueryString: jest.fn(),
+} ) );
+
+jest.mock( '@wordpress/api-fetch', () => jest.fn() );
+jest.mock( '@wordpress/a11y', () => ( { speak: jest.fn() } ) );
