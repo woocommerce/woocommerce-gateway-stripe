@@ -35,7 +35,7 @@ describe( 'SavePaymentGatewaySection', () => {
 		expect( screen.getByText( 'Save changes' ) ).toBeDisabled();
 	} );
 
-	it( 'calls `savePaymentGateway` when the button is clicked', () => {
+	it( 'calls `savePaymentGateway` when the button is clicked', async () => {
 		const savePaymentGatewayMock = jest.fn();
 		usePaymentGateway.mockReturnValue( {
 			isSaving: false,
@@ -50,7 +50,7 @@ describe( 'SavePaymentGatewaySection', () => {
 		expect( savePaymentGatewayMock ).not.toHaveBeenCalled();
 		expect( saveChangesButton ).not.toBeDisabled();
 
-		userEvent.click( saveChangesButton );
+		await userEvent.click( saveChangesButton );
 
 		expect( savePaymentGatewayMock ).toHaveBeenCalled();
 	} );
