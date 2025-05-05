@@ -62,7 +62,7 @@ describe( 'AmazonPaySettingsSection', () => {
 		expect( cartCheckbox ).toBeChecked();
 	} );
 
-	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', () => {
+	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', async () => {
 		const updateAmazonPayLocationsHandler = jest.fn();
 		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		useAmazonPayLocations.mockReturnValue( [
@@ -73,26 +73,28 @@ describe( 'AmazonPaySettingsSection', () => {
 		render( <AmazonPaySettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click( screen.getByText( 'Product page' ) );
+
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'cart',
 		] );
 
-		userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click( screen.getByText( 'Checkout' ) );
+
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 			'cart',
 		] );
 
-		userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click( screen.getByText( 'Cart' ) );
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'product',
 		] );
 	} );
 
-	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
+	it( 'should trigger an action to save the checked locations when checking the location checkboxes', async () => {
 		const updateAmazonPayLocationsHandler = jest.fn();
 		useAmazonPayEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		useAmazonPayLocations.mockReturnValue( [
@@ -102,17 +104,20 @@ describe( 'AmazonPaySettingsSection', () => {
 
 		render( <AmazonPaySettingsSection /> );
 
-		userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click( screen.getByText( 'Cart' ) );
+
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'cart',
 		] );
 
-		userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click( screen.getByText( 'Product page' ) );
+
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 		] );
 
-		userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click( screen.getByText( 'Checkout' ) );
+
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 		] );
