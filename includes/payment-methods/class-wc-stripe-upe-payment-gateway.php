@@ -38,6 +38,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_Payment_Methods::IDEAL             => WC_Stripe_UPE_Payment_Method_Ideal::class,
 		WC_Stripe_Payment_Methods::OXXO              => WC_Stripe_UPE_Payment_Method_Oxxo::class,
 		WC_Stripe_Payment_Methods::SEPA              => WC_Stripe_UPE_Payment_Method_Sepa::class,
+		WC_Stripe_Payment_Methods::SEPA_DEBIT        => WC_Stripe_UPE_Payment_Method_Sepa::class,
 		WC_Stripe_Payment_Methods::P24               => WC_Stripe_UPE_Payment_Method_P24::class,
 		WC_Stripe_Payment_Methods::SOFORT            => WC_Stripe_UPE_Payment_Method_Sofort::class,
 		WC_Stripe_Payment_Methods::MULTIBANCO        => WC_Stripe_UPE_Payment_Method_Multibanco::class,
@@ -745,6 +746,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_stripe_supported_payment_methods() {
 		$supported_stripe_ids         = [];
 		$available_payment_method_ids = $this->get_upe_available_payment_methods();
+
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return $available_payment_method_ids;
+		}
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $gateway_class ) {
 			$gateway = new $gateway_class();
