@@ -179,55 +179,48 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$main_settings    = WC_Stripe_Helper::get_stripe_settings();
 		$this->oc_enabled = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
-		$is_checkout      = is_checkout() || has_block( 'woocommerce/checkout' );
 
-		if ( $this->oc_enabled && ( $is_checkout || parent::is_valid_pay_for_order_endpoint() || is_add_payment_method_page() ) ) {
-			$payment_method                                     = new WC_Stripe_UPE_Payment_Method_CC();
-			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
-		} else {
-			$this->payment_methods = [];
-			foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-
-				// Show ACH only if feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
-					continue;
-				}
-
-				// Show ACSS only if feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
-					continue;
-				}
-
-				// Consider Bacs only if the feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-					continue;
-				}
-
-				// Show BECS Debit only if feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
-					continue;
-				}
-
-				// Show BLIK only if feature is enabled.
-				if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
-					continue;
-				}
-
-				/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-				 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-				 */
-				if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
-					continue;
-				}
-
-				// Show giropay only on the orders page to allow refunds. It was deprecated.
-				if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
-					continue;
-				}
-
-				$payment_method                                     = new $payment_method_class();
-				$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+		$this->payment_methods = [];
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			// Show ACH only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
+				continue;
 			}
+
+			// Show ACSS only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
+				continue;
+			}
+
+			// Consider Bacs only if the feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show BECS Debit only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
+				continue;
+			}
+
+			// Show BLIK only if feature is enabled.
+			if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
+				continue;
+			}
+
+			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+			 */
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+				continue;
+			}
+
+			// Show giropay only on the orders page to allow refunds. It was deprecated.
+			if ( WC_Stripe_UPE_Payment_Method_Giropay::class === $payment_method_class && ! $this->is_order_details_page() && ! $this->is_refund_request() ) {
+				continue;
+			}
+
+			$payment_method                                     = new $payment_method_class();
+			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
 		$this->intent_controller        = new WC_Stripe_Intent_Controller();
@@ -1879,7 +1872,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @since 5.6.0
 	 */
 	public function is_available() {
-
 		// The main UPE gateway represents the card payment method. So it's only available if the card payment method is enabled and available.
 		if ( isset( $this->payment_methods['card'] ) && ( ! $this->payment_methods['card']->is_enabled() || ! $this->payment_methods['card']->is_available() ) ) {
 			return false;
