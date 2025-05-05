@@ -97,7 +97,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		expect( cartCheckbox ).toBeChecked();
 	} );
 
-	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', () => {
+	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', async () => {
 		const updatePaymentRequestLocationsHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		usePaymentRequestLocations.mockReturnValue(
@@ -112,23 +112,26 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click( screen.getByText( 'Product page' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
 
-		userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click( screen.getByText( 'Checkout' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
 
-		userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click( screen.getByText( 'Cart' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
 	} );
 
-	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
+	it( 'should trigger an action to save the checked locations when checking the location checkboxes', async () => {
 		const updatePaymentRequestLocationsHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		usePaymentRequestLocations.mockReturnValue(
@@ -142,17 +145,20 @@ describe( 'PaymentRequestsSettingsSection', () => {
 
 		render( <PaymentRequestsSettingsSection /> );
 
-		userEvent.click( screen.getByText( 'Cart' ) );
+		await userEvent.click( screen.getByText( 'Cart' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'cart' ] );
 
-		userEvent.click( screen.getByText( 'Product page' ) );
+		await userEvent.click( screen.getByText( 'Product page' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product' ] );
 
-		userEvent.click( screen.getByText( 'Checkout' ) );
+		await userEvent.click( screen.getByText( 'Checkout' ) );
+
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout' ] );
