@@ -35,7 +35,7 @@ describe( 'SaveSettingsSection', () => {
 		expect( screen.getByText( 'Save changes' ) ).toBeDisabled();
 	} );
 
-	it( 'calls `saveSettings` when the button is clicked', () => {
+	it( 'calls `saveSettings` when the button is clicked', async () => {
 		const saveSettingsMock = jest.fn();
 		useSettings.mockReturnValue( {
 			isSaving: false,
@@ -50,7 +50,7 @@ describe( 'SaveSettingsSection', () => {
 		expect( saveSettingsMock ).not.toHaveBeenCalled();
 		expect( saveChangesButton ).not.toBeDisabled();
 
-		userEvent.click( saveChangesButton );
+		await userEvent.click( saveChangesButton );
 
 		expect( saveSettingsMock ).toHaveBeenCalled();
 	} );
