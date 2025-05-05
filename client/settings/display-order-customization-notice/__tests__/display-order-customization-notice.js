@@ -1,6 +1,6 @@
 import apiFetch from '@wordpress/api-fetch';
 import React from 'react';
-import { screen, render, act } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisplayOrderCustomizationNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
@@ -37,7 +37,7 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 		expect( noticeText ).toBeInTheDocument();
 	} );
 
-	it( 'should make an API call to dismiss the banner on button click', () => {
+	it( 'should make an API call to dismiss the banner on button click', async () => {
 		const dismissNoticeMock = jest.fn( () =>
 			Promise.resolve( { data: {} } )
 		);
@@ -53,9 +53,9 @@ describe( 'DisplayOrderCustomizationNotice', () => {
 			'aria-label': 'Dismiss the notice',
 		} );
 		expect( dismissButton ).toBeInTheDocument();
-		act( () => {
-			userEvent.click( dismissButton );
-		} );
+
+		await userEvent.click( dismissButton );
+
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 	} );
 
