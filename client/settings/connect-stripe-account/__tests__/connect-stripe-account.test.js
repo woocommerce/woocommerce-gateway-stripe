@@ -86,7 +86,7 @@ describe( 'ConnectStripeAccount', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should redirect to the Stripe OAuth link when clicking on the "Create or connect an account" button', () => {
+	it( 'should redirect to the Stripe OAuth link when clicking on the "Create or connect an account" button', async () => {
 		// Keep the original function at hand.
 		const assign = window.location.assign;
 
@@ -102,7 +102,7 @@ describe( 'ConnectStripeAccount', () => {
 		const connectAccountButton = screen.getByText(
 			'Create or connect an account'
 		);
-		userEvent.click( connectAccountButton );
+		await userEvent.click( connectAccountButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
@@ -117,7 +117,7 @@ describe( 'ConnectStripeAccount', () => {
 		} );
 	} );
 
-	it( 'should redirect to the Stripe Test OAuth link when clicking on the "Create or connect a test account" button', () => {
+	it( 'should redirect to the Stripe Test OAuth link when clicking on the "Create or connect a test account" button', async () => {
 		// Keep the original function at hand.
 		const assign = window.location.assign;
 
@@ -141,7 +141,7 @@ describe( 'ConnectStripeAccount', () => {
 		const connectTestAccountButton = screen.getByText(
 			'Create or connect a test account instead'
 		);
-		userEvent.click( connectTestAccountButton );
+		await userEvent.click( connectTestAccountButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_test_account_click',
