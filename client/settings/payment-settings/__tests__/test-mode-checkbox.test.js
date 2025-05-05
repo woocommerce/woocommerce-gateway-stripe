@@ -20,7 +20,7 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 } ) );
 
 describe( 'TestModeCheckbox', () => {
-	it( 'should enable test mode when the test account keys are present', () => {
+	it( 'should enable test mode when the test account keys are present', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
@@ -36,12 +36,12 @@ describe( 'TestModeCheckbox', () => {
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).not.toBeChecked();
 
-		userEvent.click( testModeCheckbox );
+		await userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );
 
-	it( 'should enable live mode when the account keys are present', () => {
+	it( 'should enable live mode when the account keys are present', async () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
@@ -57,7 +57,7 @@ describe( 'TestModeCheckbox', () => {
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).toBeChecked();
 
-		userEvent.click( testModeCheckbox );
+		await userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( false );
 	} );
