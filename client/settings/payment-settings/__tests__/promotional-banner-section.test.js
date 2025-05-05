@@ -41,7 +41,7 @@ describe( 'PromotionalBanner', () => {
 		global.wc_stripe_settings_params = { are_apms_deprecated: false };
 	} );
 
-	it( 'dismiss function should be called', () => {
+	it( 'dismiss function should be called', async () => {
 		render(
 			<PromotionalBannerSection
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -52,12 +52,12 @@ describe( 'PromotionalBanner', () => {
 
 		const dismissButton = screen.getByTestId( 'dismiss' );
 
-		userEvent.click( dismissButton );
+		await userEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
 
-	it( 'Main CTA link for the first version should disable the legacy checkout experience', () => {
+	it( 'Main CTA link for the first version should disable the legacy checkout experience', async () => {
 		const setIsUpeEnabledMock = jest.fn().mockResolvedValue( true );
 
 		render(
@@ -70,7 +70,8 @@ describe( 'PromotionalBanner', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		await userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 
