@@ -6,13 +6,13 @@ import { payments, api, user } from '../../../utils';
 const {
 	emptyCart,
 	setupCart,
-	setupBlocksCheckout,
-	setupSPECheckout,
-	fillSPEDetails,
+	setupShortcodeCheckout,
+	setupOptimizedCheckout,
+	fillOCDetails,
 	clickPlaceOrder,
 } = payments;
 
-test.describe( 'SPE payment tests @blocks', () => {
+test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 	let username, userEmail;
 
 	test.describe.configure( { mode: 'serial' } );
@@ -36,9 +36,11 @@ test.describe( 'SPE payment tests @blocks', () => {
 		} );
 	} );
 
-	test( 'customer can pay with SPE @smoke', async ( { page } ) => {
-		await setupSPECheckout( page, 'blocks' );
-		await fillSPEDetails( page, config.get( 'cards.basic' ) );
+	test( 'customer can pay with Optimized Checkout @smoke', async ( {
+		page,
+	} ) => {
+		await setupOptimizedCheckout( page, 'shortcode' );
+		await fillOCDetails( page, config.get( 'cards.basic' ), 'shortcode' );
 		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -46,7 +48,7 @@ test.describe( 'SPE payment tests @blocks', () => {
 		);
 	} );
 
-	test( 'customer can save and reuse SPE payment method @smoke', async ( {
+	test( 'customer can save and reuse Optimized Checkout payment method @smoke', async ( {
 		page,
 	} ) => {
 		// First order - Save the payment method.
@@ -58,10 +60,23 @@ test.describe( 'SPE payment tests @blocks', () => {
 					username,
 					config.get( 'users.customer.password' )
 				);
-				await setupSPECheckout( page, 'blocks' );
-				await page.getByLabel( 'Save payment information' ).click();
-				await fillSPEDetails( page, config.get( 'cards.basic' ) );
+				await setupOptimizedCheckout( page, 'shortcode' );
+				await fillOCDetails(
+					page,
+					config.get( 'cards.basic' ),
+					'shortcode'
+				);
+				await page
+					.getByRole( 'checkbox', {
+						name: 'Save payment information to',
+					} )
+					.check( { force: true } );
 				await clickPlaceOrder( page );
+				await fillOCDetails(
+					page,
+					config.get( 'cards.basic' ),
+					'shortcode'
+				);
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
@@ -75,13 +90,15 @@ test.describe( 'SPE payment tests @blocks', () => {
 			async () => {
 				await emptyCart( page );
 				await setupCart( page );
-				await setupBlocksCheckout(
+				await setupShortcodeCheckout(
 					page,
 					config.get( 'addresses.customer.billing' )
 				);
+				await page.getByText( 'Visa ending in 4242 (expires' ).click();
+				await page.waitForTimeout( 1000 );
 				await page
-					.locator( 'label' )
-					.filter( { hasText: 'Visa ending in 4242 (expires' } )
+					.locator( '.woocommerce-SavedPaymentMethods-token' )
+					.first()
 					.click();
 				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );

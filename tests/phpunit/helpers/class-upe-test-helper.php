@@ -38,7 +38,7 @@ class UPE_Test_Helper {
 		$closure();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
-		$settings                           = WC_Stripe_Helper::get_stripe_settings();
+		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['connection_type']      = 'connect';
 		$settings['test_connection_type'] = 'connect';
 		$settings['pmc_enabled']          = 'yes';
@@ -49,6 +49,12 @@ class UPE_Test_Helper {
 	public function enable_upe() {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+	}
+
+	public function disable_upe() {
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 	}
 }
