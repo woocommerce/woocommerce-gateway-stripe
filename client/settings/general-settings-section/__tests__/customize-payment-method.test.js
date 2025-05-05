@@ -71,7 +71,7 @@ describe( 'CustomizePaymentMethod', () => {
 		expect( screen.getByLabelText( 'Expiration' ) ).toHaveValue( '10' );
 	} );
 
-	it( 'should call onClose when cancel button is clicked', () => {
+	it( 'should call onClose when cancel button is clicked', async () => {
 		const handleCloseMock = jest.fn();
 		render(
 			<CustomizePaymentMethod
@@ -82,19 +82,21 @@ describe( 'CustomizePaymentMethod', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Cancel' } )
+		);
 
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should save data when save changes button is clicked', () => {
+	it( 'should save data when save changes button is clicked', async () => {
 		render(
 			<CustomizePaymentMethod method="giropay" onClose={ jest.fn() } />
 		);
 
 		expect( customizePaymentMethodMock ).not.toHaveBeenCalled();
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByRole( 'button', { name: 'Save changes' } )
 		);
 
