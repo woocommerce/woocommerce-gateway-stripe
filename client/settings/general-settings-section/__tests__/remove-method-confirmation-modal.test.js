@@ -23,7 +23,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should call onClose when the action is cancelled', () => {
+	it( 'should call onClose when the action is cancelled', async () => {
 		render(
 			<RemoveMethodConfirmationModal
 				method="giropay"
@@ -34,12 +34,14 @@ describe( 'RemoveMethodConfirmationModal', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Cancel' } )
+		);
 
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should call onConfirm when the action is confirmed', () => {
+	it( 'should call onConfirm when the action is confirmed', async () => {
 		render(
 			<RemoveMethodConfirmationModal
 				method="giropay"
@@ -50,7 +52,9 @@ describe( 'RemoveMethodConfirmationModal', () => {
 
 		expect( handleRemoveMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Remove' } )
+		);
 
 		expect( handleRemoveMock ).toHaveBeenCalled();
 	} );
