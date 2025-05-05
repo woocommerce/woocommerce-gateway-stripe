@@ -683,7 +683,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_available_payment_methods( $force_refresh = false ) {
+	public function get_upe_available_payment_methods() {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods in the plugin.
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			$available_payment_methods = [];
@@ -697,7 +697,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $available_payment_methods;
 		}
 
-		return WC_Stripe_Payment_Method_Configurations::get_upe_available_payment_method_ids( $force_refresh );
+		return WC_Stripe_Payment_Method_Configurations::get_upe_available_payment_method_ids();
 	}
 
 	/**
