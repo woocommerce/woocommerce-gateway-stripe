@@ -107,7 +107,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
 	} );
 
-	it( 'triggers the hooks when the settings are being interacted with', () => {
+	it( 'triggers the hooks when the settings are being interacted with', async () => {
 		const setButtonTypeMock = jest.fn();
 		const setButtonSizeMock = jest.fn();
 		const setButtonThemeMock = jest.fn();
@@ -132,13 +132,16 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();
 		expect( setButtonThemeMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( /Light/ ) );
+		await userEvent.click( screen.getByLabelText( /Light/ ) );
+
 		expect( setButtonThemeMock ).toHaveBeenCalledWith( 'light' );
 
-		userEvent.click( screen.getByLabelText( 'Book' ) );
+		await userEvent.click( screen.getByLabelText( 'Book' ) );
+
 		expect( setButtonTypeMock ).toHaveBeenCalledWith( 'book' );
 
-		userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );
 } );
