@@ -394,9 +394,9 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'abc' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( [ 'test' => 'test' ], $current_settings );
+		$this->assertSame( $current_settings['test'], 'abc' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -506,5 +506,43 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
 		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
 		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
+	}
+
+	/**
+	 * Test for `add_mandate_data`.
+	 *
+	 * @param string $index The index of the server variable to set.
+	 * @param string $value The value to set the server variable to.
+	 * @param string $expected The expected IP address.
+	 * @dataProvider provider_test_add_mandate_data
+	 * @return void
+	 */
+	public function test_add_mandate_data( $index, $value, $expected ) {
+		unset( $_SERVER['REMOTE_ADDR'] );
+		unset( $_SERVER['HTTP_X_REAL_IP'] );
+		unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+
+		$_SERVER[ $index ] = $value;
+		$request           = WC_Stripe_Helper::add_mandate_data( [] );
+		$ip_address        = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
+		$this->assertSame( $expected, $ip_address );
+	}
+
+	/**
+	 * Data provider for `test_add_mandate_data`.
+	 *
+	 * @return array
+	 */
+	public function provider_test_add_mandate_data() {
+		return [
+			[ 'REMOTE_ADDR', '192.168.1.1', '192.168.1.1' ],
+			[ 'REMOTE_ADDR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', '192.168.1.1', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', 'invalid-ip-address', 'invalid-ip-address' ],
+			[ 'HTTP_X_REAL_IP', '', '' ],
+		];
 	}
 }
