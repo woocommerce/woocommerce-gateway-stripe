@@ -11,7 +11,9 @@ describe( 'Single Payment Element feature setting', () => {
 		render( <SinglePaymentElementFeature /> );
 
 		expect(
-			screen.queryByText( 'Enable Smart Checkout (Recommended)' )
+			screen.queryByText(
+				'Enable Optimized Checkout Suite (recommended)'
+			)
 		).toBeInTheDocument();
 	} );
 

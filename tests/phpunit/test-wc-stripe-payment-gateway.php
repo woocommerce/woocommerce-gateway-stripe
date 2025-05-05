@@ -746,18 +746,18 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `payment_icons`.
 	 *
-	 * @param bool   $smart_checkout_enabled Whether Smart Checkout is enabled.
-	 * @param mixed  $filter                 The filter to apply.
-	 * @param array  $expected               The expected result.
+	 * @param bool   $optimized_checkout_enabled Whether Optimized Checkout is enabled.
+	 * @param mixed  $filter                     The filter to apply.
+	 * @param array  $expected                   The expected result.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_payment_icons
 	 */
-	public function test_payment_icons( $smart_checkout_enabled, $filter, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, $smart_checkout_enabled ? 'yes' : 'no' );
+	public function test_payment_icons( $optimized_checkout_enabled, $filter, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_enabled ? 'yes' : 'no' );
 
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['single_payment_element'] = $smart_checkout_enabled ? 'yes' : 'no';
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_enabled ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		if ( $filter ) {
@@ -781,9 +781,9 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		return [
 			'default'                => [
-				'smart checkout enabled' => false,
-				'filter'                 => null,
-				'expected'               => [
+				'optimized checkout enabled' => false,
+				'filter'                     => null,
+				'expected'                   => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
 					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
@@ -806,8 +806,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 				],
 			],
-			'Smart Checkout enabled' => [
-				'smart checkout enabled' => true,
+			'Optimized Checkout enabled' => [
+				'optimized checkout enabled' => true,
 				'filter'                 => null,
 				'expected'               => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
@@ -833,7 +833,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 				],
 			],
 			'filter applied'         => [
-				'smart checkout enabled' => false,
+				'optimized checkout enabled' => false,
 				'filter'                 => $mocked_filter,
 				'expected'               => [],
 			],
