@@ -149,6 +149,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return array
 	 */
 	public static function get_upe_available_payment_method_ids() {
+		// Bail if the payment method configurations API is not enabled.
+		if ( ! self::is_enabled() ) {
+			return [];
+		}
+
 		$available_payment_method_ids          = [];
 		$merchant_payment_method_configuration = self::get_primary_configuration();
 
