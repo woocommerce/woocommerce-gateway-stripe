@@ -1729,8 +1729,11 @@ class WC_Stripe_Helper {
 		$ip_address = WC_Geolocation::get_ip_address();
 
 		// Handle cases where WC_Geolocation::get_ip_address() returns multiple, comma-separated IP addresses.
+		// This will be addressed upstream in WooCommerce 9.9.0 as of (https://github.com/woocommerce/woocommerce/pull/57284).
 		// TODO: Remove this block when WooCommerce 9.9.0 is released.
-		$ip_address = trim( current( preg_split( '/,/', sanitize_text_field( wp_unslash( $ip_address ) ) ) ) );
+		if ( str_contains( $ip_address, ',' ) ) {
+			$ip_address = trim( current( preg_split( '/,/', $ip_address ) ) );
+		}
 
 		self::maybe_log_ip_issues( $ip_address );
 
