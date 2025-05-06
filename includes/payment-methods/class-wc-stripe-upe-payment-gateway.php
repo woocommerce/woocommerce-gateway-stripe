@@ -684,7 +684,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_available_payment_methods() {
-		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods in the plugin.
+		// If the payment method configurations API is not enabled, fall back to determining available payment methods
+		// based on the plugin's internal logic.
 		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			$available_payment_methods = [];
 
@@ -746,7 +747,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$supported_stripe_ids         = [];
 		$available_payment_method_ids = $this->get_upe_available_payment_methods();
 
-		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+		// Return the list if the payment method configurations API is enabled.
+		// We don't need any additional filtering as the list is already fetched from the payment method configurations API..
+		if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
 			return $available_payment_method_ids;
 		}
 
