@@ -20,6 +20,7 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 } ) );
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
 describe( 'AmazonPaySettingsSection', () => {
 	const globalValues = global.wc_stripe_amazon_pay_settings_params;

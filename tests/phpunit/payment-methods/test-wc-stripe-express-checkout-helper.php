@@ -284,11 +284,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->set_up_shipping_methods();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 
 		$this->assertNotEmpty( $checkout_data['url'] );
@@ -312,7 +308,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$checkout_data        = $wc_stripe_ece_helper->get_checkout_data();
 		$this->assertEmpty( $checkout_data['default_shipping_option'] );
 	}
@@ -413,11 +409,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_normalized_postal_code
 	 */
 	public function test_get_normalized_postal_code( $postal_code, $country, $expected ) {
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
-			->disableOriginalConstructor()
-			->getMock();
-
-		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper( $gateway );
+		$wc_stripe_ece_helper = new WC_Stripe_Express_Checkout_Helper();
 		$this->assertEquals( $expected, $wc_stripe_ece_helper->get_normalized_postal_code( $postal_code, $country ) );
 	}
 

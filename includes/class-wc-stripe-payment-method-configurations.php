@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Payment_Method_Configurations
  */
 class WC_Stripe_Payment_Method_Configurations {
+
 	/**
 	 * The primary configuration.
 	 *
@@ -30,40 +31,106 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
-	 * Reset the primary configuration.
+	 * The test mode payment method configuration transient key (for cache purposes).
+	 *
+	 * @var string
 	 */
-	public static function reset_primary_configuration() {
-		self::$primary_configuration = null;
-	}
+	const TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_test_payment_method_configuration_cache';
+
+	/**
+	 * The live mode payment method configuration transient key (for cache purposes).
+	 *
+	 * @var string
+	 */
+	const LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_live_payment_method_configuration_cache';
+
+	/**
+	 * The payment method configuration transient expiration (for cache purposes).
+	 *
+	 * @var int
+	 */
+	const CONFIGURATION_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
 
 	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
 	 * @return object|null
 	 */
-	private static function get_primary_configuration() {
+	private static function get_primary_configuration( $force_refresh = false ) {
+		if ( ! $force_refresh ) {
+			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
+			if ( $cached_primary_configuration ) {
+				return $cached_primary_configuration;
+			}
+		}
+
+		return self::get_payment_method_configuration_from_stripe();
+	}
+
+	/**
+	 * Get the payment method configuration from cache.
+	 *
+	 * @return object|null
+	 */
+	private static function get_payment_method_configuration_from_cache() {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
 
-		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
-		$payment_method_configurations = $result->data ?? null;
-
-		if ( ! $payment_method_configurations ) {
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cached_primary_configuration = get_transient( $cache_key );
+		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
 			return null;
 		}
 
-		foreach ( $payment_method_configurations as $payment_method_configuration ) {
-			if ( ! $payment_method_configuration->livemode && $payment_method_configuration->parent && self::TEST_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
-				self::$primary_configuration = $payment_method_configuration;
-				return $payment_method_configuration;
-			}
+		self::$primary_configuration = $cached_primary_configuration;
+		return self::$primary_configuration;
+	}
 
-			if ( $payment_method_configuration->livemode && $payment_method_configuration->parent && self::LIVE_MODE_CONFIGURATION_PARENT_ID === $payment_method_configuration->parent ) {
-				self::$primary_configuration = $payment_method_configuration;
-				return $payment_method_configuration;
+	/**
+	 * Clear the payment method configuration from cache.
+	 */
+	public static function clear_payment_method_configuration_cache() {
+		self::$primary_configuration = null;
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		delete_transient( $cache_key );
+	}
+
+	/**
+	 * Cache the payment method configuration.
+	 *
+	 * @param object|array $configuration The payment method configuration to set in cache.
+	 */
+	private static function set_payment_method_configuration_cache( $configuration ) {
+		self::$primary_configuration = $configuration;
+		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
+	}
+
+	/**
+	 * Get the payment method configuration from Stripe.
+	 *
+	 * @return object|null
+	 */
+	private static function get_payment_method_configuration_from_stripe() {
+		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		$configurations = $result->data ?? null;
+
+		if ( ! $configurations ) {
+			return null;
+		}
+
+		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
+		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
+		foreach ( $configurations as $configuration ) {
+			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
+			if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
+				self::set_payment_method_configuration_cache( $configuration );
+				return $configuration;
 			}
 		}
+
 		return null;
 	}
 
@@ -79,9 +146,10 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the UPE enabled payment method IDs.
 	 *
+	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
 	 * @return array
 	 */
-	public static function get_upe_enabled_payment_method_ids() {
+	public static function get_upe_enabled_payment_method_ids( $force_refresh = false ) {
 		// If the payment method configurations API is not enabled, we fallback to the enabled payment methods stored in the DB.
 		if ( ! self::is_enabled() ) {
 			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -94,7 +162,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
 
 		$enabled_payment_method_ids            = [];
-		$merchant_payment_method_configuration = self::get_primary_configuration();
+		$merchant_payment_method_configuration = self::get_primary_configuration( $force_refresh );
 
 		if ( $merchant_payment_method_configuration ) {
 			foreach ( $merchant_payment_method_configuration as $payment_method_id => $payment_method ) {
@@ -119,6 +187,11 @@ class WC_Stripe_Payment_Method_Configurations {
 		$newly_enabled_methods                = [];
 		$newly_disabled_methods               = [];
 
+		if ( ! $payment_method_configuration ) {
+			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
+			return;
+		}
+
 		foreach ( $available_payment_method_ids as $stripe_id ) {
 			$will_enable = in_array( $stripe_id, $enabled_payment_method_ids, true );
 
@@ -137,15 +210,15 @@ class WC_Stripe_Payment_Method_Configurations {
 			];
 		}
 
-		if ( ! $payment_method_configuration ) {
-			WC_Stripe_Logger::log( 'No primary payment method configuration found while updating payment method configuration' );
-			return;
-		}
-
-		WC_Stripe_API::get_instance()->update_payment_method_configurations(
+		$response = WC_Stripe_API::get_instance()->update_payment_method_configurations(
 			$payment_method_configuration->id,
 			$updated_payment_method_configuration
 		);
+		if ( ! empty( $response->error ) ) {
+			WC_Stripe_Logger::log( 'Error: ' . $response->error->message . ': ' . $response->error->request_log_url );
+		}
+
+		self::clear_payment_method_configuration_cache();
 
 		self::record_payment_method_settings_event( $newly_enabled_methods, $newly_disabled_methods );
 	}

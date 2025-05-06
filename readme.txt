@@ -111,11 +111,31 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.5.0 - xxxx-xx-xx =
+* Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
+* Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
+* Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
+* Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
+* Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
+* Dev - Implements the new Stripe order class into the new checkout experience files.
+* Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
+* Dev - Implements the new Stripe order class into the root extension files.
 * Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
 * Tweak - Passes the correct parent payment method configuration ID (retrieved from the backend) to the Smart Checkout payment element.
 * Tweak - Removes the Stripe icon beside the Smart Checkout payment element from the checkout pages.
 * Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
 * Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
+* Update - Add ECE support for One Page Checkout and other dynamic cart update scenarios
+* Fix - Show error notice when 'Add payment method' fails on My Account page in block-based themes.
+* Add - Add WordPress Action for processing payments with delayed charge attempts due to pre-debit notification period.
+* Fix - Add caching for the Stripe Payment Method Configuration API
+* Fix - Prevent deletion of webhooks for other tools
+* Dev - Improve SPE e2e tests to reduce flakiness
+* Fix - Prevents fatal errors for cases where we fail to load product details
+* Fix - Address an edge case with webhook URL comparisons
+* Fix - Show correct gateway name in non payments settings pages.
+* Update - Add support for customer order notes and express checkout
+* Dev - Minor fix to e2e setup code
+* Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

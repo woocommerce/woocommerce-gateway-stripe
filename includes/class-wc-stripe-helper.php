@@ -64,10 +64,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $currency
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_currency( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -79,10 +82,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param string $currency
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_stripe_currency' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -94,10 +100,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe fee for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -121,10 +130,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -136,9 +148,12 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe fee for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function delete_stripe_fee( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::delete_fee' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -151,10 +166,13 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe net for order. With legacy check.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -178,10 +196,13 @@ class WC_Stripe_Helper {
 	 * Updates the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -193,9 +214,12 @@ class WC_Stripe_Helper {
 	 * Deletes the Stripe net for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function delete_stripe_net( $order = null ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::delete_net' );
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -867,8 +891,11 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $source_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_source_id( $source_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_source_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -901,8 +928,11 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_charge_id' );
 		global $wpdb;
 
 		if ( empty( $charge_id ) ) {
@@ -933,8 +963,11 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 7.5.0
 	 * @param string $refund_id
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_refund_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -967,8 +1000,11 @@ class WC_Stripe_Helper {
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_intent_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -1005,8 +1041,11 @@ class WC_Stripe_Helper {
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
+		_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::get_by_setup_intent_id' );
 		global $wpdb;
 
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
@@ -1265,9 +1304,12 @@ class WC_Stripe_Helper {
 	 * Adds payment intent id and order note to order if payment intent is not already saved
 	 *
 	 * @param $payment_intent_id
-	 * @param $order
+	 * @param $order WC_Order
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::add_payment_intent' ); @todo Re-enable deprecation notice once all classes get updated.
 
 		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
 
@@ -1378,15 +1420,16 @@ class WC_Stripe_Helper {
 	/**
 	 * Returns the payment intent or setup intent ID from a given order object.
 	 *
-	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 * @param WC_Stripe_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
 	 */
 	public static function get_intent_id_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
+		$order = WC_Stripe_Order::to_instance( $order );
 
+		$intent_id = $order->get_intent_id();
 		if ( ! $intent_id ) {
-			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+			$intent_id = $order->get_setup_intent();
 		}
 
 		return $intent_id ?? false;
@@ -1419,8 +1462,11 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::set_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
 
 		if ( $save ) {
@@ -1435,8 +1481,11 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.4.0
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
+		// wc_deprecated_function( __METHOD__, '9.4.0', 'WC_Stripe_Order::remove_payment_awaiting_action' ); @todo Re-enable deprecation notice once all classes get updated.
 		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
 
 		if ( $save ) {
@@ -1523,35 +1572,83 @@ class WC_Stripe_Helper {
 	 * Checks if a given URL matches the current site's Webhook URL.
 	 *
 	 * This function ignores trailing slashes and compares the host and path of the URLs.
-	 * The protocol is not compared.
+	 * The protocol is ignored. It also requires that any query parameters in the
+	 * webhook URL are present in the supplied URL, though extra query parameters in the
+	 * supplied URL are ignored.
+	 * There is one special case: when the supplied URL has the same host and path,
+	 * but an empty query string, it is treated as a match. This is to allow for cleanup
+	 * of webhook URLs that don't have identifying URL parameters.
 	 *
 	 * @param string $url         The URL to check.
 	 * @param string $webhook_url The webhook URL to compare against.
 	 *
-	 * @return bool Whether the URL is a webhook URL.
+	 * @return bool Whether the URL is a matching webhook URL.
 	 */
 	public static function is_webhook_url( $url, $webhook_url = '' ) {
 		if ( empty( $webhook_url ) ) {
 			$webhook_url = self::get_webhook_url();
 		}
 
-		$url         = untrailingslashit( trim( strtolower( $url ) ) );
-		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+		$url         = trim( strtolower( $url ) );
+		$webhook_url = trim( strtolower( $webhook_url ) );
 
 		// If the URLs are the exact same, no need to compare further.
 		if ( $url === $webhook_url ) {
 			return true;
 		}
 
-		$webhook_url_parts = wp_parse_url( $url );
-		$url_parts         = wp_parse_url( $webhook_url );
+		$url_parts         = wp_parse_url( $url );
+		$webhook_url_parts = wp_parse_url( $webhook_url );
 
 		$url_host     = $url_parts['host'] ?? '';
 		$url_path     = $url_parts['path'] ?? '';
+		$url_query    = $url_parts['query'] ?? '';
 		$webhook_host = $webhook_url_parts['host'] ?? '';
 		$webhook_path = $webhook_url_parts['path'] ?? '';
+		$webhook_query = $webhook_url_parts['query'] ?? '';
 
-		return $url_host === $webhook_host && $url_path === $webhook_path;
+		if ( $url_host !== $webhook_host || $url_path !== $webhook_path ) {
+			return false;
+		}
+
+		// If the supplied URL has an empty query string, we will treat it as a webhook URL for the plugin,
+		// as we're guessing that it was created manually in the long-distant past when webhook
+		// management was all manual.
+		if ( '' === $url_query ) {
+			return true;
+		}
+
+		// For our standard webhook URL, we should never hit this condition, but we'll treat them as
+		// a mismatch, as we already know the supplied URL has a non-empty query.
+		if ( '' === $webhook_query ) {
+			return false;
+		}
+
+		$url_query_parts = [];
+		$webhook_query_parts = [];
+
+		parse_str( $url_query, $url_query_parts );
+		parse_str( $webhook_query, $webhook_query_parts );
+
+		if ( [] === $url_query_parts && [] === $webhook_query_parts ) {
+			return true;
+		}
+
+		// We ignore extra URL parameters in the supplied URL,
+		// but we require all query parameters from the webhook URL to
+		// be present in the supplied URL.
+		foreach ( $webhook_query_parts as $webhook_query_key => $webhook_query_value ) {
+			if ( ! isset( $url_query_parts[ $webhook_query_key ] ) ) {
+				return false;
+			}
+
+			if ( $url_query_parts[ $webhook_query_key ] !== $webhook_query_value ) {
+				return false;
+			}
+		}
+
+		// If we get here, the supplied URL has all the query parameters from the webhook URL.
+		return true;
 	}
 
 	public static function get_transaction_url( $is_test_mode = false ) {

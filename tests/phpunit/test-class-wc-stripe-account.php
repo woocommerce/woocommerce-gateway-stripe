@@ -289,7 +289,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				],
 				(object) [
 					'id'  => 'wh_101112',
-					'url' => $webhook_url, // Should be deleted.
+					'url' => $webhook_url . '&foo=bar', // Should be deleted.
 				],
 				(object) [
 					'url' => $webhook_url, // Invalid data - no ID.
@@ -300,7 +300,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				],
 				(object) [
 					'id'  => 'wh_161718',
-					'url' => $webhook_url . '/', // Should be deleted - trailing slash.
+					'url' => explode( '?', $webhook_url )[0], // Should be deleted - matching host with empty path.
 				],
 			],
 		];
