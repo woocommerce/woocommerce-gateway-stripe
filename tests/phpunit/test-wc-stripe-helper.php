@@ -524,6 +524,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$_SERVER[ $index ] = $value;
 		$request           = WC_Stripe_Helper::add_mandate_data( [] );
+		$this->assertTrue( isset( $request['mandate_data']['customer_acceptance']['online']['ip_address'] ) );
 		$ip_address        = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
 		$this->assertSame( $expected, $ip_address );
 	}
