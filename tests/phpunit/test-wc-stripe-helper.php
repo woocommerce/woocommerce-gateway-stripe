@@ -511,22 +511,22 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `add_mandate_data`.
 	 *
-	 * @param string $index The index of the server variable to set.
-	 * @param string $value The value to set the server variable to.
-	 * @param string $expected The expected IP address.
+	 * @param string $server_variable_key   The key of the server variable to set.
+	 * @param string $server_variable_value The value to set the server variable to.
+	 * @param string $expected_ip_address    The expected IP address.
 	 * @dataProvider provider_test_add_mandate_data
 	 * @return void
 	 */
-	public function test_add_mandate_data( $index, $value, $expected ) {
+	public function test_add_mandate_data( $server_variable_key, $server_variable_value, $expected_ip_address ) {
 		unset( $_SERVER['REMOTE_ADDR'] );
 		unset( $_SERVER['HTTP_X_REAL_IP'] );
 		unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
 
-		$_SERVER[ $index ] = $value;
-		$request           = WC_Stripe_Helper::add_mandate_data( [] );
+		$_SERVER[ $server_variable_key ] = $server_variable_value;
+		$request                         = WC_Stripe_Helper::add_mandate_data( [] );
 		$this->assertTrue( isset( $request['mandate_data']['customer_acceptance']['online']['ip_address'] ) );
-		$ip_address        = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
-		$this->assertSame( $expected, $ip_address );
+		$ip_address = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
+		$this->assertSame( $expected_ip_address, $ip_address );
 	}
 
 	/**
