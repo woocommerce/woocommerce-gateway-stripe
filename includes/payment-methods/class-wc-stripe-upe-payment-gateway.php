@@ -37,7 +37,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_Payment_Methods::BOLETO            => WC_Stripe_UPE_Payment_Method_Boleto::class,
 		WC_Stripe_Payment_Methods::IDEAL             => WC_Stripe_UPE_Payment_Method_Ideal::class,
 		WC_Stripe_Payment_Methods::OXXO              => WC_Stripe_UPE_Payment_Method_Oxxo::class,
-		WC_Stripe_Payment_Methods::SEPA              => WC_Stripe_UPE_Payment_Method_Sepa::class,
+		WC_Stripe_Payment_Methods::SEPA_DEBIT        => WC_Stripe_UPE_Payment_Method_Sepa::class,
 		WC_Stripe_Payment_Methods::P24               => WC_Stripe_UPE_Payment_Method_P24::class,
 		WC_Stripe_Payment_Methods::SOFORT            => WC_Stripe_UPE_Payment_Method_Sofort::class,
 		WC_Stripe_Payment_Methods::MULTIBANCO        => WC_Stripe_UPE_Payment_Method_Multibanco::class,
@@ -684,16 +684,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_available_payment_methods() {
-		$available_payment_methods = [];
+		// If the payment method configurations API is not enabled, fall back to determining available payment methods
+		// based on the plugin's internal logic.
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			$available_payment_methods = [];
 
-		foreach ( $this->payment_methods as $payment_method ) {
-			if ( is_callable( [ $payment_method, 'is_available_for_account_country' ] ) && ! $payment_method->is_available_for_account_country() ) {
-				continue;
+			foreach ( $this->payment_methods as $payment_method ) {
+				if ( is_callable( [ $payment_method, 'is_available_for_account_country' ] ) && ! $payment_method->is_available_for_account_country() ) {
+					continue;
+				}
+				$available_payment_methods[] = $payment_method->get_id();
 			}
-			$available_payment_methods[] = $payment_method->get_id();
+			return $available_payment_methods;
 		}
 
-		return $available_payment_methods;
+		return WC_Stripe_Payment_Method_Configurations::get_upe_available_payment_method_ids();
 	}
 
 	/**
@@ -741,6 +746,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_stripe_supported_payment_methods() {
 		$supported_stripe_ids         = [];
 		$available_payment_method_ids = $this->get_upe_available_payment_methods();
+
+		// Return the list if the payment method configurations API is enabled.
+		// We don't need any additional filtering as the list is already fetched from the payment method configurations API..
+		if ( WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return $available_payment_method_ids;
+		}
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $gateway_class ) {
 			$gateway = new $gateway_class();

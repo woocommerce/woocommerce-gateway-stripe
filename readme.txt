@@ -145,6 +145,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Checks for the existence of the `WC_Stripe_Feature_Flags` class before including it during extension initialization
 * Fix - Prevents fatal errors for cases where we fail to load product details
 * Fix - Address an edge case with webhook URL comparisons
+* Add - Only show payment methods in Stripe settings that are available for the connected Stripe account
 * Fix - Show correct gateway name in non payments settings pages
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled
 * Fix - Prevent reuse of payment intents when order total doesn't match intent amount

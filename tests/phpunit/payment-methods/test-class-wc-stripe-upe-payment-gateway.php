@@ -253,6 +253,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider get_upe_available_payment_methods_provider
 	 */
 	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
+		$this->mock_payment_method_configurations( $available_payment_methods );
 		$this->set_stripe_account_data( [ 'country' => $country ] ); // TODO: Verify if the country is actually changing in the gateway.
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods(), "Available payment methods are not the same for $country" );
 	}

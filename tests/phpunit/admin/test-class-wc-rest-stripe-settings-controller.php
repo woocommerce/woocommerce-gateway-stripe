@@ -112,7 +112,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	public function test_update_stripe_payment_method_configurations_settings() {
 		// Set up initial state with only card enabled
-		$this->mock_payment_method_configurations( [ 'card' ], [] );
+		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay', 'google_pay', 'apple_pay' ] );
 
 		// Set pmc_enabled to yes to prevent migration
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -285,8 +285,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	public function test_get_settings_returns_available_payment_method_ids() {
-		$response = $this->rest_get_settings();
-
 		$expected_method_ids  = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ACH,
@@ -308,6 +306,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
+		$this->mock_payment_method_configurations( $expected_method_ids, [] );
+
+		$response             = $this->rest_get_settings();
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
 		$this->assertEquals(
@@ -357,6 +358,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			WC_Stripe_Payment_Methods::CASHAPP_PAY,
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 		];
+		$this->mock_payment_method_configurations( $expected_method_ids, [] );
 
 		$response           = $this->rest_get_settings();
 		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];

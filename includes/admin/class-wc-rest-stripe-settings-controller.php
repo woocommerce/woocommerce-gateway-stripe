@@ -244,9 +244,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
+		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
+		// The available payment methods are also fetched from the payment method configurations API under similar conditions,
+		// but we do not force a refresh for available methods, since calling get_upe_enabled_payment_method_ids first already ensures the list is up to date.
+		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
