@@ -1092,8 +1092,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
-			$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $order_id );
-			if ( ( $payment_information['save_payment_method_to_store'] || $force_save_payment_method ) && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
+			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
 					$payment_method_details,
@@ -1216,8 +1215,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
-			$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $order_id );
-			if ( ( $payment_information['save_payment_method_to_store'] || $force_save_payment_method ) ) {
+			if ( $payment_information['save_payment_method_to_store'] ) {
 				$this->handle_saving_payment_method(
 					$order,
 					$payment_method,
@@ -2637,6 +2635,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Unless it's paying for a subscription, don't save it when saving payment methods is disabled.
 		if ( ! $this->is_saved_cards_enabled() ) {
 			return false;
+		}
+
+		// Save it when 'wc_stripe_force_save_payment_method' filter is true
+		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', false, $order_id );
+
+		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		if ( has_filter( 'wc_stripe_force_save_source' ) ) {
+			_doing_it_wrong(
+				'wc_stripe_force_save_source',
+				'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.0.0. Use wc_stripe_force_save_payment_method instead.',
+				'9.6.0'
+			);
+			$force_save_payment_method = apply_filters_deprecated(
+				'wc_stripe_force_save_source',
+				[ false, $order_id ],
+				'9.6.0',
+				'wc_stripe_force_save_payment_method',
+				'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
+			) || $force_save_payment_method;
+		}
+
+		if ( $force_save_payment_method ) {
+			return true;
 		}
 
 		// For card/stripe, the request arg is `wc-stripe-new-payment-method` and for our reusable APMs (i.e. bancontact) it's `wc-stripe_bancontact-new-payment-method`.
