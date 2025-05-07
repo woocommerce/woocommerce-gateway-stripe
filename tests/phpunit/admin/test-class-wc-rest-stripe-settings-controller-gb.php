@@ -90,7 +90,6 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 		$upe_helper = new UPE_Test_Helper();
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
-		$this->mock_payment_method_configurations( [ 'card' ], [] );
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
@@ -117,6 +116,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
+		$this->mock_payment_method_configurations( $expected_method_ids, [] );
 
 		$response             = $this->rest_get_settings();
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
@@ -148,6 +148,7 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 			WC_Stripe_Payment_Methods::ACSS_DEBIT,
 			WC_Stripe_Payment_Methods::BACS_DEBIT,
 		];
+		$this->mock_payment_method_configurations( $expected_ordered_method_ids, [] );
 
 		$response = $this->rest_get_settings();
 
