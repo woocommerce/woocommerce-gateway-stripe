@@ -138,5 +138,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Add support for customer order notes and express checkout
 * Dev - Minor fix to e2e setup code
 * Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
+* Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
