@@ -238,7 +238,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_change_subscription_payment_method( $order_id ) {
 		try {
-			$subscription    = WC_Stripe_Order::get_by_id( $order_id );
+			// Do not convert to WC_Stripe_Order object to avoid overwriting the order type.
+			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
