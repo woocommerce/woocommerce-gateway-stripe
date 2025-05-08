@@ -37,7 +37,6 @@
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
 * Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
-* Dev - Implements the new Stripe order class into the express checkout classes.
 * Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
 * Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
