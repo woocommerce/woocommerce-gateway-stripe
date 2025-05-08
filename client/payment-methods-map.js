@@ -47,7 +47,7 @@ const paymentMethodsMap = {
 		Icon: icons.card,
 		currencies: [],
 		allows_manual_capture: true,
-		is_reusable: true,
+		supports_recurring: true,
 	},
 	giropay: {
 		id: PAYMENT_METHOD_GIROPAY,
@@ -58,7 +58,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.giropay,
 		currencies: [ 'EUR' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	klarna: {
 		id: PAYMENT_METHOD_KLARNA,
@@ -83,7 +83,7 @@ const paymentMethodsMap = {
 			'USD',
 		],
 		allows_manual_capture: true,
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	affirm: {
 		id: PAYMENT_METHOD_AFFIRM,
@@ -96,7 +96,7 @@ const paymentMethodsMap = {
 		Icon: icons.affirm,
 		currencies: [ 'USD', 'CAD' ],
 		allows_manual_capture: true,
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	// Clearpay and Afterpay are the same payment method, but with different strings and icon.
 	afterpay_clearpay: {
@@ -118,7 +118,7 @@ const paymentMethodsMap = {
 		Icon: accountCountry === 'GB' ? icons.clearpay : icons.afterpay,
 		currencies: [ 'USD', 'AUD', 'CAD', 'NZD', 'GBP' ],
 		allows_manual_capture: true,
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	sepa_debit: {
 		id: PAYMENT_METHOD_SEPA,
@@ -129,7 +129,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		is_reusable: true,
+		supports_recurring: true,
 	},
 	sepa: {
 		id: 'sepa',
@@ -140,7 +140,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
-		is_reusable: true,
+		supports_recurring: true,
 	},
 	sofort: {
 		id: PAYMENT_METHOD_SOFORT,
@@ -151,7 +151,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sofort,
 		currencies: [ 'EUR' ],
-		is_reusable: true,
+		supports_recurring: true,
 	},
 	eps: {
 		id: PAYMENT_METHOD_EPS,
@@ -162,7 +162,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.eps,
 		currencies: [ 'EUR' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	bancontact: {
 		id: PAYMENT_METHOD_BANCONTACT,
@@ -173,7 +173,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		is_reusable: isSepaTokensEnabled,
+		supports_recurring: isSepaTokensEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
@@ -184,7 +184,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		is_reusable: isSepaTokensEnabled,
+		supports_recurring: isSepaTokensEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,
@@ -195,7 +195,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.p24,
 		currencies: [ 'EUR', 'PLN' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	boleto: {
 		id: PAYMENT_METHOD_BOLETO,
@@ -206,7 +206,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.boleto,
 		currencies: [ 'BRL' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	oxxo: {
 		id: PAYMENT_METHOD_OXXO,
@@ -217,7 +217,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.oxxo,
 		currencies: [ 'MXN' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	alipay: {
 		id: PAYMENT_METHOD_ALIPAY,
@@ -239,7 +239,7 @@ const paymentMethodsMap = {
 			'NZD',
 			'USD',
 		],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	multibanco: {
 		id: PAYMENT_METHOD_MULTIBANCO,
@@ -250,7 +250,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.multibanco,
 		currencies: [ 'EUR' ],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	wechat_pay: {
 		id: PAYMENT_METHOD_WECHAT_PAY,
@@ -275,7 +275,7 @@ const paymentMethodsMap = {
 			'SEK',
 			'CHF',
 		],
-		is_reusable: false,
+		supports_recurring: false,
 	},
 	cashapp: {
 		id: PAYMENT_METHOD_CASHAPP,
@@ -287,7 +287,7 @@ const paymentMethodsMap = {
 		Icon: icons.cashapp,
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
-		is_reusable: true,
+		supports_recurring: true,
 	},
 };
 
@@ -302,7 +302,7 @@ if ( isAchEnabled ) {
 		),
 		Icon: icons.us_bank_account,
 		currencies: [ 'USD' ],
-		is_reusable: true,
+		supports_recurring: true,
 	};
 }
 
@@ -317,7 +317,7 @@ if ( isAcssEnabled ) {
 		),
 		Icon: icons.acss_debit,
 		currencies: [ 'CAD' ],
-		is_reusable: true,
+		supports_recurring: true,
 	};
 }
 
@@ -332,7 +332,7 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
-		is_reusable: true,
+		supports_recurring: true,
 	};
 }
 
@@ -347,7 +347,7 @@ if ( isBecsDebitEnabled ) {
 		),
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
-		is_reusable: true,
+		supports_recurring: true,
 	};
 }
 
@@ -362,7 +362,7 @@ if ( isBlikEnabled ) {
 		),
 		Icon: icons.blik,
 		currencies: [ 'PLN' ],
-		is_reusable: false,
+		supports_recurring: false,
 	};
 }
 
