@@ -149,6 +149,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show correct gateway name in non payments settings pages
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled
 * Fix - Prevent reuse of payment intents when order total doesn't match intent amount
+* Fix - Fix invalid IP address error encountered during mandate data creation
 * Fix - Compatibility with email preview in the Auth Requested email
 * Update - Update Alipay and bank debit icons
 * Tweak - Update payment method type check for `charge.succeeded` webhook
