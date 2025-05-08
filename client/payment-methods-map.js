@@ -33,6 +33,8 @@ const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
+const isSepaTokensEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
@@ -171,7 +173,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
-		is_reusable: true,
+		is_reusable: isSepaTokensEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
@@ -182,7 +184,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
-		is_reusable: true,
+		is_reusable: isSepaTokensEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,
