@@ -627,10 +627,17 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 			? getStripeServerData()?.blocksAppearance
 			: getStripeServerData()?.appearance;
 
-	// If appearance is empty, get a fresh copy and save it in a transient.
+	const data = getStripeServerData();
+	const isValidContext =
+		isBlockCheckout === 'true' ||
+		( data.isCheckout && ! data.isOrderPay && ! data.isChangingPayment );
+
+	// If appearance is empty, only save it if in a valid context.
 	if ( ! appearance ) {
 		appearance = getAppearance( isBlockCheckout === 'true' );
-		api.saveAppearance( appearance, isBlockCheckout );
+		if ( isValidContext ) {
+			api.saveAppearance( appearance, isBlockCheckout );
+		}
 	}
 
 	return appearance;
