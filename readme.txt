@@ -114,7 +114,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 
-* Synchronize payment methods from the Stripe dashboard - changes in payment methods made from your dashboard will be visible in your store in a few minutes
+* Synchronize payment methods with the Stripe dashboard - if you've connected to Stripe, changes in payment methods are synchronized between the plugin and your Stripe dashboard. Changes from the Stripe dashboard may take a few minutes to flow through to shoppers.
 * Support Pre-authorized Debit (PAD) payments in Canada and the US
 * Support BLIK payments in Poland and from other EU countries
 * Support BECS Direct Debit payments in Australia
