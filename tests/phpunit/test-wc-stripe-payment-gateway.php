@@ -780,7 +780,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		};
 
 		return [
-			'default'                => [
+			'default'                    => [
 				'optimized checkout enabled' => false,
 				'filter'                     => null,
 				'expected'                   => [
@@ -808,8 +808,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			'Optimized Checkout enabled' => [
 				'optimized checkout enabled' => true,
-				'filter'                 => null,
-				'expected'               => [
+				'filter'                     => null,
+				'expected'                   => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
 					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
@@ -832,11 +832,64 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 				],
 			],
-			'filter applied'         => [
+			'filter applied'             => [
 				'optimized checkout enabled' => false,
-				'filter'                 => $mocked_filter,
-				'expected'               => [],
+				'filter'                     => $mocked_filter,
+				'expected'                   => [],
 			],
 		];
+	}
+
+	/**
+	 * Test for `save_source_to_order`.
+	 */
+	public function test_save_source_to_order() {
+		$source = (object) [
+			'customer' => 'cus_123',
+			'source'   => 'src_123',
+		];
+
+		// Set up a WC_Order instance order.
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->save();
+
+		// Verify correct behavior for WC_Order.
+		$this->gateway->save_source_to_order( $order, $source );
+		$this->assertEquals( $source->source, $order->get_meta( '_stripe_source_id' ) );
+		$this->assertEquals( $source->customer, $order->get_meta( '_stripe_customer_id' ) );
+
+		// Set up a WC_Stripe_Order instance.
+		$wc_stripe_order = WC_Stripe_Order::to_instance( WC_Helper_Order::create_order() );
+		$wc_stripe_order->set_payment_method( 'stripe' );
+		$wc_stripe_order->save();
+
+		// Verify correct behavior for WC_Stripe_Order.
+		$this->gateway->save_source_to_order( $wc_stripe_order, $source );
+		$this->assertEquals( $source->source, $wc_stripe_order->get_source_id() );
+		$this->assertEquals( $source->customer, $wc_stripe_order->get_stripe_customer_id() );
+	}
+
+	/**
+	 * Test for `save_source_to_order` for WC_Subscription orders.
+	 */
+	public function test_save_source_to_order_for_subscription() {
+		$source = (object) [
+			'customer' => 'cus_123',
+			'source'   => 'src_123',
+		];
+
+		// Set up a WC_Subscription instance.
+		$subscription = new WC_Subscription();
+		$subscription->set_payment_method( 'stripe' );
+		$subscription->save();
+
+		// Verify correct behavior for WC_Subscription.
+		$this->gateway->save_source_to_order( $subscription, $source );
+		$this->assertEquals( $source->source, $subscription->get_meta( '_stripe_source_id' ) );
+		$this->assertEquals( $source->customer, $subscription->get_meta( '_stripe_customer_id' ) );
+
+		// Check that the order type has not been changed.
+		$this->assertEquals( 'shop_subscription', $subscription->get_type() );
 	}
 }
