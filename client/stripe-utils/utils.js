@@ -617,12 +617,15 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 
 	const data = getStripeServerData();
 
-	const isValidUpdateContext =
-		isBlockCheckout === 'true' ||
-		( data.isCheckout && ! data.isOrderPay && ! data.isChangingPayment );
-
 	if ( ! appearance ) {
 		appearance = getAppearance( isBlockCheckout === 'true' );
+
+		const isValidUpdateContext =
+			isBlockCheckout === 'true' ||
+			( data.isCheckout &&
+				! data.isOrderPay &&
+				! data.isChangingPayment );
+
 		// If we have re-built the appearance, only update the settings in the checkout context
 		if ( isValidUpdateContext ) {
 			api.saveAppearance( appearance, isBlockCheckout );
