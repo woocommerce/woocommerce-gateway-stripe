@@ -158,18 +158,6 @@ export const getUPETerms = ( value = 'always' ) => {
 };
 
 /**
- * `storageKeys` object contains keys for storing values related to the appearance
- *  settings of Stripe UPE (Universal Payment Element) in different contexts.
- */
-export const storageKeys = {
-	// Key to store the appearance settings for Stripe UPE in the general WooCommerce context
-	UPE_APPEARANCE: 'wc_stripe_upe_appearance',
-
-	// Key to store the appearance settings for Stripe UPE when used within WooCommerce Blocks context
-	WC_BLOCKS_UPE_APPEARANCE: 'wc_stripe_wc_blocks_upe_appearance',
-};
-
-/**
  * Sets a key-value pair in the localStorage along with a time-to-live (TTL) value, which specifies
  * the time (in milliseconds) after which the item will be considered expired.
  *
@@ -627,10 +615,21 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 			? getStripeServerData()?.blocksAppearance
 			: getStripeServerData()?.appearance;
 
-	// If appearance is empty, get a fresh copy and save it in a transient.
+	const data = getStripeServerData();
+
 	if ( ! appearance ) {
 		appearance = getAppearance( isBlockCheckout === 'true' );
-		api.saveAppearance( appearance, isBlockCheckout );
+
+		const isValidUpdateContext =
+			isBlockCheckout === 'true' ||
+			( data.isCheckout &&
+				! data.isOrderPay &&
+				! data.isChangingPayment );
+
+		// If we have re-built the appearance, only update the settings in the checkout context
+		if ( isValidUpdateContext ) {
+			api.saveAppearance( appearance, isBlockCheckout );
+		}
 	}
 
 	return appearance;
