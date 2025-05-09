@@ -273,7 +273,7 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public static function hide_gateways_on_settings_page() {
 		// Prevent hiding gateways in the new payments settings experience (React-based UI).
-		if ( 'yes' === get_option( 'woocommerce_feature_reactify-classic-payments-settings_enabled' ) ) {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) && \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'reactify-classic-payments-settings' ) ) {
 			return;
 		}
 
