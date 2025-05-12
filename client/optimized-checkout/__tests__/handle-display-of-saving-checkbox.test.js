@@ -1,4 +1,4 @@
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_CARD,

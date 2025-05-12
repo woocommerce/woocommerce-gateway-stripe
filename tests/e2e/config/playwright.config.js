@@ -83,7 +83,7 @@ const config = {
 			testIgnore: [
 				'**/_legacy-experience/**',
 				'**/acss.spec.js',
-				'**/spe.spec.js',
+				'**/optimized-checkout.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -111,14 +111,14 @@ const config = {
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
-			name: 'spe-setup',
-			testMatch: '/spe.setup.js',
+			name: 'oc-setup',
+			testMatch: '/optimized-checkout.setup.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
-			name: 'spe',
-			testMatch: '**/spe.spec.js',
-			dependencies: [ 'spe-setup' ],
+			name: 'optimized-checkout',
+			testMatch: '**/optimized-checkout.spec.js',
+			dependencies: [ 'oc-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],

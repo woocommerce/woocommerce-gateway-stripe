@@ -64,6 +64,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WC_Mock_Stripe_API_Unit_Test
 	 * @dataProvider get_upe_available_payment_methods_provider
 	 */
 	public function test_get_upe_available_payment_methods_for_gb( $country, $available_payment_methods ) {
+		$this->mock_payment_method_configurations( $available_payment_methods );
 		$expected = $this->mock_gateway->get_upe_available_payment_methods();
 
 		$this->assertSame( $available_payment_methods, $expected );

@@ -163,8 +163,8 @@
     "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug",
     "test:e2e-lpm-acss": "./tests/e2e/bin/run-tests.sh --project=acss",
     "test:e2e-lpm-acss-debug": "npm run test:e2e-lpm-acss -- --debug",
-    "test:e2e-spe": "./tests/e2e/bin/run-tests.sh --project=spe",
-    "test:e2e-spe-debug": "npm run test:e2e-spe -- --debug",
+    "test:e2e-oc": "./tests/e2e/bin/run-tests.sh --project=optimized-checkout",
+    "test:e2e-oc-debug": "npm run test:e2e-oc -- --debug",
     "changelog": "node bin/changelog.js"
   },
   "engines": {

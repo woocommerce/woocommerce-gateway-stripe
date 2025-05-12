@@ -101,7 +101,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
  * @return {JSX.Element|null} The icon element.
  */
 const getUpeElementIcon = ( paymentMethod ) => {
-	if ( getBlocksConfiguration()?.isSPEEnabled ) {
+	if ( getBlocksConfiguration()?.isOCEnabled ) {
 		return null;
 	}
 

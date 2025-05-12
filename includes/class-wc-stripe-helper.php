@@ -1600,11 +1600,11 @@ class WC_Stripe_Helper {
 		$url_parts         = wp_parse_url( $url );
 		$webhook_url_parts = wp_parse_url( $webhook_url );
 
-		$url_host     = $url_parts['host'] ?? '';
-		$url_path     = $url_parts['path'] ?? '';
-		$url_query    = $url_parts['query'] ?? '';
-		$webhook_host = $webhook_url_parts['host'] ?? '';
-		$webhook_path = $webhook_url_parts['path'] ?? '';
+		$url_host      = $url_parts['host'] ?? '';
+		$url_path      = $url_parts['path'] ?? '';
+		$url_query     = $url_parts['query'] ?? '';
+		$webhook_host  = $webhook_url_parts['host'] ?? '';
+		$webhook_path  = $webhook_url_parts['path'] ?? '';
 		$webhook_query = $webhook_url_parts['query'] ?? '';
 
 		if ( $url_host !== $webhook_host || $url_path !== $webhook_path ) {
@@ -1624,7 +1624,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$url_query_parts = [];
+		$url_query_parts     = [];
 		$webhook_query_parts = [];
 
 		parse_str( $url_query, $url_query_parts );
@@ -1727,6 +1727,14 @@ class WC_Stripe_Helper {
 	 */
 	public static function add_mandate_data( $request ) {
 		$ip_address = WC_Geolocation::get_ip_address();
+
+		// Handle cases where WC_Geolocation::get_ip_address() returns multiple, comma-separated IP addresses.
+		// This will be addressed upstream in WooCommerce 9.9.0 as of (https://github.com/woocommerce/woocommerce/pull/57284).
+		// TODO: Remove this block when WooCommerce 9.9.0 is released.
+		if ( str_contains( $ip_address, ',' ) ) {
+			$ip_address = trim( current( preg_split( '/,/', $ip_address ) ) );
+		}
+
 		self::maybe_log_ip_issues( $ip_address );
 
 		$request['mandate_data'] = [

@@ -178,7 +178,6 @@ describe( 'Express checkout normalization', () => {
 					postcode: '10001',
 					state: 'NY',
 				},
-				customer_note: undefined,
 				extensions: {},
 				payment_data: [
 					{
@@ -272,7 +271,6 @@ describe( 'Express checkout normalization', () => {
 					postcode: '',
 					state: '',
 				},
-				customer_note: undefined,
 				extensions: {},
 				payment_data: [
 					{
@@ -339,7 +337,6 @@ describe( 'Express checkout normalization', () => {
 					postcode: '',
 					state: '',
 				},
-				customer_note: undefined,
 				extensions: {},
 				payment_data: [
 					{
