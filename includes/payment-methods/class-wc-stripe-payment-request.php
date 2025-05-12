@@ -8,6 +8,8 @@
  * @since   4.0.0
  */
 
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -398,7 +400,7 @@ class WC_Stripe_Payment_Request {
 		$product      = $this->get_product();
 		$variation_id = 0;
 
-		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
@@ -596,9 +598,9 @@ class WC_Stripe_Payment_Request {
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
-				'simple',
-				'variable',
-				'variation',
+				ProductType::SIMPLE,
+				ProductType::VARIABLE,
+				ProductType::VARIATION,
 				'subscription',
 				'variable-subscription',
 				'subscription_variation',
@@ -1027,7 +1029,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
@@ -1372,7 +1374,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
+			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
@@ -1479,7 +1481,7 @@ class WC_Stripe_Payment_Request {
 			// First empty the cart to prevent wrong calculation.
 			WC()->cart->empty_cart();
 
-			if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+			if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
