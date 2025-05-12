@@ -287,7 +287,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$currencies             = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) ) {
 			if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
-				$order          = WC_Stripe_Order::get_by_id( $order_id ? $order_id : absint( get_query_var( 'order-pay' ) ) );
+				$order          = wc_get_order( $order_id ? $order_id : absint( get_query_var( 'order-pay' ) ) );
 				$order_currency = $order->get_currency();
 				if ( ! in_array( $order_currency, $currencies, true ) ) {
 					return false;
@@ -704,7 +704,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_current_order_amount() {
 		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
-			$order = WC_Stripe_Order::get_by_id( absint( get_query_var( 'order-pay' ) ) );
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 			return $order->get_total( '' );
 		} elseif ( WC()->cart ) {
 			return WC()->cart->get_total( '' );
