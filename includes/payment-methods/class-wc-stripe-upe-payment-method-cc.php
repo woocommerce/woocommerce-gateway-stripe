@@ -60,8 +60,10 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 				return $payment_method->get_title();
 			}
 
-			// Classic checkout page
-			return $this->oc_title;
+			// Block checkout page
+			if ( has_block( 'woocommerce/checkout' ) ) {
+				return $this->oc_title;
+			}
 		}
 
 		return parent::get_title();
