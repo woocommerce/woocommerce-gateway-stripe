@@ -163,10 +163,19 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 
 		$order->delete_fee();
 		$order->delete_net();
+
+		$order->delete_source_id();
+		$order->delete_refund_id();
+		$order->delete_stripe_customer_id();
+
 		$order->save_meta_data();
 
 		$this->assertEmpty( $order->get_fee() );
 		$this->assertEmpty( $order->get_net() );
+
+		$this->assertEmpty( $order->get_source_id() );
+		$this->assertEmpty( $order->get_refund_id() );
+		$this->assertEmpty( $order->get_stripe_customer_id() );
 	}
 
 	/**
