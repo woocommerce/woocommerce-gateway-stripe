@@ -5,12 +5,12 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.4.0
+ * Version: 9.6.0-dev
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
- * Tested up to: 6.7
+ * Tested up to: 6.8.1
  * WC requires at least: 9.5
- * WC tested up to: 9.7
+ * WC tested up to: 9.8.5
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.4.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.6.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '9.5' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.6' );
