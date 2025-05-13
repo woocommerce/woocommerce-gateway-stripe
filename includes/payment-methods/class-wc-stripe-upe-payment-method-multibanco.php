@@ -73,7 +73,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param bool     $plain_text
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_MULTIBANCO );
 		if ( ! $data ) {
 			return;
 		}
@@ -128,7 +128,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'reference' => $payment_intent->next_action->multibanco_display_details->reference,
 		];
 
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MULTIBANCO, $data );
 	}
 
 	/**
@@ -140,7 +140,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_UPE_PAYMENT_TYPE ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 

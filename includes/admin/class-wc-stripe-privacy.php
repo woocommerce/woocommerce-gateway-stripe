@@ -133,11 +133,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_meta( '_stripe_source_id', true ),
+							'value' => $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, true ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_meta( '_stripe_customer_id', true ),
+							'value' => $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, true ),
 						],
 					],
 				];
@@ -198,11 +198,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription->get_meta( '_stripe_source_id', true ),
+							'value' => $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, true ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $subscription->get_meta( '_stripe_customer_id', true ),
+							'value' => $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, true ),
 						],
 					],
 				];
@@ -238,7 +238,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 				'data'        => [
 					[
 						'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-						'value' => get_user_option( '_stripe_source_id', $user->ID ),
+						'value' => get_user_option( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $user->ID ),
 					],
 					[
 						'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
@@ -268,8 +268,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_source_id   = '';
 
 		if ( $user instanceof WP_User ) {
-			$stripe_customer_id = get_user_option( '_stripe_customer_id', $user->ID );
-			$stripe_source_id   = get_user_option( '_stripe_source_id', $user->ID );
+			$stripe_customer_id = get_user_option( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $user->ID );
+			$stripe_source_id   = get_user_option( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $user->ID );
 		}
 
 		$items_removed = false;
@@ -277,8 +277,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		if ( ! empty( $stripe_customer_id ) || ! empty( $stripe_source_id ) ) {
 			$items_removed = true;
-			delete_user_option( $user->ID, '_stripe_customer_id' );
-			delete_user_option( $user->ID, '_stripe_source_id' );
+			delete_user_option( $user->ID, WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
+			delete_user_option( $user->ID, WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
 			$messages[] = __( 'Stripe User Data Erased.', 'woocommerce-gateway-stripe' );
 		}
 
@@ -350,7 +350,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$subscription = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
 
-		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
+		$stripe_source_id = $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, true );
 
 		if ( empty( $stripe_source_id ) ) {
 			return [ false, false, [] ];
@@ -369,14 +369,14 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$renewal_orders = class_exists( 'WC_Subscriptions_Renewal_Order' ) ? WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id(), 'WC_Order' ) : [];
 
 		foreach ( $renewal_orders as $renewal_order ) {
-			$renewal_order->delete_meta_data( '_stripe_source_id' );
-			$renewal_order->delete_meta_data( '_stripe_refund_id' );
-			$renewal_order->delete_meta_data( '_stripe_customer_id' );
+			$renewal_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
+			$renewal_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID );
+			$renewal_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 		}
 
-		$subscription->delete_meta_data( '_stripe_source_id' );
-		$subscription->delete_meta_data( '_stripe_refund_id' );
-		$subscription->delete_meta_data( '_stripe_customer_id' );
+		$subscription->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
+		$subscription->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID );
+		$subscription->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 
 		return [ true, false, [ __( 'Stripe Subscription Data Erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}
@@ -388,9 +388,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array
 	 */
 	protected function maybe_handle_order( $order ) {
-		$stripe_source_id   = $order->get_meta( '_stripe_source_id', true );
-		$stripe_refund_id   = $order->get_meta( '_stripe_refund_id', true );
-		$stripe_customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$stripe_source_id   = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, true );
+		$stripe_refund_id   = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID, true );
+		$stripe_customer_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, true );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */
@@ -401,9 +401,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return [ false, false, [] ];
 		}
 
-		$order->delete_meta_data( '_stripe_source_id' );
-		$order->delete_meta_data( '_stripe_refund_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 
 		return [ true, false, [ __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ] ];
 	}

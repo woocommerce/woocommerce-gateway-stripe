@@ -126,7 +126,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		$customer = new WC_Stripe_Customer( $order_user->ID );
 
 		// Set the customer ID if known but not already set.
-		$customer_id = $order->get_meta( '_stripe_customer_id', true );
+		$customer_id = $order->get_meta(  WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, true );
 		if ( ! $customer->get_id() && $customer_id ) {
 			$customer->set_id( $customer_id );
 		}
@@ -143,7 +143,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 			return new WP_Error( 'stripe_error', $e->getMessage() );
 		}
 
-		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $customer_id );
 		$order->save();
 
 		return rest_ensure_response( [ 'id' => $customer_id ] );
