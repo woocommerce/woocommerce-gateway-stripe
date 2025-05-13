@@ -12,11 +12,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
-	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
-	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
-	const META_NAME_STRIPE_CURRENCY    = '_stripe_currency';
+	const SETTINGS_OPTION      = 'woocommerce_stripe_settings';
+	const LEGACY_META_NAME_FEE = 'Stripe Fee';
+	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
+
+	/**
+	 * Meta key for the Stripe awaiting action identifier.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Metas::PAYMENT_AWAITING_ACTION_META instead.
+	 */
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
+
+	/**
+	 * Meta key for the Stripe currency.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Metas::META_STRIPE_CURRENCY instead.
+	 */
+	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
 
 	/**
 	 * The identifier for the official Affirm gateway plugin.
@@ -102,7 +118,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
+		return $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, true );
 	}
 
 	/**
@@ -117,7 +133,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -1455,7 +1471,7 @@ class WC_Stripe_Helper {
 	 * @return void
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		$order->update_meta_data( self::PAYMENT_AWAITING_ACTION_META, wc_bool_to_string( true ) );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$order->save();
@@ -1471,7 +1487,7 @@ class WC_Stripe_Helper {
 	 * @return void
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		$order->delete_meta_data( self::PAYMENT_AWAITING_ACTION_META );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION );
 
 		if ( $save ) {
 			$order->save();
