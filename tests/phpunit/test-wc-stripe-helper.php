@@ -210,16 +210,15 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$order    = WC_Helper_Order::create_order();
 		$order_id = $order->get_id();
 
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 		$order->set_status( $status );
 
 		$intent_id = 'pi_mock';
-		$order->set_intent_id( $intent_id );
-		$order->save_meta_data();
+		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
 
-		$order = WC_Stripe_Order::get_by_intent_id( $intent_id );
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		if ( $success ) {
-			$this->assertInstanceOf( WC_Stripe_Order::class, $order );
+			$this->assertInstanceOf( WC_Order::class, $order );
 		} else {
 			$this->assertFalse( $order );
 		}
@@ -394,9 +393,9 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'test' ] );
+		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'abc' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( [ 'test' => 'test' ], $current_settings );
+		$this->assertSame( $current_settings['test'], 'abc' );
 
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
@@ -506,5 +505,44 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
 		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
 		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
+	}
+
+	/**
+	 * Test for `add_mandate_data`.
+	 *
+	 * @param string $server_variable_key   The key of the server variable to set.
+	 * @param string $server_variable_value The value to set the server variable to.
+	 * @param string $expected_ip_address    The expected IP address.
+	 * @dataProvider provider_test_add_mandate_data
+	 * @return void
+	 */
+	public function test_add_mandate_data( $server_variable_key, $server_variable_value, $expected_ip_address ) {
+		unset( $_SERVER['REMOTE_ADDR'] );
+		unset( $_SERVER['HTTP_X_REAL_IP'] );
+		unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+
+		$_SERVER[ $server_variable_key ] = $server_variable_value;
+		$request                         = WC_Stripe_Helper::add_mandate_data( [] );
+		$this->assertTrue( isset( $request['mandate_data']['customer_acceptance']['online']['ip_address'] ) );
+		$ip_address = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
+		$this->assertSame( $expected_ip_address, $ip_address );
+	}
+
+	/**
+	 * Data provider for `test_add_mandate_data`.
+	 *
+	 * @return array
+	 */
+	public function provider_test_add_mandate_data() {
+		return [
+			[ 'REMOTE_ADDR', '192.168.1.1', '192.168.1.1' ],
+			[ 'REMOTE_ADDR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', '192.168.1.1', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
+			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1', '192.168.1.1' ],
+			[ 'HTTP_X_REAL_IP', 'invalid-ip-address', 'invalid-ip-address' ],
+			[ 'HTTP_X_REAL_IP', '', '' ],
+		];
 	}
 }

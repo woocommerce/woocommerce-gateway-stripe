@@ -154,13 +154,13 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_add_order_meta
 	 */
 	public function test_add_order_meta( $checkout_type, $expected ) {
-		$order = WC_Stripe_Order::create();
+		$order = wc_create_order();
 
 		$_POST['express_checkout_type'] = $checkout_type;
 		$_POST['payment_method']        = 'stripe';
 
 		$this->element->add_order_meta( $order->get_id(), [] );
-		$order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$order = wc_get_order( $order->get_id() );
 
 		$this->assertSame( $expected, $order->get_payment_method_title() );
 	}

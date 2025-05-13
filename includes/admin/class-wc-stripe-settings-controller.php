@@ -272,6 +272,11 @@ class WC_Stripe_Settings_Controller {
 	 * to display the payment gateways on the WooCommerce Settings page.
 	 */
 	public static function hide_gateways_on_settings_page() {
+		// Prevent hiding gateways in the new payments settings experience (React-based UI).
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) && \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'reactify-classic-payments-settings' ) ) {
+			return;
+		}
+
 		$gateways_to_hide = [
 			// Hide all UPE payment methods.
 			WC_Stripe_UPE_Payment_Method::class,

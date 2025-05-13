@@ -133,11 +133,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					'data'        => [
 						[
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_source_id(),
+							'value' => $order->get_meta( '_stripe_source_id', true ),
 						],
 						[
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => $order->get_stripe_customer_id(),
+							'value' => $order->get_meta( '_stripe_customer_id', true ),
 						],
 					],
 				];
@@ -305,7 +305,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$messages       = [];
 
 		foreach ( (array) $orders as $order ) {
-			$order = WC_Stripe_Order::get_by_id( $order->get_id() );
+			$order = wc_get_order( $order->get_id() );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_order( $order );
 			$items_removed                    |= $removed;
@@ -384,13 +384,13 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	/**
 	 * Handle eraser of data tied to Orders
 	 *
-	 * @param WC_Stripe_Order $order
+	 * @param WC_Order $order
 	 * @return array
 	 */
 	protected function maybe_handle_order( $order ) {
-		$stripe_source_id   = $order->get_source_id();
-		$stripe_refund_id   = $order->get_refund_id();
-		$stripe_customer_id = $order->get_stripe_customer_id();
+		$stripe_source_id   = $order->get_meta( '_stripe_source_id', true );
+		$stripe_refund_id   = $order->get_meta( '_stripe_refund_id', true );
+		$stripe_customer_id = $order->get_meta( '_stripe_customer_id', true );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
 			/* translators: %d Order ID */
