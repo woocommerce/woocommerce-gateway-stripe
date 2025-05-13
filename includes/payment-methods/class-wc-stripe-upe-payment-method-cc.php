@@ -41,6 +41,12 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
+		// Wallet type
+		$wallet_type = $payment_details->card->wallet->type ?? null;
+		if ( $wallet_type ) {
+			return $this->get_card_wallet_type_title( $wallet_type );
+		}
+
 		// Optimized checkout
 		if ( $this->oc_enabled ) {
 			if ( $payment_details ) { // Setting title for the order details page / thank you page.
@@ -54,12 +60,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			}
 		}
 
-		// Default implementation
-		$wallet_type = $payment_details->card->wallet->type ?? null;
-		if ( $wallet_type ) {
-			return $this->get_card_wallet_type_title( $wallet_type );
-		}
-
+		// Default
 		return parent::get_title();
 	}
 
