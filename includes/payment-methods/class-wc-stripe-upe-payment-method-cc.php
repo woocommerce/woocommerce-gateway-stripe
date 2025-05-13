@@ -48,7 +48,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 				return $payment_method->get_title();
 			}
 
-			// Block checkout page
+			// Block checkout and pay for order page.
 			if ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				return $this->oc_title;
 			}
