@@ -226,7 +226,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_status( $order_status );
 		$order->set_transaction_id( $charge_id );
 		if ( $order_status_final ) {
-			$order->set_status_final( true );
+			$order->update_meta_data( '_stripe_status_final', true );
 		}
 		$order->save();
 
@@ -242,7 +242,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->process_webhook_charge_failed( $notification );
 
 		if ( $charge_id ) { // Order not found charge ID.
-			$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+			$final_order = wc_get_order( $order->get_id() );
 			$this->assertEquals( $expected_status, $final_order->get_status() );
 
 			if ( $expected_note ) {
@@ -316,7 +316,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order->set_status( $order_status );
 		$order->set_transaction_id( $charge_id );
 		if ( $order_status_final ) {
-			$order->set_status_final( true );
+			$order->update_meta_data( '_stripe_status_final', true );
 		}
 		$order->save();
 
@@ -332,7 +332,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_dispute( $notification );
 
-		$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$final_order = wc_get_order( $order->get_id() );
 
 		$notes = wc_get_order_notes(
 			[
@@ -425,13 +425,13 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
 		if ( $order_locked ) {
-			$order->lock_payment();
+			$order->update_meta_data( '_stripe_lock_payment', ( time() + MINUTE_IN_SECONDS ) );
 		}
 		if ( $order_status_final ) {
-			$order->set_status_final( true );
+			$order->update_meta_data( '_stripe_status_final', true );
 		}
-		$order->set_upe_payment_type( $payment_type );
-		$order->set_upe_waiting_for_redirect( true );
+		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save_meta_data();
 		$order->save();
 
@@ -458,7 +458,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_payment_intent( $notification );
 
-		$final_order = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$final_order = wc_get_order( $order->get_id() );
 
 		$this->assertSame( $expected_status, $final_order->get_status() );
 		if ( ! empty( $expected_note ) ) {
@@ -498,9 +498,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Order must be previously set to pending and have at least the payment intent set.
 		$order = WC_Helper_Order::create_order();
-
 		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
-
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 
@@ -512,8 +510,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_payment_intent( $notification );
 
-		$updated_order = WC_Stripe_Order::get_by_id( $order->get_id() );
-
+		$updated_order = wc_get_order( $order->get_id() );
 		$this->assertEquals( OrderStatus::ON_HOLD, $updated_order->get_status() );
 		$this->assertEquals( 'ch_mock', $updated_order->get_transaction_id() );
 

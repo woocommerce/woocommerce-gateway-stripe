@@ -44,7 +44,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	 * @param int $order_id
 	 */
 	public function thankyou_page( $order_id ) {
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return;
 		}
@@ -69,11 +69,11 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Gets Multibanco payment instructions for the customer.
 	 *
-	 * @param WC_Stripe_Order $order
+	 * @param WC_Order $order
 	 * @param bool     $plain_text
 	 */
 	public function get_instructions( $order, $plain_text = false ) {
-		$data = $order->get_multibanco_data();
+		$data = $order->get_meta( '_stripe_multibanco' );
 		if ( ! $data ) {
 			return;
 		}
@@ -114,7 +114,7 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	/**
 	 * Saves Multibanco information to the order meta for later use.
 	 *
-	 * @param WC_Stripe_Order $order
+	 * @param object $order
 	 * @param object $payment_intent. The PaymentIntent object.
 	 */
 	public function save_instructions( $order, $payment_intent ) {
@@ -128,19 +128,19 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'reference' => $payment_intent->next_action->multibanco_display_details->reference,
 		];
 
-		$order->set_multibanco_data( $data );
+		$order->update_meta_data( '_stripe_multibanco', $data );
 	}
 
 	/**
 	 * Adds on-hold as accepted status during webhook handling on orders paid with Mukltibanco
 	 *
 	 * @param $allowed_statuses
-	 * @param $order WC_Stripe_Order
+	 * @param $order
 	 *
 	 * @return mixed
 	 */
 	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_upe_payment_type() && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
 			$allowed_statuses[] = OrderStatus::ON_HOLD;
 		}
 

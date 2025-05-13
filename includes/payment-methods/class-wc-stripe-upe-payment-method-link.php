@@ -124,7 +124,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
 		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
 		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
-			$theorder = WC_Stripe_Order::get_by_id( $GLOBALS['post']->ID );
+			$theorder = wc_get_order( $GLOBALS['post']->ID );
 		}
 
 		if ( ! is_object( $theorder ) ) {

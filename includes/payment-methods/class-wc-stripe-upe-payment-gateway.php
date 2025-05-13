@@ -363,9 +363,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|bool
 	 */
 	public function can_refund_order( $order ) {
-		$order = WC_Stripe_Order::to_instance( $order );
-
-		$upe_payment_type = $order->get_upe_payment_type();
+		$upe_payment_type = $order->get_meta( '_stripe_upe_payment_type' );
 
 		if ( ! $upe_payment_type ) {
 			return true;
@@ -557,7 +555,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
-			$order    = WC_Stripe_Order::get_by_id( $order_id );
+			$order    = wc_get_order( $order_id );
 
 			$stripe_params['orderId'] = $order_id;
 
@@ -853,7 +851,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                 = WC_Stripe_Order::get_by_id( $order_id );
+		$order                 = wc_get_order( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 		$save_payment_method   = $this->should_save_payment_method_from_request( $order_id, $selected_payment_type );
 
@@ -949,15 +947,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
-				$order->add_payment_intent_to_order( $payment_intent_id );
+				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-				$order->set_upe_payment_type( $selected_upe_payment_type );
+				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 
 				// TODO: This is a stop-gap to fix a critical issue, see
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
-				$order->set_upe_waiting_for_redirect( true );
+				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 
 				$order->save();
 
@@ -1018,7 +1016,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return $this->process_change_subscription_payment_with_deferred_intent( $order_id );
 		}
 
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
@@ -1072,11 +1070,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
-			$order->lock_payment();
+			$this->lock_order_payment( $order );
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
-				$order->validate_minimum_amount();
+				$this->validate_minimum_order_amount( $order );
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
@@ -1141,10 +1139,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-				$order->set_payment_awaiting_action( false );
+				WC_Stripe_Helper::set_payment_awaiting_action( $order, false );
 
 				// Prevent processing the payment intent webhooks while also processing the redirect payment (also prevents duplicate Stripe meta stored on the order).
-				$order->set_upe_waiting_for_redirect( true );
+				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 				$order->save();
 
 				$redirect = $this->get_redirect_url( $this->get_return_url( $order ), $payment_intent, $payment_information, $order, $payment_needed );
@@ -1167,7 +1165,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$redirect = $this->get_return_url( $order );
 			}
 
-			$order->unlock_payment();
+			$this->unlock_order_payment( $order );
 
 			return array_merge(
 				[
@@ -1189,7 +1187,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
 	private function process_payment_with_confirmation_token( int $order_id ) {
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 
 		try {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
@@ -1288,7 +1286,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function process_payment_with_saved_payment_method( $order_id, $can_retry = true ) {
 		try {
-			$order = WC_Stripe_Order::get_by_id( $order_id );
+			$order = wc_get_order( $order_id );
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->process_pre_order( $order_id );
@@ -1311,7 +1309,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
-				$order->validate_minimum_amount();
+				$this->validate_minimum_order_amount( $order );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
@@ -1539,7 +1537,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_payment_intent( int $order_id, string $intent_id ): bool {
-		$order_from_payment_intent = WC_Stripe_Order::get_by_intent_id( $intent_id );
+		$order_from_payment_intent = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
 		return $order_from_payment_intent && $order_from_payment_intent->get_id() === $order_id;
 	}
 
@@ -1551,7 +1549,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 		if ( ! $order ) {
 			return false;
 		}
@@ -1584,7 +1582,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.5.0
 	 */
 	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method, $is_pay_for_order = false ) {
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 
 		if ( ! is_object( $order ) ) {
 			return;
@@ -1594,7 +1592,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( $order->is_upe_redirect_processed() ) {
+		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
 			return;
 		}
 
@@ -1625,7 +1623,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Update order and maybe save payment method for an order after an intent has been created and confirmed.
 	 *
-	 * @param WC_Stripe_Order $order        Order being processed.
+	 * @param WC_Order $order               Order being processed.
 	 * @param string   $intent_id           Stripe setup/payment ID.
 	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
 	 */
@@ -1695,7 +1693,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
-		$order->set_upe_redirect_processed( true );
+		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
 
 		// TODO: This is a stop-gap to fix a critical issue, see
 		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
@@ -1707,7 +1705,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
 		 * Now that payment is confirmed, we can remove this meta.
 		 */
-		$order->remove_payment_awaiting_action();
+		WC_Stripe_Helper::remove_payment_awaiting_action( $order, false );
 
 		$order->save();
 	}
@@ -1733,15 +1731,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Save payment method to order.
 	 *
-	 * @param WC_Stripe_Order $order For to which the source applies.
+	 * @param WC_Order $order For to which the source applies.
 	 * @param stdClass $payment_method Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
 		if ( $payment_method->customer ) {
-			$order->set_stripe_customer_id( $payment_method->customer );
+			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
 		}
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		$order->set_source_id( $payment_method->payment_method );
+		$order->update_meta_data( '_stripe_source_id', $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -1823,7 +1821,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Free trial subscriptions without a sign up fee, or any other type
 		// of order with a `0` amount should fall into the logic below.
 		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? WC_Stripe_Order::get_by_id( $order_id ) : null;
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -2596,15 +2594,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Conditionally stores the card brand to the order meta.
 	 *
-	 * @param WC_Stripe_Order $order   The WC Order for which we're processing a payment.
+	 * @param WC_Order $order          The WC Order for which we're processing a payment.
 	 * @param stdClass $payment_method The payment method object.
 	 */
-	private function maybe_set_preferred_card_brand_for_order( WC_Stripe_Order $order, $payment_method ) {
+	private function maybe_set_preferred_card_brand_for_order( WC_Order $order, $payment_method ) {
 		// Retrieve the preferred card brand for the payment method.
 		$preferred_brand = $payment_method->card->networks->preferred ?? null;
 		if ( WC_Stripe_Co_Branded_CC_Compatibility::is_wc_supported() && $preferred_brand ) {
 
-			$order->set_card_brand( $preferred_brand );
+			$order->update_meta_data( '_stripe_card_brand', $preferred_brand );
 			$order->save_meta_data();
 
 			if ( function_exists( 'wc_admin_record_tracks_event' ) ) {
@@ -2762,12 +2760,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Set the payment metadata for payment method id.
 	 *
-	 * @param WC_Stripe_Order $order The order.
+	 * @param WC_Order $order The order.
 	 * @param string   $payment_method_id The value to be set.
 	 */
 	public function set_payment_method_id_for_order( WC_Order $order, string $payment_method_id ) {
 		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
-		$order->set_source_id( $payment_method_id );
+		$order->update_meta_data( '_stripe_source_id', $payment_method_id );
 		$order->save_meta_data();
 	}
 
@@ -2787,11 +2785,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
 	 *
-	 * @param WC_Stripe_Order $order The order.
+	 * @param WC_Order $order The order.
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		$order->set_stripe_customer_id( $customer_id );
+		$order->update_meta_data( '_stripe_customer_id', $customer_id );
 		$order->save_meta_data();
 	}
 
@@ -2811,11 +2809,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Set the payment metadata for the selected payment type.
 	 *
-	 * @param WC_Stripe_Order $order                 The order for which we're setting the selected payment type.
+	 * @param WC_Order $order                 The order for which we're setting the selected payment type.
 	 * @param string   $selected_payment_type The selected payment type.
 	 */
 	private function set_selected_payment_type_for_order( WC_Order $order, string $selected_payment_type ) {
-		$order->set_upe_payment_type( $selected_payment_type );
+		$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		$order->save_meta_data();
 	}
 	/**
@@ -2980,7 +2978,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function get_existing_compatible_payment_intent( $order, $payment_method_types ) {
 		// Reload the order to make sure we have the latest data.
-		$order  = WC_Stripe_Order::get_by_id( $order->get_id() );
+		$order  = wc_get_order( $order->get_id() );
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			return null;
