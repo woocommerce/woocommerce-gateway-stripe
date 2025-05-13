@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 9.6.0 - xxxx-xx-xx =
+* Fix - Send correct attribute when setting the default payment method.
+
 = 9.5.0 - xxxx-xx-xx =
 * Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
 * Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
