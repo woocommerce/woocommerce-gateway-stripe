@@ -121,6 +121,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Important Fixes and Updates**
 
+* Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Update - Add express checkout support for One Page Checkout and other dynamic cart update scenarios
 * Fix - Show error notice when 'Add payment method' fails on My Account page in block-based themes
 * Add - Add WordPress Action for processing payments with delayed charge attempts due to pre-debit notification period
