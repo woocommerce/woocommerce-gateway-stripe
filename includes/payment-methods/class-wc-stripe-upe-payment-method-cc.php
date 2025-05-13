@@ -56,7 +56,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		// Default implementation
 		$wallet_type = $payment_details->card->wallet->type ?? null;
-		if ( $payment_details && $wallet_type ) {
+		if ( $wallet_type ) {
 			return $this->get_card_wallet_type_title( $wallet_type );
 		}
 
