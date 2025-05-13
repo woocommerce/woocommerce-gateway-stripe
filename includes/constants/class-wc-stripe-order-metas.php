@@ -56,6 +56,20 @@ class WC_Stripe_Order_Metas {
 	const META_STRIPE_NET = '_stripe_net';
 
 	/**
+	 * Meta key for the Stripe legacy fee amount.
+	 *
+	 * @var string
+	 */
+	const LEGACY_META_STRIPE_FEE = 'Stripe Fee';
+
+	/**
+	 * Meta key for the Stripe legacy net amount.
+	 *
+	 * @var string
+	 */
+	const LEGACY_META_STRIPE_NET = 'Net Revenue From Stripe';
+
+	/**
 	 * Meta key for the Stripe currency.
 	 *
 	 * @var string

@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\WooCommerce\Enums\OrderStatus;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -12,8 +10,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const SETTINGS_OPTION      = 'woocommerce_stripe_settings';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
+
+	/**
+	 * Meta key for the Stripe legacy fee amount.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Metas::META_STRIPE_FEE instead.
+	 */
 	const LEGACY_META_NAME_FEE = 'Stripe Fee';
+
+	/**
+	 * Meta key for the Stripe legacy net amount.
+	 *
+	 * @var string
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Metas::META_STRIPE_NET instead.
+	 */
 	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
@@ -96,30 +110,28 @@ class WC_Stripe_Helper {
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @return string $currency
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_stripe_currency() instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		return $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, true );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_stripe_currency()' );
+		return WC_Stripe_Order_Helper::get_stripe_currency( $order );
 	}
 
 	/**
 	 * Updates the Stripe currency for order.
 	 *
 	 * @since 4.1.0
-	 * @param object $order
+	 * @param WC_Order $order
 	 * @param string $currency
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::update_stripe_currency() instead.
 	 */
 	public static function update_stripe_currency( $order, $currency ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, $currency );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::update_stripe_currency()' );
+		WC_Stripe_Order_Helper::update_stripe_currency( $order, $currency );
 	}
 
 	/**
@@ -128,25 +140,12 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_stripe_fee() instead.
 	 */
 	public static function get_stripe_fee( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_FEE, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				self::update_stripe_fee( $order, $amount );
-			}
-		}
-
-		return $amount;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_stripe_fee()' );
+		return WC_Stripe_Order_Helper::get_stripe_fee( $order );
 	}
 
 	/**
@@ -155,13 +154,12 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::update_stripe_fee() instead.
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_FEE, $amount );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::update_stripe_fee()' );
+		return WC_Stripe_Order_Helper::update_stripe_fee( $order, $amount );
 	}
 
 	/**
@@ -169,14 +167,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::delete_stripe_fee() instead.
 	 */
 	public static function delete_stripe_fee( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_FEE );
-		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::delete_stripe_fee()' );
+		return WC_Stripe_Order_Helper::delete_stripe_fee( $order );
 	}
 
 	/**
@@ -185,25 +181,12 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $amount
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_stripe_net() instead.
 	 */
 	public static function get_stripe_net( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_NET, true );
-
-		// If not found let's check for legacy name.
-		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
-
-			// If found update to new name.
-			if ( $amount ) {
-				self::update_stripe_net( $order, $amount );
-			}
-		}
-
-		return $amount;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_stripe_net()' );
+		return WC_Stripe_Order_Helper::get_stripe_net( $order );
 	}
 
 	/**
@@ -212,13 +195,12 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @param float  $amount
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::update_stripe_net() instead.
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_NET, $amount );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::update_stripe_net()' );
+		return WC_Stripe_Order_Helper::update_stripe_net( $order, $amount );
 	}
 
 	/**
@@ -226,14 +208,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::delete_stripe_net() instead.
 	 */
 	public static function delete_stripe_net( $order = null ) {
-		if ( is_null( $order ) ) {
-			return false;
-		}
-
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_NET );
-		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::delete_stripe_net()' );
+		return WC_Stripe_Order_Helper::delete_stripe_net( $order );
 	}
 
 	/**
@@ -899,32 +879,12 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $source_id
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_order_by_source_id() instead.
 	 */
 	public static function get_order_by_source_id( $source_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID,
-							'value' => $source_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_order_by_source_id()' );
+		return WC_Stripe_Order_Helper::get_order_by_source_id( $source_id );
 	}
 
 	/**
@@ -933,31 +893,12 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_order_by_charge_id() instead.
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
-		global $wpdb;
-
-		if ( empty( $charge_id ) ) {
-			return false;
-		}
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
-				[
-					'transaction_id' => $charge_id,
-					'limit'          => 1,
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, WC_Stripe_Order_Metas::META_STRIPE_CHARGE_ID ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_order_by_charge_id()' );
+		return WC_Stripe_Order_Helper::get_order_by_charge_id( $charge_id );
 	}
 
 	/**
@@ -965,32 +906,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 7.5.0
 	 * @param string $refund_id
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_order_by_refund_id() instead.
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID,
-							'value' => $refund_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_order_by_refund_id()' );
+		return WC_Stripe_Order_Helper::get_order_by_refund_id( $refund_id );
 	}
 
 	/**
@@ -999,36 +920,12 @@ class WC_Stripe_Helper {
 	 * @since 4.2
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_order_by_intent_id() instead.
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID,
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			$order = wc_get_order( $order_id );
-		}
-
-		if ( ! empty( $order ) && $order->get_status() !== OrderStatus::TRASH ) {
-			return $order;
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_order_by_intent_id()' );
+		return WC_Stripe_Order_Helper::get_order_by_intent_id( $intent_id );
 	}
 
 	/**
@@ -1037,32 +934,12 @@ class WC_Stripe_Helper {
 	 * @since 4.3
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::get_order_by_setup_intent_id() instead.
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
-		global $wpdb;
-
-		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
-			$orders   = wc_get_orders(
-				[
-					'limit'      => 1,
-					'meta_query' => [
-						[
-							'key'   => WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT,
-							'value' => $intent_id,
-						],
-					],
-				]
-			);
-			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
-		} else {
-			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT ) );
-		}
-
-		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
-		}
-
-		return false;
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::get_order_by_setup_intent_id()' );
+		return WC_Stripe_Order_Helper::get_order_by_setup_intent_id( $intent_id );
 	}
 
 	/**
@@ -1298,25 +1175,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $payment_intent_id
 	 * @param $order
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::add_payment_intent_to_order() instead.
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-
-		$old_intent_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID );
-
-		if ( $old_intent_id === $payment_intent_id ) {
-			return;
-		}
-
-		$order->add_order_note(
-			sprintf(
-			/* translators: $1%s payment intent ID */
-				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-				$payment_intent_id
-			)
-		);
-
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID, $payment_intent_id );
-		$order->save();
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::add_payment_intent_to_order()' );
+		WC_Stripe_Order_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 	}
 
 	/**
@@ -1451,13 +1315,12 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after adding the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::set_payment_awaiting_action() instead.
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
-
-		if ( $save ) {
-			$order->save();
-		}
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::set_payment_awaiting_action()' );
+		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order, $save );
 	}
 
 	/**
@@ -1467,13 +1330,12 @@ class WC_Stripe_Helper {
 	 * @param bool     $save  Whether to save the order after removing the metadata.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Order_Helper::remove_payment_awaiting_action() instead.
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION );
-
-		if ( $save ) {
-			$order->save();
-		}
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Order_Helper::remove_payment_awaiting_action()' );
+		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order, $save );
 	}
 
 	/**
