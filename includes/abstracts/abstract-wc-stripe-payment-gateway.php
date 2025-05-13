@@ -329,8 +329,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
+		delete_user_option( $order->get_customer_id(), WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 		$order->save();
 
 		return true;
@@ -410,10 +410,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_stripe_customer_id( $order ) {
 		// Try to get it via the order first.
-		$customer = $order->get_meta( '_stripe_customer_id', true );
+		$customer = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, true );
 
 		if ( empty( $customer ) ) {
-			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
+			$customer = get_user_option( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $order->get_customer_id() );
 		}
 
 		return $customer;
@@ -554,7 +554,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
-		$order->update_meta_data( '_stripe_charge_captured', $captured );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, $captured );
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
@@ -564,9 +564,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The mandate ID is not available for the intent object, so we need to fetch the charge.
 		// Mandate ID is necessary for renewal payments for certain payment methods and Indian cards.
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $response->payment_method_details->card->mandate );
 		} elseif ( isset( $response->payment_method_details->acss_debit->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->acss_debit->mandate );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $response->payment_method_details->acss_debit->mandate );
 		}
 
 		if ( isset( $response->payment_method, $response->payment_method_details ) ) {
@@ -979,14 +979,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = $order->get_meta( '_stripe_source_id', true );
+			$source_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, true );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
 				$source_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$order->update_meta_data( '_stripe_source_id', $source_id );
+				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $source_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
@@ -1039,11 +1039,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function save_source_to_order( $order, $source ) {
 		// Store source in the order.
 		if ( $source->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $source->customer );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $source->customer );
 		}
 
 		if ( $source->source ) {
-			$order->update_meta_data( '_stripe_source_id', $source->source );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $source->source );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1116,7 +1116,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		$order_currency = $order->get_currency();
-		$captured       = $order->get_meta( '_stripe_charge_captured', true );
+		$captured       = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, true );
 		$charge_id      = $order->get_transaction_id();
 
 		if ( ! $charge_id ) {
@@ -1234,7 +1234,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 
-			$order->update_meta_data( '_stripe_refund_id', $response->id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID, $response->id );
 
 			if ( isset( $response->balance_transaction ) ) {
 				$this->update_fees( $order, $response->balance_transaction );
@@ -1644,16 +1644,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
+				$order->update_meta_data(  WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $charge->payment_method_details->card->mandate );
 			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->acss_debit->mandate );
+				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+			$order->update_meta_data(  WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT, $intent->id );
 
 			// Add mandate for free trial subscriptions.
 			if ( isset( $intent->mandate ) ) {
-				$order->update_meta_data( '_stripe_mandate_id', $intent->mandate );
+				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $intent->mandate );
 			}
 		}
 
@@ -1670,14 +1670,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return obect|bool     Either the intent object or `false`.
 	 */
 	public function get_intent_from_order( $order ) {
-		$intent_id = $order->get_meta( '_stripe_intent_id' );
+		$intent_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID );
 
 		if ( $intent_id ) {
 			return $this->get_intent( 'payment_intents', $intent_id );
 		}
 
 		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		$intent_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT );
 
 		if ( $intent_id ) {
 			return $this->get_intent( 'setup_intents', $intent_id );
@@ -1722,7 +1722,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function lock_order_payment( $order, $intent = null ) {
 		$order->read_meta_data( true );
 
-		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
+		$existing_lock = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_LOCK_PAYMENT, true );
 
 		if ( $existing_lock ) {
 			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
@@ -1737,7 +1737,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
 
-		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_LOCK_PAYMENT, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1750,7 +1750,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_LOCK_PAYMENT );
 		$order->save_meta_data();
 	}
 
@@ -1764,7 +1764,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function lock_order_refund( $order ) {
 		$order->read_meta_data( true );
 
-		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+		$existing_lock = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_LOCK_REFUND, true );
 
 		if ( $existing_lock ) {
 			$expiration = (int) $existing_lock;
@@ -1777,7 +1777,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
 
-		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_LOCK_REFUND, $new_lock );
 		$order->save_meta_data();
 
 		return false;
@@ -1790,7 +1790,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_refund( $order ) {
-		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_LOCK_REFUND );
 		$order->save_meta_data();
 	}
 
@@ -1834,7 +1834,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_wp_error( $setup_intent ) ) {
 			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
 		} elseif ( WC_Stripe_Intent_Status::REQUIRES_ACTION === $setup_intent->status ) {
-			$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT, $setup_intent->id );
 			$order->save();
 
 			return $setup_intent->client_secret;
@@ -1884,7 +1884,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Add mandate if it exists.
-		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		$mandate = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, true );
 		if ( ! empty( $mandate ) ) {
 			$request['mandate'] = $mandate;
 		}
@@ -2268,7 +2268,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string The status of the order before it was put on hold.
 	 */
 	protected function get_stripe_order_status_before_hold( $order ) {
-		$before_hold_status = $order->get_meta( '_stripe_status_before_hold' );
+		$before_hold_status = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_STATUS_BEFORE_HOLD );
 
 		if ( ! empty( $before_hold_status ) ) {
 			return $before_hold_status;
@@ -2294,7 +2294,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
 		}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $status );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_STATUS_BEFORE_HOLD, $status );
 	}
 
 	/**

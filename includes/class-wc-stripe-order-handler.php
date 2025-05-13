@@ -60,7 +60,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		// Bail if the order is already captured or if manual capture is disabled.
-		if ( 'yes' === $order->get_meta( '_stripe_charge_captured', true ) || $gateway->is_automatic_capture_enabled() ) {
+		if ( 'yes' === $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, true ) || $gateway->is_automatic_capture_enabled() ) {
 			return;
 		}
 
@@ -167,8 +167,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $response->error ) ) {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( $this->is_no_such_customer_error( $response->error ) ) {
-					delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-					$order->delete_meta_data( '_stripe_customer_id' );
+					delete_user_option( $order->get_customer_id(), WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
+					$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 					$order->save();
 				}
 
@@ -288,7 +288,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
 			$charge             = $order->get_transaction_id();
-			$captured           = $order->get_meta( '_stripe_charge_captured', true );
+			$captured           = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, true );
 			$is_stripe_captured = false;
 
 			if ( $charge && 'no' === $captured ) {
@@ -361,7 +361,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_stripe_captured ) {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-					$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+					$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, 'yes' );
 
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
@@ -395,7 +395,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
-			$captured = $order->get_meta( '_stripe_charge_captured', true );
+			$captured = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_CAPTURED, true );
 
 			if ( 'no' === $captured ) {
 				// To cancel a pre-auth, we need to refund the charge.

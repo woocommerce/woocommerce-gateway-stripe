@@ -260,7 +260,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $response->id );
 			$order->save();
 
 			WC_Stripe_Logger::log( 'Info: Redirecting to giropay...' );

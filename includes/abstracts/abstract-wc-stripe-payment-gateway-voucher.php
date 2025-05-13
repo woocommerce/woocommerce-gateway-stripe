@@ -264,7 +264,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_UPE_PAYMENT_TYPE, $this->stripe_id );
 			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
@@ -386,7 +386,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			$intent = $this->create_or_update_payment_intent( $order );
 
 			$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_UPE_PAYMENT_TYPE, $this->stripe_id );
 			$order->save();
 
 			wp_send_json(

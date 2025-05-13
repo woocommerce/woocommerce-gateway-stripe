@@ -719,7 +719,7 @@ class WC_Stripe_Customer {
 	 * @return string|bool  Either the Stripe ID or false.
 	 */
 	public function get_id_from_meta( $user_id ) {
-		return get_user_option( '_stripe_customer_id', $user_id );
+		return get_user_option( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $user_id );
 	}
 
 	/**
@@ -728,14 +728,14 @@ class WC_Stripe_Customer {
 	 * @param string $id The Stripe customer ID.
 	 */
 	public function update_id_in_meta( $id ) {
-		update_user_option( $this->get_user_id(), '_stripe_customer_id', $id, false );
+		update_user_option( $this->get_user_id(), WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $id, false );
 	}
 
 	/**
 	 * Deletes the user ID from the meta table with the right key.
 	 */
 	public function delete_id_from_meta() {
-		delete_user_option( $this->get_user_id(), '_stripe_customer_id', false );
+		delete_user_option( $this->get_user_id(), WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, false );
 	}
 
 	/**

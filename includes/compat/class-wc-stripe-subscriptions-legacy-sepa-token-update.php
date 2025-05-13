@@ -37,7 +37,7 @@ class WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update {
 	 *
 	 * @var string
 	 */
-	const SOURCE_ID_META_KEY = '_stripe_source_id';
+	const SOURCE_ID_META_KEY = WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID;
 
 	/**
 	 * Gateway ID for the Updated SEPA payment method.

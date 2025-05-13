@@ -248,7 +248,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( $order );
 		}
 
-		$data = $order->get_meta( '_stripe_multibanco' );
+		$data = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_MULTIBANCO );
 
 		if ( $plain_text ) {
 			esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ) . "\n\n";
@@ -299,7 +299,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		$order->update_meta_data( '_stripe_multibanco', $data );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MULTIBANCO, $data );
 	}
 
 	/**
@@ -364,7 +364,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 				throw new Exception( $response->error->message );
 			}
 
-			$order->update_meta_data( '_stripe_source_id', $response->id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $response->id );
 			$order->save();
 
 			$this->save_instructions( $order, $response );
