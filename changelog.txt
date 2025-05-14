@@ -29,7 +29,7 @@
 * Fix - Fix invalid IP address error encountered during mandate data creation.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
-* Add - Show an icon beside the payment methods that supports automattic recurring payments.
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
 
 = 9.4.1 - 2025-04-17 =
 * Dev - Forces rollback of version 9.4.0.

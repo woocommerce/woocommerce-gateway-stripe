@@ -181,7 +181,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
-* Add - Show an icon beside the payment methods that supports automattic recurring payments.
-
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
