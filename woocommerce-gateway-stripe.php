@@ -203,6 +203,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-payment-method-configurations.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
+				include_once __DIR__ . '/includes/class-wc-stripe-page-helper.php';
 				require_once __DIR__ . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
 				require_once __DIR__ . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once __DIR__ . '/includes/compat/trait-wc-stripe-subscriptions.php';

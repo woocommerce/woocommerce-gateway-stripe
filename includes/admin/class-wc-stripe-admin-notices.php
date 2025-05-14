@@ -200,10 +200,7 @@ class WC_Stripe_Admin_Notices {
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
 			// Check if Stripe is in test mode.
 			if ( $testmode ) {
-				// phpcs:ignore
-				$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
-
-				if ( $is_stripe_settings_page ) {
+				if ( WC_Stripe_Page_Helper::is_admin_settings() ) {
 					$testmode_notice_message = sprintf(
 						/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
 						__( '%1$sTest mode active:%2$s All transactions are simulated. Customers can\'t make real purchases through Stripe.', 'woocommerce-gateway-stripe' ),
@@ -271,7 +268,7 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $show_keys_notice ) ) {
 				$secret = WC_Stripe_API::get_secret_key();
 				// phpcs:ignore
-				$should_show_notice_on_page = ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' ) );
+				$should_show_notice_on_page = ! WC_Stripe_Page_Helper::is_admin_settings();
 
 				if ( empty( $secret ) && $should_show_notice_on_page ) {
 					$setting_link = $this->get_setting_link();
@@ -398,7 +395,7 @@ class WC_Stripe_Admin_Notices {
 		$payment_methods = $this->get_payment_methods();
 
 		// phpcs:ignore
-		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
+		$is_stripe_settings_page = WC_Stripe_Page_Helper::is_admin_settings();
 		$currency_messages       = '';
 
 		foreach ( $payment_methods as $method => $class ) {

@@ -249,7 +249,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->statement_descriptor          = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] && isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Page_Helper::is_admin_settings() ) {
 			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
@@ -1446,7 +1446,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
-		if ( $this->is_payment_methods_page() || $this->is_changing_payment_method_for_subscription() ) {
+		if ( WC_Stripe_Page_Helper::is_payment_methods() || $this->is_changing_payment_method_for_subscription() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
 					$user_id  = wp_get_current_user()->ID;
@@ -2126,19 +2126,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 
 		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
-	}
-
-	/**
-	 * Returns true when viewing payment methods page.
-	 *
-	 * @return bool
-	 */
-	private function is_payment_methods_page() {
-		global $wp;
-
-		$page_id = wc_get_page_id( 'myaccount' );
-
-		return ( $page_id && is_page( $page_id ) && ( isset( $wp->query_vars['payment-methods'] ) ) );
 	}
 
 	/**

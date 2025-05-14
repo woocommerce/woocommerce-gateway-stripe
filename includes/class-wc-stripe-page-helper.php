@@ -135,4 +135,32 @@ class WC_Stripe_Page_Helper {
 	public static function is_change_payment_method() {
 		return isset( $_GET['change_payment_method'] ); // phpcs:ignore WordPress.Security.NonceVerification
 	}
+
+	/**
+	 * Returns true when viewing payment methods page.
+	 *
+	 * @return bool
+	 */
+	public static function is_payment_methods() {
+		global $wp;
+
+		$page_id = wc_get_page_id( 'myaccount' );
+
+		return ( $page_id && is_page( $page_id ) && ( isset( $wp->query_vars['payment-methods'] ) ) );
+	}
+
+	/**
+	 * Checks if this is the Stripe settings page.
+	 *
+	 * @return bool
+	 */
+	public static function is_admin_settings() {
+		// phpcs:disable WordPress.Security.NonceVerification
+		return is_admin()
+			&& isset( $_GET['page'], $_GET['tab'], $_GET['section'] )
+			&& 'wc-settings' === $_GET['page']
+			&& 'checkout' === $_GET['tab']
+			&& 0 === strpos( wc_clean( wp_unslash( $_GET['section'] ) ), 'stripe' );
+		// phpcs:enable WordPress.Security.NonceVerification
+	}
 }
