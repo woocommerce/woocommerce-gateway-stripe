@@ -210,7 +210,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * @since 5.8.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! parent::is_valid_pay_for_order_endpoint() && ! is_add_payment_method_page() ) {
+		if ( ! WC_Stripe_Page_Helper::is_cart_or_checkout() && ! WC_Stripe_Page_Helper::is_valid_pay_for_order() && ! is_add_payment_method_page() ) {
 			return;
 		}
 
@@ -225,7 +225,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	public function javascript_params() {
 		$stripe_params = parent::javascript_params();
 
-		if ( $this->is_valid_pay_for_order_endpoint() ) {
+		if ( WC_Stripe_Page_Helper::is_valid_pay_for_order() ) {
 			$order_id                          = absint( get_query_var( 'order-pay' ) );
 			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? wc_get_order( $order_id )->get_order_key() : null;
 		}

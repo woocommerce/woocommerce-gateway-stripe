@@ -100,7 +100,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Don't load for change payment method page.
-		if ( isset( $_GET['change_payment_method'] ) ) {
+		if ( WC_Stripe_Page_Helper::is_change_payment_method() ) {
 			return;
 		}
 
@@ -190,7 +190,7 @@ class WC_Stripe_Payment_Request {
 		// Don't set session cookies on product pages to allow for caching when payment request
 		// buttons are disabled. But keep cookies if there is already an active WC session in place.
 		if (
-			! ( $this->is_product() && $this->should_show_payment_request_button() )
+			! ( WC_Stripe_Page_Helper::is_product() && $this->should_show_payment_request_button() )
 			|| ( isset( WC()->session ) && WC()->session->has_session() )
 		) {
 			return;
@@ -391,7 +391,7 @@ class WC_Stripe_Payment_Request {
 	 * @return  mixed Returns false if not on a product page, the product information otherwise.
 	 */
 	public function get_product_data() {
-		if ( ! $this->is_product() ) {
+		if ( ! WC_Stripe_Page_Helper::is_product() ) {
 			return false;
 		}
 
@@ -724,12 +724,12 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		if ( $this->is_product() ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			$product = $this->get_product();
 			if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return true;
 			}
-		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
+		} elseif ( WC_Stripe_Page_Helper::is_cart_or_checkout() ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 				if ( WC_Subscriptions_Product::is_subscription( $_product ) ) {
@@ -746,9 +746,12 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since 5.2.0
 	 * @return boolean
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helper::is_product() instead.
 	 */
 	public function is_product() {
-		return is_product() || wc_post_content_has_shortcode( 'product_page' );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helper::is_product()' );
+		return WC_Stripe_Page_Helper::is_product();
 	}
 
 	/**
@@ -760,7 +763,7 @@ class WC_Stripe_Payment_Request {
 	public function get_product() {
 		global $post;
 
-		if ( is_product() ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			return wc_get_product( $post->ID );
 		} elseif ( wc_post_content_has_shortcode( 'product_page' ) ) {
 			// Get id from product_page shortcode.
@@ -840,7 +843,7 @@ class WC_Stripe_Payment_Request {
 			],
 			'button'             => $this->get_button_settings(),
 			'login_confirmation' => $this->get_login_confirmation_settings(),
-			'is_product_page'    => $this->is_product(),
+			'is_product_page'    => WC_Stripe_Page_Helper::is_product(),
 			'product'            => $this->get_product_data(),
 		];
 	}
@@ -889,9 +892,9 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
 	private function is_page_supported() {
-		return $this->is_product()
-			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			|| is_wc_endpoint_url( 'order-pay' );
+		return WC_Stripe_Page_Helper::is_product()
+			|| WC_Stripe_Page_Helper::is_cart_or_checkout()
+			|| WC_Stripe_Page_Helper::is_pay_for_order();
 	}
 
 	/**
@@ -943,11 +946,11 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! WC_Stripe_Page_Helper::is_checkout() && ! WC_Stripe_Page_Helper::is_pay_for_order() ) {
 			return;
 		}
 
-		if ( is_checkout() && ! in_array( 'checkout', $this->get_button_locations(), true ) ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() && ! in_array( 'checkout', $this->get_button_locations(), true ) ) {
 			return;
 		}
 		?>
@@ -1008,26 +1011,26 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! $this->should_show_prb_on_cart_page() ) {
+		if ( WC_Stripe_Page_Helper::is_cart() && ! $this->should_show_prb_on_cart_page() ) {
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_prb_on_checkout_page() ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() && ! $this->should_show_prb_on_checkout_page() ) {
 			return false;
 		}
 
 		// Don't show if product page PRB is disabled.
-		if ( $this->is_product() && ! $this->should_show_prb_on_product_pages() ) {
+		if ( WC_Stripe_Page_Helper::is_product() && ! $this->should_show_prb_on_product_pages() ) {
 			return false;
 		}
 
 		// Don't show if product on current page is not supported.
-		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+		if ( WC_Stripe_Page_Helper::is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
 			return false;
 		}
 
-		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( WC_Stripe_Page_Helper::is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {

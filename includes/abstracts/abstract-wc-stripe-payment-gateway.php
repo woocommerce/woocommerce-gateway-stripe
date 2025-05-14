@@ -1946,62 +1946,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Checks if the current page is the pay for order page and the current user is allowed to pay for the order.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helper::is_valid_pay_for_order_endpoint() instead.
 	 */
 	public function is_valid_pay_for_order_endpoint(): bool {
-
-		// If not on the pay for order page, return false.
-		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['key'] ) ) {
-			return false;
-		}
-
-		$order_id = absint( get_query_var( 'order-pay' ) );
-		$order    = wc_get_order( $order_id );
-
-		// If the order is not found or the param `key` is not set or the order key does not match the order key in the URL param, return false.
-		if ( ! $order || ! isset( $_GET['key'] ) || wc_clean( wp_unslash( $_GET['key'] ) ) !== $order->get_order_key() ) {
-			return false;
-		}
-
-		// If the order doesn't need payment, we don't need to prepare the payment page.
-		if ( ! $order->needs_payment() ) {
-			return false;
-		}
-
-		return current_user_can( 'pay_for_order', $order->get_id() );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helper::is_valid_pay_for_order_endpoint()' );
+		return WC_Stripe_Page_Helper::is_valid_pay_for_order();
 	}
 
 	/**
 	 * Checks if the current page is the order received page and the current user is allowed to manage the order.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helper::is_valid_order_received_endpoint() instead.
 	 */
 	public function is_valid_order_received_endpoint(): bool {
-		// Verify nonce. Duplicated here in order to avoid PHPCS warnings.
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'wc_stripe_process_redirect_order_nonce' ) ) {
-			return false;
-		}
-
-		// If not on the order-received page, return false.
-		if ( ! is_wc_endpoint_url( 'order-received' ) || ! isset( $_GET['key'] ) ) {
-			return false;
-		}
-
-		$order_id_from_order_key = absint( wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) ) );
-		$order_id_from_query_var = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : null;
-
-		// If the order ID is not found or the order ID does not match the given order ID, return false.
-		if ( ! $order_id_from_order_key || ( $order_id_from_query_var !== $order_id_from_order_key ) ) {
-			return false;
-		}
-
-		$order = wc_get_order( $order_id_from_order_key );
-
-		// If the order doesn't need payment, return false.
-		if ( ! $order->needs_payment() ) {
-			return false;
-		}
-
-		return current_user_can( 'pay_for_order', $order->get_id() );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helper::is_valid_order_received_endpoint()' );
+		return WC_Stripe_Page_Helper::is_valid_order_received();
 	}
 
 	/**
@@ -2050,22 +2012,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ( ! is_product()
-				&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-				&& ! $this->is_valid_pay_for_order_endpoint()
+		if ( ( ! WC_Stripe_Page_Helper::is_product()
+				&& ! WC_Stripe_Page_Helper::is_cart_or_checkout()
+				&& ! WC_Stripe_Page_Helper::is_valid_pay_for_order()
 				&& ! is_add_payment_method_page()
-				&& ! isset( $_GET['change_payment_method'] ) // phpcs:ignore WordPress.Security.NonceVerification
+				&& ! WC_Stripe_Page_Helper::is_change_payment_method()
 				&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() ) // @phpstan-ignore-line (Class WCS_Early_Renewal_Manager is checked already)
-			) || ( is_order_received_page() )
+			) || WC_Stripe_Page_Helper::is_order_received()
 		) {
 			return;
 		}
 
-		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
+		if ( WC_Stripe_Page_Helper::is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
 			return;
 		}
 
-		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
+		if ( WC_Stripe_Page_Helper::is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
 			return;
 		}
 
@@ -2150,7 +2112,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
+		if ( WC_Stripe_Page_Helper::is_valid_pay_for_order() || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
@@ -2183,7 +2145,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params['sepa_mandate_notification']   = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
 		$stripe_params['allow_prepaid_card']          = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['inline_cc_form']              = ( isset( $this->inline_cc_form ) && $this->inline_cc_form ) ? 'yes' : 'no';
-		$stripe_params['is_checkout']                 = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['is_checkout']                 = ( WC_Stripe_Page_Helper::is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
 		$stripe_params['return_url']                  = $this->get_stripe_return_url();
 		$stripe_params['ajaxurl']                     = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                = wp_create_nonce( '_wc_stripe_nonce' );
@@ -2191,9 +2153,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params['elements_options']            = apply_filters( 'wc_stripe_elements_options', [] );
 		$stripe_params['sepa_elements_options']       = $sepa_elements_options;
 		$stripe_params['invalid_owner_name']          = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
-		$stripe_params['is_change_payment_page']      = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['is_change_payment_page']      = WC_Stripe_Page_Helper::is_change_payment_method();
 		$stripe_params['is_add_payment_page']         = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
-		$stripe_params['is_pay_for_order_page']       = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
+		$stripe_params['is_pay_for_order_page']       = WC_Stripe_Page_Helper::is_pay_for_order() ? 'yes' : 'no';
 		$stripe_params['elements_styling']            = apply_filters( 'wc_stripe_elements_styling', false );
 		$stripe_params['elements_classes']            = apply_filters( 'wc_stripe_elements_classes', false );
 		$stripe_params['add_card_nonce']              = wp_create_nonce( 'wc_stripe_create_si' );

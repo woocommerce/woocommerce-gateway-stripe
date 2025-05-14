@@ -50,8 +50,8 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @return bool
 	 */
 	public function is_changing_payment_method_for_subscription() {
-		if ( isset( $_GET['change_payment_method'] ) && function_exists( 'wcs_is_subscription' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return wcs_is_subscription( wc_clean( wp_unslash( $_GET['change_payment_method'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification
+		if ( WC_Stripe_Page_Helper::is_change_payment_method() && function_exists( 'wcs_is_subscription' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return wcs_is_subscription( wc_clean( wp_unslash( $_GET['change_payment_method'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput.InputNotValidated
 		}
 		return false;
 	}

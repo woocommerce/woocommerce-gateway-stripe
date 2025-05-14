@@ -286,7 +286,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$current_store_currency = $this->get_woocommerce_currency();
 		$currencies             = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) ) {
-			if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+			if ( WC_Stripe_Page_Helper::is_pay_for_order( true ) ) {
 				$order          = wc_get_order( $order_id ? $order_id : absint( get_query_var( 'order-pay' ) ) );
 				$order_currency = $order->get_currency();
 				if ( ! in_array( $order_currency, $currencies, true ) ) {
@@ -621,7 +621,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->is_reusable() && is_checkout();
+			$display_tokenization = $this->is_reusable() && WC_Stripe_Page_Helper::is_checkout();
 
 			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
 				<p class="testmode-info"><?php echo wp_kses_post( $this->get_testing_instructions() ); ?></p>
@@ -703,7 +703,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return float|int|string
 	 */
 	public function get_current_order_amount() {
-		if ( is_wc_endpoint_url( 'order-pay' ) && isset( $_GET['key'] ) ) {
+		if ( WC_Stripe_Page_Helper::is_pay_for_order( true ) ) {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 			return $order->get_total( '' );
 		} elseif ( WC()->cart ) {

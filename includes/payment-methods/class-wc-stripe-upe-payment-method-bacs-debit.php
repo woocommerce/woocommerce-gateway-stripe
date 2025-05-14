@@ -134,7 +134,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool True if Bacs should be hidden, false otherwise.
 	 */
 	public function should_hide_bacs_for_pre_orders_charge_upon_release() {
-		if ( is_checkout() && class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() && class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() ) {
 			$cart = WC()->cart->get_cart();
 			// Iteration is unnecessary since only one pre-order product can be in the cart.
 			$product_id = reset( $cart )['product_id'];
@@ -155,7 +155,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 */
 	public function should_hide_bacs_for_subscriptions_with_free_trials() {
 		$is_update_order_review_ajax_request = defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['wc-ajax'] ) && 'update_order_review' === $_REQUEST['wc-ajax'];
-		if ( is_checkout() || $is_update_order_review_ajax_request ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() || $is_update_order_review_ajax_request ) {
 			// Checking if the amount is zero allows us to process orders that include subscriptions with a free trial,
 			// as long as another product increases the total amount, ensuring compatibility with Bacs.
 			if ( class_exists( 'WC_Subscriptions_Cart' ) && WC_Subscriptions_Cart::cart_contains_free_trial() && (float) WC()->cart->total === 0.00 ) {

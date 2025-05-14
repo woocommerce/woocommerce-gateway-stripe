@@ -397,18 +397,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function payment_scripts() {
 		if (
-			! is_product()
-			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			&& ! parent::is_valid_pay_for_order_endpoint()
+			! WC_Stripe_Page_Helper::is_product()
+			&& ! WC_Stripe_Page_Helper::is_cart_or_checkout()
+			&& ! WC_Stripe_Page_Helper::is_valid_pay_for_order()
 			&& ! is_add_payment_method_page() ) {
 			return;
 		}
 
-		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
+		if ( WC_Stripe_Page_Helper::is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
 			return;
 		}
 
-		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
+		if ( WC_Stripe_Page_Helper::is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
 			return;
 		}
 
@@ -497,7 +497,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 
-		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
+		$stripe_params['isCheckout']                       = WC_Stripe_Page_Helper::is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['theme_name']                       = get_option( 'stylesheet' );
@@ -553,7 +553,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
 		$stripe_params['currency']  = $currency;
 
-		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+		if ( WC_Stripe_Page_Helper::is_valid_pay_for_order() || $is_change_payment_method ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
@@ -772,7 +772,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function payment_fields() {
 		try {
-			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+			$display_tokenization = $this->supports( 'tokenization' ) && WC_Stripe_Page_Helper::is_checkout() && $this->saved_cards;
 
 			// Output the form HTML.
 			?>
@@ -1486,7 +1486,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( ! parent::is_valid_order_received_endpoint() ) {
+		if ( ! WC_Stripe_Page_Helper::is_valid_order_received() ) {
 			return;
 		}
 
@@ -1795,7 +1795,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether a payment is necessary.
 	 */
 	public function is_payment_needed( $order_id = null ) {
-		$is_pay_for_order_page = parent::is_valid_pay_for_order_endpoint();
+		$is_pay_for_order_page = WC_Stripe_Page_Helper::is_valid_pay_for_order();
 
 		// Check if the cart contains a pre-order product. Ignore the cart if we're on the Pay for Order page.
 		if ( $this->is_pre_order_item_in_cart() && ! $is_pay_for_order_page ) {
@@ -2958,7 +2958,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'wc_payment_method'   => self::ID,
 						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
 						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
-						'pay_for_order'       => parent::is_valid_pay_for_order_endpoint() ? 'yes' : 'no',
+						'pay_for_order'       => WC_Stripe_Page_Helper::is_valid_pay_for_order() ? 'yes' : 'no',
 					],
 					$this->get_return_url( $order )
 				)
@@ -3258,7 +3258,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$methods_with_delayed_confirmation = [
 			WC_Stripe_Payment_Methods::BACS_DEBIT_LABEL,
 		];
-		if ( is_order_received_page() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
+		if ( WC_Stripe_Page_Helper::is_order_received() && in_array( $order->get_payment_method_title(), $methods_with_delayed_confirmation, true ) && $order->has_status( OrderStatus::PENDING ) ) {
 			unset( $actions['pay'], $actions['cancel'] );
 		}
 		return $actions;

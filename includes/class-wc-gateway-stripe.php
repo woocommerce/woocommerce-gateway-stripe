@@ -214,7 +214,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		global $wp;
 		$user                 = wp_get_current_user();
-		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		$display_tokenization = $this->supports( 'tokenization' ) && WC_Stripe_Page_Helper::is_checkout() && $this->saved_cards;
 		$user_email           = '';
 		$description          = $this->get_description();
 		$description          = ! empty( $description ) ? $description : '';
@@ -222,7 +222,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$lastname             = '';
 
 		// If paying for order, we need to get email from the order not the user account.
-		if ( parent::is_valid_pay_for_order_endpoint() ) {
+		if ( WC_Stripe_Page_Helper::is_valid_pay_for_order() ) {
 			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
 		} elseif ( $user->ID ) {
@@ -260,8 +260,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$this->elements_form();
 
-		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
-
+		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! WC_Stripe_Page_Helper::is_change_payment_method() ) {
 			$this->save_payment_method_checkbox();
 		}
 
@@ -488,7 +487,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
 					WC_Stripe_Helper::set_payment_awaiting_action( $order );
 
-					if ( is_wc_endpoint_url( 'order-pay' ) ) {
+					if ( WC_Stripe_Page_Helper::is_pay_for_order() ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 
 						return [
@@ -659,7 +658,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return WC_Payment_Gateway[]          Either the same list or an empty one in the right conditions.
 	 */
 	public function prepare_order_pay_page( $gateways ) {
-		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['wc-stripe-confirmation'] ) ) { // wpcs: csrf ok.
+		if ( ! WC_Stripe_Page_Helper::is_pay_for_order() || ! isset( $_GET['wc-stripe-confirmation'] ) ) { // wpcs: csrf ok.
 			return $gateways;
 		}
 

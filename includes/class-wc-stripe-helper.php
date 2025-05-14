@@ -1181,8 +1181,11 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 5.2.3
 	 * @return boolean
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helper::is_cart_or_checkout() instead
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helper::is_cart_or_checkout()' );
 		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
 	}
 

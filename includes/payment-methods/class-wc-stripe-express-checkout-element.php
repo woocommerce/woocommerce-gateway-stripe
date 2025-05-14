@@ -84,7 +84,7 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		// Don't load for change payment method page.
-		if ( isset( $_GET['change_payment_method'] ) ) {
+		if ( WC_Stripe_Page_Helper::is_change_payment_method() ) {
 			return;
 		}
 
@@ -131,7 +131,7 @@ class WC_Stripe_Express_Checkout_Element {
 		// Don't set session cookies on product pages to allow for caching when payment request
 		// buttons are disabled. But keep cookies if there is already an active WC session in place.
 		if (
-			! ( $this->express_checkout_helper->is_product() && $this->express_checkout_helper->should_show_express_checkout_button() )
+			! ( WC_Stripe_Page_Helper::is_product() && $this->express_checkout_helper->should_show_express_checkout_button() )
 			|| ( isset( WC()->session ) && WC()->session->has_session() )
 		) {
 			return;
@@ -213,13 +213,13 @@ class WC_Stripe_Express_Checkout_Element {
 			],
 			'checkout'               => $this->express_checkout_helper->get_checkout_data(),
 			'button'                 => $this->express_checkout_helper->get_button_settings(),
-			'is_pay_for_order'       => $this->express_checkout_helper->is_pay_for_order_page(),
+			'is_pay_for_order'       => WC_Stripe_Page_Helper::is_pay_for_order(),
 			'has_block'              => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
 			'login_confirmation'     => $this->express_checkout_helper->get_login_confirmation_settings(),
-			'is_product_page'        => $this->express_checkout_helper->is_product(),
-			'is_checkout_page'       => $this->express_checkout_helper->is_checkout(),
+			'is_product_page'        => WC_Stripe_Page_Helper::is_product(),
+			'is_checkout_page'       => WC_Stripe_Page_Helper::is_checkout(),
 			'product'                => $this->express_checkout_helper->get_product_data(),
-			'is_cart_page'           => is_cart(),
+			'is_cart_page'           => WC_Stripe_Page_Helper::is_cart(),
 			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 		];
 	}
@@ -493,11 +493,11 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! WC_Stripe_Page_Helper::is_checkout() && ! WC_Stripe_Page_Helper::is_pay_for_order() ) {
 			return;
 		}
 
-		if ( is_checkout() && ! in_array( 'checkout', $this->express_checkout_helper->get_button_locations(), true ) ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() && ! in_array( 'checkout', $this->express_checkout_helper->get_button_locations(), true ) ) {
 			return;
 		}
 

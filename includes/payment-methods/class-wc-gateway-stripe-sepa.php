@@ -166,7 +166,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Outputs scripts used for stripe payment
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! parent::is_valid_pay_for_order_endpoint() && ! is_add_payment_method_page() ) {
+		if ( ! WC_Stripe_Page_Helper::is_cart_or_checkout() && ! WC_Stripe_Page_Helper::is_valid_pay_for_order() && ! is_add_payment_method_page() ) {
 			return;
 		}
 
@@ -227,12 +227,12 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		global $wp;
 		$total                = WC()->cart->total;
-		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		$display_tokenization = $this->supports( 'tokenization' ) && WC_Stripe_Page_Helper::is_checkout() && $this->saved_cards;
 		$description          = $this->get_description();
 		$description          = ! empty( $description ) ? $description : '';
 
 		// If paying from order, we need to get total from order not cart.
-		if ( parent::is_valid_pay_for_order_endpoint() ) {
+		if ( WC_Stripe_Page_Helper::is_valid_pay_for_order() ) {
 			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
@@ -261,7 +261,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		$this->form();
 
-		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
+		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! WC_Stripe_Page_Helper::is_change_payment_method() ) {
 			$this->save_payment_method_checkbox();
 		}
 

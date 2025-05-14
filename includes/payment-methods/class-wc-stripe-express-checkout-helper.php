@@ -214,7 +214,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  mixed Returns false if not on a product page, the product information otherwise.
 	 */
 	public function get_product_data() {
-		if ( ! $this->is_product() ) {
+		if ( ! WC_Stripe_Page_Helper::is_product() ) {
 			return false;
 		}
 
@@ -515,7 +515,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $this->is_product() ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			$product = $this->get_product();
 			if ( ! $product ) {
 				return false;
@@ -523,7 +523,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return true;
 			}
-		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
+		} elseif ( WC_Stripe_Page_Helper::is_cart_or_checkout() ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 				if ( WC_Subscriptions_Product::is_subscription( $_product ) ) {
@@ -539,9 +539,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Checks if this is a product page or content contains a product_page shortcode.
 	 *
 	 * @return boolean
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helper::is_product() instead.
 	 */
 	public function is_product() {
-		return is_product() || wc_post_content_has_shortcode( 'product_page' );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helper::is_product()' );
+		return WC_Stripe_Page_Helper::is_product();
 	}
 
 	/**
@@ -552,9 +555,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	public function get_product() {
 		global $post;
 
-		if ( is_product() ) {
-			return wc_get_product( $post->ID );
-		} elseif ( wc_post_content_has_shortcode( 'product_page' ) ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			// Get id from product_page shortcode.
 			preg_match( '/\[product_page id="(?<id>\d+)"\]/', $post->post_content, $shortcode_match );
 
@@ -574,9 +575,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
 	public function is_page_supported() {
-		return $this->is_product()
-			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			|| is_wc_endpoint_url( 'order-pay' );
+		return WC_Stripe_Page_Helper::is_product()
+			|| WC_Stripe_Page_Helper::is_cart_or_checkout()
+			|| WC_Stripe_Page_Helper::is_pay_for_order();
 	}
 
 	/**
@@ -616,18 +617,18 @@ class WC_Stripe_Express_Checkout_Helper {
 		}
 
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! $this->should_show_ece_on_cart_page() ) {
+		if ( WC_Stripe_Page_Helper::is_cart() && ! $this->should_show_ece_on_cart_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on cart is disabled. ' );
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
+		if ( WC_Stripe_Page_Helper::is_checkout() && ! $this->should_show_ece_on_checkout_page() ) {
 			WC_Stripe_Logger::log( 'Stripe Express Checkout buttons display on checkout is disabled. ' );
 			return false;
 		}
 
-		$is_product = $this->is_product();
+		$is_product = WC_Stripe_Page_Helper::is_product();
 
 		// Don't show if product page ECE is disabled.
 		if ( $is_product && ! $this->should_show_ece_on_product_pages() ) {
@@ -698,7 +699,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	private function should_hide_ece_based_on_tax_setup() {
 		// We do not need to hide if on the Pay for Order page, as we expect the taxes to
 		// be manually inputted when the merchant creates the order.
-		if ( $this->is_pay_for_order_page() ) {
+		if ( WC_Stripe_Page_Helper::is_pay_for_order() ) {
 			return false;
 		}
 
@@ -720,7 +721,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function is_product_or_cart_taxable() {
 		// Product page: check the product's tax status.
-		if ( is_product() ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			$product = $this->get_product();
 			if ( ! $product ) {
 				return false;
@@ -758,7 +759,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	private function product_or_cart_needs_shipping() {
 		// Product page.
-		if ( is_product() ) {
+		if ( WC_Stripe_Page_Helper::is_product() ) {
 			$product = $this->get_product();
 			if ( ! $product ) {
 				return false;
@@ -1287,18 +1288,24 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Checks if this is the Pay for Order page.
 	 *
 	 * @return boolean
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helpers::is_pay_for_order_page() instead.
 	 */
 	public function is_pay_for_order_page() {
-		return is_checkout() && isset( $_GET['pay_for_order'] ); // phpcs:ignore WordPress.Security.NonceVerification
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helpers::is_pay_for_order_page()' );
+		return WC_Stripe_Page_Helper::is_pay_for_order();
 	}
 
 	/**
 	 * Checks if this is the checkout page or content contains a checkout block.
 	 *
 	 * @return boolean
+	 *
+	 * @deprecated 9.5.0 Use WC_Stripe_Page_Helpers::is_checkout() instead.
 	 */
 	public function is_checkout() {
-		return is_checkout() || has_block( 'woocommerce/checkout' );
+		_deprecated_function( __METHOD__, '9.5.0', 'WC_Stripe_Page_Helpers::is_checkout()' );
+		return WC_Stripe_Page_Helper::is_checkout();
 	}
 
 	/**
