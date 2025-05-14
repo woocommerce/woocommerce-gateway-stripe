@@ -248,7 +248,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'           => $this->account->get_account_country(),
 			'are_apms_deprecated'       => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_amazon_pay_available'   => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_spe_available'          => WC_Stripe_Feature_Flags::is_spe_available(),
+			'is_oc_available'           => WC_Stripe_Feature_Flags::is_oc_available(),
 			'oauth_nonce'               => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 		];
 		wp_localize_script(
@@ -272,6 +272,11 @@ class WC_Stripe_Settings_Controller {
 	 * to display the payment gateways on the WooCommerce Settings page.
 	 */
 	public static function hide_gateways_on_settings_page() {
+		// Prevent hiding gateways in the new payments settings experience (React-based UI).
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) && \Automattic\WooCommerce\Utilities\FeaturesUtil::feature_is_enabled( 'reactify-classic-payments-settings' ) ) {
+			return;
+		}
+
 		$gateways_to_hide = [
 			// Hide all UPE payment methods.
 			WC_Stripe_UPE_Payment_Method::class,

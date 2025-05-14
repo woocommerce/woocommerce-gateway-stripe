@@ -83,13 +83,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_spe_enabled'                     => [
-						'description'       => __( 'If Single Payment Element should be enabled.', 'woocommerce-gateway-stripe' ),
+					'is_oc_enabled'                      => [
+						'description'       => __( 'If Optimized Checkout should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'spe_title'                          => [
-						'description'       => __( 'The default title to show above the Smart Checkout element.', 'woocommerce-gateway-stripe' ),
+					'oc_title'                           => [
+						'description'       => __( 'The default title to show above the Optimized Checkout element.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -244,9 +244,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
+		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
+		// The available payment methods are also fetched from the payment method configurations API under similar conditions,
+		// but we do not force a refresh for available methods, since calling get_upe_enabled_payment_method_ids first already ensures the list is up to date.
+		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
@@ -284,8 +288,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                     => 'yes' === $this->gateway->get_option( 'logging' ),
 				'is_upe_enabled'                           => $is_upe_enabled,
-				'is_spe_enabled'                           => 'yes' === $this->gateway->get_option( 'single_payment_element' ),
-				'spe_title'                                => $this->gateway->get_validated_option( 'single_payment_element_title' ),
+				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
+				'oc_title'                                 => $this->gateway->get_validated_option( 'optimized_checkout_element_title' ),
 			]
 		);
 	}
@@ -322,7 +326,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
-		$this->update_spe_settings( $request );
+		$this->update_oc_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -600,14 +604,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates the "Single Payment Element" settings.
+	 * Updates the "Optimized Checkout" settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_spe_settings( WP_REST_Request $request ) {
+	private function update_oc_settings( WP_REST_Request $request ) {
 		$attributes = [
-			'is_spe_enabled' => 'single_payment_element',
-			'spe_title'      => 'single_payment_element_title',
+			'is_oc_enabled' => 'optimized_checkout_element',
+			'oc_title'      => 'optimized_checkout_element_title',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
@@ -616,14 +620,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				continue;
 			}
 
-			$value         = 'is_spe_enabled' === $request_key ? ( $value ? 'yes' : 'no' ) : $value;
+			$value         = 'is_oc_enabled' === $request_key ? ( $value ? 'yes' : 'no' ) : $value;
 			$current_value = $this->gateway->get_option( $attribute );
 
 			$this->gateway->update_validated_option( $attribute, $value );
 
-			if ( 'is_spe_enabled' === $request_key && $value !== $current_value ) {
+			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
 				wc_admin_record_tracks_event(
-					$value ? 'wcstripe_spe_enabled' : 'wcstripe_spe_disabled',
+					$value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
 					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
 				);
 			}

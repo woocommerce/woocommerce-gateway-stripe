@@ -73,9 +73,9 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 
 		$order    = WC_Helper_Order::create_order();
 		$endpoint = '/' . strval( $order->get_id() ) . '/create_customer';
-		$order->set_stripe_customer_id( 'cus_12345' );
+		$order->add_meta_data( '_stripe_customer_id', 'cus_12345', true );
 		$order->save();
-		$this->assertEquals( 'cus_12345', $order->get_stripe_customer_id() );
+		$this->assertEquals( 'cus_12345', $order->get_meta( '_stripe_customer_id', true ) );
 
 		// Mock response from Stripe API using request arguments.
 		$test_request = function ( $preempt, $parsed_args, $url ) {
@@ -140,12 +140,10 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
-		$order = WC_Stripe_Order::get_by_id( $order->get_id() );
-
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( 'succeeded', $response->get_data()['status'] );
 		$this->assertEquals( 'ch_12345', $response->get_data()['id'] );
-		$this->assertEquals( 'pi_12345', $order->get_intent_id() );
+		$this->assertEquals( 'pi_12345', $order->get_meta( '_stripe_intent_id', true ) );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}

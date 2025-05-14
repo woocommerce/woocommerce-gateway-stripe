@@ -111,12 +111,12 @@ redirect_output cli wp option set woocommerce_coming_soon "no"
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate
 
-redirect_output cli wp wc --user=${ADMIN_USER} tool run install_pages
+redirect_output cli wp --user=${ADMIN_USER} wc tool run install_pages
 
 echo " - Configuring Shipping and Taxes"
-redirect_output cli wp wc shipping_zone create --name="Everywhere" --order=1 --user=${ADMIN_USER}
-redirect_output cli wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ADMIN_USER}
-redirect_output cli wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ADMIN_USER}
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone create --name="Everywhere" --order=1
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --method_id="flat_rate"
+redirect_output cli wp --user=${ADMIN_USER} wc shipping_zone_method create 1 --method_id="free_shipping"
 redirect_output cli wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'
 
 echo " - Creating Cart and Checkout shortcode pages"
@@ -135,13 +135,16 @@ echo " - Activating plugin"
 redirect_output cli wp plugin activate woocommerce-gateway-stripe
 
 echo " - Updating WooCommerce Gateway Stripe settings"
-redirect_output cli wp option add woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\"}"
+redirect_output cli wp option update woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"yes\"}"
 
 echo " - Enabling the ACH feature flag"
 redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'
 
 echo " - Enabling the ACSS feature flag"
 redirect_output cli wp option update _wcstripe_feature_lpm_acss 'yes'
+
+echo " - Enabling the Optimized Checkout feature flag"
+redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
 echo " - Fetching latest version"

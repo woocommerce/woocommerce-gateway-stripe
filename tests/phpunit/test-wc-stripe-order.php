@@ -118,7 +118,7 @@ class WC_Stripe_Order_Test extends WP_UnitTestCase {
 		);
 		$order->set_upe_redirect_processed( true );
 		$order->set_upe_waiting_for_redirect( true );
-		$order->set_charge_captured( 'yes' );
+		$order->set_charge_captured( true );
 		$order->set_status_final( true );
 
 		$order->set_fee( 100 );

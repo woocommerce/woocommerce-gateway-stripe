@@ -48,7 +48,7 @@ class WC_Stripe_Status {
 	 */
 	public function render_status_report_section() {
 		$account_data            = $this->account->get_cached_account_data();
-		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper( $this->gateway );
+		$express_checkout_helper = new WC_Stripe_Express_Checkout_Helper();
 		?>
 		<table class="wc_status_table widefat" cellspacing="0">
 			<thead>

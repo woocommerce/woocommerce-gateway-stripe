@@ -997,7 +997,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function build_base_payment_intent_request_params( $payment_information ) {
 		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( $this->get_upe_gateway()->is_spe_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
+		if ( $this->get_upe_gateway()->is_oc_enabled() && isset( $payment_information['payment_method_details']->type ) ) {
 			$selected_payment_type = $payment_information['payment_method_details']->type;
 		}
 
@@ -1024,7 +1024,7 @@ class WC_Stripe_Intent_Controller {
 		$request = $this->maybe_add_mandate_options( $request, $payment_information['selected_payment_type'] );
 
 		// Does not set the return URL if Single Payment Element is enabled or if the request needs redirection.
-		if ( $this->get_upe_gateway()->is_spe_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
+		if ( $this->get_upe_gateway()->is_oc_enabled() || $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
@@ -1111,7 +1111,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Removes the return URL if Single Payment Element is not enabled or if the request doesn't need redirection.
-		if ( ( ! $this->get_upe_gateway()->is_spe_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
+		if ( ( ! $this->get_upe_gateway()->is_oc_enabled() || ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
 			unset( $request['return_url'] );
 		}
 
@@ -1241,8 +1241,8 @@ class WC_Stripe_Intent_Controller {
 
 			// Set the new Stripe payment method ID and customer ID on the subscription.
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-			$gateway->set_customer_id_for_order( $subscription, $customer->get_id() );
-			$gateway->set_payment_method_id_for_order( $subscription, $token->get_token() );
+			$gateway->set_customer_id_for_subscription( $subscription, $customer->get_id() );
+			$gateway->set_payment_method_id_for_subscription( $subscription, $token->get_token() );
 
 			// Check if the subscription has the delayed update all flag and attempt to update all subscriptions after the intent has been confirmed. If successful, display the "updated all subscriptions" notice.
 			if ( WC_Subscriptions_Change_Payment_Gateway::will_subscription_update_all_payment_methods( $subscription ) && WC_Subscriptions_Change_Payment_Gateway::update_all_payment_methods_from_subscription( $subscription, $token->get_gateway_id() ) ) {

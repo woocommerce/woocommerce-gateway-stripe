@@ -238,7 +238,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_change_subscription_payment_method( $order_id ) {
 		try {
-			$subscription    = WC_Stripe_Order::get_by_id( $order_id );
+			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
@@ -319,8 +319,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $new_payment_method );
 
 				// Attach the new payment method ID and the customer ID to the subscription on success.
-				$this->set_payment_method_id_for_order( $subscription, $payment_method_id );
-				$this->set_customer_id_for_order( $subscription, $payment_information['customer'] );
+				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
+				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
@@ -361,7 +361,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
 		$this->process_subscription_payment( $amount_to_charge, $renewal_order, true, false );
 	}
 
@@ -373,10 +372,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
 	 * @since 5.6.0 Process renewal payments for SEPA and UPE.
 	 *
-	 * @param float                    $amount
-	 * @param WC_Stripe_Order|WC_Order $renewal_order
-	 * @param bool                     $retry          Should we retry the process?
-	 * @param object                   $previous_error
+	 * @param float  $amount
+	 * @param mixed  $renewal_order
+	 * @param bool   $retry Should we retry the process?
+	 * @param object $previous_error
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		try {
@@ -457,7 +456,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$renewal_order->lock_payment();
+				$this->lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
@@ -475,7 +474,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 
 						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
 					} else {
@@ -518,7 +517,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			$renewal_order->unlock_payment();
+			$this->unlock_order_payment( $renewal_order );
 
 			return;
 		}
@@ -541,22 +540,35 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
-			} elseif ( $this->must_authorize_off_session( $response ) ) {
+			} elseif ( $this->is_charge_attempt_delayed( $response ) ) {
 				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
-				$message = sprintf(
-					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
-					$attempt_date,
-					$attempt_time
-				);
+				$message = '';
+				if ( ! empty( $response->processing->card->customer_notification->approval_requested ) ) {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				} else {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The charge will be attempted on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				}
+
 				$renewal_order->add_order_note( $message );
 				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
+
+				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
@@ -571,7 +583,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$renewal_order->unlock_payment();
+		$this->unlock_order_payment( $renewal_order );
 	}
 
 	/**
@@ -636,13 +648,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Don't transfer Stripe fee/ID meta to renewal orders.
 	 *
-	 * @param WC_Order $renewal_order The renewal order created for the subscription.
+	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
-
-		$renewal_order->delete_fee();
-		$renewal_order->delete_net();
+		WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
+		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
 
 		// Delete payment intent ID.
 		$renewal_order->delete_meta_data( '_stripe_intent_id' );
@@ -654,18 +664,13 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Update the customer_id for a subscription after using Stripe to complete a payment to make up for
 	 * an automatic renewal payment which previously failed.
 	 *
-	 * @param WC_Subscription          $subscription The subscription for which the failing payment method relates.
-	 * @param WC_Order|WC_Stripe_Order $renewal_order The order which recorded the successful payment (to make up for the failed automatic payment).
+	 * @param WC_Subscription $subscription The subscription for which the failing payment method relates.
+	 * @param WC_Order        $renewal_order The order which recorded the successful payment (to make up for the failed automatic payment).
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		$renewal_order = WC_Stripe_Order::to_instance( $renewal_order );
-
-		$customer_id = $renewal_order->get_customer_id();
-		$source_id   = $renewal_order->get_source_id();
-
-		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
-		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
+		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
 		$subscription->save();
 	}
 
@@ -818,13 +823,13 @@ trait WC_Stripe_Subscriptions_Trait {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
 
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
-			$renewal_order = WC_Stripe_Order::get_by_id( $renewal_order_id );
+			$renewal_order = wc_get_order( $renewal_order_id );
 			if ( ! $renewal_order instanceof WC_Order ) {
 				continue;
 			}
 
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_payment_method = $renewal_order->get_source_id();
+			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -972,16 +977,16 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$parent_order       = WC_Stripe_Order::get_by_id( $subscription->get_parent_id() );
+			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
-			$stripe_source_id   = $parent_order->get_source_id();
+			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
 				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$parent_order->set_source_id( $stripe_source_id );
+				$parent_order->update_meta_data( '_stripe_source_id', $stripe_source_id );
 				$parent_order->save();
 			}
 		}
@@ -1176,14 +1181,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Returns true if a subscription payment must be authorized by the customer off session.
+	 * Returns true if Stripe will attempt the charges at a future date.
 	 *
-	 * This is only valid when using mandates for Indian 3DS regulations.
+	 * This applies to subscription payments and Indian 3DS regulations.
+	 * https://docs.stripe.com/india-recurring-payments?integration=subscriptions#predebit-notification
 	 *
 	 * @param StdClass $payment_intent the Payment Intent to be evaluated.
-	 * @return bool true if payment intent must be authorized off session, false otherwise.
+	 * @return bool true if the charge attempt is delayed, false otherwise.
 	 */
-	protected function must_authorize_off_session( $payment_intent ) {
+	protected function is_charge_attempt_delayed( $payment_intent ) {
 		return ! empty( $payment_intent->status )
 			&& WC_Stripe_Intent_Status::PROCESSING === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
@@ -1214,7 +1220,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return boolean true if the subscription can be edited, false otherwise.
 	 */
 	public function disable_subscription_edit_for_india( $editable, $order ) {
-		$parent_order = WC_Stripe_Order::get_by_id( $order->get_parent_id() );
+		$parent_order = wc_get_order( $order->get_parent_id() );
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled()
 			&& $this->is_subscription( $order )
 			&& $parent_order

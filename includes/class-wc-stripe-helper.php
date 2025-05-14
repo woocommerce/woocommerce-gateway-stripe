@@ -1523,35 +1523,83 @@ class WC_Stripe_Helper {
 	 * Checks if a given URL matches the current site's Webhook URL.
 	 *
 	 * This function ignores trailing slashes and compares the host and path of the URLs.
-	 * The protocol is not compared.
+	 * The protocol is ignored. It also requires that any query parameters in the
+	 * webhook URL are present in the supplied URL, though extra query parameters in the
+	 * supplied URL are ignored.
+	 * There is one special case: when the supplied URL has the same host and path,
+	 * but an empty query string, it is treated as a match. This is to allow for cleanup
+	 * of webhook URLs that don't have identifying URL parameters.
 	 *
 	 * @param string $url         The URL to check.
 	 * @param string $webhook_url The webhook URL to compare against.
 	 *
-	 * @return bool Whether the URL is a webhook URL.
+	 * @return bool Whether the URL is a matching webhook URL.
 	 */
 	public static function is_webhook_url( $url, $webhook_url = '' ) {
 		if ( empty( $webhook_url ) ) {
 			$webhook_url = self::get_webhook_url();
 		}
 
-		$url         = untrailingslashit( trim( strtolower( $url ) ) );
-		$webhook_url = untrailingslashit( trim( strtolower( $webhook_url ) ) );
+		$url         = trim( strtolower( $url ) );
+		$webhook_url = trim( strtolower( $webhook_url ) );
 
 		// If the URLs are the exact same, no need to compare further.
 		if ( $url === $webhook_url ) {
 			return true;
 		}
 
-		$webhook_url_parts = wp_parse_url( $url );
-		$url_parts         = wp_parse_url( $webhook_url );
+		$url_parts         = wp_parse_url( $url );
+		$webhook_url_parts = wp_parse_url( $webhook_url );
 
-		$url_host     = $url_parts['host'] ?? '';
-		$url_path     = $url_parts['path'] ?? '';
-		$webhook_host = $webhook_url_parts['host'] ?? '';
-		$webhook_path = $webhook_url_parts['path'] ?? '';
+		$url_host      = $url_parts['host'] ?? '';
+		$url_path      = $url_parts['path'] ?? '';
+		$url_query     = $url_parts['query'] ?? '';
+		$webhook_host  = $webhook_url_parts['host'] ?? '';
+		$webhook_path  = $webhook_url_parts['path'] ?? '';
+		$webhook_query = $webhook_url_parts['query'] ?? '';
 
-		return $url_host === $webhook_host && $url_path === $webhook_path;
+		if ( $url_host !== $webhook_host || $url_path !== $webhook_path ) {
+			return false;
+		}
+
+		// If the supplied URL has an empty query string, we will treat it as a webhook URL for the plugin,
+		// as we're guessing that it was created manually in the long-distant past when webhook
+		// management was all manual.
+		if ( '' === $url_query ) {
+			return true;
+		}
+
+		// For our standard webhook URL, we should never hit this condition, but we'll treat them as
+		// a mismatch, as we already know the supplied URL has a non-empty query.
+		if ( '' === $webhook_query ) {
+			return false;
+		}
+
+		$url_query_parts     = [];
+		$webhook_query_parts = [];
+
+		parse_str( $url_query, $url_query_parts );
+		parse_str( $webhook_query, $webhook_query_parts );
+
+		if ( [] === $url_query_parts && [] === $webhook_query_parts ) {
+			return true;
+		}
+
+		// We ignore extra URL parameters in the supplied URL,
+		// but we require all query parameters from the webhook URL to
+		// be present in the supplied URL.
+		foreach ( $webhook_query_parts as $webhook_query_key => $webhook_query_value ) {
+			if ( ! isset( $url_query_parts[ $webhook_query_key ] ) ) {
+				return false;
+			}
+
+			if ( $url_query_parts[ $webhook_query_key ] !== $webhook_query_value ) {
+				return false;
+			}
+		}
+
+		// If we get here, the supplied URL has all the query parameters from the webhook URL.
+		return true;
 	}
 
 	public static function get_transaction_url( $is_test_mode = false ) {
@@ -1630,6 +1678,14 @@ class WC_Stripe_Helper {
 	 */
 	public static function add_mandate_data( $request ) {
 		$ip_address = WC_Geolocation::get_ip_address();
+
+		// Handle cases where WC_Geolocation::get_ip_address() returns multiple, comma-separated IP addresses.
+		// This will be addressed upstream in WooCommerce 9.9.0 as of (https://github.com/woocommerce/woocommerce/pull/57284).
+		// TODO: Remove this block when WooCommerce 9.9.0 is released.
+		if ( str_contains( $ip_address, ',' ) ) {
+			$ip_address = trim( current( preg_split( '/,/', $ip_address ) ) );
+		}
+
 		self::maybe_log_ip_issues( $ip_address );
 
 		$request['mandate_data'] = [
