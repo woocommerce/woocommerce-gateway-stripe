@@ -5,9 +5,14 @@ import { Popover as PopoverComponent } from '@wordpress/components';
 import icon from './icon.svg';
 
 const Icon = styled.img`
-	height: 12px;
-	width: 12px;
+	height: 14px;
+	width: 14px;
 	cursor: pointer;
+`;
+
+const IconWrapper = styled.span`
+	display: inline-flex;
+	align-items: center;
 `;
 
 const StyledPopover = styled( PopoverComponent )`
@@ -29,10 +34,10 @@ const StyledPopover = styled( PopoverComponent )`
 `;
 
 const IconComponent = ( { children, ...props } ) => (
-	<span { ...props }>
+	<IconWrapper { ...props }>
 		<Icon src={ icon } alt="" />
 		{ children }
-	</span>
+	</IconWrapper>
 );
 
 const RecurringPaymentIcon = () => {
