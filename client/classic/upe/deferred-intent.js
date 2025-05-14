@@ -94,10 +94,9 @@ jQuery( function ( $ ) {
 	/**
 	 * Maybe mounts the Stripe Payment Element on the page.
 	 *
-	 * @param {boolean} setupFutureUsage Whether to set up future usage for the payment method.
 	 * @return {Promise<void>}
 	 */
-	async function maybeMountStripePaymentElement( setupFutureUsage = false ) {
+	async function maybeMountStripePaymentElement() {
 		// If the card element selector doesn't exist, do nothing.
 		// For example, when a 100% discount coupon is applied.
 		if ( ! $( '.wc-stripe-upe-element' ).length ) {
@@ -122,11 +121,7 @@ jQuery( function ( $ ) {
 				continue;
 			}
 
-			await mountStripePaymentElement(
-				api,
-				upeElement,
-				setupFutureUsage
-			);
+			await mountStripePaymentElement( api, upeElement );
 		}
 	}
 
@@ -195,12 +190,9 @@ jQuery( function ( $ ) {
 			'change',
 			'#wc-stripe-new-payment-method',
 			async () => {
-				const setupFutureUsage =
-					$( '#wc-stripe-new-payment-method' ).is( ':checked' ) ||
-					getStripeServerData()?.cartContainsSubscription;
 				// Remove all children from the UPE elements to force a re-mount.
 				unmountStripePaymentElements();
-				await maybeMountStripePaymentElement( setupFutureUsage );
+				await maybeMountStripePaymentElement();
 			}
 		);
 	}

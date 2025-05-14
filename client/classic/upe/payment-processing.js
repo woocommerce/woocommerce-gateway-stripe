@@ -87,14 +87,9 @@ export function validateElements( elements ) {
  *
  * @param {Object} api The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
- * @param {boolean} setupFutureUsage Optional. Whether to set up future usage for the payment method.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
-async function createStripePaymentElement(
-	api,
-	paymentMethodType,
-	setupFutureUsage = false
-) {
+async function createStripePaymentElement( api, paymentMethodType ) {
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
@@ -167,6 +162,9 @@ async function createStripePaymentElement(
 		}
 	}
 
+	const setupFutureUsage =
+		document.getElementById( 'wc-stripe-new-payment-method' ).checked ||
+		getStripeServerData()?.cartContainsSubscription;
 	if ( setupFutureUsage ) {
 		options = {
 			...options,
@@ -325,14 +323,9 @@ function createStripePaymentMethod(
  *
  * @param {Object} api The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
- * @param {boolean} setupFutureUsage Optional. Whether to set up future usage for the payment method.
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  **/
-export async function mountStripePaymentElement(
-	api,
-	domElement,
-	setupFutureUsage = false
-) {
+export async function mountStripePaymentElement( api, domElement ) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -357,11 +350,7 @@ export async function mountStripePaymentElement(
 
 	const upeElement =
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
-		( await createStripePaymentElement(
-			api,
-			paymentMethodType,
-			setupFutureUsage
-		) );
+		( await createStripePaymentElement( api, paymentMethodType ) );
 
 	upeElement.mount( domElement );
 	upeElement.on( 'loaderror', ( e ) => {
