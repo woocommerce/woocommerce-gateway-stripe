@@ -49,15 +49,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		// Optimized checkout
 		if ( $this->oc_enabled ) {
-			if ( $payment_details ) { // Setting title for the order details page / thank you page.
-				$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
-				return $payment_method->get_title();
-			}
-
-			// Block checkout and pay for order page.
-			if ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-				return $this->oc_title;
-			}
+			return $this->get_optimized_checkout_title( $payment_details );
 		}
 
 		// Default
@@ -154,5 +146,27 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
+	}
+
+	/**
+	 * Returns the title for the optimized checkout.
+	 *
+	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
+	 * @return string
+	 */
+	private function get_optimized_checkout_title( $payment_details = false ) {
+		if ( $payment_details ) { // Setting title for the order details page / thank you page.
+			$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
+
+			// Avoid potential recursion by checking instance type. This fixes the title on pay for order confirmation page.
+			return $payment_method instanceof self ? parent::get_title() : $payment_method->get_title();
+		}
+
+		// Block checkout and pay for order (checkout) page.
+		if ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			return $this->oc_title;
+		}
+
+		return parent::get_title();
 	}
 }
