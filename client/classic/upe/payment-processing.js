@@ -32,13 +32,18 @@ import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handl
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
-for ( const paymentMethodType in paymentMethodsConfig ) {
-	gatewayUPEComponents[ paymentMethodType ] = {
-		intentId: null,
-		elements: null,
-		upeElement: null,
-		hasLoadError: false,
-	};
+/**
+ * Initialize the UPE components for each payment method type.
+ */
+export function initializeUPEComponents() {
+	for ( const paymentMethodType in paymentMethodsConfig ) {
+		gatewayUPEComponents[ paymentMethodType ] = {
+			intentId: null,
+			elements: null,
+			upeElement: null,
+			hasLoadError: false,
+		};
+	}
 }
 
 /**
@@ -82,9 +87,14 @@ export function validateElements( elements ) {
  *
  * @param {Object} api The API object used to create the Stripe payment element.
  * @param {string} paymentMethodType The type of Stripe payment method to create.
+ * @param {boolean} setupFutureUsage Optional. Whether to set up future usage for the payment method.
  * @return {Object} A promise that resolves with the created Stripe payment element.
  */
-async function createStripePaymentElement( api, paymentMethodType ) {
+async function createStripePaymentElement(
+	api,
+	paymentMethodType,
+	setupFutureUsage = false
+) {
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
 	let intent, options;
@@ -148,10 +158,6 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration: getStripeServerData()
 					?.paymentMethodConfigurationParentId,
-				// There's no way to update this option in the classic checkout dynamically (for SPE).
-				// So, we cannot update this based on the value of the saving payment method checkbox.
-				// Setting this value to `off_session` to avoid issues with methods that do not work with this option (i.e. WeChat Pay, BNPLs)
-				setupFutureUsage: 'off_session',
 			};
 		} else {
 			options = {
@@ -159,6 +165,13 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				paymentMethodTypes,
 			};
 		}
+	}
+
+	if ( setupFutureUsage ) {
+		options = {
+			...options,
+			setupFutureUsage: 'off_session',
+		};
 	}
 
 	const elements = api.getStripe().elements( options );
@@ -312,9 +325,14 @@ function createStripePaymentMethod(
  *
  * @param {Object} api The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
+ * @param {boolean} setupFutureUsage Optional. Whether to set up future usage for the payment method.
  * @return {Object} An object containing the Stripe Elements object and the Stripe Payment Element.
  **/
-export async function mountStripePaymentElement( api, domElement ) {
+export async function mountStripePaymentElement(
+	api,
+	domElement,
+	setupFutureUsage = false
+) {
 	/*
 	 * Trigger this event to ensure the tokenization-form.js init
 	 * is executed.
@@ -339,7 +357,11 @@ export async function mountStripePaymentElement( api, domElement ) {
 
 	const upeElement =
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
-		( await createStripePaymentElement( api, paymentMethodType ) );
+		( await createStripePaymentElement(
+			api,
+			paymentMethodType,
+			setupFutureUsage
+		) );
 
 	upeElement.mount( domElement );
 	upeElement.on( 'loaderror', ( e ) => {

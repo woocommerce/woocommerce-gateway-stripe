@@ -14,6 +14,7 @@ import {
 	confirmVoucherPayment,
 	confirmWalletPayment,
 	createAndConfirmSetupIntent,
+	initializeUPEComponents,
 	mountStripePaymentElement,
 	processPayment,
 } from './payment-processing';
@@ -29,6 +30,9 @@ jQuery( function ( $ ) {
 			} );
 		}
 	);
+
+	// Initialize the list of Stripe Elements to be mounted when UPE is enabled.
+	initializeUPEComponents();
 
 	// Only attempt to mount the card element once that section of the page has loaded.
 	// We can use the updated_checkout event for this.
@@ -87,7 +91,13 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	async function maybeMountStripePaymentElement() {
+	/**
+	 * Maybe mounts the Stripe Payment Element on the page.
+	 *
+	 * @param {boolean} setupFutureUsage Whether to set up future usage for the payment method.
+	 * @return {Promise<void>}
+	 */
+	async function maybeMountStripePaymentElement( setupFutureUsage = false ) {
 		// If the card element selector doesn't exist, do nothing.
 		// For example, when a 100% discount coupon is applied.
 		if ( ! $( '.wc-stripe-upe-element' ).length ) {
@@ -112,8 +122,22 @@ jQuery( function ( $ ) {
 				continue;
 			}
 
-			await mountStripePaymentElement( api, upeElement );
+			await mountStripePaymentElement(
+				api,
+				upeElement,
+				setupFutureUsage
+			);
 		}
+	}
+
+	/**
+	 * Unmounts the Stripe Payment Elements from the page.
+	 */
+	function unmountStripePaymentElements() {
+		for ( const upeElement of $( '.wc-stripe-upe-element' ).toArray() ) {
+			$( upeElement ).children().remove();
+		}
+		initializeUPEComponents();
 	}
 
 	function restrictPaymentMethodToLocation( upeElement ) {
@@ -164,4 +188,20 @@ jQuery( function ( $ ) {
 	$( window ).on( 'hashchange', () => {
 		maybeConfirmVoucherOrWalletPayment();
 	} );
+
+	// Bind the handling of the setup future usage option to the saving checkbox when OC is enabled.
+	if ( getStripeServerData()?.isOCEnabled ) {
+		$( document ).on(
+			'change',
+			'#wc-stripe-new-payment-method',
+			async () => {
+				const setupFutureUsage =
+					$( '#wc-stripe-new-payment-method' ).is( ':checked' ) ||
+					getStripeServerData()?.cartContainsSubscription;
+				// Remove all children from the UPE elements to force a re-mount.
+				unmountStripePaymentElements();
+				await maybeMountStripePaymentElement( setupFutureUsage );
+			}
+		);
+	}
 } );
