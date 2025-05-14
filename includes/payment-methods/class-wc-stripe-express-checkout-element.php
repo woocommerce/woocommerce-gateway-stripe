@@ -493,7 +493,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 * Display express checkout button separator.
 	 */
 	public function display_express_checkout_button_separator_html() {
-		if ( ! WC_Stripe_Page_Helper::is_checkout() && ! WC_Stripe_Page_Helper::is_pay_for_order() ) {
+		if ( ! WC_Stripe_Page_Helper::is_checkout_or_pay_for_order() ) {
 			return;
 		}
 

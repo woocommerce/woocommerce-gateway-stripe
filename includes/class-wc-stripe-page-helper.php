@@ -119,6 +119,15 @@ class WC_Stripe_Page_Helper {
 	}
 
 	/**
+	 * Checks if this page is a checkout or pay for order page.
+	 *
+	 * @return bool
+	 */
+	public static function is_checkout_or_pay_for_order() {
+		return static::is_checkout() || static::is_pay_for_order();
+	}
+
+	/**
 	 * Checks if this is a product page or content contains a product_page shortcode.
 	 *
 	 * @return boolean

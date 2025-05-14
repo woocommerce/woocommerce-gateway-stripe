@@ -946,7 +946,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! WC_Stripe_Page_Helper::is_checkout() && ! WC_Stripe_Page_Helper::is_pay_for_order() ) {
+		if ( ! WC_Stripe_Page_Helper::is_checkout_or_pay_for_order() ) {
 			return;
 		}
 
