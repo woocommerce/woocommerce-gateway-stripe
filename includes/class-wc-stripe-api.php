@@ -233,6 +233,10 @@ class WC_Stripe_API {
 	public static function retrieve( $api ) {
 		WC_Stripe_Logger::log( "{$api}" );
 
+		if ( self::has_api_error_limit( $api, 'GET' ) ) {
+			return new WP_Error( 'stripe_error', __( 'We are seeing repeated problems calling Stripe and are rate limiting the client', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
 			[
@@ -244,10 +248,61 @@ class WC_Stripe_API {
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
+			wp_cache_incr( self::get_api_error_cache_key( $api, 'GET' ), 1, 'woocommerce_stripe' );
+
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		return json_decode( $response['body'] );
+	}
+
+	/**
+	 * Bump the API error limit.
+	 *
+	 * @param string $api
+	 * @param string $method
+	 */
+	protected static function bump_api_error_limit( $api, $method ) {
+		wp_cache_incr( self::get_api_error_cache_key( $api, $method ), 1, 'woocommerce_stripe' );
+	}
+
+	/**
+	 * Check if the API error limit has been reached.
+	 *
+	 * @param string $api
+	 * @param string $method
+	 * @return bool
+	 */
+	protected static function has_api_error_limit( $api, $method ) {
+		$cache_key = self::get_api_error_cache_key( $api, $method );
+
+		$recent_failure_count = wp_cache_get( $cache_key, 'woocommerce_stripe' );
+		if ( false === $recent_failure_count ) {
+			$recent_failure_count = 0;
+		}
+
+		if ( $recent_failure_count >= 15 ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get the cache key for API error tracking/counting.
+	 *
+	 * @param string $api
+	 * @param string $method
+	 * @return string
+	 */
+	protected static function get_api_error_cache_key( $api, $method ) {
+		$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+
+		$now = time();
+		// Use 30 second buckets
+		$cache_bucket = $now - ( $now % 30 );
+
+		return "wc_stripe_api_error_track_{$mode}_{$method}_{$api}_{$cache_bucket}";
 	}
 
 	/**
