@@ -121,6 +121,17 @@ const config = {
 			dependencies: [ 'oc-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
+		{
+			name: 'blik-setup',
+			testMatch: '/blik.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'blik',
+			testMatch: '**/blik.spec.js',
+			dependencies: [ 'blik-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
 	],
 };
 

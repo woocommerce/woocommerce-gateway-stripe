@@ -275,10 +275,13 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 			'#billing_country',
 			billingDetails[ 'country_iso' ]
 		);
-		await page.selectOption(
-			'#billing_state',
-			billingDetails[ 'state_iso' ]
-		);
+
+		if ( billingDetails[ 'state' ] ) {
+			await page.selectOption(
+				'#billing_state',
+				billingDetails[ 'state_iso' ]
+			);
+		}
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
@@ -347,9 +350,11 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.getByLabel( 'Country/Region' )
 			.selectOption( { label: billingDetails[ 'country' ] } );
 
-		await page
-			.locator( '#shipping-state', { exact: true } )
-			.selectOption( { label: billingDetails[ 'state' ] } );
+		if ( billingDetails[ 'state' ] ) {
+			await page
+				.locator( '#shipping-state', { exact: true } )
+				.selectOption( { label: billingDetails[ 'state' ] } );
+		}
 
 		// Expand the address 2 field.
 		if ( ! isCollapsed ) {
@@ -781,4 +786,14 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+};
+
+/**
+ * Fill BLIK payment details in the checkout form.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} code (optional) 6-digit BLIK code to use. Defaults to '123456'.
+ */
+export const fillBLIKDetails = async ( page, code = '123456' ) => {
+	// Assumes the BLIK code input has a label or placeholder containing 'BLIK code'.
+	await page.getByLabel( /blik code/i ).fill( code );
 };
