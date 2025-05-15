@@ -4,7 +4,7 @@ import { execSync } from 'child_process';
 
 setup( 'Configure store for BLIK tests', async ( { browser } ) => {
 	execSync(
-		`WP_PATH="${ process.env.WP_PATH }" STRIPE_PUB_KEY_PL="${ process.env.STRIPE_PUB_KEY_PL }" STRIPE_SECRET_KEY_PL="${ process.env.STRIPE_SECRET_KEY_PL }" ./tests/e2e/bin/set-blik-keys.sh`,
+		`WP_PATH="${ process.env.WP_PATH }" STRIPE_PUB_KEY="${ process.env.STRIPE_PUB_KEY_PL }" STRIPE_SECRET_KEY="${ process.env.STRIPE_SECRET_KEY_PL }" ./tests/e2e/bin/set-keys.sh`,
 		{ stdio: 'inherit' }
 	);
 

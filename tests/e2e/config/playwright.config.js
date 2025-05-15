@@ -124,12 +124,18 @@ const config = {
 		{
 			name: 'blik-setup',
 			testMatch: '/blik.setup.js',
+			teardown: 'reset account',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
 			name: 'blik',
 			testMatch: '**/blik.spec.js',
 			dependencies: [ 'blik-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'reset account',
+			testMatch: '/blik.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],
