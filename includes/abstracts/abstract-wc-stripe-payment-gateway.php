@@ -540,7 +540,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function process_response( $response, $order ) {
+	public function process_response( $response, $order, $is_webhook = false ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
@@ -611,6 +611,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 					/* translators: transaction id */
 					$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
+					if ( $is_webhook ) {
+						$message .= ' (via webhook)';
+					}
 					$order->add_order_note( $message );
 				}
 			}

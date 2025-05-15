@@ -357,7 +357,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment', $response, $order );
 
-			$this->process_response( $response, $order );
+			$this->process_response( $response, $order, true );
 
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -509,7 +509,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order->payment_complete( $notification->data->object->id );
 
 					/* translators: transaction id */
-					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s) (via webhook)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 				}
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
@@ -589,7 +589,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->payment_complete( $charge->id );
 
 			/* translators: transaction id */
-			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $charge->id ) );
+			$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s) (via webhook)', 'woocommerce-gateway-stripe' ), $charge->id ) );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1048,7 +1048,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
-					$this->process_response( $charge, $order );
+					$this->process_response( $charge, $order, true );
 				} else {
 					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
@@ -1235,7 +1235,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
 		do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
-		$this->process_response( $charge, $order );
+		$this->process_response( $charge, $order, true );
 	}
 
 	/**
