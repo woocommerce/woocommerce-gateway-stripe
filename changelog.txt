@@ -4,6 +4,7 @@
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
+* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
 
 = 9.5.0 - 2025-05-13 =
 * Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
