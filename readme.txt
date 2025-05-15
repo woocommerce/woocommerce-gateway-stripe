@@ -165,6 +165,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Internal Changes and Upcoming Features**
 
+* Dev - Updates the minimum supported WooCommerce version to 9.8.0.
 * Feature - Work to support Optimized Checkout
 * Feature - Work to support Amazon Pay
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions
