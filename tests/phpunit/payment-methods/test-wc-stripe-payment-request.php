@@ -1,6 +1,6 @@
 <?php
 /**
- * These teste make assertions against class WC_Stripe_Payment_Request.
+ * These tests make assertions against class WC_Stripe_Payment_Request.
  *
  * @package WooCommerce_Stripe/Tests/Payment_Request
  */
@@ -208,7 +208,8 @@ class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		/**
 		 * Migration tests.
 		 *
-		 * Migrating the button size only happens when the plugin is updated from a version pre 7.8.0.
+		 * Migrating the button size only happens when the plugin is updated from a version pre 7.8.0,
+		 * or when the button size is set to 'medium'.
 		 */
 		update_option( 'wc_stripe_version', '7.6.0' );
 
@@ -242,10 +243,46 @@ class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->pr->migrate_button_size();
 		$this->assertEquals( 'large', $this->pr->stripe_settings['payment_request_button_size'] );
 
-		// Medium => Medium.
+		// Medium => default.
 		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'medium' ];
 		$this->pr->migrate_button_size();
-		$this->assertEquals( 'medium', $this->pr->stripe_settings['payment_request_button_size'] );
+		$this->assertEquals( 'default', $this->pr->stripe_settings['payment_request_button_size'] );
+
+		// Small => small.
+		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'small' ];
+		$this->pr->migrate_button_size();
+		$this->assertEquals( 'small', $this->pr->stripe_settings['payment_request_button_size'] );
+
+		// Button size not set.
+		$this->pr->stripe_settings = [];
+		$this->pr->migrate_button_size();
+		$this->assertArrayNotHasKey( 'payment_request_button_size', $this->pr->stripe_settings );
+		$this->assertEmpty( $this->pr->stripe_settings );
+
+		/**
+		 * Post-migration tests.
+		 */
+		update_option( 'wc_stripe_version', '9.0.0' );
+
+		// Default => default.
+		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'default' ];
+		$this->pr->migrate_button_size();
+		$this->assertEquals( 'default', $this->pr->stripe_settings['payment_request_button_size'] );
+
+		// Large => large.
+		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'large' ];
+		$this->pr->migrate_button_size();
+		$this->assertEquals( 'large', $this->pr->stripe_settings['payment_request_button_size'] );
+
+		// Medium => default.
+		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'medium' ];
+		$this->pr->migrate_button_size();
+		$this->assertEquals( 'default', $this->pr->stripe_settings['payment_request_button_size'] );
+
+		// Small => small.
+		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'small' ];
+		$this->pr->migrate_button_size();
+		$this->assertEquals( 'small', $this->pr->stripe_settings['payment_request_button_size'] );
 
 		// Button size not set.
 		$this->pr->stripe_settings = [];
