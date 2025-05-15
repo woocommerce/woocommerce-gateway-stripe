@@ -183,6 +183,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
 
+			// Clear the invalid API keys transient.
+			delete_transient( $is_test ? WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY : WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY );
+
 			if ( 'app' === $type ) {
 				// Stripe App OAuth access_tokens expire after 1 hour:
 				// https://docs.stripe.com/stripe-apps/api-authentication/oauth#refresh-access-token
