@@ -27,6 +27,8 @@ class WC_Stripe_Subscriptions_Helper {
 	 * Loads up to 50 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
 	 */
 	public static function get_some_detached_subscriptions() {
 		// Check if we have a cached result.

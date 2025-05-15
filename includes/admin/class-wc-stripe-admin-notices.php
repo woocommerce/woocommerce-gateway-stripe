@@ -66,11 +66,6 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
-		// Subscription related checks.
-		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			$this->subscriptions_check_environment();
-		}
-
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
@@ -467,6 +462,8 @@ class WC_Stripe_Admin_Notices {
 	 * Environment check for subscriptions.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
 	 */
 	public function subscriptions_check_environment() {
 		$options = WC_Stripe_Helper::get_stripe_settings();
