@@ -17,14 +17,14 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
-	 * The test mode invalid API keys transient key.
+	 * The test mode invalid API keys option key.
 	 *
 	 * @var string
 	 */
 	const TEST_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_test_invalid_api_keys_detected';
 
 	/**
-	 * The live mode invalid API keys transient key.
+	 * The live mode invalid API keys option key.
 	 *
 	 * @var string
 	 */
@@ -245,7 +245,7 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		// If we have a transient indicating that the secret key is not valid, we dont't attempt the API call and we return an error.
+		// If we have an option flag indicating that the secret key is not valid, we dont't attempt the API call and we return an error.
 		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_OPTION_KEY : self::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
 		$invalid_api_keys_detected = get_option( $invalid_api_keys_option_key );
 		if ( $invalid_api_keys_detected ) {
@@ -263,7 +263,7 @@ class WC_Stripe_API {
 			]
 		);
 
-		// If we get a 401 error, we know the secret key is not valid, we save a transient to avoid making calls until the secrect key gets updated.
+		// If we get a 401 error, we know the secret key is not valid, we save a flag in the options to avoid making calls until the secret key gets updated.
 		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			update_option( $invalid_api_keys_option_key, true );
 			update_option( $invalid_api_keys_option_key . '_at', time() );
