@@ -9,13 +9,12 @@ assignees: ''
 
 ### Description
 
-<!-- Please share a clear and concise description of the bug, or what unexpected behaviour you are seeing. -->
+<!-- Please share a clear and concise description of the bug, or what unexpected behavior you are seeing. -->
 
 ### Steps to reproduce
 
 <!-- Please share steps to make the error or problem occur. -->
 
-Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '...'
 3. Scroll down to '...'
@@ -25,20 +24,20 @@ Steps to reproduce the behavior:
 
 <!-- Please describe what you expected to happen. -->
 
-## Screenshots
+### Screenshots
 
 <!-- Please share any screenshots of the problem to help us understand what is happening. -->
 
 ### Environment
 
 <!-- Please share the following information with us. -->
- - WordPress Version
- - WooCommerce Version
- - Stripe Plugin Version
- - Browser [e.g. Chrome, Safari, Safari on iOS, Chrome on Android] and Version
- - Any other plugins installed
+- WordPress Version
+- WooCommerce Version
+- Stripe Plugin Version
+- Browser [e.g. Chrome, Safari, Safari on iOS, Chrome on Android] and Version
+- Any other plugins installed
 
-## Additional context
+### Additional context
 
 <!--
 Please share any other relevant information or context that you think might be useful or helpful in investigating the problem.
