@@ -6,14 +6,11 @@
 * Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
 * Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
 * Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
-* Dev - Implements the new Stripe order class into the new checkout experience files.
 * Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
-* Dev - Implements the new Stripe order class into the root extension files.
 * Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
 * Tweak - Passes the correct parent payment method configuration ID (retrieved from the backend) to the Smart Checkout payment element.
 * Tweak - Removes the Stripe icon beside the Smart Checkout payment element from the checkout pages.
 * Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
-* Dev - Implements the new Stripe order class into the compatibility classes.
 * Dev - Updates the Code Sniffer package to version 1.0.0.
 * Update - Add ECE support for One Page Checkout and other dynamic cart update scenarios
 * Fix - Show error notice when 'Add payment method' fails on My Account page in block-based themes.
@@ -41,17 +38,12 @@
 * Dev - Improves Smart Checkout code with shared and new methods, on both front and backend.
 * Fix - Fixes the saving of payment methods when Smart Checkout is enabled.
 * Tweak - Correctly handles the display of payment method instructions when Smart Checkout is enabled.
-* Dev - Implements the new Stripe order class into abstract/base classes, and the webhook handler.
-* Dev - Implements the new Stripe order class into the legacy checkout classes.
 * Dev - Do not generate filenames with underscores.
 * Fix - Fixes the Stripe checkout container visuals when Smart Checkout is disabled.
-* Dev - Implements the new Stripe order class into the express checkout classes.
-* Dev - Implements the new Stripe order class into the wp-admin related classes.
 * Dev - Replaces references to order status values with their respective constants from the WooCommerce plugin.
 * Tweak - Updates the Smart Checkout (classic/shortcode checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Tweak - Updates the Smart Checkout (block checkout version) to make all the payment methods look as similar as possible to any other WooCommerce payment method.
 * Fix - Improves the subscriptions detached admin notice, making it less intrusive and limiting the querying to 5 subscriptions (avoiding slow loading times).
-* Dev - Implements the new Stripe order class into the PHP unit tests.
 * Dev - Introduces new payment method constants for the express methods: Google Pay, Apple Pay, Link, and Amazon Pay (backend version).
 * Dev - Introduces a new Stripe Order class to wrap Stripe-specific logic and data on the backend.
 * Dev - Improves how we handle express payment method titles by introducing new constants and methods to replace duplicate code.
@@ -92,8 +84,6 @@
 * Add - Support for BECS Direct Debit as a new payment method for Australian accounts.
 * Update - Back button on the settings pages.
 * Update - Use individual product tax status instead of storewide tax setup when determining express checkout availability.
-* Fix - Ensure the subscription object is not converted into a Stripe order object.
-* Fix - Ensure the subscription and pre-order objects are not converted into a Stripe order object in legacy experience.
 * Update - Credit and Bank (BECS and ACSS) icons on the Block checkout page.
 * Fix - Fix BLIK visibility based on account and billing countries.
 * Add - Use Stripe Configuration API to manage payment methods enabled/disabled states.

@@ -82,4 +82,43 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}
+
+	public function test_migration_sets_default_payment_method_order() {
+		// Set up environment with pmc_enabled not set and no payment method order
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled'] = '';
+		$stripe_settings['stripe_upe_payment_method_order'] = '';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->mock_payment_method_configurations( [], [] );
+
+		// Execute migration
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		// Verify payment method order is set to default
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'stripe_upe_payment_method_order', $updated_settings );
+		$this->assertEquals( array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS ), $updated_settings['stripe_upe_payment_method_order'] );
+	}
+
+	public function test_migration_preserves_existing_payment_method_order() {
+		// Set up environment with pmc_enabled not set and existing payment method order
+		$existing_order = [ 'card', 'sepa_debit', 'ideal' ];
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_connection_type'] = 'connect';
+		$stripe_settings['pmc_enabled'] = '';
+		$stripe_settings['stripe_upe_payment_method_order'] = $existing_order;
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		$this->mock_payment_method_configurations( [], [] );
+
+		// Execute migration
+		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
+
+		// Verify payment method order is preserved
+		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->assertArrayHasKey( 'stripe_upe_payment_method_order', $updated_settings );
+		$this->assertEquals( $existing_order, $updated_settings['stripe_upe_payment_method_order'] );
+	}
 }

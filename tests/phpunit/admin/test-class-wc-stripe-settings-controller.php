@@ -82,8 +82,11 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_add_buttons_action_is_called_on_order_admin_page() {
-		$order = WC_Helper_Order::create_order();
-		$order->set_intent_id( 'pi_mock' );
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$intent_id = 'pi_mock';
+		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
 
 		$intent = (object) [
 			'id'     => 'pi_123',

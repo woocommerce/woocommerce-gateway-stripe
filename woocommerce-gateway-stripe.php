@@ -9,8 +9,8 @@
  * Requires Plugins: woocommerce
  * Requires at least: 6.5
  * Tested up to: 6.7
- * WC requires at least: 9.5
- * WC tested up to: 9.7
+ * WC requires at least: 9.8
+ * WC tested up to: 9.8
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 define( 'WC_STRIPE_VERSION', '9.4.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
-define( 'WC_STRIPE_MIN_WC_VER', '9.5' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.6' );
+define( 'WC_STRIPE_MIN_WC_VER', '9.8' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.9' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugin_dir_url( WC_STRIPE_MAIN_FILE ) ) );

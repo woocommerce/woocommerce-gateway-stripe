@@ -13,11 +13,11 @@ jobs:
   test:
     if: ${{ ! contains( github.event.head_commit.message, 'Merge branch' ) }}
     runs-on: ubuntu-22.04
-    name: PHP=8.1, WP=6.7, WC=9.5.2
+    name: PHP=8.1, WP=6.7, WC=9.8.5
     env:
       PHP_VERSION: '8.1'
       WP_VERSION: '6.7'
-      WC_VERSION: '9.5.2'
+      WC_VERSION: '9.8.5'
     steps:
       - name: Get Changed Files
         id: get-changed-files

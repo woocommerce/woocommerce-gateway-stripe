@@ -578,8 +578,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
 
-		$mock_subscription->set_source_id( 'src_mock' );
-		$mock_subscription->set_stripe_customer_id( 'cus_mock' );
+		$mock_subscription->update_meta_data( '_stripe_source_id', 'src_mock' );
+		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
 		$mock_subscription->save();
 
 		// This is the key the customer's payment methods are stored under in the transient.
@@ -631,45 +631,45 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_lock_order_payment() {
 		$order_1 = WC_Helper_Order::create_order();
-		$locked  = $order_1->lock_payment();
+		$locked  = $this->gateway->lock_order_payment( $order_1 );
 
 		$this->assertFalse( $locked );
-		$current_lock = $order_1->get_lock_payment();
+		$current_lock = $order_1->get_meta( '_stripe_lock_payment' );
 		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
 
-		$locked = $order_1->lock_payment();
+		$locked = $this->gateway->lock_order_payment( $order_1 );
 		$this->assertTrue( $locked );
 
 		// lock with an intent ID.
 		$order_2   = WC_Helper_Order::create_order();
 		$intent_id = 'pi_123intent';
 
-		$locked       = $order_2->lock_payment( $intent_id );
-		$current_lock = $order_2->get_lock_payment();
+		$locked       = $this->gateway->lock_order_payment( $order_2, $intent_id );
+		$current_lock = $order_2->get_meta( '_stripe_lock_payment' );
 
 		$this->assertFalse( $locked );
-		$locked = $order_2->lock_payment( $intent_id );
+		$locked = $this->gateway->lock_order_payment( $order_2, $intent_id );
 		$this->assertTrue( $locked );
-		$locked = $order_2->lock_payment(); // test that you don't need to pass the intent ID to check lock.
+		$locked = $this->gateway->lock_order_payment( $order_2 ); // test that you don't need to pass the intent ID to check lock.
 		$this->assertTrue( $locked );
 
 		// test expired locks.
 		$order_3 = WC_Helper_Order::create_order();
-		$order_3->set_lock_payment( time() - 1 );
+		$order_3->update_meta_data( '_stripe_lock_payment', time() - 1 );
 		$order_3->save_meta_data();
 
-		$locked       = $order_3->lock_payment( $intent_id );
-		$current_lock = $order_3->get_lock_payment();
+		$locked       = $this->gateway->lock_order_payment( $order_3, $intent_id );
+		$current_lock = $order_3->get_meta( '_stripe_lock_payment' );
 
 		$this->assertFalse( $locked );
 		$this->assertEqualsWithDelta( (int) $current_lock, ( time() + 5 * MINUTE_IN_SECONDS ), 3 );
 
 		// test two instances of the same order, one locked and one not.
 		$order_4   = WC_Helper_Order::create_order();
-		$dup_order = WC_Stripe_Order::get_by_id( $order_4->get_id() );
+		$dup_order = wc_get_order( $order_4->get_id() );
 
-		$order_4->lock_payment();
-		$dup_locked = $dup_order->lock_payment();
+		$this->gateway->lock_order_payment( $order_4 );
+		$dup_locked = $this->gateway->lock_order_payment( $dup_order );
 		$this->assertTrue( $dup_locked ); // Confirms lock from $order_4 prevents payment on $dup_order.
 	}
 
@@ -706,7 +706,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 		$order->set_currency( 'USD' );
 		$order->set_transaction_id( 'ch_123' );
-		$order->set_charge_captured( 'yes' );
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
 		$order->save();
 		$order_id = $order->get_id();
 
