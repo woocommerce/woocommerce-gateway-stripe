@@ -264,7 +264,7 @@ class WC_Stripe_API {
 		);
 
 		// If we get a 401 error, we know the secret key is not valid, we save a transient to avoid making calls until the secrect key gets updated.
-		if ( ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			$transient_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY : self::LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY;
 			set_transient( $transient_key, true );
 			return new WP_Error( 'stripe_error', __( 'The Stripe API keys are not valid.', 'woocommerce-gateway-stripe' ) );
