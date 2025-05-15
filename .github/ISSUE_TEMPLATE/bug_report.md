@@ -7,28 +7,44 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+### Description
 
-**To Reproduce**
+<!-- Please share a clear and concise description of the bug, or what unexpected behaviour you are seeing. -->
+
+### Steps to reproduce
+
+<!-- Please share steps to make the error or problem occur. -->
+
 Steps to reproduce the behavior:
 1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
+2. Click on '...'
+3. Scroll down to '...'
 4. See error
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+### Expected behavior
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+<!-- Please describe what you expected to happen. -->
 
-**Environment (please complete the following information):**
+## Screenshots
+
+<!-- Please share any screenshots of the problem to help us understand what is happening. -->
+
+### Environment
+
+<!-- Please share the following information with us. -->
  - WordPress Version
  - WooCommerce Version
  - Stripe Plugin Version
- - Browser [e.g. chrome, safari] and Version
+ - Browser [e.g. Chrome, Safari, Safari on iOS, Chrome on Android] and Version
  - Any other plugins installed
 
-**Additional context**
-Add any other context about the problem here.
+## Additional context
+
+<!--
+Please share any other relevant information or context that you think might be useful or helpful in investigating the problem.
+Here are some things to consider:
+ * When did the problem start happening?
+ * What changes (if any) did you make recently?
+ * How often are you seeing the problem?
+-->
+
