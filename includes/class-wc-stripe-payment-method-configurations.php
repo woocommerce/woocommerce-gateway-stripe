@@ -357,6 +357,11 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
+		// If there is no payment method order defined, set it to the default order
+		if ( empty( $stripe_settings['stripe_upe_payment_method_order'] ) ) {
+			$stripe_settings['stripe_upe_payment_method_order'] = array_keys( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS );
+		}
+
 		// Mark migration as complete in stripe settings
 		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
