@@ -27,7 +27,7 @@ runs:
       env:
         WP_PLUGIN_SLUG: ${{ inputs.plugin-slug }}
       run: |
-        if [[ ! "$WP_PLUGIN"  =~ ^[a-z]([a-z0-9]|-|_)*[a-z]$ ]];
+        if [[ ! "$WP_PLUGIN_SLUG"  =~ ^[a-z]([a-z0-9]|-|_)*[a-z]$ ]];
         then
           echo "Invalid plugin slug: $WP_PLUGIN_SLUG"
           exit 1
