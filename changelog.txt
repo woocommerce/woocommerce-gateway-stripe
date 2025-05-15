@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
