@@ -21,14 +21,14 @@ class WC_Stripe_API {
 	 *
 	 * @var string
 	 */
-	const TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY = 'wcstripe_test_invalid_api_keys_detected';
+	const TEST_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_test_invalid_api_keys_detected';
 
 	/**
 	 * The live mode invalid API keys transient key.
 	 *
 	 * @var string
 	 */
-	const LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY = 'wcstripe_live_invalid_api_keys_detected';
+	const LIVE_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_live_invalid_api_keys_detected';
 
 	/**
 	 * Secret API Key.
@@ -246,8 +246,8 @@ class WC_Stripe_API {
 	 */
 	public static function retrieve( $api ) {
 		// If we have a transient indicating that the secret key is not valid, we dont't attempt the API call and we return an error.
-		$invalid_api_keys_transient_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY : self::LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY;
-		$invalid_api_keys_detected = get_transient( $invalid_api_keys_transient_key );
+		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_OPTION_KEY : self::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
+		$invalid_api_keys_detected = get_option( $invalid_api_keys_option_key );
 		if ( $invalid_api_keys_detected ) {
 			return json_decode( '' ); // The UI expects this empty response in case of invalid API keys.
 		}
@@ -265,7 +265,8 @@ class WC_Stripe_API {
 
 		// If we get a 401 error, we know the secret key is not valid, we save a transient to avoid making calls until the secrect key gets updated.
 		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
-			set_transient( $invalid_api_keys_transient_key, true );
+			update_option( $invalid_api_keys_option_key, true );
+			update_option( $invalid_api_keys_option_key . '_at', time() );
 			return json_decode( '' ); // The UI expects this empty response in case of invalid API keys.
 		}
 
