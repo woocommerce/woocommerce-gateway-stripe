@@ -17,6 +17,20 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
+	 * The test mode invalid API keys transient key.
+	 *
+	 * @var string
+	 */
+	const TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY = 'wcstripe_test_invalid_api_keys_detected';
+
+	/**
+	 * The live mode invalid API keys transient key.
+	 *
+	 * @var string
+	 */
+	const LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY = 'wcstripe_live_invalid_api_keys_detected';
+
+	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -233,6 +247,13 @@ class WC_Stripe_API {
 	public static function retrieve( $api ) {
 		WC_Stripe_Logger::log( "{$api}" );
 
+		// If we have a transient indicating that the secret key is not valid, we dont't attempt the API call and we return an error.
+		$transient_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY : self::LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY;
+		$invalid_api_keys_detected = get_transient( $transient_key );
+		if ( $invalid_api_keys_detected ) {
+			return new WP_Error( 'stripe_error', __( 'The Stripe API keys are not valid.', 'woocommerce-gateway-stripe' ) );
+		}
+
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
 			[
@@ -241,6 +262,13 @@ class WC_Stripe_API {
 				'timeout' => 70,
 			]
 		);
+
+		// If we get a 401 error, we know the secret key is not valid, we save a transient to avoid making calls until the secrect key gets updated.
+		if ( ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+			$transient_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_TRANSIENT_KEY : self::LIVE_MODE_INVALID_API_KEYS_TRANSIENT_KEY;
+			set_transient( $transient_key, true );
+			return new WP_Error( 'stripe_error', __( 'The Stripe API keys are not valid.', 'woocommerce-gateway-stripe' ) );
+		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
