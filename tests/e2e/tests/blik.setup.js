@@ -29,6 +29,10 @@ setup( 'Configure store for BLIK tests', async ( { browser } ) => {
 		await setKeysForLocalEnv( adminContext );
 	}
 
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+
 	// Change store currency to PLN.
 	await admin.updateStoreCurrency( browser, 'PLN' );
 
