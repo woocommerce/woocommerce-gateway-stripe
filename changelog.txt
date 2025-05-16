@@ -1,7 +1,14 @@
 *** Changelog ***
 
-= 9.5.0 - xxxx-xx-xx =
+= 9.6.0 - xxxx-xx-xx =
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
+* Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
+* Fix - Stop checking for detached subscriptions for admin users, as it was slowing down wp-admin
+* Update - Remove BACS from the unsupported 'change payment method for subscription' page.
+* Fix - Fix payment method title display when new payment settings experience is enabled
+* Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
+
+= 9.5.0 - 2025-05-13 =
 * Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
 * Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
 * Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
@@ -26,10 +33,7 @@
 * Update - Add support for customer order notes and express checkout
 * Dev - Minor fix to e2e setup code
 * Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
-* Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix invalid IP address error encountered during mandate data creation.
-* Fix - Fix payment method title display when new payment settings experience is enabled
-* Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 
 = 9.4.1 - 2025-04-17 =
 * Dev - Forces rollback of version 9.4.0.
