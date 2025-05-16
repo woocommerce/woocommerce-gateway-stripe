@@ -22,6 +22,11 @@ setup( 'Configure store for BLIK tests', async ( { browser } ) => {
 		.getByRole( 'menuitem', { name: 'Refresh account details' } )
 		.click();
 
+	await page.goto(
+		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
+	);
+	await page.waitForTimeout( 1000 );
+
 	// Change store currency to PLN.
 	await admin.updateStoreCurrency( browser, 'PLN' );
 
