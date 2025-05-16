@@ -104,6 +104,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the payment method configuration from cache.
 	 *
+	 * @param bool $use_fallback Whether to use the fallback cache if the transient is not available.
+	 *
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_cache( $use_fallback = false ) {
