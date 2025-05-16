@@ -263,10 +263,15 @@ class WC_Stripe_API {
 			]
 		);
 
-		// If we get a 401 error, we know the secret key is not valid, we save a flag in the options to avoid making calls until the secret key gets updated.
+		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+			// We save a flag in the options to avoid making calls until the secret key gets updated.
 			update_option( $invalid_api_keys_option_key, true );
 			update_option( $invalid_api_keys_option_key . '_at', time() );
+
+			// We delete the transient for the account data to trigger the not-connected UI in the admin dashboard.
+			delete_transient( WC_Stripe_Mode::is_test() ? WC_Stripe_Account::TEST_ACCOUNT_OPTION : WC_Stripe_Account::LIVE_ACCOUNT_OPTION );
+
 			return null; // The UI expects this empty response in case of invalid API keys.
 		}
 
