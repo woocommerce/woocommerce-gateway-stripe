@@ -133,11 +133,11 @@ const AccountDetails = () => {
 					{ createInterpolateElement(
 						isTestModeEnabled
 							? __(
-									"Seems like the test API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
+									"We couldn't connect to your account, it seems like the test API keys we've saved for you are no longer valid. Please use the <strong>Configure connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
 							  )
 							: __(
-									"Seems like the live API keys we've saved for you are no longer valid. If you recently updated them, use the <strong>Configure Connection</strong> button below to reconnect.",
+									"We couldn't connect to your account, it seems like the live API keys we've saved for you are no longer valid. Please use the <strong>Configure connection</strong> button below to reconnect.",
 									'woocommerce-gateway-stripe'
 							  ),
 						{
