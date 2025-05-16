@@ -63,6 +63,9 @@ class WC_Stripe_Admin_Notices {
 		// Main Stripe payment method.
 		$this->stripe_check_environment();
 
+		// Check if we are hitting Stripe API rate limits.
+		$this->stripe_rate_limit_check();
+
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
@@ -456,6 +459,82 @@ class WC_Stripe_Admin_Notices {
 		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
 			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
 		}
+	}
+
+	/**
+	 * Check if we should show any notices due to us hitting Stripe API rate limits.
+	 *
+	 * @since x.x.x
+	 */
+	public function stripe_rate_limit_check() {
+		if ( WC_Stripe_API::is_stripe_api_rate_limited() ) {
+			$this->add_admin_notice(
+				'wc_stripe_api_rate_limit_active',
+				'notice notice-error',
+				__(
+					'The Stripe API is currently rate limited. If this persists for more than a minute or two, please contact our support team to investigate.',
+					'woocommerce-gateway-stripe'
+				),
+				false
+			);
+			return;
+		}
+
+		$is_test_mode = WC_Stripe_Mode::is_test();
+		$rate_limit_option_key = $is_test_mode ? WC_Stripe_API::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : WC_Stripe_API::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
+		$rate_limit_history = get_option( $rate_limit_option_key . '_history', [] );
+		if ( empty( $rate_limit_history ) ) {
+			return;
+		}
+
+		// Look back to see if we have had 3 or more rate limit errors in the last hour.
+		$timestamps = wp_list_pluck( $rate_limit_history, 'timestamp' );
+		if ( count( $timestamps ) < 3 ) {
+			return;
+		}
+
+		$current_timestamp = time();
+
+		$timestamps_in_last_hour = array_filter(
+			$timestamps,
+			function ( $timestamp ) use ( $current_timestamp ) {
+				return $current_timestamp - $timestamp <= HOUR_IN_SECONDS;
+			}
+		);
+
+		if ( count( $timestamps_in_last_hour ) >= 3 ) {
+			$this->add_admin_notice(
+				'wc_stripe_api_rate_limit_hour_3',
+				'notice notice-error',
+				__(
+					'The Stripe API has been rate limited 3 or more times in the last hour. Please contact our support team to investigate.',
+					'woocommerce-gateway-stripe'
+				),
+				false
+			);
+			return;
+		}
+
+		$timestamps_in_last_day = array_filter(
+			$timestamps,
+			function ( $timestamp ) use ( $current_timestamp ) {
+				return $current_timestamp - $timestamp <= DAY_IN_SECONDS;
+			}
+		);
+
+		if ( count( $timestamps_in_last_day ) < 5 ) {
+			return;
+		}
+
+		$this->add_admin_notice(
+			'wc_stripe_api_rate_limit_day_10',
+			'notice notice-error',
+			__(
+				'The Stripe API has been rate limited 5 or more times in the last day. Please contact our support team to investigate.',
+				'woocommerce-gateway-stripe'
+			),
+			false
+		);
 	}
 
 	/**

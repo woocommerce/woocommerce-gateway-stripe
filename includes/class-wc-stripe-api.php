@@ -351,8 +351,8 @@ class WC_Stripe_API {
 				'datetime'  => gmdate( 'Y-m-d H:i:s', $timestamp ) . ' UTC',
 				'duration'  => self::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS,
 			];
-			// Note that we set autoload to false - we don't want this option to be autoloaded by default.
-			update_option( $history_option_key, $history, false );
+
+			update_option( $history_option_key, $history );
 		}
 	}
 
