@@ -66,16 +66,13 @@ class WC_Stripe_Payment_Method_Configurations {
 				return $cached_primary_configuration;
 			}
 
-			// If we are in cooldown and cache is not available, return fallback configuration
-			// using legacy settings.
-			$pmc_configuration_from_legacy_settings = self::get_fallback_pmc_configuration();
-			if ( ! empty( $pmc_configuration_from_legacy_settings ) ) {
-				error_log( 'Returning PMC configuration from legacy settings: ' . print_r( $pmc_configuration_from_legacy_settings, true ) );
-				return $pmc_configuration_from_legacy_settings;
+			$fallback_cache = self::get_payment_method_configuration_from_cache( true );
+			if ( $fallback_cache ) {
+				return $fallback_cache;
 			}
 
 			// Final fallback: return minimal card configuration.
-			return self::get_fallback_pmc_configuration( true );
+			return self::get_minimal_card_config();
 		}
 
 		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
@@ -105,42 +102,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
-	 * Get fallback payment method configuration, using legacy settings.
-	 *
-	 * @param bool $card_only Whether to enable only the card payment method.
-	 * @return array
-	 */
-	private static function get_fallback_pmc_configuration( $card_only = false ) {
-		$stripe_settings   = WC_Stripe_Helper::get_stripe_settings();
-		$pmc_configuration = [];
-
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_id => $payment_method_name ) {
-			$is_enabled = $card_only ?
-				WC_Stripe_Payment_Methods::CARD === $payment_method_id :
-				! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
-					is_array( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
-					in_array( $payment_method_id, $stripe_settings['upe_checkout_experience_accepted_payments'], true );
-
-			$pmc_configuration[ $payment_method_id ] = (object) [
-				'parent'             => WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID,
-				'available'          => $is_enabled,
-				'display_preference' => (object) [
-					'overridable' => null,
-					'preference'  => $is_enabled ? 'on' : 'off',
-					'value'       => $is_enabled ? 'on' : 'off',
-				],
-			];
-		}
-
-		return $pmc_configuration;
-	}
-
-	/**
 	 * Get the payment method configuration from cache.
 	 *
 	 * @return object|null
 	 */
-	private static function get_payment_method_configuration_from_cache() {
+	private static function get_payment_method_configuration_from_cache( $use_fallback = false ) {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
@@ -148,6 +114,9 @@ class WC_Stripe_Payment_Method_Configurations {
 		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		$cached_primary_configuration = get_transient( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
+			if ( $use_fallback ) {
+				return get_option( $cache_key );
+			}
 			return null;
 		}
 
@@ -162,6 +131,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::$primary_configuration = null;
 		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		delete_transient( $cache_key );
+		delete_option( $cache_key );
 	}
 
 	/**
@@ -173,6 +143,9 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::$primary_configuration = $configuration;
 		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
+
+		// To be used as fallback if we are in API cooldown and the transient is not available.
+		update_option( $cache_key, $configuration );
 	}
 
 	/**
@@ -258,13 +231,6 @@ class WC_Stripe_Payment_Method_Configurations {
 					$enabled_payment_method_ids[] = $payment_method_id;
 				}
 			}
-		}
-
-		// Save in options, so we can use this as a fallback.
-		if ( $force_refresh ) {
-			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-			$stripe_settings['upe_checkout_experience_accepted_payments'] = $enabled_payment_method_ids;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
 		return $enabled_payment_method_ids;
