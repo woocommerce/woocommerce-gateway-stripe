@@ -60,19 +60,23 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
 		$fetch_cooldown = defined( 'IS_TESTING' ) ? 0 : get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
-		if ( ! $force_refresh || $fetch_cooldown > time() ) {
+		$is_in_cooldown = $fetch_cooldown > time();
+		if ( ! $force_refresh || $is_in_cooldown ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
 			}
 
-			$fallback_cache = self::get_payment_method_configuration_from_cache( true );
-			if ( $fallback_cache ) {
-				return $fallback_cache;
-			}
+			// If we are hitting the API too much, and our main cache is not working, use the fallback cache.
+			if ( $is_in_cooldown ) {
+				$fallback_cache = self::get_payment_method_configuration_from_cache( true );
+				if ( $fallback_cache ) {
+					return $fallback_cache;
+				}
 
-			// Final fallback: return minimal card configuration.
-			return self::get_minimal_card_config();
+				// If even the fallback cache is not available, return minimal card configuration.
+				return self::get_minimal_card_config();
+			}
 		}
 
 		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
