@@ -58,6 +58,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
+		// Only allow fetching payment configuration once per minute.
+		$fetch_cooldown = get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
+		if ( $fetch_cooldown > time() ) {
+			return null;
+		}
+
 		if ( ! $force_refresh ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
@@ -65,7 +71,14 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
-		return self::get_payment_method_configuration_from_stripe();
+		$configuration = self::get_payment_method_configuration_from_stripe();
+		if ( ! $configuration ) {
+			return null;
+		}
+
+		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
+
+		return $configuration;
 	}
 
 	/**
@@ -114,19 +127,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
-		// Only allow fetching payment configuration once per minute.
-		$fetch_cooldown = get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
-		if ( $fetch_cooldown > time() ) {
-			return null;
-		}
-
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? null;
-
-		if ( ! $configurations ) {
-			update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
-			return null;
-		}
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
