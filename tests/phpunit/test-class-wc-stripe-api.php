@@ -162,7 +162,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				'code' => 200,
 				'message' => 'OK',
 			],
-			'body' => 'success',
+			'body' => json_encode( 'success' ),
 		];
 	}
 
