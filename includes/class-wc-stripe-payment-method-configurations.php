@@ -60,25 +60,37 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
 		$fetch_cooldown = get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
-		if ( $fetch_cooldown > time() ) {
-			return null;
-		}
-
-		if ( ! $force_refresh ) {
+		if ( ! $force_refresh && $fetch_cooldown > time() ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
+			} else {
+				return self::get_minimal_card_config();
 			}
-		}
-
-		$configuration = self::get_payment_method_configuration_from_stripe();
-		if ( ! $configuration ) {
-			return null;
 		}
 
 		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
 
-		return $configuration;
+		return self::get_payment_method_configuration_from_stripe();
+	}
+
+	/**
+	 * Get the minimal card configuration. This is used when the payment method configuration API is not available.
+	 *
+	 * @return object
+	 */
+	private static function get_minimal_card_config() {
+		return (object) [
+			'parent'                        => WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'available'          => true,
+				'display_preference' => (object) [
+					'overridable' => null,
+					'preference'  => 'on',
+					'value'       => 'on',
+				],
+			],
+		];
 	}
 
 	/**
@@ -106,7 +118,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		delete_transient( $cache_key );
 	}
 
@@ -117,7 +129,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
 	}
 
