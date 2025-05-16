@@ -78,7 +78,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			return self::$primary_configuration;
 		}
 
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		$cached_primary_configuration = get_transient( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
 			return null;
@@ -114,10 +114,17 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
+		// Only allow fetching payment configuration once per minute.
+		$fetch_cooldown = get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
+		if ( $fetch_cooldown > time() ) {
+			return null;
+		}
+
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? null;
 
 		if ( ! $configurations ) {
+			update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
 			return null;
 		}
 
