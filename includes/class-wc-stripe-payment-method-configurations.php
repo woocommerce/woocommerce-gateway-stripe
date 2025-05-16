@@ -60,7 +60,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
 		$fetch_cooldown = defined( 'IS_TESTING' ) ? 0 : get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
-		if ( ! $force_refresh && $fetch_cooldown > time() ) {
+		if ( ! $force_refresh || $fetch_cooldown > time() ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
