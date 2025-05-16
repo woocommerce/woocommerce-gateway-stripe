@@ -87,6 +87,8 @@ jobs:
         env:
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY_PL: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL }}
+          STRIPE_SECRET_KEY_PL: ${{ secrets.E2E_STRIPE_SECRET_KEY_PL }}
         run: |
           if [ "${{ matrix.checkout }}" = "Legacy" ]; then
             npm run test:e2e-legacy
