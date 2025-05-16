@@ -245,11 +245,11 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		// If we have an option flag indicating that the secret key is not valid, we dont't attempt the API call and we return an error.
+		// If we have an option flag indicating that the secret key is not valid, we don't attempt the API call and we return an error.
 		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_OPTION_KEY : self::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
 		$invalid_api_keys_detected = get_option( $invalid_api_keys_option_key );
 		if ( $invalid_api_keys_detected ) {
-			return json_decode( '' ); // The UI expects this empty response in case of invalid API keys.
+			return null; // The UI expects this empty response in case of invalid API keys.
 		}
 
 		WC_Stripe_Logger::log( "{$api}" );
@@ -267,7 +267,7 @@ class WC_Stripe_API {
 		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			update_option( $invalid_api_keys_option_key, true );
 			update_option( $invalid_api_keys_option_key . '_at', time() );
-			return json_decode( '' ); // The UI expects this empty response in case of invalid API keys.
+			return null; // The UI expects this empty response in case of invalid API keys.
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
