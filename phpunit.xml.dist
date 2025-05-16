@@ -25,5 +25,7 @@
 			<html outputDirectory="phpunit-html"/>
 		</report>
 	</coverage>
-
+	<php>
+		<const name="IS_TESTING" value="1"/>
+	</php>
 </phpunit>
