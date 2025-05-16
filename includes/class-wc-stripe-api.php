@@ -16,6 +16,28 @@ class WC_Stripe_API {
 	const ENDPOINT           = 'https://api.stripe.com/v1/';
 	const STRIPE_API_VERSION = '2024-06-20';
 
+
+	/**
+	 * Option key for cases where Stripe rate limits our live API calls.
+	 *
+	 * @var string
+	 */
+	public const LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_api_rate_limit_live';
+
+	/**
+	 * Option key for cases where Stripe rate limits our test API calls.
+	 *
+	 * @var string
+	 */
+	public const TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_api_rate_limit_test';
+
+	/**
+	 * Duration we will use to disable Stripe API calls if we have been rate limited.
+	 *
+	 * @var int
+	 */
+	public const STRIPE_API_RATE_LIMIT_DURATION = 30;
+
 	/**
 	 * Secret API Key.
 	 *
@@ -231,6 +253,10 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
+		if ( self::is_stripe_api_rate_limited() ) {
+			return null;
+		}
+
 		WC_Stripe_Logger::log( "{$api}" );
 
 		$response = wp_safe_remote_get(
@@ -243,11 +269,69 @@ class WC_Stripe_API {
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+			self::check_stripe_api_error_response( $response );
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		return json_decode( $response['body'] );
+	}
+
+	/**
+	 * Checks if the Stripe API for the current mode (i.e. test or live) is rate limited.
+	 *
+	 * @return bool True if the Stripe API is rate limited, false otherwise.
+	 */
+	public static function is_stripe_api_rate_limited() {
+		$rate_limit_option_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : self::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
+
+		$rate_limit_expiration = get_option( $rate_limit_option_key );
+		if ( ! $rate_limit_expiration ) {
+			return false;
+		}
+
+		$now = time();
+		if ( $now > $rate_limit_expiration ) {
+			delete_option( $rate_limit_option_key );
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Helper function to check error responses from Stripe and ensure we prevent unnecessary API calls,
+	 * primarily in cases where we have been rate limited or we don't have valid keys..
+	 *
+	 * @param array|WP_Error $response The response from the Stripe API.
+	 * @return void
+	 */
+	protected static function check_stripe_api_error_response( $response ) {
+		// If we don't have an array for $response, return early, as we won't have an HTTP status code.
+		if ( ! is_array( $response ) ) {
+			return;
+		}
+
+		// We specifically want to check $response['response']['code']. If it's not present, return early.
+		if ( ! isset( $response['response'] ) || ! is_array( $response['response'] ) || ! isset( $response['response']['code'] ) ) {
+			return;
+		}
+
+		$status_code = $response['response']['code'];
+
+		if ( 429 === $status_code ) {
+			// Stripe has rate limited us, so disable API calls for a period of time.
+			$is_test_mode = WC_Stripe_Mode::is_test();
+
+			$rate_limit_option_key = $is_test_mode ? self::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : self::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
+			update_option( $rate_limit_option_key, time() + self::STRIPE_API_RATE_LIMIT_DURATION );
+
+			$mode = $is_test_mode ? 'test' : 'LIVE';
+			$message = "Stripe {$mode} mode API has been rate limited, disabling API calls for " . self::STRIPE_API_RATE_LIMIT_DURATION . ' seconds.';
+
+			error_log( 'woocommerce-gateway-stripe: WARNING: ' . $message );
+			WC_Stripe_Logger::error( $message );
+		}
 	}
 
 	/**
