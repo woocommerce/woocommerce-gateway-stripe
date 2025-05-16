@@ -311,6 +311,93 @@ const PromotionalBannerSection = ( {
 		}
 	}
 
+	// const BNPLForNewMerchantBanner = () => (
+	// 	<CardBody>
+	// 		<CardInner>
+	// 			<CardColumn>
+	// 				<NewPill>
+	// 					{ __( 'New', 'woocommerce-gateway-stripe' ) }
+	// 				</NewPill>
+	// 				<h4>
+	// 					{ __(
+	// 						'Try Buy Now, Pay Later with a limited-time promotional rate',
+	// 						'woocommerce-gateway-stripe'
+	// 					) }
+	// 				</h4>
+	// 				<p>
+	// 					{ __(
+	// 						'Offer customers flexible pay-over-time options, now enabled in your store’s checkout with a X% transaction fee for the next 3 months.',
+	// 						'woocommerce-gateway-stripe'
+	// 					) }
+	// 				</p>
+	// 			</CardColumn>
+	// 			<CardColumn>
+	// 				<BannerIllustration
+	// 					src={ bannerIllustration }
+	// 					alt={ __(
+	// 						'New Checkout',
+	// 						'woocommerce-gateway-stripe'
+	// 					) }
+	// 				/>
+	// 			</CardColumn>
+	// 		</CardInner>
+	// 		<ButtonsRow>
+	// 			<MainCTALink
+	// 				variant="secondary"
+	// 				data-testid="enable-the-new-checkout"
+	// 				onClick={ handleButtonClick }
+	// 			>
+	// 				{ __(
+	// 					'Learn more',
+	// 					'woocommerce-gateway-stripe'
+	// 				) }
+	// 			</MainCTALink>
+	// 			<DismissButton
+	// 				variant="secondary"
+	// 				onClick={ handleBannerDismiss }
+	// 				data-testid="dismiss"
+	// 			>
+	// 				{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
+	// 			</DismissButton>
+	// 		</ButtonsRow>
+	// 	</CardBody>
+	// );
+	const BNPLForExistingMerchantBanner = () => (
+		<CardBody>
+			<CardInner>
+				<CardColumn>
+					<NewPill>
+						{ __( 'New', 'woocommerce-gateway-stripe' ) }
+					</NewPill>
+					<h4>
+						{ __(
+							'Buy Now, Pay Later is now live on your store',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ __(
+							'Offering flexible pay-over-time options can boost conversion and increase order values. BNPL options are auto-enabled with Stripe. \n',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+				</CardColumn>
+				<CardColumn>
+					<BannerIllustration
+						src={ bannerIllustration }
+						alt={ __(
+							'New Checkout',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				</CardColumn>
+			</CardInner>
+		</CardBody>
+	);
+
+	// BannerContent = <BNPLForNewMerchantBanner />;
+	BannerContent = <BNPLForExistingMerchantBanner />;
+
 	return (
 		BannerContent && (
 			<BannerCard data-testid="promotional-banner-card">
