@@ -109,15 +109,11 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertNull( $result );
 
 		// Verify the invalid API keys option was set
-		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
-			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
-			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
-
-		$this->assertTrue( get_option( $invalid_api_keys_option_key ) );
+		$this->assertTrue( get_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY ) );
 
 		// Clean up
 		remove_filter( 'pre_http_request', [ $this, 'mock_401_response' ] );
-		delete_option( $invalid_api_keys_option_key );
+		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
 	}
 
 	/**
@@ -125,10 +121,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 */
 	public function test_retrieve_returns_null_when_api_keys_are_invalid() {
 		// Set up the invalid API keys option
-		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
-			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
-			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
-		update_option( $invalid_api_keys_option_key, true );
+		update_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY, true );
 
 		// Call the retrieve method
 		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
@@ -137,7 +130,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertNull( $result );
 
 		// Clean up
-		delete_option( $invalid_api_keys_option_key );
+		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
 	}
 
 	/**
@@ -145,10 +138,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 */
 	public function test_retrieve_makes_api_call_when_api_keys_are_valid() {
 		// Ensure no invalid API keys option exists
-		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
-			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
-			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
-		delete_option( $invalid_api_keys_option_key );
+		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
 
 		// Mock a successful API response
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
