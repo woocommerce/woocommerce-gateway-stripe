@@ -94,4 +94,98 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		WC_Stripe_API::set_secret_key_for_mode( 'invalid' );
 		$this->assertEquals( self::LIVE_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 	}
+
+	/**
+	 * Test WC_Stripe_API::retrieve() when API returns 401 error.
+	 */
+	public function test_retrieve_handles_401_error() {
+		// Mock a 401 API response
+		add_filter( 'pre_http_request', [ $this, 'mock_401_response' ] );
+
+		// Call the retrieve method
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+
+		// Verify the result is null
+		$this->assertNull( $result );
+
+		// Verify the invalid API keys option was set
+		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
+			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
+			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
+
+		$this->assertTrue( get_option( $invalid_api_keys_option_key ) );
+
+		// Clean up
+		remove_filter( 'pre_http_request', [ $this, 'mock_401_response' ] );
+		delete_option( $invalid_api_keys_option_key );
+	}
+
+	/**
+	 * Test WC_Stripe_API::retrieve() when API keys are invalid.
+	 */
+	public function test_retrieve_returns_null_when_api_keys_are_invalid() {
+		// Set up the invalid API keys option
+		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
+			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
+			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
+		update_option( $invalid_api_keys_option_key, true );
+
+		// Call the retrieve method
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+
+		// Verify the result is null
+		$this->assertNull( $result );
+
+		// Clean up
+		delete_option( $invalid_api_keys_option_key );
+	}
+
+	/**
+	 * Test WC_Stripe_API::retrieve() when API keys are valid.
+	 */
+	public function test_retrieve_makes_api_call_when_api_keys_are_valid() {
+		// Ensure no invalid API keys option exists
+		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ?
+			WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY :
+			WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
+		delete_option( $invalid_api_keys_option_key );
+
+		// Mock a successful API response
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		// Call the retrieve method
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+
+		// Verify the result matches our mock response
+		$this->assertEquals( 'success', $result );
+
+		// Clean up
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+	}
+
+	/**
+	 * Helper method to mock a successful API response.
+	 */
+	public function mock_successful_response() {
+		return [
+			'response' => [
+				'code' => 200,
+				'message' => 'OK',
+			],
+			'body' => 'success',
+		];
+	}
+
+	/**
+	 * Helper method to mock a 401 API response.
+	 */
+	public function mock_401_response() {
+		return [
+			'response' => [
+				'code' => 401,
+				'message' => 'Unauthorized',
+			],
+			'body' => '',
+		];
+	}
 }
