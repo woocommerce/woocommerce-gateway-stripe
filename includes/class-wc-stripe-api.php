@@ -22,14 +22,14 @@ class WC_Stripe_API {
 	 *
 	 * @var string
 	 */
-	public const LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_api_rate_limit_live';
+	public const LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_live_api_rate_limit';
 
 	/**
 	 * Option key for cases where Stripe rate limits our test API calls.
 	 *
 	 * @var string
 	 */
-	public const TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_api_rate_limit_test';
+	public const TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY = 'wc_stripe_test_api_rate_limit';
 
 	/**
 	 * Duration we will use to disable Stripe API calls if we have been rate limited.
@@ -323,14 +323,31 @@ class WC_Stripe_API {
 			// Stripe has rate limited us, so disable API calls for a period of time.
 			$is_test_mode = WC_Stripe_Mode::is_test();
 
+			$timestamp = time();
 			$rate_limit_option_key = $is_test_mode ? self::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : self::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
-			update_option( $rate_limit_option_key, time() + self::STRIPE_API_RATE_LIMIT_DURATION );
+			update_option( $rate_limit_option_key, $timestamp + self::STRIPE_API_RATE_LIMIT_DURATION );
 
 			$mode = $is_test_mode ? 'test' : 'LIVE';
 			$message = "Stripe {$mode} mode API has been rate limited, disabling API calls for " . self::STRIPE_API_RATE_LIMIT_DURATION . ' seconds.';
 
 			error_log( 'woocommerce-gateway-stripe: WARNING: ' . $message );
 			WC_Stripe_Logger::error( $message );
+
+			// Store history of rate limits so we can see how often they're occurring.
+			$history_option_key = $rate_limit_option_key . '_history';
+			$history = get_option( $history_option_key, [] );
+			if ( ! is_array( $history ) ) {
+				$history = [];
+			}
+			// Keep a maximum of 20 rate limit history entries.
+			$history = array_slice( $history, -19 );
+			$history[] = [
+				'timestamp' => $timestamp,
+				'datetime'  => gmdate( 'Y-m-d H:i:s', $timestamp ) . ' UTC',
+				'duration'  => self::STRIPE_API_RATE_LIMIT_DURATION,
+			];
+			// Note that we set autoload to false - we don't want this option to be autoloaded by default.
+			update_option( $history_option_key, $history, false );
 		}
 	}
 

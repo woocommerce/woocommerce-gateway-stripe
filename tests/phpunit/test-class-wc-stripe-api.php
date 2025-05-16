@@ -202,6 +202,10 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$settings['logging'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
+		$rate_limit_option_key = $is_test_mode ? WC_Stripe_API::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : WC_Stripe_API::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
+		$history_option_key = $rate_limit_option_key . '_history';
+		update_option( $history_option_key, [], false );
+
 		$mock_logger = $this->createStub( WC_Logger_Interface::class );
 
 		$mock_logger->expects( $this->exactly( 2 ) )
@@ -234,12 +238,26 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'stripe_error', $result->get_error_code() );
 		$this->assertEquals( 'There was a problem connecting to the Stripe API endpoint.', $result->get_error_message() );
 
-		$rate_limit_option_key = $is_test_mode ? WC_Stripe_API::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : WC_Stripe_API::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
 		$rate_limit_option = get_option( $rate_limit_option_key );
 		$this->assertIsInt( $rate_limit_option );
 
-		$duration_delta = max( $request_end_time - $request_start_time, 1 );
-		$this->assertEqualsWithDelta( $request_end_time + WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION, $rate_limit_option, $duration_delta );
+		$runtime_delta = max( $request_end_time - $request_start_time, 1 );
+		$this->assertEqualsWithDelta( $request_end_time + WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION, $rate_limit_option, $runtime_delta );
+
+		$history = get_option( $history_option_key, null );
+		$this->assertIsArray( $history );
+		$this->assertCount( 1, $history );
+
+		$history_entry = $history[0];
+		$this->assertIsArray( $history_entry );
+		$this->assertArrayHasKey( 'timestamp', $history_entry );
+		$this->assertArrayHasKey( 'datetime', $history_entry );
+		$this->assertArrayHasKey( 'duration', $history_entry );
+
+		$expected_timestamp = $rate_limit_option - WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION;
+		$this->assertEquals( $expected_timestamp, $history_entry['timestamp'] );
+		$this->assertEquals( gmdate( 'Y-m-d H:i:s', $expected_timestamp ) . ' UTC', $history_entry['datetime'] );
+		$this->assertEquals( WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION, $history_entry['duration'] );
 
 		remove_filter( 'pre_http_request', [ $this, 'mock_429_response' ] );
 	}
