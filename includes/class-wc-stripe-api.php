@@ -36,7 +36,7 @@ class WC_Stripe_API {
 	 *
 	 * @var int
 	 */
-	public const STRIPE_API_RATE_LIMIT_DURATION = 30;
+	public const STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS = 30;
 
 	/**
 	 * Secret API Key.
@@ -326,10 +326,10 @@ class WC_Stripe_API {
 
 			$timestamp = time();
 			$rate_limit_option_key = $is_test_mode ? self::TEST_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY : self::LIVE_MODE_STRIPE_API_RATE_LIMIT_OPTION_KEY;
-			update_option( $rate_limit_option_key, $timestamp + self::STRIPE_API_RATE_LIMIT_DURATION );
+			update_option( $rate_limit_option_key, $timestamp + self::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS );
 
 			$mode = $is_test_mode ? 'test' : 'LIVE';
-			$message = "Stripe {$mode} mode API has been rate limited, disabling API calls for " . self::STRIPE_API_RATE_LIMIT_DURATION . ' seconds.';
+			$message = "Stripe {$mode} mode API has been rate limited, disabling API calls for " . self::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS . ' seconds.';
 
 			error_log( 'woocommerce-gateway-stripe: WARNING: ' . $message );
 			WC_Stripe_Logger::error( $message );
@@ -345,7 +345,7 @@ class WC_Stripe_API {
 			$history[] = [
 				'timestamp' => $timestamp,
 				'datetime'  => gmdate( 'Y-m-d H:i:s', $timestamp ) . ' UTC',
-				'duration'  => self::STRIPE_API_RATE_LIMIT_DURATION,
+				'duration'  => self::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS,
 			];
 			// Note that we set autoload to false - we don't want this option to be autoloaded by default.
 			update_option( $history_option_key, $history, false );

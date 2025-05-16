@@ -219,7 +219,8 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$mock_logger->expects( $this->once() )
 			->method( 'error' )
 			->with(
-				"Stripe $message_mode mode API has been rate limited, disabling API calls for " . WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION . ' seconds.'
+				"Stripe $message_mode mode API has been rate limited, disabling API calls for " .
+					WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS . ' seconds.'
 			);
 
 		// Mock 429 responses from the Stripe API.
@@ -242,7 +243,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertIsInt( $rate_limit_option );
 
 		$runtime_delta = max( $request_end_time - $request_start_time, 1 );
-		$this->assertEqualsWithDelta( $request_end_time + WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION, $rate_limit_option, $runtime_delta );
+		$this->assertEqualsWithDelta( $request_end_time + WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS, $rate_limit_option, $runtime_delta );
 
 		$history = get_option( $history_option_key, null );
 		$this->assertIsArray( $history );
@@ -254,10 +255,10 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'datetime', $history_entry );
 		$this->assertArrayHasKey( 'duration', $history_entry );
 
-		$expected_timestamp = $rate_limit_option - WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION;
+		$expected_timestamp = $rate_limit_option - WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS;
 		$this->assertEquals( $expected_timestamp, $history_entry['timestamp'] );
 		$this->assertEquals( gmdate( 'Y-m-d H:i:s', $expected_timestamp ) . ' UTC', $history_entry['datetime'] );
-		$this->assertEquals( WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION, $history_entry['duration'] );
+		$this->assertEquals( WC_Stripe_API::STRIPE_API_RATE_LIMIT_DURATION_IN_SECONDS, $history_entry['duration'] );
 
 		remove_filter( 'pre_http_request', [ $this, 'mock_429_response' ] );
 	}
