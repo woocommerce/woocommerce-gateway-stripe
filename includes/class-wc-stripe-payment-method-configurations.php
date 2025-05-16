@@ -81,6 +81,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_minimal_card_config() {
 		return (object) [
+			'active'                        => true,
+			'livemode'                      => ! WC_Stripe_Mode::is_test(),
 			'parent'                        => WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID,
 			WC_Stripe_Payment_Methods::CARD => (object) [
 				'available'          => true,
