@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'crypto';
 import config from 'config';
-import { payments, api, user } from '../../../../utils';
+import { payments, api } from '../../../../utils';
 
 const { emptyCart, setupCart, setupBlocksCheckout, fillBLIKDetails } = payments;
 
-test.describe( 'BLIK payment tests @blocks', () => {
+test.describe( 'BLIK payment tests @blocks @blik', () => {
 	let username, userEmail;
 
 	test.describe.configure( { mode: 'serial' } );

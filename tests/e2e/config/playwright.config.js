@@ -84,6 +84,7 @@ const config = {
 				'**/_legacy-experience/**',
 				'**/acss.spec.js',
 				'**/optimized-checkout.spec.js',
+				'**/blik.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },

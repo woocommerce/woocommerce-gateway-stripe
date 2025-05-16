@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api, user } from '../../../../utils';
+import { payments } from '../../../../utils';
 
 const {
 	emptyCart,
@@ -9,7 +9,7 @@ const {
 	fillBLIKDetails,
 } = payments;
 
-test.describe( 'BLIK payment tests @shortcode', () => {
+test.describe( 'BLIK payment tests @shortcode @blik', () => {
 	test( 'customer can pay with BLIK', async ( { page } ) => {
 		await emptyCart( page );
 		await setupCart( page );
