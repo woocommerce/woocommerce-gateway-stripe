@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
 * Fix - Stop checking for detached subscriptions for admin users, as it was slowing down wp-admin
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
