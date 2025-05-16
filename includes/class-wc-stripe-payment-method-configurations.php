@@ -64,9 +64,18 @@ class WC_Stripe_Payment_Method_Configurations {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
-			} else {
-				return self::get_minimal_card_config();
 			}
+
+			// If we are in cooldown and cache is not available, return fallback configuration
+			// using legacy settings.
+			$pmc_configuration_from_legacy_settings = self::get_fallback_pmc_configuration();
+			if ( ! empty( $pmc_configuration_from_legacy_settings ) ) {
+				error_log( 'Returning PMC configuration from legacy settings: ' . print_r( $pmc_configuration_from_legacy_settings, true ) );
+				return $pmc_configuration_from_legacy_settings;
+			}
+
+			// Final fallback: return minimal card configuration.
+			return self::get_fallback_pmc_configuration( true );
 		}
 
 		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
@@ -91,6 +100,37 @@ class WC_Stripe_Payment_Method_Configurations {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Get fallback payment method configuration, using legacy settings.
+	 *
+	 * @param bool $card_only Whether to enable only the card payment method.
+	 * @return array
+	 */
+	private static function get_fallback_pmc_configuration( $card_only = false ) {
+		$stripe_settings   = WC_Stripe_Helper::get_stripe_settings();
+		$pmc_configuration = [];
+
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_id => $payment_method_name ) {
+			$is_enabled = $card_only ?
+				WC_Stripe_Payment_Methods::CARD === $payment_method_id :
+				! empty( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
+					is_array( $stripe_settings['upe_checkout_experience_accepted_payments'] ) &&
+					in_array( $payment_method_id, $stripe_settings['upe_checkout_experience_accepted_payments'], true );
+
+			$pmc_configuration[ $payment_method_id ] = (object) [
+				'parent'             => WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID,
+				'available'          => $is_enabled,
+				'display_preference' => (object) [
+					'overridable' => null,
+					'preference'  => $is_enabled ? 'on' : 'off',
+					'value'       => $is_enabled ? 'on' : 'off',
+				],
+			];
+		}
+
+		return $pmc_configuration;
 	}
 
 	/**
@@ -216,6 +256,13 @@ class WC_Stripe_Payment_Method_Configurations {
 					$enabled_payment_method_ids[] = $payment_method_id;
 				}
 			}
+		}
+
+		// Save in options, so we can use this as a fallback.
+		if ( $force_refresh ) {
+			$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['upe_checkout_experience_accepted_payments'] = $enabled_payment_method_ids;
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 		}
 
 		return $enabled_payment_method_ids;
