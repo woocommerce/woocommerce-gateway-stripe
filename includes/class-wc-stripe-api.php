@@ -268,7 +268,13 @@ class WC_Stripe_API {
 			]
 		);
 
-		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+		$is_error_response = is_wp_error( $response ) || empty( $response['body'] );
+		// Check for 4xx and 5xx HTTP responses.
+		if ( ! $is_error_response && is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && is_int( $response['response']['code'] ?? null ) ) {
+			$is_error_response = $response['response']['code'] >= 400;
+		}
+
+		if ( $is_error_response ) {
 			self::check_stripe_api_error_response( $response );
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
