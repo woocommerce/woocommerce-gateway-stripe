@@ -314,7 +314,11 @@ class WC_Stripe_API {
 		}
 
 		// We specifically want to check $response['response']['code']. If it's not present, return early.
-		if ( ! isset( $response['response'] ) || ! is_array( $response['response'] ) || ! isset( $response['response']['code'] ) ) {
+		if (
+			! isset( $response['response'] )
+			|| ! is_array( $response['response'] )
+			|| ! isset( $response['response']['code'] )
+		) {
 			return;
 		}
 
