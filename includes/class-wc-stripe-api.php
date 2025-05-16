@@ -264,7 +264,7 @@ class WC_Stripe_API {
 		);
 
 		// If we get a 401 error, we know the secret key is not valid.
-		if ( is_array( $response ) && ! empty( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			// We save a flag in the options to avoid making calls until the secret key gets updated.
 			update_option( $invalid_api_keys_option_key, true );
 			update_option( $invalid_api_keys_option_key . '_at', time() );
