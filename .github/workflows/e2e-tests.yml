@@ -76,19 +76,15 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
-          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-          STRIPE_PUB_KEY_PL: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL }}
-          STRIPE_SECRET_KEY_PL: ${{ secrets.E2E_STRIPE_SECRET_KEY_PL }}
+          STRIPE_PUB_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
       - name: Run ${{ matrix.checkout }} E2E tests
         shell: bash
         env:
-          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-          STRIPE_PUB_KEY_PL: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL }}
-          STRIPE_SECRET_KEY_PL: ${{ secrets.E2E_STRIPE_SECRET_KEY_PL }}
+          STRIPE_PUB_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
         run: |
           if [ "${{ matrix.checkout }}" = "Legacy" ]; then
             npm run test:e2e-legacy
