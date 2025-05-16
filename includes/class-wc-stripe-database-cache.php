@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit; // block direct access.
 
 /**
- * Class Database_Cache
+ * Class WC_Stripe_Database_Cache
  */
 
 /**
@@ -24,7 +24,7 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Class constructor.
 	 */
-	public function __construct() {
+	private function __construct() {
 	}
 
 	/**
@@ -45,7 +45,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @param string $key The key to look for.
 	 *
-	 * @return mixed|null The cache contents. NULL if the cache is expired or missing.
+	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get( $key ) {
 		$cache_contents = self::get_from_cache( $key );
@@ -135,7 +135,7 @@ class WC_Stripe_Database_Cache {
 	}
 
 	/**
-	 * Checks if the cache contents are expired.
+	 * Checks if the cache value is expired.
 	 *
 	 * @param string $key            The cache key.
 	 * @param array  $cache_contents The cache contents.
