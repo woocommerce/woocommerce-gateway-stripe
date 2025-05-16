@@ -36,7 +36,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return void
 	 */
-	public static function set( string $key, $data, $ttl = HOUR_IN_SECONDS ) {
+	public static function set( $key, $data, $ttl = HOUR_IN_SECONDS ) {
 		self::write_to_cache( $key, $data, $ttl );
 	}
 
@@ -47,7 +47,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return mixed|null The cache contents. NULL if the cache is expired or missing.
 	 */
-	public static function get( string $key ) {
+	public static function get( $key ) {
 		$cache_contents = self::get_from_cache( $key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
 			if ( self::is_expired( $key, $cache_contents ) ) {
@@ -67,7 +67,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return void
 	 */
-	public static function delete( string $key ) {
+	public static function delete( $key ) {
 		// Remove from the in-memory cache.
 		unset( self::$in_memory_cache[ $key ] );
 
@@ -87,7 +87,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return void
 	 */
-	private static function write_to_cache( string $key, mixed $data, int $ttl ) {
+	private static function write_to_cache( $key, $data, $ttl ) {
 		// Add the  data and expiry time to the array we're caching.
 		$cache_contents            = [];
 		$cache_contents['data']    = $data;
@@ -119,7 +119,7 @@ class WC_Stripe_Database_Cache {
 	 * @return array|false The cache contents (array with `data`, `fetched`, and `errored` entries).
 	 *                     False if there is no cached data.
 	 */
-	private static function get_from_cache( string $key ) {
+	private static function get_from_cache( $key ) {
 		// Check the in-memory cache first.
 		if ( isset( self::$in_memory_cache[ $key ] ) ) {
 			return self::$in_memory_cache[ $key ];
@@ -142,10 +142,10 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return boolean True if the contents are expired. False otherwise.
 	 */
-	private static function is_expired( string $key, array $cache_contents ): bool {
+	private static function is_expired( $key, $cache_contents ) {
 		$expires = $cache_contents['updated'] + $cache_contents['ttl'];
 		$now     = time();
 
-		return $expires < $now;
+		return apply_filters( 'wcstripe_database_cache_is_expired', $expires < $now, $key, $cache_contents );
 	}
 }
