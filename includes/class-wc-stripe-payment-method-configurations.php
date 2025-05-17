@@ -52,6 +52,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	const CONFIGURATION_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
 
 	/**
+	 * The payment method configuration fetch cooldown transient key.
+	 */
+	const FETCH_COOLDOWN_TRANSIENT_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
@@ -59,7 +64,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
-		$fetch_cooldown = defined( 'WC_STRIPE_IS_TESTING' ) && WC_STRIPE_IS_TESTING ? 0 : get_option( 'wcstripe_payment_method_config_fetch_cooldown', 0 );
+		$fetch_cooldown = defined( 'WC_STRIPE_IS_TESTING' ) && WC_STRIPE_IS_TESTING ? 0 : get_option( self::FETCH_COOLDOWN_TRANSIENT_KEY, 0 );
 		$is_in_cooldown = $fetch_cooldown > time();
 		if ( ! $force_refresh || $is_in_cooldown ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
@@ -81,7 +86,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			// so we will fetch it if we don't have anything locally.
 		}
 
-		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
+		update_option( self::FETCH_COOLDOWN_TRANSIENT_KEY, time() + MINUTE_IN_SECONDS );
 
 		return self::get_payment_method_configuration_from_stripe();
 	}
