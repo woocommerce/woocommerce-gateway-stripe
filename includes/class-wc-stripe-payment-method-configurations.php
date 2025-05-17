@@ -149,22 +149,13 @@ class WC_Stripe_Payment_Method_Configurations {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
 		$configurations = $result->data ?? [];
 
-		if ( ! empty( $configurations ) ) {
-			// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
-			// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
-			$selected_configuration = null;
-			foreach ( $configurations as $configuration ) {
-				// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
-				if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
-					self::set_payment_method_configuration_cache( $configuration );
-					$selected_configuration = $configuration;
-				}
-			}
-
-			if ( null === $selected_configuration ) {
-				// If we don't have a selected configuration, we can assume that the merchant is not connected to the WooCommerce Platform account.
-				// Log the error and return null.
-				WC_Stripe_Logger::log( 'No payment method configuration found for the current mode. Please check your Stripe account settings.' );
+		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
+		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
+		foreach ( $configurations as $configuration ) {
+			// The API returns data for the corresponding mode of the api keys used, so we'll get either test or live PMCs, but never both.
+			if ( $configuration->parent && ( self::LIVE_MODE_CONFIGURATION_PARENT_ID === $configuration->parent || self::TEST_MODE_CONFIGURATION_PARENT_ID === $configuration->parent ) ) {
+				self::set_payment_method_configuration_cache( $configuration );
+				return $configuration;
 			}
 		}
 
