@@ -25,7 +25,4 @@
 			<html outputDirectory="phpunit-html"/>
 		</report>
 	</coverage>
-	<php>
-		<const name="WC_STRIPE_IS_TESTING" value="1"/>
-	</php>
 </phpunit>
