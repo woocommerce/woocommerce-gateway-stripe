@@ -73,36 +73,12 @@ class WC_Stripe_Payment_Method_Configurations {
 				if ( $fallback_cache ) {
 					return $fallback_cache;
 				}
-
-				// If even the fallback cache is not available, return minimal card configuration.
-				return self::get_minimal_card_config();
 			}
 		}
 
 		update_option( 'wcstripe_payment_method_config_fetch_cooldown', time() + MINUTE_IN_SECONDS );
 
 		return self::get_payment_method_configuration_from_stripe();
-	}
-
-	/**
-	 * Get the minimal card configuration. This is used when the payment method configuration API is not available.
-	 *
-	 * @return object
-	 */
-	private static function get_minimal_card_config() {
-		return (object) [
-			'active'                        => true,
-			'livemode'                      => ! WC_Stripe_Mode::is_test(),
-			'parent'                        => WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID,
-			WC_Stripe_Payment_Methods::CARD => (object) [
-				'available'          => true,
-				'display_preference' => (object) [
-					'overridable' => null,
-					'preference'  => 'on',
-					'value'       => 'on',
-				],
-			],
-		];
 	}
 
 	/**
