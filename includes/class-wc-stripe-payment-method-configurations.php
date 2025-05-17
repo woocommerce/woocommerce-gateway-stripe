@@ -74,9 +74,10 @@ class WC_Stripe_Payment_Method_Configurations {
 					return $fallback_cache;
 				}
 			}
-			// Intentionally fall through to fetching the data from Stripe if we don't have it locally, 
+
+			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
 			// even when $force_refresh = false and/or $is_in_cooldown is true.
-			// We _need_ the payment method configuration for things to work as expected, 
+			// We _need_ the payment method configuration for things to work as expected,
 			// so we will fetch it if we don't have anything locally.
 		}
 
