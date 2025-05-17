@@ -52,7 +52,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	const CONFIGURATION_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
 
 	/**
-	 * The payment method configuration fetch cooldown transient key.
+	 * The payment method configuration fetch cooldown option key.
 	 */
 	const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
 
