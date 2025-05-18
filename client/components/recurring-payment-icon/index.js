@@ -1,8 +1,8 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
-import { Popover as PopoverComponent } from '@wordpress/components';
 import icon from './icon.svg';
+import Tooltip from 'wcstripe/components/tooltip';
 
 const Icon = styled.img`
 	height: 14px;
@@ -10,59 +10,21 @@ const Icon = styled.img`
 	cursor: pointer;
 `;
 
-const IconWrapper = styled.span`
-	display: inline-flex;
-	align-items: center;
+const StyledTooltip = styled( Tooltip )`
+	border-radius: 4px;
+	padding: 5px 10px;
 `;
-
-const StyledPopover = styled( PopoverComponent )`
-	top: -11px !important;
-
-	.components-popover__content {
-		border-radius: 4px;
-		box-shadow: 0px 2px 6px 0px rgba( 0, 0, 0, 0.05 );
-		padding: 5px 10px;
-		background-color: #000000;
-		color: #ffffff;
-	}
-
-	@media ( min-width: 660px ) {
-		.components-popover__content {
-			width: auto;
-		}
-	}
-`;
-
-const IconComponent = ( { children, ...props } ) => (
-	<IconWrapper { ...props }>
-		<Icon src={ icon } alt="" />
-		{ children }
-	</IconWrapper>
-);
 
 const RecurringPaymentIcon = () => {
-	const [ isVisible, setIsVisible ] = useState( false );
-
-	const toggleVisible = () => {
-		setIsVisible( ( state ) => ! state );
-	};
-
 	return (
-		<IconComponent onClick={ toggleVisible }>
-			{ isVisible && (
-				<StyledPopover
-					animate={ true }
-					placement="top"
-					variant="toolbar"
-					onFocusOutside={ () => setIsVisible( false ) }
-				>
-					{ __(
-						'Supports recurring payments',
-						'woocommerce-gateway-stripe'
-					) }
-				</StyledPopover>
+		<StyledTooltip
+			content={ __(
+				'Supports recurring payments',
+				'woocommerce-gateway-stripe'
 			) }
-		</IconComponent>
+		>
+			<Icon src={ icon } alt="" />
+		</StyledTooltip>
 	);
 };
 
