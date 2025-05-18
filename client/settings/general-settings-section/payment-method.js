@@ -123,7 +123,7 @@ const PaymentMethod = ( {
 		Icon,
 		label,
 		allows_manual_capture: isAllowingManualCapture,
-		supports_recurring: supportsRecurring,
+		supportsRecurring,
 	} = PaymentMethodsMap[ method ] || {};
 
 	// Skip if there are no mapped fields for the payment method.
