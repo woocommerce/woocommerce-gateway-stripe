@@ -123,7 +123,6 @@ class WC_Stripe_Payment_Method_Configurations {
 		self::$primary_configuration = null;
 		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete( $cache_key );
-		delete_option( $cache_key );
 		delete_option( $cache_key . '_fallback' );
 	}
 
@@ -137,7 +136,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
 		WC_Stripe_Database_Cache::set( $cache_key, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
 
-		// To be used as fallback if we are in API cooldown and the transient is not available.
+		// To be used as fallback if we are in API cooldown and the main cache is not available.
 		update_option( $cache_key . '_fallback', $configuration );
 	}
 
