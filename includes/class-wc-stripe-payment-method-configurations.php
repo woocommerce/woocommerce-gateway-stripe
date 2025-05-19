@@ -58,11 +58,17 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
+		// Only allow fetching payment configuration once per minute.
 		if ( ! $force_refresh ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
 			}
+
+			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
+			// even when $force_refresh == false.
+			// We _need_ the payment method configuration for things to work as expected,
+			// so we will fetch it if we don't have anything locally.
 		}
 
 		return self::get_payment_method_configuration_from_stripe();
@@ -78,7 +84,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			return self::$primary_configuration;
 		}
 
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
 		$cached_primary_configuration = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
 			return null;
@@ -93,7 +99,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
 		WC_Stripe_Database_Cache::delete( $cache_key );
 	}
 
@@ -104,7 +110,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
 		WC_Stripe_Database_Cache::set( $cache_key, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
 	}
 
@@ -115,11 +121,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
-		$configurations = $result->data ?? null;
-
-		if ( ! $configurations ) {
-			return null;
-		}
+		$configurations = $result->data ?? [];
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
