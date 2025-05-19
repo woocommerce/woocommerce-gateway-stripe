@@ -1,0 +1,66 @@
+name: Get released versions of WordPress
+description: Action to return the released versions of WordPress
+
+inputs:
+  version-count:
+    description: The number of released versions to return
+    type: number
+    default: '3'
+
+outputs:
+  versions-json:
+    description: The released WordPress versions as a JSON array
+    value: ${{ steps.get-versions-json.outputs.versions-json }}
+  versions-text:
+    description: The released WordPress versions as a newline-separated list
+    value: ${{ steps.get-versions-text.outputs.versions-text }}
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build cache key
+      id: build-cache-key
+      shell: bash
+      run: |
+        echo "cache-timestamp=$( date -u "+%Y%m%d%H" )" >> $GITHUB_OUTPUT
+
+    - name: Check WordPress version cache
+      id: check-wordpress-version-cache
+      uses: actions/cache@v4
+      with:
+        key: wordpress-versions-${{ steps.build-cache-key.outputs.cache-timestamp }}
+        path: .wp-version-cache
+        enableCrossOsArchive: true
+
+    - name: Get WordPress versions
+      if: steps.check-wordpress-version-cache.outputs.cache-hit != 'true'
+      id: fetch-all-wordpress-versions
+      shell: bash
+      run: |
+        mkdir .wp-version-cache
+        curl -s 'https://api.wordpress.org/core/version-check/1.7/' > .wp-version-cache/all-wordpress-versions.json
+
+    - name: Get WordPress versions as JSON
+      id: get-versions-json
+      shell: bash
+      # The jq filtering does the following:
+      # - extracts the offers array
+      # - filters the offers to keep only the version field for each entry
+      # - removes duplicate versions
+      # - groups the versions by the first two parts of the version number, i.e. major.minor
+      # - reverses the order of the versions, so the highest major.minor versions are first
+      # - limits the number of major.minor versions to the number specified in the version-count input
+      # - returns the last version for each major.minor version
+      run: |
+        echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
+        cat .wp-version-cache/all-wordpress-versions.json | jq '.offers | [.[].version] | unique | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+
+    - name: Get WordPress versions in text format
+      id: get-versions-text
+      shell: bash
+      run: |
+        echo 'versions-text<<EOF' >> $GITHUB_OUTPUT
+        echo '${{ steps.get-versions-json.outputs.versions-json }}' | jq -r '.[]' >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
