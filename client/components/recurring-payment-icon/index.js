@@ -7,7 +7,6 @@ import Tooltip from 'wcstripe/components/tooltip';
 const Icon = styled.img`
 	height: 14px;
 	width: 14px;
-	cursor: pointer;
 `;
 
 const StyledTooltip = styled( Tooltip )`
