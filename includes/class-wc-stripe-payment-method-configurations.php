@@ -402,6 +402,10 @@ class WC_Stripe_Payment_Method_Configurations {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
+	/**
+	 * Disables the payment method configuration sync by setting pmc_enabled to 'no' in the Stripe settings.
+	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
+	 */
 	private static function disable_payment_method_configuration_sync() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'no';
