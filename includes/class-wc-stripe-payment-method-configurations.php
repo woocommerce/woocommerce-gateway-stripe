@@ -159,6 +159,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
+		// If we don't have a Payment Method Configuration that inherits from the WooCommerce Platform, disable Payment Method Configuration sync.
+		self::disable_payment_method_configuration_sync();
 		return null;
 	}
 
@@ -328,8 +330,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function is_enabled() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$key             = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
-		return isset( $stripe_settings[ $key ] ) && 'connect' === $stripe_settings[ $key ];
+
+		$connection_type_key              = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
+		$is_account_connected_to_platform = isset( $stripe_settings[ $connection_type_key ] ) && 'connect' === $stripe_settings[ $connection_type_key ];
+
+		$is_pmc_disabled = isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'];
+
+		return $is_account_connected_to_platform && ! $is_pmc_disabled;
 	}
 
 	/**
@@ -338,7 +345,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	public static function maybe_migrate_payment_methods_from_db_to_pmc() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		// Skip if PMC is not enabled or migration already done
+		// Skip if PMC is not enabled or migration already done (pmc_enabled is set).
 		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_enabled'] ) ) {
 			return;
 		}
@@ -392,6 +399,12 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		// Mark migration as complete in stripe settings
 		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	}
+
+	private static function disable_payment_method_configuration_sync() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 }
