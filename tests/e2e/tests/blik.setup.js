@@ -2,13 +2,11 @@ import { test as setup } from '@playwright/test';
 import { admin } from '../utils';
 import { execSync } from 'child_process';
 
-const setKeysForLocalEnv = async ( adminContext ) => {
+const setKeysForLocalEnv = async ( page ) => {
 	execSync(
 		`WP_PATH="${ process.env.WP_PATH }" STRIPE_PUB_KEY="${ process.env.STRIPE_PUB_KEY_PL }" STRIPE_SECRET_KEY="${ process.env.STRIPE_SECRET_KEY_PL }" ./tests/e2e/bin/set-keys.sh`,
 		{ stdio: 'inherit' }
 	);
-
-	const page = await adminContext.newPage();
 
 	// Refresh account data in Stripe settings.
 	await page.goto(
@@ -25,8 +23,10 @@ setup( 'Configure store for BLIK tests', async ( { browser } ) => {
 		storageState: process.env.ADMINSTATE,
 	} );
 
+	const page = await adminContext.newPage();
+
 	if ( ! process.env.CI ) {
-		await setKeysForLocalEnv( adminContext );
+		await setKeysForLocalEnv( page );
 	}
 
 	await page.goto(
