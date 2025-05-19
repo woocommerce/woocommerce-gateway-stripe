@@ -25,5 +25,4 @@
 			<html outputDirectory="phpunit-html"/>
 		</report>
 	</coverage>
-
 </phpunit>
