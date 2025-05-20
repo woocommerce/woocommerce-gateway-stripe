@@ -107,7 +107,10 @@ class WC_Stripe_Database_Cache {
 		// Yes, there is the possibility that we attempt to write the same data multiple times within the SAME second,
 		// and we will mistakenly think that the DB write failed. We are OK with this false positive,
 		// since the actual data is the same.
-		$result = update_option( $key, $cache_contents, 'no' );
+		//
+		// Note 2: Autoloading too many options can lead to performance problems, and we are implementing this as a
+		// general cache for the plugin, so we set the autoload to false.
+		$result = update_option( $key, $cache_contents, false );
 		if ( false !== $result ) {
 			// If the DB cache write succeeded, clear the WP object cache to ensure the new data is fetched by other processes.
 			wp_cache_delete( $key, 'options' );
