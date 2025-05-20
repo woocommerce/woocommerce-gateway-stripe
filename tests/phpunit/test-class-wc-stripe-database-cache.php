@@ -106,24 +106,31 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test cache with different data types.
+	 * Data provider for {@see test_cache_with_data_type()}.
+	 *
+	 * @return array Array of test cases.
 	 */
-	public function test_cache_with_different_data_types() {
-		$test_cases = [
-			'string'  => 'test string',
-			'integer' => 123,
-			'array'   => [ 'key' => 'value' ],
-			'object'  => (object) [ 'property' => 'value' ],
-			'boolean' => true,
-			'null'    => null,
+	public function provide_data_type_test_cases() {
+		return [
+			'string'  => [ 'string', 'test string' ],
+			'integer' => [ 'integer', 123 ],
+			'array'   => [ 'array', [ 'key' => 'value' ] ],
+			'object'  => [ 'object', (object) [ 'property' => 'value' ] ],
+			'boolean' => [ 'boolean', true ],
+			'null'    => [ 'null', null ],
 		];
+	}
 
-		foreach ( $test_cases as $type => $data ) {
-			$key    = "test_{$type}";
-			WC_Stripe_Database_Cache::set( $key, $data );
-			$result = WC_Stripe_Database_Cache::get( $key );
-			$this->assertEquals( $data, $result, "Failed to cache {$type} data type" );
-		}
+	/**
+	 * Test cache with different data types.
+	 *
+	 * @dataProvider provide_data_type_test_cases
+	 */
+	public function test_cache_with_different_data_types( $key_suffix, $data ) {
+		$key    = "test_{$key_suffix}";
+		WC_Stripe_Database_Cache::set( $key, $data );
+		$result = WC_Stripe_Database_Cache::get( $key );
+		$this->assertEquals( $data, $result, "Failed to cache and fetch data type" );
 	}
 
 	/**
