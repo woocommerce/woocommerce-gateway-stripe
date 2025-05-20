@@ -1,13 +1,21 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
-* Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
-* Fix - Stop checking for detached subscriptions for admin users, as it was slowing down wp-admin
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Dev - Add e2e tests for BLIK
+* Fix - Send correct attribute when setting the default payment method.
+* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
+
+= 9.5.1 - 2025-05-17 =
+* Fix - Add a fetch cooldown to the payment method configuration retrieval endpoint to prevent excessive requests.
+* Fix - Prevent further Stripe API calls if API keys are invalid (401 response).
+* Fix - Stop checking for detached subscriptions for admin users, as it was slowing down wp-admin.
+* Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
+
 
 = 9.5.0 - 2025-05-13 =
 * Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
