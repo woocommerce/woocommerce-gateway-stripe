@@ -154,22 +154,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				paymentMethodConfiguration: getStripeServerData()
 					?.paymentMethodConfigurationParentId,
 			};
+
+			const setupFutureUsage =
+				document.getElementById( 'wc-stripe-new-payment-method' )
+					?.checked ||
+				getStripeServerData()?.cartContainsSubscription;
+			if ( setupFutureUsage ) {
+				options = {
+					...options,
+					setupFutureUsage: 'off_session',
+				};
+			}
 		} else {
 			options = {
 				...options,
 				paymentMethodTypes,
 			};
 		}
-	}
-
-	const setupFutureUsage =
-		document.getElementById( 'wc-stripe-new-payment-method' ).checked ||
-		getStripeServerData()?.cartContainsSubscription;
-	if ( setupFutureUsage ) {
-		options = {
-			...options,
-			setupFutureUsage: 'off_session',
-		};
 	}
 
 	const elements = api.getStripe().elements( options );
