@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
