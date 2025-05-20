@@ -112,12 +112,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
-
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
