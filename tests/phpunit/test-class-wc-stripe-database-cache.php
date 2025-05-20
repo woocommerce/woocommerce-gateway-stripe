@@ -112,12 +112,13 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 */
 	public function provide_data_type_test_cases() {
 		return [
-			'string'  => [ 'string', 'test string' ],
-			'integer' => [ 'integer', 123 ],
-			'array'   => [ 'array', [ 'key' => 'value' ] ],
-			'object'  => [ 'object', (object) [ 'property' => 'value' ] ],
-			'boolean' => [ 'boolean', true ],
-			'null'    => [ 'null', null ],
+			'string'        => [ 'string', 'test string' ],
+			'integer'       => [ 'integer', 123 ],
+			'array'         => [ 'array', [ 'key' => 'value' ] ],
+			'object'        => [ 'object', (object) [ 'property' => 'value' ] ],
+			'boolean_true'  => [ 'boolean', true ],
+			'boolean_false' => [ 'boolean', false ],
+			'null'          => [ 'null', null ],
 		];
 	}
 
@@ -130,7 +131,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$key    = "test_{$key_suffix}";
 		WC_Stripe_Database_Cache::set( $key, $data );
 		$result = WC_Stripe_Database_Cache::get( $key );
-		$this->assertEquals( $data, $result, "Failed to cache and fetch data type" );
+		$this->assertEquals( $data, $result, 'Failed to cache and fetch data type' );
 	}
 
 	/**
@@ -164,15 +165,43 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Tests the get_cached_keys method.
+	 *
+	 * @return void
+	 */
+	public function test_get_cached_keys() {
+		// Initially there should be no cached keys
+		$this->assertEmpty( WC_Stripe_Database_Cache::get_cached_keys() );
+
+		// Add some test data to the cache
+		WC_Stripe_Database_Cache::set( 'test_key_1', 'test_value_1' );
+		WC_Stripe_Database_Cache::set( 'test_key_2', 'test_value_2' );
+
+		// Get the cached keys
+		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
+
+		// Verify we have the expected keys
+		$this->assertCount( 2, $cached_keys );
+		$this->assertContains( 'test_key_1', $cached_keys );
+		$this->assertContains( 'test_key_2', $cached_keys );
+
+		// Delete one key and verify it's removed from cached keys
+		WC_Stripe_Database_Cache::delete( 'test_key_1' );
+		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
+		$this->assertCount( 1, $cached_keys );
+		$this->assertNotContains( 'test_key_1', $cached_keys );
+		$this->assertContains( 'test_key_2', $cached_keys );
+	}
+
+	/**
 	 * Clean up after each test.
 	 */
 	public function tearDown(): void {
+		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
+		foreach ( $cached_keys as $key ) {
+			WC_Stripe_Database_Cache::delete( $key );
+		}
+
 		parent::tearDown();
-		// Clean up any test data.
-		WC_Stripe_Database_Cache::delete( 'test_key' );
-		WC_Stripe_Database_Cache::delete( 'expiring_key' );
-		WC_Stripe_Database_Cache::delete( 'delete_key' );
-		WC_Stripe_Database_Cache::delete( 'memory_key' );
-		WC_Stripe_Database_Cache::delete( 'custom_ttl_key' );
 	}
 }

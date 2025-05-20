@@ -8,6 +8,9 @@ defined( 'ABSPATH' ) || exit; // block direct access.
 
 /**
  * A class for caching data as an option in the database.
+ *
+ * Based on the WooCommerce Payments Database_Cache class implementation.
+ * https://github.com/Automattic/woocommerce-payments/blob/4b084af108cac9c6bd2467e52e5cdc3bc974a951/includes/class-database-cache.php
  */
 class WC_Stripe_Database_Cache {
 
@@ -157,5 +160,14 @@ class WC_Stripe_Database_Cache {
 		$now     = time();
 
 		return apply_filters( 'wcstripe_database_cache_is_expired', $expires < $now, $key, $cache_contents );
+	}
+
+	/**
+	 * Get all cached keys in memory.
+	 *
+	 * @return array The cached keys.
+	 */
+	public static function get_cached_keys() {
+		return array_keys( self::$in_memory_cache );
 	}
 }
