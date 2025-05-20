@@ -1,4 +1,5 @@
 import { NON_REUSABLE_METHODS } from 'wcstripe/stripe-utils/constants';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
 
 export const handleDisplayOfSavingCheckbox = ( method ) => {
 	// For block checkout
@@ -22,8 +23,11 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		const createAccountCheckbox = document.getElementById(
 			'createaccount'
 		);
+		const signupSelected =
+			getStripeServerData()?.isSignupOnCheckoutAllowed &&
+			createAccountCheckbox?.checked;
 		if (
-			( ! createAccountCheckbox || createAccountCheckbox?.checked ) &&
+			( getStripeServerData()?.isLoggedIn || signupSelected ) &&
 			! NON_REUSABLE_METHODS.includes( method )
 		) {
 			saveCardInfoContainerClassic.style.display = 'block';
