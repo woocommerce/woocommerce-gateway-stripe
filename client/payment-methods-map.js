@@ -33,6 +33,8 @@ const isBacsEnabled = window.wc_stripe_settings_params?.is_bacs_enabled === '1';
 const isBecsDebitEnabled =
 	window.wc_stripe_settings_params?.is_becs_debit_enabled === '1';
 const isBlikEnabled = window.wc_stripe_settings_params?.is_blik_enabled === '1';
+const isSepaTokensEnabled =
+	window.wc_stripe_settings_params?.is_sepa_tokens_enabled === '1';
 
 const paymentMethodsMap = {
 	card: {
@@ -45,6 +47,7 @@ const paymentMethodsMap = {
 		Icon: icons.card,
 		currencies: [],
 		allows_manual_capture: true,
+		supportsRecurring: true,
 	},
 	giropay: {
 		id: PAYMENT_METHOD_GIROPAY,
@@ -122,6 +125,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
+		supportsRecurring: true,
 	},
 	sepa: {
 		id: 'sepa',
@@ -132,6 +136,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sepa_debit,
 		currencies: [ 'EUR' ],
+		supportsRecurring: true,
 	},
 	sofort: {
 		id: PAYMENT_METHOD_SOFORT,
@@ -142,6 +147,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.sofort,
 		currencies: [ 'EUR' ],
+		supportsRecurring: true,
 	},
 	eps: {
 		id: PAYMENT_METHOD_EPS,
@@ -162,6 +168,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.bancontact,
 		currencies: [ 'EUR' ],
+		supportsRecurring: isSepaTokensEnabled,
 	},
 	ideal: {
 		id: PAYMENT_METHOD_IDEAL,
@@ -172,6 +179,7 @@ const paymentMethodsMap = {
 		),
 		Icon: icons.ideal,
 		currencies: [ 'EUR' ],
+		supportsRecurring: isSepaTokensEnabled,
 	},
 	p24: {
 		id: PAYMENT_METHOD_P24,
@@ -268,6 +276,7 @@ const paymentMethodsMap = {
 		Icon: icons.cashapp,
 		currencies: [ 'USD' ],
 		capability: 'cashapp_payments',
+		supportsRecurring: true,
 	},
 };
 
@@ -282,6 +291,7 @@ if ( isAchEnabled ) {
 		),
 		Icon: icons.us_bank_account,
 		currencies: [ 'USD' ],
+		supportsRecurring: true,
 	};
 }
 
@@ -296,6 +306,7 @@ if ( isAcssEnabled ) {
 		),
 		Icon: icons.acss_debit,
 		currencies: [ 'CAD' ],
+		supportsRecurring: true,
 	};
 }
 
@@ -310,6 +321,7 @@ if ( isBacsEnabled ) {
 		),
 		Icon: icons.bacs_debit,
 		currencies: [ 'GBP' ],
+		supportsRecurring: true,
 	};
 }
 
@@ -324,6 +336,7 @@ if ( isBecsDebitEnabled ) {
 		),
 		Icon: icons.au_becs_debit,
 		currencies: [ 'AUD' ],
+		supportsRecurring: true,
 	};
 }
 

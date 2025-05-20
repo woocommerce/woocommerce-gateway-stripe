@@ -52,18 +52,41 @@ class WC_Stripe_Payment_Method_Configurations {
 	const CONFIGURATION_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
 
 	/**
+	 * The payment method configuration fetch cooldown option key.
+	 */
+	const FETCH_COOLDOWN_OPTION_KEY = 'wcstripe_payment_method_config_fetch_cooldown';
+
+	/**
 	 * Get the merchant payment method configuration in Stripe.
 	 *
 	 * @param bool $force_refresh Whether to force a refresh of the payment method configuration from Stripe.
 	 * @return object|null
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
-		if ( ! $force_refresh ) {
+		// Only allow fetching payment configuration once per minute.
+		$fetch_cooldown = get_option( self::FETCH_COOLDOWN_OPTION_KEY, 0 );
+		$is_in_cooldown = $fetch_cooldown > time();
+		if ( ! $force_refresh || $is_in_cooldown ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
 			}
+
+			// If we are hitting the API too much, and our main cache is not working, use the fallback cache.
+			if ( $is_in_cooldown ) {
+				$fallback_cache = self::get_payment_method_configuration_from_cache( true );
+				if ( $fallback_cache ) {
+					return $fallback_cache;
+				}
+			}
+
+			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
+			// even when $force_refresh = false and/or $is_in_cooldown is true.
+			// We _need_ the payment method configuration for things to work as expected,
+			// so we will fetch it if we don't have anything locally.
 		}
+
+		update_option( self::FETCH_COOLDOWN_OPTION_KEY, time() + MINUTE_IN_SECONDS );
 
 		return self::get_payment_method_configuration_from_stripe();
 	}
@@ -71,16 +94,21 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the payment method configuration from cache.
 	 *
+	 * @param bool $use_fallback Whether to use the fallback cache if the transient is not available.
+	 *
 	 * @return object|null
 	 */
-	private static function get_payment_method_configuration_from_cache() {
+	private static function get_payment_method_configuration_from_cache( $use_fallback = false ) {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
 
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		$cached_primary_configuration = get_transient( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
+			if ( $use_fallback ) {
+				return get_option( $cache_key );
+			}
 			return null;
 		}
 
@@ -93,8 +121,9 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		delete_transient( $cache_key );
+		delete_option( $cache_key );
 	}
 
 	/**
@@ -104,8 +133,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		$cache_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
 		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
+
+		// To be used as fallback if we are in API cooldown and the transient is not available.
+		update_option( $cache_key, $configuration );
 	}
 
 	/**
@@ -115,11 +147,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
 		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
-		$configurations = $result->data ?? null;
-
-		if ( ! $configurations ) {
-			return null;
-		}
+		$configurations = $result->data ?? [];
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
 		// This new payment method configuration has the WooCommerce Platform payment method configuration as parent, and inherits it's default payment methods.
