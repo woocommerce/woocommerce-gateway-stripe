@@ -163,7 +163,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-
+			$options['pmc_enabled']                     = 'connect' === $type ? '' : 'no'; // When not connected via oauth, the PMC is disabled. Otherwise, set to empty string which will be set to 'yes' after the migration in 'maybe_migrate_payment_methods_from_db_to_pmc'.
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
