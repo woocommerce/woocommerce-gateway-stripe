@@ -14,8 +14,7 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * In-memory cache for the duration of a single request.
 	 *
-	 * This is used to avoid multiple database reads for the same data and as a backstop in case the database write fails,
-	 * thus ensuring the cache generator is not called multiple times (which would mean multiple API calls).
+	 * This is used to avoid multiple database reads for the same data and as a backstop in case the database write fails.
 	 *
 	 * @var array
 	 */
@@ -89,10 +88,11 @@ class WC_Stripe_Database_Cache {
 	 */
 	private static function write_to_cache( $key, $data, $ttl ) {
 		// Add the  data and expiry time to the array we're caching.
-		$cache_contents            = [];
-		$cache_contents['data']    = $data;
-		$cache_contents['updated'] = time();
-		$cache_contents['ttl']     = $ttl;
+		$cache_contents = [
+			'data'    => $data,
+			'ttl'     => $ttl,
+			'updated' => time(),
+		];
 
 		// Write the in-memory cache.
 		self::$in_memory_cache[ $key ] = $cache_contents;
@@ -116,7 +116,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @param string $key The cache key.
 	 *
-	 * @return array|false The cache contents (array with `data`, `fetched`, and `errored` entries).
+	 * @return array|false The cache contents (array with `data`, `ttl`, and `updated` entries).
 	 *                     False if there is no cached data.
 	 */
 	private static function get_from_cache( $key ) {
@@ -143,6 +143,16 @@ class WC_Stripe_Database_Cache {
 	 * @return boolean True if the contents are expired. False otherwise.
 	 */
 	private static function is_expired( $key, $cache_contents ) {
+		if ( ! is_array( $cache_contents ) || ! isset( $cache_contents['updated'] ) || ! isset( $cache_contents['ttl'] ) ) {
+			// Treat bad/invalid cache contents as expired
+			return true;
+		}
+
+		// Double-check that we have integers for `updated` and `ttl`.
+		if ( ! is_int( $cache_contents['updated'] ) || ! is_int( $cache_contents['ttl'] ) ) {
+			return true;
+		}
+
 		$expires = $cache_contents['updated'] + $cache_contents['ttl'];
 		$now     = time();
 
