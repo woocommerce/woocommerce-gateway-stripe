@@ -504,13 +504,6 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.click();
 
 		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[src*="elements-inner-payment"]'
-		);
-
-		await page.waitForTimeout( 1000 );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -522,12 +515,6 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 		// Select ACSS in shortcode checkout.
 		await page.getByText( 'Pre-Authorized Debit' ).click();
 
-		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]'
-		);
 		await page.waitForTimeout( 1000 );
 	}
 };
