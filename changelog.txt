@@ -8,6 +8,7 @@
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
+* Tweak - Track charge completed via webhooks in order notes.
 
 = 9.5.1 - 2025-05-17 =
 * Fix - Add a fetch cooldown to the payment method configuration retrieval endpoint to prevent excessive requests.
