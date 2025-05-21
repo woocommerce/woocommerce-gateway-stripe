@@ -120,5 +120,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
+* Update - Remove feature that flags 401s and proactively blocks subsequent API calls until the store has reauthenticated.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
