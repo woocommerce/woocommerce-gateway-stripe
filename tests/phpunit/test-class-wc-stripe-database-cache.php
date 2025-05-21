@@ -10,12 +10,6 @@
  * WC_Stripe_Database_Cache_Test Class.
  */
 class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
-	/**
-	 * Setup test.
-	 */
-	public function setUp(): void {
-		parent::setUp();
-	}
 
 	/**
 	 * Test setting and getting a value from cache.
