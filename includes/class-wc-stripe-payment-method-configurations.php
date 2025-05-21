@@ -159,6 +159,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 		}
 
+		// If we don't have a Payment Method Configuration that inherits from the WooCommerce Platform, disable Payment Method Configuration sync.
+		self::disable_payment_method_configuration_sync();
 		return null;
 	}
 
@@ -327,9 +329,21 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return bool
 	 */
 	public static function is_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$key             = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
-		return isset( $stripe_settings[ $key ] ) && 'connect' === $stripe_settings[ $key ];
+		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
+		$connection_type_key = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
+
+		// If the account is not a Connect OAuth account, we can't use the payment method configurations API.
+		if ( ! isset( $stripe_settings[ $connection_type_key ] ) || 'connect' !== $stripe_settings[ $connection_type_key ] ) {
+			return false;
+		}
+
+		// If we have the pmc_enabled flag, and it is set to no, we should not use the payment method configurations API.
+		// We only disable the PMC if the flag is set to no explicitly, an empty value means the migration has not been attempted yet.
+		if ( isset( $stripe_settings['pmc_enabled'] ) && 'no' === $stripe_settings['pmc_enabled'] ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -338,7 +352,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	public static function maybe_migrate_payment_methods_from_db_to_pmc() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		// Skip if PMC is not enabled or migration already done
+		// Skip if PMC is not enabled or migration already done (pmc_enabled is set).
 		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_enabled'] ) ) {
 			return;
 		}
@@ -392,6 +406,16 @@ class WC_Stripe_Payment_Method_Configurations {
 
 		// Mark migration as complete in stripe settings
 		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	}
+
+	/**
+	 * Disables the payment method configuration sync by setting pmc_enabled to 'no' in the Stripe settings.
+	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
+	 */
+	private static function disable_payment_method_configuration_sync() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 }
