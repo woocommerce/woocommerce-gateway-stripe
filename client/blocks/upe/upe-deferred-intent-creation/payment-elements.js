@@ -155,7 +155,9 @@ const PaymentElements = ( {
 
 			// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
 			if (
-				getBlocksConfiguration()?.cartContainsSubscription ||
+				( getBlocksConfiguration()?.cartContainsSubscription &&
+					! getBlocksConfiguration()
+						?.subscriptionRequiresManualRenewal ) ||
 				props.showSaveOption
 			) {
 				options = {

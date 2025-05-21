@@ -264,7 +264,7 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 
 function shouldIncludeTerms() {
 	if ( getStripeServerData()?.cartContainsSubscription ) {
-		return true;
+		return ! getStripeServerData()?.subscriptionRequiresManualRenewal;
 	}
 
 	const savePaymentMethodCheckbox = document.getElementById(
@@ -417,6 +417,8 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 export const getUpeSettings = () => {
 	const upeSettings = {};
 	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
+
+	console.log( 'showTerms', showTerms );
 
 	upeSettings.terms = getUPETerms( showTerms );
 
