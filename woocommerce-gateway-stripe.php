@@ -958,23 +958,20 @@ add_action(
 	}
 );
 
-add_action( 'upgrader_process_complete', 'wcstripe_upgrader_process_complete', 10, 2 );
+add_action( 'upgrader_pre_install', 'wcstripe_upgrader_pre_install', 10, 2 );
 
 /**
  * Set the upgrade in progress flag.
  *
- * @param WP_Upgrader $upgrader_object WP_Upgrader instance.
- * @param array $options Extra arguments passed to hooked filters.
+ * @param bool $response Installation response.
+ * @param array $hook_extra Extra arguments passed to hooked filters.
  * @return void
  */
-function wcstripe_upgrader_process_complete( $upgrader_object, $options ) {
-	$current_plugin_path_name = plugin_basename( __FILE__ );
-	if ( 'update' === $options['action'] && 'plugin' === $options['type'] ) {
-		foreach ( $options['plugins'] as $plugin ) {
-			if ( $plugin === $current_plugin_path_name ) {
-				update_option( 'wcstripe_upgrade_in_progress', true );
-			}
-		}
+function wcstripe_upgrader_pre_install( $response, $hook_extra ) {
+	$plugin_base = strtolower( $hook_extra['plugin'] );
+	$plugin_slug = str_replace( '.php', '', basename( $plugin_base ) );
+	if ( 'woocommerce-gateway-stripe' === $plugin_slug ) {
+		update_option( 'wcstripe_upgrade_in_progress', true );
 	}
 }
 
