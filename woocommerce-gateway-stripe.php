@@ -187,13 +187,15 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.0.0
 			 */
 			public function init() {
+				// Check if an upgrade is in progress. Some files might not be available to require.
+				if ( get_option( 'wcstripe_upgrade_in_progress' ) ) {
+					return;
+				}
+
 				if ( is_admin() ) {
 					require_once __DIR__ . '/includes/admin/class-wc-stripe-privacy.php';
 				}
-				if ( file_exists( __DIR__ . '/includes/class-wc-stripe-feature-flags.php' ) ) {
-					require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
-				}
-
+				require_once __DIR__ . '/includes/class-wc-stripe-feature-flags.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-order.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
@@ -955,3 +957,24 @@ add_action(
 		}
 	}
 );
+
+add_action( 'upgrader_process_complete', 'wcstripe_upgrader_process_complete', 10, 2 );
+
+function wcstripe_upgrader_process_complete( $upgrader_object, $options ) {
+	$current_plugin_path_name = plugin_basename( __FILE__ );
+	if ( 'update' === $options['action'] && 'plugin' === $options['type'] ) {
+		foreach ( $options['plugins'] as $plugin ) {
+			if ( $plugin === $current_plugin_path_name ) {
+				update_option( 'wcstripe_upgrade_in_progress', true );
+			}
+		}
+	}
+}
+
+add_action( 'upgrader_post_install', 'wcstripe_upgrader_post_install' );
+
+function wcstripe_upgrader_post_install( $response, $hook_extra, $result ) {
+	if ( ! empty( $result['destination_name'] ) && 'woocommerce-gateway-stripe' === $result['destination_name'] ) {
+		update_option( 'wcstripe_upgrade_in_progress', false );
+	}
+}
