@@ -124,17 +124,4 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			'body'     => json_encode( 'success' ),
 		];
 	}
-
-	/**
-	 * Helper method to mock a 401 API response.
-	 */
-	public function mock_401_response() {
-		return [
-			'response' => [
-				'code'    => 401,
-				'message' => 'Unauthorized',
-			],
-			'body'     => '',
-		];
-	}
 }
