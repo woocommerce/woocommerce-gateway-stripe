@@ -31,25 +31,25 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
-	 * The test mode payment method configuration transient key (for cache purposes).
+	 * The test mode payment method configuration cache key.
 	 *
 	 * @var string
 	 */
-	const TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_test_payment_method_configuration_cache';
+	const TEST_MODE_CONFIGURATION_CACHE_KEY = 'wcstripe_test_payment_method_configuration_cache';
 
 	/**
-	 * The live mode payment method configuration transient key (for cache purposes).
+	 * The live mode payment method configuration cache key.
 	 *
 	 * @var string
 	 */
-	const LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY = 'wcstripe_live_payment_method_configuration_cache';
+	const LIVE_MODE_CONFIGURATION_CACHE_KEY = 'wcstripe_live_payment_method_configuration_cache';
 
 	/**
-	 * The payment method configuration transient expiration (for cache purposes).
+	 * The payment method configuration cache expiration.
 	 *
 	 * @var int
 	 */
-	const CONFIGURATION_CACHE_TRANSIENT_EXPIRATION = 10 * MINUTE_IN_SECONDS;
+	const CONFIGURATION_CACHE_EXPIRATION = 10 * MINUTE_IN_SECONDS;
 
 	/**
 	 * The payment method configuration fetch cooldown option key.
@@ -81,7 +81,7 @@ class WC_Stripe_Payment_Method_Configurations {
 			}
 
 			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
-			// even when $force_refresh = false and/or $is_in_cooldown is true.
+			// even when $force_refresh == false and/or $is_in_cooldown is true.
 			// We _need_ the payment method configuration for things to work as expected,
 			// so we will fetch it if we don't have anything locally.
 		}
@@ -103,11 +103,11 @@ class WC_Stripe_Payment_Method_Configurations {
 			return self::$primary_configuration;
 		}
 
-		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
-		$cached_primary_configuration = get_transient( $cache_key );
+		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		$cached_primary_configuration = WC_Stripe_Database_Cache::get( $cache_key );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
 			if ( $use_fallback ) {
-				return get_option( $cache_key );
+				return get_option( $cache_key . '_fallback' );
 			}
 			return null;
 		}
@@ -121,9 +121,9 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
-		delete_transient( $cache_key );
-		delete_option( $cache_key );
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		WC_Stripe_Database_Cache::delete( $cache_key );
+		delete_option( $cache_key . '_fallback' );
 	}
 
 	/**
@@ -133,11 +133,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_TRANSIENT_KEY;
-		set_transient( $cache_key, $configuration, self::CONFIGURATION_CACHE_TRANSIENT_EXPIRATION );
+		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
+		WC_Stripe_Database_Cache::set( $cache_key, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
 
-		// To be used as fallback if we are in API cooldown and the transient is not available.
-		update_option( $cache_key, $configuration );
+		// To be used as fallback if we are in API cooldown and the main cache is not available.
+		update_option( $cache_key . '_fallback', $configuration );
 	}
 
 	/**
