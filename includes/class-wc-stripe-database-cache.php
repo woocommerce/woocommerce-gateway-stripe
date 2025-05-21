@@ -10,7 +10,8 @@ defined( 'ABSPATH' ) || exit; // block direct access.
  * A class for caching data as an option in the database.
  *
  * Based on the WooCommerce Payments Database_Cache class implementation.
- * https://github.com/Automattic/woocommerce-payments/blob/4b084af108cac9c6bd2467e52e5cdc3bc974a951/includes/class-database-cache.php
+ *
+ * @see https://github.com/Automattic/woocommerce-payments/blob/4b084af108cac9c6bd2467e52e5cdc3bc974a951/includes/class-database-cache.php
  */
 class WC_Stripe_Database_Cache {
 
@@ -90,7 +91,7 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	private static function write_to_cache( $key, $data, $ttl ) {
-		// Add the  data and expiry time to the array we're caching.
+		// Add the data and expiry time to the array we're caching.
 		$cache_contents = [
 			'data'    => $data,
 			'ttl'     => $ttl,
