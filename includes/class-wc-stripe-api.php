@@ -17,20 +17,6 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
-	 * The test mode invalid API keys option key.
-	 *
-	 * @var string
-	 */
-	const TEST_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_test_invalid_api_keys_detected';
-
-	/**
-	 * The live mode invalid API keys option key.
-	 *
-	 * @var string
-	 */
-	const LIVE_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_live_invalid_api_keys_detected';
-
-	/**
 	 * Secret API Key.
 	 *
 	 * @var string

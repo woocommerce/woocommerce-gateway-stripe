@@ -99,9 +99,6 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 * Test WC_Stripe_API::retrieve() when API keys are valid.
 	 */
 	public function test_retrieve_makes_api_call_when_api_keys_are_valid() {
-		// Ensure no invalid API keys option exists
-		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
-
 		// Mock a successful API response
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
 
