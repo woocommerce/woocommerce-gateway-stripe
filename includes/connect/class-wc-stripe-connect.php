@@ -199,7 +199,18 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
 			}
 
-			// If we are already using the UPE gateway, update the PMC with the currently enabled payment methods.
+			// TODO: We should separate this concern from the saving of Stripe keys.
+			$this->maybe_update_enabled_payment_methods();
+
+			return $result;
+		}
+
+		private function maybe_update_enabled_payment_methods() {
+			// There is no need to update anything after if PMC is not enabled.
+			if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+				return;
+			}
+
 			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 			if ( $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
 				// The UPE accepted payment list does not include Apple Pay/Google Pay, but PMC does, so we need to add them (if they are enabled).
@@ -209,8 +220,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				);
 				$gateway->update_enabled_payment_methods( $enabled_payment_methods );
 			}
-
-			return $result;
 		}
 
 		/**
