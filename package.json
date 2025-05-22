@@ -167,7 +167,7 @@
     "test:e2e-oc-debug": "npm run test:e2e-oc -- --debug",
     "test:e2e-lpm-blik": "./tests/e2e/bin/run-tests.sh --project=blik",
     "test:e2e-lpm-blik-debug": "npm run test:e2e-lpm-blik -- --debug",
-    "test:e2e-lpm": "./tests/e2e/bin/run-tests.sh --project=blik && ./tests/e2e/bin/run-tests.sh --project=acss",
+    "test:e2e-lpm": "./tests/e2e/bin/run-tests.sh --project=acss && ./tests/e2e/bin/run-tests.sh --project=blik",
     "changelog": "node bin/changelog.js"
   },
   "engines": {
