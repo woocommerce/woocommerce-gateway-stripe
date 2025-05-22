@@ -636,7 +636,7 @@ function woocommerce_gateway_stripe() {
 				}
 
 				if ( $should_clear_stripe_api_key ) {
-					WC_Stripe_API::get_instance()->set_secret_key( '' );
+					WC_Stripe_API::set_secret_key( '' );
 				}
 			}
 
