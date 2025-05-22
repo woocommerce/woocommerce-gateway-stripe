@@ -119,5 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
+* Fix - Hide future payments message from payment element when manual renewal is required
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
