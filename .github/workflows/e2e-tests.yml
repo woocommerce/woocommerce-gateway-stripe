@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'Legacy', 'OptimizedCheckout', 'LPM' ]
+        checkout: [ 'Default', 'Legacy', 'OptimizedCheckout' ]
 
     name: ${{ matrix.checkout }} WP=latest, WC=latest, PHP=7.4
     steps:
@@ -76,26 +76,24 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
-          STRIPE_PUB_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
       - name: Run ${{ matrix.checkout }} E2E tests
         shell: bash
         env:
-          STRIPE_PUB_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'LPM' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: |
           if [ "${{ matrix.checkout }}" = "Legacy" ]; then
             npm run test:e2e-legacy
           elif [ "${{ matrix.checkout }}" = "OptimizedCheckout" ]; then
             npm run test:e2e-oc
-          elif [ "${{ matrix.checkout }}" = "LPM" ]; then
-            npm run test:e2e-lpm
           else
             npm run test:e2e
           fi
-      
+
       - name: Upload ${{ matrix.checkout }} E2E test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4
