@@ -622,17 +622,17 @@ function woocommerce_gateway_stripe() {
 				// Note that this also needs to run before we call toggle_upe() below.
 				$should_clear_stripe_api_key = false;
 
-				// If we are switching 'testmode', we need to clear the in-memory Stripe API key.
-				if ( isset( $settings['testmode'] ) && isset( $old_settings['testmode'] ) && $settings['testmode'] !== $old_settings['testmode'] ) {
-					$should_clear_stripe_api_key = true;
-				}
+				$settings_to_check = [
+					'testmode',
+					'secret_key',
+					'test_secret_key',
+				];
 
-				// If we are updating secret_key or test_secret_key, we need to clear the Stripe API key.
-				if ( isset( $settings['secret_key'] ) && isset( $old_settings['secret_key'] ) && $settings['secret_key'] !== $old_settings['secret_key'] ) {
-					$should_clear_stripe_api_key = true;
-				}
-				if ( isset( $settings['test_secret_key'] ) && isset( $old_settings['test_secret_key'] ) && $settings['test_secret_key'] !== $old_settings['test_secret_key'] ) {
-					$should_clear_stripe_api_key = true;
+				foreach ( $settings_to_check as $setting_to_check ) {
+					if ( isset( $settings[ $setting_to_check ] ) && isset( $old_settings[ $setting_to_check ] ) && $settings[ $setting_to_check ] !== $old_settings[ $setting_to_check ] ) {
+						$should_clear_stripe_api_key = true;
+						break;
+					}
 				}
 
 				if ( $should_clear_stripe_api_key ) {
