@@ -96,50 +96,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test WC_Stripe_API::retrieve() when API returns 401 error.
-	 */
-	public function test_retrieve_handles_401_error() {
-		// Mock a 401 API response
-		add_filter( 'pre_http_request', [ $this, 'mock_401_response' ] );
-
-		// Call the retrieve method
-		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
-
-		// Verify the result is null
-		$this->assertNull( $result );
-
-		// Verify the invalid API keys option was set
-		$this->assertTrue( get_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY ) );
-
-		// Clean up
-		remove_filter( 'pre_http_request', [ $this, 'mock_401_response' ] );
-		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
-	}
-
-	/**
-	 * Test WC_Stripe_API::retrieve() when API keys are invalid.
-	 */
-	public function test_retrieve_returns_null_when_api_keys_are_invalid() {
-		// Set up the invalid API keys option
-		update_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY, true );
-
-		// Call the retrieve method
-		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
-
-		// Verify the result is null
-		$this->assertNull( $result );
-
-		// Clean up
-		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
-	}
-
-	/**
 	 * Test WC_Stripe_API::retrieve() when API keys are valid.
 	 */
 	public function test_retrieve_makes_api_call_when_api_keys_are_valid() {
-		// Ensure no invalid API keys option exists
-		delete_option( WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY );
-
 		// Mock a successful API response
 		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
 
@@ -159,23 +118,10 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function mock_successful_response() {
 		return [
 			'response' => [
-				'code' => 200,
+				'code'    => 200,
 				'message' => 'OK',
 			],
-			'body' => json_encode( 'success' ),
-		];
-	}
-
-	/**
-	 * Helper method to mock a 401 API response.
-	 */
-	public function mock_401_response() {
-		return [
-			'response' => [
-				'code' => 401,
-				'message' => 'Unauthorized',
-			],
-			'body' => '',
+			'body'     => json_encode( 'success' ),
 		];
 	}
 }

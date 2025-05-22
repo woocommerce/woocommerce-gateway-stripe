@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
+* Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
 * Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
@@ -119,6 +121,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Dev - Add e2e tests for BLIK
 * Fix - Send correct attribute when setting the default payment method.
-* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
+* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
+* Add - Implement custom database cache for persistent caching with in-memory optimization.
+* Update - Remove feature that flags 401s and proactively blocks subsequent API calls until the store has reauthenticated.
+* Fix - Disable payment settings sync when we receive unsupported payment method configurations.
+* Fix - Ensure that we use current Stripe API keys after settings updates
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
