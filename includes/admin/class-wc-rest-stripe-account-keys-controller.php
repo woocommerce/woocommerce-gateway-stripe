@@ -272,6 +272,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		if ( $is_deleting_account ) {
 			$settings['enabled']              = 'no';
 			$settings['connection_type']      = '';
+			$settings['pmc_enabled']          = '';
 			$settings['test_connection_type'] = '';
 			$settings['refresh_token']        = '';
 			$settings['test_refresh_token']   = '';

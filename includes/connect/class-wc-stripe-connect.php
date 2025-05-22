@@ -163,7 +163,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-
+			$options['pmc_enabled']                     = 'connect' === $type ? '' : 'no'; // When not connected via oauth, the PMC is disabled. Otherwise, set to empty string which will be set to 'yes' after the migration in 'maybe_migrate_payment_methods_from_db_to_pmc'.
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
@@ -182,11 +182,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_failed_attempts', 0 );
 			update_option( 'wc_stripe_' . $prefix . 'oauth_last_failed_at', '' );
-
-			// Clear the invalid API keys transient.
-			$invalid_api_keys_option_key = $is_test ? WC_Stripe_API::TEST_MODE_INVALID_API_KEYS_OPTION_KEY : WC_Stripe_API::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
-			update_option( $invalid_api_keys_option_key, false );
-			update_option( $invalid_api_keys_option_key . '_at', time() );
 
 			if ( 'app' === $type ) {
 				// Stripe App OAuth access_tokens expire after 1 hour:

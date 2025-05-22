@@ -20,6 +20,13 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test' => 'test',
 			]
 		);
+		$this->mock_payment_method_configurations(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::BANCONTACT,
+				WC_Stripe_Payment_Methods::EPS,
+			]
+		);
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
