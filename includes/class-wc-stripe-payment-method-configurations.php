@@ -146,7 +146,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return object|null
 	 */
 	private static function get_payment_method_configuration_from_stripe() {
-		$result         = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+		$result = WC_Stripe_API::get_instance()->get_payment_method_configurations();
+
+		// If the result does not have a data property, it means we received an error from the API.
+		if ( ! isset( $result->data ) ) {
+			return null;
+		}
+
 		$configurations = $result->data ?? [];
 
 		// When connecting to the WooCommerce Platform account a new payment method configuration is created for the merchant.
@@ -213,6 +219,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				: [ WC_Stripe_Payment_Methods::CARD ];
 		}
 
+		wc_get_logger()->debug( 'get_upe_enabled_payment_method_ids----' );
 		// Migrate payment methods from DB to Stripe PMC if needed
 		self::maybe_migrate_payment_methods_from_db_to_pmc();
 
@@ -237,6 +244,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @param array $available_payment_method_ids
 	 */
 	public static function update_payment_method_configuration( $enabled_payment_method_ids, $available_payment_method_ids ) {
+		wc_get_logger()->debug( 'update_payment_method_configuration----' );
 		$payment_method_configuration         = self::get_primary_configuration();
 		$updated_payment_method_configuration = [];
 		$newly_enabled_methods                = [];
