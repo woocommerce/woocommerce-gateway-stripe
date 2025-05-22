@@ -418,8 +418,6 @@ export const getUpeSettings = () => {
 	const upeSettings = {};
 	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
 
-	console.log( 'showTerms', showTerms );
-
 	upeSettings.terms = getUPETerms( showTerms );
 
 	if (
