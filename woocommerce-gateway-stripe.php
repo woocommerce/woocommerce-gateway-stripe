@@ -598,6 +598,28 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
+				// If we're making a change that impacts which secret key we should be using,
+				// we need to clear the static key being used by WC_Stripe_API.
+				// Note that this also needs to run before we call toggle_upe() below.
+				$should_clear_stripe_api_key = false;
+
+				// If we are switching 'testmode', we need to clear the in-memory Stripe API key.
+				if ( isset( $settings['testmode'] ) && isset( $old_settings['testmode'] ) && $settings['testmode'] !== $old_settings['testmode'] ) {
+					$should_clear_stripe_api_key = true;
+				}
+
+				// If we are updating secret_key or test_secret_key, we need to clear the Stripe API key.
+				if ( isset( $settings['secret_key'] ) && isset( $old_settings['secret_key'] ) && $settings['secret_key'] !== $old_settings['secret_key'] ) {
+					$should_clear_stripe_api_key = true;
+				}
+				if ( isset( $settings['test_secret_key'] ) && isset( $old_settings['test_secret_key'] ) && $settings['test_secret_key'] !== $old_settings['test_secret_key'] ) {
+					$should_clear_stripe_api_key = true;
+				}
+
+				if ( $should_clear_stripe_api_key ) {
+					WC_Stripe_API::get_instance()->set_secret_key( '' );
+				}
+
 				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					return $settings;
 				}
