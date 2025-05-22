@@ -598,6 +598,25 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
+				// Note that we need to run these checks before we call toggle_upe() below.
+				$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
+
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
+					return $settings;
+				}
+
+				return $this->toggle_upe( $settings, $old_settings );
+			}
+
+			/**
+			 * Helper function that ensures we clear the in-memory Stripe API key in {@see WC_Stripe_API}
+			 * when we're making a change to our settings that impacts which secret key we should be using.
+			 *
+			 * @param array $settings     New settings that have just been saved.
+			 * @param array $old_settings Old settings that were previously saved.
+			 * @return void
+			 */
+			protected function maybe_reset_stripe_in_memory_key( $settings, $old_settings ) {
 				// If we're making a change that impacts which secret key we should be using,
 				// we need to clear the static key being used by WC_Stripe_API.
 				// Note that this also needs to run before we call toggle_upe() below.
@@ -619,12 +638,6 @@ function woocommerce_gateway_stripe() {
 				if ( $should_clear_stripe_api_key ) {
 					WC_Stripe_API::get_instance()->set_secret_key( '' );
 				}
-
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					return $settings;
-				}
-
-				return $this->toggle_upe( $settings, $old_settings );
 			}
 
 			/**
