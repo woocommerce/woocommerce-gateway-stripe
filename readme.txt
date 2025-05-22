@@ -125,5 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove feature that flags 401s and proactively blocks subsequent API calls until the store has reauthenticated.
 * Fix - Disable payment settings sync when we receive unsupported payment method configurations.
 * Fix - Ensure that we use current Stripe API keys after settings updates
+* Fix - Fix initial enabled payment methods migration to the Stripe Payment Methods Configuration API
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
