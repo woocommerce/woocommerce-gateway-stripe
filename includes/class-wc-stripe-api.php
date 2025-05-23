@@ -245,7 +245,7 @@ class WC_Stripe_API {
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			// Stripe redacts API keys in the response.
-			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401 " . print_r( $response, true ) );
+			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
 
 			return null; // The UI expects this empty response in case of invalid API keys.
 		}
