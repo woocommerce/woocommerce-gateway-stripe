@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, automattic
 Requires at least: 6.6
 Tested up to: 6.8.1
 Requires PHP: 7.4
-Stable tag: 9.5.1
+Stable tag: 9.5.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,6 +113,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
+* Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
+* Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
 * Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
@@ -120,8 +122,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
-* Add - Implement custom database cache for persistent caching with in-memory optimization.
-* Update - Remove feature that flags 401s and proactively blocks subsequent API calls until the store has reauthenticated.
-* Fix - Disable payment settings sync when we receive unsupported payment method configurations.
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
