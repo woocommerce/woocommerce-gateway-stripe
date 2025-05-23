@@ -348,12 +348,19 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Migrates the payment methods from the DB option to PMC if needed.
+	 *
+	 * @param bool $force_migration Whether to force the migration.
 	 */
-	public static function maybe_migrate_payment_methods_from_db_to_pmc() {
+	public static function maybe_migrate_payment_methods_from_db_to_pmc( $force_migration = false ) {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		// Skip if PMC is not enabled or migration already done (pmc_enabled is set).
-		if ( ! self::is_enabled() || ! empty( $stripe_settings['pmc_enabled'] ) ) {
+		// Skip if PMC is not enabled.
+		if ( ! self::is_enabled() ) {
+			return;
+		}
+
+		// Skip if migration already done (pmc_enabled is set) and we are not forcing the migration.
+		if ( ! empty( $stripe_settings['pmc_enabled'] ) && ! $force_migration ) {
 			return;
 		}
 
