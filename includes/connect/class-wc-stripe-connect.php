@@ -107,6 +107,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
+					error_log( 'woocommerce_stripe: Current user does not have manage_woocommerce capability' );
+				}
 				return;
 			}
 
@@ -115,6 +118,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
 
 				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
+					error_log( 'woocommerce_stripe: Invalid nonce received from Stripe server' );
 					return new WP_Error( 'Invalid nonce received from Stripe server' );
 				}
 
@@ -125,6 +129,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$response = $this->connect_oauth( $state, $code, $type, $mode );
 
+				if ( is_wp_error( $response ) ) {
+					error_log( 'woocommerce_stripe: Error processing OAuth response: [' . $response->get_error_code() . '] ' . $response->get_error_message() );
+				} else {
+					error_log( 'woocommerce_stripe: OAuth response processed successfully' );
+				}
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] ) ) );
