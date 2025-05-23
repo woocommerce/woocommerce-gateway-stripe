@@ -184,22 +184,31 @@ class WC_Stripe_Apple_Pay_Registration {
 			$this->make_domain_registration_request( $secret_key );
 
 			// No errors to this point, registration success!
-			$this->stripe_settings['apple_pay_verified_domain'] = $this->domain_name;
-			$this->stripe_settings['apple_pay_domain_set']      = 'yes';
-			$this->apple_pay_domain_set                         = true;
+			// Reload the settings, to avoid overwriting old, cached values.
+			$settings                              = WC_Stripe_Helper::get_stripe_settings();
+			$settings['apple_pay_verified_domain'] = $this->domain_name;
+			$settings['apple_pay_domain_set']      = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-			WC_Stripe_Helper::update_main_stripe_settings( $this->stripe_settings );
+			// Update the local state.
+			$this->apple_pay_domain_set = true;
+			// Update cached settings.
+			$this->stripe_settings = $settings;
 
 			WC_Stripe_Logger::log( 'Your domain has been registered with Apple Pay!' );
 
 			return true;
 
 		} catch ( Exception $e ) {
-			$this->stripe_settings['apple_pay_verified_domain'] = $this->domain_name;
-			$this->stripe_settings['apple_pay_domain_set']      = 'no';
-			$this->apple_pay_domain_set                         = false;
+			$settings                              = WC_Stripe_Helper::get_stripe_settings();
+			$settings['apple_pay_verified_domain'] = $this->domain_name;
+			$settings['apple_pay_domain_set']      = 'no';
+			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-			WC_Stripe_Helper::update_main_stripe_settings( $this->stripe_settings );
+			// Update the local state.
+			$this->apple_pay_domain_set = false;
+			// Update cached settings.
+			$this->stripe_settings = $settings;
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
