@@ -36,7 +36,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 
 		add_action( 'woocommerce_stripe_updated', [ $this, 'register_domain_if_configured' ] );
-		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_new_settings' ], 10, 2 );
+		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'register_domain_if_configured' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 
 		$this->stripe_settings               = WC_Stripe_Helper::get_stripe_settings();
@@ -230,16 +230,6 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		// Show/hide notes if necessary.
 		WC_Stripe_Inbox_Notes::notify_on_apple_pay_domain_registration( $registration_complete );
-	}
-
-	/**
-	 * Conditionally process the Apple Pay domain registration after settings are initially set.
-	 *
-	 * @since 4.5.4
-	 * @version 4.5.4
-	 */
-	public function register_domain_on_new_settings( $option, $settings ) {
-		$this->register_domain_on_updated_settings( [], $settings );
 	}
 
 	/**
