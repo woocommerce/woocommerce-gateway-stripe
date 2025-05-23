@@ -119,8 +119,12 @@ const PaymentMethod = ( {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
 
-	const { Icon, label, allows_manual_capture: isAllowingManualCapture } =
-		PaymentMethodsMap[ method ] || {};
+	const {
+		Icon,
+		label,
+		allows_manual_capture: isAllowingManualCapture,
+		supportsRecurring,
+	} = PaymentMethodsMap[ method ] || {};
 
 	// Skip if there are no mapped fields for the payment method.
 	if ( ! Icon || ! label ) {
@@ -178,6 +182,7 @@ const PaymentMethod = ( {
 						) }
 						label={ label }
 						deprecated={ deprecated }
+						supportsRecurring={ supportsRecurring }
 					/>
 					<StyledFees id={ method } />
 				</PaymentMethodWrapper>

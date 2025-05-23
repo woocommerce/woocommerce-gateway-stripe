@@ -94,4 +94,34 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		WC_Stripe_API::set_secret_key_for_mode( 'invalid' );
 		$this->assertEquals( self::LIVE_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 	}
+
+	/**
+	 * Test WC_Stripe_API::retrieve() when API keys are valid.
+	 */
+	public function test_retrieve_makes_api_call_when_api_keys_are_valid() {
+		// Mock a successful API response
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		// Call the retrieve method
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+
+		// Verify the result matches our mock response
+		$this->assertEquals( 'success', $result );
+
+		// Clean up
+		remove_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+	}
+
+	/**
+	 * Helper method to mock a successful API response.
+	 */
+	public function mock_successful_response() {
+		return [
+			'response' => [
+				'code'    => 200,
+				'message' => 'OK',
+			],
+			'body'     => json_encode( 'success' ),
+		];
+	}
 }
