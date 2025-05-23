@@ -250,7 +250,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function register_domain_on_updated_settings( $prev_settings, $settings ) {
 		$prev_secret_key    = $this->get_secret_key( $prev_settings );
-		$current_secret_key = $this->get_secret_key();
+		$current_secret_key = $this->get_secret_key( $settings );
 
 		// If secret key was different, then we might need to register again.
 		if ( $current_secret_key !== $prev_secret_key ) {
