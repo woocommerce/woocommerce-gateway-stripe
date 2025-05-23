@@ -18,13 +18,6 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $stripe_settings;
 
 	/**
-	 * Apple Pay Domain Set.
-	 *
-	 * @var bool
-	 */
-	public $apple_pay_domain_set;
-
-	/**
 	 * Current domain name.
 	 *
 	 * @var bool
@@ -47,8 +40,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 
 		$this->stripe_settings               = WC_Stripe_Helper::get_stripe_settings();
-		$this->domain_name             = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
-		$this->apple_pay_domain_set          = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
+		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
 		$this->apple_pay_registration_notice = '';
 	}
 
@@ -70,6 +62,10 @@ class WC_Stripe_Apple_Pay_Registration {
 		}
 
 		return $default;
+	}
+
+	public function is_domain_set() {
+		return 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 	}
 
 	/**
@@ -190,8 +186,6 @@ class WC_Stripe_Apple_Pay_Registration {
 			$settings['apple_pay_domain_set']      = 'yes';
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-			// Update the local state.
-			$this->apple_pay_domain_set = true;
 			// Update cached settings.
 			$this->stripe_settings = $settings;
 
@@ -205,8 +199,6 @@ class WC_Stripe_Apple_Pay_Registration {
 			$settings['apple_pay_domain_set']      = 'no';
 			WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-			// Update the local state.
-			$this->apple_pay_domain_set = false;
 			// Update cached settings.
 			$this->stripe_settings = $settings;
 
@@ -281,7 +273,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		}
 
 		$empty_notice = empty( $this->apple_pay_registration_notice );
-		if ( $empty_notice && ( $this->apple_pay_domain_set || empty( $this->secret_key ) ) ) {
+		if ( $empty_notice && ( $this->is_domain_set() || empty( $this->get_secret_key() ) ) ) {
 			return;
 		}
 
