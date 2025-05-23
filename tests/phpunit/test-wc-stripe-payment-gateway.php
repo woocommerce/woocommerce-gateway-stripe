@@ -679,6 +679,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_process_refund_on_zero_amount() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' ); // Set the charge ID as transaction ID
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'yes' );
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -749,7 +750,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_process_refund_voids_pre_auth_on_cancel() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' );
-		$order->update_meta_data( '_stripe_charge_captured', 'no' );
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
 		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
 		$order->save();
 		$order_id = $order->get_id();
