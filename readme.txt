@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
 * Add - Show an icon beside the payment methods that support automatic recurring payments.
