@@ -6,6 +6,7 @@ use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_REST_UPE_Flag_Toggle_Controller;
 use WP_REST_Request;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_REST_UPE_Flag_Toggle_Controller.

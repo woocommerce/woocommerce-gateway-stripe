@@ -1,11 +1,14 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Helpers;
+
+use WC_Cache_Helper;
+
 /**
  * Helper class for shipping related unit tests.
  *
  * @package WooCommerce\Tests\Helper
- */
-
-/**
+ *
  * Class WC_Helper_Shipping.
  *
  * This helper class should ONLY be used for unit tests!.

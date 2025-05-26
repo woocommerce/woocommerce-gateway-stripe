@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Helper.

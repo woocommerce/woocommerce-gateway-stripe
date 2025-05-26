@@ -7,6 +7,7 @@ use WC_Helper_Order;
 use WC_Stripe_Helper;
 use WC_Stripe_Order_Handler;
 use WC_Stripe_UPE_Payment_Gateway;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Order_Handler tests.

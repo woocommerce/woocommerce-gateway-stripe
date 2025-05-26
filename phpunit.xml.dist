@@ -9,6 +9,7 @@
 	convertNoticesToExceptions="true"
 	convertWarningsToExceptions="true"
 	convertDeprecationsToExceptions="false"
+	stopOnFailure="true"
 	>
 	<testsuites>
 		<testsuite name="WCStripe">

@@ -1,4 +1,14 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Helpers;
+
+use WC_Gateway_Stripe;
+use WC_Gateway_Stripe_Sepa;
+use WC_Payment_Token_CC;
+use WC_Payment_Token_SEPA;
+use WC_Payment_Tokens;
+use WC_Stripe_Payment_Methods;
+
 /**
  * Class WC_Helper_Token.
  *

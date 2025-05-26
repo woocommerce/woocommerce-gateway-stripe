@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_UPE_Availability_Note;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_UPE_Availability_Note_Test

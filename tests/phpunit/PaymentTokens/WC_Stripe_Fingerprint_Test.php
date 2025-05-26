@@ -3,7 +3,7 @@
 namespace WooCommerce\Stripe\Tests\PaymentTokens;
 
 use WC_Stripe_Payment_Token_CC;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * Trait WC_Stripe_Fingerprint_Trait tests.

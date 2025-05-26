@@ -9,7 +9,7 @@ use WC_Stripe_Helper;
 use WC_Helper_Order;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Payment_Gateway;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Element.

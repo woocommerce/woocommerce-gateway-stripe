@@ -12,6 +12,7 @@ use WC_Stripe_Exception;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WP_Error;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against abstract class WC_Stripe_Payment_Gateway

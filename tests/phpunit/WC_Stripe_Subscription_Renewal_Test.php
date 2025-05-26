@@ -7,6 +7,7 @@ use WC_Helper_Order;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WP_UnitTestCase;
 
 /**
  * These tests assert various things about processing a renewal payment for a WooCommerce Subscription.

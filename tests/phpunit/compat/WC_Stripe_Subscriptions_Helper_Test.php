@@ -3,7 +3,7 @@
 namespace WooCommerce\Stripe\Tests\Compat;
 
 use WC_Stripe_Subscriptions_Helper;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Subscriptions_Helper_Test

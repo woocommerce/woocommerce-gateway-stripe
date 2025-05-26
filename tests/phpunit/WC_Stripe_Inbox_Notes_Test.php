@@ -2,6 +2,8 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WP_UnitTestCase;
+
 /**
  * Class WC_Stripe_Inbox_Notes_Test
  *

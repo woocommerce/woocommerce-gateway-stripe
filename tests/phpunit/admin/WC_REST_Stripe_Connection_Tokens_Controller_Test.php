@@ -3,7 +3,7 @@
 namespace WooCommerce\Stripe\Tests\Admin;
 
 use WP_REST_Request;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * Class WC_REST_Stripe_Connection_Tokens_Controller.

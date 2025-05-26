@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Helpers;
+
+use Exception;
+use WC_Stripe_API;
+
 /**
  * Stripe API helpers.
  *
  * @package WooCommerce\Tests
- */
-
-/**
+ *
  * Class WC_Helper_Stripe_Api.
  *
  * This helper class should ONLY be used for unit tests!.

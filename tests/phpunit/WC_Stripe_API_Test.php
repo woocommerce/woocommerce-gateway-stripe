@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_API;
 use WC_Stripe_Helper;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_API

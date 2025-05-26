@@ -1,13 +1,21 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Helpers;
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Order;
+use WC_Order_Item_Fee;
+use WC_Order_Item_Product;
+use WC_Order_Item_Shipping;
+use WC_Product;
+use WC_Shipping_Rate;
+use WC_Tax;
+
 /**
  * Order helpers.
  *
  * @package WooCommerce\Tests
- */
-
-use Automattic\WooCommerce\Enums\OrderStatus;
-
-/**
+ *
  * Class WC_Helper_Order.
  *
  * This helper class should ONLY be used for unit tests!.

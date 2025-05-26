@@ -8,7 +8,7 @@ use WC_Gateway_Stripe;
 use WC_Stripe_Helper;
 use WC_Helper_Order;
 use WC_Stripe_Intent_Status;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * This test makes assertions against the class WC_Stripe_Settings_Controller.

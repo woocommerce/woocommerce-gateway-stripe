@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Status;
+use WP_UnitTestCase;
 
 /**
  * Tests for the WC_Stripe_Status class.

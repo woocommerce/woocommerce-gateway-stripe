@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Stripe_Exception;
 use WC_Stripe_Order;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Order

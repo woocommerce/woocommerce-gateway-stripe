@@ -2,6 +2,8 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WP_UnitTestCase;
+
 /**
  * These tests make assertions against the class WC_Stripe_Feature_Flags
  *

@@ -5,7 +5,7 @@ namespace WooCommerce\Stripe\Tests\PaymentTokens;
 use stdClass;
 use WC_Payment_Token_ACH;
 use WC_Stripe_Payment_Methods;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Payment_Token_ACH tests.

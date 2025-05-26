@@ -10,6 +10,7 @@ use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.

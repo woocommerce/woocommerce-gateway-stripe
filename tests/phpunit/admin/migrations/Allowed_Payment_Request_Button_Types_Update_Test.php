@@ -4,8 +4,8 @@ namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
 use Allowed_Payment_Request_Button_Types_Update;
 use WC_Gateway_Stripe;
+use WP_UnitTestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
 
 /**
  * Class Allowed_Payment_Request_Button_Types_Update_Test

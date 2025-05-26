@@ -2,6 +2,8 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WP_UnitTestCase;
+
 /**
  * Tests for the WC_Stripe_Database_Cache class.
  *

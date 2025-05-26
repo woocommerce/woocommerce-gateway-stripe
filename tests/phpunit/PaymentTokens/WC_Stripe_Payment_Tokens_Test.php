@@ -19,7 +19,7 @@ use WC_Stripe_UPE_Payment_Method_ACSS;
 use WC_Stripe_UPE_Payment_Method_Becs_Debit;
 use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
 use WC_Stripe_UPE_Payment_Method_Sepa;
-use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Payment_Tokens tests.
