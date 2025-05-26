@@ -2,9 +2,9 @@
 
 namespace WooCommerce\Stripe\Tests\Admin;
 
+use WC_Stripe_Intent_Status;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_REST_Request;
-use WC_Stripe_Intent_Status;
 use WP_UnitTestCase;
 
 /**

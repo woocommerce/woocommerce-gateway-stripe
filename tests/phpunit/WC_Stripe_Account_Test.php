@@ -4,8 +4,8 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
-use WP_UnitTestCase;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Stripe_Api;
+use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Account_Test

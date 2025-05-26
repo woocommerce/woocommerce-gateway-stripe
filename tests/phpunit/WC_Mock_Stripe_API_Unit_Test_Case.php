@@ -4,8 +4,8 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe;
 use WC_Stripe_API;
-use WP_UnitTestCase;
 use WC_Stripe_Payment_Method_Configurations;
+use WP_UnitTestCase;
 
 /**
  * This stub assists IDE in recognizing PHPUnit tests.

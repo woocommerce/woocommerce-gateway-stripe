@@ -2,10 +2,10 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**

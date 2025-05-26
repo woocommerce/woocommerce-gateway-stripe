@@ -2,9 +2,9 @@
 
 namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
-use WC_Gateway_Stripe;
 use Migrate_Payment_Request_Data_To_Express_Checkout_Data;
 use PHPUnit\Framework\MockObject\MockObject;
+use WC_Gateway_Stripe;
 use WP_UnitTestCase;
 
 /**

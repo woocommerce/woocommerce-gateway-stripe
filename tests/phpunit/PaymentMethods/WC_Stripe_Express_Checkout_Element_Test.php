@@ -2,12 +2,12 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
-use WC_Stripe_Express_Checkout_Element;
-use WC_Stripe_Express_Checkout_Ajax_Handler;
 use WC_Gateway_Stripe;
-use WC_Stripe_Helper;
-use WC_Stripe_Express_Checkout_Helper;
 use WC_Payment_Gateway;
+use WC_Stripe_Express_Checkout_Ajax_Handler;
+use WC_Stripe_Express_Checkout_Element;
+use WC_Stripe_Express_Checkout_Helper;
+use WC_Stripe_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 

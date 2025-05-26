@@ -2,21 +2,19 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
+use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
 use WC_Data_Exception;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WC_Order;
 use WC_Stripe_Co_Branded_CC_Compatibility;
-use WC_Stripe_Exception;
-use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_Customer;
-use WC_Stripe_Payment_Methods;
-use WC_Stripe_Intent_Status;
+use WC_Stripe_Exception;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Controller;
-use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
-use WC_Order;
-use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Stripe_Intent_Status;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_UPE_Payment_Method_ACH;
 use WC_Stripe_UPE_Payment_Method_ACSS;
 use WC_Stripe_UPE_Payment_Method_Affirm;
@@ -38,6 +36,8 @@ use WC_Stripe_UPE_Payment_Method_P24;
 use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
 use WC_Subscriptions_Helpers;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**

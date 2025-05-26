@@ -2,14 +2,14 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
-use WC_Stripe_Payment_Request;
-use WC_Product_Simple;
-use WC_Shipping_Zone;
 use UPE_Test_Helper;
 use WC_Helper_Product;
+use WC_Product_Simple;
+use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Payment_Request;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**

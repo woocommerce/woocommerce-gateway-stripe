@@ -2,15 +2,14 @@
 
 namespace WooCommerce\Stripe\Tests\Admin;
 
+use Automattic\WooCommerce\Blocks\RestApi;
+use UPE_Test_Helper;
 use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
-use UPE_Test_Helper;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
-use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_Payment_Methods;
-use Automattic\WooCommerce\Blocks\Package;
-use Automattic\WooCommerce\Blocks\RestApi;
+use WC_Stripe_UPE_Payment_Gateway;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**

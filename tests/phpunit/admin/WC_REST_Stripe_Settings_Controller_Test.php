@@ -2,18 +2,18 @@
 
 namespace WooCommerce\Stripe\Tests\Admin;
 
-use WC_REST_Stripe_Settings_Controller;
-use WC_Gateway_Stripe;
+use Automattic\WooCommerce\Blocks\Package;
+use Exception;
 use UPE_Test_Helper;
+use WC_Gateway_Stripe;
+use WC_REST_Stripe_Settings_Controller;
+use WC_Stripe;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
-use Automattic\WooCommerce\Blocks\Package;
-use WP_REST_Request;
-use WC_Stripe;
 use WC_Stripe_Payment_Methods;
-use Exception;
-use WP_REST_Response;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
+use WP_REST_Request;
+use WP_REST_Response;
 
 /**
  * Class WC_REST_Stripe_Settings_Controller_Test

@@ -2,17 +2,17 @@
 
 namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
+use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
-use WC_Logger;
-use WC_Stripe_UPE_Payment_Gateway;
 use UPE_Test_Helper;
-use WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update;
-use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Gateway_Stripe_Sepa;
+use WC_Logger;
 use WC_Stripe_Helper;
+use WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update;
+use WC_Stripe_UPE_Payment_Gateway;
+use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Subscription;
 use WC_Subscriptions;
-use Exception;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 

@@ -8,8 +8,8 @@ use WC_Stripe_Exception;
 use WC_Stripe_Intent_Controller;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
-use WP_UnitTestCase;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WP_UnitTestCase;
 
 /**
  * These tests make assertions against class WC_Stripe_Intent_Controller
