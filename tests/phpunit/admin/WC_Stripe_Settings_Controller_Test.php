@@ -6,8 +6,8 @@ use WC_Stripe_Settings_Controller;
 use WC_Stripe_Account;
 use WC_Gateway_Stripe;
 use WC_Stripe_Helper;
-use WC_Helper_Order;
 use WC_Stripe_Intent_Status;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**
