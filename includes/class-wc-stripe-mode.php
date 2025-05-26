@@ -35,4 +35,13 @@ class WC_Stripe_Mode {
 	public static function random_method() {
 		return true;
 	}
+
+	/**
+	 * Random method to test the code coverage action.
+	 *
+	 * @return bool Whether the method executed successfully.
+	 */
+	public static function random_method2() {
+		return true;
+	}
 }
