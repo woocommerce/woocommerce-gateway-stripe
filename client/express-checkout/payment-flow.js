@@ -148,23 +148,33 @@ const processOrder = async ( {
 	orderDetails = {},
 } ) => {
 	let orderResponse;
+
+	const normalizedOrderData = normalizeOrderData( {
+		event,
+		paymentMethodId,
+		confirmationTokenId,
+	} );
+
+	const normalizedAddress = await api.expressCheckoutNormalizeAddress(
+		normalizedOrderData.billing_address,
+		normalizedOrderData.shipping_address
+	);
+
+	if ( normalizedAddress ) {
+		normalizedOrderData.billing_address = normalizedAddress.billing_address;
+		normalizedOrderData.shipping_address =
+			normalizedAddress.shipping_address;
+	}
+
 	if ( order ) {
 		orderResponse = await api.expressCheckoutECEPayForOrder(
 			order,
 			orderDetails,
-			normalizeOrderData( {
-				event,
-				paymentMethodId,
-				confirmationTokenId,
-			} )
+			normalizedOrderData
 		);
 	} else {
 		orderResponse = await api.expressCheckoutECECreateOrder(
-			normalizeOrderData( {
-				event,
-				paymentMethodId,
-				confirmationTokenId,
-			} )
+			normalizedOrderData
 		);
 	}
 
