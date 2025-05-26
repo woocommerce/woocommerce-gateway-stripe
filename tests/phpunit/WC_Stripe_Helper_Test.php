@@ -3,6 +3,11 @@
 namespace WooCommerce\Stripe\Tests;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
+use stdClass;
+use WC_Order;
+use WC_Stripe_Currency_Code;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
 use WP_UnitTestCase;
 
 /**

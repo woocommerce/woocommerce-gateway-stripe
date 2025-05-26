@@ -7,7 +7,7 @@ use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Gateway_Stripe;
 use WC_Stripe_Express_Checkout_Helper;
-use WC_Helper_Product;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Gateway_Stripe_Alipay;
 use WP_UnitTestCase;
 

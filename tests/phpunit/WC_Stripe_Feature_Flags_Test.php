@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WC_Stripe_Feature_Flags;
 use WP_UnitTestCase;
 
 /**
