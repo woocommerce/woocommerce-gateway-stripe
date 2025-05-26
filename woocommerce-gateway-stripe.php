@@ -889,7 +889,6 @@ function woocommerce_gateway_stripe() {
 		}
 
 		$plugin = WC_Stripe::get_instance();
-
 	}
 
 	return $plugin;
@@ -900,11 +899,13 @@ add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 function woocommerce_gateway_stripe_init() {
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
+		var_dump( 'WooCommerce is not active. Please activate WooCommerce to use the Stripe payment gateway.' );
 		return;
 	}
 
 	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
+		var_dump( 'WooCommerce version ' . WC_VERSION . ' is not supported by this version of the Stripe plugin. Please update WooCommerce to at least version ' . WC_STRIPE_MIN_WC_VER . '.' );
 		return;
 	}
 

@@ -45,9 +45,6 @@ function _manually_load_plugin() {
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-
-	// Fixes the issue with the Stripe API class not being loaded.
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
