@@ -26,7 +26,6 @@
 * Fix - Stop checking for detached subscriptions for admin users, as it was slowing down wp-admin.
 * Fix - Fix fatal error when checking for a payment method availability using a specific order ID.
 
-
 = 9.5.0 - 2025-05-13 =
 * Fix - Fixes the listing of payment methods on the classic checkout when the Optimized Checkout is enabled.
 * Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
