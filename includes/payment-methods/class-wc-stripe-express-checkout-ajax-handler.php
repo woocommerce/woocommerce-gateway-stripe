@@ -31,6 +31,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function init() {
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
+		add_action( 'wc_ajax_wc_stripe_normalize_address', [ $this, 'ajax_normalized_address' ] );
 		add_action( 'wc_ajax_wc_stripe_update_shipping_method', [ $this, 'ajax_update_shipping_method' ] );
 		add_action( 'wc_ajax_wc_stripe_create_order', [ $this, 'ajax_create_order' ] );
 		add_action( 'wc_ajax_wc_stripe_add_to_cart', [ $this, 'ajax_add_to_cart' ] );
@@ -138,6 +139,21 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		}
 
 		exit;
+	}
+
+	/**
+	 * Normalizes address fields in WooCommerce supported format.
+	 */
+	public function ajax_normalized_address() {
+		check_ajax_referer( 'wc-stripe-express-checkout-normalize-address', 'security' );
+
+		$data = filter_input( INPUT_POST, 'data', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+
+		// Normalizes billing and shipping state values.
+		$normalized_data = $this->express_checkout_helper->normalize_state( $data );
+		$normalized_data = $this->express_checkout_helper->fix_address_fields_mapping( $normalized_data );
+
+		wp_send_json( $normalized_data );
 	}
 
 	/**
