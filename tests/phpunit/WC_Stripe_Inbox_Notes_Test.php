@@ -1,11 +1,12 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
 /**
  * Class WC_Stripe_Inbox_Notes_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Inbox_Notes
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Inbox_Notes
+ *
  * Class WC_Stripe_Inbox_Notes_Note tests.
  */
 class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {

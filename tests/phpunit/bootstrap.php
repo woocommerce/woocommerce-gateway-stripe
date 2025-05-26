@@ -5,7 +5,7 @@
  * @package WooCommerce\Stripe
  */
 
-require_once __DIR__ . '/../../vendor/yoast/phpunit-polyfills/phpunitpolyfills-autoload.php';
+require_once __DIR__ . '/../../vendor/autoload.php';
 
 $_tests_dir = getenv( 'WP_TESTS_DIR' );
 
@@ -50,9 +50,6 @@ function _manually_load_plugin() {
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
-
-# Load the WC Mock Stripe API Unit Test Case
-require_once __DIR__ . '/WC_Mock_Stripe_API_Unit_Test_Case.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.

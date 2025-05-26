@@ -1,11 +1,22 @@
 <?php
-/**
- * These teste make assertions against class WC_Stripe_Payment_Request.
- *
- * @package WooCommerce_Stripe/Tests/Payment_Request
- */
+
+namespace WooCommerce\Stripe\Tests\PaymentMethods;
+
+use WC_Stripe_Payment_Request;
+use WC_Product_Simple;
+use WC_Shipping_Zone;
+use UPE_Test_Helper;
+use WC_Helper_Product;
+use WC_Shipping_Zones;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
+ * These tests make assertions against class WC_Stripe_Payment_Request.
+ *
+ * @package WooCommerce/Stripe/Payment_Request
+ *
  * WC_Stripe_Payment_Request_Test class.
  */
 class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {

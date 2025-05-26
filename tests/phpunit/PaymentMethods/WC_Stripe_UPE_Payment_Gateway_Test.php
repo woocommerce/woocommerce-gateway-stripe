@@ -1,6 +1,44 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests\PaymentMethods;
+
+use Exception;
+use WC_Data_Exception;
+use WC_Helper_Order;
+use WC_Stripe_Co_Branded_CC_Compatibility;
+use WC_Stripe_Exception;
+use WC_Stripe_UPE_Payment_Gateway;
+use WC_Stripe_Customer;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Intent_Status;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WC_Stripe_Intent_Controller;
+use WC_Helper_Token;
+use WC_Order;
 use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Stripe_UPE_Payment_Method_ACH;
+use WC_Stripe_UPE_Payment_Method_ACSS;
+use WC_Stripe_UPE_Payment_Method_Affirm;
+use WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay;
+use WC_Stripe_UPE_Payment_Method_Alipay;
+use WC_Stripe_UPE_Payment_Method_Amazon_Pay;
+use WC_Stripe_UPE_Payment_Method_Bancontact;
+use WC_Stripe_UPE_Payment_Method_BLIK;
+use WC_Stripe_UPE_Payment_Method_Boleto;
+use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
+use WC_Stripe_UPE_Payment_Method_CC;
+use WC_Stripe_UPE_Payment_Method_Eps;
+use WC_Stripe_UPE_Payment_Method_Ideal;
+use WC_Stripe_UPE_Payment_Method_Klarna;
+use WC_Stripe_UPE_Payment_Method_Link;
+use WC_Stripe_UPE_Payment_Method_Multibanco;
+use WC_Stripe_UPE_Payment_Method_Oxxo;
+use WC_Stripe_UPE_Payment_Method_P24;
+use WC_Stripe_UPE_Payment_Method_Sepa;
+use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
+use WC_Subscriptions_Helpers;
+use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
  * Unit tests for the UPE payment gateway

@@ -1,5 +1,14 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests\Admin;
+
+use WC_Stripe;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Helper;
+use WC_Stripe_Admin_Notices;
+use WC_Stripe_Feature_Flags;
+use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
+
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function set_up() {

@@ -1,12 +1,21 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests\PaymentMethods;
+
+use WC_Stripe_Express_Checkout_Element;
+use WC_Stripe_Express_Checkout_Ajax_Handler;
+use WC_Gateway_Stripe;
+use WC_Stripe_Helper;
+use WC_Helper_Order;
+use WC_Stripe_Express_Checkout_Helper;
+use WC_Payment_Gateway;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * These tests make assertions against class WC_Stripe_Express_Checkout_Element.
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Express_Checkout_Element
- * /
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Express_Checkout_Element
+ *
  * Class WC_Stripe_Express_Checkout_Element_Test
  */
 class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {

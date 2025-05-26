@@ -1,9 +1,21 @@
 <?php
-/**
- * Class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test
- */
+
+namespace WooCommerce\Stripe\Tests\Admin\Migrations;
+
+use WC_Stripe_UPE_Payment_Gateway;
+use UPE_Test_Helper;
+use WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update;
+use WC_Stripe_UPE_Payment_Method_Sepa;
+use WC_Gateway_Stripe_Sepa;
+use WC_Stripe_Helper;
+use WC_Subscription;
+use WC_Subscriptions;
+use Exception;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
 
 /**
+ * Class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test
+ *
  * WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test unit tests.
  */
 class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTestCase {
@@ -414,7 +426,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	 * @return WC_Subscription The created subscription.
 	*/
 	private function create_subscription( $payment_method, $customer_id, $source_id ) {
-		$subscription = new WC_Subscription();
+		$subscription = new \WC_Subscription();
 		$subscription->set_customer_id( $customer_id );
 		$subscription->set_payment_method( $payment_method );
 

@@ -1,4 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\PaymentTokens;
+
+use WC_Payment_Token_Amazon_Pay;
+use WC_Payment_Token_CashApp;
+use WC_Payment_Token_Link;
+use WC_Payment_Token_SEPA;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Payment_Token_CC;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Trait WC_Stripe_Token_Comparison_Interface tests.
  */

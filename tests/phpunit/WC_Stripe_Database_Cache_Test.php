@@ -1,12 +1,12 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests;
+
 /**
  * Tests for the WC_Stripe_Database_Cache class.
  *
- * @package WooCommerce_Stripe/Tests
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Database_Cache
+ *
  * WC_Stripe_Database_Cache_Test Class.
  */
 class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {

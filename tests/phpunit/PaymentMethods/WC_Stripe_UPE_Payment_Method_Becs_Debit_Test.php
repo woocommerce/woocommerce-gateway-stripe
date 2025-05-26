@@ -1,5 +1,11 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests\PaymentMethods;
+
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Payment_Method_Becs_Debit;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * These tests make assertions against class WC_Stripe_UPE_Payment_Method_Becs_Debit.
  */

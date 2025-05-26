@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Admin;
+
+use WP_REST_Request;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class WC_REST_Stripe_Locations_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_REST_Stripe_Locations_Controller
- */
-
-/**
+ *
  * WC_REST_Stripe_Locations_Controller unit tests.
  *
  * @runTestsInSeparateProcesses

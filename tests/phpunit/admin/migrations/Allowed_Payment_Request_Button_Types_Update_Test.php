@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Admin\Migrations;
+
+use Allowed_Payment_Request_Button_Types_Update;
+use WC_Gateway_Stripe;
+use PHPUnit\Framework\MockObject\MockObject;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class Allowed_Payment_Request_Button_Types_Update_Test
- */
-
-use PHPUnit\Framework\MockObject\MockObject;
-
-/**
+ *
  * Allowed_Payment_Request_Button_Types_Update unit tests.
  */
 class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
@@ -13,12 +17,12 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe gateway mock.
 	 *
-	 * @var MockObject|WC_Gateway_Stripe
+	 * @var MockObject|\WC_Gateway_Stripe
 	 */
 	private $gateway_mock;
 
 	/**
-	 * @var Allowed_Payment_Request_Button_Types_Update
+	 * @var \Allowed_Payment_Request_Button_Types_Update
 	 */
 	private $migration;
 

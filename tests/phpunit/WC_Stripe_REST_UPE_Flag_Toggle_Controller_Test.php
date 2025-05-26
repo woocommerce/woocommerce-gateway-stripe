@@ -1,11 +1,17 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WC_Stripe_REST_UPE_Flag_Toggle_Controller;
+use WP_REST_Request;
+
 /**
  * These tests make assertions against class WC_Stripe_REST_UPE_Flag_Toggle_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_Stripe_REST_UPE_Flag_Toggle_Controller
- */
-
-/**
+ *
  * WC_Stripe_REST_UPE_Flag_Toggle_Controller unit tests.
  */
 class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {

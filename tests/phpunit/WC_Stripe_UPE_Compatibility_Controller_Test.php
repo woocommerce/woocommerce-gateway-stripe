@@ -1,11 +1,14 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_UPE_Compatibility_Controller;
+
 /**
  * This test makes assertions against the class WC_Stripe_UPE_Compatibility_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_Stripe_UPE_Compatibility_Controller
- */
-
-/**
+ *
  * WC_Stripe_UPE_Compatibility_Controller unit tests.
  */
 class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {

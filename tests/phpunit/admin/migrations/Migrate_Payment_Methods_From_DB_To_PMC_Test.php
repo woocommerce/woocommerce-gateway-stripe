@@ -1,11 +1,16 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Admin\Migrations;
+
+use WC_Stripe_Payment_Method_Configurations;
+use WC_Stripe_Helper;
+use WC_Stripe_UPE_Payment_Gateway;
+use PHPUnit\Framework\MockObject\MockObject;
+use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
+
 /**
  * Class Migrate_Payment_Methods_From_Db_To_Pmc_Test
- */
-
-use PHPUnit\Framework\MockObject\MockObject;
-
-/**
+ *
  * Migrate_Payment_Methods_From_DB_To_PMC_Test unit tests.
  */
 class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Unit_Test_Case {

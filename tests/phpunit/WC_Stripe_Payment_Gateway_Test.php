@@ -1,10 +1,21 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use PHPUnit\Framework\MockObject\MockObject;
+use stdClass;
+use WC_Gateway_Stripe;
+use WC_Gateway_Stripe_Giropay;
+use WC_Helper_Order;
+use WC_Stripe_Customer;
+use WC_Stripe_Exception;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WP_Error;
+
 /**
  * These tests make assertions against abstract class WC_Stripe_Payment_Gateway
- *
  */
-
-
 class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe Gateway under test.

@@ -1,11 +1,16 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Helper_Stripe_Api;
+use WC_Stripe_Account;
+use WC_Stripe_Helper;
+
 /**
  * Class WC_Stripe_Account_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Account
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Account
+ *
  * Class WC_Stripe_Account tests.
  */
 class WC_Stripe_Account_Test extends WP_UnitTestCase {

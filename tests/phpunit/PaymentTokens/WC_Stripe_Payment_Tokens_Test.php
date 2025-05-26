@@ -1,4 +1,26 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\PaymentTokens;
+
+use WC_Payment_Token;
+use WC_Payment_Token_ACH;
+use WC_Payment_Token_ACSS;
+use WC_Payment_Token_Becs_Debit;
+use WC_Payment_Token_CashApp;
+use WC_Payment_Token_CC;
+use WC_Payment_Token_Link;
+use WC_Payment_Token_SEPA;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Payment_Token_CC;
+use WC_Stripe_Payment_Tokens;
+use WC_Stripe_UPE_Payment_Gateway;
+use WC_Stripe_UPE_Payment_Method_ACH;
+use WC_Stripe_UPE_Payment_Method_ACSS;
+use WC_Stripe_UPE_Payment_Method_Becs_Debit;
+use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
+use WC_Stripe_UPE_Payment_Method_Sepa;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class WC_Stripe_Payment_Tokens tests.
  */

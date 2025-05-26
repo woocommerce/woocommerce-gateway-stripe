@@ -1,14 +1,14 @@
 <?php
 
-/**
- * These tests make assertions against class WC_Stripe_Helper.
- *
- * @package WooCommerce_Stripe/Tests/Helper
- */
+namespace WooCommerce\Stripe\Tests;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 
 /**
+ * These tests make assertions against class WC_Stripe_Helper.
+ *
+ * @package WooCommerce/Stripe/WC_Stripe_Helper
+ *
  * WC_Stripe_Helper_Test class.
  */
 class WC_Stripe_Helper_Test extends WP_UnitTestCase {

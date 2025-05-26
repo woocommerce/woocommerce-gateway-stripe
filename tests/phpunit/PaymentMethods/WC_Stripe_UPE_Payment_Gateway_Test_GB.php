@@ -1,4 +1,29 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\PaymentMethods;
+
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Payment_Gateway;
+use WC_Stripe_UPE_Payment_Method_ACSS;
+use WC_Stripe_UPE_Payment_Method_Afterpay_Clearpay;
+use WC_Stripe_UPE_Payment_Method_Alipay;
+use WC_Stripe_UPE_Payment_Method_Amazon_Pay;
+use WC_Stripe_UPE_Payment_Method_Bacs_Debit;
+use WC_Stripe_UPE_Payment_Method_Bancontact;
+use WC_Stripe_UPE_Payment_Method_Boleto;
+use WC_Stripe_UPE_Payment_Method_CC;
+use WC_Stripe_UPE_Payment_Method_Eps;
+use WC_Stripe_UPE_Payment_Method_Ideal;
+use WC_Stripe_UPE_Payment_Method_Klarna;
+use WC_Stripe_UPE_Payment_Method_Link;
+use WC_Stripe_UPE_Payment_Method_Multibanco;
+use WC_Stripe_UPE_Payment_Method_Oxxo;
+use WC_Stripe_UPE_Payment_Method_P24;
+use WC_Stripe_UPE_Payment_Method_Sepa;
+use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
+use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
+
 /**
  * Unit tests for the UPE payment gateway
  */

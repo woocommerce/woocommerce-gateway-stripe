@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Admin\Migrations;
+
+use WC_Gateway_Stripe;
+use Migrate_Payment_Request_Data_To_Express_Checkout_Data;
+use PHPUnit\Framework\MockObject\MockObject;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class Migrate_Payment_Request_Data_To_Express_Checkout_Data
- */
-
-use PHPUnit\Framework\MockObject\MockObject;
-
-/**
+ *
  * Allowed_Payment_Request_Button_Types_Update unit tests.
  */
 class Migrate_Payment_Request_Data_To_Express_Checkout_Data_Test extends WP_UnitTestCase {

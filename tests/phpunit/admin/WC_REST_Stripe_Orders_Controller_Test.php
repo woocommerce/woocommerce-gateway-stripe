@@ -1,11 +1,17 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Admin;
+
+use WP_REST_Request;
+use WC_Helper_Order;
+use WC_Stripe_Intent_Status;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class WC_REST_Stripe_Orders_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_REST_Stripe_Orders_Controller
- */
-
-/**
+ *
  * WC_REST_Stripe_Orders_Controller unit tests.
  *
  * @runTestsInSeparateProcesses

@@ -1,4 +1,11 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use ReflectionClass;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Method_Configurations;
+
 /**
  * Class WC_Stripe_Payment_Method_Configurations tests.
  */

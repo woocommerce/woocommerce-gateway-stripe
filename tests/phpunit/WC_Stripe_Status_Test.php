@@ -1,9 +1,12 @@
 <?php
-/**
- * Tests for the WC_Stripe_Status class.
- */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Status;
 
 /**
+ * Tests for the WC_Stripe_Status class.
+ *
  * Class WC_Stripe_Status_Test.
  */
 class WC_Stripe_Status_Test extends WP_UnitTestCase {

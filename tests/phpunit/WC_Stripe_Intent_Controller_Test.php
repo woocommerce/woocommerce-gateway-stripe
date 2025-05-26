@@ -1,10 +1,17 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Helper_Order;
+use WC_Order;
+use WC_Stripe_Currency_Code;
+use WC_Stripe_Exception;
+use WC_Stripe_Intent_Controller;
+use WC_Stripe_Payment_Methods;
+
 /**
  * These tests make assertions against class WC_Stripe_Intent_Controller
- *
  */
-
-
 class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Mocked controller under test.

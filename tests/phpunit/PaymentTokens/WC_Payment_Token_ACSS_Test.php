@@ -1,4 +1,12 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\PaymentTokens;
+
+use stdClass;
+use WC_Payment_Token_ACSS;
+use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class WC_Payment_Token_ACSS_Test tests.
  */

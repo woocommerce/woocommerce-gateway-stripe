@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests\Compat;
+
+use WC_Stripe_Subscriptions_Helper;
+use WooCommerce\Stripe\Tests\WP_UnitTestCase;
+
 /**
  * Class WC_Stripe_Subscriptions_Helper_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Subscriptions_Helper
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Subscriptions_Helper
+ *
  * Class WC_Stripe_Subscriptions_Helper tests.
  */
 class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
