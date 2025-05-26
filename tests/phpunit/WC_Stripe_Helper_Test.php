@@ -8,6 +8,7 @@ use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
 /**
