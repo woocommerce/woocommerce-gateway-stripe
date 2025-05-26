@@ -276,7 +276,7 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 			billingDetails[ 'country_iso' ]
 		);
 
-		if ( billingDetails[ 'state' ] ) {
+		if ( billingDetails[ 'state_iso' ] ) {
 			await page.selectOption(
 				'#billing_state',
 				billingDetails[ 'state_iso' ]
