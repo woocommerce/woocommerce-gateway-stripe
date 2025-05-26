@@ -26,13 +26,4 @@ class WC_Stripe_Mode {
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 		return 'yes' === ( $settings['testmode'] ?? 'no' );
 	}
-
-	/**
-	 * Random method to test the code coverage action.
-	 *
-	 * @return bool Whether the method executed successfully.
-	 */
-	public static function random_method() {
-		return true;
-	}
 }
