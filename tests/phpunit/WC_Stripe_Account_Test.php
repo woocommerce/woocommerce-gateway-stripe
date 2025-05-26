@@ -42,7 +42,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 									->getMock();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
-		$this->account = new WC_Stripe_Account( $this->mock_connect, 'WC_Helper_Stripe_Api' );
+		$this->account = new WC_Stripe_Account( $this->mock_connect, WC_Helper_Stripe_Api::class );
 	}
 
 	public function tear_down() {
@@ -457,7 +457,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function test_reconfigure_webhooks_on_update_no_existing_webhooks() {
 		// Mock that no existing webhook is found
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
-			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
 			->setMethods( [ 'get_existing_webhook' ] )
 			->getMock();
 		$this->account->method( 'get_existing_webhook' )->willReturn( false );
@@ -489,7 +489,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Setup the account mock
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
-			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
 			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
@@ -519,7 +519,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Setup the account mock
 		$this->account = $this->getMockBuilder( WC_Stripe_Account::class )
-			->setConstructorArgs( [ $this->mock_connect, 'WC_Helper_Stripe_Api' ] )
+			->setConstructorArgs( [ $this->mock_connect, WC_Helper_Stripe_Api::class ] )
 			->setMethods( [ 'get_existing_webhook', 'configure_webhooks' ] )
 			->getMock();
 
