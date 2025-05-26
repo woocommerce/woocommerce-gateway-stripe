@@ -6,7 +6,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use stdClass;
 use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
-use WC_Helper_Order;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Stripe_Customer;
 use WC_Stripe_Exception;
 use WC_Stripe_Feature_Flags;

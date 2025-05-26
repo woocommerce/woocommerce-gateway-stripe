@@ -2,6 +2,15 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use UPE_Test_Helper;
+use WC_Data_Store;
+use WC_Stripe_API;
+use WC_Stripe_Connect;
+use WC_Stripe_Helper;
+use WC_Stripe_Inbox_Notes;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Availability_Note;
+use WC_Stripe_UPE_StripeLink_Note;
 use WP_UnitTestCase;
 
 /**

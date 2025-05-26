@@ -4,7 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Data_Exception;
-use WC_Helper_Order;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Order;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
