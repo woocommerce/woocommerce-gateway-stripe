@@ -102,6 +102,36 @@
 				"state_iso": "ON",
 				"postcode": "M5T 2E9"
 			}
+		},
+		"customer_poland": {
+			"billing": {
+				"first_name": "Customer",
+				"last_name": "Customerson",
+				"company": "",
+				"country": "Poland",
+				"country_iso": "PL",
+				"address_1": "ul. Poprzeczna 142",
+				"address_2": "billing",
+				"city": "Olsztyn",
+				"state": "",
+				"state_iso": "",
+				"postcode": "10-339",
+				"phone": "2025550104",
+				"email": "e2e-customer-billing@woocommerce.com"
+			},
+			"shipping": {
+				"first_name": "Recipient",
+				"last_name": "Recipientson",
+				"company": "",
+				"country": "Poland",
+				"country_iso": "PL",
+				"address_1": "ul. Poprzeczna 142",
+				"address_2": "billing",
+				"city": "Olsztyn",
+				"state": "",
+				"state_iso": "",
+				"postcode": "10-339"
+			}
 		}
 	},
 	"cards": {
