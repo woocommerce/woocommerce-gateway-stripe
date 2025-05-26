@@ -795,7 +795,7 @@ class WC_Stripe {
 	}
 
 	public function load_plugin_textdomain() {
-		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( __DIR__ ) . '/languages' );
+		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, WC_STRIPE_PLUGIN_PATH . '/languages' );
 	}
 
 	/**
