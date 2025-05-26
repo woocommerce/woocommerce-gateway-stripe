@@ -12,7 +12,7 @@
 	>
 	<testsuites>
 		<testsuite name="WCStripe">
-			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
+			<directory suffix="_Test.php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
 	<coverage cacheDirectory=".phpunit.cache/code-coverage">

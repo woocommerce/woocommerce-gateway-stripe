@@ -7,9 +7,9 @@ use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\RestApi;
 
 /**
- * WC_REST_Stripe_Settings_Controller_Test_GB unit tests.
+ * WC_REST_Stripe_Settings_Controller_GB_Test unit tests.
  */
-class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit_Test_Case {
+class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tested REST route.
