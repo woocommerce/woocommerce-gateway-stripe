@@ -3,7 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Gateway_Stripe;
-use WC_Helper_Product;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WC_Order;
 use WC_Order_Item_Fee;
 use WC_Order_Item_Product;
