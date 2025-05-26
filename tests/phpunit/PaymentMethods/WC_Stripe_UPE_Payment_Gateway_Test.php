@@ -36,6 +36,7 @@ use WC_Stripe_UPE_Payment_Method_P24;
 use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
 use WC_Subscriptions_Helpers;
+use MockAction;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;

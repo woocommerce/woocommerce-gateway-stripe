@@ -11,6 +11,7 @@ use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
+use MockAction;
 
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.
