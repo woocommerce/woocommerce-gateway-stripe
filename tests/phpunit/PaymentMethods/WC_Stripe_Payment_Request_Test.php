@@ -158,7 +158,7 @@ class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
 
 		$expected_shipping_options = array_map(
-			'self::get_shipping_option',
+			self::class . '::get_shipping_option',
 			[ $this->flat_rate_id, $this->local_pickup_id ]
 		);
 
@@ -192,7 +192,7 @@ class WC_Stripe_Payment_Request_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
 
 		$expected_shipping_options = array_map(
-			'self::get_shipping_option',
+			self::class . '::get_shipping_option',
 			[ $this->local_pickup_id, $this->flat_rate_id ]
 		);
 
