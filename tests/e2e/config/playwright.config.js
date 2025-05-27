@@ -96,6 +96,17 @@ const config = {
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
+			name: 'becs-setup',
+			testMatch: '/becs.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'becs',
+			testMatch: '**/becs.spec.js',
+			dependencies: [ 'becs-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
 			name: 'legacy-setup',
 			testMatch: '_legacy-experience/legacy.setup.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
