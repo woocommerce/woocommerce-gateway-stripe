@@ -123,6 +123,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
 * Dev - Add e2e tests for BLIK
+* Dev - Add e2e tests for BECS
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order
