@@ -10,14 +10,42 @@ permissions:
   contents: read
 
 jobs:
+  get-woocommerce-versions:
+    runs-on: ubuntu-22.04
+    outputs:
+      woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get WooCommerce plugin versions
+        id: get-released-woocommerce-versions
+        uses: ./.github/actions/get-wordpress-plugin-versions
+        with:
+          plugin-slug: woocommerce
+          version-count: 1
+  get-wordpress-versions:
+    runs-on: ubuntu-22.04
+    outputs:
+      wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get WordPress versions
+        id: get-wordpress-versions
+        uses: ./.github/actions/get-wordpress-versions
+        with:
+          version-count: 1
   test:
     if: ${{ ! contains( github.event.head_commit.message, 'Merge branch' ) }}
+    needs: [ get-woocommerce-versions, get-wordpress-versions ]
     runs-on: ubuntu-22.04
-    name: PHP=8.1, WP=6.7, WC=9.5.2
+    name: PHP=8.1, WP=${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}, WC=${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
     env:
       PHP_VERSION: '8.1'
-      WP_VERSION: '6.7'
-      WC_VERSION: '9.5.2'
+      WP_VERSION: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
+      WC_VERSION: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
     steps:
       - name: Get Changed Files
         id: get-changed-files

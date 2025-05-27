@@ -36,7 +36,7 @@ function _manually_load_plugin() {
 	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
-	require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-background-repairer.php';
+	require_once __DIR__ . '/helpers/WCS_Background_Repairer.php';
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
@@ -52,17 +52,17 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 require $_tests_dir . '/includes/bootstrap.php';
 
 # Load the WC Mock Stripe API Unit Test Case
-require_once __DIR__ . '/wc-mock-stripe-api-unit-test-case.php';
+require_once __DIR__ . '/WC_Mock_Stripe_API_Unit_Test_Case.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
-require_once __DIR__ . '/helpers/class-upe-test-helper.php';
-require_once __DIR__ . '/helpers/class-wc-helper-product.php';
-require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
-require_once __DIR__ . '/helpers/class-wc-helper-order.php';
-require_once __DIR__ . '/helpers/class-wc-helper-subscription.php';
-require_once __DIR__ . '/helpers/class-wc-helper-subscriptions.php';
-require_once __DIR__ . '/helpers/class-wc-helper-subscriptions-cart.php';
-require_once __DIR__ . '/helpers/class-wc-helper-token.php';
-require_once __DIR__ . '/helpers/class-wc-helper-stripe-api.php';
-require_once __DIR__ . '/helpers/class-wc-subscriptions-helper.php';
+require_once __DIR__ . '/helpers/UPE_Test_Helper.php';
+require_once __DIR__ . '/helpers/WC_Helper_Product.php';
+require_once __DIR__ . '/helpers/WC_Helper_Shipping.php';
+require_once __DIR__ . '/helpers/WC_Helper_Order.php';
+require_once __DIR__ . '/helpers/WC_Subscription.php';
+require_once __DIR__ . '/helpers/WC_Subscriptions.php';
+require_once __DIR__ . '/helpers/WC_Subscriptions_Cart.php';
+require_once __DIR__ . '/helpers/WC_Helper_Token.php';
+require_once __DIR__ . '/helpers/WC_Helper_Stripe_Api.php';
+require_once __DIR__ . '/helpers/WC_Subscriptions_Helpers.php';
