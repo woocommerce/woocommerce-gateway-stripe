@@ -97,8 +97,9 @@ jobs:
         env:
           CHANGELOG_DIFF: ${{ steps.get_changelog_diff.outputs.changelog-diff }}
         run: |
-          TRAILING_PERIOD_REGEX="^\+\* .*\.\s*$"
-          if [[ "$CHANGELOG_DIFF" ~= $TRAILING_PERIOD_REGEX ]]; then
+          NEWLINE=$'\n'
+          TRAILING_PERIOD_REGEX="${NEWLINE}\+\*[^${NEWLINE}]*\.[:space:]*${NEWLINE}"
+          if [[ "$CHANGELOG_DIFF" =~ $TRAILING_PERIOD_REGEX ]]; then
             echo "Changelog entries with trailing periods found:"
             echo "$CHANGELOG_DIFF"
             exit 1
