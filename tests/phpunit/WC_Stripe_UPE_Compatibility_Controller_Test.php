@@ -44,14 +44,14 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		// restore the overwritten values
 		global $wp_version;
-		$wp_version = $this->initial_wp_version;
+		$wp_version = $this->initial_wp_version; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
 		parent::tear_down();
 	}
 
 	protected function overwrite_wp_version( $version ) {
 		global $wp_version;
-		$wp_version = $version;
+		$wp_version = $version; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 	}
 
 	protected function overwrite_wc_version( $version ) {
