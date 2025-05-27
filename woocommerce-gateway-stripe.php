@@ -889,7 +889,6 @@ function woocommerce_gateway_stripe() {
 		}
 
 		$plugin = WC_Stripe::get_instance();
-
 	}
 
 	return $plugin;
