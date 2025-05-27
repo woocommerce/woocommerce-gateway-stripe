@@ -36,7 +36,7 @@ function _manually_load_plugin() {
 	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
-	require_once __DIR__ . '/helpers/WCS_Background_Repairer.php';
+	require_once __DIR__ . '/Helpers/WCS_Background_Repairer.php';
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
@@ -53,12 +53,8 @@ require $_tests_dir . '/includes/bootstrap.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `Helpers/` sub-folder.
-require_once __DIR__ . '/Helpers/WC_Helper_Product.php';
-require_once __DIR__ . '/Helpers/WC_Helper_Shipping.php';
-require_once __DIR__ . '/Helpers/WC_Helper_Order.php';
+# These helpers cannot be autoloaded, so we need to require them manually.
 require_once __DIR__ . '/Helpers/WC_Subscription.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions_Cart.php';
-require_once __DIR__ . '/Helpers/WC_Helper_Token.php';
-require_once __DIR__ . '/Helpers/WC_Helper_Stripe_Api.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions_Helpers.php';
