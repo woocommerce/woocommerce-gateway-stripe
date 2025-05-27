@@ -85,6 +85,7 @@ const config = {
 				'**/acss.spec.js',
 				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
+				'**/becs.spec.js',
 			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
@@ -103,6 +104,7 @@ const config = {
 		{
 			name: 'becs-setup',
 			testMatch: '/becs.setup.js',
+			teardown: 'reset account',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{
@@ -147,7 +149,7 @@ const config = {
 		},
 		{
 			name: 'reset account',
-			testMatch: '/blik.teardown.js',
+			testMatch: '/lpm.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],
