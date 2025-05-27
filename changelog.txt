@@ -14,7 +14,7 @@
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order
-* DEBUG - Add changelog with trailing.
+* Dev - Prevent changelog entries with trailing periods
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.

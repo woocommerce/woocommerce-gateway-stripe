@@ -125,6 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order
-* DEBUG - Add changelog with trailing.
+* Dev - Prevent changelog entries with trailing periods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
