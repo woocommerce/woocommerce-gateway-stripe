@@ -83,6 +83,31 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
 		} );
 
+		it( 'User is logged out, the signup feature is enabled, the option selected, but saved payment method selected', () => {
+			global.wc_stripe_upe_params = {
+				isLoggedIn: false,
+				isSignupOnCheckoutAllowed: true,
+			};
+
+			document.body.innerHTML = `
+				<input type="checkbox" id="createaccount" checked />
+				<input type="hidden" name="wc-stripe-payment-token" value="token_123" />
+				<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
+			`;
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			expect( saveCardInfoContainer.style.display ).toBe( '' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
 		it( 'User is logged out, and the signup option is not available', () => {
 			global.wc_stripe_upe_params = {
 				isLoggedIn: false,
