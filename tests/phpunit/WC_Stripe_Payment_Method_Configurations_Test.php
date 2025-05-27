@@ -6,19 +6,23 @@ use ReflectionClass;
 use WC_Stripe_Helper;
 use WC_Stripe_API;
 use WC_Stripe_Payment_Method_Configurations;
-use WP_UnitTestCase;
 
 /**
  * Class WC_Stripe_Payment_Method_Configurations tests.
  */
-class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
+class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * Tests for `get_parent_configuration_id`.
 	 *
 	 * @return void
 	 */
 	public function test_get_parent_configuration_id() {
-		$this->assertNull( WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id() );
+		$this->mock_payment_method_configurations();
+
+		$this->assertEquals(
+			WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
+		);
 	}
 
 	/**
