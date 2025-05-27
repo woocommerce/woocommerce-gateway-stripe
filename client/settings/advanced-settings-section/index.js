@@ -22,7 +22,7 @@ const AdvancedSettingsDescription = () => (
 );
 
 const AdvancedSettings = () => {
-	const isSpeAvailable = wc_stripe_settings_params.is_spe_available; // eslint-disable-line camelcase
+	const isOcAvailable = wc_stripe_settings_params.is_oc_available; // eslint-disable-line camelcase
 	return (
 		<SettingsSection Description={ AdvancedSettingsDescription }>
 			<LoadableSettingsSection numLines={ 10 }>
@@ -30,7 +30,7 @@ const AdvancedSettings = () => {
 					<CardBody>
 						<DebugMode />
 						<ExperimentalFeatures />
-						{ isSpeAvailable && <SinglePaymentElementFeature /> }
+						{ isOcAvailable && <SinglePaymentElementFeature /> }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>

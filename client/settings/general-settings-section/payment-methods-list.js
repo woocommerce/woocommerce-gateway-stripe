@@ -219,6 +219,7 @@ const GeneralSettingsSection = ( {
 					Icon,
 					label,
 					allows_manual_capture: isAllowingManualCapture,
+					supportsRecurring,
 				} = PaymentMethodsMap[ method ] || {};
 
 				// Skip if there are no mapped fields for the payment method.
@@ -251,6 +252,7 @@ const GeneralSettingsSection = ( {
 									data.account?.default_currency
 								) }
 								label={ label }
+								supportsRecurring={ supportsRecurring }
 							/>
 							<StyledFees id={ method } />
 						</PaymentMethodWrapper>

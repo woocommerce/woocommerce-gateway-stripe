@@ -28,6 +28,7 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 		// Live keys
 		unset( $settings['publishable_key'], $settings['secret_key'] );
 		unset( $settings['connection_type'], $settings['refresh_token'] );
+		unset( $settings['pmc_enabled'] );
 		unset( $settings['webhook_data'] );
 		unset( $settings['webhook_secret'] );
 		// Test keys

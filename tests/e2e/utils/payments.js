@@ -275,10 +275,13 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 			'#billing_country',
 			billingDetails[ 'country_iso' ]
 		);
-		await page.selectOption(
-			'#billing_state',
-			billingDetails[ 'state_iso' ]
-		);
+
+		if ( billingDetails[ 'state_iso' ] ) {
+			await page.selectOption(
+				'#billing_state',
+				billingDetails[ 'state_iso' ]
+			);
+		}
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
@@ -347,9 +350,11 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.getByLabel( 'Country/Region' )
 			.selectOption( { label: billingDetails[ 'country' ] } );
 
-		await page
-			.locator( '#shipping-state', { exact: true } )
-			.selectOption( { label: billingDetails[ 'state' ] } );
+		if ( billingDetails[ 'state' ] ) {
+			await page
+				.locator( '#shipping-state', { exact: true } )
+				.selectOption( { label: billingDetails[ 'state' ] } );
+		}
 
 		// Expand the address 2 field.
 		if ( ! isCollapsed ) {
@@ -499,13 +504,6 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.click();
 
 		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[src*="elements-inner-payment"]'
-		);
-
-		await page.waitForTimeout( 1000 );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -518,12 +516,90 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await page.getByText( 'Pre-Authorized Debit' ).click();
 
 		await page.waitForTimeout( 1000 );
+	}
+};
 
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]'
+/**
+ * Set up the checkout page for Optimized Checkout (OC).
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ * @param {Object} options Optional configuration parameters.
+ * @param {number} options.timeout Timeout in milliseconds for waiting operations (default: 10000).
+ * @param {boolean} options.skipCartSetup Skip cart setup if it's already configured (default: false).
+ * @returns {Promise<void>} Resolves when setup is complete.
+ * @throws {Error} If iframe cannot be found or initialization fails.
+ */
+export const setupOptimizedCheckout = async (
+	page,
+	checkoutType = 'blocks',
+	options = { timeout: 10000, skipCartSetup: false }
+) => {
+	if ( ! options.skipCartSetup ) {
+		await emptyCart( page );
+		await setupCart( page );
+	}
+
+	const selectors = {
+		blocks: {
+			iframe:
+				'#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]',
+			container:
+				'#radio-control-wc-payment-method-options-stripe__content',
+		},
+		shortcode: {
+			iframe:
+				'#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]',
+			container: '#wc-stripe-upe-form',
+		},
+	};
+
+	try {
+		// Set up appropriate checkout type
+		if ( checkoutType === 'blocks' ) {
+			await setupBlocksCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+		} else {
+			await setupShortcodeCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+		}
+
+		// Get the correct selectors for this checkout type
+		const currentSelectors = selectors[ checkoutType ];
+		if ( ! currentSelectors ) {
+			throw new Error(
+				`Invalid checkout type: ${ checkoutType }. Must be 'blocks' or 'shortcode'.`
+			);
+		}
+
+		// Wait for the Stripe iframe
+		await page.waitForSelector( currentSelectors.iframe, {
+			state: 'visible',
+			timeout: options.timeout,
+		} );
+
+		// Get the payment frame
+		const paymentFrame = await page
+			.locator( currentSelectors.iframe )
+			.contentFrame()
+			.first();
+
+		if ( ! paymentFrame ) {
+			throw new Error(
+				`Could not find Stripe payment element frame in ${ currentSelectors.container }`
+			);
+		}
+
+		// Select the card payment method
+		await paymentFrame.getByRole( 'button', { name: 'Card' } ).click();
+	} catch ( error ) {
+		throw new Error(
+			`Failed to set up Optimized Checkout: ${ error.message }`
 		);
-		await page.waitForTimeout( 1000 );
 	}
 };
 
@@ -661,6 +737,53 @@ export async function handleCheckoutCashAppPay(
 		.getByRole( 'link', { name: 'Authorize Test Payment' } )
 		.click();
 }
+
+/**
+ * Fill in the payment details for Optimized Checkout (OC).
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
+	// Determine the appropriate iframe selector based on checkout type
+	const iframeSelector =
+		checkoutType === 'blocks'
+			? '#radio-control-wc-payment-method-options-stripe__content iframe[name^="__privateStripeFrame"]'
+			: '#wc-stripe-upe-form .StripeElement iframe[name^="__privateStripeFrame"]';
+
+	// Wait for the Stripe iframe to be visible
+	await page.waitForSelector( iframeSelector, {
+		state: 'visible',
+		timeout: 10000,
+	} );
+
+	const paymentFrame = await page
+		.locator( iframeSelector )
+		.contentFrame()
+		.first();
+
+	if ( ! paymentFrame ) {
+		throw new Error( 'Could not find Stripe payment element frame' );
+	}
+
+	// Fill in test card details
+	await paymentFrame.locator( '[name="number"]' ).fill( card.number );
+	await paymentFrame
+		.locator( '[name="expiry"]' )
+		.fill( card.expires.month + card.expires.year );
+	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+};
+
+/**
+ * Fill BLIK payment details in the checkout form.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} code (optional) 6-digit BLIK code to use. Defaults to '123456'.
+ */
+export const fillBLIKDetails = async ( page, code = '123456' ) => {
+	// Assumes the BLIK code input has a label or placeholder containing 'BLIK code'.
+	await page.getByLabel( /blik code/i ).fill( code );
+};
 
 /**
  * Set up the checkout page for BECS payment.

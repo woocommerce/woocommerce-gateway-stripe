@@ -25,6 +25,7 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 } ) );
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
 jest.mock( '../payment-request-button-preview' );
 PaymentRequestButtonPreview.mockImplementation( () => '<></>' );

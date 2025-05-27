@@ -1,7 +1,7 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "9.3.2",
+  "version": "9.5.2",
   "license": "GPL-3.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
   "repository": {
@@ -162,7 +162,11 @@
     "test:e2e-legacy": "./tests/e2e/bin/run-tests.sh --project=legacy",
     "test:e2e-legacy-debug": "npm run test:e2e-legacy -- --debug",
     "test:e2e-lpm-acss": "./tests/e2e/bin/run-tests.sh --project=acss",
-    "test:e2e-lmp-acss-debug": "npm run test:e2e-lpm-acss -- --debug",
+    "test:e2e-lpm-acss-debug": "npm run test:e2e-lpm-acss -- --debug",
+    "test:e2e-oc": "./tests/e2e/bin/run-tests.sh --project=optimized-checkout",
+    "test:e2e-oc-debug": "npm run test:e2e-oc -- --debug",
+    "test:e2e-lpm-blik": "./tests/e2e/bin/run-tests.sh --project=blik",
+    "test:e2e-lpm-blik-debug": "npm run test:e2e-lpm-blik -- --debug",
     "test:e2e-lpm-becs": "./tests/e2e/bin/run-tests.sh --project=becs",
     "test:e2e-lpm-becs-debug": "npm run test:e2e-lpm-becs -- --debug",
     "changelog": "node bin/changelog.js"

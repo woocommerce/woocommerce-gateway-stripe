@@ -1,0 +1,30 @@
+name: PHP Code Coverage Comment
+description: Composite Action with steps to add a comment to a PR with PHP Code Coverage results
+
+inputs:
+  php-version:
+    description: PHP version to use
+    type: string
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checking out
+      uses: actions/checkout@v2
+
+    - name: Set up dependencies caching
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/composer/
+        key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        coverage:    xdebug
+
+    - name: Run CI tests with coverage report
+      shell: bash
+      run: bash bin/run-ci-tests.bash

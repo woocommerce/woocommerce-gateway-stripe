@@ -6,6 +6,8 @@ import {
 global.wc_stripe_express_checkout_params = {};
 global.wc_stripe_express_checkout_params.checkout = {};
 
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
+
 describe( 'wc-to-stripe transformers', () => {
 	describe( 'transformCartDataForDisplayItems', () => {
 		it( 'transforms the cart items and their names, if they contain special characters', () => {

@@ -1,6 +1,7 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import ReactDOM from 'react-dom';
 import { getAppearance } from '../styles/upe';
 import {
 	errorTypes,
@@ -154,18 +155,6 @@ export const getUPETerms = ( value = 'always' ) => {
 		obj[ method ] = value;
 		return obj;
 	}, {} );
-};
-
-/**
- * `storageKeys` object contains keys for storing values related to the appearance
- *  settings of Stripe UPE (Universal Payment Element) in different contexts.
- */
-export const storageKeys = {
-	// Key to store the appearance settings for Stripe UPE in the general WooCommerce context
-	UPE_APPEARANCE: 'wc_stripe_upe_appearance',
-
-	// Key to store the appearance settings for Stripe UPE when used within WooCommerce Blocks context
-	WC_BLOCKS_UPE_APPEARANCE: 'wc_stripe_wc_blocks_upe_appearance',
 };
 
 /**
@@ -482,6 +471,8 @@ export const getDefaultValues = () => {
  */
 export const showErrorCheckout = ( errorMessage ) => {
 	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+	const isMyAccountPage =
+		jQuery( '.woocommerce-MyAccount-content' ).length > 0;
 
 	if ( ! $container.length ) {
 		return;
@@ -499,7 +490,11 @@ export const showErrorCheckout = ( errorMessage ) => {
 	}
 
 	// Use the WC Blocks API to show the error notice if we're in a block context.
-	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
+	if (
+		typeof wcSettings !== 'undefined' &&
+		wcSettings.wcBlocksConfig &&
+		! isMyAccountPage
+	) {
 		dispatch( 'core/notices' ).createErrorNotice( errorMessage, {
 			context: 'wc/checkout/payments', // Display the notice in the payments context.
 		} );
@@ -507,22 +502,41 @@ export const showErrorCheckout = ( errorMessage ) => {
 	}
 
 	let messageWrapper = '';
-	if ( errorMessage.includes( 'woocommerce-error' ) ) {
-		messageWrapper = errorMessage;
-	} else {
-		messageWrapper =
-			'<ul class="woocommerce-error" role="alert"><li>' +
-			errorMessage +
-			'</li></ul>';
-	}
+	if ( typeof wcSettings !== 'undefined' && wcSettings.wcBlocksConfig ) {
+		const StoreNotice = window.wc?.blocksCheckout?.StoreNotice;
+		if ( ! StoreNotice ) {
+			return;
+		}
+		const NoticeComponent = () => (
+			<StoreNotice status="error" isDismissible={ true }>
+				{ errorMessage }
+			</StoreNotice>
+		);
+		const wrapper = document.createElement( 'div' );
+		wrapper.className = 'wc-block-components-notices';
 
-	// Adapted from WooCommerce core @ ea9aa8c, assets/js/frontend/checkout.js#L514-L529
-	$container
-		.find(
-			'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
-		)
-		.remove();
-	$container.prepend( messageWrapper );
+		$container.find( '.wc-block-components-notices' ).remove();
+
+		$container.prepend( wrapper );
+		ReactDOM.createRoot( wrapper ).render( <NoticeComponent /> );
+	} else {
+		if ( errorMessage.includes( 'woocommerce-error' ) ) {
+			messageWrapper = errorMessage;
+		} else {
+			messageWrapper =
+				'<ul class="woocommerce-error" role="alert"><li>' +
+				errorMessage +
+				'</li></ul>';
+		}
+
+		// Adapted from WooCommerce core @ ea9aa8c, assets/js/frontend/checkout.js#L514-L529
+		$container
+			.find(
+				'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
+			)
+			.remove();
+		$container.prepend( messageWrapper );
+	}
 
 	const $fields = jQuery( 'form.checkout' ).find(
 		'.input-text, select, input:checkbox'
@@ -601,10 +615,21 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 			? getStripeServerData()?.blocksAppearance
 			: getStripeServerData()?.appearance;
 
-	// If appearance is empty, get a fresh copy and save it in a transient.
+	const data = getStripeServerData();
+
 	if ( ! appearance ) {
 		appearance = getAppearance( isBlockCheckout === 'true' );
-		api.saveAppearance( appearance, isBlockCheckout );
+
+		const isValidUpdateContext =
+			isBlockCheckout === 'true' ||
+			( data.isCheckout &&
+				! data.isOrderPay &&
+				! data.isChangingPayment );
+
+		// If we have re-built the appearance, only update the settings in the checkout context
+		if ( isValidUpdateContext ) {
+			api.saveAppearance( appearance, isBlockCheckout );
+		}
 	}
 
 	return appearance;

@@ -4,38 +4,69 @@ on:
   pull_request
 
 jobs:
+  get-woocommerce-versions:
+    runs-on: ubuntu-22.04
+    outputs:
+        woocommerce-versions-json: ${{ steps.get-released-woocommerce-versions.outputs.versions-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get WooCommerce plugin versions
+        id: get-released-woocommerce-versions
+        uses: ./.github/actions/get-wordpress-plugin-versions
+        with:
+          plugin-slug: woocommerce
+          version-count: 3
+  get-wordpress-versions:
+    runs-on: ubuntu-22.04
+    outputs:
+      wordpress-versions-json: ${{ steps.get-wordpress-versions.outputs.versions-json }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get WordPress versions
+        id: get-wordpress-versions
+        uses: ./.github/actions/get-wordpress-versions
+        with:
+          version-count: 3
+
   test:
     runs-on: ubuntu-22.04
+    needs: [ get-woocommerce-versions, get-wordpress-versions ]
     strategy:
       fail-fast:    false
-      max-parallel: 10
+      max-parallel: 16
       matrix:
         woocommerce_support_policy: [ 'L', 'L-1', 'L-2' ]
         wordpress_support_policy:   [ 'L', 'L-1', 'L-2' ]
-        php_support_policy:         [ 'L', 'L-1', 'L-2' ]
+        php_support_policy:         [ 'L', 'L-1', 'L-2', 'L-3', '7.4' ]
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '9.7.1'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
           - woocommerce_support_policy: L-1
-            woocommerce: '9.6.2'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[1] }}
           - woocommerce_support_policy: L-2
-            woocommerce: '9.5.2'
+            woocommerce: ${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[2] }}
           # WordPress
           - wordpress_support_policy: L
-            wordpress: '6.7.2'
+            wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
           - wordpress_support_policy: L-1
-            wordpress: '6.6.2'
-          # WooCommerce 9.5.0+ requires WordPress 6.6+
-          # (we'll keep two versions from the 6.6 branch until Apr when WP 6.8 is released)
+            wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[1] }}
           - wordpress_support_policy: L-2
-            wordpress: '6.6'
+            wordpress: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[2] }}
           # PHP
           - php_support_policy: L
-            php: '8.1'
+            php: '8.3'
           - php_support_policy: L-1
-            php: '8.0'
+            php: '8.2'
           - php_support_policy: L-2
+            php: '8.1'
+          - php_support_policy: L-3
+            php: '8.0'
+          - php_support_policy: '7.4'
             php: '7.4'
         exclude: # incompatible versions of PHP, WordPress, and WooCommerce
           - woocommerce_support_policy: L
@@ -62,10 +93,6 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage:    xdebug
 
-      - name: If PHP >= 8.0 set up PHPUnit 9.5 for compatibility
-        if: ${{ matrix.php >= '8.0' }}
-        run: wget https://phar.phpunit.de/phpunit-9.5.28.phar && mv phpunit-9.5.28.phar phpunit.phar
-        
       - name: Run CI checks
         run: bash bin/run-ci-tests.bash
         

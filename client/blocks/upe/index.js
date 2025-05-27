@@ -45,9 +45,10 @@ const methodsToFilter = [
 ];
 
 // Register UPE Elements.
-if ( getBlocksConfiguration()?.isSPEEnabled ) {
-	const config = { ...paymentMethodsConfig.card, title: 'Stripe' };
-	registerPaymentMethod( upeElement( PAYMENT_METHOD_CARD, api, config ) );
+if ( getBlocksConfiguration()?.isOCEnabled ) {
+	registerPaymentMethod(
+		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
+	);
 } else {
 	Object.entries( paymentMethodsConfig )
 		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )

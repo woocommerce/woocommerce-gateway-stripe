@@ -319,8 +319,8 @@ trait WC_Stripe_Subscriptions_Trait {
 				WC_Subscriptions_Change_Payment_Gateway::update_payment_method( $subscription, $new_payment_method );
 
 				// Attach the new payment method ID and the customer ID to the subscription on success.
-				$this->set_payment_method_id_for_order( $subscription, $payment_method_id );
-				$this->set_customer_id_for_order( $subscription, $payment_information['customer'] );
+				$this->set_payment_method_id_for_subscription( $subscription, $payment_method_id );
+				$this->set_customer_id_for_subscription( $subscription, $payment_information['customer'] );
 
 				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
 				do_action(
@@ -474,7 +474,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 						sleep( $this->retry_interval );
 
-						$this->retry_interval++;
+						++$this->retry_interval;
 
 						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
 					} else {
@@ -540,22 +540,35 @@ trait WC_Stripe_Subscriptions_Trait {
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
-			} elseif ( $this->must_authorize_off_session( $response ) ) {
+			} elseif ( $this->is_charge_attempt_delayed( $response ) ) {
 				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
-				$message = sprintf(
-					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
-					$attempt_date,
-					$attempt_time
-				);
+				$message = '';
+				if ( ! empty( $response->processing->card->customer_notification->approval_requested ) ) {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				} else {
+					$message = sprintf(
+						/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+						__( 'The charge will be attempted on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+						$attempt_date,
+						$attempt_time
+					);
+				}
+
 				$renewal_order->add_order_note( $message );
 				$renewal_order->update_status( OrderStatus::PENDING );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
+
+				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
@@ -786,7 +799,13 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
 		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
-			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
+			if ( ! isset( $request['payment_method_options']['card']['mandate_options'] ) ) {
+				$request['payment_method_options']['card']['mandate_options'] = [];
+			}
+			$request['payment_method_options']['card']['mandate_options'] = array_merge(
+				$request['payment_method_options']['card']['mandate_options'],
+				$mandate_options
+			);
 		}
 
 		return $request;
@@ -832,15 +851,17 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate_options = [];
 		$currency        = strtolower( $order->get_currency() );
 
-		// India recurring payment mandates can only be requested for the following currencies.
-		if ( ! in_array( $currency, [ 'inr', 'usd', 'eur', 'gbp', 'sgd', 'cad', 'chf', 'sek', 'aed', 'jpy', 'nok', 'myr', 'hkd' ], true ) ) {
+		// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
+		if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
 			return [];
 		}
 
 		$sub_amount = 0;
 
+		$cart_contain_switches      = WC_Subscriptions_Switcher::cart_contains_switches();
+		$is_changing_payment_method = $this->is_changing_payment_method_for_subscription();
+
 		// If this is a switch order we set the mandate options based on the new subscription.
-		$cart_contain_switches = WC_Subscriptions_Switcher::cart_contains_switches();
 		if ( $cart_contain_switches ) {
 			foreach ( WC()->cart->cart_contents as $cart_item ) {
 				$subscription_price = WC_Subscriptions_Product::get_price( $cart_item['data'] );
@@ -852,6 +873,13 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			$sub_billing_period   = WC_Subscriptions_Product::get_period( $cart_item['data'] );
 			$sub_billing_interval = absint( WC_Subscriptions_Product::get_interval( $cart_item['data'] ) );
+		} elseif ( $is_changing_payment_method ) {
+			// On the change payment method page, the $order object sent in this function is actually a subscription.
+			$subscription = $order;
+
+			$sub_amount           = WC_Stripe_Helper::get_stripe_amount( $subscription->get_subtotal(), $currency );
+			$sub_billing_period   = strtolower( $subscription->get_billing_period() );
+			$sub_billing_interval = $subscription->get_billing_interval();
 		} else {
 			// If this is the first order, not a renewal, then get the subscriptions for the parent order.
 			if ( empty( $subscriptions ) ) {
@@ -881,7 +909,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		$has_interval = $sub_billing_period && $sub_billing_interval > 0;
-		if ( $has_interval && ( 1 === count( $subscriptions ) || $cart_contain_switches ) ) {
+		if ( $has_interval && ( 1 === count( $subscriptions ) || $cart_contain_switches || $is_changing_payment_method ) ) {
 			$mandate_options['amount_type']    = 'fixed';
 			$mandate_options['interval']       = $sub_billing_period;
 			$mandate_options['interval_count'] = $sub_billing_interval;
@@ -1153,14 +1181,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Returns true if a subscription payment must be authorized by the customer off session.
+	 * Returns true if Stripe will attempt the charges at a future date.
 	 *
-	 * This is only valid when using mandates for Indian 3DS regulations.
+	 * This applies to subscription payments and Indian 3DS regulations.
+	 * https://docs.stripe.com/india-recurring-payments?integration=subscriptions#predebit-notification
 	 *
 	 * @param StdClass $payment_intent the Payment Intent to be evaluated.
-	 * @return bool true if payment intent must be authorized off session, false otherwise.
+	 * @return bool true if the charge attempt is delayed, false otherwise.
 	 */
-	protected function must_authorize_off_session( $payment_intent ) {
+	protected function is_charge_attempt_delayed( $payment_intent ) {
 		return ! empty( $payment_intent->status )
 			&& WC_Stripe_Intent_Status::PROCESSING === $payment_intent->status
 			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );

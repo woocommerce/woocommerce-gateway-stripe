@@ -478,7 +478,7 @@ class WC_Stripe_Payment_Request {
 
 		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
 		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
-			$theorder = WC_Stripe_Order::get_by_id( $GLOBALS['post']->ID );
+			$theorder = wc_get_order( $GLOBALS['post']->ID );
 		}
 
 		if ( ! is_object( $theorder ) ) {
@@ -569,7 +569,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$order = WC_Stripe_Order::get_by_id( $order_id );
+		$order = wc_get_order( $order_id );
 
 		$payment_request_type = wc_clean( wp_unslash( $_POST['payment_request_type'] ) );
 
@@ -812,7 +812,7 @@ class WC_Stripe_Payment_Request {
 				'key'                        => $this->publishable_key,
 				'allow_prepaid_card'         => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'is_link_enabled'            => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
+				'is_link_enabled'            => false, // Link is not available for PRB.
 				'is_payment_request_enabled' => $this->is_payment_request_enabled(),
 			],
 			'nonce'              => [
@@ -966,11 +966,6 @@ class WC_Stripe_Payment_Request {
 	public function is_at_least_one_payment_request_button_enabled() {
 		// Apple Pay / Google Pay is enabled.
 		if ( $this->is_payment_request_enabled() ) {
-			return true;
-		}
-
-		// Link is enabled.
-		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
 			return true;
 		}
 

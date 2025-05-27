@@ -9,7 +9,10 @@ docker compose exec -u www-data wordpress \
 
 echo "Running the tests..."
 
-docker compose exec -u www-data -e XDEBUG_MODE=coverage wordpress \
+# Use XDEBUG_MODE_PHPUNIT if set, otherwise use "coverage" as default.
+XDEBUG_MODE=${XDEBUG_MODE_PHPUNIT:-coverage}
+
+docker compose exec -u www-data -e XDEBUG_MODE=$XDEBUG_MODE wordpress \
 	/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/vendor/bin/phpunit \
 	--configuration /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/phpunit.xml.dist \
 	$*

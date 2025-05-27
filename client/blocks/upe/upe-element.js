@@ -85,7 +85,7 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 			<>
 				<span>
 					{ upeConfig.title }
-					<Icon alt={ upeConfig.title } />
+					{ Icon && <Icon alt={ upeConfig.title } /> }
 				</span>
 			</>
 		),
@@ -98,14 +98,14 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
  * Returns the icon for the UPE payment method.
  *
  * @param {string} paymentMethod The payment method name.
- * @return {JSX.Element} The icon element.
+ * @return {JSX.Element|null} The icon element.
  */
 const getUpeElementIcon = ( paymentMethod ) => {
-	let iconName = paymentMethod;
-
-	if ( getBlocksConfiguration()?.isSPEEnabled ) {
-		iconName = 'stripe';
+	if ( getBlocksConfiguration()?.isOCEnabled ) {
+		return null;
 	}
+
+	let iconName = paymentMethod;
 
 	// Afterpay/Clearpay have different icons for UK merchants.
 	if ( paymentMethod === PAYMENT_METHOD_AFTERPAY_CLEARPAY ) {

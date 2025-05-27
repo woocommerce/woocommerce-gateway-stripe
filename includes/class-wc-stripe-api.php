@@ -24,6 +24,34 @@ class WC_Stripe_API {
 	private static $secret_key = '';
 
 	/**
+	 * Instance of WC_Stripe_API.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private static $instance;
+
+	/**
+	 * Get instance of WC_Stripe_API.
+	 *
+	 * @return WC_Stripe_API
+	 */
+	public static function get_instance() {
+		if ( ! isset( self::$instance ) ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	/**
+	 * Set instance of WC_Stripe_API.
+	 *
+	 * @param WC_Stripe_API $instance
+	 */
+	public static function set_instance( $instance ) {
+		self::$instance = $instance;
+	}
+
+	/**
 	 * Set secret API Key.
 	 *
 	 * @param string $key
@@ -213,6 +241,14 @@ class WC_Stripe_API {
 				'timeout' => 70,
 			]
 		);
+
+		// If we get a 401 error, we know the secret key is not valid.
+		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+			// Stripe redacts API keys in the response.
+			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
+
+			return null; // The UI expects this empty response in case of invalid API keys.
+		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
@@ -434,5 +470,27 @@ class WC_Stripe_API {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get the payment method configuration.
+	 *
+	 * @return array The response from the API request.
+	 */
+	public function get_payment_method_configurations() {
+		return self::retrieve( 'payment_method_configurations' );
+	}
+
+	/**
+	 * Update the payment method configuration.
+	 *
+	 * @param array $payment_method_configurations The payment method configurations to update.
+	 */
+	public function update_payment_method_configurations( $id, $payment_method_configurations ) {
+		$response = self::request(
+			$payment_method_configurations,
+			'payment_method_configurations/' . $id
+		);
+		return $response;
 	}
 }

@@ -26,19 +26,24 @@ import {
 	PAYMENT_METHOD_MULTIBANCO,
 	PAYMENT_METHOD_WECHAT_PAY,
 } from 'wcstripe/stripe-utils/constants';
-import { handleDisplayOfPaymentInstructions } from 'wcstripe/smart-checkout/handle-display-of-payment-instructions';
-import { handleDisplayOfSavingCheckbox } from 'wcstripe/smart-checkout/handle-display-of-saving-checkbox';
+import { handleDisplayOfPaymentInstructions } from 'wcstripe/optimized-checkout/handle-display-of-payment-instructions';
+import { handleDisplayOfSavingCheckbox } from 'wcstripe/optimized-checkout/handle-display-of-saving-checkbox';
 
 const gatewayUPEComponents = {};
 const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
-for ( const paymentMethodType in paymentMethodsConfig ) {
-	gatewayUPEComponents[ paymentMethodType ] = {
-		intentId: null,
-		elements: null,
-		upeElement: null,
-		hasLoadError: false,
-	};
+/**
+ * Initialize the UPE components for each payment method type.
+ */
+export function initializeUPEComponents() {
+	for ( const paymentMethodType in paymentMethodsConfig ) {
+		gatewayUPEComponents[ paymentMethodType ] = {
+			intentId: null,
+			elements: null,
+			upeElement: null,
+			hasLoadError: false,
+		};
+	}
 }
 
 /**
@@ -143,11 +148,23 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 			amount,
 		};
 
-		if ( getStripeServerData()?.isSPEEnabled ) {
+		if ( getStripeServerData()?.isOCEnabled ) {
 			options = {
 				...options,
-				paymentMethodConfiguration: 'pmc_...',
+				paymentMethodConfiguration: getStripeServerData()
+					?.paymentMethodConfigurationParentId,
 			};
+
+			const setupFutureUsage =
+				document.getElementById( 'wc-stripe-new-payment-method' )
+					?.checked ||
+				getStripeServerData()?.cartContainsSubscription;
+			if ( setupFutureUsage ) {
+				options = {
+					...options,
+					setupFutureUsage: 'off_session',
+				};
+			}
 		} else {
 			options = {
 				...options,
@@ -175,8 +192,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		},
 	};
 
-	// Set the layout to accordion if SPE is enabled.
-	if ( getStripeServerData()?.isSPEEnabled ) {
+	// Set the layout to accordion if OC is enabled.
+	if ( getStripeServerData()?.isOCEnabled ) {
 		paymentElementOptions = {
 			...paymentElementOptions,
 			layout: {
@@ -342,9 +359,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 		// Setting the flag to true to prevent the form from being submitted.
 		gatewayUPEComponents[ paymentMethodType ].hasLoadError = true;
 	} );
-	if ( getStripeServerData()?.isSPEEnabled ) {
+	if ( getStripeServerData()?.isOCEnabled ) {
 		upeElement.on( 'change', ( { value } ) => {
-			// If the SPE is enabled, we need to handle the display of the saving checkbox.
+			// If the OC is enabled, we need to handle the display of the saving checkbox.
 			handleDisplayOfPaymentInstructions( value.type );
 
 			// Bind the create account checkbox to the save card info container display function.

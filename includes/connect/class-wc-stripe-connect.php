@@ -163,7 +163,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options[ $prefix . 'publishable_key' ]     = $publishable_key;
 			$options[ $prefix . 'secret_key' ]          = $secret_key;
 			$options[ $prefix . 'connection_type' ]     = $type;
-
+			$options['pmc_enabled']                     = 'connect' === $type ? 'yes' : 'no'; // When not connected via Connect OAuth, the PMC is disabled.
 			if ( 'app' === $type ) {
 				$options[ $prefix . 'refresh_token' ] = $result->refreshToken; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
@@ -197,6 +197,17 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				WC_Stripe::get_instance()->account->configure_webhooks( $is_test ? 'test' : 'live', $secret_key );
 			} catch ( Exception $e ) {
 				return new WP_Error( 'wc_stripe_webhook_error', $e->getMessage() );
+			}
+
+			// For new installs the legacy gateway gets instantiated because there is no settings in the DB yet,
+			// so we need to instantiate the UPE gateway just for the PMC migration.
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			}
+			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
+			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
+				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
 			}
 
 			return $result;

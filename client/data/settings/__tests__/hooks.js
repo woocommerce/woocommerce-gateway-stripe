@@ -22,7 +22,7 @@ import {
 	useAmazonPayLocations,
 	useAmazonPayButtonSize,
 	useSepaTokensForOtherMethods,
-	useIsSPEEnabled,
+	useIsOCEnabled,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 import {
@@ -335,9 +335,9 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
-		useIsSPEEnabledSettings: {
-			hook: useIsSPEEnabled,
-			storeKey: 'is_spe_enabled',
+		useIsOCEnabledSettings: {
+			hook: useIsOCEnabled,
+			storeKey: 'is_oc_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},

@@ -4,10 +4,7 @@ import config from 'config';
 import { api, payments, products } from '../../../utils';
 import { isPluginInstalled } from '../../../utils/plugin-utils';
 
-const {
-	setupShortcodeCheckout,
-	fillCreditCardDetailsShortcodeLegacy,
-} = payments;
+const { setupShortcodeCheckout, fillCreditCardDetailsShortcode } = payments;
 
 let productId;
 
@@ -44,10 +41,7 @@ test( 'customer can purchase a pre-order product @pre-orders', async ( {
 	};
 
 	await setupShortcodeCheckout( page, customerData );
-	await fillCreditCardDetailsShortcodeLegacy(
-		page,
-		config.get( 'cards.basic' )
-	);
+	await fillCreditCardDetailsShortcode( page, config.get( 'cards.basic' ) );
 
 	await page.locator( 'text="Place pre-order now"' ).click();
 	await page.waitForURL( '**/checkout/order-received/**' );

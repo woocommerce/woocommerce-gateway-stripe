@@ -103,7 +103,7 @@ cli wp option set woocommerce_allow_tracking "no"
 cli wp option set woocommerce_coming_soon "no"
 
 echo "Importing WooCommerce shop pages..."
-cli wp wc --user=admin tool run install_pages
+cli wp --user=admin wc tool run install_pages
 
 echo "Installing and activating the WordPress Importer plugin..."
 cli wp plugin install wordpress-importer --activate

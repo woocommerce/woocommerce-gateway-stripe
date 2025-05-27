@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Token for ACSS.
  *
- * @since x.x.x
+ * @since 9.4.0
  */
 class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Payment_Method_Comparison_Interface {
 	use WC_Stripe_Fingerprint_Trait;
@@ -130,4 +130,3 @@ class WC_Payment_Token_ACSS extends WC_Payment_Token implements WC_Stripe_Paymen
 		return 'woocommerce_payment_token_acss_get_';
 	}
 }
-

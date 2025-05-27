@@ -80,7 +80,12 @@ const config = {
 		{
 			name: 'default',
 			testMatch: '**/*.spec.js',
-			testIgnore: [ '**/_legacy-experience/**', '**/acss.spec.js' ],
+			testIgnore: [
+				'**/_legacy-experience/**',
+				'**/acss.spec.js',
+				'**/optimized-checkout.spec.js',
+				'**/blik.spec.js',
+			],
 			dependencies: [ 'default-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
@@ -115,6 +120,34 @@ const config = {
 			name: 'legacy',
 			testMatch: '/_legacy-experience/**/*.spec.js',
 			dependencies: [ 'legacy-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'oc-setup',
+			testMatch: '/optimized-checkout.setup.js',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'optimized-checkout',
+			testMatch: '**/optimized-checkout.spec.js',
+			dependencies: [ 'oc-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'blik-setup',
+			testMatch: '/blik.setup.js',
+			teardown: 'reset account',
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'blik',
+			testMatch: '**/blik.spec.js',
+			dependencies: [ 'blik-setup' ],
+			use: { ...devices[ 'Desktop Chrome' ] },
+		},
+		{
+			name: 'reset account',
+			testMatch: '/blik.teardown.js',
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 	],

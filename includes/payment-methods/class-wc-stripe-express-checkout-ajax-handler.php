@@ -378,7 +378,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			wc_set_time_limit( 0 );
 
 			// Load the order.
-			$order = WC_Stripe_Order::get_by_id( $order_id );
+			$order = wc_get_order( $order_id );
 
 			if ( ! is_a( $order, WC_Order::class ) ) {
 				throw new Exception( __( 'Invalid order!', 'woocommerce-gateway-stripe' ) );

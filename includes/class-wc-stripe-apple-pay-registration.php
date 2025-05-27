@@ -86,8 +86,10 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return string Whether Apple Pay required settings are enabled.
 	 */
 	private function is_enabled() {
-		$stripe_enabled                 = 'yes' === $this->get_option( 'enabled', 'no' );
-		$payment_request_button_enabled = 'yes' === $this->get_option( 'payment_request', 'yes' );
+		$stripe_enabled = 'yes' === $this->get_option( 'enabled', 'no' );
+
+		$gateway                        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$payment_request_button_enabled = $gateway->is_payment_request_enabled();
 
 		return $stripe_enabled && $payment_request_button_enabled;
 	}
@@ -109,6 +111,9 @@ class WC_Stripe_Apple_Pay_Registration {
 
 	/**
 	 * Trigger Apple Pay registration upon domain name change.
+	 *
+	 * Note: This will also cover the case where Apple Pay is enabled
+	 * for the first time for the current domain.
 	 *
 	 * @since 4.9.0
 	 */
@@ -361,11 +366,10 @@ class WC_Stripe_Apple_Pay_Registration {
 		// Grab previous state and then update cached settings.
 		$this->stripe_settings = $prev_settings;
 		$prev_secret_key       = $this->get_secret_key();
-		$prev_is_enabled       = $this->is_enabled();
 		$this->stripe_settings = $settings;
 
-		// If Stripe or Express Checkout Buttons weren't enabled (or secret key was different) then might need to verify now.
-		if ( ! $prev_is_enabled || ( $this->get_secret_key() !== $prev_secret_key ) ) {
+		// If secret key was different, then we might need to verify again.
+		if ( $this->get_secret_key() !== $prev_secret_key ) {
 			$this->verify_domain_if_configured();
 		}
 	}

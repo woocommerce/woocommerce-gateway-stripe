@@ -34,6 +34,7 @@ jest.mock( '../utils/utils', () => ( {
 		locale: 'en',
 	} ),
 } ) );
+jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
 const getMockPaymentRequestEnabledSettings = (
 	isEnabled,

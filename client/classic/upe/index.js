@@ -311,6 +311,16 @@ jQuery( function ( $ ) {
 				removeCashAppLimitNotice();
 			}
 
+			// Change the payment method container title when the Optimized Checkout is enabled
+			if (
+				getStripeServerData()?.isOCEnabled &&
+				$( 'input#payment_method_stripe' ).is( ':checked' )
+			) {
+				$( 'label[for=payment_method_stripe]' ).text(
+					getStripeServerData()?.OCTitle
+				);
+			}
+
 			maybeClearBlikCodeValidation();
 		} );
 

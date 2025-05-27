@@ -185,7 +185,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param $order_data array Order data.
 	 * @return bool|WC_Stripe_Order
 	 */
-	public static function create( $order_data = [] ) {
+	public static function create( $order_data ) {
 		$order = wc_create_order( $order_data );
 		if ( ! $order ) {
 			return false;
