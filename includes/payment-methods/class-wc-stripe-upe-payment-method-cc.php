@@ -84,7 +84,9 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $user_id );
-		$token->set_fingerprint( $payment_method->card->fingerprint );
+		if ( isset( $payment_method->card->fingerprint ) ) {
+			$token->set_fingerprint( $payment_method->card->fingerprint );
+		}
 		$token->save();
 		return $token;
 	}

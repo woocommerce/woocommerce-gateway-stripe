@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Stripe
  * Author URI: https://stripe.com/
- * Version: 9.5.1
+ * Version: 9.5.2
  * Requires Plugins: woocommerce
  * Requires at least: 6.6
  * Tested up to: 6.8
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '9.5.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '9.5.2' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.4' );
 define( 'WC_STRIPE_MIN_WC_VER', '9.6' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '9.7' );
@@ -200,6 +200,7 @@ function woocommerce_gateway_stripe() {
 				require_once __DIR__ . '/includes/class-wc-stripe-exception.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-logger.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-helper.php';
+				require_once __DIR__ . '/includes/class-wc-stripe-database-cache.php';
 				require_once __DIR__ . '/includes/class-wc-stripe-payment-method-configurations.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-api.php';
 				include_once __DIR__ . '/includes/class-wc-stripe-mode.php';
@@ -597,11 +598,46 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
+				// Note that we need to run these checks before we call toggle_upe() below.
+				$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
+
 				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					return $settings;
 				}
 
 				return $this->toggle_upe( $settings, $old_settings );
+			}
+
+			/**
+			 * Helper function that ensures we clear the in-memory Stripe API key in {@see WC_Stripe_API}
+			 * when we're making a change to our settings that impacts which secret key we should be using.
+			 *
+			 * @param array $settings     New settings that have just been saved.
+			 * @param array $old_settings Old settings that were previously saved.
+			 * @return void
+			 */
+			protected function maybe_reset_stripe_in_memory_key( $settings, $old_settings ) {
+				// If we're making a change that impacts which secret key we should be using,
+				// we need to clear the static key being used by WC_Stripe_API.
+				// Note that this also needs to run before we call toggle_upe() below.
+				$should_clear_stripe_api_key = false;
+
+				$settings_to_check = [
+					'testmode',
+					'secret_key',
+					'test_secret_key',
+				];
+
+				foreach ( $settings_to_check as $setting_to_check ) {
+					if ( isset( $settings[ $setting_to_check ] ) && isset( $old_settings[ $setting_to_check ] ) && $settings[ $setting_to_check ] !== $old_settings[ $setting_to_check ] ) {
+						$should_clear_stripe_api_key = true;
+						break;
+					}
+				}
+
+				if ( $should_clear_stripe_api_key ) {
+					WC_Stripe_API::set_secret_key( '' );
+				}
 			}
 
 			/**
