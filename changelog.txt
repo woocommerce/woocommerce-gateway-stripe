@@ -16,6 +16,7 @@
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order
 * Dev - Prevent changelog entries with trailing periods
+* Dev - Test changelog entry.
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
