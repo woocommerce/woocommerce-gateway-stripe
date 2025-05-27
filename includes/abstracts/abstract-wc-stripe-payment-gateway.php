@@ -1145,8 +1145,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
-		// Refund without an amount is a no-op, but required to succeed
-		if ( '0.00' === sprintf( '%0.2f', $amount ?? 0 ) ) {
+		// Only treat zero-amount as a no-op for captured charges (real refunds), not for voiding pre-auths.
+		if ( 'yes' === $captured && '0.00' === sprintf( '%0.2f', $amount ?? 0 ) ) {
 			return true;
 		}
 
