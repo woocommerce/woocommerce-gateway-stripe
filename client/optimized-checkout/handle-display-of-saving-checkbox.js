@@ -26,8 +26,12 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		const signupSelected =
 			getStripeServerData()?.isSignupOnCheckoutAllowed &&
 			createAccountCheckbox?.checked;
+		const hasSavedPaymentMethods = document.querySelector(
+			'input[name=wc-stripe-payment-token]'
+		);
 		if (
 			( getStripeServerData()?.isLoggedIn || signupSelected ) &&
+			! hasSavedPaymentMethods &&
 			! NON_REUSABLE_METHODS.includes( method )
 		) {
 			saveCardInfoContainerClassic.style.display = 'block';
