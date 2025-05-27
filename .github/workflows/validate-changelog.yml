@@ -28,6 +28,7 @@ jobs:
             core.setOutput('is_exempt', isExempt.toString());
 
       - name: Check for changelog updates
+        id: has_changelog_entries
         if: steps.check_exemption.outputs.is_exempt != 'true'
         uses: actions/github-script@v7
         with:
@@ -49,14 +50,37 @@ jobs:
             } else {
               console.log('Changelog entries found in both files ✅');
 
-              const changelogDiff = await github.rest.pulls.get({
-                headers: {
-                  accept: 'application/vnd.github.diff',
-                },
+              const prDetails = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.issue.number
               });
 
-              console.log( 'Debug changelog diff: ' + JSON.stringify( changelogDiff ) );
-            } 
+              const prSha = prDetails?.data?.head?.sha ?? '';
+              const targetSha = prDetails?.data?.base?.sha ?? '';
+              const targetBranch = prDetails?.data?.base?.ref ?? '';
+
+              if ( prSha !== '' && targetSha !== '' && targetBranch !== '' ) {
+                core.setOutput( 'target_branch', targetBranch );
+                core.setOutput( 'target_sha', targetSha );
+                core.setOutput( 'pr_sha', prSha );
+              }
+            }
+
+      - name: Ensure changelog entry doesn't have trailing periods
+        if: steps.has_changelog_entries.outputs.target_branch != ''
+        env:
+          TARGET_BRANCH: ${{ steps.has_changelog_entries.outputs.target_branch }}
+          TARGET_SHA: ${{ steps.has_changelog_entries.outputs.target_sha }}
+          PR_SHA: ${{ steps.has_changelog_entries.outputs.pr_sha }}
+        run: |
+          # Ensure we have the target branch available for diffs
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}
+          # Find new changelog entries starting with '+* ' and ending with . (possibly with trailing whitespace).
+          # We use --patch and --unified=0 to get minimal diff output.
+          CHANGELOG_ENTRIES_WITH_TRAILING_PERIODS=$(git diff --patch --unified=0 ${TARGET_SHA} ${PR_SHA} -- changelog.txt | grep '^\+\* .*\.\s*$')
+          if [[ -n "${CHANGELOG_ENTRIES_WITH_TRAILING_PERIODS}" ]]; then
+            echo "Changelog entries with trailing periods found:"
+            echo "${CHANGELOG_ENTRIES_WITH_TRAILING_PERIODS}"
+            exit 1
+          fi
