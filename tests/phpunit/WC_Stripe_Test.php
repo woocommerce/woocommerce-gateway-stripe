@@ -3,7 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use stdClass;
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;

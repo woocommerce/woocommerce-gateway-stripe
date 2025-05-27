@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Product_Simple;
 use WC_Shipping_Zone;
 use WC_Shipping_Zones;

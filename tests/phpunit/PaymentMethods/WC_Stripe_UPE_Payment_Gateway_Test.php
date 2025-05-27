@@ -4,7 +4,7 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
 use WC_Order;
 use WC_Stripe_Co_Branded_CC_Compatibility;

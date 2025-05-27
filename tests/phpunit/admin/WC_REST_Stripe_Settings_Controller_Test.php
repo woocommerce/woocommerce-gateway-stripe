@@ -4,7 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use Automattic\WooCommerce\Blocks\Package;
 use Exception;
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
 use WC_Stripe;

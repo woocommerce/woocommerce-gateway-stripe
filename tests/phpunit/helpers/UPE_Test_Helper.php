@@ -1,5 +1,14 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests\Helpers;
+
+use Closure;
+use PHPUnit\Framework\MockObject\Generator;
+use PHPUnit\Framework\MockObject\MockObject;
+use WC_Stripe;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+
 /**
  * Provides methods useful when testing UPE-related logic.
  */
@@ -8,10 +17,10 @@ class UPE_Test_Helper {
 	 * Creates a mock object for the specified class
 	 *
 	 * @param string $class_name Name of the class to mock
-	 * @return PHPUnit\Framework\MockObject\MockObject
+	 * @return MockObject
 	 */
 	private function create_mock( $class_name ) {
-		$mock_builder = new PHPUnit\Framework\MockObject\Generator();
+		$mock_builder = new Generator();
 		return $mock_builder->getMock( $class_name );
 	}
 

@@ -2,7 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Store;
 use WC_Stripe_API;
 use WC_Stripe_Connect;

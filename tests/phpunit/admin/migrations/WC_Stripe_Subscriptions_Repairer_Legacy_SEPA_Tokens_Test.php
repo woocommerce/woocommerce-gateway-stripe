@@ -4,7 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin\Migrations;
 
 use Exception;
 use PHPUnit\Framework\MockObject\MockObject;
-use UPE_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe_Sepa;
 use WC_Logger;
 use WC_Stripe_Helper;
