@@ -48,4 +48,15 @@ jobs:
               );
             } else {
               console.log('Changelog entries found in both files ✅');
+
+              const changelogDiff = await github.rest.pulls.get({
+                headers: {
+                  accept: 'application/vnd.github.diff',
+                },
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number
+              });
+
+              console.log( 'Debug changelog diff: ' . JSON.stringify( changelogDiff ) );
             } 
