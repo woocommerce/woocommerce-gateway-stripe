@@ -84,7 +84,6 @@ function woocommerce_gateway_stripe() {
 		require_once __DIR__ . '/includes/class-wc-stripe.php';
 
 		$plugin = WC_Stripe::get_instance();
-
 	}
 
 	return $plugin;
