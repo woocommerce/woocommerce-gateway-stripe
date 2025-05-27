@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Class Test_WC_Payment_Token_Amazon_Pay tests.
+ * Class WC_Payment_Token_Amazon_Pay_Test tests.
  *
  */
-class Test_WC_Payment_Token_Amazon_Pay extends WP_UnitTestCase {
+class WC_Payment_Token_Amazon_Pay_Test extends WP_UnitTestCase {
 
 	/**
 	 * Instance of WC_Payment_Token_Amazon_Pay to test.

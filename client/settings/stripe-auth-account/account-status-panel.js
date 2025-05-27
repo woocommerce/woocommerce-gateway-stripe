@@ -150,7 +150,7 @@ const getAccountStatus = ( accountKeys, data, testMode ) => {
 		},
 	};
 
-	if ( ! hasKeys ) {
+	if ( ! hasKeys || data?.account === null ) {
 		return accountStatusMap.disconnected;
 	}
 

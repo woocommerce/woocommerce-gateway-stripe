@@ -30,6 +30,9 @@
 		<!-- Disallow short array syntax -->
 		<exclude name="Universal.Arrays.DisallowShortArraySyntax" />
 
+		<!-- Allow filenames to follow PSR-4 -->
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase" />
+
 		<!-- FIXME: Resolve these issues and remove these rules. -->
 		<exclude name="WordPress.Security.EscapeOutput.ExceptionNotEscaped" />
 

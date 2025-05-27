@@ -522,11 +522,10 @@ class WC_Stripe_Payment_Tokens {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 		try {
-			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-				if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-					$stripe_customer->set_default_payment_method( $token->get_token() );
-				}
-			} elseif ( WC_Gateway_Stripe::ID === $token->get_gateway_id() || WC_Gateway_Stripe_Sepa::ID === $token->get_gateway_id() ) {
+			// If the token is a payment method, set it as the default payment method. If the token is a source, set it as the default source.
+			if ( strpos( $token->get_token(), 'pm_' ) === 0 ) {
+				$stripe_customer->set_default_payment_method( $token->get_token() );
+			} elseif ( strpos( $token->get_token(), 'src_' ) === 0 ) {
 				$stripe_customer->set_default_source( $token->get_token() );
 			}
 		} catch ( WC_Stripe_Exception $e ) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
+import RecurringPaymentIcon from '../../components/recurring-payment-icon';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import PaymentMethodDeprecationPill from 'wcstripe/components/payment-method-deprecation-pill';
 
@@ -45,6 +46,7 @@ const PaymentMethodDescription = ( {
 	description,
 	id,
 	deprecated,
+	supportsRecurring,
 	...restProps
 } ) => {
 	return (
@@ -55,6 +57,7 @@ const PaymentMethodDescription = ( {
 			<div>
 				<LabelWrapper>
 					<Label>{ label }</Label>
+					{ supportsRecurring && <RecurringPaymentIcon /> }
 					{ deprecated && <PaymentMethodDeprecationPill /> }
 					{ ! deprecated && (
 						<>

@@ -41,6 +41,12 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 							 ->getMock();
 
 		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
+		$this->mock_payment_method_configurations(
+			[
+				WC_Stripe_Payment_Methods::CARD,
+				WC_Stripe_Payment_Methods::LINK,
+			]
+		);
 	}
 
 	public function test_get_account_keys_returns_status_code_200() {
@@ -154,6 +160,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 				'secret_key'      => 'sk_live-key',
 				'testmode'        => 'no',
 				'connection_type' => 'connect',
+				'pmc_enabled'     => 'yes',
 				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
 			]
 		);

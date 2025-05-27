@@ -679,6 +679,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_process_refund_on_zero_amount() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_transaction_id( 'ch_123' ); // Set the charge ID as transaction ID
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'yes' );
 		$order->save();
 		$order_id = $order->get_id();
 
@@ -739,6 +740,77 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$result = $this->gateway->process_refund( $order_id, 10.00, 'Customer requested' );
 		$this->assertTrue( $result );
+
+		remove_filter( 'pre_http_request', $callback );
+	}
+
+	/**
+	 * Tests that process_refund voids pre-authorization on cancel (uncaptured charge).
+	 */
+	public function test_process_refund_voids_pre_auth_on_cancel() {
+		$order = WC_Helper_Order::create_order();
+		$order->set_transaction_id( 'ch_123' );
+		$this->updateOrderMeta( $order, '_stripe_charge_captured', 'no' );
+		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+		$order->save();
+		$order_id = $order->get_id();
+
+		// Mock the Stripe API to simulate a successful void/cancel
+		$callback = function ( $preempt, $request_args, $url ) {
+			// Simulate a PaymentIntent cancel or charge refund for pre-auth
+			if ( strpos( $url, 'payment_intents' ) !== false || strpos( $url, 'cancel' ) !== false ) {
+				$response = [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'            => 'pi_123',
+							'object'        => 'payment_intent',
+							'status'        => 'requires_capture',
+							'latest_charge' => 'ch_123',
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+				return $response;
+			}
+			if ( strpos( $url, 'charges' ) !== false ) {
+				$response = [
+					'headers'  => [],
+					'body'     => wp_json_encode(
+						[
+							'id'      => 'ch_123',
+							'object'  => 'charge',
+							'status'  => 'succeeded',
+							'refunds' => [
+								'data' => [
+									[
+										'id'     => 're_123',
+										'amount' => 1000,
+										'status' => 'succeeded',
+									],
+								],
+							],
+						]
+					),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+				return $response;
+			}
+			return $preempt;
+		};
+		add_filter( 'pre_http_request', $callback, 10, 3 );
+
+		// Should not return early, should attempt to void pre-auth
+		$result = $this->gateway->process_refund( $order_id );
+
+		// For uncaptured charges, process_refund returns false if refund was initiated by changing order status
+		$this->assertFalse( $result );
 
 		remove_filter( 'pre_http_request', $callback );
 	}
