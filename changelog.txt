@@ -14,6 +14,7 @@
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order
+* Fix - Apply shipping country restrictions to Express Checkout
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
