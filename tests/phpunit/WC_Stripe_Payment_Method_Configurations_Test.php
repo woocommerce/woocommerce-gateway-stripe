@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use ReflectionClass;
 use WC_Stripe_Helper;
+use WC_Stripe_API;
 use WC_Stripe_Payment_Method_Configurations;
 use WP_UnitTestCase;
 
@@ -30,8 +31,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// Use reflection to access the private method
-		$reflection = new ReflectionClass( 'WC_Stripe_Payment_Method_Configurations' );
-		$method = $reflection->getMethod( 'disable_payment_method_configuration_sync' );
+		$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
+		$method     = $reflection->getMethod( 'disable_payment_method_configuration_sync' );
 		$method->setAccessible( true );
 		// Call the method
 		$method->invoke( null );
@@ -53,7 +54,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 	 */
 	public function test_disable_payment_method_configuration_sync_on_no_pmc() {
 		// Mock the Stripe API response to return no configurations
-		$mock_api = $this->getMockBuilder( 'WC_Stripe_API' )
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -62,8 +63,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 			->willReturn( (object) [ 'data' => [] ] );
 
 		// Set the mock API instance
-		$reflection = new ReflectionClass( 'WC_Stripe_API' );
-		$property = $reflection->getProperty( 'instance' );
+		$reflection = new ReflectionClass( WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null, $mock_api );
 
@@ -72,9 +73,10 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 
 		// Call get_primary_configuration which should trigger disable_payment_method_configuration_sync
 		// Use reflection to access the private method
-		$reflection = new ReflectionClass( 'WC_Stripe_Payment_Method_Configurations' );
-		$method = $reflection->getMethod( 'get_primary_configuration' );
+		$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
+		$method     = $reflection->getMethod( 'get_primary_configuration' );
 		$method->setAccessible( true );
+
 		// Call the method
 		$method->invoke( null );
 
@@ -99,12 +101,12 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// Mock the Stripe API response to return a valid configuration
-		$mock_api = $this->getMockBuilder( 'WC_Stripe_API' )
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_configuration = (object) [
-			'id' => 'test_config_id',
+			'id'     => 'test_config_id',
 			'parent' => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
 		];
 
@@ -113,16 +115,17 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 			->willReturn( (object) [ 'data' => [ $mock_configuration ] ] );
 
 		// Set the mock API instance
-		$reflection = new ReflectionClass( 'WC_Stripe_API' );
-		$property = $reflection->getProperty( 'instance' );
+		$reflection = new ReflectionClass( WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null, $mock_api );
 
 		// Call get_primary_configuration which should NOT trigger disable_payment_method_configuration_sync
 		// Use reflection to access the private method
-		$reflection = new ReflectionClass( 'WC_Stripe_Payment_Method_Configurations' );
-		$method = $reflection->getMethod( 'get_primary_configuration' );
+		$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
+		$method     = $reflection->getMethod( 'get_primary_configuration' );
 		$method->setAccessible( true );
+
 		// Call the method
 		$method->invoke( null );
 
@@ -144,12 +147,12 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 	 */
 	public function test_disable_payment_method_configuration_sync_on_not_valid_pmc() {
 		// Mock the Stripe API response to return no configurations
-		$mock_api = $this->getMockBuilder( 'WC_Stripe_API' )
+		$mock_api = $this->getMockBuilder( WC_Stripe_API::class )
 			->disableOriginalConstructor()
 			->getMock();
 
 		$mock_configuration = (object) [
-			'id' => 'test_config_id',
+			'id'     => 'test_config_id',
 			'parent' => 'pmc_from_another_platform_id',
 		];
 
@@ -158,8 +161,8 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 			->willReturn( (object) [ 'data' => [ $mock_configuration ] ] );
 
 		// Set the mock API instance
-		$reflection = new ReflectionClass( 'WC_Stripe_API' );
-		$property = $reflection->getProperty( 'instance' );
+		$reflection = new ReflectionClass( WC_Stripe_API::class );
+		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null, $mock_api );
 
@@ -171,9 +174,10 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WP_UnitTestCase {
 		// we want to test the function get_payment_method_configuration_from_stripe that is the one processing the response
 		// from the Stripe API call.
 		// Use reflection to access the private method
-		$reflection = new ReflectionClass( 'WC_Stripe_Payment_Method_Configurations' );
-		$method = $reflection->getMethod( 'get_payment_method_configuration_from_stripe' );
+		$reflection = new ReflectionClass( WC_Stripe_Payment_Method_Configurations::class );
+		$method     = $reflection->getMethod( 'get_payment_method_configuration_from_stripe' );
 		$method->setAccessible( true );
+
 		// Call the method
 		$method->invoke( null );
 
