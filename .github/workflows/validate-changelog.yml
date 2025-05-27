@@ -91,3 +91,4 @@ jobs:
             echo "${CHANGELOG_ENTRIES_WITH_TRAILING_PERIODS}"
             exit 1
           fi
+          echo "No changelog entries with trailing periods found ✅"
