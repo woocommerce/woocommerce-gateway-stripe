@@ -53,6 +53,13 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 	private $upe_helper;
 
 	/**
+	 * Initial file contents.
+	 *
+	 * @var false|string
+	 */
+	private $initial_file_contents;
+
+	/**
 	 * Pre-test setup
 	 */
 	public function set_up() {

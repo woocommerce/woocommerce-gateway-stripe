@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
+use WC_Stripe_Connect;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Stripe_Api;
 use WP_UnitTestCase;
 
@@ -22,6 +23,11 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	private $account;
 
+	/**
+	 * @var WC_Stripe_Connect
+	 */
+	private $mock_connect;
+
 	public function set_up() {
 		parent::set_up();
 
@@ -32,7 +38,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$this->mock_connect = $this->getMockBuilder( 'WC_Stripe_Connect' )
+		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 									->disableOriginalConstructor()
 									->setMethods(
 										[
