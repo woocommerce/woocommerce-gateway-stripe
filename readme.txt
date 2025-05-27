@@ -1,15 +1,15 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
-Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.5
-Tested up to: 6.7
+Tags: credit card, stripe, payments, woocommerce, automattic
+Requires at least: 6.6
+Tested up to: 6.8.1
 Requires PHP: 7.4
-Stable tag: 9.4.0
+Stable tag: 9.5.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
 
-Take credit card payments on your store using Stripe.
+Take credit card and other payments on your store using Stripe.
 
 == Description ==
 
@@ -21,7 +21,7 @@ The enhanced checkout experience from Stripe can help customers:
 
 - **Boost conversion:** Provide an optimal experience across mobile, tablet, and desktop with a responsive checkout, and offer 23 payment methods, including [Link](https://stripe.com/payments/link), [Apple Pay](https://woocommerce.com/apple-pay/), and [Google Pay](https://www.google.com/payments/solutions/), out of the box.
 - **Expand your customer base:** Convert customers who might otherwise abandon their cart with buy now, pay later methods like Klarna, Affirm, and Afterpay/Clearpay, wallets like Apple Pay, Google Pay, Alipay, and WeChat Pay, and local payment methods such as Bancontact in Europe and Alipay in Asia Pacific. Deliver a localized payment experience with out-of-the-box support for localized error messages, right-to-left languages, and automatic adjustment of input fields based on payment method and country.
-- **Meet existing customer demand and localize the experience:** Offer [local payment methods](https://stripe.com/guides/payment-methods-guide), such as Bancontact, Boleto, Cash App Pay, EPS, giropay, iDEAL, Multibanco, OXXO, Przelewy 24, and SEPA Direct Debit.
+- **Meet existing customer demand and localize the experience:** Offer [local payment methods](https://stripe.com/guides/payment-methods-guide), such as ACH Direct Debit, Bacs Direct Debit, Bancontact, BECS Direct Debit, BLIK, Boleto, Cash App Pay, EPS, iDEAL, Multibanco, OXXO, Pre-authorized debit payments, Przelewy 24, and SEPA Direct Debit.
 - **Fight fraud:** Detect and prevent fraud with [Stripe Radar](https://stripe.com/radar), which offers seamlessly integrated, powerful fraud-detection tools that use machine learning to detect and flag potentially fraudulent transactions.
 - **Accept in-person payments for products and services:** Use the Stripe Terminal M2 card reader or get started with no additional hardware using Tap to Pay on iPhone, or Tap to Pay on Android.
 - **Support subscriptions:** Support recurring payments with various payment methods via [WooCommerce Subscriptions](https://woocommerce.com/products/woocommerce-subscriptions/).
@@ -110,32 +110,22 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.5.0 - xxxx-xx-xx =
-* Fix - Fixes the availability of WeChat Pay when the Optimized Checkout is enabled on the block checkout. Removes it from the classic/shortcode checkout to avoid issues.
-* Dev - Renames all references to "Smart Checkout" and "Single Payment Element" (and "SPE") to "Optimized Checkout" (and "OC"), following the feature rebranding.
-* Tweak - Updates the "Smart Checkout" setting name to "Optimized Checkout", and the description accordingly.
-* Fix - Checks for the existence of the WC_Stripe_Feature_Flags class before including it during extension initialization.
-* Dev - Implements the new Stripe order class into the new checkout experience files.
-* Dev - Splits the code coverage GitHub Actions Workflow into two separate actions.
-* Dev - Implements the new Stripe order class into the root extension files.
-* Fix - Fixes the listing of payment methods in the Stripe settings page when the Smart Checkout is enabled.
-* Tweak - Passes the correct parent payment method configuration ID (retrieved from the backend) to the Smart Checkout payment element.
-* Tweak - Removes the Stripe icon beside the Smart Checkout payment element from the checkout pages.
-* Add - New setting to allow merchants to set their preferred title for the Smart Checkout payment element. Defaults to "Stripe".
-* Dev - Implements the new Stripe order class into the compatibility classes.
-* Dev - Updates the Code Sniffer package to version 1.0.0.
-* Update - Add ECE support for One Page Checkout and other dynamic cart update scenarios
-* Fix - Show error notice when 'Add payment method' fails on My Account page in block-based themes.
-* Add - Add WordPress Action for processing payments with delayed charge attempts due to pre-debit notification period.
-* Fix - Add caching for the Stripe Payment Method Configuration API
-* Fix - Prevent deletion of webhooks for other tools
-* Dev - Improve SPE e2e tests to reduce flakiness
-* Fix - Prevents fatal errors for cases where we fail to load product details
-* Fix - Address an edge case with webhook URL comparisons
-* Fix - Show correct gateway name in non payments settings pages.
-* Update - Add support for customer order notes and express checkout
-* Dev - Minor fix to e2e setup code
-* Dev - Make PHP error log from Docker container available in docker/logs/php/error.log
+= 9.6.0 - xxxx-xx-xx =
+
+* Dev - Renames all PHP Unit test files to follow the PSR-4.
+* Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
+* Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
+* Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
+* Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
+* Add - Show an icon beside the payment methods that support automatic recurring payments.
+* Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
+* Update - Remove BACS from the unsupported 'change payment method for subscription' page.
+* Fix - Fix payment method title display when new payment settings experience is enabled
+* Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
+* Dev - Add e2e tests for BLIK
+* Fix - Send correct attribute when setting the default payment method.
+* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
+* Fix - Void intent when cancelling an uncaptured order
 * Dev - Implement a class autoloader for the plugin to reduce unnecessary file loads
 
-[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
+[See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
