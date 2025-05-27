@@ -114,6 +114,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
 * Dev - Renames all PHP Unit test files to follow the PSR-4.
+* Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
 * Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
@@ -122,6 +123,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
+* Dev - Add e2e tests for BLIK
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
 * Fix - Void intent when cancelling an uncaptured order

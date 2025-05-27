@@ -11,7 +11,7 @@ const {
 	fillACSSDetails,
 } = payments;
 
-test.describe( 'ACSS payment tests @shortcode', () => {
+test.describe( 'ACSS payment tests @shortcode @acss', () => {
 	let username, userEmail;
 
 	test.describe.configure( { mode: 'serial' } );

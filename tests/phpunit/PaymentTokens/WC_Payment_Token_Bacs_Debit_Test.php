@@ -7,10 +7,10 @@ use WC_Stripe_Payment_Methods;
 use WP_UnitTestCase;
 
 /**
- * Class Test_WC_Payment_Token_Bacs_Debit tests.
+ * Class WC_Payment_Token_Bacs_Debit tests.
  *
  */
-class Test_WC_Payment_Token_Bacs_Debit extends WP_UnitTestCase {
+class WC_Payment_Token_Bacs_Debit_Test extends WP_UnitTestCase {
 
 	/**
 	 * Instance of WC_Payment_Token_Bacs_Debit to test.
