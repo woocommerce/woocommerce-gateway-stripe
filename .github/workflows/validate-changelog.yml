@@ -58,5 +58,5 @@ jobs:
                 pull_number: context.issue.number
               });
 
-              console.log( 'Debug changelog diff: ' . JSON.stringify( changelogDiff ) );
+              console.log( 'Debug changelog diff: ' . toJSON( changelogDiff ) );
             } 
