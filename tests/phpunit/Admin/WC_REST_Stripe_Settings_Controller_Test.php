@@ -34,6 +34,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 */
 	private $controller;
 
+	/**
+	 * UPE test helper instance.
+	 *
+	 * @var UPE_Test_Helper
+	 */
+	private $upe_helper;
 
 	/**
 	 * Gateway instance that the controller uses.
@@ -41,7 +47,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	 * @var WC_Gateway_Stripe
 	 */
 	private static $gateway;
-
 	/**
 	 * Enable UPE and store gateway instance.
 	 *
@@ -67,8 +72,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 
 		// All tests assume UPE is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
+
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
+
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 
