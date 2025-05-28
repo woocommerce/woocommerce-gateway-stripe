@@ -31,7 +31,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function init() {
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
-		add_action( 'wc_ajax_wc_stripe_normalize_address', [ $this, 'ajax_normalized_address' ] );
+		add_action( 'wc_ajax_wc_stripe_normalize_address', [ $this, 'ajax_normalize_address' ] );
 		add_action( 'wc_ajax_wc_stripe_update_shipping_method', [ $this, 'ajax_update_shipping_method' ] );
 		add_action( 'wc_ajax_wc_stripe_add_to_cart', [ $this, 'ajax_add_to_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
@@ -143,7 +143,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	/**
 	 * Normalizes address fields in WooCommerce supported format.
 	 */
-	public function ajax_normalized_address() {
+	public function ajax_normalize_address() {
 		check_ajax_referer( 'wc-stripe-express-checkout-normalize-address', 'security' );
 
 		$data = filter_input( INPUT_POST, 'data', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
