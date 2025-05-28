@@ -25,7 +25,7 @@ class WC_Stripe_Database_Cache {
 	private static $in_memory_cache = [];
 
 	/**
-	 * The test mode payment method configuration cache key.
+	 * The prefix used for every cache key.
 	 *
 	 * @var string
 	 */
@@ -49,7 +49,7 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	public static function set( $key, $data, $ttl = HOUR_IN_SECONDS ) {
-		$prefixed_key = self::add_prefix( $key );
+		$prefixed_key = self::add_key_prefix( $key );
 		self::write_to_cache( $prefixed_key, $data, $ttl );
 	}
 
@@ -63,7 +63,7 @@ class WC_Stripe_Database_Cache {
 	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get( $key ) {
-		$prefixed_key = self::add_prefix( $key );
+		$prefixed_key = self::add_key_prefix( $key );
 		$cache_contents = self::get_from_cache( $prefixed_key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
 			if ( self::is_expired( $prefixed_key, $cache_contents ) ) {
@@ -86,7 +86,7 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	public static function delete( $key ) {
-		$prefixed_key = self::add_prefix( $key );
+		$prefixed_key = self::add_key_prefix( $key );
 		// Remove from the in-memory cache.
 		unset( self::$in_memory_cache[ $prefixed_key ] );
 
@@ -183,23 +183,15 @@ class WC_Stripe_Database_Cache {
 	}
 
 	/**
-	 * Add the mode prefix to the key.
+	 * Adds the CACHE_KEY_PREFIX + plugin mode prefix to the key.
+	 * Ex: "wcstripe_cache_[mode]_[key].
 	 *
 	 * @param string $key The key to add the prefix to.
 	 *
 	 * @return string The key with the prefix.
 	 */
-	private static function add_prefix( $key ) {
+	private static function add_key_prefix( $key ) {
 		$mode = WC_Stripe_Mode::is_test() ? 'test_' : 'live_';
 		return self::CACHE_KEY_PREFIX . $mode . $key;
-	}
-
-	/**
-	 * Get all cached keys in memory (with prefix).
-	 *
-	 * @return array The cached keys.
-	 */
-	public static function get_cached_keys() {
-		return array_keys( self::$in_memory_cache );
 	}
 }

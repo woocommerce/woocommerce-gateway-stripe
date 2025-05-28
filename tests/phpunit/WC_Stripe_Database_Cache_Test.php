@@ -171,6 +171,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$cached_keys = array_keys( $in_memory_cache );
 		foreach ( $cached_keys as $key ) {
 			// The key is prefixed with "wcstripe_cache_[mode]_", so we need to remove it to get the original key.
+			// This change ensures that we're properly cleaning up the cache by using the correct key format that
+			// the WC_Stripe_Database_Cache::delete() method expects.
 			$key_without_prefix = str_replace( 'wcstripe_cache_live_', '', $key );
 			WC_Stripe_Database_Cache::delete( $key_without_prefix );
 		}
