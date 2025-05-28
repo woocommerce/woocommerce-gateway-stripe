@@ -46,26 +46,27 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Gets the Stripe settings.
 	 *
 	 * @since 4.0.6
-	 * @param string         $setting
+	 * @param string $setting
 	 * @param string default
 	 * @return string $setting_value
 	 */
-	public function get_option( $setting = '', $default = '' ) {
+	public function get_option( $setting = '', $default_value = '' ) {
 		if ( empty( $this->stripe_settings ) ) {
 			$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		}
-
-		if ( empty( $this->stripe_settings ) ) {
-			return $default;
 		}
 
 		if ( ! empty( $this->stripe_settings[ $setting ] ) ) {
 			return $this->stripe_settings[ $setting ];
 		}
 
-		return $default;
+		return $default_value;
 	}
 
+	/**
+	 * Whether the domain is set.
+	 *
+	 * @return bool
+	 */
 	public function is_domain_set() {
 		return 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 	}
