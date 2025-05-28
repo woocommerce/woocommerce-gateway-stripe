@@ -1457,6 +1457,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$product_description = substr( $item->get_name(), 0, 26 );
 				$quantity            = $item->get_quantity();
 				if ( ! $quantity ) {
+					WC_Stripe_Logger::error(
+						"Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order->get_id()} has no quantity set. Defaulting to 1."
+					);
 					$quantity = 1; // Default to 1 if quantity is not set.
 				}
 				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
