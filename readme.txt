@@ -133,5 +133,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Track charge completed via webhooks in order notes
 * Tweak - Fix a rare warning when searching customers with missing name
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
+* Dev - Prevent changelog entries with trailing periods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
