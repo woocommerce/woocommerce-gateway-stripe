@@ -226,6 +226,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 				'is_subscription_item_in_cart',
 				'get_current_order_amount',
 				'is_inside_currency_limits',
+				'is_oc_enabled',
 			];
 
 			// Remove any methods that should not be mocked.
