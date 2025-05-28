@@ -211,9 +211,9 @@ class WC_Stripe_Autoloader {
 	 */
 	private static function get_admin_classmap() {
 		return [
-			'wc_stripe_admin_inbox_notes' => __DIR__ . '/Admin/class-wc-stripe-inbox-notes.php',
-			'wc_stripe_admin_notices'     => __DIR__ . '/Admin/class-wc-stripe-admin-notices.php',
-			'wc_stripe_privacy'           => __DIR__ . '/Admin/class-wc-stripe-privacy.php',
+			'wc_stripe_admin_inbox_notes' => __DIR__ . '/Admin/WC_Stripe_Inbox_Notes.php',
+			'wc_stripe_admin_notices'     => __DIR__ . '/Admin/WC_Stripe_Admin_Notices.php',
+			'wc_stripe_privacy'           => __DIR__ . '/Admin/WC_Stripe_Privacy.php',
 		];
 	}
 }
