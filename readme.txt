@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Dev - Removes the deprecated WC_Stripe_Order class and related files.
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
 * Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
 * Dev - Moves the main Stripe class to a new file.
