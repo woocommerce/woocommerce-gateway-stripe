@@ -1442,9 +1442,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// Order item IDs are used as keys in the original order items array.
 		$order_items = array_values( $order->get_items( [ 'line_item', 'fee' ] ) );
 		$currency    = $order->get_currency();
+		$order_id    = $order->get_id();
 
 		$stripe_line_items = array_map(
-			function ( $item ) use ( $currency ) {
+			function ( $item ) use ( $currency, $order_id ) {
 				if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
 					$product_id = $item->get_variation_id()
 						? $item->get_variation_id()
@@ -1458,7 +1459,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$quantity            = $item->get_quantity();
 				if ( ! $quantity ) {
 					WC_Stripe_Logger::error(
-						"Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order->get_id()} has no quantity set. Defaulting to 1."
+						"Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set. Defaulting to 1."
 					);
 					$quantity = 1; // Default to 1 if quantity is not set.
 				}
