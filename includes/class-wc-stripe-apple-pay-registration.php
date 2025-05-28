@@ -39,7 +39,6 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'register_domain_if_configured' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 
-		$this->stripe_settings               = WC_Stripe_Helper::get_stripe_settings();
 		$this->domain_name                   = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
 		$this->apple_pay_registration_notice = '';
 	}
@@ -53,6 +52,10 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return string $setting_value
 	 */
 	public function get_option( $setting = '', $default = '' ) {
+		if ( empty( $this->stripe_settings ) ) {
+			$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		}
+
 		if ( empty( $this->stripe_settings ) ) {
 			return $default;
 		}
