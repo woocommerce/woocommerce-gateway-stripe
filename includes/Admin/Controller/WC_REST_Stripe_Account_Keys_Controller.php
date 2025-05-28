@@ -181,9 +181,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Validate stripe publishable keys and secrets. Allow empty string to erase key.
 	 * Also validates against explicit key prefixes based on live/test environment.
 	 *
-	 * @param mixed           $value
+	 * @param mixed $value
 	 * @param WP_REST_Request $request
-	 * @param string          $param
+	 * @param string $param
 	 * @param array $validate_options
 	 * @return true|WP_Error
 	 */
@@ -265,9 +265,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
 		$is_deleting_account = ! $settings['publishable_key']
-							&& ! $settings['secret_key']
-							&& ! $settings['test_publishable_key']
-							&& ! $settings['test_secret_key'];
+			&& ! $settings['secret_key']
+			&& ! $settings['test_publishable_key']
+			&& ! $settings['test_secret_key'];
 
 		if ( $is_deleting_account ) {
 			$settings['enabled']              = 'no';
@@ -418,7 +418,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * Decommissions the configured Webhook if the user is removing their secret key.
 	 * This is to avoid leaving orphaned Webhooks in the Stripe account.
 	 *
-	 * @param array $settings             The current settings.
+	 * @param array $settings The current settings.
 	 * @param array $current_account_keys The current account keys.
 	 *
 	 * @return array The updated settings. The webhook data will be removed if the webhook was decommissioned.

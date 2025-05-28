@@ -75,12 +75,12 @@ class WC_Stripe_Settings_Controller {
 	}
 
 	/**
-	* This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
-	*
-	* A help tooltip explains that refunds are not available for orders which have not been captured yet.
-	*
-	* @param WC_Order $order The order that is being viewed.
-	*/
+	 * This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
+	 *
+	 * A help tooltip explains that refunds are not available for orders which have not been captured yet.
+	 *
+	 * @param WC_Order $order The order that is being viewed.
+	 */
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
 		try {
 			$intent = $this->get_gateway()->get_intent_from_order( $order );
@@ -107,8 +107,8 @@ class WC_Stripe_Settings_Controller {
 
 		$hide_save_button = true;
 		$return_url       = admin_url( 'admin.php?page=wc-settings&tab=checkout' );
-		$header          = $gateway->get_method_title();
-		$return_text     = __( 'Return to payments', 'woocommerce-gateway-stripe' );
+		$header           = $gateway->get_method_title();
+		$return_text      = __( 'Return to payments', 'woocommerce-gateway-stripe' );
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 

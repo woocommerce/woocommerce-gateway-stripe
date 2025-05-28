@@ -9,7 +9,6 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for terminal locations.
  */
 class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller {
-
 	/**
 	 * Endpoint path.
 	 *

@@ -9,7 +9,6 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for settings.
  */
 class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller {
-
 	/**
 	 * Endpoint path.
 	 *
@@ -243,7 +242,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
-		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		$is_upe_enabled = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
 		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
 		// The available payment methods are also fetched from the payment method configurations API under similar conditions,

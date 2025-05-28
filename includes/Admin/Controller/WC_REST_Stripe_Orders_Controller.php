@@ -3,15 +3,12 @@
  * Class WC_REST_Stripe_Orders_Controller
  */
 
-use Automattic\WooCommerce\Enums\OrderStatus;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
  * REST controller for orders.
  */
 class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
-
 	/**
 	 * Endpoint path.
 	 *
@@ -212,7 +209,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 				return new WP_Error(
 					'wc_stripe_capture_error',
 					sprintf(
-						// translators: %s: the error message.
+					// translators: %s: the error message.
 						__( 'Payment capture failed to complete with the following message: %s', 'woocommerce-gateway-stripe' ),
 						$result->error->message ?? __( 'Unknown error', 'woocommerce-gateway-stripe' )
 					),

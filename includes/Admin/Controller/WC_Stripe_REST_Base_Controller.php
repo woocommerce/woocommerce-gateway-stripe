@@ -9,7 +9,6 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for transactions.
  */
 class WC_Stripe_REST_Base_Controller extends WP_REST_Controller {
-
 	/**
 	 * Endpoint namespace.
 	 *

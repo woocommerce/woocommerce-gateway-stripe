@@ -1,8 +1,8 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
 
 /**
  * Class that handles various admin tasks.
@@ -77,7 +77,8 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 * This is where the "Are you sure you want to disable Stripe?" confirmation dialog is rendered.
 	 */
 	public function wc_stripe_gateway_container() {
-		?><div id="wc-stripe-payment-gateways-container" />
+		?>
+		<div id="wc-stripe-payment-gateways-container" />
 		<?php
 	}
 }

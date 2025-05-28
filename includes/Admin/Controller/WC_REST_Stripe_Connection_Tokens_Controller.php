@@ -9,7 +9,6 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for connection tokens.
  */
 class WC_REST_Stripe_Connection_Tokens_Controller extends WC_Stripe_REST_Base_Controller {
-
 	/**
 	 * Endpoint path.
 	 *
