@@ -17,20 +17,6 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
-	 * The test mode invalid API keys option key.
-	 *
-	 * @var string
-	 */
-	const TEST_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_test_invalid_api_keys_detected';
-
-	/**
-	 * The live mode invalid API keys option key.
-	 *
-	 * @var string
-	 */
-	const LIVE_MODE_INVALID_API_KEYS_OPTION_KEY = 'wc_stripe_live_invalid_api_keys_detected';
-
-	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -245,13 +231,6 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		// If we have an option flag indicating that the secret key is not valid, we don't attempt the API call and we return an error.
-		$invalid_api_keys_option_key = WC_Stripe_Mode::is_test() ? self::TEST_MODE_INVALID_API_KEYS_OPTION_KEY : self::LIVE_MODE_INVALID_API_KEYS_OPTION_KEY;
-		$invalid_api_keys_detected = get_option( $invalid_api_keys_option_key );
-		if ( $invalid_api_keys_detected ) {
-			return null; // The UI expects this empty response in case of invalid API keys.
-		}
-
 		WC_Stripe_Logger::log( "{$api}" );
 
 		$response = wp_safe_remote_get(
@@ -265,12 +244,8 @@ class WC_Stripe_API {
 
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
-			// We save a flag in the options to avoid making calls until the secret key gets updated.
-			update_option( $invalid_api_keys_option_key, true );
-			update_option( $invalid_api_keys_option_key . '_at', time() );
-
-			// We delete the transient for the account data to trigger the not-connected UI in the admin dashboard.
-			delete_transient( WC_Stripe_Mode::is_test() ? WC_Stripe_Account::TEST_ACCOUNT_OPTION : WC_Stripe_Account::LIVE_ACCOUNT_OPTION );
+			// Stripe redacts API keys in the response.
+			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
 
 			return null; // The UI expects this empty response in case of invalid API keys.
 		}

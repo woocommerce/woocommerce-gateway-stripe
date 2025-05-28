@@ -225,6 +225,10 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * @param bool     $plain_text
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
+		if ( ! is_a( $order, 'WC_Order' ) ) {
+			return;
+		}
+
 		$order_id = $order->get_id();
 
 		$payment_method = $order->get_payment_method();

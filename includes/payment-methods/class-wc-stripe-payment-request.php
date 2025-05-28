@@ -2046,13 +2046,19 @@ class WC_Stripe_Payment_Request {
 	public function migrate_button_size() {
 		$previous_version = get_option( 'wc_stripe_version' );
 
-		// Exit if it's a new install or the previous version is already 7.8.0 or greater.
-		if ( ! $previous_version || version_compare( $previous_version, '7.8.0', '>=' ) ) {
+		// Exit if it's a new install, or if we don't have a stored button size.
+		if ( ! $previous_version || ! isset( $this->stripe_settings['payment_request_button_size'] ) ) {
 			return;
 		}
 
-		if ( ! isset( $this->stripe_settings['payment_request_button_size'] ) ) {
-			return;
+		$button_size = $this->stripe_settings['payment_request_button_size'];
+
+		// If the previous version is already 7.8.0 or greater, exit unless we have 'medium' as the value.
+		if ( version_compare( $previous_version, '7.8.0', '>=' ) ) {
+			if ( 'medium' !== $button_size ) {
+				return;
+			}
+			// If we have 'medium' as the value, we need to migrate it below.
 		}
 
 		$gateway = woocommerce_gateway_stripe()->get_main_stripe_gateway();
@@ -2060,8 +2066,6 @@ class WC_Stripe_Payment_Request {
 		if ( ! $gateway ) {
 			return;
 		}
-
-		$button_size = $this->stripe_settings['payment_request_button_size'];
 
 		// If the button was set to the default, it is now the small size (40px). If it was set to medium, it is now the default size (48px).
 		if ( 'default' === $button_size ) {
