@@ -797,10 +797,18 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await setupCart( page );
 
 	if ( checkoutType === 'blocks' ) {
-		await setupBlocksCheckout(
-			page,
-			config.get( 'addresses.customer_australia.billing' )
-		);
+		// On block checkout page for Australian address, there is no city, instead there are a suburbs.
+		// In the backend we keep this suburb value in the city field.
+		// In 'setupBlocksCheckout' we find the elemnts by their labels. As there is no city field on the block checkout page,
+		// we remove the city field from the billing details to prevent the 'setupBlocksCheckout' from failing when waiting for the city field
+		// and add the suburb value to the city field.
+		const billingDetails = {
+			...config.get( 'addresses.customer_australia.billing' ),
+			suburb: config.get( 'addresses.customer_australia.billing' ).city,
+		};
+		delete billingDetails.city;
+
+		await setupBlocksCheckout( page, billingDetails );
 
 		await page.waitForTimeout( 1000 );
 
