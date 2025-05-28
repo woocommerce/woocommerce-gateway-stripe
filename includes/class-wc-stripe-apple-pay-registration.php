@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Apple_Pay_Registration {
 	/**
-	 * Enabled.
+	 * Cached Stripe settings.
 	 *
 	 * @var
 	 */
@@ -238,6 +238,10 @@ class WC_Stripe_Apple_Pay_Registration {
 	/**
 	 * Conditionally process the Apple Pay domain registration after settings are updated.
 	 *
+	 * @param array $prev_settings The settings before the update.
+	 * @param array $settings The settings after the update.
+	 *
+	 * @return void
 	 * @since 4.5.3
 	 * @version 4.5.4
 	 */
