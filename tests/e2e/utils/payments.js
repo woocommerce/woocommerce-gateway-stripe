@@ -320,6 +320,7 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		address_1: 'Address',
 		address_2: 'Apartment, suite, etc. (optional)',
 		city: 'City',
+		suburb: 'Suburb', // used in Australia. This field is needed in BECS tests.
 		phone: 'Phone (optional)',
 		email: 'Email address',
 	};
