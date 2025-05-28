@@ -35,7 +35,6 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'admin_init', [ $this, 'register_domain_on_domain_name_change' ] );
 		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 
-		add_action( 'woocommerce_stripe_updated', [ $this, 'register_domain_if_configured' ] );
 		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'register_domain_if_configured' ] );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'register_domain_on_updated_settings' ], 10, 2 );
 
