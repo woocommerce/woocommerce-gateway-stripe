@@ -22,6 +22,7 @@
 * Tweak - Fix a rare warning when searching customers with missing name
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
+* Dev - Prevent changelog entries with trailing periods
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
