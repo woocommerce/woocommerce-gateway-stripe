@@ -1456,9 +1456,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 				$product_description = substr( $item->get_name(), 0, 26 );
 				$quantity            = $item->get_quantity();
-				$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
-				$tax_amount          = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
-				$discount_amount     = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
+				if ( ! $quantity ) {
+					$quantity = 1; // Default to 1 if quantity is not set.
+				}
+				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
+				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
+				$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
 
 				return (object) [
 					'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
