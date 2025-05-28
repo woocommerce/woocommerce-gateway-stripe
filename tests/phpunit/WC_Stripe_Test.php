@@ -175,10 +175,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_turning_off_upe_enables_the_correct_legacy_payment_methods_based_on_which_upe_payment_methods_were_enabled() {
+		$this->upe_helper->enable_upe_feature_flag();
+
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		update_option( 'woocommerce_currency', 'EUR' );
-		$this->upe_helper->enable_upe_feature_flag();
 
 		// Disable sepa and iDEAL LPM gateways.
 		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'no' ] );

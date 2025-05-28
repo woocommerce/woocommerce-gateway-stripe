@@ -2551,6 +2551,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_payment_method_options( $selected_payment_type, $order, $payment_method_details ) {
 		$payment_method_options = [];
 
+		// If the Optimized Checkout is enabled, we need to use the payment method details from the request.
+		if ( $this->oc_enabled && isset( $payment_method_details->type ) ) {
+			$selected_payment_type = $payment_method_details->type;
+		}
+
 		// Specify the client in payment_method_options (currently, Checkout only supports a client value of "web")
 		if ( WC_Stripe_Payment_Methods::WECHAT_PAY === $selected_payment_type ) {
 			$payment_method_options = [

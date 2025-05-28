@@ -219,6 +219,7 @@ describe( 'Express checkout event handlers', () => {
 
 		beforeEach( () => {
 			api = {
+				expressCheckoutNormalizeAddress: jest.fn(),
 				expressCheckoutECECreateOrder: jest.fn(),
 				expressCheckoutECEPayForOrder: jest.fn(),
 				confirmIntent: jest.fn(),

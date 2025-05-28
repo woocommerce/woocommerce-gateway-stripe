@@ -196,6 +196,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'nonce'                  => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
 				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
 				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
