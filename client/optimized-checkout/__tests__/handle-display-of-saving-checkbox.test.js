@@ -92,6 +92,7 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 			document.body.innerHTML = `
 				<input type="checkbox" id="createaccount" checked />
 				<input type="hidden" name="wc-stripe-payment-token" value="token_123" />
+				<div id="wc-stripe-upe-form" style="display: none;"></div>
 				<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
 			`;
 
