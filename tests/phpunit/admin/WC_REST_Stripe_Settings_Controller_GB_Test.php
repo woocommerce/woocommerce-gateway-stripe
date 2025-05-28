@@ -7,9 +7,9 @@ use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\RestApi;
 
 /**
- * WC_REST_Stripe_Settings_Controller_Test_GB unit tests.
+ * WC_REST_Stripe_Settings_Controller_GB_Test unit tests.
  */
-class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit_Test_Case {
+class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**
 	 * Tested REST route.
@@ -46,8 +46,10 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 
 		// All tests assume UPE is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
+
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
+
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 
@@ -71,25 +73,25 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
 
+		$upe_helper = new UPE_Test_Helper();
+		$upe_helper->enable_upe();
+		$upe_helper->reload_payment_gateways();
+
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		$stripe_settings['country']              = 'GB';
-		$stripe_settings['test_connection_type'] = 'connect';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		$account = [
-			'country'      => 'GB',
-			'capabilities' => [],
-		];
-		set_transient( 'wcstripe_account_data_test', $account );
-
-		$upe_helper = new UPE_Test_Helper();
-		$upe_helper->enable_upe();
-		$upe_helper->reload_payment_gateways();
+		$this->set_stripe_account_data(
+			[
+				'country'      => 'GB',
+				'capabilities' => [],
+			]
+		);
 
 		$this->controller = new WC_REST_Stripe_Settings_Controller( new WC_Stripe_UPE_Payment_Gateway() );
 
@@ -118,15 +120,13 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 		];
 		$this->mock_payment_method_configurations( $expected_method_ids, [] );
 
-		$response             = $this->rest_get_settings();
+		$response             = $this->controller->get_settings();
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
 		$this->assertEquals(
 			$expected_method_ids,
 			$available_method_ids,
 		);
-
-		$this->assertContains( WC_Stripe_Payment_Methods::BACS_DEBIT, $available_method_ids );
 	}
 
 	public function test_get_settings_returns_ordered_payment_method_ids_for_gb() {
@@ -150,29 +150,12 @@ class WC_REST_Stripe_Settings_Controller_Test_GB extends WC_Mock_Stripe_API_Unit
 		];
 		$this->mock_payment_method_configurations( $expected_ordered_method_ids, [] );
 
-		$response = $this->rest_get_settings();
-
+		$response           = $this->controller->get_settings();
 		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
+
 		$this->assertEquals(
 			$expected_ordered_method_ids,
 			$ordered_method_ids
 		);
-		$this->assertContains( WC_Stripe_Payment_Methods::BACS_DEBIT, $ordered_method_ids );
-	}
-
-	/**
-	 * @return WP_REST_Response
-	 */
-	private function rest_get_settings() {
-		$request = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
-
-		return $this->controller->get_settings( $request );
-	}
-
-	/**
-	 * @return WC_Gateway_Stripe
-	 */
-	private function get_gateway() {
-		return self::$gateway;
 	}
 }

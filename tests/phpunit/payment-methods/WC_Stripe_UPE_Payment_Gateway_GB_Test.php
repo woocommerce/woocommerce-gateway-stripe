@@ -2,7 +2,7 @@
 /**
  * Unit tests for the UPE payment gateway
  */
-class WC_Stripe_UPE_Payment_Gateway_Test_GB extends WC_Mock_Stripe_API_Unit_Test_Case {
+class WC_Stripe_UPE_Payment_Gateway_GB_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	/**
 	 * The mock gateway.
 	 *

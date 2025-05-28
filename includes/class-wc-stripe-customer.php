@@ -316,7 +316,7 @@ class WC_Stripe_Customer {
 		$args = $this->generate_customer_request( $args );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
-		if ( ! $this->get_id() && 0 === $this->get_user_id() ) {
+		if ( ! $this->get_id() && 0 === $this->get_user_id() && ! empty( $args['email'] ) && ! empty( $args['name'] ) ) {
 			$response = $this->get_existing_customer( $args['email'], $args['name'] );
 		}
 

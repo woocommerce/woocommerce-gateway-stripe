@@ -113,6 +113,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
+* Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
+* Dev - Moves the main Stripe class to a new file.
+* Dev - Renames all PHP Unit test files to follow the PSR-4.
 * Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
 * Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
@@ -125,6 +128,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for BLIK
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
+* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats 
 * Fix - Void intent when cancelling an uncaptured order
+* Tweak - Track charge completed via webhooks in order notes
+* Tweak - Fix a rare warning when searching customers with missing name
+* Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

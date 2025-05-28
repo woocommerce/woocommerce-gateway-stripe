@@ -611,6 +611,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 					/* translators: transaction id */
 					$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
+					if ( isset( $response->is_webhook_response ) ) {
+						$message .= ' (via webhook)';
+					}
 					$order->add_order_note( $message );
 				}
 			}
