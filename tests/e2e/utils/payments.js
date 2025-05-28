@@ -810,13 +810,6 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.click();
 
 		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_au_becs_debit__content iframe[src*="elements-inner-payment"]'
-		);
-
-		await page.waitForTimeout( 1000 );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -827,13 +820,6 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 		// Select BECS in shortcode checkout.
 		await page.getByText( 'BECS Direct Debit' ).click();
-
-		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_au_becs_debit iframe[src*="elements-inner-payment"]'
-		);
 
 		await page.waitForTimeout( 1000 );
 	}
