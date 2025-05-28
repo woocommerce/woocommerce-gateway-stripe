@@ -8,6 +8,7 @@ import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
+import bannerIllustrationBNPL from './banner-illustration-bnpl.svg';
 import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from './constants';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
@@ -45,8 +46,20 @@ const BannerIllustration = styled.img`
 	margin: 24px 0 0 24px;
 `;
 
+const BannerIllustrationBNPL = styled( BannerIllustration )`
+	margin: 0 0 -40px 24px;
+`;
+
 const ButtonsRow = styled.p`
 	margin: 0;
+`;
+
+const ButtonsRowBNPL = styled( ButtonsRow )`
+	margin-bottom: 0.7em;
+`;
+
+const TitleBNPL = styled.h4`
+	margin-top: 0.6em !important;
 `;
 
 const MainCTALink = styled( Button )`
@@ -366,32 +379,45 @@ const PromotionalBannerSection = ( {
 		<CardBody>
 			<CardInner>
 				<CardColumn>
-					<NewPill>
-						{ __( 'New', 'woocommerce-gateway-stripe' ) }
-					</NewPill>
-					<h4>
+					<TitleBNPL>
 						{ __(
-							'Buy Now, Pay Later is now live on your store',
+							'Try Buy Now, Pay Later with a limited-time promotional rate',
 							'woocommerce-gateway-stripe'
 						) }
-					</h4>
+					</TitleBNPL>
 					<p>
 						{ __(
-							'Offering flexible pay-over-time options can boost conversion and increase order values. BNPL options are auto-enabled with Stripe. \n',
+							'Offer customers flexible pay-over-time options, now enabled in your store’s checkout at a promotional rate until October 22, 2025.',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>
 				</CardColumn>
 				<CardColumn>
-					<BannerIllustration
-						src={ bannerIllustration }
+					<BannerIllustrationBNPL
+						src={ bannerIllustrationBNPL }
 						alt={ __(
-							'New Checkout',
+							'Try Buy Now, Pay Later',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
 				</CardColumn>
 			</CardInner>
+			<ButtonsRowBNPL>
+				<MainCTALink
+					variant="secondary"
+					data-testid="learn-more-bnpl"
+					onClick={ handleButtonClick }
+				>
+					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
+				</MainCTALink>
+				<DismissButton
+					variant="secondary"
+					onClick={ handleBannerDismiss }
+					data-testid="dismiss"
+				>
+					{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
+				</DismissButton>
+			</ButtonsRowBNPL>
 		</CardBody>
 	);
 
