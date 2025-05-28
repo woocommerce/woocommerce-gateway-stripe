@@ -239,7 +239,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 * @since 5.8.0
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-' . $this->stripe_id . '-settings.php';
+		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_Settings_' . ucfirst( $this->stripe_id ) . '.php';
 	}
 
 	/**
