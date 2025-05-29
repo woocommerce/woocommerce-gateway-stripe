@@ -1,10 +1,20 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Gateway_Stripe;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
+use WC_Order;
+use WC_Order_Item_Fee;
+use WC_Order_Item_Product;
+use WC_Stripe_Currency_Code;
+use WC_Stripe_Helper;
+use WP_UnitTestCase;
+
 /**
  * These tests assert that get_level3_data_from_order() returns the correct
  * data.
- */
-
-/**
+ *
  * Level3 data test suite
  */
 class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
