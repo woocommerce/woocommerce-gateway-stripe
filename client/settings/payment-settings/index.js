@@ -11,7 +11,7 @@ import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import PromotionalBannerSection from 'wcstripe/settings/payment-settings/promotional-banner-section';
+import Index from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
 
@@ -102,7 +102,7 @@ const PaymentSettingsPanel = () => {
 							numLines={ 20 }
 							keepContent={ keepModalContent }
 						>
-							<PromotionalBannerSection
+							<Index
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
