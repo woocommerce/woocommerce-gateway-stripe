@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Order
  *
  * Wrapper for the original WC_Order class to allow custom getters and setter with the extension's specific metadata.
+ *
+ * @deprecated Since 9.6.0. This class will be removed in a later version of the extension.
  */
 class WC_Stripe_Order extends WC_Order {
 	/**

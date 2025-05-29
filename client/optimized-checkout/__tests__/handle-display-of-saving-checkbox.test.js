@@ -26,64 +26,110 @@ describe( 'handleDisplayOfSavingCheckbox', () => {
 	} );
 
 	describe( 'Classic checkout', () => {
-		describe( 'Without create account checkbox', () => {
-			it( 'Correctly toggle the display of the saving payment method checkbox', () => {
-				document.body.innerHTML = `
+		const globalValues = global.wc_stripe_upe_params;
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {
+				isLoggedIn: true,
+				isSignupOnCheckoutAllowed: true,
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it( 'User is logged in', () => {
+			global.wc_stripe_upe_params = { isLoggedIn: true };
+
+			document.body.innerHTML = `
+			<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
+			`;
+
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
+
+			expect( saveCardInfoContainer.style.display ).toBe( '' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
+
+		it( 'User is logged out, but the signup feature is enabled and the option selected', () => {
+			global.wc_stripe_upe_params = {
+				isLoggedIn: false,
+				isSignupOnCheckoutAllowed: true,
+			};
+
+			document.body.innerHTML = `
+				<input type="checkbox" id="createaccount" checked />
 				<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
 			`;
 
-				const saveCardInfoContainer = document.querySelector(
-					'.woocommerce-SavedPaymentMethods-saveNew'
-				);
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
 
-				expect( saveCardInfoContainer.style.display ).toBe( '' );
+			expect( saveCardInfoContainer.style.display ).toBe( '' );
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
-				expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'block' );
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
-				expect( saveCardInfoContainer.style.display ).toBe( 'none' );
-			} );
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
 		} );
 
-		describe( 'With create account checkbox', () => {
-			it( 'Correctly toggle the display of the saving payment method checkbox (account checkbox checked)', () => {
-				document.body.innerHTML = `
-					<input type="checkbox" id="createaccount" checked />
-					<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
-				`;
+		it( 'User is logged out, the signup feature is enabled, the option selected, but saved payment method selected', () => {
+			global.wc_stripe_upe_params = {
+				isLoggedIn: false,
+				isSignupOnCheckoutAllowed: true,
+			};
 
-				const saveCardInfoContainer = document.querySelector(
-					'.woocommerce-SavedPaymentMethods-saveNew'
-				);
+			document.body.innerHTML = `
+				<input type="checkbox" id="createaccount" checked />
+				<input type="hidden" name="wc-stripe-payment-token" value="token_123" />
+				<div id="wc-stripe-upe-form" style="display: none;"></div>
+				<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
+			`;
 
-				expect( saveCardInfoContainer.style.display ).toBe( '' );
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
-				expect( saveCardInfoContainer.style.display ).toBe( 'block' );
+			expect( saveCardInfoContainer.style.display ).toBe( '' );
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
-				expect( saveCardInfoContainer.style.display ).toBe( 'none' );
-			} );
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
 
-			it( 'Correctly toggle the display of the saving payment method checkbox (create account checkbox unchecked)', () => {
-				document.body.innerHTML = `
-					<input type="checkbox" id="createaccount" />
-					<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
-				`;
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+		} );
 
-				const saveCardInfoContainer = document.querySelector(
-					'.woocommerce-SavedPaymentMethods-saveNew'
-				);
+		it( 'User is logged out, and the signup option is not available', () => {
+			global.wc_stripe_upe_params = {
+				isLoggedIn: false,
+				isSignupOnCheckoutAllowed: false,
+			};
 
-				expect( saveCardInfoContainer.style.display ).toBe( '' );
+			document.body.innerHTML = `
+			<div class="woocommerce-SavedPaymentMethods-saveNew"></div>
+			`;
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
-				expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+			const saveCardInfoContainer = document.querySelector(
+				'.woocommerce-SavedPaymentMethods-saveNew'
+			);
 
-				handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
-				expect( saveCardInfoContainer.style.display ).toBe( 'none' );
-			} );
+			expect( saveCardInfoContainer.style.display ).toBe( '' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_CARD );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
+
+			handleDisplayOfSavingCheckbox( PAYMENT_METHOD_ALIPAY );
+			expect( saveCardInfoContainer.style.display ).toBe( 'none' );
 		} );
 	} );
 } );
