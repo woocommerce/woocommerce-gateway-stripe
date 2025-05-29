@@ -201,7 +201,6 @@ class WC_Stripe_Autoloader {
 			'wc_stripe_webhook_handler'                    => __DIR__ . '/WC_Stripe_Webhook_Handler.php',
 			'wc_stripe_webhook_state'                      => __DIR__ . '/WC_Stripe_Webhook_State.php',
 			'wc_stripe_woo_compat_utils'                   => __DIR__ . '/Compat/WC_Stripe_Woo_Compat_Utils.php',
-			'wc_stripe_database_cache'                     => __DIR__ . '/WC_Stripe_Database_Cache.php',
 		];
 	}
 
