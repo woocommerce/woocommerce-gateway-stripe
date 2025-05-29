@@ -205,7 +205,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require __DIR__ . '/admin/stripe-settings.php';
+		$this->form_fields = require __DIR__ . '/Admin/stripe-settings.php';
 	}
 
 	/**
