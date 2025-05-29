@@ -498,6 +498,23 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Normalizes address fields in WooCommerce supported format.
+	 *
+	 * @param {Object} billingAddress Billing address.
+	 * @param {Object} shippingAddress Shipping address.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
+		return this.request( getExpressCheckoutAjaxURL( 'normalize_address' ), {
+			security: getExpressCheckoutData( 'nonce' )?.normalize_address,
+			data: {
+				billing_address: billingAddress,
+				shipping_address: shippingAddress,
+			},
+		} );
+	}
+
+	/**
 	 * Get cart items and total amount.
 	 *
 	 * @return {Promise} Promise for the request to the server.

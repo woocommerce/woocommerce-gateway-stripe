@@ -1,4 +1,13 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Helper;
+use WC_Stripe_Intent_Status;
+use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WP_UnitTestCase;
+
 /**
  * These tests assert various things about processing an initial payment for a WooCommerce Subscriptions.
  *
@@ -7,10 +16,8 @@
  * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
  * why that class is mocked even though the method under test is part of that class.
  *
- * @package WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Initial_Test
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Subscription_Initial
+ *
  * WC_Stripe_Subscription_Initial_Test
  */
 class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {

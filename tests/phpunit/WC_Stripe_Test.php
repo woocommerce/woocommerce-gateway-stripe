@@ -1,5 +1,15 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests;
+
+use stdClass;
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
+use WC_Stripe_Currency_Code;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Payment_Gateway;
+
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	/**

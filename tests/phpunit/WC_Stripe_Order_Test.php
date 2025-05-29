@@ -1,13 +1,17 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Stripe_Exception;
+use WC_Stripe_Order;
+use WP_UnitTestCase;
+
 /**
  * Class WC_Stripe_Order
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Order
- */
-
-use Automattic\WooCommerce\Enums\OrderStatus;
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Order
+ *
  * Class WC_Stripe_Order tests.
  */
 class WC_Stripe_Order_Test extends WP_UnitTestCase {

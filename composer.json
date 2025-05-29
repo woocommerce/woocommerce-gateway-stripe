@@ -19,6 +19,11 @@
 				"woocommerce/woocommerce-sniffs": "1.0.0",
 				"wp-cli/wp-cli-bundle": "2.5.0"
     },
+		"autoload-dev": {
+			"psr-4": {
+				"WooCommerce\\Stripe\\Tests\\": "tests/phpunit/"
+			}
+		},
     "extra": {
       "installer-disable": true
     }
