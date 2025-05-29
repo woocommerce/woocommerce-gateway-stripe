@@ -112,6 +112,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
+* Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
+* Dev - Moves the main Stripe class to a new file.
+* Dev - Renames all PHP Unit test files to follow the PSR-4.
+* Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
+* Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
 * Add - Show an icon beside the payment methods that support automatic recurring payments.
@@ -119,7 +125,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove BACS from the unsupported 'change payment method for subscription' page.
 * Fix - Fix payment method title display when new payment settings experience is enabled
 * Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
+* Dev - Add e2e tests for BLIK
+* Dev - Add e2e tests for BECS
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
+* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats 
+* Fix - Void intent when cancelling an uncaptured order
+* Tweak - Track charge completed via webhooks in order notes
+* Tweak - Fix a rare warning when searching customers with missing name
+* Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
+* Dev - Prevent changelog entries with trailing periods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
