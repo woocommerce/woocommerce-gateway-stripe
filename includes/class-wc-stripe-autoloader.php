@@ -111,6 +111,7 @@ class WC_Stripe_Autoloader {
 			'wc_rest_stripe_orders_controller'                      => __DIR__ . '/admin/class-wc-rest-stripe-orders-controller.php',
 			'wc_rest_stripe_settings_controller'                    => __DIR__ . '/admin/class-wc-rest-stripe-settings-controller.php',
 			'wc_rest_stripe_tokens_controller'                      => __DIR__ . '/admin/class-wc-rest-stripe-tokens-controller.php',
+			'wc_stripe'                                             => __DIR__ . '/class-wc-stripe.php',
 			'wc_stripe_account'                                     => __DIR__ . '/class-wc-stripe-account.php',
 			'wc_stripe_action_scheduler_service'                    => __DIR__ . '/class-wc-stripe-action-scheduler-service.php',
 			'wc_stripe_admin_upe_compatibility_controller'          => __DIR__ . '/admin/class-wc-stripe-upe-compatibility-controller.php',
