@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
+import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/bnpl.svg';
 import {
@@ -9,7 +10,6 @@ import {
 	CardColumn,
 	CardInner,
 	DismissButton,
-	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 
 const BannerIllustrationBNPL = styled( BannerIllustration )`
@@ -32,8 +32,6 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 	const handleBannerDismiss = () => {
 		setShowPromotionalBanner( false );
 	};
-
-	const handleButtonClick = () => {};
 
 	return (
 		<CardBody>
@@ -74,13 +72,9 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 				</CardColumn>
 			</CardInner>
 			<ButtonsRowBNPL>
-				<MainCTALink
-					variant="secondary"
-					data-testid="learn-more-bnpl"
-					onClick={ handleButtonClick }
-				>
+				<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/">
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
-				</MainCTALink>
+				</ExternalLink>
 				<DismissButton
 					variant="secondary"
 					onClick={ handleBannerDismiss }
