@@ -1,13 +1,23 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Data_Exception;
+use WC_Order;
+use WC_Stripe_Helper;
+use WC_Stripe_Intent_Status;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_Webhook_Handler;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WP_UnitTestCase;
+use MockAction;
+
 /**
  * These tests make assertions against class WC_Stripe_Webhook_State.
  *
- * @package WooCommerce_Stripe/Tests/Webhook_State
- */
-
-use Automattic\WooCommerce\Enums\OrderStatus;
-
-/**
+ * @package WooCommerce/Stripe/Webhook_State
+ *
  * WC_Stripe_Webhook_State_Test class.
  */
 class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
@@ -185,13 +195,17 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		// Expect the get latest charge from intent to be called.
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'get_latest_charge_from_intent' )
-			->willReturn( self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
 
 		// Expect the process response to be called with the charge and order.
+		$charge_param = (object) array_merge(
+			self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+			[ 'is_webhook_response' => true ]
+		);
 		$this->mock_webhook_handler->expects( $this->once() )
 			->method( 'process_response' )
 			->with(
-				self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+				$charge_param,
 				$this->callback(
 					function ( $passed_order ) use ( $order ) {
 						return $passed_order instanceof WC_Order && $order->get_id() === $passed_order->get_id();
@@ -421,6 +435,9 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'wc_gateway_stripe_process_payment_intent_incomplete',
 			[ &$mock_action_process_payment_intent_incomplete, 'action' ]
 		);
+
+		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
 
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );

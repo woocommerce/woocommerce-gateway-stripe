@@ -1,14 +1,21 @@
 <?php
 
+namespace WooCommerce\Stripe\Tests;
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+use stdClass;
+use WC_Order;
+use WC_Stripe_Currency_Code;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WP_UnitTestCase;
+
 /**
  * These tests make assertions against class WC_Stripe_Helper.
  *
- * @package WooCommerce_Stripe/Tests/Helper
- */
-
-use Automattic\WooCommerce\Enums\OrderStatus;
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Helper
+ *
  * WC_Stripe_Helper_Test class.
  */
 class WC_Stripe_Helper_Test extends WP_UnitTestCase {

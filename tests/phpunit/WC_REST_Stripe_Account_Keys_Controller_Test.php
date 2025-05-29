@@ -1,11 +1,20 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_REST_Stripe_Account_Keys_Controller;
+use WC_Stripe_Account;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+use WP_Error;
+use WP_REST_Request;
+
 /**
  * These tests make assertions against class WC_REST_Stripe_Account_Keys_Controller.
  *
- * @package WooCommerce_Stripe/Tests/WC_REST_Stripe_Account_Keys_Controller
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_REST_Stripe_Account_Keys_Controller
+ *
  * WC_REST_Stripe_Account_Keys_Controller unit tests.
  */
 class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Unit_Test_Case {

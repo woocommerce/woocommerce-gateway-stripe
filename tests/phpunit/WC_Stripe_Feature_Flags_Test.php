@@ -1,12 +1,16 @@
 <?php
-/**
- * These tests make assertions against the class WC_Stripe_Feature_Flags
- */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Feature_Flags;
+use WP_UnitTestCase;
 
 /**
+ * These tests make assertions against the class WC_Stripe_Feature_Flags
+ *
  * Class WC_Stripe_Feature_Flags_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Feature_Flags
+ * @package WooCommerce/Stripe/WC_Stripe_Feature_Flags
  */
 class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	/**

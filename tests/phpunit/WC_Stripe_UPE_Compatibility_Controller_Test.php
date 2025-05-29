@@ -1,11 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_UPE_Compatibility_Controller;
+use WP_UnitTestCase;
+
 /**
  * This test makes assertions against the class WC_Stripe_UPE_Compatibility_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_Stripe_UPE_Compatibility_Controller
- */
-
-/**
+ *
  * WC_Stripe_UPE_Compatibility_Controller unit tests.
  */
 class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
@@ -40,14 +44,14 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		// restore the overwritten values
 		global $wp_version;
-		$wp_version = $this->initial_wp_version;
+		$wp_version = $this->initial_wp_version; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 
 		parent::tear_down();
 	}
 
 	protected function overwrite_wp_version( $version ) {
 		global $wp_version;
-		$wp_version = $version;
+		$wp_version = $version; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 	}
 
 	protected function overwrite_wc_version( $version ) {

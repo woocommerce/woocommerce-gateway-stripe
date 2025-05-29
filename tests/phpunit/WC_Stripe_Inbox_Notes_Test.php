@@ -1,11 +1,23 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
+use WC_Data_Store;
+use WC_Stripe_API;
+use WC_Stripe_Connect;
+use WC_Stripe_Helper;
+use WC_Stripe_Inbox_Notes;
+use WC_Stripe_Payment_Methods;
+use WC_Stripe_UPE_Availability_Note;
+use WC_Stripe_UPE_StripeLink_Note;
+use WP_UnitTestCase;
+
 /**
  * Class WC_Stripe_Inbox_Notes_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Inbox_Notes
- */
-
-/**
+ * @package WooCommerce/Stripe/WC_Stripe_Inbox_Notes
+ *
  * Class WC_Stripe_Inbox_Notes_Note tests.
  */
 class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
