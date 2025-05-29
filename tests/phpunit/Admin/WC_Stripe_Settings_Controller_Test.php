@@ -40,7 +40,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 									->disableOriginalConstructor()
 									->getMock();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_Settings_Controller.php';
 		$this->gateway    = new WC_Gateway_Stripe();
 		$this->controller = new WC_Stripe_Settings_Controller( $this->account, $this->gateway );
 	}

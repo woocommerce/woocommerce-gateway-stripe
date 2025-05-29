@@ -47,7 +47,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 									)
 									->getMock();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/WC_Stripe_Account.php';
 		$this->account = new WC_Stripe_Account( $this->mock_connect, WC_Helper_Stripe_Api::class );
 	}
 
