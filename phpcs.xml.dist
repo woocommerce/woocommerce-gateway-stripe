@@ -31,6 +31,7 @@
 		<exclude name="Universal.Arrays.DisallowShortArraySyntax" />
 
 		<!-- Allow filenames to follow PSR-4 -->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName" />
 		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase" />
 
 		<!-- FIXME: Resolve these issues and remove these rules. -->
