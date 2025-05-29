@@ -1,10 +1,11 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import interpolateComponents from 'interpolate-components';
 import { ExternalLink } from '@wordpress/components';
 import CardBody from 'wcstripe/settings/card-body';
-import bannerIllustration from 'wcstripe/settings/payment-settings/promotional-banner/banner-illustration.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';
 import { recordEvent } from 'wcstripe/tracking';
 import {
 	BannerIllustration,
@@ -99,7 +100,7 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 				</CardColumn>
 				<CardColumn>
 					<BannerIllustration
-						src={ bannerIllustration }
+						src={ illustration }
 						alt={ __(
 							'New Checkout',
 							'woocommerce-gateway-stripe'
