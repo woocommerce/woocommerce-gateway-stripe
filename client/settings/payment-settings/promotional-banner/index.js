@@ -5,15 +5,16 @@ import { React, useEffect } from 'react';
 import { Card, Button, ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
-import CardBody from '../card-body';
+import CardBody from '../../card-body';
 import bannerIllustration from './banner-illustration.svg';
 import bannerIllustrationReConnect from './banner-illustration-re-connect.svg';
 import bannerIllustrationBNPL from './banner-illustration-bnpl.svg';
-import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from './constants';
+import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from '../constants';
 import Pill from 'wcstripe/components/pill';
 import { recordEvent } from 'wcstripe/tracking';
 import { useEnabledPaymentMethodIds, useTestMode } from 'wcstripe/data';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import './styles.scss';
 
 const NewPill = styled( Pill )`
 	border-color: #674399;
@@ -71,7 +72,7 @@ const DismissButton = styled( Button )`
 	color: #757575 !important;
 `;
 
-const PromotionalBannerSection = ( {
+const Index = ({
 	setShowPromotionalBanner,
 	setPromotionalBannerType,
 	isUpeEnabled,
@@ -324,70 +325,31 @@ const PromotionalBannerSection = ( {
 		}
 	}
 
-	// const BNPLForNewMerchantBanner = () => (
-	// 	<CardBody>
-	// 		<CardInner>
-	// 			<CardColumn>
-	// 				<NewPill>
-	// 					{ __( 'New', 'woocommerce-gateway-stripe' ) }
-	// 				</NewPill>
-	// 				<h4>
-	// 					{ __(
-	// 						'Try Buy Now, Pay Later with a limited-time promotional rate',
-	// 						'woocommerce-gateway-stripe'
-	// 					) }
-	// 				</h4>
-	// 				<p>
-	// 					{ __(
-	// 						'Offer customers flexible pay-over-time options, now enabled in your store’s checkout with a X% transaction fee for the next 3 months.',
-	// 						'woocommerce-gateway-stripe'
-	// 					) }
-	// 				</p>
-	// 			</CardColumn>
-	// 			<CardColumn>
-	// 				<BannerIllustration
-	// 					src={ bannerIllustration }
-	// 					alt={ __(
-	// 						'New Checkout',
-	// 						'woocommerce-gateway-stripe'
-	// 					) }
-	// 				/>
-	// 			</CardColumn>
-	// 		</CardInner>
-	// 		<ButtonsRow>
-	// 			<MainCTALink
-	// 				variant="secondary"
-	// 				data-testid="enable-the-new-checkout"
-	// 				onClick={ handleButtonClick }
-	// 			>
-	// 				{ __(
-	// 					'Learn more',
-	// 					'woocommerce-gateway-stripe'
-	// 				) }
-	// 			</MainCTALink>
-	// 			<DismissButton
-	// 				variant="secondary"
-	// 				onClick={ handleBannerDismiss }
-	// 				data-testid="dismiss"
-	// 			>
-	// 				{ __( 'Dismiss', 'woocommerce-gateway-stripe' ) }
-	// 			</DismissButton>
-	// 		</ButtonsRow>
-	// 	</CardBody>
-	// );
-	const BNPLForExistingMerchantBanner = () => (
+	const BNPLPromotionBanner = () => (
 		<CardBody>
 			<CardInner>
 				<CardColumn>
 					<TitleBNPL>
 						{ __(
-							'Try Buy Now, Pay Later with a limited-time promotional rate',
+							'Offer more ways to pay with Buy Now, Pay Later',
 							'woocommerce-gateway-stripe'
 						) }
 					</TitleBNPL>
 					<p>
 						{ __(
-							'Offer customers flexible pay-over-time options, now enabled in your store’s checkout at a promotional rate until October 22, 2025.',
+							'Flexible pay-over-time options can boost revenue by up to 14%*.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+					<p>
+						{ __(
+							'Affirm and Klarna payments are auto-enabled with Stripe for eligible merchants.',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+					<p>
+						{ __(
+							'*Source: Stripe 2024',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>
@@ -421,8 +383,7 @@ const PromotionalBannerSection = ( {
 		</CardBody>
 	);
 
-	// BannerContent = <BNPLForNewMerchantBanner />;
-	BannerContent = <BNPLForExistingMerchantBanner />;
+	BannerContent = <BNPLPromotionBanner />;
 
 	return (
 		BannerContent && (
@@ -433,4 +394,4 @@ const PromotionalBannerSection = ( {
 	);
 };
 
-export default PromotionalBannerSection;
+export default Index;

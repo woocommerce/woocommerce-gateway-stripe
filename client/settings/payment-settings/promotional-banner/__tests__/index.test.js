@@ -2,7 +2,7 @@ import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PromotionalBannerSection from '../promotional-banner-section';
+import Index from '../index';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
@@ -56,7 +56,7 @@ describe( 'PromotionalBanner', () => {
 
 	it( 'dismiss function should be called', () => {
 		render(
-			<PromotionalBannerSection
+			<Index
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
@@ -74,7 +74,7 @@ describe( 'PromotionalBanner', () => {
 		const setIsUpeEnabledMock = jest.fn().mockResolvedValue( true );
 
 		render(
-			<PromotionalBannerSection
+			<Index
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				setPromotionalBannerType={ setPromotionalBannerType }
 				isUpeEnabled={ false }
@@ -89,7 +89,7 @@ describe( 'PromotionalBanner', () => {
 
 	it( 'Display the re-connect promotional surface when OAuth connection is not set', () => {
 		render(
-			<PromotionalBannerSection
+			<Index
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ false }
@@ -106,7 +106,7 @@ describe( 'PromotionalBanner', () => {
 		] );
 
 		render(
-			<PromotionalBannerSection
+			<Index
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
