@@ -34,7 +34,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_REST_UPE_Flag_Toggle_Controller.php';
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );

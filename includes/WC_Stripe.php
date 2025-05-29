@@ -670,7 +670,7 @@ class WC_Stripe {
 		if ( ! class_exists( 'WCS_Background_Repairer' ) ) {
 			return;
 		}
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/migrations/class-wc-stripe-subscriptions-repairer-legacy-sepa-tokens.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Migrations/WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens.php';
 
 		$logger  = wc_get_logger();
 		$updater = new WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens( $logger );
