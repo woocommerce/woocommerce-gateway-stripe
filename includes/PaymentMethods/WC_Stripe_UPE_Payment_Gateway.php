@@ -386,7 +386,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_Settings.php';
+		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/Admin/stripe-settings.php';
 		unset( $this->form_fields['inline_cc_form'] );
 		unset( $this->form_fields['title'] );
 		unset( $this->form_fields['description'] );
