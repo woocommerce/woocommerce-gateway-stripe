@@ -1436,6 +1436,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order The order that is being paid for.
 	 * @return array          The level 3 data to send to Stripe.
+	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
 	public function get_level3_data_from_order( $order ) {
 		// Get the order items. Don't need their keys, only their values.
@@ -1458,10 +1459,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$product_description = substr( $item->get_name(), 0, 26 );
 				$quantity            = $item->get_quantity();
 				if ( ! $quantity ) {
-					WC_Stripe_Logger::error(
-						"Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set. Defaulting to 1."
-					);
-					$quantity = 1; // Default to 1 if quantity is not set.
+					$error_msg = "Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set.";
+					WC_Stripe_Logger::error( $error_msg );
+					throw new WC_Stripe_Exception( $error_msg );
 				}
 				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
 				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
