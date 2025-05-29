@@ -165,7 +165,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_Settings_Bancontact.php';
+		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/Admin/stripe-bancontact-settings.php';
 	}
 
 	/**
