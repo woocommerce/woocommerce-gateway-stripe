@@ -20,6 +20,10 @@ const ButtonsRowBNPL = styled( ButtonsRow )`
 	margin-bottom: 0.7em;
 `;
 
+const IntroBNPL = styled.p`
+	line-height: 20px;
+`;
+
 const TitleBNPL = styled.h4`
 	margin-top: 0.6em !important;
 `;
@@ -41,18 +45,17 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					</TitleBNPL>
-					<p>
+					<IntroBNPL>
 						{ __(
 							'Flexible pay-over-time options can boost revenue by up to 14%*.',
 							'woocommerce-gateway-stripe'
 						) }
-					</p>
-					<p>
+						<br />
 						{ __(
 							'Affirm and Klarna payments are auto-enabled with Stripe for eligible merchants.',
 							'woocommerce-gateway-stripe'
 						) }
-					</p>
+					</IntroBNPL>
 					<p>
 						{ __(
 							'*Source: Stripe 2024',

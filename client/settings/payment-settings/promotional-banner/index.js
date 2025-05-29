@@ -32,16 +32,35 @@ const Index = ( {
 
 	let BannerContent = null;
 	if ( isConnectedViaOAuth === false ) {
-		BannerContent = <ReConnectAccountBanner testOauthUrl={ testOauthUrl } oauthUrl={ oauthUrl } />;
+		BannerContent = (
+			<ReConnectAccountBanner
+				testOauthUrl={ testOauthUrl }
+				oauthUrl={ oauthUrl }
+			/>
+		);
 	} else if ( ! isUpeEnabled ) {
 		if ( hasAPMEnabled ) {
-			BannerContent = <NewCheckoutExperienceAPMsBanner setShowPromotionalBanner={ setShowPromotionalBanner } setIsUpeEnabled={ setIsUpeEnabled } />;
+			BannerContent = (
+				<NewCheckoutExperienceAPMsBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+					setIsUpeEnabled={ setIsUpeEnabled }
+				/>
+			);
 		} else {
-			BannerContent = <NewCheckoutExperienceBanner setShowPromotionalBanner={ setShowPromotionalBanner } setIsUpeEnabled={ setIsUpeEnabled} />;
+			BannerContent = (
+				<NewCheckoutExperienceBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+					setIsUpeEnabled={ setIsUpeEnabled }
+				/>
+			);
 		}
 	}
 
-	BannerContent = <BNPLPromotionBanner />;
+	BannerContent = (
+		<BNPLPromotionBanner
+			setShowPromotionalBanner={ setShowPromotionalBanner }
+		/>
+	);
 
 	return (
 		BannerContent && (
