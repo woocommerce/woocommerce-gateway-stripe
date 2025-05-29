@@ -13,7 +13,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function set_up() {
 		parent::set_up();
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_Admin_Notices.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Admin/WC_Stripe_Admin_Notices.php';
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()

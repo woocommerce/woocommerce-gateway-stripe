@@ -549,10 +549,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		// including the class again because otherwise it's not present.
 		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/Notes/WC_Stripe_UPE_Availability_Note.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/src/Notes/WC_Stripe_UPE_Availability_Note.php';
 			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
 
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/Notes/WC_Stripe_UPE_StripeLink_Note.php';
+			require_once WC_STRIPE_PLUGIN_PATH . '/src/Notes/WC_Stripe_UPE_StripeLink_Note.php';
 			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
 

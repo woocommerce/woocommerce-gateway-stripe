@@ -42,9 +42,9 @@ function _manually_load_plugin() {
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
 
 	// REST API.
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_Stripe_REST_Base_Controller.php';
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_REST_Stripe_Settings_Controller.php';
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/Admin/WC_REST_Stripe_Account_Keys_Controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/src/Admin/WC_Stripe_REST_Base_Controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/src/Admin/WC_REST_Stripe_Settings_Controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/src/Admin/WC_REST_Stripe_Account_Keys_Controller.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );

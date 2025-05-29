@@ -51,10 +51,10 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Notes/WC_Stripe_UPE_Availability_Note.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Notes/WC_Stripe_UPE_Availability_Note.php';
 		WC_Stripe_UPE_Availability_Note::init();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Notes/WC_Stripe_UPE_StripeLink_Note.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Notes/WC_Stripe_UPE_StripeLink_Note.php';
 		WC_Stripe_UPE_StripeLink_Note::init( WC_Stripe::get_instance()->get_main_stripe_gateway() );
 	}
 

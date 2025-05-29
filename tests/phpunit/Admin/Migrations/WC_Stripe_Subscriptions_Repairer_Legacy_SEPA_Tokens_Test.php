@@ -73,7 +73,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 
 		$this->upe_helper = new UPE_Test_Helper();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/Migrations/WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/src/Migrations/WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens.php';
 
 		$this->logger_mock = $this->getMockBuilder( 'WC_Logger' )
 								   ->disableOriginalConstructor()
