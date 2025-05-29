@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import CardBody from 'wcstripe/settings/card-body';
-import bannerIllustrationBNPL from 'wcstripe/settings/payment-settings/promotional-banner/banner-illustration-bnpl.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/bnpl.svg';
 import {
 	BannerIllustration,
 	ButtonsRow,
@@ -65,7 +65,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 				</CardColumn>
 				<CardColumn>
 					<BannerIllustrationBNPL
-						src={ bannerIllustrationBNPL }
+						src={ illustration }
 						alt={ __(
 							'Try Buy Now, Pay Later',
 							'woocommerce-gateway-stripe'

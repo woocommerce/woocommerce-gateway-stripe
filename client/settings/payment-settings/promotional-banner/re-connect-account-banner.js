@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import CardBody from 'wcstripe/settings/card-body';
-import bannerIllustrationReConnect from 'wcstripe/settings/payment-settings/promotional-banner/banner-illustration-re-connect.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/reconnect.svg';
 import { recordEvent } from 'wcstripe/tracking';
 import { useTestMode } from 'wcstripe/data';
 import {
@@ -57,7 +57,7 @@ export const ReConnectAccountBanner = ( { testOauthUrl, oauthUrl } ) => {
 				</CardColumn>
 				<CardColumn>
 					<BannerIllustration
-						src={ bannerIllustrationReConnect }
+						src={ illustration }
 						alt={ __(
 							'Re-authenticate',
 							'woocommerce-gateway-stripe'
