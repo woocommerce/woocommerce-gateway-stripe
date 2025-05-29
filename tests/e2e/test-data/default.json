@@ -103,6 +103,36 @@
 				"postcode": "M5T 2E9"
 			}
 		},
+		"customer_australia": {
+			"billing": {
+				"first_name": "Test",
+				"last_name": "Customer",
+				"company": "",
+				"address_1": "100 George Street",
+				"address_2": "billing",
+				"city": "Sydney",
+				"state": "New South Wales",
+				"state_iso": "NSW",
+				"postcode": "2000",
+				"country": "Australia",
+				"country_iso": "AU",
+				"email": "e2e-customer-billing@woocommerce.com",
+				"phone": "+61412345678"
+			},
+			"shipping": {
+				"first_name": "Test",
+				"last_name": "Customer",
+				"company": "",
+				"address_1": "100 George Street",
+				"address_2": "shipping",
+				"city": "Sydney",
+				"state": "New South Wales",
+				"state_iso": "NSW",
+				"postcode": "2000",
+				"country": "Australia",
+				"country_iso": "AU"
+			}
+		},
 		"customer_poland": {
 			"billing": {
 				"first_name": "Customer",
@@ -320,6 +350,18 @@
 			},
 			"cvc": "626",
 			"label": "3DS not supported"
+		}
+	},
+	"becs": {
+		"valid": {
+			"account_number": "000123456",
+			"bsb": "000-000",
+			"name": "Test Customer"
+		},
+		"invalid": {
+			"account_number": "999999999",
+			"bsb": "999-999",
+			"name": "Invalid Customer"
 		}
 	}
 }
