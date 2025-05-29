@@ -1,4 +1,15 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use Automattic\WooCommerce\Enums\OrderStatus;
+use WC_Stripe_Feature_Flags;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
+use WP_UnitTestCase;
+use MockAction;
+
 /**
  * These tests assert various things about processing a renewal payment for a WooCommerce Subscription.
  *
@@ -7,12 +18,8 @@
  * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
  * why that class is mocked even though the method under test is part of that class.
  *
- * @package     WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Renewal_Test
- */
-
-use Automattic\WooCommerce\Enums\OrderStatus;
-
-/**
+ * @package     WooCommerce_Stripe/WC_Stripe_Subscription_Renewal
+ *
  * WC_Stripe_Subscription_Renewal_Test
  */
 class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
