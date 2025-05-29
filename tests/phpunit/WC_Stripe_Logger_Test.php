@@ -1,9 +1,14 @@
 <?php
-/**
- * These tests make assertions against class WC_Stripe_Logger.
- */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Helper;
+use WC_Stripe_Logger;
+use WP_UnitTestCase;
 
 /**
+ * These tests make assertions against class WC_Stripe_Logger.
+ *
  * Class WC_Stripe_Logger_Test.
  */
 class WC_Stripe_Logger_Test extends WP_UnitTestCase {

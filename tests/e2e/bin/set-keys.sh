@@ -13,6 +13,6 @@ if [ -z "$STRIPE_PUB_KEY" ] || [ -z "$STRIPE_SECRET_KEY" ]; then
   exit 1
 fi
 
-redirect_output  wp option patch update woocommerce_stripe_settings test_publishable_key "${STRIPE_PUB_KEY}"
-redirect_output  wp option patch update woocommerce_stripe_settings test_secret_key "${STRIPE_SECRET_KEY}"
+redirect_output  cli wp option patch update woocommerce_stripe_settings test_publishable_key "${STRIPE_PUB_KEY}"
+redirect_output  cli wp option patch update woocommerce_stripe_settings test_secret_key "${STRIPE_SECRET_KEY}"
 
