@@ -27,6 +27,7 @@
 * Tweak - Fix a rare warning when searching customers with missing name
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Dev - Prevent changelog entries with trailing periods
+* Fix - Fix legacy deprecation notice displayed on new plugin installs
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
