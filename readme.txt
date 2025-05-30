@@ -9,7 +9,7 @@ License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
 
-Take credit card and other payments on your store using Stripe.
+Accept debit and credit card payments in 135+ currencies, express payments with Apple Pay and Google Pay, deferred payments via Klarna, Affirm, and Afterpay/Clearpay, as well as over a dozen local payment methods.
 
 == Description ==
 
