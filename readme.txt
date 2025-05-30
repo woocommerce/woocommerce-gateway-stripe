@@ -113,6 +113,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Dev - Introduces a new feature flag to identify whether the legacy checkout experience is deprecated.
+* Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
+* Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
+* Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
 * Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
 * Dev - Moves the main Stripe class to a new file.
