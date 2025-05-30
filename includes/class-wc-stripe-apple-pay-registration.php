@@ -114,7 +114,6 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function register_domain_on_domain_name_change() {
 		if ( $this->domain_name !== $this->get_option( 'apple_pay_verified_domain' ) ) {
-			error_log( 'Domain name changed, attempting to register domain...' );
 			$this->register_domain_if_configured();
 		}
 	}
@@ -143,9 +142,6 @@ class WC_Stripe_Apple_Pay_Registration {
 			'Authorization' => 'Bearer ' . $secret_key,
 		];
 
-		error_log( 'Sending POST request to ' . $endpoint );
-		error_log( '>>> Data: ' . print_r( $data, true ) );
-
 		$response = wp_remote_post(
 			$endpoint,
 			[
@@ -168,8 +164,6 @@ class WC_Stripe_Apple_Pay_Registration {
 			/* translators: error message */
 			throw new Exception( sprintf( __( 'Unable to register domain - %s', 'woocommerce-gateway-stripe' ), $apple_pay_registration_notice ) );
 		}
-
-		error_log( '>>> Response: ' . $response['response']['code'] . ' ' . $response['response']['message'] . ' ' . $parsed_response->domain_name );
 	}
 
 	/**
@@ -232,12 +226,6 @@ class WC_Stripe_Apple_Pay_Registration {
 			return;
 		}
 
-		if ( 'add_option_woocommerce_stripe_settings' === current_action() ) {
-			error_log( 'New settings added, attempting to register domain...' );
-		} elseif ( 'woocommerce_stripe_updated' === current_action() ) {
-			error_log( 'Plugin updated, attempting to register domain...' );
-		}
-
 		// Register the domain with Apple Pay.
 		$registration_complete = $this->register_domain( $secret_key );
 
@@ -261,7 +249,6 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		// If secret key was different, then we might need to register again.
 		if ( $current_secret_key !== $prev_secret_key ) {
-			error_log( 'Secret key changed, attempting to register domain...' );
 			$this->register_domain_if_configured();
 		}
 	}
