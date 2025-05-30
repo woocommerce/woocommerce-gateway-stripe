@@ -201,6 +201,6 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_legacy_checkout_deprecated() {
-		return WC_STRIPE_VERSION >= self::LEGACY_CHECKOUT_DEPRECATION_VERSION;
+		return version_compare( WC_STRIPE_VERSION, self::LEGACY_CHECKOUT_DEPRECATION_VERSION, '>=' );
 	}
 }
