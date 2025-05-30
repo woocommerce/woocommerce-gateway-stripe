@@ -46,11 +46,11 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		)
 		->getMock();
 
-		$this->mock_wc_apple_pay_registration->stripe_settings = [
-			'enabled'         => 'yes',
-			'testmode'        => 'yes',
-			'test_secret_key' => '123',
-		];
+		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings['enabled']         = 'yes';
+		$settings['testmode']        = 'yes';
+		$settings['test_secret_key'] = '123';
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$this->upe_helper = new UPE_Test_Helper();
 	}
@@ -93,7 +93,9 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 			->expects( $this->never() )
 			->method( 'register_domain' );
 
-		$this->mock_wc_apple_pay_registration->stripe_settings['test_secret_key'] = '';
+		$settings = WC_Stripe_Helper::get_stripe_settings();
+		unset( $settings['test_secret_key'] );
+		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$this->mock_wc_apple_pay_registration->register_domain_if_configured();
 	}

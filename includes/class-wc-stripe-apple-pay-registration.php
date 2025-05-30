@@ -15,7 +15,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 *
 	 * @var
 	 */
-	public $stripe_settings;
+	private $stripe_settings;
 
 	/**
 	 * Current domain name.
