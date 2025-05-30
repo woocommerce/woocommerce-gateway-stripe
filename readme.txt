@@ -9,7 +9,7 @@ License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
 
-Accept debit and credit card payments in 135+ currencies, express payments with Apple Pay and Google Pay, deferred payments via Klarna, Affirm, and Afterpay/Clearpay, as well as over a dozen local payment methods.
+Accept debit and credit cards in 135+ currencies, many local methods like Alipay, ACH, and SEPA, and express checkout with Apple Pay and Google Pay.
 
 == Description ==
 
