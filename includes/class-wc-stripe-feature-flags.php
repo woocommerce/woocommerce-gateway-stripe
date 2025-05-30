@@ -15,6 +15,11 @@ class WC_Stripe_Feature_Flags {
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
 
 	/**
+	 * Version when the legacy checkout was deprecated.
+	 */
+	const LEGACY_CHECKOUT_DEPRECATION_VERSION = '9.6.0';
+
+	/**
 	 * Feature flag to control SPE (Single Payment Element, now OC - Optimized CHeckout) feature availability.
 	 *
 	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
@@ -188,5 +193,14 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_oc_available() {
 		return 'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+	}
+
+	/**
+	 * Checks whether the legacy checkout is deprecated.
+	 *
+	 * @return bool
+	 */
+	public static function is_legacy_checkout_deprecated() {
+		return WC_STRIPE_VERSION >= self::LEGACY_CHECKOUT_DEPRECATION_VERSION;
 	}
 }
