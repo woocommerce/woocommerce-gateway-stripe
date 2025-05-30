@@ -138,5 +138,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Fix a rare warning when searching customers with missing name
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Dev - Prevent changelog entries with trailing periods
+* Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
