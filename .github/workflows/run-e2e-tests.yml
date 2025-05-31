@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: [ 'default', 'legacy', 'acss', 'optimized-checkout', 'blik' ]
+        project: [ 'default', 'legacy', 'acss', 'optimized-checkout', 'blik', 'becs' ]
 
     name: E2E - ${{ matrix.project }} (WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }})
     steps:
@@ -39,14 +39,14 @@ jobs:
       - name: Prepare test environment
         env:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
-          STRIPE_PUB_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
       - name: Run E2E tests
         env:
-          STRIPE_PUB_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
-          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || secrets.E2E_STRIPE_SECRET_KEY }}
+          STRIPE_PUB_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_PUBLISHABLE_KEY_AU || secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ matrix.checkout == 'blik' && secrets.E2E_STRIPE_SECRET_KEY_PL || matrix.checkout == 'becs' && secrets.E2E_STRIPE_SECRET_KEY_AU || secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e -- --project=${{ matrix.project }}
 
       - name: Upload E2E test results

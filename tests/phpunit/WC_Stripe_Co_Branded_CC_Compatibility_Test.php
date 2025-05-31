@@ -1,12 +1,16 @@
 <?php
-/**
- * These tests make assertions against the class WC_Stripe_Co_Branded_CC_Compatibility
- */
+
+namespace WooCommerce\Stripe\Tests;
+
+use WC_Stripe_Co_Branded_CC_Compatibility;
+use WP_UnitTestCase;
 
 /**
+ * These tests make assertions against the class WC_Stripe_Co_Branded_CC_Compatibility
+ *
  * Class WC_Stripe_Co_Branded_CC_Compatibility_Test
  *
- * @package WooCommerce_Stripe/Tests/WC_Stripe_Co_Branded_CC_Compatibility
+ * @package WooCommerce/Stripe/WC_Stripe_Co_Branded_CC_Compatibility
  */
 class WC_Stripe_Co_Branded_CC_Compatibility_Test extends WP_UnitTestCase {
 	/**
