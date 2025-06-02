@@ -81,9 +81,11 @@ function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		// Initialize our autoloader.
-		require_once __DIR__ . '/includes/WC_Stripe_Autoloader.php';
-		WC_Stripe_Autoloader::init();
+		// Includes the autoloader.
+		$autoload_filepath = __DIR__ . '/vendor/autoload.php';
+		if ( file_exists( $autoload_filepath ) ) {
+			require $autoload_filepath;
+		}
 
 		$plugin = WC_Stripe::get_instance();
 	}
