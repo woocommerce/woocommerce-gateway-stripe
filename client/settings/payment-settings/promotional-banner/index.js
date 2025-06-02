@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { React, useEffect } from 'react';
 import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from '../constants';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
@@ -21,9 +20,7 @@ const Index = ( {
 	oauthUrl,
 	testOauthUrl,
 } ) => {
-	const isLegacyDeprecated =
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.is_legacy_checkout_deprecated;
+	const isLegacyDeprecated = false;
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const hasAPMEnabled =
 		enabledPaymentMethodIds.filter( ( e ) => e !== PAYMENT_METHOD_CARD )
