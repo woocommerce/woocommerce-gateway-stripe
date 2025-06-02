@@ -299,6 +299,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Helper function to return the list of countries that WooCommerce is set up to ship to.
+	 * The data is returned as an array of country codes, and relies on core WooCommerce shipping settings.
+	 *
+	 * @return string[]|null List of country codes, or null if shipping is not enabled.
+	 */
+	public function get_allowed_shipping_countries() {
+		if ( ! wc_shipping_enabled() ) {
+			return null;
+		}
+
+		$allowed_shipping_countries = WC()->countries->get_shipping_countries();
+
+		return array_keys( $allowed_shipping_countries );
+	}
+
+	/**
 	 * JS params data used by cart and checkout pages.
 	 *
 	 * @param array $data
