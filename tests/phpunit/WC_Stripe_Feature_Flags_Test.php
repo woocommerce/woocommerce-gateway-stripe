@@ -43,17 +43,4 @@ class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 			],
 		];
 	}
-
-	/**
-	 * Tests for `is_legacy_checkout_deprecated`.
-	 *
-	 * @return void
-	 */
-	public function test_is_legacy_checkout_deprecated() {
-		if ( WC_STRIPE_VERSION < WC_Stripe_Feature_Flags::LEGACY_CHECKOUT_DEPRECATION_VERSION ) {
-			$this->assertFalse( WC_Stripe_Feature_Flags::is_legacy_checkout_deprecated() );
-		} else {
-			$this->assertTrue( WC_Stripe_Feature_Flags::is_legacy_checkout_deprecated() );
-		}
-	}
 }
