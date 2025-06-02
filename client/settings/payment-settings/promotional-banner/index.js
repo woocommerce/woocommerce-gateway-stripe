@@ -11,7 +11,7 @@ import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/
 import { BNPLPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/bnpl-promotion-banner';
 import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 
-const Index = ( {
+const PromotionalBanner = ( {
 	setShowPromotionalBanner,
 	setPromotionalBannerType,
 	isUpeEnabled,
@@ -78,4 +78,4 @@ const Index = ( {
 	);
 };
 
-export default Index;
+export default PromotionalBanner;

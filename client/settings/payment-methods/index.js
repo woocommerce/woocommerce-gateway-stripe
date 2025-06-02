@@ -8,7 +8,7 @@ import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
-import Index from 'wcstripe/settings/payment-settings/promotional-banner';
+import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
 
@@ -65,7 +65,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 		<>
 			{ showPromotionalBanner && (
 				<SettingsSection>
-					<Index
+					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
 						setPromotionalBannerType={ setPromotionalBannerType }
 						isUpeEnabled={ isUpeEnabled }
