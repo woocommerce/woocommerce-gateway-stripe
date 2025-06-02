@@ -29,6 +29,7 @@
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
+* Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
