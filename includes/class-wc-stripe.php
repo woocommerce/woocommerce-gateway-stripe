@@ -326,6 +326,9 @@ class WC_Stripe {
 			// - @reykjalin
 			$this->update_prb_location_settings();
 
+			// Deprecate the legacy checkout.
+			$this->deprecate_legacy_checkout();
+
 			// Check for subscriptions using legacy SEPA tokens on upgrade.
 			// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
 			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
@@ -334,6 +337,27 @@ class WC_Stripe {
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
 		}
+	}
+
+	/**
+	 * Deprecates the legacy checkout.
+	 *
+	 * @since 9.6.0
+	 * @version 9.6.0
+	 */
+	public function deprecate_legacy_checkout() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
+		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
+			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		}
+
+		if ( ! class_exists( 'WC_Tracks' ) ) {
+			return;
+		}
+
+		WC_Tracks::record_event( 'wcstripe_legacy_checkout_deprecated' );
 	}
 
 	/**
