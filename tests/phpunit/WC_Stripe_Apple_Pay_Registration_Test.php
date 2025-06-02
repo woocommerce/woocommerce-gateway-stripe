@@ -1,11 +1,18 @@
 <?php
+
+namespace WooCommerce\Stripe\Tests;
+
+use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
+use WC_Stripe;
+use WC_Stripe_Apple_Pay_Registration;
+use WC_Stripe_Helper;
+use WC_Stripe_Payment_Methods;
+
 /**
  * These teste make assertions against class WC_Stripe_Apple_Pay_Registration.
  *
- * @package WooCommerce_Stripe/Tests/Apple_Pay_Registration
- */
-
-/**
+ * @package WooCommerce/Stripe/Apple_Pay_Registration
+ *
  * WC_Stripe_Apple_Pay_Registration unit tests.
  */
 class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
@@ -44,6 +51,13 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 	 * @var UPE_Test_Helper
 	 */
 	private $upe_helper;
+
+	/**
+	 * Initial file contents.
+	 *
+	 * @var false|string
+	 */
+	private $initial_file_contents;
 
 	/**
 	 * Pre-test setup

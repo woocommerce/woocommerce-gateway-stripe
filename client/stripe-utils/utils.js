@@ -264,7 +264,7 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 
 function shouldIncludeTerms() {
 	if ( getStripeServerData()?.cartContainsSubscription ) {
-		return true;
+		return ! getStripeServerData()?.subscriptionRequiresManualRenewal;
 	}
 
 	const savePaymentMethodCheckbox = document.getElementById(

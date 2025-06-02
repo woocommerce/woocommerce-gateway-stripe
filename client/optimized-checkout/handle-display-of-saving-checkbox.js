@@ -1,4 +1,5 @@
 import { NON_REUSABLE_METHODS } from 'wcstripe/stripe-utils/constants';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
 
 export const handleDisplayOfSavingCheckbox = ( method ) => {
 	// For block checkout
@@ -22,8 +23,16 @@ export const handleDisplayOfSavingCheckbox = ( method ) => {
 		const createAccountCheckbox = document.getElementById(
 			'createaccount'
 		);
+		const signupSelected =
+			getStripeServerData()?.isSignupOnCheckoutAllowed &&
+			createAccountCheckbox?.checked;
+		const hasSavedPaymentMethodSelected =
+			document.querySelector( 'input[name=wc-stripe-payment-token]' ) &&
+			document.getElementById( 'wc-stripe-upe-form' )?.style.display ===
+				'none';
 		if (
-			( ! createAccountCheckbox || createAccountCheckbox?.checked ) &&
+			( getStripeServerData()?.isLoggedIn || signupSelected ) &&
+			! hasSavedPaymentMethodSelected &&
 			! NON_REUSABLE_METHODS.includes( method )
 		) {
 			saveCardInfoContainerClassic.style.display = 'block';

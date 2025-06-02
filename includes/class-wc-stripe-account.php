@@ -65,7 +65,7 @@ class WC_Stripe_Account {
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Connect $connect Stripe connect
-	 * @param $stripe_api Stripe API class
+	 * @param string $stripe_api Stripe API class
 	 */
 	public function __construct( WC_Stripe_Connect $connect, $stripe_api ) {
 		$this->connect    = $connect;
