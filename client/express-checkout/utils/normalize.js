@@ -37,45 +37,9 @@ export const normalizeOrderData = ( {
 	paymentMethodId = '',
 	confirmationTokenId = '',
 } ) => {
-	const name = event?.billingDetails?.name;
-	const email = event?.billingDetails?.email ?? '';
-	const billing = event?.billingDetails?.address ?? {};
-	const shipping = event?.shippingAddress ?? {};
-
-	const phone =
-		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
-		event?.payerPhone?.replace( /[() -]/g, '' ) ??
-		'';
-
 	return {
-		billing_address: {
-			first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-			last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
-			company: billing?.organization ?? '',
-			email: email ?? event?.payerEmail ?? '',
-			phone,
-			country: billing?.country ?? '',
-			address_1: billing?.line1 ?? '',
-			address_2: billing?.line2 ?? '',
-			city: billing?.city ?? '',
-			state: billing?.state ?? '',
-			postcode: billing?.postal_code ?? '',
-		},
-		shipping_address: {
-			first_name:
-				shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-			last_name:
-				shipping?.name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
-			company: shipping?.organization ?? '',
-			phone,
-			country: shipping?.address?.country ?? '',
-			address_1: shipping?.address?.line1 ?? '',
-			address_2: shipping?.address?.line2 ?? '',
-			city: shipping?.address?.city ?? '',
-			state: shipping?.address?.state ?? '',
-			postcode: shipping?.address?.postal_code ?? '',
-			method: [ event?.shippingRate?.id ?? null ],
-		},
+		billing_address: getBillingAddressData( event ),
+		shipping_address: getShippingAddressData( event ),
 		payment_method: 'stripe',
 		payment_data: buildBlocksAPIPaymentData( {
 			expressPaymentType: event?.expressPaymentType,
@@ -88,6 +52,161 @@ export const normalizeOrderData = ( {
 		),
 		additional_fields: getAdditionalFieldsDataFromStore(),
 	};
+};
+
+/**
+ * Get billing address data from the event, and format it for the Store API.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {Object} The billing address data.
+ */
+const getBillingAddressData = ( event ) => {
+	const name = event?.billingDetails?.name;
+	const email = event?.billingDetails?.email ?? '';
+	const billing = event?.billingDetails?.address ?? {};
+
+	const data = {
+		first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+		last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
+		company: billing?.organization ?? '',
+		email: email ?? event?.payerEmail ?? '',
+		phone: getPhone( event ),
+		country: billing?.country ?? '',
+		address_1: billing?.line1 ?? '',
+		address_2: billing?.line2 ?? '',
+		city: billing?.city ?? '',
+		state: billing?.state ?? '',
+		postcode: billing?.postal_code ?? '',
+	};
+
+	return {
+		...getCustomBillingAddressData( data ),
+		...data,
+	};
+};
+
+/**
+ * Get shipping address data from the event, and format it for the Store API.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {Object} The shipping address data.
+ */
+const getShippingAddressData = ( event ) => {
+	const shipping = event?.shippingAddress ?? {};
+
+	const data = {
+		first_name:
+			shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+		last_name: shipping?.name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
+		company: shipping?.organization ?? '',
+		phone: getPhone( event ),
+		country: shipping?.address?.country ?? '',
+		address_1: shipping?.address?.line1 ?? '',
+		address_2: shipping?.address?.line2 ?? '',
+		city: shipping?.address?.city ?? '',
+		state: shipping?.address?.state ?? '',
+		postcode: shipping?.address?.postal_code ?? '',
+		method: [ event?.shippingRate?.id ?? null ],
+	};
+
+	return {
+		...getCustomShippingAddressData( data ),
+		...data,
+	};
+};
+
+/**
+ * Get custom billing address field data.
+ *
+ * @param {Object} data The standard billing address data.
+ *
+ * @return {Object} The custom billing address data.
+ */
+const getCustomBillingAddressData = ( data ) => {
+	const customerData = getCustomerDataFromStore();
+
+	if ( ! customerData || ! customerData.billingAddress ) {
+		return {};
+	}
+
+	const customBillingAddressData = {};
+
+	// Get properties present in customerData.billingAddress but not in
+	// the standard, expected billing address data.
+	const customBillingAddressKeys = Object.keys(
+		customerData.billingAddress
+	).filter( ( key ) => ! data[ key ] );
+
+	customBillingAddressKeys.forEach( ( key ) => {
+		customBillingAddressData[ key ] = customerData.billingAddress[ key ];
+	} );
+
+	return customBillingAddressData;
+};
+
+/**
+ * Get custom shipping address field data.
+ *
+ * @param {Object} data The standard shipping address data.
+ *
+ * @return {Object} The custom shipping address data.
+ */
+const getCustomShippingAddressData = ( data ) => {
+	const customerData = getCustomerDataFromStore();
+
+	if ( ! customerData || ! customerData.shippingAddress ) {
+		return {};
+	}
+
+	const customShippingAddressData = {};
+
+	// Get properties present in customerData.shippingAddress but not in
+	// the standard, expected shipping address data.
+	const customShippingAddressKeys = Object.keys(
+		customerData.shippingAddress
+	).filter( ( key ) => ! data[ key ] );
+
+	customShippingAddressKeys.forEach( ( key ) => {
+		customShippingAddressData[ key ] = customerData.shippingAddress[ key ];
+	} );
+
+	return customShippingAddressData;
+};
+
+/**
+ * Get customer data from the cart store.
+ *
+ * @return {Object} The customer data.
+ */
+const getCustomerDataFromStore = () => {
+	const cartStore = window.wc?.wcBlocksData?.cartStore;
+	if ( ! cartStore ) {
+		return {};
+	}
+
+	const store = select( cartStore );
+	if ( ! store ) {
+		return {};
+	}
+
+	return store.getCustomerData() || {};
+};
+
+/**
+ * Get the phone number from the event.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {string} The phone number, or an empty string.
+ */
+const getPhone = ( event ) => {
+	return (
+		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
+		event?.payerPhone?.replace( /[() -]/g, '' ) ??
+		''
+	);
 };
 
 /**
