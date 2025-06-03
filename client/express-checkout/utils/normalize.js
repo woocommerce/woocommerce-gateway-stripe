@@ -1,3 +1,4 @@
+import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 
 /**
@@ -85,7 +86,27 @@ export const normalizeOrderData = ( {
 			'wcstripe.express-checkout.cart-place-order-extension-data',
 			{}
 		),
+		additional_fields: getAdditionalFieldsDataFromStore(),
 	};
+};
+
+/**
+ * Get additional fields data from the checkout store.
+ *
+ * @return {Object} The additional fields data.
+ */
+const getAdditionalFieldsDataFromStore = () => {
+	const checkoutStore = window.wc?.wcBlocksData?.checkoutStore;
+	if ( ! checkoutStore ) {
+		return {};
+	}
+
+	const store = select( checkoutStore );
+	if ( ! store ) {
+		return {};
+	}
+
+	return store.getAdditionalFields() || {};
 };
 
 /**
