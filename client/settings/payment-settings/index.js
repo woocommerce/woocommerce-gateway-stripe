@@ -14,6 +14,9 @@ import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
+import { BNPL_PROMOTION_BANNER } from 'wcstripe/settings/payment-settings/constants';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -72,15 +75,20 @@ const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		true
-	);
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
-	const oauthConnected = isTestModeEnabled
-		? data?.oauth_connections?.test?.connected
-		: data?.oauth_connections?.live?.connected;
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const promotionalBannerType = getPromotionalBannerType(
+		data,
+		isUpeEnabled,
+		enabledPaymentMethodIds
+	);
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		promotionalBannerType === BNPL_PROMOTION_BANNER
+			? // eslint-disable-next-line camelcase
+			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
+			: true
+	);
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -106,10 +114,8 @@ const PaymentSettingsPanel = () => {
 								setShowPromotionalBanner={
 									setShowPromotionalBanner
 								}
-								setPromotionalBannerType={ () => {} }
-								isUpeEnabled={ isUpeEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
-								isConnectedViaOAuth={ oauthConnected }
+								promotionalBannerType={ promotionalBannerType }
 								oauthUrl={
 									// eslint-disable-next-line camelcase
 									wc_stripe_settings_params.stripe_oauth_url

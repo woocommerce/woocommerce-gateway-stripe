@@ -1,6 +1,6 @@
 /* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
@@ -14,6 +14,8 @@ import {
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -53,25 +55,20 @@ const PaymentRequestDescription = () => (
 );
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
-	const [ promotionalBannerType, setPromotionalBannerType ] = useState( '' );
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		true
-	);
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
-	const oauthConnected = isTestModeEnabled
-		? data?.oauth_connections?.test?.connected
-		: data?.oauth_connections?.live?.connected;
-
-	useEffect( () => {
-		if ( promotionalBannerType === BNPL_PROMOTION_BANNER ) {
-			setShowPromotionalBanner(
-				// eslint-disable-next-line camelcase
-				wc_stripe_settings_params.show_bnpl_promotional_banner === '1'
-			);
-		}
-	}, [ promotionalBannerType ] );
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const promotionalBannerType = getPromotionalBannerType(
+		data,
+		isUpeEnabled,
+		enabledPaymentMethodIds
+	);
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		promotionalBannerType === BNPL_PROMOTION_BANNER
+			? // eslint-disable-next-line camelcase
+			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
+			: true
+	);
 
 	return (
 		<>
@@ -79,10 +76,8 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 				<SettingsSection>
 					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
-						setPromotionalBannerType={ setPromotionalBannerType }
-						isUpeEnabled={ isUpeEnabled }
 						setIsUpeEnabled={ setIsUpeEnabled }
-						isConnectedViaOAuth={ oauthConnected }
+						promotionalBannerType={ promotionalBannerType }
 						oauthUrl={
 							// eslint-disable-next-line camelcase
 							wc_stripe_settings_params.stripe_oauth_url

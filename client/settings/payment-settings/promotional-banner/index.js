@@ -1,14 +1,10 @@
-import { React, useEffect } from 'react';
+import { React } from 'react';
 import {
 	RECONNECT_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
 	BNPL_PROMOTION_BANNER,
+	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 } from '../constants';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import {
-	BNPL_METHODS,
-	PAYMENT_METHOD_CARD,
-} from 'wcstripe/stripe-utils/constants';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
 import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
@@ -17,66 +13,44 @@ import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banne
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
-	setPromotionalBannerType,
-	isUpeEnabled,
+	promotionalBannerType,
 	setIsUpeEnabled,
-	isConnectedViaOAuth,
 	oauthUrl,
 	testOauthUrl,
 } ) => {
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const hasAPMEnabled =
-		enabledPaymentMethodIds.filter( ( e ) => e !== PAYMENT_METHOD_CARD )
-			.length > 0;
-	const hasBNPLEnabled =
-		enabledPaymentMethodIds.filter( ( e ) => BNPL_METHODS.includes( e ) )
-			.length > 0;
-
-	useEffect( () => {
-		if ( isConnectedViaOAuth === false ) {
-			setPromotionalBannerType( RECONNECT_BANNER );
-		} else if ( isUpeEnabled && ! hasBNPLEnabled ) {
-			setPromotionalBannerType( BNPL_PROMOTION_BANNER );
-		} else if ( ! isUpeEnabled ) {
-			setPromotionalBannerType( NEW_CHECKOUT_EXPERIENCE_BANNER );
-		}
-	}, [
-		isUpeEnabled,
-		isConnectedViaOAuth,
-		setPromotionalBannerType,
-		hasBNPLEnabled,
-	] );
-
 	let BannerContent = null;
-	if ( isConnectedViaOAuth === false ) {
-		BannerContent = (
-			<ReConnectAccountBanner
-				testOauthUrl={ testOauthUrl }
-				oauthUrl={ oauthUrl }
-			/>
-		);
-	} else if ( isUpeEnabled && ! hasBNPLEnabled ) {
-		BannerContent = (
-			<BNPLPromotionBanner
-				setShowPromotionalBanner={ setShowPromotionalBanner }
-			/>
-		);
-	} else if ( ! isUpeEnabled ) {
-		if ( hasAPMEnabled ) {
+	switch ( promotionalBannerType ) {
+		case RECONNECT_BANNER:
+			BannerContent = (
+				<ReConnectAccountBanner
+					testOauthUrl={ testOauthUrl }
+					oauthUrl={ oauthUrl }
+				/>
+			);
+			break;
+		case BNPL_PROMOTION_BANNER:
+			BannerContent = (
+				<BNPLPromotionBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+				/>
+			);
+			break;
+		case NEW_CHECKOUT_EXPERIENCE_APMS_BANNER:
 			BannerContent = (
 				<NewCheckoutExperienceAPMsBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
 					setIsUpeEnabled={ setIsUpeEnabled }
 				/>
 			);
-		} else {
+			break;
+		case NEW_CHECKOUT_EXPERIENCE_BANNER:
 			BannerContent = (
 				<NewCheckoutExperienceBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
 					setIsUpeEnabled={ setIsUpeEnabled }
 				/>
 			);
-		}
+			break;
 	}
 
 	return (

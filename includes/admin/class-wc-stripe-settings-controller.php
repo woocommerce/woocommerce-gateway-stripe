@@ -231,6 +231,11 @@ class WC_Stripe_Settings_Controller {
 			'</strong>'
 		);
 
+		$enabled_payment_methods    = $this->get_gateway()->get_upe_enabled_payment_method_ids();
+		$show_bnpl_promotion_banner = get_option( 'wc_stripe_show_bnpl_promotion_banner', 'yes' ) === 'yes'
+			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
+			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
+
 		$params = [
 			'time'                         => time(),
 			'i18n_out_of_sync'             => $message,
@@ -243,7 +248,7 @@ class WC_Stripe_Settings_Controller {
 			'stripe_oauth_url'             => $oauth_url,
 			'stripe_test_oauth_url'        => $test_oauth_url,
 			'show_customization_notice'    => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
-			'show_bnpl_promotional_banner' => get_option( 'wc_stripe_show_bnpl_promotion_banner', 'yes' ) === 'yes' ? true : false,
+			'show_bnpl_promotional_banner' => $show_bnpl_promotion_banner,
 			'is_test_mode'                 => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'               => WC_STRIPE_VERSION,
 			'account_country'              => $this->account->get_account_country(),
