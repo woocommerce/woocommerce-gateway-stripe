@@ -202,12 +202,28 @@ class WC_Stripe_Status {
 	 * @param array $tools List of current available tools.
 	 */
 	public function debug_tools( $tools ) {
-		$tools['list_detached_subscriptions'] = [
-			'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
-			'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
-			'desc'     => __( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
-			'callback' => [ $this->account, 'list_detached_subscriptions' ],
-		];
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			$tools['list_detached_subscriptions'] = [
+				'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+				'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
+				'desc'     => __( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
+				'callback' => [ $this, 'list_detached_subscriptions' ],
+			];
+		}
 		return $tools;
+	}
+
+	/**
+	 * Lists Stripe subscriptions with detached payment methods.
+	 *
+	 * @return void
+	 */
+	public function list_detached_subscriptions() {
+		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
+		$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+		echo '<div class="wrap woocommerce">';
+			echo '<h1>' . esc_html_e( 'Export Products', 'woocommerce-gateway-stripe' ) . '</h1>';
+			echo esc_html( $detached_messages );
+		echo '</div>';
 	}
 }
