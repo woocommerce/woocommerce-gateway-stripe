@@ -1,9 +1,22 @@
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import apiFetch from '@wordpress/api-fetch';
 import { BNPLPromotionBanner } from '../bnpl-promotion-banner';
+
+jest.mock( '@wordpress/api-fetch' );
 
 describe( 'BNPL promotional banner', () => {
 	const setShowPromotionalBanner = jest.fn();
+
+	beforeEach( () => {
+		apiFetch.mockImplementation(
+			jest.fn( () => Promise.resolve( { data: {} } ) )
+		);
+	} );
+
+	afterEach( () => {
+		jest.clearAllMocks();
+	} );
 
 	it( 'should render the BNPL promotional banner', () => {
 		const { getByText, getByTestId } = render(
@@ -18,15 +31,23 @@ describe( 'BNPL promotional banner', () => {
 		expect( getByText( '*Source: Stripe 2024' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should call setShowPromotionalBanner with false when the banner is dismissed', () => {
+	it( 'should make an API call to dismiss the banner on button click', async () => {
+		const dismissNoticeMock = jest.fn( () =>
+			Promise.resolve( { data: {} } )
+		);
+		apiFetch.mockImplementation( dismissNoticeMock );
+
 		const { getByTestId } = render(
 			<BNPLPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
 		const dismissButton = getByTestId( 'dismiss' );
-		userEvent.click( dismissButton );
-		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
+
+		await act( async () => {
+			await userEvent.click( dismissButton );
+		} );
+		expect( dismissNoticeMock ).toHaveBeenCalled();
 	} );
 
 	it( 'link should contain the correct attributes', async () => {
