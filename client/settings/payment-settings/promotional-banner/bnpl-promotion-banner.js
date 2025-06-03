@@ -48,6 +48,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 		} ).finally( () => {
 			setShowPromotionalBanner( false );
 		} );
+		window.location.reload();
 	};
 
 	return (
