@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use ReflectionClass;
 use WC_Stripe_Database_Cache;
+use WC_Stripe_Mode;
 use WP_UnitTestCase;
 
 /**
@@ -32,6 +33,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * Test cache expiration.
 	 */
 	public function test_cache_expiration() {
+		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
 		$key  = 'expiring_key';
 		$data = 'expiring_data';
 
@@ -46,7 +48,8 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$property = $reflection->getProperty( 'in_memory_cache' );
 		$property->setAccessible( true );
 		$in_memory_cache = $property->getValue();
-		$in_memory_cache[ $key ]['updated'] -= HOUR_IN_SECONDS + 1; // Set update time to 1h 1s ago.
+
+		$in_memory_cache[ $key_prefix . $key ]['updated'] -= HOUR_IN_SECONDS + 1; // Set update time to 1h 1s ago.
 		$property->setValue( null, $in_memory_cache );
 
 		// Should be expired.
@@ -56,9 +59,9 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$property->setValue( null, [] );
 
 		// Update the database option to simulate expiration.
-		$cache_contents = get_option( $key );
+		$cache_contents = get_option( $key_prefix . $key );
 		$cache_contents['updated'] -= HOUR_IN_SECONDS + 1; // Set update time to 1h 1s ago.
-		update_option( $key, $cache_contents );
+		update_option( $key_prefix . $key, $cache_contents );
 
 		// Should be expired.
 		$this->assertNull( WC_Stripe_Database_Cache::get( $key ) );
@@ -84,6 +87,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	 * Test in-memory cache.
 	 */
 	public function test_in_memory_cache() {
+		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
 		$key  = 'memory_key';
 		$data = 'memory_data';
 
@@ -94,7 +98,7 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$result1 = WC_Stripe_Database_Cache::get( $key );
 
 		// Modify the option directly to check the second read in the same process uses the in-memory cache.
-		update_option( $key, null );
+		update_option( $key_prefix . $key, null );
 
 		// Get data twice - second call should use in-memory cache.
 		$result2 = WC_Stripe_Database_Cache::get( $key );
@@ -163,41 +167,23 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests the get_cached_keys method.
-	 *
-	 * @return void
-	 */
-	public function test_get_cached_keys() {
-		// Initially there should be no cached keys
-		$this->assertEmpty( WC_Stripe_Database_Cache::get_cached_keys() );
-
-		// Add some test data to the cache
-		WC_Stripe_Database_Cache::set( 'test_key_1', 'test_value_1' );
-		WC_Stripe_Database_Cache::set( 'test_key_2', 'test_value_2' );
-
-		// Get the cached keys
-		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
-
-		// Verify we have the expected keys
-		$this->assertCount( 2, $cached_keys );
-		$this->assertContains( 'test_key_1', $cached_keys );
-		$this->assertContains( 'test_key_2', $cached_keys );
-
-		// Delete one key and verify it's removed from cached keys
-		WC_Stripe_Database_Cache::delete( 'test_key_1' );
-		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
-		$this->assertCount( 1, $cached_keys );
-		$this->assertNotContains( 'test_key_1', $cached_keys );
-		$this->assertContains( 'test_key_2', $cached_keys );
-	}
-
-	/**
 	 * Clean up after each test.
 	 */
 	public function tearDown(): void {
-		$cached_keys = WC_Stripe_Database_Cache::get_cached_keys();
+		$key_prefix = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' );
+		// Update the in-memory-cache to simulate expiration.
+		$reflection = new ReflectionClass( 'WC_Stripe_Database_Cache' );
+		$property = $reflection->getProperty( 'in_memory_cache' );
+		$property->setAccessible( true );
+		$in_memory_cache = $property->getValue();
+
+		$cached_keys = array_keys( $in_memory_cache );
 		foreach ( $cached_keys as $key ) {
-			WC_Stripe_Database_Cache::delete( $key );
+			// The key is prefixed with "wcstripe_cache_[mode]_", so we need to remove it to get the original key.
+			// This change ensures that we're properly cleaning up the cache by using the correct key format that
+			// the WC_Stripe_Database_Cache::delete() method expects.
+			$key_without_prefix = str_replace( $key_prefix, '', $key );
+			WC_Stripe_Database_Cache::delete( $key_without_prefix );
 		}
 
 		parent::tearDown();
