@@ -455,25 +455,26 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		return [
 			'empty request'                => [
 				'request params'    => [],
+				'expected option'   => [],
 				'expected response' => [],
 			],
 			'dismiss customization notice' => [
-				'request params' => [
+				'request params'    => [
 					'wc_stripe_show_customization_notice' => 'no',
-					'expected option'                     => [
-						'wc_stripe_show_customization_notice' => 'no',
-					],
-					'expected response'                   => [
-						'result' => 'notice dismissed',
-					],
+				],
+				'expected option'   => [
+					'wc_stripe_show_customization_notice' => 'no',
+				],
+				'expected response' => [
+					'result' => 'notice dismissed',
 				],
 			],
 			'dismiss BNPL banner'          => [
 				'request params'    => [
-					'wc_stripe_show_bnpl_banner' => 'no',
+					'wc_stripe_show_bnpl_promotion_banner' => 'no',
 				],
 				'expected option'   => [
-					'wc_stripe_show_bnpl_banner' => 'no',
+					'wc_stripe_show_bnpl_promotion_banner' => 'no',
 				],
 				'expected response' => [
 					'result' => 'notice dismissed',
