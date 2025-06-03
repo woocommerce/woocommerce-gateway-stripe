@@ -222,8 +222,14 @@ class WC_Stripe_Status {
 		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
 		$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 		echo '<div class="wrap woocommerce">';
-			echo '<h1>' . esc_html_e( 'Export Products', 'woocommerce-gateway-stripe' ) . '</h1>';
+			echo '<h1>' . esc_html__( 'List Detached Stripe Subscriptions', 'woocommerce-gateway-stripe' ) . '</h1>';
+		if ( empty( $detached_messages ) ) {
+			echo '<div class="notice notice-info inline">';
+				echo '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
+			echo '</div>';
+		} else {
 			echo esc_html( $detached_messages );
+		}
 		echo '</div>';
 	}
 }
