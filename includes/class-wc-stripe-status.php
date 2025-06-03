@@ -41,6 +41,7 @@ class WC_Stripe_Status {
 	 */
 	public function init_hooks() {
 		add_action( 'woocommerce_system_status_report', [ $this, 'render_status_report_section' ], 1 );
+		add_filter( 'woocommerce_debug_tools', [ $this, 'debug_tools' ] );
 	}
 
 	/**
@@ -193,5 +194,20 @@ class WC_Stripe_Status {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Add Stripe tools to the Woo debug tools.
+	 *
+	 * @param array $tools List of current available tools.
+	 */
+	public function debug_tools( $tools ) {
+		$tools['list_detached_subscriptions'] = [
+			'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+			'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
+			'desc'     => __( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
+			'callback' => [ $this->account, 'list_detached_subscriptions' ],
+		];
+		return $tools;
 	}
 }
