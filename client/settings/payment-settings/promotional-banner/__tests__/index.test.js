@@ -8,6 +8,11 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_IDEAL,
 } from 'wcstripe/stripe-utils/constants';
+import {
+	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
+	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	RECONNECT_BANNER,
+} from 'wcstripe/settings/payment-settings/constants';
 
 jest.mock( '@wordpress/data' );
 
@@ -34,7 +39,6 @@ useDispatch.mockImplementation( ( storeName ) => {
 } );
 
 const setShowPromotionalBanner = jest.fn();
-const setPromotionalBannerType = jest.fn();
 
 describe( 'PromotionalBanner', () => {
 	// Keep the original function.
@@ -58,8 +62,8 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_BANNER }
 			/>
 		);
 
@@ -76,10 +80,10 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isUpeEnabled={ false }
 				setIsUpeEnabled={ setIsUpeEnabledMock }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_BANNER }
 			/>
 		);
 
@@ -91,8 +95,8 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ false }
+				promotionalBannerType={ RECONNECT_BANNER }
 			/>
 		);
 		expect(
@@ -108,8 +112,8 @@ describe( 'PromotionalBanner', () => {
 		render(
 			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_APMS_BANNER }
 			/>
 		);
 
