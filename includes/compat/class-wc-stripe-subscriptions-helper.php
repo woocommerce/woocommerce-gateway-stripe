@@ -15,6 +15,13 @@ class WC_Stripe_Subscriptions_Helper {
 	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
 
 	/**
+	 * Stripe customer page base URL.
+	 *
+	 * @var string
+	 */
+	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
+
+	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
 	 * @return bool Whether subscriptions is enabled or not.
@@ -24,11 +31,24 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads up to 50 subscriptions, and attempts to return up to 5 of those that are detached from the customer.
+	 * Loads up to 50 subscriptions, and attempts to return those that are detached from the customer.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 This method is no longer used and will be removed in a future version.
 	 */
 	public static function get_some_detached_subscriptions() {
+		_deprecated_function( __METHOD__, '9.6.0' );
+		return self::get_detached_subscriptions( 50 );
+	}
+
+	/**
+	 * Loads all subscriptions, and attempts to return those that are detached from the customer.
+	 *
+	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
+	 * @return array
+	 */
+	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
 		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
 		if ( is_array( $cached_subscriptions ) ) {
@@ -37,7 +57,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$subscriptions = wcs_get_subscriptions(
 			[
-				'subscriptions_per_page' => 50,
+				'subscriptions_per_page' => $limit,
 				'page'                   => 1,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
@@ -60,9 +80,6 @@ class WC_Stripe_Subscriptions_Helper {
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					];
-					if ( count( $detached_subscriptions ) >= 5 ) {
-						break;
-					}
 				}
 			}
 		}
@@ -71,5 +88,44 @@ class WC_Stripe_Subscriptions_Helper {
 		set_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
+	}
+
+	/**
+	 * Builds a string containing messages about subscriptions that are detached from the customer.
+	 *
+	 * @param $subscriptions array An array of subscriptions that are detached from the customer.
+	 * @return string A string containing the messages to be displayed in the admin interface.
+	 */
+	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
+		$detached_messages = '';
+		foreach ( $subscriptions as $subscription ) {
+			$customer_payment_method_link = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $subscription['change_payment_method_url'] ),
+				esc_html(
+				/* translators: this is a text for a link pointing to the customer's payment method page */
+					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+			$customer_stripe_page = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
+				esc_html(
+				/* translators: this is a text for a link pointing to the customer's page on Stripe */
+					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+			$detached_messages .= sprintf(
+			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
+				__( '#%1$s: %2$s | %3$s<br/>', 'woocommerce-gateway-stripe' ),
+				$subscription['id'],
+				$customer_payment_method_link,
+				$customer_stripe_page
+			);
+		}
+		if ( ! empty( $detached_messages ) ) {
+			$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
+		}
+		return $detached_messages;
 	}
 }
