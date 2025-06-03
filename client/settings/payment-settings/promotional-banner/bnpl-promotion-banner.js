@@ -14,11 +14,21 @@ import {
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 
 const BannerIllustrationBNPL = styled( BannerIllustration )`
-	margin: 0 0 -40px 24px;
+	@media ( min-width: 600px ) {
+		margin: 0 0 -40px 24px;
+	}
 `;
 
 const ButtonsRowBNPL = styled( ButtonsRow )`
-	margin-bottom: 0.7em;
+	@media ( min-width: 600px ) {
+		margin-bottom: 0.7em;
+	}
+`;
+
+const ColumnIllustration = styled( CardColumn )`
+	@media ( max-width: 599px ) {
+		text-align: center;
+	}
 `;
 
 const IntroBNPL = styled.p`
@@ -68,7 +78,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 						) }
 					</p>
 				</CardColumn>
-				<CardColumn>
+				<ColumnIllustration>
 					<BannerIllustrationBNPL
 						src={ illustration }
 						alt={ __(
@@ -76,7 +86,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-				</CardColumn>
+				</ColumnIllustration>
 			</CardInner>
 			<ButtonsRowBNPL>
 				<ExternalLink href="https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/">
