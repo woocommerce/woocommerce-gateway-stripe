@@ -21,7 +21,7 @@ const PromotionalBanner = ( {
 	oauthUrl,
 	testOauthUrl,
 } ) => {
-	const isLegacyDeprecated =
+	const isUpeEnabled =
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.is_upe_checkout_enabled === '1';
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
