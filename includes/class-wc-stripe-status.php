@@ -228,7 +228,21 @@ class WC_Stripe_Status {
 				echo '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
 			echo '</div>';
 		} else {
-			echo esc_html( $detached_messages );
+			echo '<div class="notice notice-error inline">';
+				echo '<p>';
+					echo wp_kses(
+						$detached_messages,
+						[
+							'a'      => [
+								'href'   => [],
+								'target' => [],
+							],
+							'strong' => [],
+							'br'     => [],
+						]
+					);
+				echo '</p>';
+			echo '</div>';
 		}
 		echo '</div>';
 	}
