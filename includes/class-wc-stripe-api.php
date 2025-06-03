@@ -457,11 +457,11 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard when the site is a production site
+		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
 		// and return false when the site is a staging/local/development site.
 		// This is to avoid detaching the payment method from the live production site.
 		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() ) {
+		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			if ( 'production' === wp_get_environment_type() ) {
 				return true;
 			} else {
