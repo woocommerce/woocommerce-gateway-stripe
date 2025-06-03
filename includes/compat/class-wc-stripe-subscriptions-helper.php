@@ -50,6 +50,10 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
+			if ( ! $subscription instanceof WC_Subscription ) {
+				continue;
+			}
+
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
 				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
