@@ -183,8 +183,8 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function javascript_params() {
 		return [
-			'ajax_url'               => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-			'stripe'                 => [
+			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe'                     => [
 				'publishable_key'             => WC_Stripe_Mode::is_test() ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
@@ -193,7 +193,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
 				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
 			],
-			'nonce'                  => [
+			'nonce'                      => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
 				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
@@ -207,7 +207,7 @@ class WC_Stripe_Express_Checkout_Element {
 				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 				'wc_store_api'              => wp_create_nonce( 'wc_store_api' ),
 			],
-			'i18n'                   => [
+			'i18n'                       => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
@@ -223,7 +223,52 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_cart_page'               => is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
+			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
 		];
+	}
+
+	/**
+	 * Retrieve custom checkout field IDs.
+	 *
+	 * @return array Custom checkout field IDs.
+	 */
+	public function get_custom_checkout_fields() {
+		// If not a checkout page, bail.
+		if ( ! $this->express_checkout_helper->is_checkout() ) {
+			return [];
+		}
+
+		$custom_checkout_fields = [];
+
+		// Block checkout.
+		if ( has_block( 'woocommerce/checkout' ) ) {
+			$checkout_fields = Package::container()->get( CheckoutFields::class );
+			$field_names     = array_keys( $checkout_fields->get_additional_fields() );
+			foreach ( $field_names as $field_name ) {
+				$location              = $checkout_fields->get_field_location( $field_name );
+				$normalized_field_name = str_replace( '/', '-', $field_name );
+				switch ( $location ) {
+					case 'address':
+						$custom_checkout_fields[] = 'billing-' . $normalized_field_name;
+						$custom_checkout_fields[] = 'shipping-' . $normalized_field_name;
+						break;
+					case 'contact':
+						$custom_checkout_fields[] = 'contact-' . $normalized_field_name;
+						break;
+					case 'order':
+						$custom_checkout_fields[] = 'order-' . $normalized_field_name;
+						break;
+					default:
+						break;
+				}
+			}
+
+			return $custom_checkout_fields;
+		}
+
+		// TODO: Add support for classic checkout.
+
+		return $custom_checkout_fields;
 	}
 
 	/**
