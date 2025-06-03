@@ -1,5 +1,9 @@
 import { React, useEffect } from 'react';
-import { RECONNECT_BANNER, NEW_CHECKOUT_EXPERIENCE_BANNER } from '../constants';
+import {
+	RECONNECT_BANNER,
+	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	BNPL_PROMOTION_BANNER,
+} from '../constants';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
 	BNPL_METHODS,
@@ -31,10 +35,17 @@ const PromotionalBanner = ( {
 	useEffect( () => {
 		if ( isConnectedViaOAuth === false ) {
 			setPromotionalBannerType( RECONNECT_BANNER );
+		} else if ( isUpeEnabled && ! hasBNPLEnabled ) {
+			setPromotionalBannerType( BNPL_PROMOTION_BANNER );
 		} else if ( ! isUpeEnabled ) {
 			setPromotionalBannerType( NEW_CHECKOUT_EXPERIENCE_BANNER );
 		}
-	}, [ isUpeEnabled, isConnectedViaOAuth, setPromotionalBannerType ] );
+	}, [
+		isUpeEnabled,
+		isConnectedViaOAuth,
+		setPromotionalBannerType,
+		hasBNPLEnabled,
+	] );
 
 	let BannerContent = null;
 	if ( isConnectedViaOAuth === false ) {
