@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WooCommerce Stripe Gateway
  * Plugin URI: https://wordpress.org/plugins/woocommerce-gateway-stripe/
- * Description: Take credit card payments on your store using Stripe.
+ * Description: Accept debit and credit card payments in 135+ currencies, as well as Apple Pay, Google Pay, Klarna, Affirm, P24, ACH, and more.
  * Author: Stripe
  * Author URI: https://stripe.com/
  * Version: 9.5.2
