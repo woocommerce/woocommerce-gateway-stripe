@@ -128,6 +128,7 @@ class WC_Stripe {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-method-configurations.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-api.php';
 		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-mode.php';
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-page-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/class-wc-stripe-subscriptions-helper.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/compat/trait-wc-stripe-subscriptions.php';
