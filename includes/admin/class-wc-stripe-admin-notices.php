@@ -67,7 +67,9 @@ class WC_Stripe_Admin_Notices {
 		$this->payment_methods_check_environment();
 
 		// Check for subscriptions detached from the customer.
-		$this->subscription_check_detachment();
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			$this->subscription_check_detachment();
+		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
@@ -469,6 +471,11 @@ class WC_Stripe_Admin_Notices {
 	public function subscription_check_detachment() {
 		global $theorder;
 
+		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
+		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
+			$theorder = wcs_get_subscription( $GLOBALS['post']->ID );
+		}
+
 		if ( isset( $theorder ) && $theorder instanceof WC_Subscription ) {
 			$subscription = $theorder;
 			if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
@@ -479,6 +486,12 @@ class WC_Stripe_Admin_Notices {
 						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
 						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 					]
+				);
+				$detached_message .= '<br />' . sprintf(
+					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+					__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>List Stripe subscriptions with detached payment method</strong>.', 'woocommerce-gateway-stripe' ),
+					'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
+					'</a>'
 				);
 				$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
 			}
