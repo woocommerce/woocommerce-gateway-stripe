@@ -272,6 +272,15 @@ class WC_Stripe {
 
 		// Initialize the class for handling the status page.
 		add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
+
+		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
+	}
+
+	/**
+	 * Initialize the class for handling the Apple Pay registration.
+	 */
+	public function initialize_apple_pay_registration() {
+		new WC_Stripe_Apple_Pay_Registration();
 	}
 
 	/**
