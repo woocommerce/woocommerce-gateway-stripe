@@ -7,10 +7,10 @@ use WC_Stripe_Admin_Notices;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Subscription;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
-
 	public function set_up() {
 		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -525,5 +525,50 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				],
 			],
 		];
+	}
+
+	/**
+	 * Test for `subscription_check_detachment`.
+	 *
+	 * @return void
+	 */
+	public function test_subscription_check_detachment() {
+		global $theorder;
+
+		add_filter( 'wc_stripe_is_subscription_edit_page', '__return_true' );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 123 );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_source_id', 'src_123' );
+		$subscription->save_meta_data();
+
+		$theorder = $subscription;
+
+		// Mock response from Stripe API.
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		$this->assertCount( 1, $notices->notices );
+		$this->assertArrayHasKey( 'subscription_detached', $notices->notices );
+		$this->assertMatchesRegularExpression( '/The payment method for this subscription has been detached/', $notices->notices['subscription_detached']['message'] );
+
+		remove_filter( 'wc_stripe_is_subscription_edit_page', 'wcstripe_is_subscription_edit_page' );
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 }
