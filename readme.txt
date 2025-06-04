@@ -1,6 +1,6 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
-Tags: credit card, stripe, payments, woocommerce, automattic
+Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.1
 Requires PHP: 7.4
@@ -9,7 +9,7 @@ License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
 
-Take credit card and other payments on your store using Stripe.
+Accept debit and credit cards in 135+ currencies, many local methods like Alipay, ACH, and SEPA, and express checkout with Apple Pay and Google Pay.
 
 == Description ==
 
@@ -132,12 +132,16 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for BECS
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
-* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats 
+* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
 * Fix - Void intent when cancelling an uncaptured order
+* Fix - Hide future payments message from payment element when manual renewal is required
 * Tweak - Track charge completed via webhooks in order notes
 * Tweak - Fix a rare warning when searching customers with missing name
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
+* Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
+* Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
+* Tweak - Add prefix to the custom database cache keys
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

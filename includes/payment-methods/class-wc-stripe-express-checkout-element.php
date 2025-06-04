@@ -212,16 +212,17 @@ class WC_Stripe_Express_Checkout_Element {
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			],
-			'checkout'               => $this->express_checkout_helper->get_checkout_data(),
-			'button'                 => $this->express_checkout_helper->get_button_settings(),
-			'is_pay_for_order'       => $this->express_checkout_helper->is_pay_for_order_page(),
-			'has_block'              => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
-			'login_confirmation'     => $this->express_checkout_helper->get_login_confirmation_settings(),
-			'is_product_page'        => $this->express_checkout_helper->is_product(),
-			'is_checkout_page'       => $this->express_checkout_helper->is_checkout(),
-			'product'                => $this->express_checkout_helper->get_product_data(),
-			'is_cart_page'           => is_cart(),
-			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
+			'button'                     => $this->express_checkout_helper->get_button_settings(),
+			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
+			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
+			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
+			'is_product_page'            => $this->express_checkout_helper->is_product(),
+			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
+			'product'                    => $this->express_checkout_helper->get_product_data(),
+			'is_cart_page'               => is_cart(),
+			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
 		];
 	}
 
