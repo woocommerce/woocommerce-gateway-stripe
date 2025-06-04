@@ -21,7 +21,7 @@ class WC_Stripe_Page_Helper {
 		}
 
 		// If custom order tables are not enabled, we need to check the post type and action query params.
-		$is_shop_order_post_type = isset( $query_params['post'] ) && 'shop_order' === get_post_type( $query_params['post'] );
-		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_order_post_type;
+		$is_shop_subscription_post_type = isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
+		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_subscription_post_type;
 	}
 }
