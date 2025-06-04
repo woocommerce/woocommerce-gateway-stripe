@@ -114,4 +114,42 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Tests for `is_subscription_payment_method_detached`.
+	 *
+	 * @return void
+	 */
+	public function test_is_subscription_payment_method_detached() {
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 1 );
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_customer_id', 'cus_123' );
+		$subscription->update_meta_data( '_stripe_source_id', 'src_123' );
+		$subscription->save_meta_data();
+
+		// Mock response from Stripe API.
+		add_filter(
+			'pre_http_request',
+			function () {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'customer' => null,
+						]
+					),
+				];
+			},
+			10,
+			3
+		);
+
+		$this->assertTrue( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) );
+
+		remove_filter( 'pre_http_request', '__return_null', 10, 3 );
+	}
 }
