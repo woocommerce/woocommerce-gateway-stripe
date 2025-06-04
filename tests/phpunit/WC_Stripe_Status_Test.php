@@ -2,6 +2,8 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WC_Gateway_Stripe;
+use WC_Stripe_Account;
 use WC_Stripe_Status;
 use WP_UnitTestCase;
 
@@ -17,7 +19,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_render_status_report_section() {
-		$gateway = $this->getMockBuilder( 'WC_Gateway_Stripe' )
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -28,7 +30,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 				]
 			);
 
-		$account = $this->getMockBuilder( 'WC_Stripe_Account' )
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -50,5 +52,26 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'acct_123', $output );
 		$this->assertStringContainsString( 'john.doe@example.com', $output );
 		$this->assertStringContainsString( 'card', $output );
+	}
+
+	/**
+	 * Test for `debug_tools`.
+	 *
+	 * @return void
+	 */
+	public function test_debug_tools() {
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$status = new WC_Stripe_Status( $gateway, $account );
+
+		$tools = $status->debug_tools( [] );
+
+		$this->assertArrayHasKey( 'list_detached_subscriptions', $tools );
 	}
 }
