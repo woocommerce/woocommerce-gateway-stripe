@@ -152,4 +152,21 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', '__return_null', 10, 3 );
 	}
+
+	/**
+	 * Tests for `build_subscription_detached_message`.
+	 *
+	 * @return void
+	 */
+	public function test_build_subscription_detached_message() {
+		$subscription_data = [
+			'id'                        => 1,
+			'customer_id'               => 'cus_123',
+			'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
+		];
+
+		$expected = '#1: <a href="https://example.com/my-account/subscription-payment-method/1">Payment method page &rarr;</a> | <a href="https://dashboard.stripe.com/customers/cus_123">Stripe customer page &rarr;</a><br/>';
+		$actual   = WC_Stripe_Subscriptions_Helper::build_subscription_detached_message( $subscription_data );
+		$this->assertEquals( $expected, $actual );
+	}
 }
