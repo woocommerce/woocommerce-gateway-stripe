@@ -73,5 +73,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		// Test cached version
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 	}
 }

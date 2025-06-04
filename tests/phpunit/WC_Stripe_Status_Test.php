@@ -103,6 +103,21 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 			}
 
 			WC_Subscriptions_Helpers::$wcs_get_subscriptions = $mocked_subscriptions;
+
+			// Mock response from Stripe API.
+			$test_request = function () {
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'customer' => null,
+						]
+					),
+				];
+			};
+
+			add_filter( 'pre_http_request', $test_request, 10, 3 );
 		}
 
 		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
@@ -120,6 +135,8 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( $expected_output, $output );
+
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 	}
 
 	/**
