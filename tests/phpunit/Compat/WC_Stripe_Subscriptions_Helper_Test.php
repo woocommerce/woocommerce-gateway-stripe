@@ -76,4 +76,42 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 	}
+
+	/**
+	 * Test for `build_subscriptions_detached_messages`.
+	 *
+	 * @param array $subscriptions An array of subscriptions to build messages for.
+	 * @param string $expected The expected messages content.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_build_subscriptions_detached_messages
+	 */
+	public function test_build_subscriptions_detached_messages( $subscriptions, $expected ) {
+		$messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+		$this->assertStringContainsString( $expected, $messages );
+	}
+
+	/**
+	 * Provides data for testing `test_build_subscriptions_detached_messages`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_build_subscriptions_detached_messages() {
+		return [
+			'empty list'     => [
+				'subscriptions' => [],
+				'expected'      => '',
+			],
+			'non-empty list' => [
+				'subscriptions' => [
+					[
+						'id'                        => 1,
+						'customer_id'               => 'cus_123',
+						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
+					],
+				],
+				'expected'      => 'Some subscriptions are missing payment methods,',
+			],
+		];
+	}
 }
