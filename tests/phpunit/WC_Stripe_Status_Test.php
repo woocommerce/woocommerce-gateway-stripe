@@ -5,6 +5,8 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Gateway_Stripe;
 use WC_Stripe_Account;
 use WC_Stripe_Status;
+use WC_Subscription;
+use WC_Subscriptions_Helpers;
 use WP_UnitTestCase;
 
 /**
@@ -73,5 +75,74 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$tools = $status->debug_tools( [] );
 
 		$this->assertArrayHasKey( 'list_detached_subscriptions', $tools );
+	}
+
+	/**
+	 * Test for `list_detached_subscriptions`.
+	 *
+	 * @param array $subscriptions An array of subscriptions to test.
+	 * @param string $expected_output The expected output string.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_list_detached_subscriptions
+	 */
+	public function test_list_detached_subscriptions( $subscriptions, $expected_output ) {
+		if ( count( $subscriptions ) > 0 ) {
+			$mocked_subscriptions = [];
+			foreach ( $subscriptions as $subscription_data ) {
+				$subscription = new WC_Subscription();
+				$subscription->set_id( $subscription_data['id'] );
+				$subscription->set_status( 'active' );
+				$subscription->update_meta_data( '_stripe_customer_id', $subscription_data['customer_id'] );
+				$subscription->update_meta_data( '_stripe_source_id', $subscription_data['source_id'] );
+				$subscription->save_meta_data();
+
+				$subscription->save();
+
+				$mocked_subscriptions[] = $subscription;
+			}
+
+			WC_Subscriptions_Helpers::$wcs_get_subscriptions = $mocked_subscriptions;
+		}
+
+		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$account = $this->getMockBuilder( WC_Stripe_Account::class )
+			->disableOriginalConstructor()
+			->getMock();
+
+		$status = new WC_Stripe_Status( $gateway, $account );
+
+		ob_start();
+		$status->list_detached_subscriptions();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( $expected_output, $output );
+	}
+
+	/**
+	 * Data provider for `test_list_detached_subscriptions`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_list_detached_subscriptions() {
+		return [
+			'no subscriptions'   => [
+				'subscriptions'   => [],
+				'expected_output' => 'No detached subscriptions found.',
+			],
+			'with subscriptions' => [
+				'subscriptions'   => [
+					[
+						'id'          => 1,
+						'customer_id' => 'cus_123',
+						'source_id'   => 'src_123',
+					],
+				],
+				'expected_output' => 'Payment method page &rarr;',
+			],
+		];
 	}
 }
