@@ -66,6 +66,9 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
+		// Check for subscriptions detached from the customer.
+		$this->subscription_check_detachment();
+
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
@@ -455,6 +458,30 @@ class WC_Stripe_Admin_Notices {
 		$show_notice = get_option( 'wc_stripe_show_upe_payment_methods_notice' );
 		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
 			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
+		}
+	}
+
+	/**
+	 * Adds a notice to the order details page if the subscription payment method has been detached.
+	 *
+	 * @return void
+	 */
+	public function subscription_check_detachment() {
+		global $theorder;
+
+		if ( isset( $theorder ) && $theorder instanceof WC_Subscription ) {
+			$subscription = $theorder;
+			if ( /*WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription )*/ true ) {
+				$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' );
+				$detached_message .= WC_Stripe_Subscriptions_Helper::build_subscription_detached_message(
+					[
+						'id'                        => $subscription->get_id(),
+						'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+						'change_payment_method_url' => $subscription->get_change_payment_method_url(),
+					]
+				);
+				$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+			}
 		}
 	}
 
