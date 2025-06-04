@@ -1,11 +1,11 @@
-/**
- * Internal dependencies
- */
+import { select } from '@wordpress/data';
 import {
 	normalizeLineItems,
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+
+jest.mock( '@wordpress/data' );
 
 describe( 'Express checkout normalization', () => {
 	describe( 'normalizeLineItems', () => {
@@ -130,134 +130,202 @@ describe( 'Express checkout normalization', () => {
 	} );
 
 	describe( 'normalizeOrderData', () => {
-		test( 'should normalize order data with complete event and paymentMethodId/confirmationTokenId', () => {
-			const event = {
-				billingDetails: {
-					name: 'John Doe',
-					email: 'john.doe@example.com',
-					address: {
-						organization: 'Some Company',
-						country: 'US',
-						line1: '123 Main St',
-						line2: 'Apt 4B',
-						city: 'New York',
-						state: 'NY',
-						postal_code: '10001',
-					},
-					phone: '(123) 456-7890',
+		beforeEach( () => {
+			expectedNormalizedData.payment_data[ 1 ].value = paymentMethodId;
+			expectedNormalizedData.payment_data[ 2 ].value = '';
+
+			window.wc = {
+				wcBlocksData: {
+					checkoutStore: 'checkoutStore',
+					cartStore: 'cartStore',
 				},
-				shippingAddress: {
-					name: 'John Doe',
+			};
+
+			select.mockImplementation( () => {
+				return {
+					getAdditionalFields: () => {
+						return {};
+					},
+					getCustomerData: () => {
+						return {};
+					},
+				};
+			} );
+		} );
+		const event = {
+			billingDetails: {
+				name: 'John Doe',
+				email: 'john.doe@example.com',
+				address: {
 					organization: 'Some Company',
-					address: {
-						country: 'US',
-						line1: '123 Main St',
-						line2: 'Apt 4B',
-						city: 'New York',
-						state: 'NY',
-						postal_code: '10001',
-					},
-				},
-				shippingRate: { id: 'rate_1' },
-				expressPaymentType: 'express',
-			};
-
-			const paymentMethodId = 'pm_123456';
-
-			const expectedNormalizedData = {
-				billing_address: {
-					address_1: '123 Main St',
-					address_2: 'Apt 4B',
-					city: 'New York',
-					company: 'Some Company',
 					country: 'US',
-					email: 'john.doe@example.com',
-					first_name: 'John',
-					last_name: 'Doe',
-					phone: '1234567890',
-					postcode: '10001',
-					state: 'NY',
-				},
-				extensions: {},
-				payment_data: [
-					{
-						key: 'payment_method',
-						value: 'stripe',
-					},
-					{
-						key: 'wc-stripe-payment-method',
-						value: 'pm_123456',
-					},
-					{
-						key: 'wc-stripe-confirmation-token',
-						value: '',
-					},
-					{
-						key: 'express_payment_type',
-						value: 'express',
-					},
-					{
-						key: 'wc-stripe-is-deferred-intent',
-						value: true,
-					},
-				],
-				payment_method: 'stripe',
-				shipping_address: {
-					address_1: '123 Main St',
-					address_2: 'Apt 4B',
+					line1: '123 Main St',
+					line2: 'Apt 4B',
 					city: 'New York',
-					company: 'Some Company',
-					country: 'US',
-					first_name: 'John',
-					last_name: 'Doe',
-					method: [ 'rate_1' ],
-					phone: '1234567890',
-					postcode: '10001',
 					state: 'NY',
+					postal_code: '10001',
 				},
-			};
+				phone: '(123) 456-7890',
+			},
+			shippingAddress: {
+				name: 'John Doe',
+				organization: 'Some Company',
+				address: {
+					country: 'US',
+					line1: '123 Main St',
+					line2: 'Apt 4B',
+					city: 'New York',
+					state: 'NY',
+					postal_code: '10001',
+				},
+			},
+			shippingRate: { id: 'rate_1' },
+			expressPaymentType: 'express',
+		};
 
+		const paymentMethodId = 'pm_123456';
+		const expectedNormalizedData = {
+			billing_address: {
+				address_1: '123 Main St',
+				address_2: 'Apt 4B',
+				city: 'New York',
+				company: 'Some Company',
+				country: 'US',
+				email: 'john.doe@example.com',
+				first_name: 'John',
+				last_name: 'Doe',
+				phone: '1234567890',
+				postcode: '10001',
+				state: 'NY',
+			},
+			extensions: {},
+			payment_data: [
+				{
+					key: 'payment_method',
+					value: 'stripe',
+				},
+				{
+					key: 'wc-stripe-payment-method',
+					value: '',
+				},
+				{
+					key: 'wc-stripe-confirmation-token',
+					value: '',
+				},
+				{
+					key: 'express_payment_type',
+					value: 'express',
+				},
+				{
+					key: 'wc-stripe-is-deferred-intent',
+					value: true,
+				},
+			],
+			payment_method: 'stripe',
+			shipping_address: {
+				address_1: '123 Main St',
+				address_2: 'Apt 4B',
+				city: 'New York',
+				company: 'Some Company',
+				country: 'US',
+				first_name: 'John',
+				last_name: 'Doe',
+				method: [ 'rate_1' ],
+				phone: '1234567890',
+				postcode: '10001',
+				state: 'NY',
+			},
+			additional_fields: {},
+		};
+
+		test( 'should normalize order data with complete event and payment information', () => {
 			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
 				expectedNormalizedData
 			);
 
+			// Test with confirmation token.
 			const confirmationTokenId = 'ctoken_123456';
 			const expectedNormalizedDataWithConfirmationToken = {
 				...expectedNormalizedData,
-				payment_data: [
-					{
-						key: 'payment_method',
-						value: 'stripe',
-					},
-					{
-						key: 'wc-stripe-payment-method',
-						value: '',
-					},
-					{
-						key: 'wc-stripe-confirmation-token',
-						value: 'ctoken_123456',
-					},
-					{
-						key: 'express_payment_type',
-						value: 'express',
-					},
-					{
-						key: 'wc-stripe-is-deferred-intent',
-						value: true,
-					},
-				],
 			};
+			expectedNormalizedData.payment_data[ 1 ].value = '';
+			expectedNormalizedData.payment_data[ 2 ].value = confirmationTokenId;
 
 			expect(
 				normalizeOrderData( { event, confirmationTokenId } )
 			).toEqual( expectedNormalizedDataWithConfirmationToken );
 		} );
 
-		test( 'should normalize order data with missing optional event fields', () => {
-			const event = {};
-			const paymentMethodId = 'pm_123456';
+		test( 'should include additional fields in the normalized order data', () => {
+			const additionalFields = {
+				'my-plugin': {
+					field1: 'value1',
+					field2: 'value2',
+				},
+			};
+			select.mockImplementation( () => {
+				return {
+					getAdditionalFields: () => {
+						return additionalFields;
+					},
+					getCustomerData: () => {
+						return {};
+					},
+				};
+			} );
 
-			const expectedNormalizedData = {
+			const expectedNormalizedDataWithAdditionalFields = {
+				...expectedNormalizedData,
+				additional_fields: additionalFields,
+			};
+
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedDataWithAdditionalFields
+			);
+		} );
+
+		test( 'should include additional customer (address) fields in the normalized order data', () => {
+			const additionalCustomerData = {
+				custom_address_field1: 'test1',
+				custom_address_field2: 'test2',
+			};
+			select.mockImplementation( () => {
+				return {
+					getAdditionalFields: () => {
+						return {};
+					},
+					getCustomerData: () => {
+						return {
+							shippingAddress: {
+								...additionalCustomerData,
+							},
+							billingAddress: {
+								...additionalCustomerData,
+							},
+						};
+					},
+				};
+			} );
+
+			const expectedNormalizedDataWithAdditionalCustomerFields = {
+				...expectedNormalizedData,
+				shipping_address: {
+					...expectedNormalizedData.shipping_address,
+					...additionalCustomerData,
+				},
+				billing_address: {
+					...expectedNormalizedData.billing_address,
+					...additionalCustomerData,
+				},
+			};
+
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedDataWithAdditionalCustomerFields
+			);
+		} );
+
+		test( 'should normalize order data with missing optional event fields', () => {
+			const expectedNormalizedDataWithMissingFields = {
 				billing_address: {
 					address_1: '',
 					address_2: '',
@@ -279,7 +347,7 @@ describe( 'Express checkout normalization', () => {
 					},
 					{
 						key: 'wc-stripe-payment-method',
-						value: 'pm_123456',
+						value: paymentMethodId,
 					},
 					{
 						key: 'wc-stripe-confirmation-token',
@@ -308,22 +376,22 @@ describe( 'Express checkout normalization', () => {
 					postcode: '',
 					state: '',
 				},
+				additional_fields: {},
 			};
 
-			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
-				expectedNormalizedData
-			);
+			expect(
+				normalizeOrderData( { event: {}, paymentMethodId } )
+			).toEqual( expectedNormalizedDataWithMissingFields );
 		} );
 
 		test( 'should normalize order data with minimum required fields', () => {
-			const event = {
+			const minimumEvent = {
 				billingDetails: {
 					name: 'John',
 				},
 			};
-			const paymentMethodId = 'pm_123456';
 
-			const expectedNormalizedData = {
+			const expectedNormalizedDataWithMinimumFields = {
 				billing_address: {
 					address_1: '',
 					address_2: '',
@@ -345,7 +413,7 @@ describe( 'Express checkout normalization', () => {
 					},
 					{
 						key: 'wc-stripe-payment-method',
-						value: 'pm_123456',
+						value: paymentMethodId,
 					},
 					{
 						key: 'wc-stripe-confirmation-token',
@@ -374,11 +442,12 @@ describe( 'Express checkout normalization', () => {
 					postcode: '',
 					state: '',
 				},
+				additional_fields: {},
 			};
 
-			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
-				expectedNormalizedData
-			);
+			expect(
+				normalizeOrderData( { event: minimumEvent, paymentMethodId } )
+			).toEqual( expectedNormalizedDataWithMinimumFields );
 		} );
 	} );
 
