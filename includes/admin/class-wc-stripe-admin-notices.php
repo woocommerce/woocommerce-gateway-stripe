@@ -471,7 +471,7 @@ class WC_Stripe_Admin_Notices {
 
 		if ( isset( $theorder ) && $theorder instanceof WC_Subscription ) {
 			$subscription = $theorder;
-			if ( /*WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription )*/ true ) {
+			if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
 				$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' );
 				$detached_message .= WC_Stripe_Subscriptions_Helper::build_subscription_detached_message(
 					[
