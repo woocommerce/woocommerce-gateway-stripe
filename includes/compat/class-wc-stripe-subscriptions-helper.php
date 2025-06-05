@@ -8,11 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Subscriptions_Helper {
 	/**
-	 * Transient key for detached subscriptions.
+	 * Cache key for detached subscriptions.
 	 *
 	 * @var string
 	 */
-	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
+	private const DETACHED_SUBSCRIPTIONS_CACHE_KEY = 'wcstripe_detached_subscriptions';
 
 	/**
 	 * Stripe customer page base URL.
@@ -50,7 +50,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 */
 	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
-		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
+		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY );
 		if ( is_array( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
@@ -85,7 +85,7 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		// Cache the result for a day.
-		set_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY, $detached_subscriptions, DAY_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
 	}
