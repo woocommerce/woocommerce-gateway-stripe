@@ -1,6 +1,9 @@
 import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
+import { recordEvent } from 'wcstripe/tracking';
+import { useTestMode } from 'wcstripe/data';
 
 const noticesDispatch = {
 	createErrorNotice: jest.fn(),
@@ -8,13 +11,15 @@ const noticesDispatch = {
 
 jest.mock( '@wordpress/data' );
 
+jest.mock( 'wcstripe/data', () => ( {
+	useTestMode: jest.fn(),
+} ) );
+
 jest.mock( 'wcstripe/tracking', () => ( {
 	recordEvent: jest.fn(),
 } ) );
 
 describe( 'Reconnect banner', () => {
-	const setShowPromotionalBanner = jest.fn();
-
 	beforeEach( () => {
 		useDispatch.mockImplementation( ( storeName ) => {
 			if ( storeName === 'core/notices' ) {
@@ -23,6 +28,7 @@ describe( 'Reconnect banner', () => {
 
 			return {};
 		} );
+		useTestMode.mockReturnValue( [ true, jest.fn() ] );
 	} );
 
 	afterEach( () => {
@@ -30,15 +36,49 @@ describe( 'Reconnect banner', () => {
 	} );
 
 	it( 'should render the Reconnect promotional banner', () => {
-		const { getByText, getByTestId } = render(
-			<ReConnectAccountBanner
-				setShowPromotionalBanner={ setShowPromotionalBanner }
-			/>
-		);
+		const { getByText, getByTestId } = render( <ReConnectAccountBanner /> );
 		expect(
 			getByText( 'Make your store more secure' )
 		).toBeInTheDocument();
 		expect( getByTestId( 'intro-reconnect' ) ).toBeInTheDocument();
 		expect( getByTestId( 're-connect-checkout' ) ).toBeInTheDocument();
+	} );
+	it( 'should record event on button click', () => {
+		// Keep the original function at hand.
+		const assign = window.location.assign;
+
+		Object.defineProperty( window, 'location', {
+			value: { assign: jest.fn() },
+		} );
+
+		const oauthUrl = 'http://example.com/test-oauth';
+		const { getByTestId } = render(
+			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
+		);
+		const reconnectButton = getByTestId( 're-connect-checkout' );
+		userEvent.click( reconnectButton );
+
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_create_or_connect_test_account_click',
+			{}
+		);
+
+		expect( window.location.assign ).toHaveBeenCalledWith( oauthUrl );
+
+		// Set the original function back to keep further tests working as expected.
+		Object.defineProperty( window, 'location', {
+			value: { assign },
+		} );
+	} );
+	it( 'should create error notice when oauth URLs are invalid', () => {
+		const { getByTestId } = render(
+			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
+		);
+		const reconnectButton = getByTestId( 're-connect-checkout' );
+		userEvent.click( reconnectButton );
+
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
 	} );
 } );
