@@ -1,5 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
 
 const noticesDispatch = {
@@ -42,5 +43,17 @@ describe( 'New checkout experience banner', () => {
 		).toBeInTheDocument();
 		expect( getByTestId( 'intro-new-checkout' ) ).toBeInTheDocument();
 		expect( getByTestId( 'enable-the-new-checkout' ) ).toBeInTheDocument();
+	} );
+	it( 'should dismiss on button click', () => {
+		const { getByTestId } = render(
+			<NewCheckoutExperienceBanner
+				setShowPromotionalBanner={ setShowPromotionalBanner }
+			/>
+		);
+		const dismissButton = getByTestId( 'dismiss' );
+
+		userEvent.click( dismissButton );
+
+		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
 } );
