@@ -133,7 +133,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay', 'google_pay', 'apple_pay' ] );
 
 		// Set pmc_enabled to yes to prevent migration
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
@@ -303,7 +303,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	public function test_get_settings_returns_available_payment_method_ids() {
-		$expected_method_ids  = [
+		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,
 			WC_Stripe_Payment_Methods::ACH,
 			WC_Stripe_Payment_Methods::ALIPAY,
@@ -418,15 +418,69 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		remove_filter( 'user_has_cap', $cb );
 	}
 
-	public function test_dismiss_customization_notice() {
+	/**
+	 * Tests for the dismiss notice endpoint.
+	 *
+	 * @param array $request_params The request parameters.
+	 * @param array $expected_option The expected option after the request.
+	 * @param array $expected_response The expected response.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_dismiss_notice
+	 */
+	public function test_dismiss_notice( $request_params, $expected_option, $expected_response ) {
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
-		$request->set_param( 'wc_stripe_show_customization_notice', 'no' );
+		foreach ( $request_params as $key => $value ) {
+			$request->set_param( $key, $value );
+		}
 
-		$response      = rest_do_request( $request );
-		$notice_option = get_option( 'wc_stripe_show_customization_notice' );
+		$response = rest_do_request( $request );
+		if ( count( $expected_option ) > 0 ) {
+			foreach ( $expected_option as $option_name => $option_value ) {
+				$notice_option = get_option( $option_name );
+				$this->assertEquals( $option_value, $notice_option );
+			}
+		}
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'no', $notice_option );
+		$this->assertEquals( $expected_response, $response->get_data() );
+	}
+
+	/**
+	 * Provider for test_dismiss_notice.
+	 *
+	 * @return array
+	 */
+	public function provide_test_dismiss_notice() {
+		return [
+			'empty request'                => [
+				'request params'    => [],
+				'expected option'   => [],
+				'expected response' => [],
+			],
+			'dismiss customization notice' => [
+				'request params'    => [
+					'wc_stripe_show_customization_notice' => 'no',
+				],
+				'expected option'   => [
+					'wc_stripe_show_customization_notice' => 'no',
+				],
+				'expected response' => [
+					'result' => 'notice dismissed',
+				],
+			],
+			'dismiss BNPL banner'          => [
+				'request params'    => [
+					'wc_stripe_show_bnpl_promotion_banner' => 'no',
+				],
+				'expected option'   => [
+					'wc_stripe_show_bnpl_promotion_banner' => 'no',
+				],
+				'expected response' => [
+					'result' => 'notice dismissed',
+				],
+			],
+		];
 	}
 
 	/**

@@ -249,7 +249,7 @@ class WC_Stripe {
 
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
 		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ $this, 'plugin_action_links' ] );
+		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 		add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
 		// Update the email field position.
@@ -312,7 +312,7 @@ class WC_Stripe {
 	 * @version 3.1.0
 	 */
 	public function install() {
-		if ( ! is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+		if ( ! is_plugin_active( plugin_basename( WC_STRIPE_MAIN_FILE ) ) ) {
 			return;
 		}
 
@@ -408,7 +408,7 @@ class WC_Stripe {
 	 * @return array  $links Update list of plugin links.
 	 */
 	public function plugin_row_meta( $links, $file ) {
-		if ( plugin_basename( __FILE__ ) === $file ) {
+		if ( plugin_basename( WC_STRIPE_MAIN_FILE ) === $file ) {
 			$row_meta = [
 				'docs'    => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_docs_url', 'https://woocommerce.com/document/stripe/' ) ) . '" title="' . esc_attr( __( 'View Documentation', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 				'support' => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_support_url', 'https://woocommerce.com/my-account/create-a-ticket?select=18627' ) ) . '" title="' . esc_attr( __( 'Open a support request at WooCommerce.com', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
