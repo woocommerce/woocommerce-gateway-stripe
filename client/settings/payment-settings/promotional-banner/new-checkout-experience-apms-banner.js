@@ -87,7 +87,7 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
-					<p>
+					<p data-testid="intro-new-checkout-apms">
 						{ interpolateComponents( {
 							mixedString: newCheckoutExperienceAPMsBannerDescription,
 							components: {
