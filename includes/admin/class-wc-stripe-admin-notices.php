@@ -98,6 +98,12 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		// If Stripe is not enabled, don't show the legacy deprecation notice.
+		if ( ! isset( $stripe_settings['enabled'] ) || 'no' === $stripe_settings['enabled'] ) {
+			return;
+		}
 
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
