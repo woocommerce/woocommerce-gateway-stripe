@@ -323,6 +323,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'currency_decimals'       => wc_get_price_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
