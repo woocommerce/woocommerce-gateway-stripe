@@ -312,7 +312,7 @@ class WC_Stripe {
 	 * @version 3.1.0
 	 */
 	public function install() {
-		if ( ! is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+		if ( ! is_plugin_active( plugin_basename( WC_STRIPE_MAIN_FILE ) ) ) {
 			return;
 		}
 
