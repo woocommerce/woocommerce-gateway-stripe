@@ -61,7 +61,7 @@ class WC_Stripe_Subscriptions_Helper {
 				'page'                   => 1,
 				'orderby'                => 'date',
 				'order'                  => 'DESC',
-				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
+				'subscription_status'    => [ 'active' ],
 			]
 		);
 
