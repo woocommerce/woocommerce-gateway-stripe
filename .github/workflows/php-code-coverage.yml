@@ -41,7 +41,7 @@ jobs:
     if: ${{ ! contains( github.event.head_commit.message, 'Merge branch' ) }}
     needs: [ get-woocommerce-versions, get-wordpress-versions ]
     runs-on: ubuntu-22.04
-    name: PHP=8.1, WP=${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}, WC=${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
+    name: PHP=8.1, WP=L, WC=L
     env:
       PHP_VERSION: '8.1'
       WP_VERSION: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}

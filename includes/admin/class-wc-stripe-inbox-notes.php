@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Inbox_Notes {
 	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
-	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
+	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-registration-needed';
 
 	const POST_SETUP_SUCCESS_ACTION    = 'wc_stripe_apple_pay_post_setup_success';
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
@@ -71,9 +71,9 @@ class WC_Stripe_Inbox_Notes {
 	}
 
 	/**
-	 * Manage notes to show after Apple Pay domain verification.
+	 * Manage notes to show after domain registration.
 	 */
-	public static function notify_on_apple_pay_domain_verification( $verification_complete ) {
+	public static function notify_on_apple_pay_domain_registration( $registration_complete ) {
 		$admin_notes_class = WC_Stripe_Woo_Compat_Utils::get_notes_class();
 		if ( ! class_exists( $admin_notes_class ) || ! class_exists( 'WC_Data_Store' ) ) {
 			return;
@@ -90,12 +90,12 @@ class WC_Stripe_Inbox_Notes {
 			}
 		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine
 
-		if ( $verification_complete ) {
+		if ( $registration_complete ) {
 			if ( self::should_show_marketing_note() && ! wp_next_scheduled( self::POST_SETUP_SUCCESS_ACTION ) ) {
 				wp_schedule_single_event( time() + DAY_IN_SECONDS, self::POST_SETUP_SUCCESS_ACTION );
 			}
 		} else {
-			// Create new note if verification failed.
+			// Create new note if registration failed.
 			self::create_failure_note();
 		}
 	}
@@ -114,8 +114,8 @@ class WC_Stripe_Inbox_Notes {
 		$stripe_settings       = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		$button_enabled        = isset( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'];
-		$verification_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
-		if ( ! $stripe_enabled || ! $button_enabled || ! $verification_complete ) {
+		$registration_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
+		if ( ! $stripe_enabled || ! $button_enabled || ! $registration_complete ) {
 			return false;
 		}
 
@@ -160,14 +160,14 @@ class WC_Stripe_Inbox_Notes {
 	}
 
 	/**
-	 * Show note indicating domain verification failure.
+	 * Show note indicating domain registration failure.
 	 */
 	public static function create_failure_note() {
 		try {
 			$admin_note_class = WC_Stripe_Woo_Compat_Utils::get_note_class();
 			$note             = new $admin_note_class();
-			$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-gateway-stripe' ) );
-			$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-gateway-stripe' ) );
+			$note->set_title( __( 'Apple Pay domain registration needed', 'woocommerce-gateway-stripe' ) );
+			$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain registration on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-gateway-stripe' ) );
 			$note->set_type( $admin_note_class::E_WC_ADMIN_NOTE_INFORMATIONAL );
 			$note->set_name( self::FAILURE_NOTE_NAME );
 			$note->set_source( 'woocommerce-gateway-stripe' );
