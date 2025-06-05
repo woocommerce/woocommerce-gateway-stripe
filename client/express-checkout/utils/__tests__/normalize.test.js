@@ -4,8 +4,13 @@ import {
 	normalizeOrderData,
 	normalizeShippingAddress,
 } from '../normalize';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 jest.mock( '@wordpress/data' );
+
+jest.mock( 'wcstripe/express-checkout/utils', () => ( {
+	getExpressCheckoutData: jest.fn(),
+} ) );
 
 describe( 'Express checkout normalization', () => {
 	describe( 'normalizeLineItems', () => {
@@ -150,6 +155,16 @@ describe( 'Express checkout normalization', () => {
 						return {};
 					},
 				};
+			} );
+
+			getExpressCheckoutData.mockImplementation( ( param ) => {
+				if ( param === 'has_block' ) {
+					return true;
+				}
+				if ( param === 'is_checkout_page' ) {
+					return true;
+				}
+				return undefined;
 			} );
 		} );
 		const event = {

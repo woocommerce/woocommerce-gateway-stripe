@@ -1,5 +1,6 @@
 import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -50,7 +51,7 @@ export const normalizeOrderData = ( {
 			'wcstripe.express-checkout.cart-place-order-extension-data',
 			{}
 		),
-		additional_fields: getAdditionalFieldsDataFromStore(),
+		additional_fields: getAdditionalFieldsData(),
 	};
 };
 
@@ -125,6 +126,14 @@ const getShippingAddressData = ( event ) => {
  * @return {Object} The custom billing address data.
  */
 const getCustomBillingAddressData = ( data ) => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'address' ] );
+	}
+
 	const customerData = getCustomerDataFromStore();
 
 	if ( ! customerData || ! customerData.billingAddress ) {
@@ -154,6 +163,14 @@ const getCustomBillingAddressData = ( data ) => {
  * @return {Object} The custom shipping address data.
  */
 const getCustomShippingAddressData = ( data ) => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'address' ] );
+	}
+
 	const customerData = getCustomerDataFromStore();
 
 	if ( ! customerData || ! customerData.shippingAddress ) {
@@ -210,6 +227,23 @@ const getPhone = ( event ) => {
 };
 
 /**
+ * Get additional fields data.
+ *
+ * @return {Object} The additional fields data.
+ */
+const getAdditionalFieldsData = () => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'contact', 'order' ] );
+	}
+
+	return getAdditionalFieldsDataFromStore();
+};
+
+/**
  * Get additional fields data from the checkout store.
  *
  * @return {Object} The additional fields data.
@@ -226,6 +260,45 @@ const getAdditionalFieldsDataFromStore = () => {
 	}
 
 	return store.getAdditionalFields() || {};
+};
+
+/**
+ * Build the custom fields object with empty values.
+ *
+ * @param {Array} locations A list of locations we are interested in,
+ * e.g. [ 'address', 'contact', 'order' ].
+ *
+ * @return {Object} The custom fields object with empty values.
+ */
+const emptyCustomFieldObject = ( locations ) => {
+	const customFields = getExpressCheckoutData( 'custom_checkout_fields' );
+	if ( ! customFields ) {
+		return {};
+	}
+
+	const customFieldObject = Object.entries( customFields ).reduce(
+		( acc, [ field, config ] ) => {
+			if ( locations.includes( config.location ) ) {
+				acc[ field ] = '';
+			}
+			return acc;
+		},
+		{}
+	);
+
+	return customFieldObject;
+};
+
+/**
+ * Check if the current page is a block checkout page.
+ *
+ * @return {boolean} True if the current page is a block checkout page, false otherwise.
+ */
+const isBlockCheckoutPage = () => {
+	return (
+		getExpressCheckoutData( 'has_block' ) &&
+		getExpressCheckoutData( 'is_checkout_page' )
+	);
 };
 
 /**

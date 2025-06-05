@@ -21,9 +21,13 @@ export * from './normalize';
  * @return {string} Error messages.
  */
 export const getErrorMessageFromNotice = ( notice ) => {
+	if ( ! notice ) {
+		return '';
+	}
+
 	const div = document.createElement( 'div' );
 	div.innerHTML = notice.trim();
-	return div.firstChild ? div.firstChild.textContent : '';
+	return div.firstChild?.textContent || '';
 };
 
 /**

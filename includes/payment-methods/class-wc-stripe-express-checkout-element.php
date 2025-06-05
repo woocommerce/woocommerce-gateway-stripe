@@ -229,46 +229,32 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Retrieve custom checkout field IDs.
+	 * TODO: Currently, we only support custom checkout fields for block checkout.
+	 * We need to add support for classic checkout custom fields.
 	 *
 	 * @return array Custom checkout field IDs.
 	 */
 	public function get_custom_checkout_fields() {
-		// If not a checkout page, bail.
-		if ( ! $this->express_checkout_helper->is_checkout() ) {
-			return [];
-		}
-
-		$custom_checkout_fields = [];
-
-		// Block checkout.
-		if ( has_block( 'woocommerce/checkout' ) ) {
+		try {
 			$checkout_fields = Package::container()->get( CheckoutFields::class );
-			$field_names     = array_keys( $checkout_fields->get_additional_fields() );
-			foreach ( $field_names as $field_name ) {
-				$location              = $checkout_fields->get_field_location( $field_name );
-				$normalized_field_name = str_replace( '/', '-', $field_name );
-				switch ( $location ) {
-					case 'address':
-						$custom_checkout_fields[] = 'billing-' . $normalized_field_name;
-						$custom_checkout_fields[] = 'shipping-' . $normalized_field_name;
-						break;
-					case 'contact':
-						$custom_checkout_fields[] = 'contact-' . $normalized_field_name;
-						break;
-					case 'order':
-						$custom_checkout_fields[] = 'order-' . $normalized_field_name;
-						break;
-					default:
-						break;
-				}
+			if ( ! $checkout_fields instanceof CheckoutFields ) {
+				return [];
+			}
+
+			$custom_checkout_fields = [];
+			$additional_fields      = $checkout_fields->get_additional_fields();
+			foreach ( $additional_fields as $field_key => $field ) {
+				$location                             = $checkout_fields->get_field_location( $field_key );
+				$custom_checkout_fields[ $field_key ] = [
+					'key'      => $field_key,
+					'location' => $location,
+				];
 			}
 
 			return $custom_checkout_fields;
+		} catch ( Exception $e ) {
+			return [];
 		}
-
-		// TODO: Add support for classic checkout.
-
-		return $custom_checkout_fields;
 	}
 
 	/**
