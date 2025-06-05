@@ -20,21 +20,7 @@
 				"wp-cli/wp-cli-bundle": "2.5.0"
     },
 	  "autoload": {
-			"psr-4": {
-				"": [
-					"includes/",
-					"includes/Abstracts",
-					"includes/Admin/",
-					"includes/Compat",
-					"includes/Connect",
-					"includes/Constants",
-					"includes/Deprecated",
-					"includes/Migrations",
-					"includes/Notes",
-					"includes/PaymentMethods",
-					"includes/PaymentTokens"
-				]
-			}
+			"classmap": [ "includes/" ]
 		},
 		"autoload-dev": {
 			"psr-4": {
