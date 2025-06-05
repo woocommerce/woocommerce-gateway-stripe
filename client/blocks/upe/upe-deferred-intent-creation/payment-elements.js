@@ -14,7 +14,10 @@ import {
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	shouldSetupOffSessionPayment,
+} from 'wcstripe/blocks/utils';
 import { getFontRulesFromPage } from 'wcstripe/styles/upe';
 
 /**
@@ -153,11 +156,8 @@ const PaymentElements = ( {
 				},
 			};
 
-			// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-			if (
-				getBlocksConfiguration()?.cartContainsSubscription ||
-				props.showSaveOption
-			) {
+			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
+			if ( shouldSetupOffSessionPayment( props.showSaveOption ) ) {
 				options = {
 					...options,
 					...{
