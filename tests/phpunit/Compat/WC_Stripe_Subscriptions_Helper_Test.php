@@ -30,6 +30,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_detached_subscriptions() {
+		add_filter(
+			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
+			function () {
+				return strtotime( '+1 week' );
+			}
+		);
+
 		$subscription_id = 1;
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
@@ -75,6 +82,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
+
+		remove_filter(
+			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
+			function () {
+				return strtotime( '+1 week' );
+			}
+		);
 	}
 
 	/**
@@ -98,11 +112,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_build_subscriptions_detached_messages() {
 		return [
-			'empty list'     => [
+			'empty list'             => [
 				'subscriptions' => [],
 				'expected'      => '',
 			],
-			'non-empty list' => [
+			'non-empty list'         => [
 				'subscriptions' => [
 					[
 						'id'                        => 1,
@@ -110,7 +124,22 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
 					],
 				],
-				'expected'      => 'Some subscriptions are missing payment methods,',
+				'expected'      => '1 subscription is missing the payment method,',
+			],
+			'multiple subscriptions' => [
+				'subscriptions' => [
+					[
+						'id'                        => 1,
+						'customer_id'               => 'cus_123',
+						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
+					],
+					[
+						'id'                        => 2,
+						'customer_id'               => 'cus_456',
+						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/2',
+					],
+				],
+				'expected'      => '2 subscriptions are missing payment methods,',
 			],
 		];
 	}
