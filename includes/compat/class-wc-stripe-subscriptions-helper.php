@@ -124,7 +124,7 @@ class WC_Stripe_Subscriptions_Helper {
 			);
 		}
 		if ( ! empty( $detached_messages ) ) {
-			$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
+			$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. To fix this, either: 1) Share the payment method page link with the customer to update it, or 2) Manually update the payment method in the subscription\`s billing details using a valid payment method from the customer\'s Stripe account. Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
 		}
 		return $detached_messages;
 	}
