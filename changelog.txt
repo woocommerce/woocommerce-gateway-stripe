@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
 * Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
 * Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.

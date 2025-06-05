@@ -2,12 +2,17 @@ import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PromotionalBannerSection from '../promotional-banner-section';
+import PromotionalBanner from '..';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_IDEAL,
 } from 'wcstripe/stripe-utils/constants';
+import {
+	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
+	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	RECONNECT_BANNER,
+} from 'wcstripe/settings/payment-settings/constants';
 
 jest.mock( '@wordpress/data' );
 
@@ -34,7 +39,6 @@ useDispatch.mockImplementation( ( storeName ) => {
 } );
 
 const setShowPromotionalBanner = jest.fn();
-const setPromotionalBannerType = jest.fn();
 
 describe( 'PromotionalBanner', () => {
 	// Keep the original function.
@@ -56,10 +60,10 @@ describe( 'PromotionalBanner', () => {
 
 	it( 'dismiss function should be called', () => {
 		render(
-			<PromotionalBannerSection
+			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_BANNER }
 			/>
 		);
 
@@ -74,12 +78,12 @@ describe( 'PromotionalBanner', () => {
 		const setIsUpeEnabledMock = jest.fn().mockResolvedValue( true );
 
 		render(
-			<PromotionalBannerSection
+			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isUpeEnabled={ false }
 				setIsUpeEnabled={ setIsUpeEnabledMock }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_BANNER }
 			/>
 		);
 
@@ -89,10 +93,10 @@ describe( 'PromotionalBanner', () => {
 
 	it( 'Display the re-connect promotional surface when OAuth connection is not set', () => {
 		render(
-			<PromotionalBannerSection
+			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ false }
+				promotionalBannerType={ RECONNECT_BANNER }
 			/>
 		);
 		expect(
@@ -106,10 +110,10 @@ describe( 'PromotionalBanner', () => {
 		] );
 
 		render(
-			<PromotionalBannerSection
+			<PromotionalBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
-				setPromotionalBannerType={ setPromotionalBannerType }
 				isConnectedViaOAuth={ true }
+				promotionalBannerType={ NEW_CHECKOUT_EXPERIENCE_APMS_BANNER }
 			/>
 		);
 
