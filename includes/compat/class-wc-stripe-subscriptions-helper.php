@@ -43,7 +43,7 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads all subscriptions, and attempts to return those that are detached from the customer.
+	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
 	 * @return array
@@ -68,6 +68,11 @@ class WC_Stripe_Subscriptions_Helper {
 		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
 			if ( ! $subscription instanceof WC_Subscription ) {
+				continue;
+			}
+
+			// Filter subscriptions not renewing in the next month
+			if ( $subscription->get_time( 'next_payment' ) > ( time() + MONTH_IN_SECONDS ) ) {
 				continue;
 			}
 
