@@ -148,7 +148,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		$intro_message = sprintf(
-		/* translators: %s: subscriptions count */
+			/* translators: %s: subscriptions count */
 			_n(
 				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
 				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
