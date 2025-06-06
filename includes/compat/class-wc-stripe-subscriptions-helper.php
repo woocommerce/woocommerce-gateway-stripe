@@ -22,6 +22,11 @@ class WC_Stripe_Subscriptions_Helper {
 	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
 
 	/**
+	 * Maximum number of subscriptions to load per page.
+	 */
+	private const MAX_SUBSCRIPTIONS_PER_PAGE = 50;
+
+	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
 	 * @return bool Whether subscriptions is enabled or not.
@@ -55,15 +60,29 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_subscriptions;
 		}
 
-		$subscriptions = wcs_get_subscriptions(
-			[
-				'subscriptions_per_page' => $limit,
-				'page'                   => 1,
-				'orderby'                => 'date',
-				'order'                  => 'DESC',
-				'subscription_status'    => [ 'active' ],
-			]
-		);
+		$subscriptions = [];
+		$page          = 1;
+		$per_page      = self::MAX_SUBSCRIPTIONS_PER_PAGE;
+
+		do {
+			$batch             = wcs_get_subscriptions(
+				[
+					'subscriptions_per_page' => $per_page,
+					'page'                   => $page,
+					'orderby'                => 'date',
+					'order'                  => 'DESC',
+					'subscription_status'    => [ 'active' ],
+				]
+			);
+			$num_batch         = count( $batch );
+			$subscriptions     = array_merge( $subscriptions, $batch );
+			$num_subscriptions = count( $subscriptions );
+			++$page;
+		} while ( $num_batch === $per_page && ( -1 === $limit || $num_subscriptions < $limit ) );
+
+		if ( -1 !== $limit && $num_subscriptions > $limit ) {
+			$subscriptions = array_slice( $subscriptions, 0, $limit );
+		}
 
 		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
