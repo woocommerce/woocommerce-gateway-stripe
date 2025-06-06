@@ -519,6 +519,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['enabledBillingFields']              = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']          = $this->is_subscription_item_in_cart();
 		$stripe_params['subscriptionRequiresManualRenewal'] = $this->is_manual_renewal_required();
+		$stripe_params['subscriptionManualRenewalEnabled']  = $this->is_manual_renewal_enabled();
 		$stripe_params['accountCountry']                    = WC_Stripe::get_instance()->account->get_account_country();
 		$stripe_params['isPaymentRequestEnabled']           = $express_checkout_helper->is_payment_request_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();

@@ -26,7 +26,8 @@ export const shouldSetupOffSessionPayment = ( showSaveOption ) => {
 	const config = getBlocksConfiguration();
 	const hasAutoRenewingSubscription =
 		config?.cartContainsSubscription &&
-		! config?.subscriptionRequiresManualRenewal;
+		! config?.subscriptionRequiresManualRenewal &&
+		! config?.subscriptionManualRenewalEnabled;
 	return hasAutoRenewingSubscription || showSaveOption;
 };
 
