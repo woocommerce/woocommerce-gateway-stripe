@@ -30,11 +30,12 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_detached_subscriptions() {
+		$return_now_plus_one_week = function () {
+			return strtotime( '+1 week' );
+		};
 		add_filter(
 			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			function () {
-				return strtotime( '+1 week' );
-			}
+			$return_now_plus_one_week
 		);
 
 		$subscription_id = 1;
