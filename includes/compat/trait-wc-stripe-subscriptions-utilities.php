@@ -121,21 +121,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 */
 	public function is_manual_renewal_required() {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			return ( class_exists( 'WCS_Manual_Renewal_Manager' ) && WCS_Manual_Renewal_Manager::is_manual_renewal_required() ) || $this->cart_contains_renewal();
-		}
-		return false;
-	}
-
-	/**
-	 * Returns boolean on whether manual renewal is enabled for the subscriptions of this store.
-	 *
-	 * @since 9.6.0
-	 *
-	 * @return bool
-	 */
-	public function is_manual_renewal_enabled() {
-		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			return function_exists( 'wcs_is_manual_renewal_enabled' ) && wcs_is_manual_renewal_enabled();
+			return WC_Stripe_Subscriptions_Helper::is_manual_renewal_required() || $this->cart_contains_renewal();
 		}
 		return false;
 	}

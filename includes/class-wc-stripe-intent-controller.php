@@ -1029,8 +1029,13 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// If the customer is saving the payment method to the store or has a subscription, we should set the setup_future_usage to off_session.
-		// Only exception is when using a confirmation token. For confirmations tokens, the setup_future_usage is set within the payment method.
-		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || ! empty( $payment_information['has_subscription'] ) ) ) {
+		// Only exceptions are when using a confirmation token or manual renewal is required.
+		// For confirmations tokens, the setup_future_usage is set within the payment method.
+		$payment_method                 = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $selected_payment_type );
+		$is_manual_renewal_required     = ( ! $payment_method->is_reusable() && WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled() )
+			|| WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
+		$has_sub_and_manual_renewal_off = ! empty( $payment_information['has_subscription'] ) && ! $is_manual_renewal_required;
+		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_sub_and_manual_renewal_off ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
