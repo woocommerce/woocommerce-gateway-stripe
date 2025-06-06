@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Gateway_Stripe;
 use WC_Stripe_Account;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Status;
 use WC_Subscription;
 use WC_Subscriptions_Helpers;
@@ -87,37 +88,39 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_list_detached_subscriptions
 	 */
 	public function test_list_detached_subscriptions( $subscriptions, $expected_output ) {
+		// Clear database cache
+		WC_Stripe_Database_Cache::set( 'wcstripe_detached_subscriptions', null );
+
+		// Mock response from Stripe API.
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
 		if ( count( $subscriptions ) > 0 ) {
 			$mocked_subscriptions = [];
 			foreach ( $subscriptions as $subscription_data ) {
 				$subscription = new WC_Subscription();
 				$subscription->set_id( $subscription_data['id'] );
 				$subscription->set_status( 'active' );
+				$subscription->save();
+
 				$subscription->update_meta_data( '_stripe_customer_id', $subscription_data['customer_id'] );
 				$subscription->update_meta_data( '_stripe_source_id', $subscription_data['source_id'] );
 				$subscription->save_meta_data();
-
-				$subscription->save();
 
 				$mocked_subscriptions[] = $subscription;
 			}
 
 			WC_Subscriptions_Helpers::$wcs_get_subscriptions = $mocked_subscriptions;
-
-			// Mock response from Stripe API.
-			$test_request = function () {
-				return [
-					'response' => 200,
-					'headers'  => [ 'Content-Type' => 'application/json' ],
-					'body'     => wp_json_encode(
-						[
-							'customer' => null,
-						]
-					),
-				];
-			};
-
-			add_filter( 'pre_http_request', $test_request, 10, 3 );
 		}
 
 		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
@@ -137,6 +140,8 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$this->assertStringContainsString( $expected_output, $output );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
+
+		remove_filter( 'pre_http_request', $test_request, 10 );
 	}
 
 	/**
