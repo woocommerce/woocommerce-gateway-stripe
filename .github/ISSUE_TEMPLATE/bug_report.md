@@ -32,7 +32,7 @@ assignees: ''
 
 <details>
 
-<summary></summary>
+<summary>System report</summary>
 
 <!-- Please share your system report. This can be obtained from WooCommerce -> Status -> System status -> Get system report -> Copy for Github -->
 
