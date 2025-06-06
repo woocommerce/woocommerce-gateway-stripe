@@ -20,14 +20,20 @@ export const getBlocksConfiguration = () => {
  * Determines if off-session payment should be set up.
  *
  * @param {boolean} showSaveOption - Whether to show the save option.
+ * @param {boolean} paymentMethodReusable - Whether the payment method is reusable.
  * @return {boolean} True if off-session payment should be set up, false otherwise.
  */
-export const shouldSetupOffSessionPayment = ( showSaveOption ) => {
+export const shouldSetupOffSessionPayment = (
+	showSaveOption,
+	paymentMethodReusable
+) => {
 	const config = getBlocksConfiguration();
+	const methodNotReusableButManualRenewalEnabled =
+		! paymentMethodReusable && config?.subscriptionManualRenewalEnabled;
 	const hasAutoRenewingSubscription =
 		config?.cartContainsSubscription &&
 		! config?.subscriptionRequiresManualRenewal &&
-		! config?.subscriptionManualRenewalEnabled;
+		! methodNotReusableButManualRenewalEnabled;
 	return hasAutoRenewingSubscription || showSaveOption;
 };
 
