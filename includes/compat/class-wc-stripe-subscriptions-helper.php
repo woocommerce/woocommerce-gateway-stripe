@@ -103,6 +103,9 @@ class WC_Stripe_Subscriptions_Helper {
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
 		$detached_messages = '';
+		if ( empty( $subscriptions ) || ! is_array( $subscriptions ) ) {
+			return '';
+		}
 		foreach ( $subscriptions as $subscription ) {
 			$customer_payment_method_link = sprintf(
 				'<a href="%s">%s</a>',
