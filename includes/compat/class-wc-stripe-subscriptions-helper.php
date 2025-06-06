@@ -8,11 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Subscriptions_Helper {
 	/**
-	 * Transient key for detached subscriptions.
+	 * Cache key for detached subscriptions.
 	 *
 	 * @var string
 	 */
-	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
+	private const DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX = 'wcstripe_detached_subscriptions_';
 
 	/**
 	 * Stripe customer page base URL.
@@ -20,6 +20,11 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @var string
 	 */
 	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
+
+	/**
+	 * Maximum number of subscriptions to load per page.
+	 */
+	private const MAX_SUBSCRIPTIONS_PER_PAGE = 50;
 
 	/**
 	 * Checks if subscriptions are enabled on the site.
@@ -43,31 +48,50 @@ class WC_Stripe_Subscriptions_Helper {
 	}
 
 	/**
-	 * Loads all subscriptions, and attempts to return those that are detached from the customer.
+	 * Loads all active subscriptions renewing in less than a month, and attempts to return those that are detached from the customer.
 	 *
 	 * @param int $limit The maximum number of subscriptions to retrieve. Use -1 for no limit (default).
 	 * @return array
 	 */
 	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
-		$cached_subscriptions = get_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY );
+		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX . $limit );
 		if ( is_array( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
 
-		$subscriptions = wcs_get_subscriptions(
-			[
-				'subscriptions_per_page' => $limit,
-				'page'                   => 1,
-				'orderby'                => 'date',
-				'order'                  => 'DESC',
-				'subscription_status'    => [ 'active', 'on-hold', 'pending-cancel' ],
-			]
-		);
+		$subscriptions = [];
+		$page          = 1;
+		$per_page      = self::MAX_SUBSCRIPTIONS_PER_PAGE;
+
+		do {
+			$batch             = wcs_get_subscriptions(
+				[
+					'subscriptions_per_page' => $per_page,
+					'page'                   => $page,
+					'orderby'                => 'date',
+					'order'                  => 'DESC',
+					'subscription_status'    => [ 'active' ],
+				]
+			);
+			$num_batch         = count( $batch );
+			$subscriptions     = array_merge( $subscriptions, $batch );
+			$num_subscriptions = count( $subscriptions );
+			++$page;
+		} while ( $num_batch === $per_page && ( -1 === $limit || $num_subscriptions < $limit ) );
+
+		if ( -1 !== $limit && $num_subscriptions > $limit ) {
+			$subscriptions = array_slice( $subscriptions, 0, $limit );
+		}
 
 		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
 			if ( ! $subscription instanceof WC_Subscription ) {
+				continue;
+			}
+
+			// Filter subscriptions not renewing in the next month
+			if ( $subscription->get_time( 'next_payment' ) > ( time() + MONTH_IN_SECONDS + DAY_IN_SECONDS ) ) {
 				continue;
 			}
 
@@ -81,7 +105,7 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		// Cache the result for a day.
-		set_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY, $detached_subscriptions, DAY_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX . $limit, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
 	}
@@ -113,14 +137,30 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @return string A string containing the messages to be displayed in the admin interface.
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
+		if ( empty( $subscriptions ) || ! is_array( $subscriptions ) ) {
+			return '';
+		}
+
 		$detached_messages = '';
 		foreach ( $subscriptions as $subscription ) {
 			$detached_messages .= self::build_subscription_detached_message( $subscription );
 		}
-		if ( ! empty( $detached_messages ) ) {
-			$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
-		}
-		return $detached_messages;
+
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+		$intro_message = sprintf(
+		/* translators: %s: subscriptions count */
+			_n(
+				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
+				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
+				count( $subscriptions ),
+				'woocommerce-gateway-stripe'
+			),
+			count( $subscriptions )
+		); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+		$intro_message .= __( "To fix this, either: <br />1) Share the payment method page link with the customer to update it, or <br />2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
+		$intro_message .= __( 'Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' );
+		return $intro_message . $detached_messages;
 	}
 
 	/**

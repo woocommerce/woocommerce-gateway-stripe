@@ -207,10 +207,11 @@ class WC_Stripe_Status {
 				'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 				'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
 				'desc'     => sprintf(
-					'%1$s<br/><strong class="red">%2$s</strong> %3$s',
+					'%1$s<br/><strong class="red">%2$s</strong> %3$s<br/><strong>%4$s</strong>',
 					__( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
 					__( 'Note:', 'woocommerce-gateway-stripe' ),
-					__( 'Be aware this will perform a Stripe request for each subscription on your store. This can be very costly, depending on how many subscriptions you have.', 'woocommerce-gateway-stripe' ),
+					__( 'This tool will make an API request to Stripe for each Stripe subscription in your store. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
+					__( 'Not recommended if you have more than 100 subscriptions.', 'woocommerce-gateway-stripe' ),
 				),
 
 				'callback' => [ $this, 'list_detached_subscriptions' ],

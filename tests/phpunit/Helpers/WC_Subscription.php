@@ -58,4 +58,15 @@ class WC_Subscription extends WC_Order {
 		$change_payment_method_url = wc_get_endpoint_url( 'subscription-payment-method', $this->get_id(), wc_get_page_permalink( 'myaccount' ) );
 		return apply_filters( 'wcs_get_change_payment_method_url', $change_payment_method_url, $this->get_id() );
 	}
+
+	/**
+	 * Get the time for a specific field.
+	 *
+	 * @param $field string Field to get the time for.
+	 * @return false|int
+	 */
+	public function get_time( $field ) {
+		$time = 'next_payment_date' === $field ? strtotime( '+1 month' ) : time();
+		return apply_filters( 'wc_stripe_unit_test_get_subscription_time_' . $field, $time, $field, $this );
+	}
 }

@@ -30,6 +30,14 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_detached_subscriptions() {
+		$return_now_plus_one_week = function () {
+			return strtotime( '+1 week' );
+		};
+		add_filter(
+			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
+			$return_now_plus_one_week
+		);
+
 		$subscription_id = 1;
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
@@ -60,11 +68,22 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
+		// Mock the change payment method URL.
+		$mocked_payment_method_url = 'https://example.com/my-account/subscription-payment-method/' . $subscription_id;
+		add_filter(
+			'wcs_get_change_payment_method_url',
+			function () use ( $mocked_payment_method_url ) {
+				return $mocked_payment_method_url;
+			},
+			10,
+			2
+		);
+
 		$expected = [
 			[
 				'id'                        => $subscription_id,
 				'customer_id'               => $customer_id,
-				'change_payment_method_url' => $subscription->get_change_payment_method_url(),
+				'change_payment_method_url' => $mocked_payment_method_url,
 			],
 		];
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
@@ -75,6 +94,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
+
+		remove_filter(
+			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
+			$return_now_plus_one_week
+		);
 	}
 
 	/**
@@ -98,11 +122,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_build_subscriptions_detached_messages() {
 		return [
-			'empty list'     => [
+			'empty list'             => [
 				'subscriptions' => [],
 				'expected'      => '',
 			],
-			'non-empty list' => [
+			'non-empty list'         => [
 				'subscriptions' => [
 					[
 						'id'                        => 1,
@@ -110,7 +134,22 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
 					],
 				],
-				'expected'      => 'Some subscriptions are missing payment methods,',
+				'expected'      => '1 subscription is missing the payment method,',
+			],
+			'multiple subscriptions' => [
+				'subscriptions' => [
+					[
+						'id'                        => 1,
+						'customer_id'               => 'cus_123',
+						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
+					],
+					[
+						'id'                        => 2,
+						'customer_id'               => 'cus_456',
+						'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/2',
+					],
+				],
+				'expected'      => '2 subscriptions are missing payment methods,',
 			],
 		];
 	}
