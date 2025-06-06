@@ -102,10 +102,11 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @return string A string containing the messages to be displayed in the admin interface.
 	 */
 	public static function build_subscriptions_detached_messages( $subscriptions = [] ) {
-		$detached_messages = '';
 		if ( empty( $subscriptions ) || ! is_array( $subscriptions ) ) {
 			return '';
 		}
+
+		$detached_messages = '';
 		foreach ( $subscriptions as $subscription ) {
 			$customer_payment_method_link = sprintf(
 				'<a href="%s">%s</a>',
@@ -131,23 +132,21 @@ class WC_Stripe_Subscriptions_Helper {
 				$customer_stripe_page
 			);
 		}
-		if ( ! empty( $detached_messages ) ) {
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-			$intro_message = sprintf(
-				/* translators: %s: subscriptions count */
-				_n(
-					'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
-					'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
-					count( $subscriptions ),
-					'woocommerce-gateway-stripe'
-				),
-				count( $subscriptions )
-			); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-			$intro_message    .= __( 'To fix this, either: 1) Share the payment method page link with the customer to update it, or 2) Manually update the payment method in the subscription\'s billing details using a valid payment method from the customer\'s Stripe account. ', 'woocommerce-gateway-stripe' );
-			$intro_message    .= __( 'Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' );
-			$detached_messages = $intro_message . $detached_messages;
-		}
-		return $detached_messages;
+
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+		$intro_message = sprintf(
+			/* translators: %s: subscriptions count */
+			_n(
+				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
+				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
+				count( $subscriptions ),
+				'woocommerce-gateway-stripe'
+			),
+			count( $subscriptions )
+		); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+		$intro_message .= __( 'To fix this, either: 1) Share the payment method page link with the customer to update it, or 2) Manually update the payment method in the subscription\'s billing details using a valid payment method from the customer\'s Stripe account. ', 'woocommerce-gateway-stripe' );
+		$intro_message .= __( 'Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' );
+		return $intro_message . $detached_messages;
 	}
 }
