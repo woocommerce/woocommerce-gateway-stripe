@@ -28,12 +28,12 @@ export const shouldSetupOffSessionPayment = (
 	paymentMethodReusable
 ) => {
 	const config = getBlocksConfiguration();
-	const methodNotReusableButManualRenewalEnabled =
-		! paymentMethodReusable && config?.subscriptionManualRenewalEnabled;
+	const manualRenewalRequired =
+		( ! paymentMethodReusable &&
+			config?.subscriptionManualRenewalEnabled ) ||
+		config?.subscriptionRequiresManualRenewal;
 	const hasAutoRenewingSubscription =
-		config?.cartContainsSubscription &&
-		! config?.subscriptionRequiresManualRenewal &&
-		! methodNotReusableButManualRenewalEnabled;
+		config?.cartContainsSubscription && ! manualRenewalRequired;
 	return hasAutoRenewingSubscription || showSaveOption;
 };
 
