@@ -72,7 +72,7 @@ class WC_Stripe_Subscriptions_Helper {
 			}
 
 			// Filter subscriptions not renewing in the next month
-			if ( $subscription->get_time( 'next_payment' ) > ( time() + MONTH_IN_SECONDS ) ) {
+			if ( $subscription->get_time( 'next_payment' ) > ( time() + MONTH_IN_SECONDS + DAY_IN_SECONDS ) ) {
 				continue;
 			}
 
