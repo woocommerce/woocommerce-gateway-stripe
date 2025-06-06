@@ -67,11 +67,22 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
+		// Mock the change payment method URL.
+		$mocked_payment_method_url = 'https://example.com/my-account/subscription-payment-method/' . $subscription_id;
+		add_filter(
+			'wcs_get_change_payment_method_url',
+			function () use ( $mocked_payment_method_url ) {
+				return $mocked_payment_method_url;
+			},
+			10,
+			2
+		);
+
 		$expected = [
 			[
 				'id'                        => $subscription_id,
 				'customer_id'               => $customer_id,
-				'change_payment_method_url' => $subscription->get_change_payment_method_url(),
+				'change_payment_method_url' => $mocked_payment_method_url,
 			],
 		];
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
