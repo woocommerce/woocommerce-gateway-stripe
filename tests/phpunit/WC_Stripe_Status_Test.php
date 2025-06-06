@@ -89,7 +89,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 */
 	public function test_list_detached_subscriptions( $subscriptions, $expected_output ) {
 		// Clear database cache
-		WC_Stripe_Database_Cache::set( 'wcstripe_detached_subscriptions', null );
+		WC_Stripe_Database_Cache::set( 'wcstripe_detached_subscriptions_-1', null );
 
 		// Mock response from Stripe API.
 		$test_request = function () {
