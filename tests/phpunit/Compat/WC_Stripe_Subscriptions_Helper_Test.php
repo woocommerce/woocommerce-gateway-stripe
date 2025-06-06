@@ -97,9 +97,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		remove_filter(
 			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			function () {
-				return strtotime( '+1 week' );
-			}
+			$return_now_plus_one_week
 		);
 	}
 
