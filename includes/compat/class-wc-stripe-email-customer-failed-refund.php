@@ -111,12 +111,13 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Email_Failed_Order {
 	}
 
 	/**
-	 * Returns the refund failure reason.
+	 * Returns the refund failure reason in a human-readable form.
 	 *
 	 * @param WC_Order $order The order whose refund request failed.
 	 * @return string
 	 */
 	public function get_reason( $order ) {
-		return $order->get_meta( '_stripe_refund_failure_reason', true );
+		$refund_failure_key = $order->get_meta( '_stripe_refund_failure_reason', true );
+		return WC_Stripe_Helper::get_refund_reason_description( $refund_failure_key );
 	}
 }
