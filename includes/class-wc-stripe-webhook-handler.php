@@ -833,7 +833,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 					$order->update_status( $status_before_refund, $note );
 
-					$this->send_failed_refund_emails( $order_id );
+					$this->send_failed_refund_emails( $order );
 				}
 			}
 		}
