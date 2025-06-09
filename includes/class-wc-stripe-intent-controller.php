@@ -1034,8 +1034,8 @@ class WC_Stripe_Intent_Controller {
 		$payment_method                 = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $selected_payment_type );
 		$is_manual_renewal_required     = ( ! $payment_method->is_reusable() && WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled() )
 			|| WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
-		$has_sub_and_manual_renewal_off = ! empty( $payment_information['has_subscription'] ) && ! $is_manual_renewal_required;
-		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_sub_and_manual_renewal_off ) ) {
+		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $is_manual_renewal_required;
+		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
