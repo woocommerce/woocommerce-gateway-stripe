@@ -146,7 +146,7 @@ const getCustomBillingAddressData = ( data ) => {
 	// the standard, expected billing address data.
 	const customBillingAddressKeys = Object.keys(
 		customerData.billingAddress
-	).filter( ( key ) => ! data[ key ] );
+	).filter( ( key ) => ! Object.prototype.hasOwnProperty.call(data, key) );
 
 	customBillingAddressKeys.forEach( ( key ) => {
 		customBillingAddressData[ key ] = customerData.billingAddress[ key ];
