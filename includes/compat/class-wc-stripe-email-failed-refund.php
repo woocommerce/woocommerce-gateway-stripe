@@ -65,17 +65,7 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 		$this->find['order-number']    = '{order_number}';
 		$this->replace['order-number'] = $this->object->get_order_number();
 
-		try {
-			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
-		} catch ( Throwable $e ) {
-			WC_Stripe_Logger::error(
-				sprintf(
-					'Failed to send email %s: %s',
-					$this->id,
-					$e->getMessage()
-				)
-			);
-		}
+		$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
 	}
 
 	/**
