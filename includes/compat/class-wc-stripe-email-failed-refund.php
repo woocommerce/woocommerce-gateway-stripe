@@ -19,16 +19,34 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 		$this->description = __( 'Refund request failure emails are sent to chosen recipient(s) when an attempt to process refund fails.', 'woocommerce-gateway-stripe' );
 
 		$this->heading = __( 'Refund request failed', 'woocommerce-gateway-stripe' );
-		$this->subject = __( '[{site_title}] Refund request failed for {order_number}.', 'woocommerce-gateway-stripe' );
+		$this->subject = __( '[{site_title}] Refund request failed for #{order_number}.', 'woocommerce-gateway-stripe' );
 
 		$this->template_html  = 'emails/failed-refund.php';
 		$this->template_plain = 'emails/plain/failed-refund.php';
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
-		parent::__construct();
+		WC_Email::__construct();
 
 		// Set after calling the parent constructor, so it is not override.
 		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
+	}
+
+	/**
+	 * Get the default e-mail subject.
+	 *
+	 * @return string
+	 */
+	public function get_default_subject() {
+		return $this->subject;
+	}
+
+	/**
+	 * Get the default e-mail heading.
+	 *
+	 * @return string
+	 */
+	public function get_default_heading() {
+		return $this->heading;
 	}
 
 	/**
@@ -44,7 +62,20 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			return;
 		}
 
-		$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+		$this->find['order-number']    = '{order_number}';
+		$this->replace['order-number'] = $this->object->get_order_number();
+
+		try {
+			$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::error(
+				sprintf(
+					'Failed to send email %s: %s',
+					$this->id,
+					$e->getMessage()
+				)
+			);
+		}
 	}
 
 	/**
@@ -57,6 +88,7 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			$this->template_html,
 			[
 				'order'         => $this->object,
+				'reason'        => $this->get_reason( $this->object ),
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => false,
@@ -77,6 +109,7 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			$this->template_plain,
 			[
 				'order'         => $this->object,
+				'reason'        => $this->get_reason( $this->object ),
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => true,
