@@ -183,7 +183,7 @@ const getCustomShippingAddressData = ( data ) => {
 	// the standard, expected shipping address data.
 	const customShippingAddressKeys = Object.keys(
 		customerData.shippingAddress
-	).filter( ( key ) => ! data[ key ] );
+	).filter( ( key ) => ! Object.prototype.hasOwnProperty.call( data, key ) );
 
 	customShippingAddressKeys.forEach( ( key ) => {
 		customShippingAddressData[ key ] = customerData.shippingAddress[ key ];
