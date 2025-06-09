@@ -40,9 +40,6 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	public function trigger( $order_id, $order = false ) {
 		$this->object = $order;
 
-		$this->find['reason']    = '{reason}';
-		$this->replace['reason'] = '';
-
 		if ( ! $this->is_enabled() || ! $this->get_recipient() ) {
 			return;
 		}
