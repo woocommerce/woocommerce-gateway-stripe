@@ -21,7 +21,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 				'woocommerce-gateway-stripe'
 			),
 			$order->get_order_number(),
-			$email->get_reason()
+			$reason
 		)
 	);
 	?>

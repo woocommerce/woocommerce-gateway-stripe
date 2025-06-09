@@ -22,7 +22,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 			),
 			$order->get_order_number(),
 			$order->get_formatted_billing_full_name(),
-			$email->get_reason()
+			$reason
 		)
 	);
 	?>
