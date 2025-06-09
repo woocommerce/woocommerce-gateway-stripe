@@ -141,9 +141,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
+* Fix - Fix legacy deprecation notice displayed on new plugin installs
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Tweak - Add prefix to the custom database cache keys
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
+* Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
