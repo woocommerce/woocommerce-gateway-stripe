@@ -828,6 +828,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						$status_before_refund = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED, $order->get_id(), $order );
 					}
 					$order->update_status( $status_before_refund, $note );
+
+					$this->send_failed_refund_emails( $order_id );
 				}
 			}
 		}
