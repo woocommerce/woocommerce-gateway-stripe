@@ -822,6 +822,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
 						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
 					}
+
+					// Store the failure reason
+					$order->update_meta_data( '_stripe_refund_failure_reason', $refund_object->failure_reason );
+
 					// Revert to previous status
 					$status_before_refund = $this->get_stripe_order_status_before_refund( $order );
 					if ( in_array( $status_before_refund, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order ), true ) ) {

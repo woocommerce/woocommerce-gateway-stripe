@@ -86,4 +86,14 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			$this->template_base
 		);
 	}
+
+	/**
+	 * Returns the refund failure reason.
+	 *
+	 * @param WC_Order $order The order whose refund request failed.
+	 * @return string
+	 */
+	public function get_reason( $order ) {
+		return $order->get_meta( '_stripe_refund_failure_reason', true );
+	}
 }
