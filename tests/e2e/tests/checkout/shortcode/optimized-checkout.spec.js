@@ -61,22 +61,20 @@ test.describe( 'Optimized Checkout payment tests @shortcode', () => {
 					config.get( 'users.customer.password' )
 				);
 				await setupOptimizedCheckout( page, 'shortcode' );
-				await fillOCDetails(
-					page,
-					config.get( 'cards.basic' ),
-					'shortcode'
-				);
+				// Click the checkbox to save payment information.
 				await page
 					.getByRole( 'checkbox', {
 						name: 'Save payment information to',
 					} )
 					.check( { force: true } );
-				await clickPlaceOrder( page );
+				// Then fill in the payment details.
+				// This order is needed because, if we fill in the payment details and then click the checkbox, payment element will refresh and the fields will be cleared.
 				await fillOCDetails(
 					page,
 					config.get( 'cards.basic' ),
 					'shortcode'
 				);
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'

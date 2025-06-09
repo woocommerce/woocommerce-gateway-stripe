@@ -231,7 +231,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'/' . $this->rest_base . '/notice',
 			[
 				'methods'             => WP_REST_Server::EDITABLE,
-				'callback'            => [ $this, 'dismiss_customization_notice' ],
+				'callback'            => [ $this, 'dismiss_notice' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
@@ -740,13 +740,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response
+	 *
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
 	 */
 	public function dismiss_customization_notice( WP_REST_Request $request ) {
-		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+		return $this->dismiss_notice( $request );
+	}
+
+	/**
+	 * Dismisses settings notices such as the customization notice and BNPL promotion banner.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_notice( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
+			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
 
-		update_option( 'wc_stripe_show_customization_notice', 'no' );
+		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
+			update_option( 'wc_stripe_show_bnpl_promotion_banner', 'no' );
+		}
+
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 
