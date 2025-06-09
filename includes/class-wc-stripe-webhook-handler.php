@@ -731,6 +731,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( $charge ) {
 				$reason = __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' );
 
+				$this->set_stripe_order_status_before_refund( $order, $order->get_status() );
+
 				// Create the refund.
 				$refund = wc_create_refund(
 					[
@@ -812,6 +814,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 					$refund->delete( true );
 					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+
 					if ( 'failed' === $refund_object->status ) {
 						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
 						$note = sprintf( __( 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
@@ -819,8 +822,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
 						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
 					}
-
-					$order->add_order_note( $note );
+					// Revert to previous status
+					$status_before_refund = $this->get_stripe_order_status_before_refund( $order );
+					if ( in_array( $status_before_refund, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order ), true ) ) {
+						$status_before_refund = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED, $order->get_id(), $order );
+					}
+					$order->update_status( $status_before_refund, $note );
 				}
 			}
 		}

@@ -2308,6 +2308,45 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Helper method to retrieve the status of the order before it was refunded.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @param WC_Order $order The order.
+	 *
+	 * @return string The status of the order before it was refunded.
+	 */
+	protected function get_stripe_order_status_before_refund( $order ) {
+		$before_refund_status = $order->get_meta( '_stripe_status_before_refund' );
+
+		if ( ! empty( $before_refund_status ) ) {
+			return $before_refund_status;
+		}
+
+		$default_before_refund_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_refund_status, $order->get_id(), $order );
+	}
+
+	/**
+	 * Stores the status of the order before being refunded.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @param WC_Order  $order  The order.
+	 * @param string    $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 *
+	 * @return void
+	 */
+	protected function set_stripe_order_status_before_refund( $order, $status ) {
+		if ( 'default_payment_complete' === $status ) {
+			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+		}
+
+		$order->update_meta_data( '_stripe_status_before_refund', $status );
+	}
+
+	/**
 	 * Retrieves the risk/fraud outcome from the webhook payload.
 	 *
 	 * @param object $event_data The event data from the webhook.
