@@ -28,14 +28,15 @@ assignees: ''
 
 <!-- Please share any screenshots of the problem to help us understand what is happening. -->
 
-### Environment
+### System report
 
-<!-- Please share the following information with us. -->
-- WordPress Version
-- WooCommerce Version
-- Stripe Plugin Version
-- Browser [e.g. Chrome, Safari, Safari on iOS, Chrome on Android] and Version
-- Any other plugins installed
+<details>
+
+<summary>System report</summary>
+
+<!-- Please share your system report. This can be obtained from WooCommerce -> Status -> System status -> Get system report -> Copy for Github -->
+
+</details>
 
 ### Additional context
 

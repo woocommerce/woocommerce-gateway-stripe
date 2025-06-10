@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
 * Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
 * Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
@@ -140,9 +141,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
-* Dev - Implement a class autoloader for the plugin to reduce unnecessary file loads
+* Fix - Fix legacy deprecation notice displayed on new plugin installs
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Tweak - Add prefix to the custom database cache keys
+* Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
+* Dev - Implement a class autoloader for the plugin to reduce unnecessary file loads
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
