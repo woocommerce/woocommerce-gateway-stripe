@@ -741,7 +741,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @return WP_REST_Response
 	 *
-	 * @deprecated since 9.6.0, use `dismiss_message` instead.
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
 	 */
 	public function dismiss_customization_notice( WP_REST_Request $request ) {
 		return $this->dismiss_notice( $request );
