@@ -70,7 +70,7 @@ export const NewCheckoutExperienceBanner = ( {
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
-					<p data-testid="intro-new-checkout">
+					<p>
 						{ __(
 							'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.',
 							'woocommerce-gateway-stripe'

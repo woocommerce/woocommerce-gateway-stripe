@@ -48,7 +48,7 @@ export const ReConnectAccountBanner = ( { testOauthUrl, oauthUrl } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
-					<p data-testid="intro-reconnect">
+					<p>
 						{ __(
 							'Re-connect your Stripe account using the new authentication flow by clicking the "Re-authenticate" button and make your store safer.',
 							'woocommerce-gateway-stripe'

@@ -36,12 +36,16 @@ describe( 'Reconnect banner', () => {
 	} );
 
 	it( 'should render the Reconnect promotional banner', () => {
-		const { getByText, getByTestId } = render( <ReConnectAccountBanner /> );
+		const { getByText } = render( <ReConnectAccountBanner /> );
 		expect(
 			getByText( 'Make your store more secure' )
 		).toBeInTheDocument();
-		expect( getByTestId( 'intro-reconnect' ) ).toBeInTheDocument();
-		expect( getByTestId( 're-connect-checkout' ) ).toBeInTheDocument();
+		expect(
+			getByText(
+				'Re-connect your Stripe account using the new authentication flow by clicking the "Re-authenticate" button and make your store safer.'
+			)
+		).toBeInTheDocument();
+		expect( getByText( 'Re-authenticate' ) ).toBeInTheDocument();
 	} );
 	it( 'should record event on button click', () => {
 		// Keep the original function at hand.
@@ -52,10 +56,10 @@ describe( 'Reconnect banner', () => {
 		} );
 
 		const oauthUrl = 'http://example.com/test-oauth';
-		const { getByTestId } = render(
+		const { getByText } = render(
 			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
 		);
-		const reconnectButton = getByTestId( 're-connect-checkout' );
+		const reconnectButton = getByText( 'Re-authenticate' );
 		userEvent.click( reconnectButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
@@ -71,10 +75,10 @@ describe( 'Reconnect banner', () => {
 		} );
 	} );
 	it( 'should create error notice when oauth URLs are invalid', () => {
-		const { getByTestId } = render(
+		const { getByText } = render(
 			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
 		);
-		const reconnectButton = getByTestId( 're-connect-checkout' );
+		const reconnectButton = getByText( 'Re-authenticate' );
 		userEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(

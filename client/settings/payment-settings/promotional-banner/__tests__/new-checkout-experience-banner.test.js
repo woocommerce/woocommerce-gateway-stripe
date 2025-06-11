@@ -33,7 +33,7 @@ describe( 'New checkout experience banner', () => {
 	} );
 
 	it( 'should render the New Checkout Experience promotional banner', () => {
-		const { getByText, getByTestId } = render(
+		const { getByText } = render(
 			<NewCheckoutExperienceBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
@@ -41,16 +41,20 @@ describe( 'New checkout experience banner', () => {
 		expect(
 			getByText( 'Boost sales and checkout conversion' )
 		).toBeInTheDocument();
-		expect( getByTestId( 'intro-new-checkout' ) ).toBeInTheDocument();
-		expect( getByTestId( 'enable-the-new-checkout' ) ).toBeInTheDocument();
+		expect(
+			getByText(
+				'Enable the new checkout to boost sales, increase order value, and reach new customers with Klarna, Afterpay, Affirm and Link, a one-click checkout.'
+			)
+		).toBeInTheDocument();
+		expect( getByText( 'Enable the new checkout' ) ).toBeInTheDocument();
 	} );
 	it( 'should dismiss on button click', () => {
-		const { getByTestId } = render(
+		const { getByText } = render(
 			<NewCheckoutExperienceBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
-		const dismissButton = getByTestId( 'dismiss' );
+		const dismissButton = getByText( 'Dismiss' );
 
 		userEvent.click( dismissButton );
 
