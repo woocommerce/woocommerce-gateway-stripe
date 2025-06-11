@@ -33,7 +33,7 @@ describe( 'New checkout experience APMs banner', () => {
 	} );
 
 	it( 'should render the New Checkout Experience APMs promotional banner', () => {
-		const { getByText, getByTestId } = render(
+		const { getByText } = render(
 			<NewCheckoutExperienceAPMsBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
@@ -43,18 +43,20 @@ describe( 'New checkout experience APMs banner', () => {
 				'Enable the new Stripe checkout to continue accepting non-card payments'
 			)
 		).toBeInTheDocument();
-		expect( getByTestId( 'intro-new-checkout-apms' ) ).toBeInTheDocument();
 		expect(
-			getByTestId( 'disable-the-legacy-checkout' )
+			getByText(
+				/To continue accepting non-card payments, you must enable the new checkout experience or remove non-card payment methods from your checkout to avoid payment disruptions./
+			)
 		).toBeInTheDocument();
+		expect( getByText( 'Enable the new checkout' ) ).toBeInTheDocument();
 	} );
 	it( 'should dismiss on button click', () => {
-		const { getByTestId } = render(
+		const { getByText } = render(
 			<NewCheckoutExperienceAPMsBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
-		const dismissButton = getByTestId( 'dismiss' );
+		const dismissButton = getByText( 'Dismiss' );
 
 		userEvent.click( dismissButton );
 
