@@ -19,7 +19,7 @@ describe( 'BNPL promotional banner', () => {
 	} );
 
 	it( 'should render the BNPL promotional banner', () => {
-		const { getByText, getByTestId } = render(
+		const { getByText } = render(
 			<BNPLPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
@@ -27,7 +27,16 @@ describe( 'BNPL promotional banner', () => {
 		expect(
 			getByText( 'Offer more ways to pay with Buy Now, Pay Later' )
 		).toBeInTheDocument();
-		expect( getByTestId( 'intro-bnpl' ) ).toBeInTheDocument();
+		expect(
+			getByText(
+				/Flexible pay-over-time options can boost revenue by up to 14%*./
+			)
+		).toBeInTheDocument();
+		expect(
+			getByText(
+				/Affirm and Klarna payments are auto-enabled with Stripe for eligible merchants./
+			)
+		).toBeInTheDocument();
 		expect( getByText( '*Source: Stripe 2024' ) ).toBeInTheDocument();
 	} );
 
@@ -37,12 +46,12 @@ describe( 'BNPL promotional banner', () => {
 		);
 		apiFetch.mockImplementation( dismissNoticeMock );
 
-		const { getByTestId } = render(
+		const { getByText } = render(
 			<BNPLPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
 			/>
 		);
-		const dismissButton = getByTestId( 'dismiss' );
+		const dismissButton = getByText( 'Dismiss' );
 
 		await act( async () => {
 			await userEvent.click( dismissButton );
