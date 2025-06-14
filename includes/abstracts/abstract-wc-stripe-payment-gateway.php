@@ -2321,7 +2321,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected function set_stripe_order_status_before_event( $order, $target_status, $current_status ) {
 		if ( 'default_payment_complete' === $current_status ) {
 			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
-			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+			$current_status          = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
 		}
 		if ( OrderStatus::ON_HOLD === $target_status ) {
 			$meta_key = '_stripe_status_before_hold';
@@ -2333,7 +2333,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Logger::log( 'Error: Unable to set the status before event. Meta key is not defined.' );
 			return;
 		}
-		$order->update_meta_data( $meta_key, $status );
+		$order->update_meta_data( $meta_key, $current_status );
 	}
 
 	/**

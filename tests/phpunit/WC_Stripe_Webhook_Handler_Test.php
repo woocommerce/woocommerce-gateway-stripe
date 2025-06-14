@@ -67,6 +67,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'get_latest_charge_from_intent',
 			'process_response',
 			'update_fees',
+			'send_failed_refund_emails',
 		];
 
 		$methods = array_diff( $methods, $exclude_methods );
@@ -698,6 +699,110 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'amazon_pay'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
 			'three_d_secure' => [ 'three_d_secure' ],
 			'sepa_debit'     => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+		];
+	}
+
+	/**
+	 * Tests for `process_webhook_refund_updated`.
+	 *
+	 * @param object $notification The notification object.
+	 * @param bool   $email_triggered Whether an email should be triggered.
+	 * @param string $expected_note The expected order note.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_process_webhook_refund_updated
+	 */
+	public function test_process_webhook_refund_updated( $notification, $email_triggered, $expected_note ) {
+		$this->mock_webhook_handler
+			->expects( $email_triggered ? $this->once() : $this->never() )
+			->method( 'send_failed_refund_emails' );
+
+		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
+
+		if ( ! empty( $expected_note ) ) {
+			// Check if the order note was added correctly.
+			$order_id = $notification->data->object->charge;
+			$order    = wc_get_order( $order_id );
+			if ( ! $order ) {
+				// If the order is not found, we cannot proceed with the assertions.
+				return;
+			}
+
+			$notes = wc_get_order_notes(
+				[
+					'order_id' => $order->get_id(),
+					'limit'    => 1,
+				]
+			);
+			$this->assertCount( 1, $notes );
+			$this->assertSame( $expected_note, $notes[0]->content );
+		}
+	}
+
+	/**
+	 * Provider for `test_process_webhook_refund_updated`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_refund_updated() {
+		$non_stripe_order = WC_Helper_Order::create_order();
+		$non_stripe_order->set_payment_method( 'not-stripe' );
+		$non_stripe_order->set_transaction_id( 'ch_456' );
+		$non_stripe_order->save();
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_transaction_id( 'ch_123' );
+		$order->save();
+
+		$order->update_meta_data( '_stripe_refund_id', 'refund_123' );
+		$order->save_meta_data();
+
+		$notification_invalid_status = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => 'refund_123',
+					'charge' => $order->get_transaction_id(),
+					'status' => 'invalid_status',
+				],
+			],
+		];
+
+		$notification_failed_refund = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => 'refund_123',
+					'charge' => $order->get_transaction_id(),
+					'status' => 'failed',
+				],
+			],
+		];
+
+		$notification_canceled_refund = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'     => 'refund_123',
+					'charge' => $order->get_transaction_id(),
+					'status' => 'canceled',
+				],
+			],
+		];
+
+		return [
+			'invalid refund status' => [
+				'notification'    => $notification_invalid_status,
+				'email triggered' => false,
+				'expected note'   => '',
+			],
+			'failed refund'         => [
+				'notification'    => $notification_failed_refund,
+				'email triggered' => true,
+				'expected note'   => 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s',
+			],
+			'canceled refund'       => [
+				'notification'    => $notification_canceled_refund,
+				'email triggered' => true,
+				'expected note'   => 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s',
+			],
 		];
 	}
 }
