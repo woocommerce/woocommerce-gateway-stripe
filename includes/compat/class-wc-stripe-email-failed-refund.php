@@ -10,6 +10,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 9.6.0
  */
 abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
+
+	/**
+	 * A list with the email template parameters.
+	 *
+	 * @var array
+	 */
+	protected $template_params = [];
+
 	/**
 	 * Constructor
 	 */
@@ -35,6 +43,34 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	 */
 	public function get_default_heading() {
 		return $this->heading;
+	}
+
+	/**
+	 * Get content html.
+	 *
+	 * @return string
+	 */
+	public function get_content_html() {
+		return wc_get_template_html(
+			$this->template_html,
+			$this->template_params,
+			'',
+			$this->template_base
+		);
+	}
+
+	/**
+	 * Get content plain.
+	 *
+	 * @return string
+	 */
+	public function get_content_plain() {
+		return wc_get_template_html(
+			$this->template_plain,
+			$this->template_params,
+			'',
+			$this->template_base
+		);
 	}
 
 	/**

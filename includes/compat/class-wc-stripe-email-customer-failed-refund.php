@@ -26,47 +26,15 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Stripe_Email_Failed_Refu
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		WC_Email::__construct();
-	}
 
-	/**
-	 * Get content html.
-	 *
-	 * @return string
-	 */
-	public function get_content_html() {
-		return wc_get_template_html(
-			$this->template_html,
-			[
-				'reason'        => $this->get_reason( $this->object ),
-				'order'         => $this->object,
-				'email_heading' => $this->get_heading(),
-				'sent_to_admin' => false,
-				'plain_text'    => false,
-				'email'         => $this,
-			],
-			'',
-			$this->template_base
-		);
-	}
-
-	/**
-	 * Get content plain.
-	 *
-	 * @return string
-	 */
-	public function get_content_plain() {
-		return wc_get_template_html(
-			$this->template_plain,
-			[
-				'reason'        => self::get_reason( $this->object ),
-				'order'         => $this->object,
-				'email_heading' => $this->get_heading(),
-				'sent_to_admin' => false,
-				'plain_text'    => true,
-				'email'         => $this,
-			],
-			'',
-			$this->template_base
-		);
+		// Set the template parameters.
+		$this->template_params = [
+			'order'         => $this->object,
+			'reason'        => $this->get_reason( $this->object ),
+			'email_heading' => $this->get_heading(),
+			'sent_to_admin' => false,
+			'plain_text'    => false,
+			'email'         => $this,
+		];
 	}
 }
