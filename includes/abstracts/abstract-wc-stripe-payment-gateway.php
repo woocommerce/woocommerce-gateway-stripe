@@ -692,11 +692,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function send_failed_refund_emails( $order ) {
 		$emails = WC()->mailer()->get_emails();
 
-		if ( empty( $emails ) || empty( $order ) || ! isset( $emails['WC_Stripe_Email_Failed_Refund'] ) || ! isset( $emails['WC_Stripe_Email_Customer_Failed_Refund'] ) ) {
+		if ( empty( $emails ) || empty( $order ) || ! isset( $emails['WC_Stripe_Email_Admin_Failed_Refund'] ) || ! isset( $emails['WC_Stripe_Email_Customer_Failed_Refund'] ) ) {
 			return;
 		}
 
-		$emails['WC_Stripe_Email_Failed_Refund']->trigger( $order->get_id(), $order );
+		$emails['WC_Stripe_Email_Admin_Failed_Refund']->trigger( $order->get_id(), $order );
 		$emails['WC_Stripe_Email_Customer_Failed_Refund']->trigger( $order->get_id(), $order );
 	}
 

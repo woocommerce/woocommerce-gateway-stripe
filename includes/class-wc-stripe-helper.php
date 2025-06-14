@@ -1784,29 +1784,4 @@ class WC_Stripe_Helper {
 
 		return in_array( strtolower( $currency ), $supported_currencies, true );
 	}
-
-	/**
-	 * Returns the description for a refund reason.
-	 *
-	 * @return string
-	 */
-	public static function get_refund_reason_description( $refund_reason_key ) {
-		switch ( $refund_reason_key ) {
-			case 'charge_for_pending_refund_disputed':
-				return __( 'Customer disputed the charge while the refund is pending.', 'woocommerce-gateway-stripe' );
-			case 'declined':
-				return __( 'Declined by financial partners.', 'woocommerce-gateway-stripe' );
-			case 'expired_or_canceled_card':
-				return __( 'Payment method is canceled by the customer or expired by the merchant.', 'woocommerce-gateway-stripe' );
-			case 'insufficient_funds':
-				return __( 'Insufficient funds and has crossed the pending refund expiry window.', 'woocommerce-gateway-stripe' );
-			case 'lost_or_stolen_card':
-				return __( 'Failed due to loss or theft of the original card.', 'woocommerce-gateway-stripe' );
-			case 'merchant_request':
-				return __( 'Failed upon the merchant’s request.', 'woocommerce-gateway-stripe' );
-			case 'unknown':
-			default:
-				return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
-		}
-	}
 }

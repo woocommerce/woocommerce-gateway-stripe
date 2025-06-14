@@ -5,30 +5,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * An email sent to the admin when a refund fails.
+ * Base class for the email sent to the admin and customers when a refund fails.
  *
  * @since 9.6.0
  */
-class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
+abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id          = 'failed_refund';
-		$this->title       = __( 'Refund request failed', 'woocommerce-gateway-stripe' );
-		$this->description = __( 'Refund request failure emails are sent to chosen recipient(s) when an attempt to process refund fails.', 'woocommerce-gateway-stripe' );
-
+		$this->title   = __( 'Refund request failed', 'woocommerce-gateway-stripe' );
 		$this->heading = __( 'Refund request failed', 'woocommerce-gateway-stripe' );
 		$this->subject = __( '[{site_title}] Refund request failed for #{order_number}.', 'woocommerce-gateway-stripe' );
-
-		$this->template_html  = 'emails/failed-refund.php';
-		$this->template_plain = 'emails/plain/failed-refund.php';
-		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
-
-		WC_Email::__construct();
-
-		// Set after calling the parent constructor, so it is not override.
-		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
 	}
 
 	/**
@@ -69,55 +57,38 @@ class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	}
 
 	/**
-	 * Get content html.
-	 *
-	 * @return string
-	 */
-	public function get_content_html() {
-		return wc_get_template_html(
-			$this->template_html,
-			[
-				'order'         => $this->object,
-				'reason'        => $this->get_reason( $this->object ),
-				'email_heading' => $this->get_heading(),
-				'sent_to_admin' => true,
-				'plain_text'    => false,
-				'email'         => $this,
-			],
-			'',
-			$this->template_base
-		);
-	}
-
-	/**
-	 * Get content plain.
-	 *
-	 * @return string
-	 */
-	public function get_content_plain() {
-		return wc_get_template_html(
-			$this->template_plain,
-			[
-				'order'         => $this->object,
-				'reason'        => $this->get_reason( $this->object ),
-				'email_heading' => $this->get_heading(),
-				'sent_to_admin' => true,
-				'plain_text'    => true,
-				'email'         => $this,
-			],
-			'',
-			$this->template_base
-		);
-	}
-
-	/**
 	 * Returns the refund failure reason in a human-readable form.
 	 *
 	 * @param WC_Order $order The order whose refund request failed.
 	 * @return string
 	 */
-	public function get_reason( $order ) {
+	protected static function get_reason( $order ) {
 		$refund_failure_key = $order->get_meta( '_stripe_refund_failure_reason', true );
-		return WC_Stripe_Helper::get_refund_reason_description( $refund_failure_key );
+		return self::get_refund_reason_description( $refund_failure_key );
+	}
+
+	/**
+	 * Returns the description for a refund reason.
+	 *
+	 * @return string
+	 */
+	protected static function get_refund_reason_description( $refund_reason_key ) {
+		switch ( $refund_reason_key ) {
+			case 'charge_for_pending_refund_disputed':
+				return __( 'Customer disputed the charge while the refund is pending.', 'woocommerce-gateway-stripe' );
+			case 'declined':
+				return __( 'Declined by financial partners.', 'woocommerce-gateway-stripe' );
+			case 'expired_or_canceled_card':
+				return __( 'Payment method is canceled by the customer or expired by the merchant.', 'woocommerce-gateway-stripe' );
+			case 'insufficient_funds':
+				return __( 'Insufficient funds and has crossed the pending refund expiry window.', 'woocommerce-gateway-stripe' );
+			case 'lost_or_stolen_card':
+				return __( 'Failed due to loss or theft of the original card.', 'woocommerce-gateway-stripe' );
+			case 'merchant_request':
+				return __( 'Failed upon the merchant’s request.', 'woocommerce-gateway-stripe' );
+			case 'unknown':
+			default:
+				return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
+		}
 	}
 }
