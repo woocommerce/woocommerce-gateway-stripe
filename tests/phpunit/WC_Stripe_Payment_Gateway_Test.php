@@ -6,7 +6,11 @@ use PHPUnit\Framework\MockObject\MockObject;
 use stdClass;
 use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
+use WC_Order;
+use WC_Stripe;
 use WC_Stripe_Customer;
+use WC_Stripe_Email_Customer_Failed_Refund;
+use WC_Stripe_Email_Failed_Refund;
 use WC_Stripe_Exception;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
@@ -864,7 +868,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		};
 
 		return [
-			'default'                => [
+			'default'                    => [
 				'optimized checkout enabled' => false,
 				'filter'                     => null,
 				'expected'                   => [
@@ -892,8 +896,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			'Optimized Checkout enabled' => [
 				'optimized checkout enabled' => true,
-				'filter'                 => null,
-				'expected'               => [
+				'filter'                     => null,
+				'expected'                   => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
 					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
@@ -916,10 +920,82 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 				],
 			],
-			'filter applied'         => [
+			'filter applied'             => [
 				'optimized checkout enabled' => false,
-				'filter'                 => $mocked_filter,
-				'expected'               => [],
+				'filter'                     => $mocked_filter,
+				'expected'                   => [],
+			],
+		];
+	}
+
+	/**
+	 * Tests for `send_failed_refund_emails`.
+	 *
+	 * @param WC_Order|mixed $order                The order object or null.
+	 * @param bool           $mock_emails          Whether to mock the email classes.
+	 * @param bool           $expect_email_trigger Whether to expect the email trigger to be called.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_send_failed_refund_emails
+	 */
+	public function test_send_failed_refund_emails( $order, $mock_emails = false, $expect_email_trigger = false ) {
+		$mocked_failed_refund_email = $this->getMockBuilder( WC_Stripe_Email_Failed_Refund::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mocked_failed_refund_email
+			->expects( $expect_email_trigger ? $this->once() : $this->never() )
+			->method( 'trigger' )
+			->with( is_a( $order, 'WC_Order' ) ? $order->get_id() : null, $order );
+
+		$mocked_customer_failed_refund_email = $this->getMockBuilder( WC_Stripe_Email_Customer_Failed_Refund::class )
+			->disableOriginalConstructor()
+			->getMock();
+		$mocked_customer_failed_refund_email
+			->expects( $expect_email_trigger ? $this->once() : $this->never() )
+			->method( 'trigger' )
+			->with( is_a( $order, 'WC_Order' ) ? $order->get_id() : null, $order );
+
+		$mocking_emails_fn = function ( $email_classes ) use ( $mocked_failed_refund_email, $mocked_customer_failed_refund_email ) {
+			$email_classes['WC_Stripe_Email_Failed_Refund']          = $mocked_failed_refund_email;
+			$email_classes['WC_Stripe_Email_Customer_Failed_Refund'] = $mocked_customer_failed_refund_email;
+			return $email_classes;
+		};
+
+		if ( $mock_emails ) {
+			add_filter(
+				'woocommerce_email_classes',
+				$mocking_emails_fn,
+				10,
+			);
+		}
+
+		$this->gateway->send_failed_refund_emails( $order );
+		remove_filter( 'woocommerce_email_classes', $mocking_emails_fn, 20 );
+	}
+
+	/**
+	 * Provider for `test_send_failed_refund_emails`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_send_failed_refund_emails() {
+		$order = WC_Helper_Order::create_order();
+
+		return [
+			'empty order'                   => [
+				'order'                => null,
+				'mock emails'          => false,
+				'expect email trigger' => false,
+			],
+			'failure refund emails not set' => [
+				'order'                => $order,
+				'mock emails'          => false,
+				'expect email trigger' => false,
+			],
+			'emails triggered'              => [
+				'order'                => $order,
+				'mock emails'          => true,
+				'expect email trigger' => true,
 			],
 		];
 	}
