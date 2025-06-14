@@ -751,11 +751,16 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$non_stripe_order->save();
 
 		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
 		$order->set_transaction_id( 'ch_123' );
 		$order->save();
 
 		$order->update_meta_data( '_stripe_refund_id', 'refund_123' );
 		$order->save_meta_data();
+
+		$refund_order = WC_Helper_Order::create_order();
+		$refund_order->set_parent_id( $order->get_id() );
+		$refund_order->save();
 
 		$notification_invalid_status = (object) [
 			'data' => (object) [
@@ -763,6 +768,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 					'id'     => 'refund_123',
 					'charge' => $order->get_transaction_id(),
 					'status' => 'invalid_status',
+					'amount' => 1000,
 				],
 			],
 		];
@@ -770,9 +776,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$notification_failed_refund = (object) [
 			'data' => (object) [
 				'object' => (object) [
-					'id'     => 'refund_123',
-					'charge' => $order->get_transaction_id(),
-					'status' => 'failed',
+					'id'             => 'refund_123',
+					'charge'         => $order->get_transaction_id(),
+					'status'         => 'failed',
+					'amount'         => 1000,
+					'failure_reason' => 'bank_account_rejected',
 				],
 			],
 		];
@@ -780,9 +788,11 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$notification_canceled_refund = (object) [
 			'data' => (object) [
 				'object' => (object) [
-					'id'     => 'refund_123',
-					'charge' => $order->get_transaction_id(),
-					'status' => 'canceled',
+					'id'             => 'refund_123',
+					'charge'         => $order->get_transaction_id(),
+					'status'         => 'canceled',
+					'amount'         => 1000,
+					'failure_reason' => 'bank_account_rejected',
 				],
 			],
 		];

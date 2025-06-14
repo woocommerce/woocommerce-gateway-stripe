@@ -824,7 +824,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Store the failure reason
-					$order->update_meta_data( '_stripe_refund_failure_reason', $refund_object->failure_reason );
+					if ( isset( $refund_object->failure_reason ) ) {
+						$order->update_meta_data( '_stripe_refund_failure_reason', $refund_object->failure_reason );
+					}
 
 					// Revert to previous status
 					$status_before_refund = $this->get_stripe_order_status_before_refund( $order );
