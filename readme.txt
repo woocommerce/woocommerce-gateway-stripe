@@ -146,6 +146,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Tweak - Add prefix to the custom database cache keys
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
+* Tweak - Remove Payment Method Configurations fallback cache
 * Dev - Implement a class autoloader for the plugin to reduce unnecessary file loads
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
