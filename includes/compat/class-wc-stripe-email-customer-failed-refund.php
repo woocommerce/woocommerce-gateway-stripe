@@ -26,9 +26,15 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Stripe_Email_Failed_Refu
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		WC_Email::__construct();
+	}
 
-		// Set the template parameters.
-		$this->template_params = [
+	/**
+	 * Returns the list of template parameters.
+	 *
+	 * @inheritDoc
+	 */
+	public function get_template_params() {
+		return [
 			'order'         => $this->object,
 			'reason'        => $this->get_reason( $this->object ),
 			'email_heading' => $this->get_heading(),

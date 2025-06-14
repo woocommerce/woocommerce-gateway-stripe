@@ -27,9 +27,15 @@ class WC_Stripe_Email_Admin_Failed_Refund extends WC_Stripe_Email_Failed_Refund 
 
 		// Set after calling the parent constructor, so it is not override.
 		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
+	}
 
-		// Set the template parameters.
-		$this->template_params = [
+	/**
+	 * Returns the list of template parameters.
+	 *
+	 * @inheritDoc
+	 */
+	public function get_template_params() {
+		return [
 			'order'         => $this->object,
 			'reason'        => $this->get_reason( $this->object ),
 			'email_heading' => $this->get_heading(),
