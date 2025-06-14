@@ -95,10 +95,14 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	/**
 	 * Returns the refund failure reason in a human-readable form.
 	 *
-	 * @param WC_Order $order The order whose refund request failed.
+	 * @param object $order The order object whose refund request failed.
 	 * @return string
 	 */
 	protected static function get_reason( $order ) {
+		if ( ! is_a( $order, WC_Order::class ) ) {
+			return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
+		}
+
 		$refund_failure_key = $order->get_meta( '_stripe_refund_failure_reason', true );
 		return self::get_refund_reason_description( $refund_failure_key );
 	}
