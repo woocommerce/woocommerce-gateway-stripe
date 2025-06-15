@@ -705,14 +705,41 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `process_webhook_refund_updated`.
 	 *
-	 * @param object $notification The notification object.
+	 * @param string $notification_status The notification status.
 	 * @param bool   $email_triggered Whether an email should be triggered.
 	 * @param string $expected_note The expected order note.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_process_webhook_refund_updated
 	 */
-	public function test_process_webhook_refund_updated( $notification, $email_triggered, $expected_note ) {
+	public function test_process_webhook_refund_updated( $notification_status, $email_triggered, $expected_note ) {
+		$refund_id = 'refund_123';
+		$charge_id = 'ch_123';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$order->update_meta_data( '_stripe_refund_id', $refund_id );
+		$order->save_meta_data();
+
+		$refund_order = WC_Helper_Order::create_order();
+		$refund_order->set_parent_id( $order->get_id() );
+		$refund_order->save();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $refund_id,
+					'charge'         => $charge_id,
+					'amount'         => 1000,
+					'failure_reason' => 'bank_account_rejected',
+					'status'         => $notification_status,
+				],
+			],
+		];
+
 		$this->mock_webhook_handler
 			->expects( $email_triggered ? $this->once() : $this->never() )
 			->method( 'send_failed_refund_emails' );
@@ -745,73 +772,21 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_process_webhook_refund_updated() {
-		$non_stripe_order = WC_Helper_Order::create_order();
-		$non_stripe_order->set_payment_method( 'not-stripe' );
-		$non_stripe_order->set_transaction_id( 'ch_456' );
-		$non_stripe_order->save();
-
-		$order = WC_Helper_Order::create_order();
-		$order->set_payment_method( 'stripe' );
-		$order->set_transaction_id( 'ch_123' );
-		$order->save();
-
-		$order->update_meta_data( '_stripe_refund_id', 'refund_123' );
-		$order->save_meta_data();
-
-		$refund_order = WC_Helper_Order::create_order();
-		$refund_order->set_parent_id( $order->get_id() );
-		$refund_order->save();
-
-		$notification_invalid_status = (object) [
-			'data' => (object) [
-				'object' => (object) [
-					'id'     => 'refund_123',
-					'charge' => $order->get_transaction_id(),
-					'status' => 'invalid_status',
-					'amount' => 1000,
-				],
-			],
-		];
-
-		$notification_failed_refund = (object) [
-			'data' => (object) [
-				'object' => (object) [
-					'id'             => 'refund_123',
-					'charge'         => $order->get_transaction_id(),
-					'status'         => 'failed',
-					'amount'         => 1000,
-					'failure_reason' => 'bank_account_rejected',
-				],
-			],
-		];
-
-		$notification_canceled_refund = (object) [
-			'data' => (object) [
-				'object' => (object) [
-					'id'             => 'refund_123',
-					'charge'         => $order->get_transaction_id(),
-					'status'         => 'canceled',
-					'amount'         => 1000,
-					'failure_reason' => 'bank_account_rejected',
-				],
-			],
-		];
-
 		return [
 			'invalid refund status' => [
-				'notification'    => $notification_invalid_status,
-				'email triggered' => false,
-				'expected note'   => '',
+				'notification status' => 'invalid_status',
+				'email triggered'     => false,
+				'expected note'       => '',
 			],
 			'failed refund'         => [
-				'notification'    => $notification_failed_refund,
-				'email triggered' => true,
-				'expected note'   => 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s',
+				'notification status' => 'failed',
+				'email triggered'     => true,
+				'expected note'       => 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s',
 			],
 			'canceled refund'       => [
-				'notification'    => $notification_canceled_refund,
-				'email triggered' => true,
-				'expected note'   => 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s',
+				'notification status' => 'canceled',
+				'email triggered'     => true,
+				'expected note'       => 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s',
 			],
 		];
 	}
