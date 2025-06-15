@@ -20,7 +20,7 @@ const SaveSettingsSection = ( { onSettingsSave } ) => {
 	};
 
 	return (
-		<SaveSettingsSectionWrapper>
+		<SaveSettingsSectionWrapper className="submit">
 			<Button
 				isPrimary
 				isBusy={ isSaving }
