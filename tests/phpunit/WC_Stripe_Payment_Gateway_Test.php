@@ -10,6 +10,7 @@ use WC_Stripe_Customer;
 use WC_Stripe_Exception;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_Error;
 use WP_UnitTestCase;
@@ -58,7 +59,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();
@@ -75,7 +76,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();
@@ -477,7 +478,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key']      = $test_secret_key;
 		$stripe_settings['publishable_key']      = $publishable_key;
 		$stripe_settings['secret_key']           = $secret_key;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$gateway = new WC_Gateway_Stripe();
 		$this->assertSame( $expected, $gateway->needs_setup() );
@@ -842,7 +843,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_enabled ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		if ( $filter ) {
 			add_filter( 'wc_stripe_payment_icons', $filter );

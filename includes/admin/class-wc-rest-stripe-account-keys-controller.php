@@ -159,7 +159,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 */
 	public function get_account_keys() {
 		$allowed_params  = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
@@ -252,7 +252,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function set_account_keys( WP_REST_Request $request ) {
-		$settings       = WC_Stripe_Helper::get_stripe_settings();
+		$settings       = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$allowed_params = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
 
 		$current_account_keys = array_intersect_key( $settings, array_flip( $allowed_params ) );
@@ -284,7 +284,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Before saving the settings, decommission any previously automatically configured webhook endpoint.
 		$settings = $this->decommission_configured_webhook_after_key_update( $settings, $current_account_keys );
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 
 		// Disable all payment methods if all keys are different from the current ones
 		if ( $current_account_keys['publishable_key'] !== $settings['publishable_key']
@@ -330,7 +330,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$publishable = wc_clean( wp_unslash( $request->get_param( 'publishable' ) ) );
 		$secret      = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		if ( $publishable === $this->mask_key_value( $publishable ) ) {
 			$publishable = $settings[ $live_mode ? 'publishable_key' : 'test_publishable_key' ];
@@ -390,7 +390,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		WC_Rate_Limiter::set_rate_limit( $rate_limit_key, 60 );
 
-		$settings     = WC_Stripe_Helper::get_stripe_settings();
+		$settings     = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$secret       = wc_clean( wp_unslash( $request->get_param( 'secret' ) ) );
 		$saved_secret = $settings[ $live_mode ? 'secret_key' : 'test_secret_key' ];
 

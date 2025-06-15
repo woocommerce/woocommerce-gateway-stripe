@@ -6,6 +6,7 @@ use ReflectionClass;
 use WC_Stripe_Helper;
 use WC_Stripe_API;
 use WC_Stripe_Payment_Method_Configurations;
+use WC_Stripe_Settings;
 
 /**
  * Class WC_Stripe_Payment_Method_Configurations tests.
@@ -48,7 +49,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $initial_settings );
 	}
 
 	/**
@@ -91,7 +92,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 
@@ -140,7 +141,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$this->assertNotEquals( 'no', $updated_settings['pmc_enabled'] ?? null );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 
@@ -192,7 +193,7 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 		$this->assertEquals( 'no', $updated_settings['pmc_enabled'] );
 
 		// Restore original settings and API instance
-		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $initial_settings );
 		$property->setValue( null, null );
 	}
 }

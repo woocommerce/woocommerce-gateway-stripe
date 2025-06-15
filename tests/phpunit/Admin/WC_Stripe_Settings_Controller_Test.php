@@ -6,6 +6,7 @@ use WC_Gateway_Stripe;
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Settings;
 use WC_Stripe_Settings_Controller;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
@@ -46,7 +47,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 
 		parent::tear_down();
 	}
@@ -60,7 +61,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
@@ -77,7 +78,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		ob_start();
 		$this->controller->admin_options( $this->gateway );
@@ -123,7 +124,7 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Test that needs_oauth_urls returns true for new accounts with no keys
 	 */
 	public function test_needs_oauth_urls_new_account() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 
 		$this->assertTrue( $this->controller->needs_oauth_urls() );
 	}

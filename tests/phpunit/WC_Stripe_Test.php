@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use stdClass;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Feature_Flags;
@@ -123,7 +124,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_preview_enabled() );
 
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
@@ -153,7 +154,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
 
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
@@ -171,7 +172,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
@@ -197,13 +198,13 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Turn UPE on first.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
 
 		// Turn UPE off.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();

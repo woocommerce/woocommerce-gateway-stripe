@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
@@ -48,7 +49,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->statement_descriptor = 'This is a statement descriptor.';
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe_Settings::get_instance()->update_gateway_settings(
 			[
 				'statement_descriptor' => $this->statement_descriptor,
 			]
@@ -59,7 +60,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 
 		parent::tear_down();
 	}

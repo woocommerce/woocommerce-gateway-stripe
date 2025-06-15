@@ -321,7 +321,7 @@ class WC_Stripe_Account {
 			WC_Stripe_API::set_secret_key( $previous_secret );
 		}
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$webhook_secret_setting = 'live' === $mode ? 'webhook_secret' : 'test_webhook_secret';
 		$webhook_data_setting   = 'live' === $mode ? 'webhook_data' : 'test_webhook_data';
@@ -334,7 +334,7 @@ class WC_Stripe_Account {
 			'secret' => WC_Stripe_API::get_secret_key(),
 		];
 
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 
 		// After reconfiguring webhooks, clear the webhook state.
 		WC_Stripe_Webhook_State::clear_state();
@@ -388,7 +388,7 @@ class WC_Stripe_Account {
 	 * @return bool
 	 */
 	public function is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$is_testmode     = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$key             = $is_testmode ? 'test_webhook_data' : 'webhook_data';
 
@@ -468,7 +468,7 @@ class WC_Stripe_Account {
 	 * @return void
 	 */
 	public function maybe_reconfigure_webhooks_on_update() {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$modes    = [ 'live', 'test' ];
 
 		foreach ( $modes as $mode ) {

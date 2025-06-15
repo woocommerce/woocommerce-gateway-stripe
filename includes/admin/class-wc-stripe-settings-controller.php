@@ -112,7 +112,7 @@ class WC_Stripe_Settings_Controller {
 
 		WC_Stripe_Helper::render_admin_header( $header, $return_text, $return_url );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
 		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
@@ -147,7 +147,7 @@ class WC_Stripe_Settings_Controller {
 	 * @return bool True if OAuth URLs are needed
 	 */
 	public function needs_oauth_urls() {
-		$settings      = WC_Stripe_Helper::get_stripe_settings();
+		$settings      = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$has_live_keys = ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] );
 		$has_test_keys = ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] );
 

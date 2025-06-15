@@ -11,19 +11,19 @@ class WC_Stripe_Settings {
 	/**
 	 * The option name for the Stripe gateway settings.
 	 */
-	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
+	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
 
 	/**
 	 * The *Singleton* instance of this class
 	 *
-	 * @var WC_Stripe
+	 * @var WC_Stripe_Settings
 	 */
 	private static $instance;
 
 	/**
 	 * Returns the *Singleton* instance of this class.
 	 *
-	 * @return WC_Stripe The *Singleton* instance.
+	 * @return WC_Stripe_Settings The *Singleton* instance.
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -245,7 +245,7 @@ class WC_Stripe_Settings {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-		add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
+		add_filter( 'pre_update_option_' . self::SETTINGS_OPTION, [ $this, 'gateway_settings_update' ], 10, 2 );
 		add_filter( 'plugin_action_links_' . plugin_basename( WC_STRIPE_MAIN_FILE ), [ $this, 'plugin_action_links' ] );
 		add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
@@ -353,7 +353,7 @@ class WC_Stripe_Settings {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = $this->get_gateway_settings();
 		$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
 			? $stripe_settings['payment_request_button_locations']
 			: [];
@@ -379,7 +379,7 @@ class WC_Stripe_Settings {
 			}
 
 			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$this->update_gateway_settings( $stripe_settings );
 		}
 	}
 
@@ -836,8 +836,8 @@ class WC_Stripe_Settings {
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
-	public static function get_stripe_settings( $method = null ) {
-		$settings = null === $method ? get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+	public function get_gateway_settings( $method = null ) {
+		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 		if ( ! is_array( $settings ) ) {
 			$settings = [];
 		}
@@ -850,8 +850,8 @@ class WC_Stripe_Settings {
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
-	public static function update_main_stripe_settings( $options ) {
-		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $options );
+	public function update_gateway_settings( $options ) {
+		update_option( self::SETTINGS_OPTION, $options );
 	}
 
 	/**
@@ -859,7 +859,7 @@ class WC_Stripe_Settings {
 	 *
 	 * @return void
 	 */
-	public static function delete_main_stripe_settings() {
-		delete_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME );
+	public function delete_gateway_settings() {
+		delete_option( self::SETTINGS_OPTION );
 	}
 }

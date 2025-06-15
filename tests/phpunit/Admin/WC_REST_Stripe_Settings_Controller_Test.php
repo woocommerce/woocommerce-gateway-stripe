@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use Automattic\WooCommerce\Blocks\Package;
 use Exception;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
@@ -135,7 +136,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		// Set pmc_enabled to yes to prevent migration
 		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
 

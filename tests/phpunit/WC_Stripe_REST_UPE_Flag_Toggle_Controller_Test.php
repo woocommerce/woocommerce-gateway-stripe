@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_REST_UPE_Flag_Toggle_Controller;
+use WC_Stripe_Settings;
 use WP_REST_Request;
 use WP_UnitTestCase;
 
@@ -42,7 +43,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 		// Disable UPE.
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 	}

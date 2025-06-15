@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests\Admin;
 
 use Automattic\WooCommerce\Blocks\RestApi;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
@@ -92,7 +93,7 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		$stripe_settings['country']              = 'GB';
 
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->set_stripe_account_data(
 			[

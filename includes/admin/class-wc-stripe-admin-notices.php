@@ -98,7 +98,7 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		// If Stripe is not enabled, don't show the legacy deprecation notice.
 		if ( ! isset( $stripe_settings['enabled'] ) || 'no' === $stripe_settings['enabled'] ) {
@@ -190,7 +190,7 @@ class WC_Stripe_Admin_Notices {
 		$show_sca_notice           = get_option( 'wc_stripe_show_sca_notice' );
 		$changed_keys_notice       = get_option( 'wc_stripe_show_changed_keys_notice' );
 		$legacy_deprecation_notice = get_option( 'wc_stripe_show_legacy_deprecation_notice' );
-		$options                   = WC_Stripe_Helper::get_stripe_settings();
+		$options                   = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$testmode                  = WC_Stripe_Mode::is_test();
 		$test_pub_key              = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
 		$test_secret_key           = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
@@ -473,7 +473,7 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function subscriptions_check_environment() {
 		_deprecated_function( __METHOD__, '9.6.0' );
-		$options = WC_Stripe_Helper::get_stripe_settings();
+		$options = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
 			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
 			$detached_messages = '';

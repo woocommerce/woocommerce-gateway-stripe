@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Helper;
+use WC_Stripe_Settings;
 use WC_Stripe_Webhook_Handler;
 use WC_Stripe_Webhook_State;
 use WP_UnitTestCase;
@@ -56,7 +57,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
 		unset( $stripe_settings['testmode'] );
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
@@ -83,7 +84,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
@@ -112,7 +113,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	private function set_testmode( $testmode = 'yes' ) {
 		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = $testmode;
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 	}
 
 	/**

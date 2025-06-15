@@ -383,7 +383,7 @@ class WC_Stripe {
 			}
 
 			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		}
 	}
 

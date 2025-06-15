@@ -17,6 +17,7 @@ use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
+use WC_Stripe_Settings;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Stripe_UPE_Payment_Method_ACH;
 use WC_Stripe_UPE_Payment_Method_ACSS;
@@ -225,7 +226,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function set_up() {
 		parent::set_up();
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
@@ -234,7 +235,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	}
 
 	public function tear_down() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
@@ -517,7 +518,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		// Disable testmode.
 		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$card_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::CARD ];
 		$blik_method              = $this->mock_payment_methods[ WC_Stripe_Payment_Methods::BLIK ];
@@ -566,7 +567,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
@@ -609,7 +610,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
 		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['capture'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
 
 		$this->set_mock_payment_method_return_value( 'get_current_order_amount', 150, true );
@@ -650,7 +651,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * When has_domestic_transactions_restrictions is true, the payment method is disabled when the store currency and account currency don't match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_disabled_on_currency_mismatch() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'testmode' => 'yes' ] );
 
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', WC_Stripe_Currency_Code::MEXICAN_PESO, true );
 
@@ -667,7 +668,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * When has_domestic_transactions_restrictions is true, the payment method is enabled when the store currency and account currency match.
 	 */
 	public function test_payment_methods_with_domestic_restrictions_are_enabled_on_currency_match() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'testmode' => 'yes' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'testmode' => 'yes' ] );
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 				->disableOriginalConstructor()
 				->setMethods(
@@ -795,7 +796,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		// Enable optimized checkout.
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
@@ -861,7 +862,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
 		$custom_description                      = 'Custom description for ' . $payment_method_id;
@@ -1005,7 +1006,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['test_connection_type'] = 'connect';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
@@ -1019,7 +1020,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	public function test_upe_method_disabled() {
 		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::LINK ], [] );
 
@@ -1035,7 +1036,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		// For each method we'll test the following combinations:
 		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
@@ -1059,7 +1060,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
 					}
 
-					WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+					WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 					// Verify that the payment method is enabled/disabled.
 					$payment_method_instance = new $payment_method();

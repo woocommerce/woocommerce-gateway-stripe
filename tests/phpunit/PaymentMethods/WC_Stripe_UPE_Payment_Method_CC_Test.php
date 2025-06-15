@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Settings;
 use WC_Stripe_UPE_Payment_Method_CC;
 use WP_UnitTestCase;
 
@@ -29,7 +30,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_flag ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		if ( is_array( $payment_details ) ) {
 			$payment_details = json_decode( wp_json_encode( $payment_details ) );
@@ -120,7 +121,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_flag ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
 

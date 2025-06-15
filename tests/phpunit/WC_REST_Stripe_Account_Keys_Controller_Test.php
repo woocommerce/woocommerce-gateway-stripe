@@ -7,6 +7,7 @@ use WC_Stripe_Account;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Settings;
 use WP_Error;
 use WP_REST_Request;
 
@@ -43,7 +44,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
 							 ->disableOriginalConstructor()
@@ -163,7 +164,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 	 */
 	public function test_changing_keys_resets_payment_methods() {
 		// Default options
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe_Settings::get_instance()->update_gateway_settings(
 			[
 				'publishable_key' => 'pk_live-key',
 				'secret_key'      => 'sk_live-key',
@@ -198,7 +199,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		// Disable UPE
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		// Set initial payment methods
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();

@@ -15,7 +15,7 @@ class WC_Stripe_Helper {
 	/**
 	 * The main Stripe settings option name.
 	 *
-	 * @deprecated 9.6.0 Use WC_Stripe_Settings::STRIPE_GATEWAY_SETTINGS_OPTION_NAME instead.
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::SETTINGS_OPTION instead.
 	 */
 	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
 	const LEGACY_META_NAME_FEE         = 'Stripe Fee';

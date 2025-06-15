@@ -8,6 +8,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use WC_Stripe;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Settings;
 
 /**
  * Provides methods useful when testing UPE-related logic.
@@ -32,7 +33,7 @@ class UPE_Test_Helper {
 				return 'yes';
 			}
 		);
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 		$this->reload_payment_gateways();
 	}
 
@@ -42,28 +43,28 @@ class UPE_Test_Helper {
 				$this->stripe_gateway = null;
 			},
 			woocommerce_gateway_stripe(),
-			WC_Stripe::class
+			WC_Stripe_Settings::class
 		);
 		$closure();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
-		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings                         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings['connection_type']      = 'connect';
 		$settings['test_connection_type'] = 'connect';
 		$settings['pmc_enabled']          = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}
 
 	public function enable_upe() {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 	}
 
 	public function disable_upe() {
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 	}
 }

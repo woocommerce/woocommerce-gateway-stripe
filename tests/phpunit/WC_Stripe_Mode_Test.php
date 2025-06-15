@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Helper;
 use WC_Stripe_Mode;
+use WC_Stripe_Settings;
 use WP_UnitTestCase;
 
 /**
@@ -20,15 +21,15 @@ class WC_Stripe_Mode_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_is_live() {
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->assertFalse( WC_Stripe_Mode::is_live() );
 
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->assertTrue( WC_Stripe_Mode::is_live() );
 	}
@@ -39,15 +40,15 @@ class WC_Stripe_Mode_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_is_test() {
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->assertTrue( WC_Stripe_Mode::is_test() );
 
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->assertFalse( WC_Stripe_Mode::is_test() );
 	}

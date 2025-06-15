@@ -7,6 +7,7 @@ use WC_Stripe_Admin_Notices;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
@@ -39,7 +40,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'yes' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'enabled' => 'yes' ] );
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -49,7 +50,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 	public function test_no_notices_are_shown_when_stripe_is_not_enabled() {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'enabled' => 'no' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'enabled' => 'no' ] );
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -101,7 +102,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			}
 		);
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe_Settings::get_instance()->update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'testmode'                        => 'no',
@@ -150,7 +151,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
 
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		WC_Stripe_Helper::update_main_stripe_settings(
+		WC_Stripe_Settings::get_instance()->update_gateway_settings(
 			[
 				'enabled'         => 'yes',
 				'testmode'        => 'no',

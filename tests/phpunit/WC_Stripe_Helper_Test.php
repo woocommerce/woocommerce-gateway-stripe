@@ -8,6 +8,7 @@ use WC_Order;
 use WC_Stripe_Currency_Code;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
@@ -400,11 +401,11 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'abc' ] );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'test' => 'abc' ] );
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( $current_settings['test'], 'abc' );
 
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 		$current_settings = WC_Stripe_Helper::get_stripe_settings();
 		$this->assertSame( [], $current_settings );
 	}

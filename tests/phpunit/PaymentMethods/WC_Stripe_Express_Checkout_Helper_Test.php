@@ -8,6 +8,7 @@ use WC_Shipping_Zone;
 use WC_Shipping_Zones;
 use WC_Stripe_Express_Checkout_Helper;
 use WC_Stripe_Helper;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Product;
 use WP_UnitTestCase;
 
@@ -31,7 +32,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 	}
 
 	public function tear_down() {

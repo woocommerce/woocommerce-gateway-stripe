@@ -155,7 +155,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$is_test                                    = 'live' !== $mode;
 			$prefix                                     = $is_test ? 'test_' : '';
 			$default_options                            = $this->get_default_stripe_config();
-			$current_options                            = WC_Stripe_Helper::get_stripe_settings();
+			$current_options                            = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 			$options                                    = array_merge( $default_options, is_array( $current_options ) ? $current_options : [] );
 			$options['enabled']                         = 'yes';
 			$options['testmode']                        = $is_test ? 'yes' : 'no';
@@ -176,7 +176,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Enable ECE for new connections.
 			$this->enable_ece_in_new_accounts();
 
-			WC_Stripe_Helper::update_main_stripe_settings( $options );
+			WC_Stripe_Settings::get_instance()->update_gateway_settings( $options );
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
 			update_option( 'wc_stripe_' . $prefix . 'oauth_updated_at', time() );
@@ -218,7 +218,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Otherwise for new connections return 'yes' for `upe_checkout_experience_enabled` field.
 		 */
 		private function get_upe_checkout_experience_enabled() {
-			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			$existing_stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 			if ( isset( $existing_stripe_settings['upe_checkout_experience_enabled'] ) ) {
 				return $existing_stripe_settings['upe_checkout_experience_enabled'];
@@ -231,7 +231,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Enable Stripe express checkout element for new connections.
 		 */
 		private function enable_ece_in_new_accounts() {
-			$existing_stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+			$existing_stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 			if ( empty( $existing_stripe_settings ) ) {
 				update_option( WC_Stripe_Feature_Flags::ECE_FEATURE_FLAG_NAME, 'yes' );
@@ -269,7 +269,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			}
 
-			$options = WC_Stripe_Helper::get_stripe_settings();
+			$options = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 			if ( 'test' === $mode ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
@@ -315,7 +315,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return string The connection type. 'connect', 'app', or ''.
 		 */
 		public function get_connection_type( $mode ) {
-			$options = WC_Stripe_Helper::get_stripe_settings();
+			$options = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 			$key     = 'test' === $mode ? 'test_connection_type' : 'connection_type';
 
 			return isset( $options[ $key ] ) ? $options[ $key ] : '';
@@ -385,7 +385,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
-			$options       = WC_Stripe_Helper::get_stripe_settings();
+			$options       = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 			$mode          = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 			$prefix        = 'test' === $mode ? 'test_' : '';
 			$refresh_token = $options[ $prefix . 'refresh_token' ];

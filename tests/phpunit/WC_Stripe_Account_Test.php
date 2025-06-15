@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Connect;
+use WC_Stripe_Settings;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Stripe_Api;
 use WP_UnitTestCase;
 
@@ -36,7 +37,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )
 									->disableOriginalConstructor()
@@ -54,7 +55,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function tear_down() {
 		delete_transient( 'wcstripe_account_data_test' );
 		delete_transient( 'wcstripe_account_data_live' );
-		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
 
 		WC_Helper_Stripe_Api::reset();
 
@@ -262,14 +263,14 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Enable TEST mode.
 		$stripe_settings['testmode'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		// Confirm test mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
 
 		// Enable LIVE mode.
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		// Confirm live mode data is returned.
 		$this->assertSame( $this->account->get_cached_account_data(), $live_account );
@@ -390,17 +391,17 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'secret' => '',
 		];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		$stripe_settings['test_webhook_data'] = [];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
 		unset( $stripe_settings['test_webhook_data'] );
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		$this->clear_webhook_status_cache();
 		$this->assertFalse( $this->account->is_webhook_enabled() );
 
@@ -413,7 +414,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'     => 'wh_123_test',
 			'secret' => 'wh_secret_123_test',
 		];
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123_test', 'GET' ],
@@ -437,7 +438,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 
 		// Assert that it queries the correct webhook (live).
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		WC_Helper_Stripe_Api::$expected_request_call_params = [
 			[ [], 'webhook_endpoints/wh_123', 'GET' ],
 		];
