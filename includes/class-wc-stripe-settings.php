@@ -5,15 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * WC_Stripe class.
- *
- * @deprecated 9.6.0 Use WC_Stripe_Settings instead.
+ * WC_Stripe_Settings class.
  */
-class WC_Stripe {
+class WC_Stripe_Settings {
 	/**
 	 * The option name for the Stripe gateway settings.
-	 *
-	 * @deprecated 8.7.0
 	 */
 	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
 
@@ -600,6 +596,13 @@ class WC_Stripe {
 		return $this->disable_upe( $settings );
 	}
 
+	/**
+	 * Enable UPE and disable legacy LPMs.
+	 *
+	 * @param array $settings New settings to save.
+	 * @return array New value but with defaults initially filled in for missing settings.
+	 * @return array
+	 */
 	protected function enable_upe( $settings ) {
 		$settings['upe_checkout_experience_accepted_payments'] = [];
 
@@ -645,6 +648,12 @@ class WC_Stripe {
 		return $settings;
 	}
 
+	/**
+	 * Disable UPE and enable legacy LPMs.
+	 *
+	 * @param array $settings New settings to save.
+	 * @return array New value but with defaults initially filled in for missing settings.
+	 */
 	protected function disable_upe( $settings ) {
 		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
 		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
@@ -819,5 +828,38 @@ class WC_Stripe {
 
 		$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
 		$wcstripe_status->init_hooks();
+	}
+
+	/**
+	 * Get the main Stripe settings option.
+	 *
+	 * @param string $method (Optional) The payment method to get the settings from.
+	 * @return array $settings The Stripe settings.
+	 */
+	public static function get_stripe_settings( $method = null ) {
+		$settings = null === $method ? get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
+		if ( ! is_array( $settings ) ) {
+			$settings = [];
+		}
+		return $settings;
+	}
+
+	/**
+	 * Update the main Stripe settings option.
+	 *
+	 * @param $options array The Stripe settings.
+	 * @return void
+	 */
+	public static function update_main_stripe_settings( $options ) {
+		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $options );
+	}
+
+	/**
+	 * Delete the main Stripe settings option.
+	 *
+	 * @return void
+	 */
+	public static function delete_main_stripe_settings() {
+		delete_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME );
 	}
 }

@@ -25,7 +25,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 */
 		public function get_stripe_oauth_init( $return_url, $mode = 'live' ) {
 			$current_user                   = wp_get_current_user();
-			$account                        = WC_Stripe::get_instance()->account->get_cached_account_data( $mode );
+			$account                        = WC_Stripe_Settings::get_instance()->account->get_cached_account_data( $mode );
 			$business_data                  = [];
 			$business_data['url']           = get_site_url();
 			$business_data['business_name'] = html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES );

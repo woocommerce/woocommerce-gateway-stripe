@@ -82,8 +82,7 @@ function woocommerce_gateway_stripe() {
 
 	if ( ! isset( $plugin ) ) {
 		require_once __DIR__ . '/includes/class-wc-stripe.php';
-
-		$plugin = WC_Stripe::get_instance();
+		$plugin = WC_Stripe_Settings::get_instance();
 	}
 
 	return $plugin;

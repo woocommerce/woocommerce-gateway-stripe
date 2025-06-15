@@ -57,7 +57,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
 
 		// Bail if the order is already captured or if manual capture is disabled.
 		if ( 'yes' === $order->get_meta( '_stripe_charge_captured', true ) || $gateway->is_automatic_capture_enabled() ) {
@@ -250,7 +250,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
 
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			$gateway->maybe_process_upe_redirect();

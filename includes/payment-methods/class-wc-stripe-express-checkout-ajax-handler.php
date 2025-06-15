@@ -366,7 +366,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 			}
 
 			// Process the payment.
-			$result = WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
+			$result = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 
 			// process_payment() should only return `success` or throw an exception.
 			if ( ! is_array( $result ) || ! isset( $result['result'] ) || 'success' !== $result['result'] || ! isset( $result['redirect'] ) ) {

@@ -78,7 +78,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	private function is_enabled() {
 		$stripe_enabled = 'yes' === $this->get_option( 'enabled', 'no' );
 
-		$gateway                        = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway                        = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
 		$payment_request_button_enabled = $gateway->is_payment_request_enabled();
 
 		return $stripe_enabled && $payment_request_button_enabled;
@@ -315,7 +315,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return boolean
 	 */
 	private function is_available(): bool {
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$cached_account_data = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 
 		// Stripe Elements doesn’t support Apple Pay for Stripe accounts in India.

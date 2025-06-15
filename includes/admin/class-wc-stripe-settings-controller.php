@@ -52,7 +52,7 @@ class WC_Stripe_Settings_Controller {
 	 */
 	private function get_gateway() {
 		if ( ! $this->gateway ) {
-			$this->gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			$this->gateway = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
 		}
 
 		return $this->gateway;

@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
+	/**
+	 * The main Stripe settings option name.
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::STRIPE_GATEWAY_SETTINGS_OPTION_NAME instead.
+	 */
 	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
 	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
 	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
@@ -32,6 +37,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_stripe_settings() instead.
 	 */
 	public static function get_stripe_settings( $method = null ) {
 		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
@@ -46,6 +53,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $options array The Stripe settings.
 	 * @return void
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::update_main_stripe_settings() instead.
 	 */
 	public static function update_main_stripe_settings( $options ) {
 		update_option( self::SETTINGS_OPTION, $options );
@@ -55,6 +64,8 @@ class WC_Stripe_Helper {
 	 * Delete the main Stripe settings option.
 	 *
 	 * @return void
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::delete_main_stripe_settings() instead.
 	 */
 	public static function delete_main_stripe_settings() {
 		delete_option( self::SETTINGS_OPTION );
@@ -724,7 +735,7 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function filter_payment_methods_with_capabilities( $payment_method_ids, $testmode ) {
-		$account = WC_Stripe::get_instance()->account;
+		$account = WC_Stripe_Settings::get_instance()->account;
 		$data    = $account->get_cached_account_data();
 
 		// return empty array if capabilities are not set.
@@ -1042,7 +1053,7 @@ class WC_Stripe_Helper {
 	 * @return string The statement descriptor suffix ("#{order-number}").
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
-		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
+		$prefix = WC_Stripe_Settings::get_instance()->account->get_card_statement_prefix();
 		$suffix = '';
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
@@ -1398,7 +1409,7 @@ class WC_Stripe_Helper {
 	 * @return array An array of all Stripe gateway IDs.
 	 */
 	public static function get_stripe_gateway_ids() {
-		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$main_gateway = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
 		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
 
 		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
