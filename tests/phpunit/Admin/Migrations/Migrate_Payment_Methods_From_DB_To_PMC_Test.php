@@ -64,7 +64,7 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 		$this->pmc->maybe_migrate_payment_methods_from_db_to_pmc();
 
 		// Verify pmc_enabled is set to 'yes'
-		$updated_settings = WC_Stripe_Helper::get_stripe_settings();
+		$updated_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$this->assertArrayHasKey( 'pmc_enabled', $updated_settings );
 		$this->assertEquals( 'yes', $updated_settings['pmc_enabled'] );
 	}

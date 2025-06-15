@@ -47,7 +47,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		)
 		->getMock();
 
-		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings                    = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings['enabled']         = 'yes';
 		$settings['testmode']        = 'yes';
 		$settings['test_secret_key'] = '123';
@@ -65,7 +65,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 		$this->upe_helper->disable_upe();
 		$this->upe_helper->reload_payment_gateways();
 
-		$settings                    = WC_Stripe_Helper::get_stripe_settings();
+		$settings                    = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings['payment_request'] = $payment_request_enabled ? 'yes' : 'no';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
@@ -94,7 +94,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 			->expects( $this->never() )
 			->method( 'register_domain' );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		unset( $settings['test_secret_key'] );
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
 

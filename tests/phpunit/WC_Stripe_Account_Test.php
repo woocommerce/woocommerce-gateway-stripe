@@ -32,7 +32,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
@@ -246,7 +246,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Test for get_cached_account_data() with no mode parameter.
 	 */
 	public function test_get_cached_account_data_no_mode() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
 
 		$test_account = [
@@ -383,7 +383,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 * Tests for is_webhook_enabled().
 	 */
 	public function test_is_webhook_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		// False if webhook secrets are not set.
 		$stripe_settings['testmode']          = 'yes';

@@ -77,7 +77,6 @@ function woocommerce_stripe_wc_not_supported() {
 }
 
 function woocommerce_gateway_stripe() {
-
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
@@ -158,8 +157,8 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 				$container->register(
 					WC_Stripe_Blocks_Support::class,
 					function () {
-						if ( class_exists( 'WC_Stripe' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
+						if ( class_exists( 'WC_Stripe_Settings' ) ) {
+							return new WC_Stripe_Blocks_Support( WC_Stripe_Settings::get_instance()->payment_request_configuration, WC_Stripe_Settings::get_instance()->express_checkout_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}

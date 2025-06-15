@@ -516,7 +516,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		// Disable testmode.
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
@@ -564,7 +564,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		// Disable testmode.
-		$stripe_settings             = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
 		$stripe_settings['capture']  = 'yes';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
@@ -608,7 +608,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings            = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['capture'] = 'yes';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		WC_Stripe::get_instance()->get_main_stripe_gateway()->init_settings();
@@ -794,7 +794,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_non_card_methods_are_not_available_when_optimized_checkout_is_enabled() {
 		// Enable optimized checkout.
-		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                           = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
@@ -860,7 +860,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		// Test custom description when SPE is enabled. Should be always empty.
 		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                               = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['optimized_checkout_element'] = 'yes';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
@@ -1003,7 +1003,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Tests that UPE methods are enabled if Stripe is enabled and the account is connected to the platform.
 	 */
 	public function test_upe_method_enabled() {
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['enabled']              = 'yes';
 		$stripe_settings['test_connection_type'] = 'connect';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
@@ -1018,7 +1018,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Tests that UPE methods are not enabled if Stripe is disabled.
 	 */
 	public function test_upe_method_disabled() {
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings            = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['enabled'] = 'no';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 
@@ -1033,7 +1033,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 */
 	public function test_upe_method_enabled_for_non_connected_accounts() {
 		// Enable Stripe and reset the accepted payment methods.
-		$stripe_settings            = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings            = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings['enabled'] = 'yes';
 		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );

@@ -41,7 +41,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		wp_set_current_user( 1 );
 
 		// Setup existing keys
-		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings                         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
@@ -89,7 +89,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		$this->assertEquals( 'sk_live_secret-key-12345', $settings['secret_key'] );
@@ -112,7 +112,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$this->assertEquals( 'pk_test-live-key-12345', $settings['test_publishable_key'] );
 		$this->assertEquals( 'sk_test-secret-key-12345', $settings['test_secret_key'] );
@@ -133,7 +133,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$this->assertEquals( 'pk_live-key-12345', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
@@ -151,7 +151,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->assertEquals( 200, $response->get_status() );
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
+		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 
 		$this->assertEquals( '', $settings['publishable_key'] );
 		// Other settings do not change and do not get erased.
@@ -197,7 +197,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		$request->set_param( 'publishable_key', '' );
 
 		// Disable UPE
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
 		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 

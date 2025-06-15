@@ -12,7 +12,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 	 * Stripe Connect API class.
 	 */
 	class WC_Stripe_Connect_API {
-
 		const WOOCOMMERCE_CONNECT_SERVER_API_VERSION = '3';
 
 		/**
