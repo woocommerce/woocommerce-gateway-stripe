@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import {
 	BNPL_PROMOTION_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
@@ -35,7 +36,12 @@ export const getPromotionalBannerType = (
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
-	} else if ( isUpeEnabled && ! hasBNPLEnabled ) {
+	} else if (
+		isUpeEnabled &&
+		! hasBNPLEnabled &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params.plugin_version >= '9.7.0'
+	) {
 		return BNPL_PROMOTION_BANNER;
 	} else if ( ! isUpeEnabled ) {
 		if ( hasAPMEnabled ) {
