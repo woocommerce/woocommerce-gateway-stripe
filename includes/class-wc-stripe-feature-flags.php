@@ -188,7 +188,7 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_oc_available() {
 		return apply_filters(
-			'wc_stripe_is_oc_available',
+			'wc_stripe_is_optimized_checkout_available',
 			'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME ),
 			self::get_option_with_default( self::OC_FEATURE_FLAG_NAME )
 		);
