@@ -187,6 +187,10 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		return 'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		return apply_filters(
+			'wc_stripe_is_oc_available',
+			'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME ),
+			self::get_option_with_default( self::OC_FEATURE_FLAG_NAME )
+		);
 	}
 }
