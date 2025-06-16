@@ -124,7 +124,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->upe_helper->enable_upe_feature_flag();
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_preview_enabled() );
 
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Settings::update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
 
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
@@ -149,14 +149,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_and_link() {
 		$this->upe_helper->enable_upe_feature_flag();
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'no', $stripe_settings['upe_checkout_experience_enabled'] );
 
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		// Because no Stripe LPM's were enabled when UPE was enabled, the Stripe gateway is not enabled yet.
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
@@ -172,9 +172,9 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
+		WC_Stripe_Settings::update_gateway_settings( [ 'upe_checkout_experience_enabled' => 'yes' ] );
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		$this->assertEquals( 'yes', $stripe_settings['enabled'] );
 		$this->assertEquals( 'yes', $stripe_settings['upe_checkout_experience_enabled'] );
 
@@ -188,7 +188,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_turning_off_upe_enables_the_correct_legacy_payment_methods_based_on_which_upe_payment_methods_were_enabled() {
 		$this->upe_helper->enable_upe_feature_flag();
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 
 		update_option( 'woocommerce_currency', 'EUR' );
 
@@ -198,16 +198,16 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Turn UPE on first.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
 
 		// Turn UPE off.
 		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
 		// Check that the correct LPMs were re-enabled.
 		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );

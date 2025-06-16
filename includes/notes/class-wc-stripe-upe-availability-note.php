@@ -94,7 +94,7 @@ class WC_Stripe_UPE_Availability_Note {
 			return;
 		}
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		if ( ! $stripe_enabled ) {
 			return;

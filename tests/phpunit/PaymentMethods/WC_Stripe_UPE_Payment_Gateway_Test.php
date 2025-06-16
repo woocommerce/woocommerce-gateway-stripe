@@ -172,9 +172,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		$stripe_settings                                  = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings                                  = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['sepa_tokens_for_other_methods'] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setConstructorArgs( [] )
@@ -2905,9 +2905,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Enabled
 		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
-		$stripe_settings                               = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings                               = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
 		$this->assertTrue( $gateway->is_oc_enabled() );

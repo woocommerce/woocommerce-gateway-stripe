@@ -49,7 +49,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->statement_descriptor = 'This is a statement descriptor.';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'statement_descriptor' => $this->statement_descriptor,
 			]
@@ -60,7 +60,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
+		WC_Stripe_Settings::delete_gateway_settings();
 
 		parent::tear_down();
 	}

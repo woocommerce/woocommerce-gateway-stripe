@@ -14,25 +14,6 @@ class WC_Stripe_Settings {
 	const SETTINGS_OPTION = 'woocommerce_stripe_settings';
 
 	/**
-	 * The *Singleton* instance of this class
-	 *
-	 * @var WC_Stripe_Settings
-	 */
-	private static $instance;
-
-	/**
-	 * Returns the *Singleton* instance of this class.
-	 *
-	 * @return WC_Stripe_Settings The *Singleton* instance.
-	 */
-	public static function get_instance() {
-		if ( null === self::$instance ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
-
-	/**
 	 * Updates the plugin version in db
 	 *
 	 * @since 3.1.0
@@ -265,7 +246,7 @@ class WC_Stripe_Settings {
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
 	 */
-	public function get_gateway_settings( $method = null ) {
+	public static function get_gateway_settings( $method = null ) {
 		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 		if ( ! is_array( $settings ) ) {
 			$settings = [];
@@ -279,7 +260,7 @@ class WC_Stripe_Settings {
 	 * @param $options array The Stripe settings.
 	 * @return void
 	 */
-	public function update_gateway_settings( $options ) {
+	public static function update_gateway_settings( $options ) {
 		update_option( self::SETTINGS_OPTION, $options );
 	}
 
@@ -288,7 +269,15 @@ class WC_Stripe_Settings {
 	 *
 	 * @return void
 	 */
-	public function delete_gateway_settings() {
+	public static function delete_gateway_settings() {
 		delete_option( self::SETTINGS_OPTION );
+	}
+
+	/**
+	 * @return string
+	 */
+	public static function get_publishable_key() {
+		$settings = self::get_gateway_settings();
+		return $settings['publishable_key'] ?? '';
 	}
 }

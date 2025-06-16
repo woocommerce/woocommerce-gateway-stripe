@@ -177,7 +177,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
 		$is_sofort_enabled       = in_array( WC_Stripe_Payment_Methods::SOFORT, $enabled_payment_methods, true );
 
-		$main_settings    = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$main_settings    = WC_Stripe_Settings::get_gateway_settings();
 		$this->oc_enabled = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 
 		$this->payment_methods = [];

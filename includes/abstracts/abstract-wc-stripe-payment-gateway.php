@@ -367,7 +367,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'cards'                                => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="' . __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' ) . '" />',
 			WC_Stripe_Payment_Methods::CASHAPP_PAY => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 		];
-		$settings   = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$settings   = WC_Stripe_Settings::get_gateway_settings();
 		$oc_setting = $settings['optimized_checkout_element'] ?? null;
 		if ( 'yes' === $oc_setting ) {
 			$icon_list['cards'] = '';
@@ -456,7 +456,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings                              = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$settings                              = WC_Stripe_Settings::get_gateway_settings();
 		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
 		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
 		$post_data                             = [];

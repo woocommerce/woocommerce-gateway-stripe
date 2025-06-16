@@ -401,12 +401,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_handle_main_stripe_settings() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'test' => 'abc' ] );
-		$current_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		WC_Stripe_Settings::update_gateway_settings( [ 'test' => 'abc' ] );
+		$current_settings = WC_Stripe_Settings::get_gateway_settings();
 		$this->assertSame( $current_settings['test'], 'abc' );
 
-		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
-		$current_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		WC_Stripe_Settings::delete_gateway_settings();
+		$current_settings = WC_Stripe_Settings::get_gateway_settings();
 		$this->assertSame( [], $current_settings );
 	}
 

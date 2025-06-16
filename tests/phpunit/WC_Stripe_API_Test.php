@@ -32,19 +32,19 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$stripe_settings                    = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings                    = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['enabled']         = 'yes';
 		$stripe_settings['testmode']        = 'yes';
 		$stripe_settings['secret_key']      = self::LIVE_SECRET_KEY;
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 	}
 
 	/**
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
-		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
+		WC_Stripe_Settings::delete_gateway_settings();
 		WC_Stripe_API::set_secret_key( null );
 		parent::tear_down();
 	}
@@ -69,9 +69,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Enable live mode.
-		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		WC_Stripe_API::set_secret_key_for_mode();
 
@@ -93,9 +93,9 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::TEST_SECRET_KEY, WC_Stripe_API::get_secret_key() );
 
 		// Set the mode to live and test the invalid parameter.
-		$stripe_settings             = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings             = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		WC_Stripe_API::set_secret_key_for_mode( 'invalid' );
 		$this->assertEquals( self::LIVE_SECRET_KEY, WC_Stripe_API::get_secret_key() );

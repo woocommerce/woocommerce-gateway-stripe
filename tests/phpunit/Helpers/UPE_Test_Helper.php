@@ -33,7 +33,7 @@ class UPE_Test_Helper {
 				return 'yes';
 			}
 		);
-		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
+		WC_Stripe_Settings::delete_gateway_settings();
 		$this->reload_payment_gateways();
 	}
 
@@ -48,23 +48,23 @@ class UPE_Test_Helper {
 		$closure();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
-		$settings                         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$settings                         = WC_Stripe_Settings::get_gateway_settings();
 		$settings['connection_type']      = 'connect';
 		$settings['test_connection_type'] = 'connect';
 		$settings['pmc_enabled']          = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
+		WC_Stripe_Settings::update_gateway_settings( $settings );
 		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}
 
 	public function enable_upe() {
-		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$settings = WC_Stripe_Settings::get_gateway_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
+		WC_Stripe_Settings::update_gateway_settings( $settings );
 	}
 
 	public function disable_upe() {
-		$settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$settings = WC_Stripe_Settings::get_gateway_settings();
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $settings );
+		WC_Stripe_Settings::update_gateway_settings( $settings );
 	}
 }

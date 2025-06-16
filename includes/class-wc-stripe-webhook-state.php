@@ -42,7 +42,7 @@ class WC_Stripe_Webhook_State {
 	public static function get_testmode() {
 		wc_deprecated_function( __METHOD__, '8.9.0', 'WC_Stripe_Mode::is_test()' );
 
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings = WC_Stripe_Settings::get_gateway_settings();
 		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 	}
 

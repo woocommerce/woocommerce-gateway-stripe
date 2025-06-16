@@ -78,7 +78,7 @@ class WC_Stripe_API {
 	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
 	 */
 	public static function set_secret_key_for_mode( $mode = null ) {
-		$options         = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$options         = WC_Stripe_Settings::get_gateway_settings();
 		$secret_key      = $options['secret_key'] ?? '';
 		$test_secret_key = $options['test_secret_key'] ?? '';
 

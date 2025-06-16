@@ -21,9 +21,9 @@ class WC_Stripe_Logger_Test extends WP_UnitTestCase {
 	public function test_can_log() {
 		$this->assertFalse( WC_Stripe_Logger::can_log() );
 
-		$stripe_settings            = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$stripe_settings            = WC_Stripe_Settings::get_gateway_settings();
 		$stripe_settings['logging'] = 'yes';
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
+		WC_Stripe_Settings::update_gateway_settings( $stripe_settings );
 
 		$this->assertTrue( WC_Stripe_Logger::can_log() );
 	}

@@ -44,7 +44,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		update_option( '_wcstripe_feature_upe', 'yes' );
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'no',
@@ -55,13 +55,13 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function tear_down() {
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		delete_option( '_wcstripe_feature_upe' );
-		WC_Stripe_Settings::get_instance()->delete_gateway_settings();
+		WC_Stripe_Settings::delete_gateway_settings();
 
 		parent::tear_down();
 	}
 
 	public function test_create_upe_availability_note() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings( [ 'enabled' => 'yes' ] );
+		WC_Stripe_Settings::update_gateway_settings( [ 'enabled' => 'yes' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
@@ -72,7 +72,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -100,7 +100,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_helper->enable_upe();
 		$upe_helper->reload_payment_gateways();
 
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -118,7 +118,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_upe_notes_does_not_create_note_when_stripe_is_disabled() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'no',
 				'upe_checkout_experience_enabled' => 'no',
@@ -133,7 +133,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_upe_notes_does_not_create_note_when_upe_has_been_manually_disabled() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'disabled',
@@ -148,7 +148,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_if_cc_not_enabled() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
@@ -163,7 +163,7 @@ class WC_Stripe_Inbox_Notes_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	public function test_create_stripelink_note_unavailable_link_enabled() {
-		WC_Stripe_Settings::get_instance()->update_gateway_settings(
+		WC_Stripe_Settings::update_gateway_settings(
 			[
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
