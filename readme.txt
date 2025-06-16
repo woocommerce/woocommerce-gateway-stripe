@@ -147,5 +147,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add prefix to the custom database cache keys
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
+* Tweak - Remove Payment Mehtod Configurations fallback cache
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

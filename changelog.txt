@@ -36,6 +36,7 @@
 * Tweak - Add prefix to the custom database cache keys
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
+* Tweak - Remove Payment Mehtod Configurations fallback cache
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
