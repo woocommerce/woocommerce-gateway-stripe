@@ -60,7 +60,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		$account         = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country = strtoupper( $account['country'] );
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
@@ -112,7 +112,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 * @return array Supported currencies.
 	 */
 	public function get_supported_currencies() {
-		$account         = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country = strtoupper( $account['country'] ?? '' );
 
 		// Countries in the EEA + UK and Switzerland can transact across all other EEA countries as long as the currency matches.
@@ -145,7 +145,7 @@ class WC_Stripe_UPE_Payment_Method_Klarna extends WC_Stripe_UPE_Payment_Method {
 	 * @return bool True if the payment method is available for the account's country, false otherwise.
 	 */
 	public function is_available_for_account_country() {
-		return in_array( WC_Stripe_Settings::get_instance()->account->get_account_country(), $this->supported_countries, true );
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 
 	/**

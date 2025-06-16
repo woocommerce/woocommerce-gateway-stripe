@@ -76,12 +76,17 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), esc_html( WC_STRIPE_MIN_WC_VER ), esc_html( WC_VERSION ) ) . '</strong></p></div>';
 }
 
+/**
+ * Returns the main instance of WC_Stripe.
+ *
+ * @return WC_Stripe
+ */
 function woocommerce_gateway_stripe() {
 	static $plugin;
 
 	if ( ! isset( $plugin ) ) {
-		require_once __DIR__ . '/includes/class-wc-stripe-settings.php';
-		$plugin = WC_Stripe_Settings::get_instance();
+		require_once __DIR__ . '/includes/class-wc-stripe.php';
+		$plugin = WC_Stripe::get_instance();
 	}
 
 	return $plugin;
@@ -158,7 +163,7 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 					WC_Stripe_Blocks_Support::class,
 					function () {
 						if ( class_exists( 'WC_Stripe_Settings' ) ) {
-							return new WC_Stripe_Blocks_Support( WC_Stripe_Settings::get_instance()->payment_request_configuration, WC_Stripe_Settings::get_instance()->express_checkout_configuration );
+							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration, WC_Stripe::get_instance()->express_checkout_configuration );
 						} else {
 							return new WC_Stripe_Blocks_Support();
 						}

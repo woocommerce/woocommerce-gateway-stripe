@@ -176,7 +176,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @param array  $arguments The method arguments.
 	 */
 	public function __call( $method, $arguments ) {
-		$upe_gateway_instance = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( in_array( $method, get_class_methods( $upe_gateway_instance ) ) ) {
 			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
@@ -263,7 +263,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		$icons = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway()->payment_icons();
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return apply_filters( 'woocommerce_gateway_icon', isset( $icons[ $this->get_id() ] ) ? $icons[ $this->get_id() ] : '', $this->id );
 	}
 
@@ -299,7 +299,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		// For payment methods that only support domestic payments, check if the store currency matches the account's default currency.
 		if ( $this->has_domestic_transactions_restrictions() ) {
 			if ( null === $account_domestic_currency ) {
-				$account_domestic_currency = WC_Stripe_Settings::get_instance()->account->get_account_default_currency();
+				$account_domestic_currency = WC_Stripe::get_instance()->account->get_account_default_currency();
 			}
 
 			if ( strtolower( $current_store_currency ) !== strtolower( $account_domestic_currency ) ) {
@@ -337,7 +337,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array Supported customer locations.
 	 */
 	public function get_available_billing_countries() {
-		$account         = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
+		$account         = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country = isset( $account['country'] ) ? strtoupper( $account['country'] ) : '';
 
 		return $this->has_domestic_transactions_restrictions() ? [ $account_country ] : $this->supported_countries;
@@ -395,7 +395,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_capabilities_response() {
-		$data = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
+		$data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
 			return [];
 		}
@@ -542,7 +542,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array The payment result.
 	 */
 	public function process_payment( $order_id ) {
-		return WC_Stripe_Settings::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 	}
 
 	/**
@@ -561,7 +561,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
-		return WC_Stripe_Settings::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason );
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason );
 	}
 
 	/**
@@ -572,7 +572,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return array The add payment method result.
 	 */
 	public function add_payment_method() {
-		$upe_gateway_instance = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		return $upe_gateway_instance->add_payment_method();
 	}
 
@@ -727,7 +727,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return true;
 		}
 
-		$account_country     = WC_Stripe_Settings::get_instance()->account->get_account_country();
+		$account_country     = WC_Stripe::get_instance()->account->get_account_country();
 		$range               = null;
 		$limits_per_currency = $this->get_limits_per_currency();
 

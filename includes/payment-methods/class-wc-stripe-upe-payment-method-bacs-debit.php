@@ -47,7 +47,7 @@ class WC_Stripe_UPE_Payment_Method_Bacs_Debit extends WC_Stripe_UPE_Payment_Meth
 	 * @return bool
 	 */
 	public function is_available_for_account_country() {
-		return in_array( WC_Stripe_Settings::get_instance()->account->get_account_country(), $this->supported_countries, true );
+		return in_array( WC_Stripe::get_instance()->account->get_account_country(), $this->supported_countries, true );
 	}
 
 	/**

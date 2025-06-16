@@ -69,7 +69,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function __construct() {
 		self::$_this           = $this;
-		$this->stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
+		$this->stripe_settings = get_option( WC_Stripe_Settings::SETTINGS_OPTION, [] );
 		$this->testmode        = WC_Stripe_Mode::is_test();
 		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';

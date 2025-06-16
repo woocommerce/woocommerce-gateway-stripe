@@ -82,7 +82,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 		// Load the settings.
 		$this->init_settings();
 
-		$main_settings              = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
+		$main_settings              = WC_Stripe_Settings::get_instance()->get_gateway_settings();
 		$this->title                = $this->get_option( 'title' );
 		$this->description          = $this->get_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );

@@ -1249,7 +1249,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification The notification from Stripe
 	 */
 	public function process_account_updated( $notification ) {
-		WC_Stripe_Settings::get_instance()->account->clear_cache();
+		WC_Stripe::get_instance()->account->clear_cache();
 		WC_Stripe_Logger::log( 'Cleared account cache after receiving account.updated webhook.' );
 	}
 

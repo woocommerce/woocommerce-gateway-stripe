@@ -6,8 +6,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * WC_Stripe class.
- *
- * @deprecated 9.6.0 Use WC_Stripe_Settings instead.
  */
 class WC_Stripe {
 	/**
@@ -120,6 +118,7 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		}
 
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-settings.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-exception.php';
@@ -296,17 +295,6 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Updates the plugin version in db
-	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
-	 */
-	public function update_plugin_version() {
-		delete_option( 'wc_stripe_version' );
-		update_option( 'wc_stripe_version', WC_STRIPE_VERSION );
-	}
-
-	/**
 	 * Handles upgrade routines.
 	 *
 	 * @since 3.1.0
@@ -343,47 +331,6 @@ class WC_Stripe {
 			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
-		}
-	}
-
-	/**
-	 * Updates the PRB location settings based on deprecated filters.
-	 *
-	 * The filters were removed in favor of plugin settings. This function can, and should,
-	 * be removed when we're reasonably sure most merchants have had their settings updated
-	 * through this function. Maybe ~80% of merchants is a good threshold?
-	 *
-	 * @since 5.5.0
-	 * @version 5.5.0
-	 */
-	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Settings::get_instance()->get_gateway_settings();
-		$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-			? $stripe_settings['payment_request_button_locations']
-			: [];
-		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
-			global $post;
-
-			$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
-			$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
-			$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
-
-			$new_prb_locations = [];
-
-			if ( $should_show_on_product_page ) {
-				$new_prb_locations[] = 'product';
-			}
-
-			if ( $should_show_on_cart_page ) {
-				$new_prb_locations[] = 'cart';
-			}
-
-			if ( $should_show_on_checkout_page ) {
-				$new_prb_locations[] = 'checkout';
-			}
-
-			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-			WC_Stripe_Settings::get_instance()->update_gateway_settings( $stripe_settings );
 		}
 	}
 
@@ -515,34 +462,6 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Provide default values for missing settings on initial gateway settings save.
-	 *
-	 * @since 4.5.4
-	 * @version 4.5.4
-	 *
-	 * @param array      $settings New settings to save.
-	 * @param array|bool $old_settings Existing settings, if any.
-	 * @return array New value but with defaults initially filled in for missing settings.
-	 */
-	public function gateway_settings_update( $settings, $old_settings ) {
-		if ( false === $old_settings ) {
-			$gateway      = new WC_Gateway_Stripe();
-			$fields       = $gateway->get_form_fields();
-			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
-			$settings     = array_merge( $old_settings, $settings );
-		}
-
-		// Note that we need to run these checks before we call toggle_upe() below.
-		$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
-
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return $settings;
-		}
-
-		return $this->toggle_upe( $settings, $old_settings );
-	}
-
-	/**
 	 * Helper function that ensures we clear the in-memory Stripe API key in {@see WC_Stripe_API}
 	 * when we're making a change to our settings that impacts which secret key we should be using.
 	 *
@@ -572,108 +491,6 @@ class WC_Stripe {
 		if ( $should_clear_stripe_api_key ) {
 			WC_Stripe_API::set_secret_key( '' );
 		}
-	}
-
-	/**
-	 * Enable or disable UPE.
-	 *
-	 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
-	 *
-	 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
-	 *
-	 * @param array      $settings New settings to save.
-	 * @param array|bool $old_settings Existing settings, if any.
-	 * @return array New value but with defaults initially filled in for missing settings.
-	 */
-	protected function toggle_upe( $settings, $old_settings ) {
-		if ( false === $old_settings || ! isset( $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) ) {
-			$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
-		}
-		if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
-			return $settings;
-		}
-
-		if ( 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
-			return $this->enable_upe( $settings );
-		}
-
-		return $this->disable_upe( $settings );
-	}
-
-	protected function enable_upe( $settings ) {
-		$settings['upe_checkout_experience_accepted_payments'] = [];
-
-		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) ) {
-				continue;
-			}
-
-			$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
-			if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
-				// DISABLE LPM
-				/**
-				 * TODO: This can be replaced with:
-				 *
-				 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
-				 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
-				 *
-				 * ...once the minimum WC version is 3.4.0.
-				 */
-				$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
-				update_option(
-					$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
-					apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
-					'yes'
-				);
-				// ENABLE UPE METHOD
-				$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
-			}
-
-			if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
-				$settings['upe_checkout_experience_accepted_payments'][] = 'card';
-				$settings['upe_checkout_experience_accepted_payments'][] = 'link';
-			}
-		}
-		if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
-		} else {
-			// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
-			$settings['enabled'] = 'yes';
-		}
-
-		return $settings;
-	}
-
-	protected function disable_upe( $settings ) {
-		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
-				continue;
-			}
-			// ENABLE LPM
-			$gateway_class = $method_class::LPM_GATEWAY_CLASS;
-			$gateway       = new $gateway_class();
-			/**
-			 * TODO: This can be replaced with:
-			 *
-			 *   $gateway->update_option( 'enabled', 'yes' );
-			 *
-			 * ...once the minimum WC version is 3.4.0.
-			 */
-			$gateway->settings['enabled'] = 'yes';
-			update_option( $gateway->get_option_key(), apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $gateway::ID, $gateway->settings ), 'yes' );
-		}
-		// Disable main Stripe/card LPM if 'card' UPE method wasn't enabled.
-		if ( ! in_array( 'card', $upe_enabled_method_ids, true ) ) {
-			$settings['enabled'] = 'no';
-		}
-		// DISABLE ALL UPE METHODS
-		if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$settings['upe_checkout_experience_accepted_payments'] = [];
-		}
-		return $settings;
 	}
 
 	/**

@@ -174,8 +174,8 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	 */
 	private function get_account_oauth_connection_data( $mode ) {
 		$connection = [
-			'connected' => (bool) WC_Stripe_Settings::get_instance()->connect->is_connected_via_oauth( $mode ),
-			'type'      => WC_Stripe_Settings::get_instance()->connect->get_connection_type( $mode ),
+			'connected' => (bool) WC_Stripe::get_instance()->connect->is_connected_via_oauth( $mode ),
+			'type'      => WC_Stripe::get_instance()->connect->get_connection_type( $mode ),
 		];
 
 		// If the connection is an app connection, check if the keys have expired.

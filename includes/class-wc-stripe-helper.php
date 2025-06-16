@@ -735,7 +735,7 @@ class WC_Stripe_Helper {
 	 * @return string[]
 	 */
 	public static function filter_payment_methods_with_capabilities( $payment_method_ids, $testmode ) {
-		$account = WC_Stripe_Settings::get_instance()->account;
+		$account = WC_Stripe::get_instance()->account;
 		$data    = $account->get_cached_account_data();
 
 		// return empty array if capabilities are not set.
@@ -1053,7 +1053,7 @@ class WC_Stripe_Helper {
 	 * @return string The statement descriptor suffix ("#{order-number}").
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
-		$prefix = WC_Stripe_Settings::get_instance()->account->get_card_statement_prefix();
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
 		$suffix = '';
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
@@ -1409,7 +1409,7 @@ class WC_Stripe_Helper {
 	 * @return array An array of all Stripe gateway IDs.
 	 */
 	public static function get_stripe_gateway_ids() {
-		$main_gateway = WC_Stripe_Settings::get_instance()->get_main_stripe_gateway();
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
 
 		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {

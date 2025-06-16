@@ -47,7 +47,7 @@ class WC_Stripe_UPE_Payment_Method_Alipay extends WC_Stripe_UPE_Payment_Method {
 	 * @return array
 	 */
 	public function get_supported_currencies() {
-		$cached_account_data = WC_Stripe_Settings::get_instance()->account->get_cached_account_data();
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$country             = $cached_account_data['country'] ?? null;
 
 		$currency = [];
