@@ -173,7 +173,7 @@ const getCustomShippingAddressData = ( data ) => {
 
 	const customerData = getCustomerDataFromStore();
 
-	if ( ! customerData || ! customerData.shippingAddress ) {
+	if ( ! customerData?.shippingAddress ) {
 		return {};
 	}
 
