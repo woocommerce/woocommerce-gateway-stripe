@@ -68,8 +68,8 @@ const getBillingAddressData = ( event ) => {
 	const billing = event?.billingDetails?.address ?? {};
 
 	const data = {
-		first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-		last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
+		first_name: approximateFirstName( name ),
+		last_name: approximateLastName( name ),
 		company: billing?.organization ?? '',
 		email: email ?? event?.payerEmail ?? '',
 		phone: getPhone( event ),
@@ -96,11 +96,11 @@ const getBillingAddressData = ( event ) => {
  */
 const getShippingAddressData = ( event ) => {
 	const shipping = event?.shippingAddress ?? {};
+	const name = shipping?.name;
 
 	const data = {
-		first_name:
-			shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-		last_name: shipping?.name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
+		first_name: approximateFirstName( name ),
+		last_name: approximateLastName( name ),
 		company: shipping?.organization ?? '',
 		phone: getPhone( event ),
 		country: shipping?.address?.country ?? '',
@@ -116,6 +116,28 @@ const getShippingAddressData = ( event ) => {
 		...getCustomShippingAddressData( data ),
 		...data,
 	};
+};
+
+/**
+ * Get the approximate first name from the full name.
+ *
+ * @param {string|undefined} name The full name.
+ *
+ * @return {string} The approximate first name.
+ */
+const approximateFirstName = ( name ) => {
+	return name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '';
+};
+
+/**
+ * Get the approximate last name from the full name.
+ *
+ * @param {string|undefined} name The full name.
+ *
+ * @return {string} The approximate last name.
+ */
+const approximateLastName = ( name ) => {
+	return name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '';
 };
 
 /**
