@@ -31,21 +31,14 @@ class WC_Stripe_Payment_Method_Configurations {
 	const LIVE_MODE_CONFIGURATION_PARENT_ID = 'pmc_1LEKjAGX8lmJQndTk2ziRchV';
 
 	/**
-	 * The test mode payment method configuration cache key.
+	 * The payment method configuration cache key.
 	 *
 	 * @var string
 	 */
-	const TEST_MODE_CONFIGURATION_CACHE_KEY = 'wcstripe_test_payment_method_configuration_cache';
+	const CONFIGURATION_CACHE_KEY = 'payment_method_configuration';
 
 	/**
-	 * The live mode payment method configuration cache key.
-	 *
-	 * @var string
-	 */
-	const LIVE_MODE_CONFIGURATION_CACHE_KEY = 'wcstripe_live_payment_method_configuration_cache';
-
-	/**
-	 * The payment method configuration cache expiration.
+	 * The payment method configuration cache expiration (TTL).
 	 *
 	 * @var int
 	 */
@@ -64,20 +57,13 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function get_primary_configuration( $force_refresh = false ) {
 		// Only allow fetching payment configuration once per minute.
+		// Even when $force_refresh is true, we will not fetch the configuration from Stripe more than once per minute.
 		$fetch_cooldown = get_option( self::FETCH_COOLDOWN_OPTION_KEY, 0 );
 		$is_in_cooldown = $fetch_cooldown > time();
 		if ( ! $force_refresh || $is_in_cooldown ) {
 			$cached_primary_configuration = self::get_payment_method_configuration_from_cache();
 			if ( $cached_primary_configuration ) {
 				return $cached_primary_configuration;
-			}
-
-			// If we are hitting the API too much, and our main cache is not working, use the fallback cache.
-			if ( $is_in_cooldown ) {
-				$fallback_cache = self::get_payment_method_configuration_from_cache( true );
-				if ( $fallback_cache ) {
-					return $fallback_cache;
-				}
 			}
 
 			// Intentionally fall through to fetching the data from Stripe if we don't have it locally,
@@ -94,21 +80,15 @@ class WC_Stripe_Payment_Method_Configurations {
 	/**
 	 * Get the payment method configuration from cache.
 	 *
-	 * @param bool $use_fallback Whether to use the fallback cache if the transient is not available.
-	 *
 	 * @return object|null
 	 */
-	private static function get_payment_method_configuration_from_cache( $use_fallback = false ) {
+	private static function get_payment_method_configuration_from_cache() {
 		if ( null !== self::$primary_configuration ) {
 			return self::$primary_configuration;
 		}
 
-		$cache_key                    = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
-		$cached_primary_configuration = WC_Stripe_Database_Cache::get( $cache_key );
+		$cached_primary_configuration = WC_Stripe_Database_Cache::get( self::CONFIGURATION_CACHE_KEY );
 		if ( false === $cached_primary_configuration || null === $cached_primary_configuration ) {
-			if ( $use_fallback ) {
-				return get_option( $cache_key . '_fallback' );
-			}
 			return null;
 		}
 
@@ -121,9 +101,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function clear_payment_method_configuration_cache() {
 		self::$primary_configuration = null;
-		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
-		WC_Stripe_Database_Cache::delete( $cache_key );
-		delete_option( $cache_key . '_fallback' );
+		WC_Stripe_Database_Cache::delete( self::CONFIGURATION_CACHE_KEY );
 	}
 
 	/**
@@ -133,11 +111,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	private static function set_payment_method_configuration_cache( $configuration ) {
 		self::$primary_configuration = $configuration;
-		$cache_key                   = WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_CACHE_KEY : self::LIVE_MODE_CONFIGURATION_CACHE_KEY;
-		WC_Stripe_Database_Cache::set( $cache_key, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
-
-		// To be used as fallback if we are in API cooldown and the main cache is not available.
-		update_option( $cache_key . '_fallback', $configuration );
+		WC_Stripe_Database_Cache::set( self::CONFIGURATION_CACHE_KEY, $configuration, self::CONFIGURATION_CACHE_EXPIRATION );
 	}
 
 	/**
