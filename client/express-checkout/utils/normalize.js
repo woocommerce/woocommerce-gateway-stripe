@@ -69,7 +69,7 @@ const getBillingAddressData = ( event ) => {
 
 	const data = {
 		first_name: approximateFirstName( name ),
-		last_name: approximateLastName( name ),
+		last_name: approximateLastName( name, '-' ),
 		company: billing?.organization ?? '',
 		email: email ?? event?.payerEmail ?? '',
 		phone: getPhone( event ),
@@ -122,22 +122,26 @@ const getShippingAddressData = ( event ) => {
  * Get the approximate first name from the full name.
  *
  * @param {string|undefined} name The full name.
+ * @param {string} defaultValue The default string to return if the name
+ * is undefined or empty.
  *
  * @return {string} The approximate first name.
  */
-const approximateFirstName = ( name ) => {
-	return name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '';
+const approximateFirstName = ( name, defaultValue = '' ) => {
+	return name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? defaultValue;
 };
 
 /**
  * Get the approximate last name from the full name.
  *
  * @param {string|undefined} name The full name.
+ * @param {string} defaultValue The default string to return if the name
+ * is undefined or empty.
  *
  * @return {string} The approximate last name.
  */
-const approximateLastName = ( name ) => {
-	return name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '';
+const approximateLastName = ( name, defaultValue = '' ) => {
+	return name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? defaultValue;
 };
 
 /**
