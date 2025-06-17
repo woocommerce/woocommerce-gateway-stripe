@@ -24,7 +24,7 @@ class WC_Stripe_Email_Admin_Failed_Refund_Test extends WP_UnitTestCase {
 
 		$this->assertInstanceOf( \WC_Stripe_Email_Admin_Failed_Refund::class, $email );
 
-		$this->assertEquals( 'failed_refund_admin', $email->id );
+		$this->assertEquals( 'wc_stripe_failed_refund_admin', $email->id );
 		$this->assertEquals( 'Refund request failure emails are sent to chosen recipient(s) when an attempt to process refund fails.', $email->description );
 		$this->assertEquals( 'emails/failed-refund-admin.php', $email->template_html );
 		$this->assertEquals( 'emails/plain/failed-refund-admin.php', $email->template_plain );
@@ -48,13 +48,11 @@ class WC_Stripe_Email_Admin_Failed_Refund_Test extends WP_UnitTestCase {
 
 		$params = $email->get_template_params();
 
-		$this->assertArrayHasKey( 'order', $params );
-		$this->assertArrayHasKey( 'reason', $params );
-		$this->assertArrayHasKey( 'email_heading', $params );
-		$this->assertArrayHasKey( 'sent_to_admin', $params );
-		$this->assertArrayHasKey( 'plain_text', $params );
-		$this->assertArrayHasKey( 'email', $params );
-
 		$this->assertEquals( $order, $params['order'] );
+		$this->assertEquals( 'Unknown reason', $params['reason'] );
+		$this->assertEquals( 'Refund failed', $params['email_heading'] );
+		$this->assertTrue( $params['sent_to_admin'] );
+		$this->assertFalse( $params['plain_text'] );
+		$this->assertInstanceOf( WC_Stripe_Email_Admin_Failed_Refund::class, $params['email'] );
 	}
 }
