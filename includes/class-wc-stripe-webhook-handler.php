@@ -901,11 +901,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification )
 		) {
 			// If the status we stored before hold is an incomplete status, restore the status to processing/completed instead.
-			$status_after_review = $this->get_stripe_order_status_before_hold( $order );
-			if ( in_array( $status_after_review, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order ), true ) ) {
-				$status_after_review = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED, $order->get_id(), $order );
+			$status_before_hold              = $this->get_stripe_order_status_before_hold( $order );
+			$valid_payment_complete_statuses = apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order );
+			if ( ! in_array( $status_before_hold, $valid_payment_complete_statuses, true ) ) {
+				$default_status     = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+				$status_before_hold = apply_filters( 'woocommerce_payment_complete_order_status', $default_status, $order->get_id(), $order );
 			}
-			$order->update_status( $status_after_review, $message );
+			$order->update_status( $status_before_hold, $message );
 		} else {
 			$order->add_order_note( $message );
 		}
