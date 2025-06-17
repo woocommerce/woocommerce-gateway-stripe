@@ -16,8 +16,8 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 		sprintf(
 			// translators: 1) an order number, 2) the reason for the refund request failure.
 			_x(
-				'The refund request for order %1$s. Reason:  %2$s.',
-				'In admin refund failed email',
+				'The refund for order %1$s. Reason:  %2$s.',
+				'In customer refund failed email',
 				'woocommerce-gateway-stripe'
 			),
 			$order->get_order_number(),
