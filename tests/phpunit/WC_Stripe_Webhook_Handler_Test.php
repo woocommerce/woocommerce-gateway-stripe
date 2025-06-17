@@ -748,8 +748,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		if ( ! empty( $expected_note ) ) {
 			// Check if the order note was added correctly.
-			$order_id = $notification->data->object->charge;
-			$order    = wc_get_order( $order_id );
+			$order = wc_get_order( $order->get_id() ); // Retrieve the order again to ensure we have the latest data.
 			if ( ! $order ) {
 				$this->fail( 'Order not found when testing the webhook refund updated method.' );
 			}
@@ -780,12 +779,12 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'failed refund'         => [
 				'notification status' => 'failed',
 				'email triggered'     => true,
-				'expected note'       => 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s',
+				'expected note'       => 'Refund failed for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: bank_account_rejected Order status changed from Pending payment to Processing.',
 			],
 			'canceled refund'       => [
 				'notification status' => 'canceled',
 				'email triggered'     => true,
-				'expected note'       => 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s',
+				'expected note'       => 'Refund canceled for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: bank_account_rejected Order status changed from Pending payment to Processing.',
 			],
 		];
 	}
