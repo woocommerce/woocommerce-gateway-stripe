@@ -751,8 +751,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$order_id = $notification->data->object->charge;
 			$order    = wc_get_order( $order_id );
 			if ( ! $order ) {
-				// If the order is not found, we cannot proceed with the assertions.
-				return;
+				$this->fail( 'Order not found when testing the webhook refund updated method.' );
 			}
 
 			$notes = wc_get_order_notes(
