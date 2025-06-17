@@ -94,7 +94,7 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 					) }
 				/>
 			) }
-			<ButtonWrapper>
+			<ButtonWrapper className="submit">
 				<Button
 					variant="tertiary"
 					disabled={ isCustomizing }
