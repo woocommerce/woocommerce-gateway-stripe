@@ -719,11 +719,14 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_taxable              = $this->is_product_or_cart_taxable();
-		$needs_shipping          = $this->product_or_cart_needs_shipping();
-		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
+		$is_taxable               = $this->is_product_or_cart_taxable();
+		$needs_shipping           = $this->product_or_cart_needs_shipping();
+		$is_tax_based_on_billing  = 'billing' === get_option( 'woocommerce_tax_based_on' );
+		$default_customer_address = get_option( 'woocommerce_default_customer_address' );
 
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping
+			// Allow ECE to be displayed if the default customer address is set to `geolocation` or `geolocation_ajax`.
+			&& ! in_array( $default_customer_address, [ 'geolocation', 'geolocation_ajax' ], true ) ) {
 			return true;
 		}
 
