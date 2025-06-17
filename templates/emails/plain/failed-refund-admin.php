@@ -16,7 +16,7 @@ printf(
 	esc_html( $order->get_formatted_billing_full_name() ),
 	esc_html( $reason )
 ) . "\n\n";
-printf( esc_html__( 'The refunded order is as follows:', 'woocommerce-gateway-stripe' ) ) . "\n\n";
+printf( esc_html__( 'The order details are as follows:', 'woocommerce-gateway-stripe' ) ) . "\n\n";
 
 echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 
