@@ -830,8 +830,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					// Revert to previous status
 					$status_before_refund = $this->get_stripe_order_status_before_refund( $order );
-					if ( in_array( $status_before_refund, apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order ), true ) ) {
-						$status_before_refund = apply_filters( 'woocommerce_payment_complete_order_status', $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED, $order->get_id(), $order );
+					$valid_payment_complete_statuses = apply_filters( 'woocommerce_valid_order_statuses_for_payment_complete', [ OrderStatus::ON_HOLD, OrderStatus::PENDING, OrderStatus::FAILED, OrderStatus::CANCELLED ], $order );
+					if ( ! in_array( $status_before_refund, $valid_payment_complete_statuses, true ) ) {
+						$default_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+						$status_before_refund = apply_filters( 'woocommerce_payment_complete_order_status', $default_status, $order->get_id(), $order );
 					}
 					$order->update_status( $status_before_refund, $note );
 
