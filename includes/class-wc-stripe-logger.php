@@ -98,9 +98,7 @@ class WC_Stripe_Logger {
 			return false;
 		}
 
-		$settings = WC_Stripe_Helper::get_stripe_settings();
-
-		if ( empty( $settings ) || ( isset( $settings['logging'] ) && 'yes' !== $settings['logging'] ) ) {
+		if ( 'yes' !== WC_Stripe_Settings::get_instance()->get_logging() ) {
 			return false;
 		}
 

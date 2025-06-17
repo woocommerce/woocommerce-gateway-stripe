@@ -78,15 +78,13 @@ class WC_Stripe_API {
 	 * @param string|null $mode Optional. The mode to set the secret key for. 'live' or 'test'. Default will set the secret for the currently active mode.
 	 */
 	public static function set_secret_key_for_mode( $mode = null ) {
-		$options         = WC_Stripe_Helper::get_stripe_settings();
-		$secret_key      = $options['secret_key'] ?? '';
-		$test_secret_key = $options['test_secret_key'] ?? '';
+		$stripe_settings = WC_Stripe_Settings::get_instance();
 
 		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
 			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
 		}
 
-		self::set_secret_key( 'test' === $mode ? $test_secret_key : $secret_key );
+		self::set_secret_key( 'test' === $mode ? $stripe_settings->get_test_secret_key() : $stripe_settings->get_secret_key() );
 	}
 
 	/**

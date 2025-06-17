@@ -98,10 +98,10 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public static function display_legacy_deprecation_notice( $plugin_file ) {
 		global $wp_list_table;
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings = WC_Stripe_Settings::get_instance();
 
 		// If Stripe is not enabled, don't show the legacy deprecation notice.
-		if ( ! isset( $stripe_settings['enabled'] ) || 'no' === $stripe_settings['enabled'] ) {
+		if ( ! $stripe_settings->get_enabled() || 'no' === $stripe_settings->get_enabled() ) {
 			return;
 		}
 

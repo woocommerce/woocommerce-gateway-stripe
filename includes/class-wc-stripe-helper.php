@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
+	/**
+	 * Option name for storing Stripe settings.
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::SETTINGS_OPTION instead.
+	 */
 	const SETTINGS_OPTION              = 'woocommerce_stripe_settings';
 	const LEGACY_META_NAME_FEE         = 'Stripe Fee';
 	const LEGACY_META_NAME_NET         = 'Net Revenue From Stripe';
@@ -32,6 +37,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param string $method (Optional) The payment method to get the settings from.
 	 * @return array $settings The Stripe settings.
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings specific getters instead.
 	 */
 	public static function get_stripe_settings( $method = null ) {
 		$settings = null === $method ? get_option( self::SETTINGS_OPTION, [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );

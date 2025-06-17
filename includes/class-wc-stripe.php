@@ -119,6 +119,7 @@ class WC_Stripe {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		}
 
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-settings.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-co-branded-cc-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-exception.php';
@@ -356,10 +357,8 @@ class WC_Stripe {
 	 * @version 5.5.0
 	 */
 	public function update_prb_location_settings() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
-			? $stripe_settings['payment_request_button_locations']
-			: [];
+		$stripe_settings = WC_Stripe_Settings::get_instance();
+		$prb_locations   = $stripe_settings->get_express_checkout_button_locations();
 		if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 			global $post;
 
@@ -381,8 +380,7 @@ class WC_Stripe {
 				$new_prb_locations[] = 'checkout';
 			}
 
-			$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			$stripe_settings->set_payment_request_button_locations( $new_prb_locations );
 		}
 	}
 

@@ -44,9 +44,9 @@ class WC_Stripe_Express_Checkout_Helper {
 	 */
 	public function __construct() {
 		$this->gateway         = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$this->stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$this->stripe_settings = WC_Stripe_Settings::get_instance();
 		$this->testmode        = WC_Stripe_Mode::is_test();
-		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		$this->total_label     = $this->stripe_settings->get_statement_descriptor() ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings->get_statement_descriptor() ) : '';
 
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 	}
@@ -103,18 +103,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Gets the button type.
 	 *
 	 * @return  string
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_type() instead.
 	 */
 	public function get_button_type() {
-		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
+		return $this->stripe_settings->get_express_checkout_button_type();
 	}
 
 	/**
 	 * Gets the button theme.
 	 *
 	 * @return  string
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_theme() instead.
 	 */
 	public function get_button_theme() {
-		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
+		return $this->stripe_settings->get_express_checkout_button_theme();
 	}
 
 	/**
@@ -123,34 +127,18 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
-		if ( 'small' === $height ) {
-			return '40';
-		}
-
-		if ( 'large' === $height ) {
-			return '56';
-		}
-
-		return '48';
+		return $this->stripe_settings->get_express_checkout_button_height();
 	}
 
 	/**
 	 * Gets the button radius.
 	 *
 	 * @return string
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Settings::get_express_checkout_button_radius() instead.
 	 */
 	public function get_button_radius() {
-		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
-		if ( 'small' === $height ) {
-			return '2';
-		}
-
-		if ( 'large' === $height ) {
-			return '6';
-		}
-
-		return '4';
+		return $this->stripe_settings->get_express_checkout_button_radius();
 	}
 
 	/**
@@ -1300,12 +1288,12 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return array
 	 */
 	public function get_button_settings() {
-		$button_type = $this->get_button_type();
+		$button_type = $this->stripe_settings->get_express_checkout_button_type();
 		return [
 			'type'   => $button_type,
-			'theme'  => $this->get_button_theme(),
-			'height' => $this->get_button_height(),
-			'radius' => $this->get_button_radius(),
+			'theme'  => $this->stripe_settings->get_express_checkout_button_theme(),
+			'height' => $this->stripe_settings->get_express_checkout_button_height(),
+			'radius' => $this->stripe_settings->get_express_checkout_button_radius(),
 			// Default format is en_US.
 			'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 		];
@@ -1480,21 +1468,11 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Pages where the express checkout buttons should be displayed.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 Use `WC_Stripe_Settings::get_express_checkout_button_locations()` instead.
 	 */
 	public function get_button_locations() {
-		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
-			return [ 'product', 'cart' ];
-		}
-
-		// If all locations are removed through the settings UI the location config will be set to
-		// an empty string "". If that's the case (and if the settings are not an array for any
-		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
-			return [];
-		}
-
-		return $this->stripe_settings['payment_request_button_locations'];
+		return $this->stripe_settings->get_express_checkout_button_locations();
 	}
 
 	/**
