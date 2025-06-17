@@ -145,6 +145,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Tweak - Add prefix to the custom database cache keys
+* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Mehtod Configurations fallback cache
 

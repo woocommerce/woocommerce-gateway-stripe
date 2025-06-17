@@ -44,7 +44,11 @@ export const useExpressCheckout = ( {
 		if ( ! isOrderError ) {
 			onConfirmEvent.paymentFailed( { reason: 'fail' } );
 		}
-		setExpressPaymentError( message );
+
+		// If we have a multiline message using newlines, replace them with <br>.
+		const formattedMessage = message.replace( /\n/g, '<br>' );
+		setExpressPaymentError( formattedMessage );
+
 		onAbortPaymentHandler( onConfirmEvent, message );
 	};
 
