@@ -37,6 +37,7 @@
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Mehtod Configurations fallback cache
+* Fix - Fix buggy unsaved changes warning in settings page
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
