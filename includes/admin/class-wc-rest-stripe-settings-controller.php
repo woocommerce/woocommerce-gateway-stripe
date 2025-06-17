@@ -231,7 +231,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'/' . $this->rest_base . '/notice',
 			[
 				'methods'             => WP_REST_Server::EDITABLE,
-				'callback'            => [ $this, 'dismiss_customization_notice' ],
+				'callback'            => [ $this, 'dismiss_notice' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
@@ -244,9 +244,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
+		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
+		// The available payment methods are also fetched from the payment method configurations API under similar conditions,
+		// but we do not force a refresh for available methods, since calling get_upe_enabled_payment_method_ids first already ensures the list is up to date.
+		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$ordered_payment_method_ids   = $is_upe_enabled ? WC_Stripe_Helper::get_upe_ordered_payment_method_ids( $this->gateway ) : $available_payment_method_ids;
-		$enabled_payment_method_ids   = $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids( true ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
@@ -736,13 +740,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response
+	 *
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
 	 */
 	public function dismiss_customization_notice( WP_REST_Request $request ) {
-		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+		return $this->dismiss_notice( $request );
+	}
+
+	/**
+	 * Dismisses settings notices such as the customization notice and BNPL promotion banner.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_notice( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
+			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
 
-		update_option( 'wc_stripe_show_customization_notice', 'no' );
+		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
+			update_option( 'wc_stripe_show_bnpl_promotion_banner', 'no' );
+		}
+
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 

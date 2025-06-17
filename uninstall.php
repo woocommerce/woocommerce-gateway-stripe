@@ -28,6 +28,7 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 		// Live keys
 		unset( $settings['publishable_key'], $settings['secret_key'] );
 		unset( $settings['connection_type'], $settings['refresh_token'] );
+		unset( $settings['pmc_enabled'] );
 		unset( $settings['webhook_data'] );
 		unset( $settings['webhook_secret'] );
 		// Test keys
@@ -95,6 +96,9 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	delete_option( 'wc_stripe_show_p24_notice' );
 	delete_option( 'wc_stripe_show_sepa_notice' );
 	delete_option( 'wc_stripe_show_sofort_notice' );
+
+	// BNPL promotional banner
+	delete_option( 'wc_stripe_show_bnpl_promotion_banner' );
 
 	// Webhook stats
 	delete_option( 'wc_stripe_wh_monitor_began_at' );

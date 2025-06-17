@@ -75,7 +75,9 @@ async function main() {
             }
         ]);
 
-        const entry = `* ${answers.changeType} - ${answers.message.trim()}`;
+        // Remove trailing . from changelog message. See https://wp.me/pc4etw-1FS.
+        const message = answers.message.trim().replace( /\.$/, '' );
+        const entry = `* ${answers.changeType} - ${message}`;
         
         // Update both files
         const files = ['changelog.txt', 'readme.txt'];

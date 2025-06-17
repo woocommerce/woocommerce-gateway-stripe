@@ -242,6 +242,14 @@ class WC_Stripe_API {
 			]
 		);
 
+		// If we get a 401 error, we know the secret key is not valid.
+		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
+			// Stripe redacts API keys in the response.
+			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
+
+			return null; // The UI expects this empty response in case of invalid API keys.
+		}
+
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
@@ -449,11 +457,11 @@ class WC_Stripe_API {
 			return true;
 		}
 
-		// Return true for the delete user request from the admin dashboard when the site is a production site
+		// Return true for the delete user request from the admin dashboard or WP-CLI when the site is a production site
 		// and return false when the site is a staging/local/development site.
 		// This is to avoid detaching the payment method from the live production site.
 		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-		if ( is_admin() ) {
+		if ( is_admin() || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			if ( 'production' === wp_get_environment_type() ) {
 				return true;
 			} else {

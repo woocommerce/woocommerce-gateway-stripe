@@ -17,6 +17,20 @@ export const getBlocksConfiguration = () => {
 };
 
 /**
+ * Determines if off-session payment should be set up.
+ *
+ * @param {boolean} showSaveOption - Whether to show the save option.
+ * @return {boolean} True if off-session payment should be set up, false otherwise.
+ */
+export const shouldSetupOffSessionPayment = ( showSaveOption ) => {
+	const config = getBlocksConfiguration();
+	const hasAutoRenewingSubscription =
+		config?.cartContainsSubscription &&
+		! config?.subscriptionRequiresManualRenewal;
+	return hasAutoRenewingSubscription || showSaveOption;
+};
+
+/**
  * Creates a payment request using cart data from WooCommerce.
  *
  * @param {Object} stripe - The Stripe JS object.

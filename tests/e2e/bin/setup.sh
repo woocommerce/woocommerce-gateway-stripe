@@ -143,8 +143,8 @@ redirect_output cli wp option update _wcstripe_feature_lpm_ach 'yes'
 echo " - Enabling the ACSS feature flag"
 redirect_output cli wp option update _wcstripe_feature_lpm_acss 'yes'
 
-echo " - Enabling the SPE feature flag"
-redirect_output cli wp option update _wcstripe_feature_spe 'yes'
+echo " - Enabling the Optimized Checkout feature flag"
+redirect_output cli wp option update _wcstripe_feature_oc 'yes'
 
 step "Installing Woo Subscriptions"
 echo " - Fetching latest version"

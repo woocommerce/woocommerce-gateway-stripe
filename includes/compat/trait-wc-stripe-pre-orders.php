@@ -200,10 +200,10 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 */
 	public function process_pre_order( $order_id ) {
 		try {
-			$order = WC_Stripe_Order::get_by_id( $order_id );
+			$order = wc_get_order( $order_id );
 
 			// This will throw exception if not valid.
-			$order->validate_minimum_amount(); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
+			$this->validate_minimum_order_amount( $order ); // @phpstan-ignore-line (minimum amount is defined in the classes that use this trait)
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), true ); // @phpstan-ignore-line (prepare_source is defined in the classes that use this trait)
 

@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Order
  *
  * Wrapper for the original WC_Order class to allow custom getters and setter with the extension's specific metadata.
+ *
+ * @deprecated Since 9.6.0. This class will be removed in a later version of the extension.
  */
 class WC_Stripe_Order extends WC_Order {
 	/**
@@ -185,7 +187,7 @@ class WC_Stripe_Order extends WC_Order {
 	 * @param $order_data array Order data.
 	 * @return bool|WC_Stripe_Order
 	 */
-	public static function create( $order_data = [] ) {
+	public static function create( $order_data ) {
 		$order = wc_create_order( $order_data );
 		if ( ! $order ) {
 			return false;
