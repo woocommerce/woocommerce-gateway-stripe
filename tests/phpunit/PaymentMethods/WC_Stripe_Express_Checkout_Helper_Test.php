@@ -60,9 +60,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test should_show_express_checkout_button, tax logic.
 	 *
+	 * @param array  $cart_contents Cart contents.
+	 * @param bool   $is_pay_for_order Whether the current request is for a "Pay for Order" page.
+	 * @param string $tax_based_on Tax based on setting.
+	 * @param mixed  $filter_value Value for the filter `wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`.
+	 * @param mixed  $default_customer_address Default customer address.
+	 * @return void
+	 *
 	 * @dataProvider provide_test_hides_ece_if_cannot_compute_taxes
 	 */
-	public function test_hides_ece_if_cannot_compute_taxes( $cart_contents, $is_pay_for_order, $tax_based_on, $filter_value, $expected ) {
+	public function test_hides_ece_if_cannot_compute_taxes(
+		$cart_contents,
+		$is_pay_for_order,
+		$tax_based_on,
+		$filter_value,
+		$default_customer_address,
+		$expected
+	) {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
@@ -114,6 +128,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_calc_taxes', 'yes' ); // Should be overriden by product tax status.
 		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
+		if ( ! is_null( $default_customer_address ) ) {
+			update_option( 'woocommerce_default_customer_address', $default_customer_address );
+		}
+
 		WC()->session->init();
 		WC()->cart->empty_cart();
 
@@ -129,6 +147,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		update_option( 'woocommerce_default_customer_address', 'base' );
 	}
 
 	/**
@@ -174,53 +194,68 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$show = true;
 		return [
 			'Hide if cart has virtual product and tax is based on billing address.' => [
-				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'billing',
-				'filter value'     => null,
-				'expected'         => $hide,
+				'cart contents'            => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'billing',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $hide,
+			],
+			'Do not hide if cart has virtual product and tax is based on billing address, but default customer location is set to geolocation.' => [
+				'cart contents'            => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'billing',
+				'filter value'             => null,
+				'default customer address' => 'geolocation',
+				'expected'                 => $show,
 			],
 			'Do not hide if cart has virtual product and tax is based on billing address, but filter forces to show.' => [
-				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'billing',
-				'filter value'     => false,
-				'expected'         => $show,
+				'cart contents'            => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'billing',
+				'filter value'             => false,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 			'Do not hide if Pay for Order page.'     => [
-				'cart contents'    => [ 'virtual_taxable' ],
-				'is pay for order' => true,
-				'tax based on'     => 'billing',
-				'filter value'     => null,
-				'expected'         => $show,
+				'cart contents'            => [ 'virtual_taxable' ],
+				'is pay for order'         => true,
+				'tax based on'             => 'billing',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 			'Do not hide if taxes are not enabled.'  => [
-				'cart contents'    => [ 'virtual_nontaxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'billing',
-				'filter value'     => null,
-				'expected'         => $show,
+				'cart contents'            => [ 'virtual_nontaxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'billing',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 			'Do not hide if cart has virtual product and tax is based on shipping address.' => [
-				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'shipping',
-				'filter value'     => null,
-				'expected'         => $show,
+				'cart contents'            => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'shipping',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 			'Do not hide if taxes are not based on customer billing or shipping address.' => [
-				'cart contents'    => [ 'virtual_taxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'base',
-				'filter value'     => null,
-				'expected'         => $show,
+				'cart contents'            => [ 'virtual_taxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'base',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 			'Do not hide if cart requires shipping.' => [
-				'cart contents'    => [ 'shippable_taxable' ],
-				'is pay for order' => false,
-				'tax based on'     => 'billing',
-				'filter value'     => null,
-				'expected'         => $show,
+				'cart contents'            => [ 'shippable_taxable' ],
+				'is pay for order'         => false,
+				'tax based on'             => 'billing',
+				'filter value'             => null,
+				'default customer address' => null,
+				'expected'                 => $show,
 			],
 		];
 	}
