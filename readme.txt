@@ -149,5 +149,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Method Configurations fallback cache
 * Fix - Show correct price in express checkout for zero decimal currencies
+* Fix - Prevent PMC fetch when rendering the checkout if settings sync is disabled
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

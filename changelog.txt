@@ -38,6 +38,7 @@
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Method Configurations fallback cache
 * Fix - Show correct price in express checkout for zero decimal currencies
+* Fix - Prevent PMC fetch when rendering the checkout if settings sync is disabled
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
