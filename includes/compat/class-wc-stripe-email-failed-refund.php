@@ -21,7 +21,7 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->title   = __( 'Refund failed', 'woocommerce-gateway-stripe' );
+		$this->title   = __( 'Stripe refund failed', 'woocommerce-gateway-stripe' );
 		$this->heading = __( 'Refund failed', 'woocommerce-gateway-stripe' );
 		$this->subject = __( '[{site_title}] Refund failed for #{order_number}.', 'woocommerce-gateway-stripe' );
 	}
