@@ -191,13 +191,13 @@ export const getStripeImageUrl = ( imageName ) => {
  * - The payment method is not reusable and manual renewal is enabled in the configuration.
  * - The configuration explicitly requires manual renewal.
  *
- * @param {boolean} paymentMethodReusable
+ * @param {boolean} isReusablePaymentMethod
  * @return {boolean} True if manual renewal is required, false otherwise.
  */
-const isManualRenewalRequired = ( paymentMethodReusable ) => {
+const isManualRenewalRequired = ( isReusablePaymentMethod ) => {
 	const config = getBlocksConfiguration();
 	return (
-		( ! paymentMethodReusable &&
+		( ! isReusablePaymentMethod &&
 			config?.subscriptionManualRenewalEnabled ) ||
 		config?.subscriptionRequiresManualRenewal
 	);
@@ -206,13 +206,13 @@ const isManualRenewalRequired = ( paymentMethodReusable ) => {
 /**
  * Checks if the cart contains an auto-renewing subscription.
  *
- * @param {boolean} paymentMethodReusable Indicates if the payment method is reusable.
+ * @param {boolean} isReusablePaymentMethod Indicates if the payment method is reusable.
  * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
  */
-const hasAutoRenewingSubscription = ( paymentMethodReusable ) => {
+const hasAutoRenewingSubscription = ( isReusablePaymentMethod ) => {
 	const config = getBlocksConfiguration();
 	return (
 		config?.cartContainsSubscription &&
-		! isManualRenewalRequired( paymentMethodReusable )
+		! isManualRenewalRequired( isReusablePaymentMethod )
 	);
 };
