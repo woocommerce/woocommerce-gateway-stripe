@@ -57,7 +57,7 @@ describe( 'Blocks Utils', () => {
 			};
 		} );
 
-		test( 'has auto renewal subscription', () => {
+		test( 'cart has auto renewal subscription', () => {
 			mockGetSetting.mockReturnValue( {
 				cartContainsSubscription: true,
 				subscriptionManualRenewalEnabled: false,
@@ -65,11 +65,11 @@ describe( 'Blocks Utils', () => {
 			expect( shouldSetupOffSessionPayment( false, false ) ).toBeTruthy();
 		} );
 
-		test( 'shows save option', () => {
+		test( 'showSaveOption is true', () => {
 			expect( shouldSetupOffSessionPayment( true, true ) ).toBeTruthy();
 		} );
 
-		test( 'either', () => {
+		test( 'cart does not have auto renewal subscription and showSaveOption is false', () => {
 			expect( shouldSetupOffSessionPayment( false, false ) ).toBeFalsy();
 		} );
 	} );
