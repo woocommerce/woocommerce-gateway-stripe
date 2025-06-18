@@ -165,12 +165,12 @@ class WC_Stripe_Payment_Method_Configurations {
 	}
 
 	/**
-	 * Get the parent configuration ID.
+	 * Get the WooCommerce Platform payment method configuration id.
 	 *
-	 * @return string|null
+	 * @return string
 	 */
 	public static function get_parent_configuration_id() {
-		return self::get_primary_configuration()->parent ?? null;
+		return WC_Stripe_Mode::is_test() ? self::TEST_MODE_CONFIGURATION_PARENT_ID : self::LIVE_MODE_CONFIGURATION_PARENT_ID;
 	}
 
 	/**
