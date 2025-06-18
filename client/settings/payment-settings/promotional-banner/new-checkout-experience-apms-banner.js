@@ -109,11 +109,7 @@ export const NewCheckoutExperienceAPMsBanner = ( {
 				</CardColumn>
 			</CardInner>
 			<ButtonsRow>
-				<MainCTALink
-					variant="secondary"
-					data-testid="disable-the-legacy-checkout"
-					onClick={ handleButtonClick }
-				>
+				<MainCTALink variant="secondary" onClick={ handleButtonClick }>
 					{ __(
 						'Enable the new checkout',
 						'woocommerce-gateway-stripe'
