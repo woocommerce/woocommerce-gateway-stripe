@@ -94,7 +94,9 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 					) }
 				/>
 			) }
-			<ButtonWrapper>
+			{ /* The 'submit' class is used by WC core to clear unsaved changes warnings.
+				See https://github.com/woocommerce/woocommerce/blob/fc7ffce309662758c0d3383de8cc8e8c6a57a167/plugins/woocommerce/client/legacy/js/admin/settings.js#L139 */ }
+			<ButtonWrapper className="submit">
 				<Button
 					variant="tertiary"
 					disabled={ isCustomizing }
