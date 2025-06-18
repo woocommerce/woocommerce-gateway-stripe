@@ -1032,9 +1032,7 @@ class WC_Stripe_Intent_Controller {
 		// Only exceptions are when using a confirmation token or manual renewal is required.
 		// For confirmations tokens, the setup_future_usage is set within the payment method.
 		$payment_method                 = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $selected_payment_type );
-		$is_manual_renewal_required     = ( ! $payment_method->is_reusable() && WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled() )
-			|| WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
-		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $is_manual_renewal_required;
+		$has_auto_renewing_subscription = ! empty( $payment_information['has_subscription'] ) && ! $this->is_manual_renewal_required( $payment_method->is_reusable() );
 		if ( ! $is_using_confirmation_token && ( $payment_information['save_payment_method_to_store'] || $has_auto_renewing_subscription ) ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
@@ -1313,5 +1311,15 @@ class WC_Stripe_Intent_Controller {
 		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			$gateway->maybe_process_upe_redirect();
 		}
+	}
+
+	/**
+	 * Check if manual renewal is required for the payment method.
+	 *
+	 * @return bool
+	 */
+	private function is_manual_renewal_required( $is_payment_method_reusable ) {
+		return ( ! $is_payment_method_reusable && WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled() )
+			|| WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
 	}
 }
