@@ -27,14 +27,9 @@ export const shouldSetupOffSessionPayment = (
 	showSaveOption,
 	paymentMethodReusable
 ) => {
-	const config = getBlocksConfiguration();
-	const manualRenewalRequired =
-		( ! paymentMethodReusable &&
-			config?.subscriptionManualRenewalEnabled ) ||
-		config?.subscriptionRequiresManualRenewal;
-	const hasAutoRenewingSubscription =
-		config?.cartContainsSubscription && ! manualRenewalRequired;
-	return hasAutoRenewingSubscription || showSaveOption;
+	return (
+		hasAutoRenewingSubscription( paymentMethodReusable ) || showSaveOption
+	);
 };
 
 /**
@@ -186,4 +181,33 @@ export const addOrderAttributionInputsIfNotExists = () => {
 export const getStripeImageUrl = ( imageName ) => {
 	const config = getBlocksConfiguration();
 	return `${ config?.plugin_url }/assets/images/${ imageName }.svg`;
+};
+
+/**
+ * Whether manual renewal is required based on the payment method's reusability.
+ *
+ * @param {boolean} paymentMethodReusable
+ * @return {boolean} True if manual renewal is required, false otherwise.
+ */
+const isManualRenewalRequired = ( paymentMethodReusable ) => {
+	const config = getBlocksConfiguration();
+	return (
+		( ! paymentMethodReusable &&
+			config?.subscriptionManualRenewalEnabled ) ||
+		config?.subscriptionRequiresManualRenewal
+	);
+};
+
+/**
+ * Checks if the cart contains an auto-renewing subscription.
+ *
+ * @param {boolean} paymentMethodReusable Indicates if the payment method is reusable.
+ * @return {boolean} True if the cart contains an auto-renewing subscription, false otherwise.
+ */
+const hasAutoRenewingSubscription = ( paymentMethodReusable ) => {
+	const config = getBlocksConfiguration();
+	return (
+		config?.cartContainsSubscription &&
+		! isManualRenewalRequired( paymentMethodReusable )
+	);
 };
