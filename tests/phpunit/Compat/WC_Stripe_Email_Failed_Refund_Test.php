@@ -40,7 +40,7 @@ class WC_Stripe_Email_Failed_Refund_Test extends WP_UnitTestCase {
 			->method( 'is_enabled' )
 			->willReturn( $is_enabled );
 
-		$email->expects( $recipient && $is_enabled ? $this->exactly( 2 ) : ( $is_enabled ? $this->once() : $this->never() ) )
+		$email->expects( $is_enabled && $recipient ? $this->exactly( 2 ) : ( $is_enabled ? $this->once() : $this->never() ) )
 			->method( 'get_recipient' )
 			->willReturn( $recipient );
 
