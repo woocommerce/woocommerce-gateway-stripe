@@ -31,6 +31,10 @@ describe( 'getPromotionalBannerType', () => {
 		).toBe( RECONNECT_BANNER );
 	} );
 	it( 'BNPL promotion banner', () => {
+		global.wc_stripe_settings_params = {
+			plugin_version: '9.7.0',
+		};
+
 		const accountData = {
 			testmode: false,
 			oauth_connections: {
