@@ -4,13 +4,12 @@ import React, { useState } from 'react';
 import { TabPanel } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import { isEmpty, isEqual } from 'lodash';
+import { isEmpty } from 'lodash';
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
 import { useSettings } from '../../data';
-import useConfirmNavigation from 'utils/use-confirm-navigation';
 
 const StyledTabPanel = styled( TabPanel )`
 	.components-tab-panel__tabs {
@@ -50,18 +49,6 @@ const SettingsManager = () => {
 			[ key ]: data,
 		} );
 	};
-
-	const isPristine =
-		! isEmpty( initialSettings ) && isEqual( initialSettings, settings );
-	const displayPrompt = ! isPristine;
-	const confirmationNavigationCallback = useConfirmNavigation(
-		displayPrompt
-	);
-
-	useEffect( confirmationNavigationCallback, [
-		displayPrompt,
-		confirmationNavigationCallback,
-	] );
 
 	// This grabs the "panel" URL query string value to allow for opening a specific tab.
 	const { panel } = getQuery();
