@@ -17,7 +17,7 @@ class WC_Stripe_Email_Admin_Failed_Refund extends WC_Stripe_Email_Failed_Refund 
 		parent::__construct();
 
 		$this->id          = 'wc_stripe_failed_refund_admin';
-		$this->description = __( 'Refund request failure emails are sent to chosen recipient(s) when an attempt to process refund fails.', 'woocommerce-gateway-stripe' );
+		$this->description = __( 'Refund failure emails are sent to chosen recipient(s) when an attempt to process a refund fails.', 'woocommerce-gateway-stripe' );
 
 		$this->template_html  = 'emails/failed-refund-admin.php';
 		$this->template_plain = 'emails/plain/failed-refund-admin.php';
