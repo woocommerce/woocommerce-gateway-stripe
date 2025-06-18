@@ -34,8 +34,12 @@
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Tweak - Add prefix to the custom database cache keys
+* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
-* Tweak - Remove Payment Mehtod Configurations fallback cache
+* Tweak - Remove Payment Method Configurations fallback cache
+* Fix - Show correct price in express checkout for zero decimal currencies
+* Fix - Fix buggy unsaved changes warning in settings page
+* Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
