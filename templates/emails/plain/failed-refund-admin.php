@@ -8,7 +8,7 @@ echo esc_html( $email_heading ) . "\n\n";
 printf(
 	// translators: 1) an order number, 2) the customer's full name, 3) the reason for the failure.
 	esc_html_x(
-		'The refund request for order %1$s from %2$s has failed. Reason: %3$s. The customer was also notified.',
+		'The refund for order %1$s from %2$s has failed. Reason: %3$s. The customer was also notified.',
 		'In admin refund failed email',
 		'woocommerce-gateway-stripe'
 	),
