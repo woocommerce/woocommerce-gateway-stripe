@@ -2301,10 +2301,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected function get_stripe_order_status_before_event( $order, $target_status ) {
 		if ( OrderStatus::ON_HOLD === $target_status ) {
 			$meta_key = '_stripe_status_before_hold';
-		}
-		if ( OrderStatus::REFUNDED === $target_status ) {
+		} elseif ( OrderStatus::REFUNDED === $target_status ) {
 			$meta_key = '_stripe_status_before_refund';
+		} else {
+			// Handle unsupported target_status values.
+			throw new InvalidArgumentException( sprintf( 'Unsupported target_status: %s', $target_status ) );
 		}
+
 		if ( ! empty( $meta_key ) ) {
 			$status = $order->get_meta( $meta_key );
 			if ( ! empty( $status ) ) {
