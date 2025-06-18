@@ -229,32 +229,74 @@ class WC_Stripe_Express_Checkout_Element {
 
 	/**
 	 * Retrieve custom checkout field IDs.
-	 * TODO: Currently, we only support custom checkout fields for block checkout.
-	 * We need to add support for classic checkout custom fields.
 	 *
 	 * @return array Custom checkout field IDs.
 	 */
 	public function get_custom_checkout_fields() {
-		try {
-			$checkout_fields = Package::container()->get( CheckoutFields::class );
-			if ( ! $checkout_fields instanceof CheckoutFields ) {
+		// Block checkout page
+		if ( has_block( 'woocommerce/checkout' ) ) {
+			try {
+				$checkout_fields = Package::container()->get( CheckoutFields::class );
+				if ( ! $checkout_fields instanceof CheckoutFields ) {
+					return [];
+				}
+
+				$custom_checkout_fields = [];
+				$additional_fields      = $checkout_fields->get_additional_fields();
+				foreach ( $additional_fields as $field_key => $field ) {
+					$location                             = $checkout_fields->get_field_location( $field_key );
+					$custom_checkout_fields[ $field_key ] = [
+						'key'      => $field_key,
+						'location' => $location,
+					];
+				}
+
+				return $custom_checkout_fields;
+			} catch ( Exception $e ) {
 				return [];
 			}
+		}
 
-			$custom_checkout_fields = [];
-			$additional_fields      = $checkout_fields->get_additional_fields();
-			foreach ( $additional_fields as $field_key => $field ) {
-				$location                             = $checkout_fields->get_field_location( $field_key );
-				$custom_checkout_fields[ $field_key ] = [
-					'key'      => $field_key,
-					'location' => $location,
-				];
+		// Classic checkout page
+		if ( is_checkout() ) {
+			$custom_checkout_fields   = [];
+			$standard_checkout_fields = $this->get_standard_checkout_fields();
+			$all_fields               = WC()->checkout()->get_checkout_fields();
+			foreach ( $all_fields as $fieldset => $fields ) {
+				foreach ( $fields as $field_key => $field ) {
+					if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
+						continue;
+					}
+
+					$custom_checkout_fields[ $field_key ] = [
+						'key'      => $field_key,
+						'location' => $fieldset,
+					];
+				}
 			}
 
 			return $custom_checkout_fields;
-		} catch ( Exception $e ) {
-			return [];
 		}
+
+		// Not a checkout page, e.g. product page, cart page.
+		return [];
+	}
+
+	/**
+	 * Get standard checkout fields.
+	 *
+	 * @return array Standard checkout fields.
+	 */
+	private function get_standard_checkout_fields() {
+		$standard_billing_fields  = WC()->countries->get_address_fields( null, 'billing_' );
+		$standard_shipping_fields = WC()->countries->get_address_fields( null, 'shipping_' );
+		$standard_checkout_fields = array_merge(
+			array_keys( $standard_billing_fields ),
+			array_keys( $standard_shipping_fields ),
+			[ 'order_comments' ]
+		);
+
+		return $standard_checkout_fields;
 	}
 
 	/**
