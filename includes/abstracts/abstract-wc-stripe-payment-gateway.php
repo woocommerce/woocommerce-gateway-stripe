@@ -2297,6 +2297,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order.
 	 * @param string   $target_status The target status the order will be set to.
 	 * @return string The status of the order before the event.
+	 * @throws InvalidArgumentException If the target status is unsupported.
 	 */
 	protected function get_stripe_order_status_before_event( $order, $target_status ) {
 		if ( OrderStatus::ON_HOLD === $target_status ) {
@@ -2308,12 +2309,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new InvalidArgumentException( sprintf( 'Unsupported target_status: %s', $target_status ) );
 		}
 
-		if ( ! empty( $meta_key ) ) {
-			$status = $order->get_meta( $meta_key );
-			if ( ! empty( $status ) ) {
-				return $status;
-			}
+		$status = $order->get_meta( $meta_key );
+		if ( ! empty( $status ) ) {
+			return $status;
 		}
+
 		$default_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 		return apply_filters( 'woocommerce_payment_complete_order_status', $default_status, $order->get_id(), $order );
 	}
