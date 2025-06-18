@@ -74,7 +74,39 @@ describe( 'Reconnect banner', () => {
 			value: { assign },
 		} );
 	} );
-	it( 'should create error notice when oauth URLs are invalid', () => {
+	it( 'should create error notice when test oauth URL is invalid, and test mode is enabled', () => {
+		const oauthUrl = 'http://example.com/test-oauth';
+		const { getByText } = render(
+			<ReConnectAccountBanner
+				testOauthUrl={ null }
+				oauthUrl={ oauthUrl }
+			/>
+		);
+		const reconnectButton = getByText( 'Re-authenticate' );
+		userEvent.click( reconnectButton );
+
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
+	} );
+	it( 'should create error notice when live oauth URL is invalid, and test mode is disabled', () => {
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+
+		const oauthUrl = 'http://example.com/test-oauth';
+		const { getByText } = render(
+			<ReConnectAccountBanner
+				testOauthUrl={ oauthUrl }
+				oauthUrl={ null }
+			/>
+		);
+		const reconnectButton = getByText( 'Re-authenticate' );
+		userEvent.click( reconnectButton );
+
+		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
+			'There was an error. Please reload the page and try again.'
+		);
+	} );
+	it( 'should create error notice when both oauth URLs are invalid', () => {
 		const { getByText } = render(
 			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
 		);
