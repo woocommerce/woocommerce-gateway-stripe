@@ -8,7 +8,7 @@ echo esc_html( $email_heading ) . "\n\n";
 printf(
 	// translators: 1) an order number, 2) the reason for the failure.
 	esc_html_x(
-		'The refund request for order %1$s has failed. Reason: %2$s.',
+		'The refund for order %1$s has failed. Reason: %2$s.',
 		'In customer refund failed email',
 		'woocommerce-gateway-stripe'
 	),
