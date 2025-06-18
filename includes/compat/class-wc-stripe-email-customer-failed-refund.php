@@ -43,4 +43,15 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Stripe_Email_Failed_Refu
 			'email'         => $this,
 		];
 	}
+
+	/**
+	 * Trigger.
+	 *
+	 * @inheritDoc
+	 */
+	public function trigger( $order_id, $order = false ) {
+		// Set before calling the parent trigger, so it is not override.
+		$this->recipient = method_exists( $order, 'get_billing_email' ) ? $order->get_billing_email() : $order->billing_email;
+		parent::trigger( $order_id, $order );
+	}
 }

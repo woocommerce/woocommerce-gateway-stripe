@@ -24,9 +24,6 @@ class WC_Stripe_Email_Admin_Failed_Refund extends WC_Stripe_Email_Failed_Refund 
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		WC_Email::__construct();
-
-		// Set after calling the parent constructor, so it is not override.
-		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
 	}
 
 	/**
@@ -43,5 +40,16 @@ class WC_Stripe_Email_Admin_Failed_Refund extends WC_Stripe_Email_Failed_Refund 
 			'plain_text'    => false,
 			'email'         => $this,
 		];
+	}
+
+	/**
+	 * Trigger.
+	 *
+	 * @inheritDoc
+	 */
+	public function trigger( $order_id, $order = false ) {
+		// Set before calling the parent trigger, so it is not override.
+		$this->recipient = $this->get_option( 'recipient', get_option( 'admin_email' ) );
+		parent::trigger( $order_id, $order );
 	}
 }
