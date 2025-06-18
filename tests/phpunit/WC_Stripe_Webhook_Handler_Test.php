@@ -746,22 +746,20 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
 
-		if ( ! empty( $expected_note ) ) {
-			// Check if the order note was added correctly.
-			$order = wc_get_order( $order->get_id() ); // Retrieve the order again to ensure we have the latest data.
-			if ( ! $order ) {
-				$this->fail( 'Order not found when testing the webhook refund updated method.' );
-			}
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit' => 1,
+			]
+		);
 
-			$notes = wc_get_order_notes(
-				[
-					'order_id' => $order->get_id(),
-					'limit'    => 1,
-				]
-			);
-			$this->assertCount( 1, $notes );
-			$this->assertSame( $expected_note, $notes[0]->content );
+		if ( empty( $expected_note ) ) {
+			$this->assertEquals( [], $notes );
+			return;
 		}
+		
+		$this->assertCount( 1, $notes );
+		$this->assertSame( $expected_note, $notes[0]->content );
 	}
 
 	/**
