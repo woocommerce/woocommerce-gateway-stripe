@@ -2338,7 +2338,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$meta_key = '_stripe_status_before_refund';
 		}
 		if ( empty( $meta_key ) ) {
-			WC_Stripe_Logger::log( 'Error: Unable to set the status before event. Meta key is not defined.' );
+			$log_message = sprintf( 'Error: Unable to set the order status for order %d when transitioning from %s to %s.', $order->get_id(), $current_status, $target_status );
+			WC_Stripe_Logger::log( $log_message );
 			return;
 		}
 		$order->update_meta_data( $meta_key, $current_status );
