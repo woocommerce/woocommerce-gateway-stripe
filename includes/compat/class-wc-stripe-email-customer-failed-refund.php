@@ -17,7 +17,7 @@ class WC_Stripe_Email_Customer_Failed_Refund extends WC_Stripe_Email_Failed_Refu
 		parent::__construct();
 
 		$this->id          = 'wc_stripe_failed_refund_customer';
-		$this->description = __( 'Sent to a customer when a refund request fails. The email contains the original order information.', 'woocommerce-gateway-stripe' );
+		$this->description = __( 'Sent to a customer when a refund fails or is cancelled. The email contains the original order information.', 'woocommerce-gateway-stripe' );
 
 		$this->customer_email = true;
 
