@@ -186,6 +186,10 @@ export const getStripeImageUrl = ( imageName ) => {
 /**
  * Whether manual renewal is required based on the payment method's reusability.
  *
+ * It is considered required if:
+ * - The payment method is not reusable and manual renewal is enabled in the configuration.
+ * - The configuration explicitly requires manual renewal.
+ *
  * @param {boolean} paymentMethodReusable
  * @return {boolean} True if manual renewal is required, false otherwise.
  */
