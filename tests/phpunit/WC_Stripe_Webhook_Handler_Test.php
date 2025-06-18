@@ -749,7 +749,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$notes = wc_get_order_notes(
 			[
 				'order_id' => $order->get_id(),
-				'limit' => 1,
+				'limit'    => 1,
 			]
 		);
 
@@ -757,7 +757,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			$this->assertEquals( [], $notes );
 			return;
 		}
-		
+
 		$this->assertCount( 1, $notes );
 		$this->assertSame( $expected_note, $notes[0]->content );
 	}
