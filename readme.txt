@@ -148,6 +148,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Add prefix to the custom database cache keys
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
-* Tweak - Remove Payment Mehtod Configurations fallback cache
+* Tweak - Remove Payment Method Configurations fallback cache
+* Fix - Show correct price in express checkout for zero decimal currencies
+* Fix - Fix buggy unsaved changes warning in settings page
+* Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
