@@ -187,11 +187,11 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$feature_flag_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$default_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $feature_flag_value,
-			$feature_flag_value
+			'yes' === $default_value,
+			$default_value
 		);
 	}
 }
