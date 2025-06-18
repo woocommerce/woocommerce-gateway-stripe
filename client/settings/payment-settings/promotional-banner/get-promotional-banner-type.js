@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import {
 	BNPL_PROMOTION_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
@@ -35,7 +36,19 @@ export const getPromotionalBannerType = (
 
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
-	} else if ( isUpeEnabled && ! hasBNPLEnabled ) {
+	} else if (
+		isUpeEnabled &&
+		! hasBNPLEnabled &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.plugin_version &&
+		parseFloat(
+			// eslint-disable-next-line camelcase
+			String( wc_stripe_settings_params.plugin_version )
+				.split( '.' )
+				.slice( 0, 2 )
+				.join( '.' )
+		) >= 9.7
+	) {
 		return BNPL_PROMOTION_BANNER;
 	} else if ( ! isUpeEnabled ) {
 		if ( hasAPMEnabled ) {
