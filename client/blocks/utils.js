@@ -28,7 +28,7 @@ export const shouldSetupOffSessionPayment = (
 	paymentMethodReusable
 ) => {
 	return (
-		hasAutoRenewingSubscription( paymentMethodReusable ) || showSaveOption
+		showSaveOption || hasAutoRenewingSubscription( paymentMethodReusable )
 	);
 };
 
