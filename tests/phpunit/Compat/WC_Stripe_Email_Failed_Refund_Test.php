@@ -60,7 +60,7 @@ class WC_Stripe_Email_Failed_Refund_Test extends WP_UnitTestCase {
 		return [
 			'not enabled'  => [
 				'is enabled'     => false,
-				'recipient'      => '',
+				'recipient'      => 'test@example.com',
 				'expect to send' => false,
 			],
 			'no recipient' => [
