@@ -39,7 +39,11 @@ addFilter(
 
 		return {
 			...extensionData,
-			'wc-stripe/ece-custom-checkout-data': customCheckoutFieldsData,
+			'wc-stripe/express-checkout': {
+				custom_checkout_data: JSON.stringify(
+					customCheckoutFieldsData
+				),
+			},
 		};
 	}
 );
