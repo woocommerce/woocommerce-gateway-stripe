@@ -325,7 +325,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
-		$this->update_is_upe_enabled( $request );
 		$this->update_oc_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
