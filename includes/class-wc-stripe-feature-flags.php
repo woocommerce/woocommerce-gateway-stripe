@@ -145,6 +145,13 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_checkout_enabled() {
+		/**
+		 * Temporary filter to allow rollback to legacy checkout experience.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in a future version. New checkout experience will always be enabled.
+		 * @param bool $enabled Whether UPE checkout is enabled. Default true.
+		 */
 		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
 	}
 
