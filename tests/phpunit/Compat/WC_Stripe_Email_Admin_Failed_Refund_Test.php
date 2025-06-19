@@ -29,7 +29,7 @@ class WC_Stripe_Email_Admin_Failed_Refund_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'emails/failed-refund-admin.php', $email->template_html );
 		$this->assertEquals( 'emails/plain/failed-refund-admin.php', $email->template_plain );
 		$this->assertEquals( plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/', $email->template_base );
-		$this->assertEquals( get_option( 'admin_email' ), $email->recipient );
+		$this->assertNull( $email->recipient ); // Recipient is set in the `trigger` method, so it should be null here.
 	}
 
 	/**
