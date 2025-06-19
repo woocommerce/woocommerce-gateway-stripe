@@ -3,7 +3,12 @@ import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	let errorMessage;
-	if ( exception.message ) {
+
+	if ( exception.code === 'rest_invalid_param' && exception.data?.params ) {
+		// Concatenate all error messages from the params.
+		const errorMessages = Object.values( exception.data.params );
+		errorMessage = errorMessages.join( '\n' );
+	} else if ( exception.message ) {
 		errorMessage = exception.message;
 	} else {
 		const paymentDetailsErrorMessage = exception.payment_result?.payment_details.find(
@@ -19,6 +24,7 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 			'woocommerce-gateway-stripe'
 		);
 	}
+
 	return abortPayment(
 		event,
 		getErrorMessageFromNotice( errorMessage ),

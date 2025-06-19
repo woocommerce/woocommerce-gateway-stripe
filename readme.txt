@@ -1,6 +1,6 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
-Tags: credit card, stripe, payments, woocommerce, automattic
+Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.1
 Requires PHP: 7.4
@@ -9,7 +9,7 @@ License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
 
-Take credit card and other payments on your store using Stripe.
+Accept debit and credit cards in 135+ currencies, many local methods like Alipay, ACH, and SEPA, and express checkout with Apple Pay and Google Pay.
 
 == Description ==
 
@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - Adds a new filter (`wc_stripe_is_optimized_checkout_available`) to allow merchants to test the Optimized Checkout feature earlier
+* Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
+* Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
 * Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
 * Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
@@ -132,7 +135,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for BECS
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
-* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats 
+* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
 * Fix - Void intent when cancelling an uncaptured order
 * Fix - Hide future payments message from payment element when manual renewal is required
 * Tweak - Track charge completed via webhooks in order notes
@@ -140,5 +143,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
+* Fix - Fix legacy deprecation notice displayed on new plugin installs
+* Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
+* Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
+* Tweak - Add prefix to the custom database cache keys
+* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
+* Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
+* Tweak - Remove Payment Method Configurations fallback cache
+* Fix - Show correct price in express checkout for zero decimal currencies
+* Fix - Fix buggy unsaved changes warning in settings page
+* Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

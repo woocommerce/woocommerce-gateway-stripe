@@ -6,7 +6,6 @@ import {
 	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
@@ -622,12 +621,12 @@ export default class WCStripeAPI {
 	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
-	 * @param {Object} paymentData Order data.
+	 * @param {Object} orderData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrder( paymentData ) {
+	expressCheckoutECECreateOrder( orderData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+			...orderData,
 			customer_note: getCustomerNote(),
 		} );
 	}

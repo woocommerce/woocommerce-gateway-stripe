@@ -21,7 +21,6 @@ const filesToCopy = [
 	'changelog.txt',
 	'readme.txt',
 	'SECURITY.md',
-	'apple-developer-merchantid-domain-association',
 	'uninstall.php',
 ];
 
