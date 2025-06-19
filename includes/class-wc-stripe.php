@@ -360,13 +360,11 @@ class WC_Stripe {
 		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		}
 
-		if ( ! class_exists( 'WC_Tracks' ) ) {
-			return;
+			if ( class_exists( 'WC_Tracks' ) ) {
+				WC_Tracks::record_event( 'wcstripe_legacy_checkout_deprecated' );
+			}
 		}
-
-		WC_Tracks::record_event( 'wcstripe_legacy_checkout_deprecated' );
 	}
 
 	/**
