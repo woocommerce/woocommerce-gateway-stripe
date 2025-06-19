@@ -12,6 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
+use Automattic\WooCommerce\StoreApi\StoreApi;
+use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
+use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
 
 /**
  * WC_Stripe_Express_Checkout_Element class.
@@ -110,6 +113,77 @@ class WC_Stripe_Express_Checkout_Element {
 		add_filter( 'woocommerce_cart_needs_shipping_address', [ $this, 'filter_cart_needs_shipping_address' ], 11, 1 );
 
 		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
+
+		$this->setup_custom_checkout_data();
+	}
+
+	private function setup_custom_checkout_data() {
+		// TODO: Should this be inside some later hook?
+		$extend_schema = StoreApi::container()->get( ExtendSchema::class );
+		$extend_schema->register_endpoint_data(
+			[
+				'endpoint'        => CheckoutSchema::IDENTIFIER,
+				'namespace'       => 'wc-stripe/express-checkout',
+				'schema_callback' => [ $this, 'get_custom_checkout_data_schema' ],
+			]
+		);
+
+		// Update order based on extended data.
+		add_action(
+			'woocommerce_store_api_checkout_update_order_from_request',
+			[ $this, 'add_custom_checkout_data_to_order' ],
+			10,
+			2
+		);
+	}
+
+	/**
+	 * Add custom checkout data to order. To support custom fields in express checkout and classic checkout,
+	 * we pass custom data as extended data, i.e. under extensions.
+	 *
+	 * @param WC_Order $order The order to add custom checkout data to.
+	 * @param WP_REST_Request $request The request object.
+	 * @return void
+	 */
+	public function add_custom_checkout_data_to_order( $order, $request ) {
+		// Allow third-party plugins to disable saving custom checkout data for express checkout.
+		if ( ! apply_filters( 'wc_stripe_express_checkout_save_custom_checkout_data', true ) ) {
+			return;
+		}
+
+		$extensions                = $request->get_param( 'extensions' );
+		$custom_checkout_data_json = $extensions['wc-stripe/express-checkout']['custom_checkout_data'] ?? '';
+		if ( empty( $custom_checkout_data_json ) ) {
+			return;
+		}
+
+		$custom_checkout_data = json_decode( $custom_checkout_data_json, true );
+		if ( empty( $custom_checkout_data ) ) {
+			return;
+		}
+
+		foreach ( $custom_checkout_data as $key => $value ) {
+			$sanitized_key   = sanitize_text_field( $key );
+			$sanitized_value = sanitize_text_field( $value );
+			$order->update_meta_data( $sanitized_key, $sanitized_value );
+		}
+
+		$order->save();
+	}
+
+	/**
+	 * Get custom checkout data schema.
+	 *
+	 * @return array Custom checkout data schema.
+	 */
+	public function get_custom_checkout_data_schema() {
+		return [
+			'custom_checkout_data' => [
+				'type'        => [ 'string', 'null' ],
+				'context'     => [],
+				'arg_options' => [],
+			],
+		];
 	}
 
 	/**
