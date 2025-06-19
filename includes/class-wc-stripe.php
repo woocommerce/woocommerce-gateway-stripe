@@ -335,8 +335,8 @@ class WC_Stripe {
 			// - @reykjalin
 			$this->update_prb_location_settings();
 
-			// Deprecate the legacy checkout.
-			$this->deprecate_legacy_checkout();
+			// Migrate to the new checkout experience.
+			$this->migrate_to_new_checkout_experience();
 
 			// Check for subscriptions using legacy SEPA tokens on upgrade.
 			// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
@@ -349,12 +349,12 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Deprecates the legacy checkout.
+	 * Migrates to the new checkout experience.
 	 *
 	 * @since 9.6.0
 	 * @version 9.6.0
 	 */
-	public function deprecate_legacy_checkout() {
+	public function migrate_to_new_checkout_experience() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
 		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
@@ -362,7 +362,7 @@ class WC_Stripe {
 			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 			if ( class_exists( 'WC_Tracks' ) ) {
-				WC_Tracks::record_event( 'wcstripe_legacy_checkout_deprecated' );
+				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
 			}
 		}
 	}

@@ -150,7 +150,7 @@ class WC_Stripe_Feature_Flags {
 		 *
 		 * @since 9.6.0
 		 * @deprecated This filter will be removed in a future version. New checkout experience will always be enabled.
-		 * @param bool $enabled Whether UPE checkout is enabled. Default true.
+		 * @param bool $enabled Whether new checkout experience is enabled. Default true.
 		 */
 		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
 	}
