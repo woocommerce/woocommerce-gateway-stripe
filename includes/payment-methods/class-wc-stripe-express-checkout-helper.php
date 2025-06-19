@@ -722,12 +722,28 @@ class WC_Stripe_Express_Checkout_Helper {
 		$is_taxable               = $this->is_product_or_cart_taxable();
 		$needs_shipping           = $this->product_or_cart_needs_shipping();
 		$is_tax_based_on_billing  = 'billing' === get_option( 'woocommerce_tax_based_on' );
-		$default_customer_address = get_option( 'woocommerce_default_customer_address' );
 
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping
-			// Allow ECE to be displayed if the default customer address is set to `geolocation` or `geolocation_ajax`.
-			&& ! in_array( $default_customer_address, [ 'geolocation', 'geolocation_ajax' ], true ) ) {
-			return true;
+		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+			$default_customer_address = get_option( 'woocommerce_default_customer_address' );
+
+			// If the default customer address is not `geolocation` or `geolocation_ajax`, hide express checkout.
+			if ( ! in_array( $default_customer_address, [ 'geolocation', 'geolocation_ajax' ], true ) ) {
+				return true;
+			}
+
+			/**
+			 * Filter whether express checkout should be enabled when we have a taxable, virtual product,
+			 * and taxes should be based on billing address, and we are using geolocation for the customer address.
+			 *
+			 * @since 9.6.0
+			 *
+			 * @param bool   $should_show     Should we show express checkout? Defaults to false.
+			 * @param string $address_default The method for defaulting the customer address. Should be one of: geolocation, geolocation_ajax.
+			 */
+			$should_show_ece_for_taxable_virtual_products = apply_filters( 'wc_stripe_show_express_checkout_taxable_virtual_products_with_geolocation', false, $default_customer_address );
+
+			// Use a negative here so the filter above is more intuitive.
+			return ! $should_show_ece_for_taxable_virtual_products;
 		}
 
 		return false;
