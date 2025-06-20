@@ -118,10 +118,12 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * @since 9.6.0
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Subscriptions_Helper::is_manual_renewal_required instead.
 	 */
 	public function is_manual_renewal_required() {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			return ( class_exists( 'WCS_Manual_Renewal_Manager' ) && WCS_Manual_Renewal_Manager::is_manual_renewal_required() ) || $this->cart_contains_renewal();
+			return WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
 		}
 		return false;
 	}
