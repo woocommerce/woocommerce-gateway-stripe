@@ -528,37 +528,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates whether debug logging is enabled.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_is_upe_enabled( WP_REST_Request $request ) {
-		$is_upe_enabled = $request->get_param( 'is_upe_enabled' );
-
-		if ( null === $is_upe_enabled ) {
-			return;
-		}
-
-		// If the new UPE is enabled, we need to remove the flag to ensure legacy SEPA tokens are updated flag.
-		if ( $is_upe_enabled && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
-		}
-
-		$this->gateway->update_option( WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME, $is_upe_enabled ? 'yes' : 'disabled' );
-
-		// including the class again because otherwise it's not present.
-		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
-			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
-		}
-
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
-	}
-
-	/**
 	 * Updates appearance attributes of the Amazon Pay button.
 	 *
 	 * @param WP_REST_Request $request Request object.
