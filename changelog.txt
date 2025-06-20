@@ -43,6 +43,7 @@
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Fix - Fix buggy unsaved changes warning in settings page
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
+* Update - Remove legacy checkout checkbox from settings
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
