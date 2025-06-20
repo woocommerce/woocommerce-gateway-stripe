@@ -17,12 +17,33 @@ class WC_Stripe_Payment_Method_Configurations_Test extends WC_Mock_Stripe_API_Un
 	 * @return void
 	 */
 	public function test_get_parent_configuration_id() {
-		$this->mock_payment_method_configurations();
+		$initial_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		WC_Stripe_Helper::update_main_stripe_settings(
+			array_merge(
+				$initial_settings,
+				[ 'testmode' => 'yes' ]
+			)
+		);
 
 		$this->assertEquals(
 			WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
 			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
 		);
+
+		WC_Stripe_Helper::update_main_stripe_settings(
+			array_merge(
+				$initial_settings,
+				[ 'testmode' => 'no' ]
+			)
+		);
+
+		$this->assertEquals(
+			WC_Stripe_Payment_Method_Configurations::LIVE_MODE_CONFIGURATION_PARENT_ID,
+			WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id()
+		);
+
+		WC_Stripe_Helper::update_main_stripe_settings( $initial_settings );
 	}
 
 	/**
