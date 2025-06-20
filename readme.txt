@@ -113,6 +113,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
+* Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
 * Add - Adds a new filter (`wc_stripe_is_optimized_checkout_available`) to allow merchants to test the Optimized Checkout feature earlier
 * Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.

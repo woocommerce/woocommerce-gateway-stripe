@@ -518,7 +518,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']               = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']              = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']          = $this->is_subscription_item_in_cart();
-		$stripe_params['subscriptionRequiresManualRenewal'] = $this->is_manual_renewal_required();
+		$stripe_params['subscriptionRequiresManualRenewal'] = WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
+		$stripe_params['subscriptionManualRenewalEnabled']  = WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		$stripe_params['accountCountry']                    = WC_Stripe::get_instance()->account->get_account_country();
 		$stripe_params['isPaymentRequestEnabled']           = $express_checkout_helper->is_payment_request_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
@@ -2650,7 +2651,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Save it when paying for a subscription and manual renewal is not required.
 		if ( $this->has_subscription( $order_id ) ) {
-			return ! $this->is_manual_renewal_required();
+			return ! WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
 		}
 
 		// Unless it's paying for a subscription, don't save it when saving payment methods is disabled.
