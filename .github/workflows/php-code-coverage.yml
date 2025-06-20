@@ -49,14 +49,14 @@ jobs:
     steps:
       - name: Get Changed Files
         id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1.1.2
+        uses: hanseltimeindustries/get-changed-files@0b9ab9b0bdbe9384ab0202b4c119fd8f88747335 # v1.1.2
         with:
           format: 'space-delimited'
           filter: '**/*.php'
 
       - name: Get PR number
         id: number
-        uses: bcgov-nr/action-get-pr@v0.0.1
+        uses: bcgov-nr/action-get-pr@21f9351425cd55a98e869ee28919a512aa30647d # v0.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
