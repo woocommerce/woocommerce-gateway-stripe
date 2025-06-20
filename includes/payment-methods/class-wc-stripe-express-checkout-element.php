@@ -157,6 +157,7 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		// Perform basic sanitization.
 		$sanitized_custom_checkout_data = [];
 		foreach ( $custom_checkout_data as $key => $value ) {
 			$sanitized_key                                    = sanitize_text_field( $key );

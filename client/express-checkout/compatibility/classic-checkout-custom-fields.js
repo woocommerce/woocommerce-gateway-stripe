@@ -1,8 +1,9 @@
 /**
- * This file is for adding custom checkout field data when using express checkout
- * with classic checkout.
+ * This file is for passing custom checkout field data to Store API, for when
+ * using express checkout with classic checkout.
  *
- * It adds the data under extensions, using the wc-stripe/ece-custom-checkout-data namespace.
+ * It extracts the data from the form, and passes the data under extensions, using
+ * the wc-stripe/express-checkout namespace.
  */
 import { addFilter } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
@@ -11,6 +12,7 @@ addFilter(
 	'wcstripe.express-checkout.cart-place-order-extension-data',
 	'automattic/wcstripe/express-checkout',
 	( extensionData ) => {
+		// List of fields we are interested in.
 		const customCheckoutFields = getExpressCheckoutData(
 			'custom_checkout_fields'
 		);
@@ -19,6 +21,7 @@ addFilter(
 			return extensionData;
 		}
 
+		// Extract the data from the checkout form.
 		const customCheckoutFieldsData = {};
 		Object.keys( customCheckoutFields ).forEach( ( field ) => {
 			const formElement = document.querySelector(
