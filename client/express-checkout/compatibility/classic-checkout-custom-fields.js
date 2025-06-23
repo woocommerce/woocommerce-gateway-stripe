@@ -24,20 +24,26 @@ addFilter(
 		// Extract the data from the checkout form.
 		const customCheckoutFieldsData = {};
 		Object.keys( customCheckoutFields ).forEach( ( field ) => {
-			const formElement = document.querySelector(
+			const formElements = document.querySelectorAll(
 				`form [name="${ field }"]`
 			);
-			if ( ! formElement ) {
+			if ( ! formElements || formElements.length === 0 ) {
 				return;
 			}
 
-			if ( formElement.type === 'checkbox' ) {
-				if ( formElement.checked ) {
-					customCheckoutFieldsData[ field ] = 1;
+			formElements.forEach( ( formElement ) => {
+				if ( formElement.type === 'checkbox' ) {
+					if ( formElement.checked ) {
+						customCheckoutFieldsData[ field ] = 1;
+					}
+				} else if ( formElement.type === 'radio' ) {
+					if ( formElement.checked ) {
+						customCheckoutFieldsData[ field ] = formElement.value;
+					}
+				} else {
+					customCheckoutFieldsData[ field ] = formElement.value;
 				}
-			} else {
-				customCheckoutFieldsData[ field ] = formElement.value;
-			}
+			} );
 		} );
 
 		return {
