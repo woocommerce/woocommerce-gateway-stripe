@@ -157,11 +157,13 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		// Perform basic sanitization.
+		// Perform basic sanitization before passing to the action.
 		$sanitized_custom_checkout_data = [];
+		$custom_checkout_fields         = $this->get_custom_checkout_fields();
 		foreach ( $custom_checkout_data as $key => $value ) {
+			$field_type                                       = $custom_checkout_fields[ $key ]['type'] ?? 'text';
 			$sanitized_key                                    = sanitize_text_field( $key );
-			$sanitized_value                                  = sanitize_text_field( $value );
+			$sanitized_value                                  = $this->get_sanitized_value( $value, $field_type );
 			$sanitized_custom_checkout_data[ $sanitized_key ] = $sanitized_value;
 		}
 
@@ -180,6 +182,22 @@ class WC_Stripe_Express_Checkout_Element {
 		do_action( 'wc_stripe_express_checkout_add_custom_checkout_data', $order->get_id(), $sanitized_custom_checkout_data );
 	}
 
+	/**
+	 * Perform basic sanitization on custom checkout field values, based on the field type.
+	 *
+	 * @param string $value The value to sanitize.
+	 * @param string $type The type of the field.
+	 * @return string The sanitized value.
+	 */
+	private function get_sanitized_value( $value, $type ) {
+		if ( 'textarea' === $type ) {
+			return sanitize_textarea_field( $value );
+		} elseif ( 'email' === $type ) {
+			return sanitize_email( $value );
+		}
+
+		return sanitize_text_field( $value );
+	}
 	/**
 	 * Get custom checkout data schema.
 	 *
@@ -306,7 +324,7 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_cart_page'               => is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
-			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
+			'custom_checkout_fields'     => $this->get_custom_checkout_fields( true ),
 		];
 	}
 
@@ -315,7 +333,7 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @return array Custom checkout field IDs.
 	 */
-	public function get_custom_checkout_fields() {
+	public function get_custom_checkout_fields( $keys_only = false ) {
 		// Block checkout page
 		if ( has_block( 'woocommerce/checkout' ) ) {
 			try {
@@ -352,13 +370,13 @@ class WC_Stripe_Express_Checkout_Element {
 					}
 
 					$custom_checkout_fields[ $field_key ] = [
-						'key'      => $field_key,
+						'type'     => $field['type'],
 						'location' => $fieldset,
 					];
 				}
 			}
 
-			return $custom_checkout_fields;
+			return $keys_only ? array_keys( $custom_checkout_fields ) : $custom_checkout_fields;
 		}
 
 		// Not a checkout page, e.g. product page, cart page.
