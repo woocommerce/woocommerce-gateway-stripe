@@ -113,6 +113,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Update - Allow the display of express checkout when default customer location is set to "Geolocate" or "Geolocate (with page caching support)"
+* Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
+* Add - Adds a new filter (`wc_stripe_is_optimized_checkout_available`) to allow merchants to test the Optimized Checkout feature earlier
+* Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
 * Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
@@ -151,5 +154,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Remove Payment Method Configurations fallback cache
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Fix - Fix buggy unsaved changes warning in settings page
+* Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
+* Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
+* Update - Remove legacy checkout checkbox from settings
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

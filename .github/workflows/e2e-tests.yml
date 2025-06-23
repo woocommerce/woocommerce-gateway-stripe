@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        checkout: [ 'Default', 'Legacy', 'OptimizedCheckout' ]
+        checkout: [ 'Default', 'OptimizedCheckout' ]
 
     name: ${{ matrix.checkout }} WP=latest, WC=latest, PHP=7.4
     steps:
@@ -86,9 +86,7 @@ jobs:
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: |
-          if [ "${{ matrix.checkout }}" = "Legacy" ]; then
-            npm run test:e2e-legacy
-          elif [ "${{ matrix.checkout }}" = "OptimizedCheckout" ]; then
+          if [ "${{ matrix.checkout }}" = "OptimizedCheckout" ]; then
             npm run test:e2e-oc
           else
             npm run test:e2e
