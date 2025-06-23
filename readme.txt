@@ -154,5 +154,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Fix - Fix buggy unsaved changes warning in settings page
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
+* Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
+* Update - Remove legacy checkout checkbox from settings
+* Update - Improve checks in voucher purchase flow
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
