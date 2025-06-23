@@ -1,4 +1,6 @@
+import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
+import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -36,45 +38,9 @@ export const normalizeOrderData = ( {
 	paymentMethodId = '',
 	confirmationTokenId = '',
 } ) => {
-	const name = event?.billingDetails?.name;
-	const email = event?.billingDetails?.email ?? '';
-	const billing = event?.billingDetails?.address ?? {};
-	const shipping = event?.shippingAddress ?? {};
-
-	const phone =
-		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
-		event?.payerPhone?.replace( /[() -]/g, '' ) ??
-		'';
-
 	return {
-		billing_address: {
-			first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-			last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '-',
-			company: billing?.organization ?? '',
-			email: email ?? event?.payerEmail ?? '',
-			phone,
-			country: billing?.country ?? '',
-			address_1: billing?.line1 ?? '',
-			address_2: billing?.line2 ?? '',
-			city: billing?.city ?? '',
-			state: billing?.state ?? '',
-			postcode: billing?.postal_code ?? '',
-		},
-		shipping_address: {
-			first_name:
-				shipping?.name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
-			last_name:
-				shipping?.name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
-			company: shipping?.organization ?? '',
-			phone,
-			country: shipping?.address?.country ?? '',
-			address_1: shipping?.address?.line1 ?? '',
-			address_2: shipping?.address?.line2 ?? '',
-			city: shipping?.address?.city ?? '',
-			state: shipping?.address?.state ?? '',
-			postcode: shipping?.address?.postal_code ?? '',
-			method: [ event?.shippingRate?.id ?? null ],
-		},
+		billing_address: getBillingAddressData( event ),
+		shipping_address: getShippingAddressData( event ),
 		payment_method: 'stripe',
 		payment_data: buildBlocksAPIPaymentData( {
 			expressPaymentType: event?.expressPaymentType,
@@ -85,7 +51,280 @@ export const normalizeOrderData = ( {
 			'wcstripe.express-checkout.cart-place-order-extension-data',
 			{}
 		),
+		additional_fields: getAdditionalFieldsData(),
 	};
+};
+
+/**
+ * Get billing address data from the event, and format it for the Store API.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {Object} The billing address data.
+ */
+const getBillingAddressData = ( event ) => {
+	const name = event?.billingDetails?.name;
+	const email = event?.billingDetails?.email ?? '';
+	const billing = event?.billingDetails?.address ?? {};
+
+	const data = {
+		first_name: approximateFirstName( name ),
+		last_name: approximateLastName( name, '-' ),
+		company: billing?.organization ?? '',
+		email: email ?? event?.payerEmail ?? '',
+		phone: getPhone( event ),
+		country: billing?.country ?? '',
+		address_1: billing?.line1 ?? '',
+		address_2: billing?.line2 ?? '',
+		city: billing?.city ?? '',
+		state: billing?.state ?? '',
+		postcode: billing?.postal_code ?? '',
+	};
+
+	return {
+		...getCustomBillingAddressData( data ),
+		...data,
+	};
+};
+
+/**
+ * Get shipping address data from the event, and format it for the Store API.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {Object} The shipping address data.
+ */
+const getShippingAddressData = ( event ) => {
+	const shipping = event?.shippingAddress ?? {};
+	const name = shipping?.name;
+
+	const data = {
+		first_name: approximateFirstName( name ),
+		last_name: approximateLastName( name ),
+		company: shipping?.organization ?? '',
+		phone: getPhone( event ),
+		country: shipping?.address?.country ?? '',
+		address_1: shipping?.address?.line1 ?? '',
+		address_2: shipping?.address?.line2 ?? '',
+		city: shipping?.address?.city ?? '',
+		state: shipping?.address?.state ?? '',
+		postcode: shipping?.address?.postal_code ?? '',
+		method: [ event?.shippingRate?.id ?? null ],
+	};
+
+	return {
+		...getCustomShippingAddressData( data ),
+		...data,
+	};
+};
+
+/**
+ * Get the approximate first name from the full name.
+ *
+ * @param {string|undefined} name The full name.
+ * @param {string} defaultValue The default string to return if the name
+ * is undefined or empty.
+ *
+ * @return {string} The approximate first name.
+ */
+const approximateFirstName = ( name, defaultValue = '' ) => {
+	return name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? defaultValue;
+};
+
+/**
+ * Get the approximate last name from the full name.
+ *
+ * @param {string|undefined} name The full name.
+ * @param {string} defaultValue The default string to return if the name
+ * is undefined or empty.
+ *
+ * @return {string} The approximate last name.
+ */
+const approximateLastName = ( name, defaultValue = '' ) => {
+	return name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? defaultValue;
+};
+
+/**
+ * Get custom billing address field data.
+ *
+ * @param {Object} data The standard billing address data.
+ *
+ * @return {Object} The custom billing address data.
+ */
+const getCustomBillingAddressData = ( data ) => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'address' ] );
+	}
+
+	const customerData = getCustomerDataFromStore();
+
+	if ( ! customerData || ! customerData.billingAddress ) {
+		return {};
+	}
+
+	const customBillingAddressData = {};
+
+	// Get properties present in customerData.billingAddress but not in
+	// the standard, expected billing address data.
+	const customBillingAddressKeys = Object.keys(
+		customerData.billingAddress
+	).filter( ( key ) => ! Object.prototype.hasOwnProperty.call( data, key ) );
+
+	customBillingAddressKeys.forEach( ( key ) => {
+		customBillingAddressData[ key ] = customerData.billingAddress[ key ];
+	} );
+
+	return customBillingAddressData;
+};
+
+/**
+ * Get custom shipping address field data.
+ *
+ * @param {Object} data The standard shipping address data.
+ *
+ * @return {Object} The custom shipping address data.
+ */
+const getCustomShippingAddressData = ( data ) => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'address' ] );
+	}
+
+	const customerData = getCustomerDataFromStore();
+
+	if ( ! customerData?.shippingAddress ) {
+		return {};
+	}
+
+	const customShippingAddressData = {};
+
+	// Get properties present in customerData.shippingAddress but not in
+	// the standard, expected shipping address data.
+	const customShippingAddressKeys = Object.keys(
+		customerData.shippingAddress
+	).filter( ( key ) => ! Object.prototype.hasOwnProperty.call( data, key ) );
+
+	customShippingAddressKeys.forEach( ( key ) => {
+		customShippingAddressData[ key ] = customerData.shippingAddress[ key ];
+	} );
+
+	return customShippingAddressData;
+};
+
+/**
+ * Get customer data from the cart store.
+ *
+ * @return {Object} The customer data.
+ */
+const getCustomerDataFromStore = () => {
+	const cartStore = window.wc?.wcBlocksData?.cartStore;
+	if ( ! cartStore ) {
+		return {};
+	}
+
+	const store = select( cartStore );
+	if ( ! store ) {
+		return {};
+	}
+
+	return store.getCustomerData() || {};
+};
+
+/**
+ * Get the phone number from the event.
+ *
+ * @param {Object} event Stripe's event object.
+ *
+ * @return {string} The phone number, or an empty string.
+ */
+const getPhone = ( event ) => {
+	return (
+		event?.billingDetails?.phone?.replace( /[() -]/g, '' ) ??
+		event?.payerPhone?.replace( /[() -]/g, '' ) ??
+		''
+	);
+};
+
+/**
+ * Get additional fields data.
+ *
+ * @return {Object} The additional fields data.
+ */
+const getAdditionalFieldsData = () => {
+	// We need to specifically pass empty fields when not on the block checkout page,
+	// to avoid sending "hidden" and possibly stale data from previous transactions,
+	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
+	// but session still holds data from a previous checkout.
+	if ( ! isBlockCheckoutPage() ) {
+		return emptyCustomFieldObject( [ 'contact', 'order' ] );
+	}
+
+	return getAdditionalFieldsDataFromStore();
+};
+
+/**
+ * Get additional fields data from the checkout store.
+ *
+ * @return {Object} The additional fields data.
+ */
+const getAdditionalFieldsDataFromStore = () => {
+	const checkoutStore = window.wc?.wcBlocksData?.checkoutStore;
+	if ( ! checkoutStore ) {
+		return {};
+	}
+
+	const store = select( checkoutStore );
+	if ( ! store ) {
+		return {};
+	}
+
+	return store.getAdditionalFields() || {};
+};
+
+/**
+ * Build the custom fields object with empty values.
+ *
+ * @param {Array} locations A list of locations we are interested in,
+ * e.g. [ 'address', 'contact', 'order' ].
+ *
+ * @return {Object} The custom fields object with empty values.
+ */
+const emptyCustomFieldObject = ( locations ) => {
+	const customFields = getExpressCheckoutData( 'custom_checkout_fields' );
+	if ( ! customFields ) {
+		return {};
+	}
+
+	const customFieldObject = Object.entries( customFields ).reduce(
+		( acc, [ field, config ] ) => {
+			if ( locations.includes( config.location ) ) {
+				acc[ field ] = '';
+			}
+			return acc;
+		},
+		{}
+	);
+
+	return customFieldObject;
+};
+
+/**
+ * Check if the current page is a block checkout page.
+ *
+ * @return {boolean} True if the current page is a block checkout page, false otherwise.
+ */
+const isBlockCheckoutPage = () => {
+	return (
+		getExpressCheckoutData( 'has_block' ) &&
+		getExpressCheckoutData( 'is_checkout_page' )
+	);
 };
 
 /**

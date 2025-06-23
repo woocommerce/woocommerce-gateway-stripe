@@ -75,4 +75,32 @@ class WC_Stripe_Subscriptions_Helper {
 
 		return $detached_subscriptions;
 	}
+
+	/**
+	 * Returns boolean on whether manual renewal is required for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_required() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_required' ) && wcs_is_manual_renewal_required();
+		}
+		return false;
+	}
+
+	/**
+	 * Returns boolean on whether manual renewal is enabled for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_enabled() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_enabled' ) && wcs_is_manual_renewal_enabled();
+		}
+		return false;
+	}
 }

@@ -47,6 +47,7 @@ const PaymentElements = ( {
 		paymentProcessorLoadErrorMessage,
 		setPaymentProcessorLoadErrorMessage,
 	] = useState( null );
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 
 	useEffect( () => {
 		if ( supportsDeferredIntent || hasRequestedIntent ) {
@@ -157,7 +158,12 @@ const PaymentElements = ( {
 			};
 
 			// If the cart contains a auto-renewing subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
-			if ( shouldSetupOffSessionPayment( props.showSaveOption ) ) {
+			if (
+				shouldSetupOffSessionPayment(
+					props.showSaveOption,
+					paymentMethodsConfig[ paymentMethodId ].isReusable
+				)
+			) {
 				options = {
 					...options,
 					...{
