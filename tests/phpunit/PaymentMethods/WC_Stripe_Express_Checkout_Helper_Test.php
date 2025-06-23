@@ -209,7 +209,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if cart has virtual product and tax is based on billing address, but filter forces to show.' => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'taxes enabled'    => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => false,
 				'expected'         => $show,
@@ -217,7 +217,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if Pay for Order page.'     => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => true,
-				'taxes enabled'    => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -233,7 +233,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if cart has virtual product and tax is based on shipping address.' => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
-				'taxes enabled'    => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'shipping',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -241,7 +241,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if taxes are not based on customer billing or shipping address.' => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => false,
-				'taxes enabled'    => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'base',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -249,7 +249,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if cart requires shipping.' => [
 				'cart contents'    => [ 'shippable_taxable' ],
 				'is pay for order' => false,
-				'taxes enabled'    => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $show,
