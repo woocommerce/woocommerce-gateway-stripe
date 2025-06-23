@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { randomUUID } from 'crypto';
-import config from 'config';
-import { admin, payments, api, user } from '../../../utils';
+import { admin, payments } from '../../../utils';
 
 const { setupKlarnaCheckout, completeKlarnaPayment } = payments;
 
@@ -10,21 +8,6 @@ test.describe( 'Klarna payment tests @shortcode', () => {
 
 	test.beforeAll( async ( { browser } ) => {
 		await test.step( 'Setup test environment', async () => {
-			// Create test user
-			const randomString = randomUUID();
-			userEmail =
-				randomString + '+' + config.get( 'users.customer.email' );
-			username =
-				randomString + '.' + config.get( 'users.customer.username' );
-
-			const testUser = {
-				...config.get( 'users.customer' ),
-				...config.get( 'addresses.customer' ),
-				email: userEmail,
-				username,
-			};
-			await api.create.customer( testUser );
-
 			// Enable Klarna in admin
 			await admin.togglePaymentMethod( browser, 'Klarna', true );
 		} );
