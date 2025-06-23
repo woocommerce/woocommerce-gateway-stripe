@@ -61,7 +61,7 @@ export const BNPLPromotionBanner = ( { setShowPromotionalBanner } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					</TitleBNPL>
-					<IntroBNPL data-testid="intro-bnpl">
+					<IntroBNPL>
 						{ __(
 							'Flexible pay-over-time options can boost revenue by up to 14%*.',
 							'woocommerce-gateway-stripe'

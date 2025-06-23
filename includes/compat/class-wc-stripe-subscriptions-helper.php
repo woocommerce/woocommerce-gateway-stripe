@@ -8,11 +8,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Subscriptions_Helper {
 	/**
-	 * Cache key for detached subscriptions.
+	 * Transient key for detached subscriptions.
 	 *
 	 * @var string
 	 */
-	private const DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX = 'wcstripe_detached_subscriptions_';
+	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
 
 	/**
 	 * Stripe customer page base URL.
@@ -55,7 +55,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 */
 	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
-		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX . $limit );
+		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . $limit );
 		if ( is_array( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
@@ -109,9 +109,37 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		// Cache the result for a day.
-		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_CACHE_KEY_PREFIX . $limit, $detached_subscriptions, DAY_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . $limit, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
+	}
+
+	/**
+	 * Returns boolean on whether manual renewal is required for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_required() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_required' ) && wcs_is_manual_renewal_required();
+		}
+		return false;
+	}
+
+	/**
+	 * Returns boolean on whether manual renewal is enabled for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_enabled() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_enabled' ) && wcs_is_manual_renewal_enabled();
+		}
+		return false;
 	}
 
 	/**
@@ -154,7 +182,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		$intro_message = sprintf(
-			/* translators: %s: subscriptions count */
+		/* translators: %s: subscriptions count */
 			_n(
 				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
 				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
