@@ -26,7 +26,7 @@ do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 	);
 	?>
 </p>
-<p><?php esc_html_e( 'The refunded order is as follows:', 'woocommerce-gateway-stripe' ); ?></p>
+<p><?php esc_html_e( 'The order details are as follows:', 'woocommerce-gateway-stripe' ); ?></p>
 
 <?php
 
