@@ -312,9 +312,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
-		// If cart or order contains subscription, enable payment method if it's reusable.
+		// If cart or order contains subscription, enable payment method if it's reusable, or if manual renewals are enabled.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
-			return $this->is_reusable();
+			return $this->is_reusable() || WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		}
 
 		// If cart or order contains pre-order, enable payment method if it's reusable.

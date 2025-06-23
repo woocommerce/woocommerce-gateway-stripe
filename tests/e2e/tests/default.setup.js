@@ -13,18 +13,6 @@ setup( 'Configure store for default tests', async ( { browser } ) => {
 	} );
 	const page = await adminContext.newPage();
 
-	// Disable legacy checkout experience.
-	await page.goto(
-		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
-	);
-	await page.uncheck( 'text=Enable the legacy checkout experience' );
-	await page.click( 'text=Save changes' );
-
-	await expect( page.getByText( 'Settings saved.' ) ).toBeDefined();
-	await expect(
-		page.getByTestId( 'legacy-checkout-experience-checkbox' )
-	).not.toBeChecked();
-
 	// Enable Link.
 	await page.goto(
 		'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=methods'

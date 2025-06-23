@@ -1,6 +1,9 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
+* Add - Adds a new filter (`wc_stripe_is_optimized_checkout_available`) to allow merchants to test the Optimized Checkout feature earlier
+* Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
 * Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
@@ -41,6 +44,9 @@
 * Fix - Fix buggy unsaved changes warning in settings page
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 * Dev - Add Klarna e2e tests
+* Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
+* Update - Remove legacy checkout checkbox from settings
+* Update - Improve checks in voucher purchase flow
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
