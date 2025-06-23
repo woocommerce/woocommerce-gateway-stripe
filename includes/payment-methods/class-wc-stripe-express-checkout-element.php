@@ -151,6 +151,7 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
+		$errors = new WP_Error();
 		/**
 		 * Allow third-party plugins to validate custom checkout data for express checkout orders.
 		 *
@@ -161,8 +162,8 @@ class WC_Stripe_Express_Checkout_Element {
 		 * @param array $custom_checkout_data The custom checkout data.
 		 * @param WP_Error $errors The WP_Error object, for adding errors when validation fails.
 		 */
-		$errors = new WP_Error();
-		do_action( 'wc_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
+		do_action( 'wc_gateway_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
+
 		if ( $errors->has_errors() ) {
 			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_custom_checkout_data', $errors->get_error_message() );
 		}
@@ -177,7 +178,7 @@ class WC_Stripe_Express_Checkout_Element {
 		 * @param integer $order_id The order ID.
 		 * @param array $custom_checkout_data The custom checkout data.
 		 */
-		do_action( 'wc_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
+		do_action( 'wc_gateway_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
 	}
 
 	/**
