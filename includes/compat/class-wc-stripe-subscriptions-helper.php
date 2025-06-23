@@ -55,7 +55,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 */
 	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
-		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . $limit );
+		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . '_' . $limit );
 		if ( is_array( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
@@ -109,7 +109,7 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		// Cache the result for a day.
-		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . $limit, $detached_subscriptions, DAY_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . '_' . $limit, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
 	}
