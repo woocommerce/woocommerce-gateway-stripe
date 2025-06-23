@@ -25,7 +25,7 @@ class WC_Stripe_Email_Admin_Failed_Refund_Test extends WP_UnitTestCase {
 		$this->assertInstanceOf( \WC_Stripe_Email_Admin_Failed_Refund::class, $email );
 
 		$this->assertEquals( 'wc_stripe_failed_refund_admin', $email->id );
-		$this->assertEquals( 'Refund failure emails are sent to chosen recipient(s) when an attempt to process a refund fails.', $email->description );
+		$this->assertEquals( 'Refund failure emails are sent to the admin when an attempt to process a refund fails.', $email->description );
 		$this->assertEquals( 'emails/failed-refund-admin.php', $email->template_html );
 		$this->assertEquals( 'emails/plain/failed-refund-admin.php', $email->template_plain );
 		$this->assertEquals( plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/', $email->template_base );
