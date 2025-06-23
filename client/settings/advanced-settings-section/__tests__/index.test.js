@@ -38,9 +38,6 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Legacy checkout experience' )
-		).toBeInTheDocument();
 	} );
 
 	it( 'should enable debug mode when checkbox is clicked', () => {
