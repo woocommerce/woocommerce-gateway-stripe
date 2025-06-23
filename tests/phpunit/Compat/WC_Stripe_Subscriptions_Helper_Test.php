@@ -52,14 +52,6 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @return void
 	 */
 	public function test_get_detached_subscriptions() {
-		$return_now_plus_one_week = function () {
-			return strtotime( '+1 week' );
-		};
-		add_filter(
-			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			$return_now_plus_one_week
-		);
-
 		$subscription_id = 1;
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
@@ -67,6 +59,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
+		$subscription->set_time( 'next_payment_date', strtotime( '+1 week' ) );
 		$subscription->save();
 
 		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
@@ -116,11 +109,6 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
-
-		remove_filter(
-			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			$return_now_plus_one_week
-		);
 	}
 
 	/**

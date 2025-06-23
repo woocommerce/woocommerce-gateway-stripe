@@ -18,6 +18,13 @@ class WC_Subscription extends WC_Order {
 	public $order_type = 'shop_subscription';
 
 	/**
+	 * An array storing the times for specific fields.
+	 *
+	 * @var array
+	 */
+	private $times = [];
+
+	/**
 	 * Initializes a specific subscription if the ID is passed, otherwise a new and empty instance of a subscription.
 	 *
 	 * This class should NOT be instantiated, instead the functions wcs_create_subscription() and wcs_get_subscription()
@@ -60,13 +67,23 @@ class WC_Subscription extends WC_Order {
 	}
 
 	/**
+	 * Sets the time for a specific field.
+	 *
+	 * @param $field string Field to set the time for.
+	 * @param $time int|false Time to set for the field.
+	 * @return void
+	 */
+	public function set_time( $field, $time ) {
+		$this->times[ $field ] = $time;
+	}
+
+	/**
 	 * Get the time for a specific field.
 	 *
 	 * @param $field string Field to get the time for.
 	 * @return false|int
 	 */
 	public function get_time( $field ) {
-		$time = 'next_payment_date' === $field ? strtotime( '+1 month' ) : time();
-		return apply_filters( 'wc_stripe_unit_test_get_subscription_time_' . $field, $time, $field, $this );
+		return $this->times[ $field ] ?? false;
 	}
 }
