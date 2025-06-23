@@ -719,7 +719,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$taxes_enabled           = 'yes' === get_option( 'woocommerce_calc_taxes', 'no' );
+		$taxes_enabled           = wc_tax_enabled();
 		$is_taxable              = $this->is_product_or_cart_taxable();
 		$needs_shipping          = $this->product_or_cart_needs_shipping();
 		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
