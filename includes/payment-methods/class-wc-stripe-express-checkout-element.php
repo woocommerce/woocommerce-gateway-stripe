@@ -131,33 +131,78 @@ class WC_Stripe_Express_Checkout_Element {
 		// Update order based on extended data.
 		add_action(
 			'woocommerce_store_api_checkout_update_order_from_request',
-			[ $this, 'add_custom_checkout_data' ],
+			[ $this, 'process_custom_checkout_data' ],
 			10,
 			2
 		);
 	}
 
 	/**
-	 * Add custom checkout data to order. To support custom fields in express checkout and classic checkout,
-	 * we pass custom data as extended data, i.e. under extensions.
+	 * Allow third-party to validate and add custom checkout data to
+	 * express checkout orders for stores using classic, shortcode-based checkout.
 	 *
 	 * @param WC_Order $order The order to add custom checkout data to.
 	 * @param WP_REST_Request $request The request object.
 	 * @return void
 	 */
-	public function add_custom_checkout_data( $order, $request ) {
-		$extensions                = $request->get_param( 'extensions' );
-		$custom_checkout_data_json = $extensions['wc-stripe/express-checkout']['custom_checkout_data'] ?? '';
-		if ( empty( $custom_checkout_data_json ) ) {
-			return;
-		}
-
-		$custom_checkout_data = json_decode( $custom_checkout_data_json, true );
+	public function process_custom_checkout_data( $order, $request ) {
+		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
 		if ( empty( $custom_checkout_data ) ) {
 			return;
 		}
 
-		// Perform basic sanitization before passing to the action.
+		/**
+		 * Allow third-party plugins to validate custom checkout data for express checkout orders.
+		 *
+		 * To be used as a stand-in for the `woocommerce_after_checkout_validation` action.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param array $custom_checkout_data The custom checkout data.
+		 * @param WP_Error $errors The WP_Error object, for adding errors when validation fails.
+		 */
+		$errors = new WP_Error();
+		do_action( 'wc_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
+		if ( $errors->has_errors() ) {
+			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_custom_checkout_data', $errors->get_error_message() );
+		}
+
+		/**
+		 * Allow third-party plugins to add custom checkout data for express checkout orders.
+		 *
+		 * To be used as a stand-in for the `woocommerce_checkout_update_order_meta` action.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param integer $order_id The order ID.
+		 * @param array $custom_checkout_data The custom checkout data.
+		 */
+		do_action( 'wc_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
+	}
+
+	/**
+	 * Get custom checkout data from the request object.
+	 *
+	 * To support custom fields in express checkout and classic checkout,
+	 * we pass custom data as extended data, i.e. under extensions.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 * @return array Custom checkout data.
+	 */
+	private function get_custom_checkout_data_from_request( $request ) {
+		$extensions = $request->get_param( 'extensions' );
+		if ( empty( $extensions ) ) {
+			return [];
+		}
+
+		$custom_checkout_data_json = $extensions['wc-stripe/express-checkout']['custom_checkout_data'] ?? '';
+		if ( empty( $custom_checkout_data_json ) ) {
+			return [];
+		}
+
+		$custom_checkout_data = json_decode( $custom_checkout_data_json, true );
+
+		// Perform basic sanitization before passing to actions.
 		$sanitized_custom_checkout_data = [];
 		$custom_checkout_fields         = $this->get_custom_checkout_fields();
 		foreach ( $custom_checkout_data as $key => $value ) {
@@ -167,19 +212,7 @@ class WC_Stripe_Express_Checkout_Element {
 			$sanitized_custom_checkout_data[ $sanitized_key ] = $sanitized_value;
 		}
 
-		/**
-		 * Allow third-party plugins to add custom checkout data to the order.
-		 *
-		 * This is meant for stores that are on shortcode checkout, and want to save order data
-		 * from custom checkout fields, even when customers use express checkout.
-		 *
-		 * @since 9.6.0
-		 *
-		 * @param integer $order_id The order ID.
-		 * @param array $sanitized_custom_checkout_data Data from custom checkout fields, for
-		 * classic checkout.
-		 */
-		do_action( 'wc_stripe_express_checkout_add_custom_checkout_data', $order->get_id(), $sanitized_custom_checkout_data );
+		return $sanitized_custom_checkout_data;
 	}
 
 	/**
