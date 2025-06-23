@@ -5,7 +5,6 @@ import { Card } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
-import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
 
@@ -29,7 +28,6 @@ const AdvancedSettings = () => {
 				<Card>
 					<CardBody>
 						<DebugMode />
-						<ExperimentalFeatures />
 						{ isOcAvailable && <SinglePaymentElementFeature /> }
 					</CardBody>
 				</Card>

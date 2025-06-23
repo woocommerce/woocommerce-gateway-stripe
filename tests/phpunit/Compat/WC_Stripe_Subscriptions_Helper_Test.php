@@ -25,19 +25,33 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test for `test_is_manual_renewal_required`.
+	 *
+	 * @return void
+	 */
+	public function test_is_manual_renewal_required() {
+		// This test assumes that manual renewal is not required.
+		// If the logic changes, this test should be updated accordingly.
+		$this->assertFalse( WC_Stripe_Subscriptions_Helper::is_manual_renewal_required() );
+	}
+
+	/**
+	 * Test for `is_manual_renewal_enabled`.
+	 *
+	 * @return void
+	 */
+	public function test_is_manual_renewal_enabled() {
+		// This test assumes that manual renewal is not enabled.
+		// If the logic changes, this test should be updated accordingly.
+		$this->assertFalse( WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled() );
+	}
+
+	/**
 	 * Test for `get_detached_subscriptions`.
 	 *
 	 * @return void
 	 */
 	public function test_get_detached_subscriptions() {
-		$return_now_plus_one_week = function () {
-			return strtotime( '+1 week' );
-		};
-		add_filter(
-			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			$return_now_plus_one_week
-		);
-
 		$subscription_id = 1;
 		$customer_id     = 'cus_123';
 		$source_id       = 'src_123';
@@ -45,6 +59,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
+		$subscription->set_time( 'next_payment_date', strtotime( '+1 week' ) );
 		$subscription->save();
 
 		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
@@ -94,11 +109,6 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
-
-		remove_filter(
-			'wc_stripe_unit_test_get_subscription_time_next_payment_date',
-			$return_now_plus_one_week
-		);
 	}
 
 	/**
