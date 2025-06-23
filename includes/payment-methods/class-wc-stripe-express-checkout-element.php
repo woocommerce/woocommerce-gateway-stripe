@@ -423,12 +423,25 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @return array Standard checkout fields.
 	 */
 	private function get_standard_checkout_fields() {
-		$standard_billing_fields  = WC()->countries->get_address_fields( null, 'billing_' );
-		$standard_shipping_fields = WC()->countries->get_address_fields( null, 'shipping_' );
+		$default_address_fields  = WC()->countries->get_default_address_fields();
+		$standard_billing_fields = array_map(
+			function ( $field ) {
+				return 'billing_' . $field;
+			},
+			array_keys( $default_address_fields )
+		);
+
+		$standard_shipping_fields = array_map(
+			function ( $field ) {
+				return 'shipping_' . $field;
+			},
+			array_keys( $default_address_fields )
+		);
+
 		$standard_checkout_fields = array_merge(
-			array_keys( $standard_billing_fields ),
-			array_keys( $standard_shipping_fields ),
-			[ 'order_comments' ]
+			$standard_billing_fields,
+			$standard_shipping_fields,
+			[ 'billing_phone', 'billing_email', 'order_comments' ]
 		);
 
 		return $standard_checkout_fields;
