@@ -869,31 +869,29 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 	await emptyCart( page );
 	await setupCart( page );
 
-	if ( checkoutType === 'blocks' ) {
-		await setupBlocksCheckout(
-			page,
-			config.get( 'addresses.customer.billing' )
-		);
+	const isBlocks = checkoutType === 'blocks';
 
-		await page.waitForTimeout( 1000 );
-
-		// Select Klarna in blocks checkout.
-		await page.locator( 'label' ).filter( { hasText: 'Klarna' } ).click();
-
-		await page.waitForTimeout( 1000 );
+	// Fill billing details
+	const billingDetails = config.get( 'addresses.customer.billing' );
+	if ( isBlocks ) {
+		await setupBlocksCheckout( page, billingDetails );
 	} else {
-		await setupShortcodeCheckout(
-			page,
-			config.get( 'addresses.customer.billing' )
-		);
-
-		await page.waitForTimeout( 1000 );
-
-		// Select Klarna in shortcode checkout.
-		await page.getByText( 'Klarna' ).click();
-
-		await page.waitForTimeout( 1000 );
+		await setupShortcodeCheckout( page, billingDetails );
 	}
+
+	// Wait for the payment method selector to be available
+	if ( isBlocks ) {
+		await page
+			.locator( 'label', { hasText: 'Klarna' } )
+			.waitFor( { state: 'visible', timeout: 5000 } );
+		await page.locator( 'label' ).filter( { hasText: 'Klarna' } ).click();
+	} else {
+		await page
+			.getByText( 'Klarna' )
+			.waitFor( { state: 'visible', timeout: 5000 } );
+		await page.getByText( 'Klarna' ).click();
+	}
+	await page.waitForTimeout( 1000 );
 };
 /**
  * Complete the Klarna payment flow.
