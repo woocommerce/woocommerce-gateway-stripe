@@ -167,23 +167,71 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `is_subscription_payment_method_detached`.
 	 *
+	 * @param array|null $source_meta The source meta data for the subscription.
+	 * @param array|\WP_Error $mocked_response The mocked response from the Stripe API.
+	 * @param bool $expected The expected result of the check.
 	 * @return void
+	 *
+	 * @dataProvider provide_test_is_subscription_payment_method_detached
 	 */
-	public function test_is_subscription_payment_method_detached() {
+	public function test_is_subscription_payment_method_detached( $source_meta, $mocked_response, $expected ) {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 1 );
 		$subscription->set_status( 'active' );
 		$subscription->save();
 
-		$subscription->update_meta_data( '_stripe_customer_id', 'cus_123' );
-		$subscription->update_meta_data( '_stripe_source_id', 'src_123' );
+		if ( ! is_null( $source_meta ) ) {
+			$subscription->update_meta_data( '_stripe_source_id', $source_meta );
+		} else {
+			$subscription->delete_meta_data( '_stripe_source_id' );
+		}
 		$subscription->save_meta_data();
 
+		$mock_response_fn = function () use ( $mocked_response ) {
+			return $mocked_response;
+		};
+
 		// Mock response from Stripe API.
-		add_filter(
-			'pre_http_request',
-			function () {
-				return [
+		add_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+
+		$this->assertSame( $expected, WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) );
+
+		remove_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+	}
+
+	/**
+	 * Provider for `test_is_subscription_payment_method_detached`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_subscription_payment_method_detached() {
+		return [
+			'missing meta'                        => [
+				'source meta'     => null,
+				'mocked response' => null,
+				'expected'        => false,
+			],
+			'wp error response, assumed detached' => [
+				'source meta'     => 'src_123',
+				'mocked response' => new \WP_Error( 'error', 'An error occurred.' ),
+				'expected'        => true,
+			],
+			'existing customer data'              => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'customer' => 'cus_123',
+						]
+					),
+				],
+				'expected'        => false,
+			],
+			'detached payment method'             => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
 					'response' => 200,
 					'headers'  => [ 'Content-Type' => 'application/json' ],
 					'body'     => wp_json_encode(
@@ -191,15 +239,10 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 							'customer' => null,
 						]
 					),
-				];
-			},
-			10,
-			3
-		);
-
-		$this->assertTrue( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) );
-
-		remove_filter( 'pre_http_request', '__return_null', 10, 3 );
+				],
+				'expected'        => true,
+			],
+		];
 	}
 
 	/**
