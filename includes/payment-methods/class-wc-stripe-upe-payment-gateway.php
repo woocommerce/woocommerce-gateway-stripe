@@ -859,6 +859,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		if ( $this->is_payment_process_request_locked() ) {
+			// If the request is already being processed, return an error.
+			return [
+				'result'   => 'failure',
+				'redirect' => '',
+				'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
+			];
+		}
+
+		$this->lock_payment_process_request();
+
 		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$order                 = wc_get_order( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
@@ -1175,6 +1186,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$this->unlock_order_payment( $order );
+			$this->unlock_payment_process_request();
 
 			return array_merge(
 				[
@@ -1242,6 +1254,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$return_url = $this->get_return_url( $order );
+
+			$this->unlock_payment_process_request();
 
 			return [
 				'result'   => 'success',
@@ -3299,5 +3313,41 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// considered enabled if either is enabled in Stripe.
 		return in_array( WC_Stripe_Payment_Methods::APPLE_PAY, $enabled_payment_method_ids, true ) ||
 			in_array( WC_Stripe_Payment_Methods::GOOGLE_PAY, $enabled_payment_method_ids, true );
+	}
+
+	/**
+	 * Checks if the payment process request is locked.
+	 *
+	 * @return bool
+	 */
+	private function is_payment_process_request_locked() {
+		return (bool) WC_Stripe_Database_Cache::get( $this->get_payment_process_request_lock_key() );
+	}
+
+	/**
+	 * Locks the payment process request to prevent multiple submissions.
+	 *
+	 * @return void
+	 */
+	private function lock_payment_process_request() {
+		WC_Stripe_Database_Cache::set( $this->get_payment_process_request_lock_key(), true, MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Clears the payment process request cache.
+	 *
+	 * @return void
+	 */
+	private function unlock_payment_process_request() {
+		WC_Stripe_Database_Cache::delete( $this->get_payment_process_request_lock_key() );
+	}
+
+	/**
+	 * Generates a unique lock key for the payment process request based on the POST data.
+	 *
+	 * @return string
+	 */
+	private function get_payment_process_request_lock_key() {
+		return 'wc_stripe_lock_process_payment_request_' . md5( wp_json_encode( $_POST ) );
 	}
 }
