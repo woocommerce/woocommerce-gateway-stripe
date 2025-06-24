@@ -859,19 +859,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
-		if ( $this->is_payment_process_request_locked() ) {
-			// If the request is already being processed, return an error.
-			return [
-				'result'   => 'failure',
-				'redirect' => '',
-				'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
-			];
-		}
+		$payment_intent_id = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order             = wc_get_order( $order_id );
 
-		$this->lock_payment_process_request();
-
-		$payment_intent_id     = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$order                 = wc_get_order( $order_id );
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 		$save_payment_method   = $this->should_save_payment_method_from_request( $order_id, $selected_payment_type );
 
@@ -1043,6 +1033,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
+			if ( $this->is_payment_process_request_locked( $order, $payment_information['customer'] ) ) {
+				// If the request is already being processed, return an error.
+				return [
+					'result'   => 'failure',
+					'redirect' => '',
+					'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
+				];
+			}
+
+			// Lock payment process request to prevent concurrent requests.
+			$this->lock_payment_process_request( $order, $payment_information['customer'] );
+
 			$payment_needed                = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id             = $payment_information['payment_method'];
 			$payment_method_details        = $payment_information['payment_method_details'];
@@ -1186,7 +1188,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$this->unlock_order_payment( $order );
-			$this->unlock_payment_process_request();
+			$this->unlock_payment_process_request( $order );
 
 			return array_merge(
 				[
@@ -1254,8 +1256,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$return_url = $this->get_return_url( $order );
-
-			$this->unlock_payment_process_request();
 
 			return [
 				'result'   => 'success',
@@ -2844,6 +2844,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		$order->save_meta_data();
 	}
+
 	/**
 	 * Gets the Stripe customer ID associated with an order, creates one if none is associated.
 	 *
@@ -2851,7 +2852,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string The Stripe customer ID.
 	 */
 	private function get_customer_id_for_order( WC_Order $order ): string {
-
 		// Get the user/customer from the order.
 		$customer_id = $this->get_stripe_customer_id( $order );
 		if ( ! empty( $customer_id ) ) {
@@ -3318,36 +3318,53 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Checks if the payment process request is locked.
 	 *
+	 * @param $order WC_Order The order for which we're processing the payment.
+	 * @param string|null $customer_id The customer ID, if available.
 	 * @return bool
+	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
-	private function is_payment_process_request_locked() {
-		return (bool) WC_Stripe_Database_Cache::get( $this->get_payment_process_request_lock_key() );
+	private function is_payment_process_request_locked( $order, $customer_id = null ) {
+		return (bool) WC_Stripe_Database_Cache::get( $this->get_payment_process_lock_key( $order, $customer_id ) );
 	}
 
 	/**
 	 * Locks the payment process request to prevent multiple submissions.
 	 *
+	 * @param $order WC_Order The order for which we're processing the payment.
+	 * @param string|null $customer_id The customer ID, if available.
 	 * @return void
+	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
-	private function lock_payment_process_request() {
-		WC_Stripe_Database_Cache::set( $this->get_payment_process_request_lock_key(), true, MINUTE_IN_SECONDS );
+	private function lock_payment_process_request( $order, $customer_id = null ) {
+		WC_Stripe_Database_Cache::set( $this->get_payment_process_lock_key( $order, $customer_id ), true, MINUTE_IN_SECONDS );
 	}
 
 	/**
-	 * Clears the payment process request cache.
+	 * Unlocks the payment process request after processing is complete.
 	 *
+	 * @param $order WC_Order The order for which we're processing the payment.
 	 * @return void
+	 * @throws WC_Stripe_Exception
 	 */
-	private function unlock_payment_process_request() {
-		WC_Stripe_Database_Cache::delete( $this->get_payment_process_request_lock_key() );
+	private function unlock_payment_process_request( $order, $customer_id = null ) {
+		WC_Stripe_Database_Cache::delete( $this->get_payment_process_lock_key( $order, $customer_id ) );
 	}
 
 	/**
-	 * Generates a unique lock key for the payment process request based on the POST data.
+	 * Generates a unique key for the payment process lock based on the payment data.
 	 *
+	 * @param $order WC_Order The order for which we're processing the payment.
+	 * @param string|null $customer_id The customer ID, if available.
 	 * @return string
+	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
-	private function get_payment_process_request_lock_key() {
-		return 'wc_stripe_lock_process_payment_request_' . md5( wp_json_encode( $_POST ) );
+	private function get_payment_process_lock_key( $order, $customer_id = null ) {
+		$line_items = $this->get_line_items( $order );
+		$lock_data  = [
+			'customer_id' => $customer_id ? $customer_id : $order->get_meta( '_stripe_customer_id', true ),
+			'products'    => implode( ',', array_column( $line_items, 'product_code' ) ),
+			'quantities'  => implode( ',', array_column( $line_items, 'quantity' ) ),
+		];
+		return 'wc_stripe_lock_process_payment_request_' . md5( wp_json_encode( $lock_data ) );
 	}
 }

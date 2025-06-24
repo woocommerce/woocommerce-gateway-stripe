@@ -1439,45 +1439,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
 	public function get_level3_data_from_order( $order ) {
-		// Get the order items. Don't need their keys, only their values.
-		// Order item IDs are used as keys in the original order items array.
-		$order_items = array_values( $order->get_items( [ 'line_item', 'fee' ] ) );
-		$currency    = $order->get_currency();
-		$order_id    = $order->get_id();
-
-		$stripe_line_items = array_map(
-			function ( $item ) use ( $currency, $order_id ) {
-				if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
-					$product_id = $item->get_variation_id()
-						? $item->get_variation_id()
-						: $item->get_product_id();
-					$subtotal   = $item->get_subtotal();
-				} else {
-					$product_id = substr( sanitize_title( $item->get_name() ), 0, 12 );
-					$subtotal   = $item->get_total();
-				}
-				$product_description = substr( $item->get_name(), 0, 26 );
-				$quantity            = $item->get_quantity();
-				if ( ! $quantity ) {
-					$error_msg = "Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set.";
-					WC_Stripe_Logger::error( $error_msg );
-					throw new WC_Stripe_Exception( $error_msg );
-				}
-				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
-				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
-				$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
-
-				return (object) [
-					'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
-					'product_description' => $product_description, // Up to 26 characters long describing the product.
-					'unit_cost'           => $unit_cost, // Cost of the product, in cents, as a non-negative integer.
-					'quantity'            => $quantity, // The number of items of this type sold, as a non-negative integer.
-					'tax_amount'          => $tax_amount, // The amount of tax this item had added to it, in cents, as a non-negative integer.
-					'discount_amount'     => $discount_amount, // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
-				];
-			},
-			$order_items
-		);
+		$currency          = $order->get_currency();
+		$stripe_line_items = $this->get_line_items( $order );
 
 		$level3_data = [
 			'merchant_reference' => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
@@ -2447,5 +2410,52 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		return sprintf( '%d:%s', $order->get_id(), md5( implode( '-', $signature ) ) );
+	}
+
+	/**
+	 * Returns the line items for a given order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @return object[] An array of line item objects, each containing product code, description, unit cost, quantity, tax amount, and discount amount.
+	 * @throws WC_Stripe_Exception If an order item has no quantity set.
+	 */
+	protected function get_line_items( $order ) {
+		$order_items = array_values( $order->get_items( [ 'line_item', 'fee' ] ) );
+		$currency    = $order->get_currency();
+		$order_id    = $order->get_id();
+
+		return array_map(
+			function ( $item ) use ( $currency, $order_id ) {
+				if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
+					$product_id = $item->get_variation_id()
+						? $item->get_variation_id()
+						: $item->get_product_id();
+					$subtotal   = $item->get_subtotal();
+				} else {
+					$product_id = substr( sanitize_title( $item->get_name() ), 0, 12 );
+					$subtotal   = $item->get_total();
+				}
+				$product_description = substr( $item->get_name(), 0, 26 );
+				$quantity            = $item->get_quantity();
+				if ( ! $quantity ) {
+					$error_msg = "Stripe Level 3 data: Order item with ID {$item->get_id()} from order ID {$order_id} has no quantity set.";
+					WC_Stripe_Logger::error( $error_msg );
+					throw new WC_Stripe_Exception( $error_msg );
+				}
+				$unit_cost       = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
+				$tax_amount      = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
+				$discount_amount = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
+
+				return (object) [
+					'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
+					'product_description' => $product_description, // Up to 26 characters long describing the product.
+					'unit_cost'           => $unit_cost, // Cost of the product, in cents, as a non-negative integer.
+					'quantity'            => $quantity, // The number of items of this type sold, as a non-negative integer.
+					'tax_amount'          => $tax_amount, // The amount of tax this item had added to it, in cents, as a non-negative integer.
+					'discount_amount'     => $discount_amount, // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+				];
+			},
+			$order_items
+		);
 	}
 }
