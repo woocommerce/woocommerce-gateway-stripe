@@ -839,7 +839,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						$default_status       = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
 						$status_before_refund = apply_filters( 'woocommerce_payment_complete_order_status', $default_status, $order->get_id(), $order );
 					}
-					$order->update_status( $status_before_refund, $note );
+
+					// If the order has the same status before refund, just add a note.
+					if ( $order->has_status( $status_before_refund ) ) {
+						$order->add_order_note( $note );
+					} else {
+						$order->update_status( $status_before_refund, $note );
+					}
 
 					$this->send_failed_refund_emails( $order );
 				}
