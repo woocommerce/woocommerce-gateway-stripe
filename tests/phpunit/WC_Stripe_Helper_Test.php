@@ -552,4 +552,63 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 			[ 'HTTP_X_REAL_IP', '', '' ],
 		];
 	}
+
+	/**
+	 * Tests for `get_refund_reason_description`.
+	 *
+	 * @param string $refund_reason_key The refund reason key to test.
+	 * @param string $expected          The expected description.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_get_refund_reason_description
+	 */
+	public function test_get_refund_reason_description( $refund_reason_key, $expected ) {
+		$this->assertSame( $expected, WC_Stripe_Helper::get_refund_reason_description( $refund_reason_key ) );
+	}
+
+	/**
+	 * Data provider for `test_get_refund_reason_description`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_refund_reason_description() {
+		return [
+			'The charge has been disputed'                 => [
+				'key'      => 'charge_for_pending_refund_disputed',
+				'expected' => 'The charge has been disputed',
+			],
+			'The refund was declined'                      => [
+				'key'      => 'declined',
+				'expected' => 'The refund was declined',
+			],
+			'The original payment method has expired or was canceled' => [
+				'key'      => 'expired_or_canceled_card',
+				'expected' => 'The original payment method has expired or was canceled',
+			],
+			'We could not process the refund at this time' => [
+				'key'      => 'insufficient_funds',
+				'expected' => 'We could not process the refund at this time',
+			],
+			'The original payment method was lost or stolen' => [
+				'key'      => 'lost_or_stolen_card',
+				'expected' => 'The original payment method was lost or stolen',
+			],
+			'We stopped processing the refund'             => [
+				'key'      => 'merchant_request',
+				'expected' => 'We stopped processing the refund',
+			],
+			'Unknown reason (random)'                      => [
+				'key'      => 'random',
+				'expected' => 'Unknown reason',
+			],
+			'Unknown reason (null)'                        => [
+				'key'      => null,
+				'expected' => 'Unknown reason',
+			],
+			'Unknown reason (empty)'                       => [
+				'key'      => '',
+				'expected' => 'Unknown reason',
+			],
+		];
+	}
 }
