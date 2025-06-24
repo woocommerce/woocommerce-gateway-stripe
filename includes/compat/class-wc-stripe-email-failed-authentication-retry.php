@@ -106,7 +106,8 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 			return;
 		}
 
-		$this->placeholders['{order_number}'] = $this->object->get_order_number();
+		$this->find['order-number']    = '{order_number}';
+		$this->replace['order-number'] = $this->object->get_order_number();
 
 		if ( ! $this->is_enabled() || ! $this->get_recipient() ) {
 			return;
