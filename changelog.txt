@@ -46,6 +46,7 @@
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Add - Introduced `wc_stripe_force_save_payment_method` filter
 * Update - Improve checks in voucher purchase flow
 
 = 9.5.2 - 2025-05-22 =
