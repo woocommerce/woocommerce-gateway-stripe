@@ -41,7 +41,7 @@ jobs:
     if: ${{ ! contains( github.event.head_commit.message, 'Merge branch' ) }}
     needs: [ get-woocommerce-versions, get-wordpress-versions ]
     runs-on: ubuntu-22.04
-    name: PHP=8.1, WP=${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}, WC=${{ fromJson(needs.get-woocommerce-versions.outputs.woocommerce-versions-json)[0] }}
+    name: PHP=8.1, WP=L, WC=L
     env:
       PHP_VERSION: '8.1'
       WP_VERSION: ${{ fromJson(needs.get-wordpress-versions.outputs.wordpress-versions-json)[0] }}
@@ -49,14 +49,14 @@ jobs:
     steps:
       - name: Get Changed Files
         id: get-changed-files
-        uses: hanseltimeindustries/get-changed-files@v1.1.2
+        uses: hanseltimeindustries/get-changed-files@0b9ab9b0bdbe9384ab0202b4c119fd8f88747335 # v1.1.2
         with:
           format: 'space-delimited'
           filter: '**/*.php'
 
       - name: Get PR number
         id: number
-        uses: bcgov-nr/action-get-pr@v0.0.1
+        uses: bcgov-nr/action-get-pr@21f9351425cd55a98e869ee28919a512aa30647d # v0.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 

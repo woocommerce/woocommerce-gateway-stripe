@@ -93,6 +93,9 @@ jQuery( function ( $ ) {
 				?.default_shipping_option;
 			return defaultShippingOption ? [ defaultShippingOption ] : [];
 		};
+		const allowedShippingCountries = getExpressCheckoutData(
+			'allowed_shipping_countries'
+		);
 
 		const clickOptions = {
 			lineItems: useLegacyCartEndpoints
@@ -107,6 +110,10 @@ jQuery( function ( $ ) {
 						? options.shippingRates
 						: getDefaultShippingRates(),
 			} ),
+			...( options.requestShipping &&
+				Array.isArray( allowedShippingCountries ) && {
+					allowedShippingCountries,
+				} ),
 		};
 
 		return event.resolve( clickOptions );

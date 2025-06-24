@@ -231,7 +231,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			'/' . $this->rest_base . '/notice',
 			[
 				'methods'             => WP_REST_Server::EDITABLE,
-				'callback'            => [ $this, 'dismiss_customization_notice' ],
+				'callback'            => [ $this, 'dismiss_notice' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
@@ -325,7 +325,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
-		$this->update_is_upe_enabled( $request );
 		$this->update_oc_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
@@ -529,37 +528,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates whether debug logging is enabled.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_is_upe_enabled( WP_REST_Request $request ) {
-		$is_upe_enabled = $request->get_param( 'is_upe_enabled' );
-
-		if ( null === $is_upe_enabled ) {
-			return;
-		}
-
-		// If the new UPE is enabled, we need to remove the flag to ensure legacy SEPA tokens are updated flag.
-		if ( $is_upe_enabled && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
-		}
-
-		$this->gateway->update_option( WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME, $is_upe_enabled ? 'yes' : 'disabled' );
-
-		// including the class again because otherwise it's not present.
-		if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
-
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
-			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
-		}
-
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
-	}
-
-	/**
 	 * Updates appearance attributes of the Amazon Pay button.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -740,13 +708,33 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return WP_REST_Response
+	 *
+	 * @deprecated since 9.6.0, use `dismiss_notice` instead.
 	 */
 	public function dismiss_customization_notice( WP_REST_Request $request ) {
-		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+		return $this->dismiss_notice( $request );
+	}
+
+	/**
+	 * Dismisses settings notices such as the customization notice and BNPL promotion banner.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_notice( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' )
+			&& null === $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
 			return new WP_REST_Response( [], 200 );
 		}
 
-		update_option( 'wc_stripe_show_customization_notice', 'no' );
+		if ( null !== $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+			update_option( 'wc_stripe_show_customization_notice', 'no' );
+		}
+
+		if ( null !== $request->get_param( 'wc_stripe_show_bnpl_promotion_banner' ) ) {
+			update_option( 'wc_stripe_show_bnpl_promotion_banner', 'no' );
+		}
+
 		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 

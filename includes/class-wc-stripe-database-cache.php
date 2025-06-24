@@ -25,6 +25,13 @@ class WC_Stripe_Database_Cache {
 	private static $in_memory_cache = [];
 
 	/**
+	 * The prefix used for every cache key.
+	 *
+	 * @var string
+	 */
+	const CACHE_KEY_PREFIX = 'wcstripe_cache_';
+
+	/**
 	 * Class constructor.
 	 */
 	private function __construct() {
@@ -33,6 +40,8 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Stores a value in the cache.
 	 *
+	 * The key is automatically prefixed with "wcstripe_cache_[mode]_".
+	 *
 	 * @param string $key  The key to store the value under.
 	 * @param mixed  $data The value to store.
 	 * @param int    $ttl  The TTL of the cache. Dafault 1 hour.
@@ -40,20 +49,24 @@ class WC_Stripe_Database_Cache {
 	 * @return void
 	 */
 	public static function set( $key, $data, $ttl = HOUR_IN_SECONDS ) {
-		self::write_to_cache( $key, $data, $ttl );
+		$prefixed_key = self::add_key_prefix( $key );
+		self::write_to_cache( $prefixed_key, $data, $ttl );
 	}
 
 	/**
 	 * Gets a value from the cache.
+	 *
+	 * The key is automatically prefixed with "wcstripe_cache_[mode]_".
 	 *
 	 * @param string $key The key to look for.
 	 *
 	 * @return mixed|null The cache contents. NULL if the cache value is expired or missing.
 	 */
 	public static function get( $key ) {
-		$cache_contents = self::get_from_cache( $key );
+		$prefixed_key = self::add_key_prefix( $key );
+		$cache_contents = self::get_from_cache( $prefixed_key );
 		if ( is_array( $cache_contents ) && array_key_exists( 'data', $cache_contents ) ) {
-			if ( self::is_expired( $key, $cache_contents ) ) {
+			if ( self::is_expired( $prefixed_key, $cache_contents ) ) {
 				return null;
 			}
 
@@ -66,31 +79,34 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Deletes a value from the cache.
 	 *
+	 * The key is automatically prefixed with "wcstripe_cache_[mode]_".
+	 *
 	 * @param string $key The key to delete.
 	 *
 	 * @return void
 	 */
 	public static function delete( $key ) {
+		$prefixed_key = self::add_key_prefix( $key );
 		// Remove from the in-memory cache.
-		unset( self::$in_memory_cache[ $key ] );
+		unset( self::$in_memory_cache[ $prefixed_key ] );
 
 		// Remove from the DB cache.
-		if ( delete_option( $key ) ) {
+		if ( delete_option( $prefixed_key ) ) {
 			// Clear the WP object cache to ensure the new data is fetched by other processes.
-			wp_cache_delete( $key, 'options' );
+			wp_cache_delete( $prefixed_key, 'options' );
 		}
 	}
 
 	/**
 	 * Wraps the data in the cache metadata and stores it.
 	 *
-	 * @param string  $key     The key to store the data under.
-	 * @param mixed   $data    The data to store.
-	 * @param int     $ttl     The TTL of the cache.
+	 * @param string  $prefixed_key The key to store the data under (with prefix).
+	 * @param mixed   $data         The data to store.
+	 * @param int     $ttl          The TTL of the cache.
 	 *
 	 * @return void
 	 */
-	private static function write_to_cache( $key, $data, $ttl ) {
+	private static function write_to_cache( $prefixed_key, $data, $ttl ) {
 		// Add the data and expiry time to the array we're caching.
 		$cache_contents = [
 			'data'    => $data,
@@ -99,7 +115,7 @@ class WC_Stripe_Database_Cache {
 		];
 
 		// Write the in-memory cache.
-		self::$in_memory_cache[ $key ] = $cache_contents;
+		self::$in_memory_cache[ $prefixed_key ] = $cache_contents;
 
 		// Create or update the DB option cache.
 		// Note: Since we are adding the current time to the option value, WP will ALWAYS write the option because
@@ -111,32 +127,32 @@ class WC_Stripe_Database_Cache {
 		//
 		// Note 2: Autoloading too many options can lead to performance problems, and we are implementing this as a
 		// general cache for the plugin, so we set the autoload to false.
-		$result = update_option( $key, $cache_contents, false );
+		$result = update_option( $prefixed_key, $cache_contents, false );
 		if ( false !== $result ) {
 			// If the DB cache write succeeded, clear the WP object cache to ensure the new data is fetched by other processes.
-			wp_cache_delete( $key, 'options' );
+			wp_cache_delete( $prefixed_key, 'options' );
 		}
 	}
 
 	/**
 	 * Get the cache contents for a certain key.
 	 *
-	 * @param string $key The cache key.
+	 * @param string $prefixed_key The cache key (with prefix).
 	 *
 	 * @return array|false The cache contents (array with `data`, `ttl`, and `updated` entries).
 	 *                     False if there is no cached data.
 	 */
-	private static function get_from_cache( $key ) {
+	private static function get_from_cache( $prefixed_key ) {
 		// Check the in-memory cache first.
-		if ( isset( self::$in_memory_cache[ $key ] ) ) {
-			return self::$in_memory_cache[ $key ];
+		if ( isset( self::$in_memory_cache[ $prefixed_key ] ) ) {
+			return self::$in_memory_cache[ $prefixed_key ];
 		}
 
 		// Read from the DB cache.
-		$data = get_option( $key );
+		$data = get_option( $prefixed_key );
 
 		// Store the data in the in-memory cache, including the case when there is no data cached (`false`).
-		self::$in_memory_cache[ $key ] = $data;
+		self::$in_memory_cache[ $prefixed_key ] = $data;
 
 		return $data;
 	}
@@ -144,12 +160,12 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Checks if the cache value is expired.
 	 *
-	 * @param string $key            The cache key.
+	 * @param string $prefixed_key   The cache key (with prefix).
 	 * @param array  $cache_contents The cache contents.
 	 *
 	 * @return boolean True if the contents are expired. False otherwise.
 	 */
-	private static function is_expired( $key, $cache_contents ) {
+	private static function is_expired( $prefixed_key, $cache_contents ) {
 		if ( ! is_array( $cache_contents ) || ! isset( $cache_contents['updated'] ) || ! isset( $cache_contents['ttl'] ) ) {
 			// Treat bad/invalid cache contents as expired
 			return true;
@@ -163,15 +179,19 @@ class WC_Stripe_Database_Cache {
 		$expires = $cache_contents['updated'] + $cache_contents['ttl'];
 		$now     = time();
 
-		return apply_filters( 'wcstripe_database_cache_is_expired', $expires < $now, $key, $cache_contents );
+		return apply_filters( 'wcstripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
 	}
 
 	/**
-	 * Get all cached keys in memory.
+	 * Adds the CACHE_KEY_PREFIX + plugin mode prefix to the key.
+	 * Ex: "wcstripe_cache_[mode]_[key].
 	 *
-	 * @return array The cached keys.
+	 * @param string $key The key to add the prefix to.
+	 *
+	 * @return string The key with the prefix.
 	 */
-	public static function get_cached_keys() {
-		return array_keys( self::$in_memory_cache );
+	private static function add_key_prefix( $key ) {
+		$mode = WC_Stripe_Mode::is_test() ? 'test_' : 'live_';
+		return self::CACHE_KEY_PREFIX . $mode . $key;
 	}
 }
