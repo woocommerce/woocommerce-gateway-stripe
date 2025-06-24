@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.1
 Requires PHP: 7.4
-Stable tag: 9.5.2
+Stable tag: 9.5.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -117,7 +117,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Adds a new filter (`wc_stripe_is_optimized_checkout_available`) to allow merchants to test the Optimized Checkout feature earlier
 * Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
-* Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
 * Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
@@ -126,7 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Renames all PHP Unit test files to follow the PSR-4.
 * Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
 * Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
-* Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
 * Add - Show an icon beside the payment methods that support automatic recurring payments.
 * Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
@@ -137,12 +135,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests for BECS
 * Fix - Send correct attribute when setting the default payment method.
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
-* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
 * Fix - Void intent when cancelling an uncaptured order
 * Fix - Hide future payments message from payment element when manual renewal is required
-* Tweak - Track charge completed via webhooks in order notes
 * Tweak - Fix a rare warning when searching customers with missing name
-* Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
 * Fix - Apply shipping country restrictions to Express Checkout
 * Dev - Prevent changelog entries with trailing periods
 * Fix - Fix legacy deprecation notice displayed on new plugin installs
@@ -152,11 +147,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Method Configurations fallback cache
-* Fix - Show correct price in express checkout for zero decimal currencies
-* Fix - Fix buggy unsaved changes warning in settings page
-* Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
-* Update - Improve checks in voucher purchase flow
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
