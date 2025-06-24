@@ -6,7 +6,6 @@ import {
 	getCustomerNote,
 	getExpressCheckoutData,
 	getExpressCheckoutAjaxURL,
-	getRequiredFieldDataFromCheckoutForm,
 } from 'wcstripe/express-checkout/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 import {
@@ -498,6 +497,23 @@ export default class WCStripeAPI {
 	}
 
 	/**
+	 * Normalizes address fields in WooCommerce supported format.
+	 *
+	 * @param {Object} billingAddress Billing address.
+	 * @param {Object} shippingAddress Shipping address.
+	 * @return {Promise} Promise for the request to the server.
+	 */
+	expressCheckoutNormalizeAddress( billingAddress, shippingAddress ) {
+		return this.request( getExpressCheckoutAjaxURL( 'normalize_address' ), {
+			security: getExpressCheckoutData( 'nonce' )?.normalize_address,
+			data: {
+				billing_address: billingAddress,
+				shipping_address: shippingAddress,
+			},
+		} );
+	}
+
+	/**
 	 * Get cart items and total amount.
 	 *
 	 * @return {Promise} Promise for the request to the server.
@@ -605,12 +621,12 @@ export default class WCStripeAPI {
 	/**
 	 * Creates order based on Express Checkout ECE payment method.
 	 *
-	 * @param {Object} paymentData Order data.
+	 * @param {Object} orderData Order data.
 	 * @return {Promise} Promise for the request to the server.
 	 */
-	expressCheckoutECECreateOrder( paymentData ) {
+	expressCheckoutECECreateOrder( orderData ) {
 		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
-			...getRequiredFieldDataFromCheckoutForm( paymentData ),
+			...orderData,
 			customer_note: getCustomerNote(),
 		} );
 	}

@@ -50,6 +50,10 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$detached_subscriptions = [];
 		foreach ( $subscriptions as $subscription ) {
+			if ( ! $subscription instanceof WC_Subscription ) {
+				continue;
+			}
+
 			$source_id = $subscription->get_meta( '_stripe_source_id' );
 			if ( $source_id ) {
 				$payment_method = WC_Stripe_API::get_payment_method( $source_id );
@@ -70,5 +74,33 @@ class WC_Stripe_Subscriptions_Helper {
 		set_transient( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
+	}
+
+	/**
+	 * Returns boolean on whether manual renewal is required for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_required() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_required' ) && wcs_is_manual_renewal_required();
+		}
+		return false;
+	}
+
+	/**
+	 * Returns boolean on whether manual renewal is enabled for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 */
+	public static function is_manual_renewal_enabled() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return function_exists( 'wcs_is_manual_renewal_enabled' ) && wcs_is_manual_renewal_enabled();
+		}
+		return false;
 	}
 }

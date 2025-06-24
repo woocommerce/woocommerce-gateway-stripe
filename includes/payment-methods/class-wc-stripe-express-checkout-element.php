@@ -183,8 +183,8 @@ class WC_Stripe_Express_Checkout_Element {
 	 */
 	public function javascript_params() {
 		return [
-			'ajax_url'               => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-			'stripe'                 => [
+			'ajax_url'                   => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe'                     => [
 				'publishable_key'             => WC_Stripe_Mode::is_test() ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'],
 				'allow_prepaid_card'          => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'                      => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
@@ -193,9 +193,10 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_amazon_pay_enabled'       => $this->express_checkout_helper->is_amazon_pay_enabled(),
 				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
 			],
-			'nonce'                  => [
+			'nonce'                      => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
 				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
 				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
 				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
 				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
@@ -206,22 +207,54 @@ class WC_Stripe_Express_Checkout_Element {
 				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
 				'wc_store_api'              => wp_create_nonce( 'wc_store_api' ),
 			],
-			'i18n'                   => [
+			'i18n'                       => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			],
-			'checkout'               => $this->express_checkout_helper->get_checkout_data(),
-			'button'                 => $this->express_checkout_helper->get_button_settings(),
-			'is_pay_for_order'       => $this->express_checkout_helper->is_pay_for_order_page(),
-			'has_block'              => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
-			'login_confirmation'     => $this->express_checkout_helper->get_login_confirmation_settings(),
-			'is_product_page'        => $this->express_checkout_helper->is_product(),
-			'is_checkout_page'       => $this->express_checkout_helper->is_checkout(),
-			'product'                => $this->express_checkout_helper->get_product_data(),
-			'is_cart_page'           => is_cart(),
-			'taxes_based_on_billing' => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'checkout'                   => $this->express_checkout_helper->get_checkout_data(),
+			'button'                     => $this->express_checkout_helper->get_button_settings(),
+			'is_pay_for_order'           => $this->express_checkout_helper->is_pay_for_order_page(),
+			'has_block'                  => has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' ),
+			'login_confirmation'         => $this->express_checkout_helper->get_login_confirmation_settings(),
+			'is_product_page'            => $this->express_checkout_helper->is_product(),
+			'is_checkout_page'           => $this->express_checkout_helper->is_checkout(),
+			'product'                    => $this->express_checkout_helper->get_product_data(),
+			'is_cart_page'               => is_cart(),
+			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
+			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
+			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
 		];
+	}
+
+	/**
+	 * Retrieve custom checkout field IDs.
+	 * TODO: Currently, we only support custom checkout fields for block checkout.
+	 * We need to add support for classic checkout custom fields.
+	 *
+	 * @return array Custom checkout field IDs.
+	 */
+	public function get_custom_checkout_fields() {
+		try {
+			$checkout_fields = Package::container()->get( CheckoutFields::class );
+			if ( ! $checkout_fields instanceof CheckoutFields ) {
+				return [];
+			}
+
+			$custom_checkout_fields = [];
+			$additional_fields      = $checkout_fields->get_additional_fields();
+			foreach ( $additional_fields as $field_key => $field ) {
+				$location                             = $checkout_fields->get_field_location( $field_key );
+				$custom_checkout_fields[ $field_key ] = [
+					'key'      => $field_key,
+					'location' => $location,
+				];
+			}
+
+			return $custom_checkout_fields;
+		} catch ( Exception $e ) {
+			return [];
+		}
 	}
 
 	/**

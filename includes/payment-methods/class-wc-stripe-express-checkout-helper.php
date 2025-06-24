@@ -299,6 +299,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Helper function to return the list of countries that WooCommerce is set up to ship to.
+	 * The data is returned as an array of country codes, and relies on core WooCommerce shipping settings.
+	 *
+	 * @return string[]|null List of country codes, or null if shipping is not enabled.
+	 */
+	public function get_allowed_shipping_countries() {
+		if ( ! wc_shipping_enabled() ) {
+			return null;
+		}
+
+		$allowed_shipping_countries = WC()->countries->get_shipping_countries();
+
+		return array_keys( $allowed_shipping_countries );
+	}
+
+	/**
 	 * JS params data used by cart and checkout pages.
 	 *
 	 * @param array $data
@@ -307,6 +323,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'currency_decimals'       => wc_get_price_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
@@ -702,11 +719,16 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_taxable              = $this->is_product_or_cart_taxable();
-		$needs_shipping          = $this->product_or_cart_needs_shipping();
-		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
-
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+		// Hide express checkout when we have the following situation:
+		//  - Taxes are enabled
+		//  - The current product or cart is taxable
+		//  - The product or cart does not need shipping (e.g. a virtual product)
+		//  - Taxes are based on the user's billing address
+		if (
+			wc_tax_enabled()
+			&& $this->is_product_or_cart_taxable()
+			&& 'billing' === get_option( 'woocommerce_tax_based_on' )
+			&& ! $this->product_or_cart_needs_shipping() ) {
 			return true;
 		}
 
@@ -971,12 +993,16 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Normalizes billing and shipping state fields.
+	 *
+	 * @param array $data Address data.
+	 *
+	 * @return array Normalized address data.
 	 */
-	public function normalize_state() {
-		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
-		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
-		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
-		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
+	public function normalize_state( $data ) {
+		$billing_country  = ! empty( $data['billing_address']['country'] ) ? wc_clean( wp_unslash( $data['billing_address']['country'] ) ) : '';
+		$shipping_country = ! empty( $data['shipping_address']['country'] ) ? wc_clean( wp_unslash( $data['shipping_address']['country'] ) ) : '';
+		$billing_state    = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
+		$shipping_state   = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
 
 		// Due to a bug in Apple Pay, the "Region" part of a Hong Kong address is delivered in
 		// `shipping_postcode`, so we need some special case handling for that. According to
@@ -1000,7 +1026,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
-				$billing_postcode = ! empty( $_POST['billing_postcode'] ) ? wc_clean( wp_unslash( $_POST['billing_postcode'] ) ) : '';
+				$billing_postcode = ! empty( $data['billing_address']['postcode'] ) ? wc_clean( wp_unslash( $data['billing_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
 					$billing_state = $billing_postcode;
 				}
@@ -1010,7 +1036,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
 
 			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
-				$shipping_postcode = ! empty( $_POST['shipping_postcode'] ) ? wc_clean( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
+				$shipping_postcode = ! empty( $data['shipping_address']['postcode'] ) ? wc_clean( wp_unslash( $data['shipping_address']['postcode'] ) ) : '';
 				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
 					$shipping_state = $shipping_postcode;
 				}
@@ -1019,12 +1045,14 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		// Finally we normalize the state value we want to process.
 		if ( $billing_state && $billing_country ) {
-			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
+			$data['billing_address']['state'] = $this->get_normalized_state( $billing_state, $billing_country );
 		}
 
 		if ( $shipping_state && $shipping_country ) {
-			$_POST['shipping_state'] = $this->get_normalized_state( $shipping_state, $shipping_country );
+			$data['shipping_address']['state'] = $this->get_normalized_state( $shipping_state, $shipping_country );
 		}
+
+		return $data;
 	}
 
 	/**
@@ -1174,34 +1202,40 @@ class WC_Stripe_Express_Checkout_Helper {
 
 	/**
 	 * Performs special mapping for address fields for specific contexts.
+	 *
+	 * @param array $data Address data.
+	 *
+	 * @return array Address data.
 	 */
-	public function fix_address_fields_mapping() {
-		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
-		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
+	public function fix_address_fields_mapping( $data ) {
+		$billing_country  = ! empty( $data['billing_address']['country'] ) ? wc_clean( wp_unslash( $data['billing_address']['country'] ) ) : '';
+		$shipping_country = ! empty( $data['shipping_address']['country'] ) ? wc_clean( wp_unslash( $data['shipping_address']['country'] ) ) : '';
 
 		// For UAE, Google Pay stores the emirate in "region", which gets mapped to the "state" field,
 		// but WooCommerce expects it in the "city" field.
 		if ( 'AE' === $billing_country ) {
-			$billing_state = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
-			$billing_city  = ! empty( $_POST['billing_city'] ) ? wc_clean( wp_unslash( $_POST['billing_city'] ) ) : '';
+			$billing_state = ! empty( $data['billing_address']['state'] ) ? wc_clean( wp_unslash( $data['billing_address']['state'] ) ) : '';
+			$billing_city  = ! empty( $data['billing_address']['city'] ) ? wc_clean( wp_unslash( $data['billing_address']['city'] ) ) : '';
 
 			// Move the state (emirate) to the city field.
 			if ( empty( $billing_city ) && ! empty( $billing_state ) ) {
-				$_POST['billing_city']  = $billing_state;
-				$_POST['billing_state'] = '';
+				$data['billing_address']['city']  = $billing_state;
+				$data['billing_address']['state'] = '';
 			}
 		}
 
 		if ( 'AE' === $shipping_country ) {
-			$shipping_state = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
-			$shipping_city  = ! empty( $_POST['shipping_city'] ) ? wc_clean( wp_unslash( $_POST['shipping_city'] ) ) : '';
+			$shipping_state = ! empty( $data['shipping_address']['state'] ) ? wc_clean( wp_unslash( $data['shipping_address']['state'] ) ) : '';
+			$shipping_city  = ! empty( $data['shipping_address']['city'] ) ? wc_clean( wp_unslash( $data['shipping_address']['city'] ) ) : '';
 
 			// Move the state (emirate) to the city field.
 			if ( empty( $shipping_city ) && ! empty( $shipping_state ) ) {
-				$_POST['shipping_city']  = $shipping_state;
-				$_POST['shipping_state'] = '';
+				$data['shipping_address']['city']  = $shipping_state;
+				$data['shipping_address']['state'] = '';
 			}
 		}
+
+		return $data;
 	}
 
 	/**

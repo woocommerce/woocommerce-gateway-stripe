@@ -10,9 +10,8 @@ jest.mock( 'wcstripe/settings/notices/legacy-experience-transition', () => () =>
 	null
 );
 
-jest.mock(
-	'wcstripe/settings/payment-settings/promotional-banner-section',
-	() => () => null
+jest.mock( 'wcstripe/settings/payment-settings/promotional-banner', () => () =>
+	null
 );
 
 describe( 'SettingsManager', () => {

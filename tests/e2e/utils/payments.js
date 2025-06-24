@@ -275,10 +275,13 @@ export async function setupShortcodeCheckout( page, billingDetails = null ) {
 			'#billing_country',
 			billingDetails[ 'country_iso' ]
 		);
-		await page.selectOption(
-			'#billing_state',
-			billingDetails[ 'state_iso' ]
-		);
+
+		if ( billingDetails[ 'state_iso' ] ) {
+			await page.selectOption(
+				'#billing_state',
+				billingDetails[ 'state_iso' ]
+			);
+		}
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
 			if (
@@ -317,6 +320,7 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 		address_1: 'Address',
 		address_2: 'Apartment, suite, etc. (optional)',
 		city: 'City',
+		suburb: 'Suburb', // used in Australia. This field is needed in BECS tests.
 		phone: 'Phone (optional)',
 		email: 'Email address',
 	};
@@ -347,9 +351,11 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			.getByLabel( 'Country/Region' )
 			.selectOption( { label: billingDetails[ 'country' ] } );
 
-		await page
-			.locator( '#shipping-state', { exact: true } )
-			.selectOption( { label: billingDetails[ 'state' ] } );
+		if ( billingDetails[ 'state' ] ) {
+			await page
+				.locator( '#shipping-state', { exact: true } )
+				.selectOption( { label: billingDetails[ 'state' ] } );
+		}
 
 		// Expand the address 2 field.
 		if ( ! isCollapsed ) {
@@ -499,13 +505,6 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			.click();
 
 		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_acss_debit__content iframe[src*="elements-inner-payment"]'
-		);
-
-		await page.waitForTimeout( 1000 );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -517,12 +516,6 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 		// Select ACSS in shortcode checkout.
 		await page.getByText( 'Pre-Authorized Debit' ).click();
 
-		await page.waitForTimeout( 1000 );
-
-		// Wait for the iframe to be ready.
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_acss_debit iframe[src*="elements-inner-payment"]'
-		);
 		await page.waitForTimeout( 1000 );
 	}
 };
@@ -781,4 +774,87 @@ export const fillOCDetails = async ( page, card, checkoutType = 'blocks' ) => {
 		.locator( '[name="expiry"]' )
 		.fill( card.expires.month + card.expires.year );
 	await paymentFrame.locator( '[name="cvc"]' ).fill( card.cvc );
+};
+
+/**
+ * Fill BLIK payment details in the checkout form.
+ * @param {import('@playwright/test').Page} page
+ * @param {string} code (optional) 6-digit BLIK code to use. Defaults to '123456'.
+ */
+export const fillBLIKDetails = async ( page, code = '123456' ) => {
+	// Assumes the BLIK code input has a label or placeholder containing 'BLIK code'.
+	await page.getByLabel( /blik code/i ).fill( code );
+};
+
+/**
+ * Set up the checkout page for BECS payment.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
+	await emptyCart( page );
+	await setupCart( page );
+
+	if ( checkoutType === 'blocks' ) {
+		// On block checkout page for Australian address, there is no city, instead there are a suburbs.
+		// In the backend we keep this suburb value in the city field.
+		// In 'setupBlocksCheckout' we find the elemnts by their labels. As there is no city field on the block checkout page,
+		// we remove the city field from the billing details to prevent the 'setupBlocksCheckout' from failing when waiting for the city field
+		// and add the suburb value to the city field.
+		const billingDetails = {
+			...config.get( 'addresses.customer_australia.billing' ),
+			suburb: config.get( 'addresses.customer_australia.billing' ).city,
+		};
+		delete billingDetails.city;
+
+		await setupBlocksCheckout( page, billingDetails );
+
+		await page.waitForTimeout( 1000 );
+
+		// Select BECS in blocks checkout.
+		await page
+			.locator( 'label' )
+			.filter( { hasText: 'BECS Direct Debit' } )
+			.click();
+
+		await page.waitForTimeout( 1000 );
+	} else {
+		await setupShortcodeCheckout(
+			page,
+			config.get( 'addresses.customer_australia.billing' )
+		);
+
+		await page.waitForTimeout( 1000 );
+
+		// Select BECS in shortcode checkout.
+		await page.getByText( 'BECS Direct Debit' ).click();
+
+		await page.waitForTimeout( 1000 );
+	}
+};
+
+/**
+ * Interact with the Stripe Elements iframe to fill in the BECS details.
+ *
+ * @param {Page} page Playwright page fixture.
+ */
+export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
+	let frameHandle;
+	if ( checkoutType === 'shortcode' ) {
+		frameHandle = await page.waitForSelector(
+			'.wc_payment_method.payment_method_stripe_au_becs_debit iframe[src*="elements-inner-payment"]'
+		);
+	} else {
+		frameHandle = await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_au_becs_debit__content iframe[src*="elements-inner-payment"]'
+		);
+	}
+
+	const stripeFrame = await frameHandle.contentFrame();
+
+	await stripeFrame
+		.locator( '[name="auBankAccountNumber"]' )
+		.fill( '000123456' );
+	await stripeFrame.locator( '[name="auBsb"]' ).fill( '000000' );
 };

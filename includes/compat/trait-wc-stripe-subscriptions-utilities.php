@@ -113,6 +113,22 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	}
 
 	/**
+	 * Returns boolean on whether manual renewal is required for the subscriptions of this store.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @return bool
+	 *
+	 * @deprecated 9.6.0 Use WC_Stripe_Subscriptions_Helper::is_manual_renewal_required instead.
+	 */
+	public function is_manual_renewal_required() {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			return WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
+		}
+		return false;
+	}
+
+	/**
 	 * Checks the cart to see if it contains a subscription product renewal.
 	 *
 	 * @since 5.6.0
