@@ -85,8 +85,7 @@ abstract class WC_Stripe_Email_Failed_Refund extends WC_Email_Failed_Order {
 			return;
 		}
 
-		$this->find['order-number']    = '{order_number}';
-		$this->replace['order-number'] = $this->object->get_order_number();
+		$this->placeholders['{order_number}'] = $this->object->get_order_number();
 
 		$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
 	}
