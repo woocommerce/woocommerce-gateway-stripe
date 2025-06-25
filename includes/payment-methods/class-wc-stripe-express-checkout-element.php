@@ -166,7 +166,8 @@ class WC_Stripe_Express_Checkout_Element {
 		do_action( 'wc_gateway_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
 
 		if ( $errors->has_errors() ) {
-			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_custom_checkout_data', $errors->get_error_message() );
+			$error_messages = implode( "\n", $errors->get_error_messages() );
+			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_custom_checkout_data', $error_messages );
 		}
 
 		/**
