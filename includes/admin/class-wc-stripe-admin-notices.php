@@ -472,16 +472,28 @@ class WC_Stripe_Admin_Notices {
 
 		$subscription = $theorder;
 		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
-			$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
-			$detached_message .= __( "To fix this, either: <br />1) Share the payment method page link with the customer to update it, or <br />2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
-			$detached_message .= __( 'Below are the update links:<br />', 'woocommerce-gateway-stripe' );
-			$detached_message .= WC_Stripe_Subscriptions_Helper::build_subscription_detached_message(
-				[
-					'id'                        => $subscription->get_id(),
-					'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
-					'change_payment_method_url' => $subscription->get_change_payment_method_url(),
-				]
+			$customer_payment_method_link = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $subscription->get_change_payment_method_url() ),
+				esc_html(
+					/* translators: this is a text for a link pointing to the customer's payment method page */
+					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+				)
 			);
+			$customer_stripe_page = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_html(
+					/* translators: this is a text for a link pointing to the customer's page on Stripe */
+					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+
+			$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
+			$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
 			$detached_message .= '<br />' . sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>List Stripe subscriptions with detached payment method</strong>.', 'woocommerce-gateway-stripe' ),

@@ -8,18 +8,18 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Subscriptions_Helper {
 	/**
+	 * Stripe customer page base URL.
+	 *
+	 * @var string
+	 */
+	public const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
+
+	/**
 	 * Transient key for detached subscriptions.
 	 *
 	 * @var string
 	 */
 	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
-
-	/**
-	 * Stripe customer page base URL.
-	 *
-	 * @var string
-	 */
-	private const STRIPE_CUSTOMER_PAGE_BASE_URL = 'https://dashboard.stripe.com/customers/';
 
 	/**
 	 * Maximum number of subscriptions to load per page.
