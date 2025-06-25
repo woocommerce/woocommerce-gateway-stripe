@@ -137,11 +137,11 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$status->list_detached_subscriptions();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( $expected_output, $output );
-
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 
 		remove_filter( 'pre_http_request', $test_request, 10 );
+
+		$this->assertStringContainsString( $expected_output, $output );
 	}
 
 	/**
