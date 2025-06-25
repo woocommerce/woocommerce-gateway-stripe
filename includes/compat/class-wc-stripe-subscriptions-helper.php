@@ -12,7 +12,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 *
 	 * @var string
 	 */
-	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
+	private const DETACHED_SUBSCRIPTIONS_CACHE_PREFIX = 'detached_subscriptions';
 
 	/**
 	 * Stripe customer page base URL.
