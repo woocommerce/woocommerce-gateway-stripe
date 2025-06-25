@@ -68,7 +68,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
-		// Mock payment method configurations to enable card and ideal
+
 		if ( isset( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] ) ) {
 			$this->mock_payment_method_configurations( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] );
 		}
