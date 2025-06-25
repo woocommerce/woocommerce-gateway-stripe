@@ -8,6 +8,9 @@ use WC_Stripe_Exception;
 use WC_Stripe_Intent_Controller;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
+use WC_Subscription;
+use WC_Subscriptions_Switcher;
+use WC_Subscriptions_Helpers;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 
@@ -49,7 +52,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->order           = WC_Helper_Order::create_order();
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->setConstructorArgs( [ $mock_account ] )
-			->setMethods( [ 'maybe_process_upe_redirect' ] )
+			->setMethods( [ 'maybe_process_upe_redirect', 'has_subscription' ] )
 			->getMock();
 		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
@@ -479,17 +482,33 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test mandate options for card payment method in setup intent.
+	 * Test mandate options for card payment method in setup intent for subscription.
 	 */
-	public function test_mandate_options_for_card_setup_intent() {
+	public function test_mandate_options_for_card_setup_intent_for_subscription() {
+		// create a subscription
+		$subscription = new WC_Subscription();
+		$subscription->set_status( 'active' );
+		$subscription->set_total( 100 );
+		$subscription->set_currency( 'USD' );
+		$subscription->set_customer_id( 'cus_mock' );
+		$subscription->set_payment_method( 'pm_mock' );
+		$subscription->save();
+
+		$this->gateway->expects( $this->any() )
+			->method( 'has_subscription' )
+			->willReturn( true );
+
+		WC_Subscriptions_Switcher::$cart_contains_switches         = false;
+		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
+
 		$payment_information = [
 			'payment_method'        => 'pm_mock',
-			'customer'             => 'cus_mock',
+			'customer'              => 'cus_mock',
 			'selected_payment_type' => WC_Stripe_Payment_Methods::CARD,
-			'payment_method_types' => [ WC_Stripe_Payment_Methods::CARD ],
-			'return_url'           => 'https://example.com/return',
-			'order'               => $this->order,
-			'use_stripe_sdk'      => 'true',
+			'payment_method_types'  => [ WC_Stripe_Payment_Methods::CARD ],
+			'return_url'            => 'https://example.com/return',
+			'order'                 => $subscription,
+			'use_stripe_sdk'        => 'true',
 		];
 
 		$test_request = function ( $preempt, $parsed_args, $url ) {
