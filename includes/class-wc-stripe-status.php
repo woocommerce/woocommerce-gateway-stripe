@@ -203,7 +203,7 @@ class WC_Stripe_Status {
 	 */
 	public function debug_tools( $tools ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			$tools['list_detached_subscriptions'] = [
+			$tools['wc_stripe_list_detached_subscriptions'] = [
 				'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 				'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
 				'desc'     => sprintf(
