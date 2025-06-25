@@ -16,11 +16,26 @@ class WC_Subscriptions_Cart {
 	 */
 	public static $cart_contains_subscription_result = null;
 
+	/**
+	 * cart_contains_free_trial mock.
+	 *
+	 * @var function
+	 */
+	public static $cart_contains_free_trial_result = null;
+
 	public static function cart_contains_subscription() {
 		return self::$cart_contains_subscription_result;
 	}
 
 	public static function set_cart_contains_subscription( $result ) {
 		self::$cart_contains_subscription_result = $result;
+	}
+
+	public static function cart_contains_free_trial() {
+		return self::$cart_contains_free_trial_result;
+	}
+
+	public static function set_cart_contains_free_trial( $result ) {
+		self::$cart_contains_free_trial_result = $result;
 	}
 }
