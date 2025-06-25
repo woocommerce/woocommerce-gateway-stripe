@@ -4,8 +4,6 @@ import { admin, payments } from '../../../utils';
 const { setupKlarnaCheckout, completeKlarnaPayment } = payments;
 
 test.describe( 'Klarna payment tests @blocks', () => {
-	let username, userEmail;
-
 	test.beforeAll( async ( { browser } ) => {
 		await test.step( 'Setup test environment', async () => {
 			// Enable Klarna in admin
