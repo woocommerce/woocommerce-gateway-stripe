@@ -118,7 +118,8 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	private function setup_custom_checkout_data() {
-		// TODO: Should this be inside some later hook?
+		// Register our express checkout data as extended data, which will hold
+		// custom checkout fielddata if present.
 		$extend_schema = StoreApi::container()->get( ExtendSchema::class );
 		$extend_schema->register_endpoint_data(
 			[
