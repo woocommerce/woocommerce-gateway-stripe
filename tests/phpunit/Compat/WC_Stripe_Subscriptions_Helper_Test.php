@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\Compat;
 
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Subscriptions_Helper;
 use WC_Subscription;
 use WC_Subscriptions_Helpers;
@@ -101,16 +102,22 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				'change_payment_method_url' => $mocked_payment_method_url,
 			],
 		];
-		$result = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
+		$result   = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
 
 		// Clean up before we run any assertions
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
 		$this->assertEquals( $expected, $result );
 
+		// Test the full cached version
+		$result = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
 
-		// Test cached version
-		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_-1' );
+
+		$this->assertEquals( $expected, $result );
 
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 	}
