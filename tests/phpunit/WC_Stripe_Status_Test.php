@@ -75,7 +75,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 
 		$tools = $status->debug_tools( [] );
 
-		$this->assertArrayHasKey( 'list_detached_subscriptions', $tools );
+		$this->assertArrayHasKey( 'wc_stripe_list_detached_subscriptions', $tools );
 	}
 
 	/**
