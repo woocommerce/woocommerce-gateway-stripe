@@ -174,7 +174,7 @@ class WC_Stripe_Subscriptions_Helper {
 			$detached_messages .= sprintf(
 			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
 				__( '#%1$s: %2$s | %3$s<br/>', 'woocommerce-gateway-stripe' ),
-				$subscription['id'],
+				esc_html( $subscription['id'] ),
 				$customer_payment_method_link,
 				$customer_stripe_page
 			);
