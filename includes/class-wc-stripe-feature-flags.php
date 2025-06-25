@@ -149,7 +149,7 @@ class WC_Stripe_Feature_Flags {
 		 * Temporary filter to allow rollback to legacy checkout experience.
 		 *
 		 * @since 9.6.0
-		 * @deprecated This filter will be removed in a future version. New checkout experience will always be enabled.
+		 * @deprecated This filter will be removed in version 9.8.0.
 		 * @param bool $enabled Whether new checkout experience is enabled. Default true.
 		 */
 		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
