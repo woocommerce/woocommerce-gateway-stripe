@@ -76,6 +76,10 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$tools = $status->debug_tools( [] );
 
 		$this->assertArrayHasKey( 'wc_stripe_list_detached_subscriptions', $tools );
+
+		$this->assertSame( 'List Stripe subscriptions with detached payment method', $tools['wc_stripe_list_detached_subscriptions']['name'] );
+		$this->assertSame( 'List subscriptions', $tools['wc_stripe_list_detached_subscriptions']['button'] );
+		$this->assertSame( 'This tool will list all Stripe subscriptions with detached payment methods.<br/><strong class="red">Note:</strong> This tool will make an API request to Stripe for each active Stripe subscription in your store that is due to renew in the next month. For stores with many subscriptions, this may temporarily impact performance.<br/><strong>Not recommended if you have more than 100 active subscriptions due for renewal within 30 days.</strong>', $tools['wc_stripe_list_detached_subscriptions']['desc'] );
 	}
 
 	/**
