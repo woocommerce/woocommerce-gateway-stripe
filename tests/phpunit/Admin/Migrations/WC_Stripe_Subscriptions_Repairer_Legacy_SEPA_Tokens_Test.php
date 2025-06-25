@@ -104,6 +104,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_updater_doesn_not_get_scheduled_when_legacy_is_enabled() {
+		add_filter( 'wc_stripe_is_upe_checkout_enabled', '__return_false' );
 		delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
 
 		$this->updater
@@ -192,6 +193,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	}
 
 	public function test_maybe_update_subscription_legacy_payment_method_bails_when_the_legacy_experience_is_enabled() {
+		add_filter( 'wc_stripe_is_upe_checkout_enabled', '__return_false' );
 		$ids_to_migrate  = $this->get_subs_ids_to_migrate();
 		$subscription_id = $ids_to_migrate[0];
 

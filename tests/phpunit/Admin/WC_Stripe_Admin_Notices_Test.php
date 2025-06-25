@@ -68,6 +68,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
+
+		if ( isset( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] ) ) {
+			$this->mock_payment_method_configurations( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] );
+		}
+
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -239,6 +244,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'three_d_secure'  => 'yes',
+						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
@@ -273,6 +279,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				[
 					'woocommerce_stripe_settings'    => [
 						'enabled'         => 'yes',
+						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
@@ -512,16 +519,14 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
+						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
 					],
 					'wc_stripe_show_style_notice'         => 'no',
 					'home'                                => 'https://...',
 					'wc_stripe_show_sca_notice'           => 'no',
-					'woocommerce_stripe_giropay_settings' => [
-						'enabled' => 'yes',
-					],
 				],
 				[
-					'payment_methods',
+					'upe_payment_methods',
 				],
 			],
 		];
