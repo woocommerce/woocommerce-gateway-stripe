@@ -879,6 +879,8 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await setupShortcodeCheckout( page, billingDetails );
 	}
 
+	await page.waitForTimeout( 1000 );
+
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
 		await page
