@@ -117,6 +117,13 @@ class WC_Stripe_Express_Checkout_Element {
 		$this->setup_custom_checkout_data();
 	}
 
+	/**
+	 * Perform necessary setup steps for supporting custom checkout fields in express checkout,
+	 * including registering space for the data in the Store API,
+	 * and hooking into the action that will let us process the data and update the order.
+	 *
+	 * @return void
+	 */
 	private function setup_custom_checkout_data() {
 		// Register our express checkout data as extended data, which will hold
 		// custom checkout fielddata if present.
