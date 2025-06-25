@@ -455,7 +455,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscription_check_detachment() {
-		if ( ! WC_Stripe_Page_Helper::is_subscription_edit_page() ) {
+		if ( ! self::is_subscription_edit_page() ) {
 			return;
 		}
 
@@ -617,6 +617,24 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
 			update_option( 'wc_stripe_show_sca_notice', 'no' );
 		}
+	}
+
+	/**
+	 * Checks if the current page is a subscription edit page in wp-admin.
+	 *
+	 * This should be removed once WooCommerce provides a way to check for subscription edit pages.
+	 *
+	 * @return bool
+	 */
+	private static function is_subscription_edit_page() {
+		$query_params = wp_unslash( $_GET ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
+			return isset( $query_params['page'] ) && 'wc-orders--shop_subscription' === $query_params['page'] && isset( $query_params['id'] );
+		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
+		$is_shop_subscription_post_type = isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
+		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_subscription_post_type;
 	}
 }
 
