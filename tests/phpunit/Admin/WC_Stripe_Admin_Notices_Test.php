@@ -540,7 +540,12 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_subscription_check_detachment() {
 		global $theorder;
 
-		add_filter( 'wc_stripe_is_subscription_edit_page', '__return_true' );
+		$_GET = [
+			'page' => 'wc-orders--shop_subscription',
+			'id'   => '123',
+		];
+
+		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
 
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 123 );
@@ -573,7 +578,10 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertArrayHasKey( 'subscription_detached', $notices->notices );
 		$this->assertMatchesRegularExpression( '/The payment method for this subscription has been detached/', $notices->notices['subscription_detached']['message'] );
 
-		remove_filter( 'wc_stripe_is_subscription_edit_page', 'wcstripe_is_subscription_edit_page' );
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		// Clean up.
+		unset( $_GET );
+		update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 	}
 }
