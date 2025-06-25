@@ -236,6 +236,9 @@ class WC_Stripe_Settings_Controller {
 			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
 			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
 
+		$has_other_bnpl_plugins_active = is_plugin_active( 'woocommerce-gateway-affirm/woocommerce-gateway-affirm.php' )
+			|| is_plugin_active( 'klarna-payments-for-woocommerce/klarna-payments-for-woocommerce.php' );
+
 		$params = [
 			'time'                         => time(),
 			'i18n_out_of_sync'             => $message,
@@ -257,6 +260,7 @@ class WC_Stripe_Settings_Controller {
 			'is_oc_available'              => WC_Stripe_Feature_Flags::is_oc_available(),
 			'oauth_nonce'                  => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 			'is_sepa_tokens_enabled'       => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
+			'has_other_bnpl_plugins'       => $has_other_bnpl_plugins_active,
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',
