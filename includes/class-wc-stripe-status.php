@@ -210,7 +210,7 @@ class WC_Stripe_Status {
 					'%1$s<br/><strong class="red">%2$s</strong> %3$s<br/><strong>%4$s</strong>',
 					__( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
 					__( 'Note:', 'woocommerce-gateway-stripe' ),
-					__( 'This tool will make an API request to Stripe for each Stripe subscription in your store. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
+					__( 'This tool will make an API request to Stripe for each active Stripe subscription in your store that is due to renew in the next month. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
 					__( 'Not recommended if you have more than 100 active subscriptions due for renewal within 30 days.', 'woocommerce-gateway-stripe' ),
 				),
 
