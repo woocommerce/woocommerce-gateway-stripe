@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
 use WC_Shipping_Zone;
 use WC_Shipping_Zones;
@@ -81,7 +82,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
