@@ -61,6 +61,9 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$this->mock_controller->expects( $this->any() )
 			->method( 'get_gateway' )
 			->willReturn( $this->gateway );
+		$this->gateway->expects( $this->any() )
+			->method( 'has_subscription' )
+			->willReturn( true );
 	}
 
 	public function test_wether_default_capture_method_is_set_in_the_intent() {
@@ -494,12 +497,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		$subscription->set_payment_method( 'pm_mock' );
 		$subscription->save();
 
-		$this->gateway->expects( $this->any() )
-			->method( 'has_subscription' )
-			->willReturn( true );
-
 		WC_Subscriptions_Switcher::$cart_contains_switches         = false;
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions_for_order = [ $subscription ];
+
+		// Manually add the subscription filter that would normally be added by maybe_init_subscriptions()
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this->gateway, 'add_subscription_information_to_intent' ], 10, 4 );
 
 		$payment_information = [
 			'payment_method'        => 'pm_mock',
