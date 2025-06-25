@@ -101,7 +101,7 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WC_Mock_Stripe_API_Unit_Test
 	}
 
 	public function test_register_domain_if_configured_supported_country() {
-		$this->legacy_checkout_setup();
+		$this->upe_checkout_setup();
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
 			->disableOriginalConstructor()

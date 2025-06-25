@@ -402,65 +402,45 @@ class WC_Stripe_Admin_Notices {
 		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
 		$currency_messages       = '';
 
-		foreach ( $payment_methods as $method => $class ) {
-			$gateway = new $class();
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+				if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class || WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
+					continue;
+				}
+				$method     = $method_class::STRIPE_ID;
+				$upe_method = new $method_class();
+				if ( ! $upe_method->is_enabled() ) {
+					continue;
+				}
 
-			if ( 'yes' !== $gateway->enabled ) {
-				continue;
+				if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
+					/* translators: %1$s Payment method, %2$s List of supported currencies */
+					$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
+				}
 			}
 
-			if ( 'stripe_sofort' === $gateway->id ) {
-				$message = sprintf(
-				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
-					'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
-					'</a>'
-				);
-
-				$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
-			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
-				/* translators: 1) Payment method, 2) List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) );
+			$show_notice = get_option( 'wc_stripe_show_upe_payment_methods_notice' );
+			if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
+				$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
 			}
-		}
+		} else {
+			foreach ( $payment_methods as $method => $class ) {
+				$gateway = new $class();
 
-		$show_notice = get_option( 'wc_stripe_show_payment_methods_notice' );
-		if ( ! empty( $currency_messages && 'no' !== $show_notice ) ) {
-			$this->add_admin_notice( 'payment_methods', 'notice notice-error', $currency_messages, true );
-		}
+				if ( 'yes' !== $gateway->enabled ) {
+					continue;
+				}
 
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return;
-		}
-
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class || WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
-				continue;
-			}
-			$method     = $method_class::STRIPE_ID;
-			$upe_method = new $method_class();
-			if ( ! $upe_method->is_enabled() ) {
-				continue;
+				if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
+					/* translators: 1) Payment method, 2) List of supported currencies */
+					$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) );
+				}
 			}
 
-			if ( WC_Stripe_Payment_Methods::SOFORT === $upe_method->get_id() ) {
-				$message = sprintf(
-				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
-					'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
-					'</a>'
-				);
-
-				$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
-			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
-				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
+			$show_notice = get_option( 'wc_stripe_show_payment_methods_notice' );
+			if ( ! empty( $currency_messages && 'no' !== $show_notice ) ) {
+				$this->add_admin_notice( 'payment_methods', 'notice notice-error', $currency_messages, true );
 			}
-		}
-
-		$show_notice = get_option( 'wc_stripe_show_upe_payment_methods_notice' );
-		if ( ! empty( $currency_messages ) && 'no' !== $show_notice ) {
-			$this->add_admin_notice( 'upe_payment_methods', 'notice notice-error', $currency_messages, true );
 		}
 	}
 
