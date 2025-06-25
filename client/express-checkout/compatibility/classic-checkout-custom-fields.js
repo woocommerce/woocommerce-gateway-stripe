@@ -25,7 +25,7 @@ addFilter(
 		const customCheckoutFieldsData = {};
 		customCheckoutFields.forEach( ( field ) => {
 			const formElements = document.querySelectorAll(
-				`form [name="${ field }"]`
+				`form[name="checkout"] [name="${ field }"]`
 			);
 			if ( ! formElements || formElements.length === 0 ) {
 				return;
