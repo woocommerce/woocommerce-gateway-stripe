@@ -101,9 +101,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				'change_payment_method_url' => $mocked_payment_method_url,
 			],
 		];
-		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
+		$result = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
 
+		// Clean up before we run any assertions
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$this->assertEquals( $expected, $result );
+
 
 		// Test cached version
 		$this->assertEquals( $expected, WC_Stripe_Subscriptions_Helper::get_detached_subscriptions() );
