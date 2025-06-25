@@ -23,7 +23,7 @@ addFilter(
 
 		// Extract the data from the checkout form.
 		const customCheckoutFieldsData = {};
-		customCheckoutFields.forEach( ( field ) => {
+		Object.keys( customCheckoutFields ).forEach( ( field ) => {
 			const formElements = document.querySelectorAll(
 				`form[name="checkout"] [name="${ field }"]`
 			);

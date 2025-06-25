@@ -367,17 +367,16 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_cart_page'               => is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
-			'custom_checkout_fields'     => $this->get_custom_checkout_fields( true ),
+			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
 		];
 	}
 
 	/**
 	 * Retrieve custom checkout field IDs.
 	 *
-	 * @param boolean $keys_only Whether to return only the field IDs.
 	 * @return array Custom checkout field IDs.
 	 */
-	public function get_custom_checkout_fields( $keys_only = false ) {
+	public function get_custom_checkout_fields() {
 		// Block checkout page
 		if ( has_block( 'woocommerce/checkout' ) ) {
 			try {
@@ -396,7 +395,7 @@ class WC_Stripe_Express_Checkout_Element {
 					];
 				}
 
-				return $keys_only ? array_keys( $custom_checkout_fields ) : $custom_checkout_fields;
+				return $custom_checkout_fields;
 			} catch ( Exception $e ) {
 				return [];
 			}
@@ -420,7 +419,7 @@ class WC_Stripe_Express_Checkout_Element {
 				}
 			}
 
-			return $keys_only ? array_keys( $custom_checkout_fields ) : $custom_checkout_fields;
+			return $custom_checkout_fields;
 		}
 
 		// Not a checkout page, e.g. product page, cart page.
