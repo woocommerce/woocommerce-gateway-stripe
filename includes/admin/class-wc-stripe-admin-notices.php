@@ -413,16 +413,7 @@ class WC_Stripe_Admin_Notices {
 					continue;
 				}
 
-				if ( WC_Stripe_Payment_Methods::SOFORT === $upe_method->get_id() ) {
-					$message = sprintf(
-					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
-						'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
-						'</a>'
-					);
-
-					$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
-				} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
+				if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
 					/* translators: %1$s Payment method, %2$s List of supported currencies */
 					$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) );
 				}
@@ -440,16 +431,7 @@ class WC_Stripe_Admin_Notices {
 					continue;
 				}
 
-				if ( 'stripe_sofort' === $gateway->id ) {
-					$message = sprintf(
-					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
-						'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
-						'</a>'
-					);
-
-					$this->add_admin_notice( WC_Stripe_Payment_Methods::SOFORT, 'notice notice-warning', $message, false );
-				} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
+				if ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 					/* translators: 1) Payment method, 2) List of supported currencies */
 					$currency_messages .= sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s<br>', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) );
 				}
