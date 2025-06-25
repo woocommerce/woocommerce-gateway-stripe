@@ -579,7 +579,8 @@ export const createAndConfirmSetupIntent = (
  * @param {Object} jQueryForm    The jQuery object for the form being submitted.
  */
 export const confirmVoucherPayment = async ( api, jQueryForm ) => {
-	const isOrderPay = getStripeServerData()?.isOrderPay;
+	const stripeServerData = getStripeServerData();
+	const isOrderPay = stripeServerData?.isOrderPay;
 
 	// The Order Pay page does a hard refresh when the hash changes, so we need to block the UI again.
 	if ( isOrderPay ) {
@@ -608,7 +609,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 	// Verify the request using the data added to the URL.
 	if (
 		! clientSecret ||
-		( isOrderPay && orderId !== getStripeServerData()?.orderId )
+		( isOrderPay && orderId !== stripeServerData?.orderId )
 	) {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		return;
@@ -636,13 +637,63 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		if ( confirmPayment.error ) {
 			throw confirmPayment.error;
 		}
-
-		// Once the customer closes the voucher and there are no errors, redirect them to the order received page.
-		window.location.href = decodeURIComponent( partials[ 4 ] );
 	} catch ( error ) {
 		jQueryForm.removeClass( 'processing' ).unblock();
 		showErrorCheckout( error.message );
+		return;
 	}
+
+	let postPaymentUrl = null;
+	try {
+		postPaymentUrl = decodeURIComponent( partials[ 4 ] || '' );
+	} catch ( error ) {}
+
+	let validatedRedirectUrl = null;
+	if ( postPaymentUrl ) {
+		try {
+			const redirectUrl = new URL(
+				postPaymentUrl,
+				window.location.origin
+			);
+
+			if ( redirectUrl.origin === window.location.origin ) {
+				validatedRedirectUrl = redirectUrl;
+			}
+		} catch ( error ) {}
+	}
+
+	if ( validatedRedirectUrl ) {
+		window.location.href = validatedRedirectUrl.toString();
+		return;
+	}
+
+	if ( ! stripeServerData?.orderReceivedURL ) {
+		showErrorCheckout(
+			__(
+				'There was a problem processing the payment. Please refresh the page to try again.',
+				'woocommerce-gateway-stripe'
+			)
+		);
+		return;
+	}
+
+	// We didn't get a valid redirect URL, so redirect to the order received page.
+	// If we have a numeric order ID, navigate to the order received page for that order.
+	if (
+		orderId &&
+		orderId !== 'NaN' &&
+		orderId === String( parseInt( orderId, 10 ) )
+	) {
+		window.location.href =
+			stripeServerData.orderReceivedURL +
+			'/' +
+			encodeURIComponent( orderId ) +
+			'/';
+		return;
+	}
+
+	// Otherwise go to the generic page.
+	window.location.href = stripeServerData.orderReceivedURL;
 };
 
 /**

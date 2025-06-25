@@ -683,6 +683,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Sends the failed refund email to both admin and shopper.
+	 *
+	 * @since 9.6.0
+	 * @param WC_Order $order The order object for which the refund failed.
+	 * @return void
+	 */
+	public function send_failed_refund_emails( $order ) {
+		$emails = WC()->mailer()->get_emails();
+
+		if ( empty( $emails ) || empty( $order ) ) {
+			return;
+		}
+
+		if ( isset( $emails['WC_Stripe_Email_Admin_Failed_Refund'] ) ) {
+			$emails['WC_Stripe_Email_Admin_Failed_Refund']->trigger( $order->get_id(), $order );
+		}
+
+		if ( isset( $emails['WC_Stripe_Email_Customer_Failed_Refund'] ) ) {
+			$emails['WC_Stripe_Email_Customer_Failed_Refund']->trigger( $order->get_id(), $order );
+		}
+	}
+
+	/**
 	 * Get owner details.
 	 *
 	 * @since 4.0.0
@@ -2269,23 +2292,69 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Retrieves or stores the status of the order before a specific event (hold or refund).
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string   $target_status The target status the order will be set to.
+	 * @return string The status of the order before the event.
+	 * @throws InvalidArgumentException If the target status is unsupported.
+	 */
+	protected function get_stripe_order_status_before_event( $order, $target_status ) {
+		if ( OrderStatus::ON_HOLD === $target_status ) {
+			$meta_key = '_stripe_status_before_hold';
+		} elseif ( OrderStatus::REFUNDED === $target_status ) {
+			$meta_key = '_stripe_status_before_refund';
+		} else {
+			// Handle unsupported target_status values.
+			throw new InvalidArgumentException( sprintf( 'Unsupported target_status: %s', $target_status ) );
+		}
+
+		$status = $order->get_meta( $meta_key );
+		if ( ! empty( $status ) ) {
+			return $status;
+		}
+
+		$default_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+		return apply_filters( 'woocommerce_payment_complete_order_status', $default_status, $order->get_id(), $order );
+	}
+
+	/**
+	 * Stores the status of the order before a specific event (hold or refund) in metadata.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string   $target_status The target status the order will be set to.
+	 * @param string   $current_status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @return void
+	 */
+	protected function set_stripe_order_status_before_event( $order, $target_status, $current_status ) {
+		if ( 'default_payment_complete' === $current_status ) {
+			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+			$current_status          = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+		}
+		if ( OrderStatus::ON_HOLD === $target_status ) {
+			$meta_key = '_stripe_status_before_hold';
+		}
+		if ( OrderStatus::REFUNDED === $target_status ) {
+			$meta_key = '_stripe_status_before_refund';
+		}
+		if ( empty( $meta_key ) ) {
+			$log_message = sprintf( 'Error: Unable to set the order status for order %d when transitioning from %s to %s.', $order->get_id(), $current_status, $target_status );
+			WC_Stripe_Logger::log( $log_message );
+			return;
+		}
+		$order->update_meta_data( $meta_key, $current_status );
+	}
+
+	/**
 	 * Helper method to retrieve the status of the order before it was put on hold.
 	 *
 	 * @since 8.3.0
 	 *
 	 * @param WC_Order $order The order.
-	 *
 	 * @return string The status of the order before it was put on hold.
 	 */
 	protected function get_stripe_order_status_before_hold( $order ) {
-		$before_hold_status = $order->get_meta( '_stripe_status_before_hold' );
-
-		if ( ! empty( $before_hold_status ) ) {
-			return $before_hold_status;
-		}
-
-		$default_before_hold_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
-		return apply_filters( 'woocommerce_payment_complete_order_status', $default_before_hold_status, $order->get_id(), $order );
+		return $this->get_stripe_order_status_before_event( $order, OrderStatus::ON_HOLD );
 	}
 
 	/**
@@ -2294,17 +2363,36 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 8.3.0
 	 *
 	 * @param WC_Order  $order  The order.
-	 * @param string    $status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
-	 *
+	 * @param string    $status The order status to store.
 	 * @return void
 	 */
 	protected function set_stripe_order_status_before_hold( $order, $status ) {
-		if ( 'default_payment_complete' === $status ) {
-			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
-			$status                  = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
-		}
+		$this->set_stripe_order_status_before_event( $order, OrderStatus::ON_HOLD, $status );
+	}
 
-		$order->update_meta_data( '_stripe_status_before_hold', $status );
+	/**
+	 * Helper method to retrieve the status of the order before it was refunded.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @param WC_Order $order The order.
+	 * @return string The status of the order before it was refunded.
+	 */
+	protected function get_stripe_order_status_before_refund( $order ) {
+		return $this->get_stripe_order_status_before_event( $order, OrderStatus::REFUNDED );
+	}
+
+	/**
+	 * Stores the status of the order before being refunded.
+	 *
+	 * @since 9.6.0
+	 *
+	 * @param WC_Order  $order  The order.
+	 * @param string    $status The order status to store.
+	 * @return void
+	 */
+	protected function set_stripe_order_status_before_refund( $order, $status ) {
+		$this->set_stripe_order_status_before_event( $order, OrderStatus::REFUNDED, $status );
 	}
 
 	/**
