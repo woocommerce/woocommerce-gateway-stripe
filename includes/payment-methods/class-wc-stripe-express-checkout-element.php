@@ -365,6 +365,7 @@ class WC_Stripe_Express_Checkout_Element {
 	/**
 	 * Retrieve custom checkout field IDs.
 	 *
+	 * @param boolean $keys_only Whether to return only the field IDs.
 	 * @return array Custom checkout field IDs.
 	 */
 	public function get_custom_checkout_fields( $keys_only = false ) {
@@ -381,12 +382,12 @@ class WC_Stripe_Express_Checkout_Element {
 				foreach ( $additional_fields as $field_key => $field ) {
 					$location                             = $checkout_fields->get_field_location( $field_key );
 					$custom_checkout_fields[ $field_key ] = [
-						'key'      => $field_key,
+						'type'     => $field['type'],
 						'location' => $location,
 					];
 				}
 
-				return $custom_checkout_fields;
+				return $keys_only ? array_keys( $custom_checkout_fields ) : $custom_checkout_fields;
 			} catch ( Exception $e ) {
 				return [];
 			}
