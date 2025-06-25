@@ -184,7 +184,6 @@ class WC_Stripe_Subscriptions_Helper {
 			);
 		}
 
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		$intro_message = sprintf(
 		/* translators: %s: subscriptions count */
 			_n(
@@ -194,8 +193,7 @@ class WC_Stripe_Subscriptions_Helper {
 				'woocommerce-gateway-stripe'
 			),
 			count( $subscriptions )
-		); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
+		);
 		$intro_message .= __( "To fix this, either: <br />1) Share the payment method page link with the customer to update it, or <br />2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
 		$intro_message .= __( 'Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' );
 		return $intro_message . $detached_messages;
