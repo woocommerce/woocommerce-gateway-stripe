@@ -1823,7 +1823,7 @@ class WC_Stripe_Helper {
 		return false;
 	}
 
-  /*
+	/**
 	 * Returns the description for a refund reason.
 	 *
 	 * @return string
