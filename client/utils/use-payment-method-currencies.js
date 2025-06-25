@@ -212,6 +212,12 @@ const getKlarnaCurrencies = () => {
 		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
 	}
 
+	// eslint-disable-next-line no-console
+	console.error(
+		'Unable to determine Klarna currencies for:',
+		accountCountry
+	);
+
 	return [];
 };
 
