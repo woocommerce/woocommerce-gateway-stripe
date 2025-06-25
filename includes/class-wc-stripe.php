@@ -335,6 +335,9 @@ class WC_Stripe {
 			// - @reykjalin
 			$this->update_prb_location_settings();
 
+			// Migrate to the new checkout experience.
+			$this->migrate_to_new_checkout_experience();
+
 			// Check for subscriptions using legacy SEPA tokens on upgrade.
 			// Handled by WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update.
 			delete_option( 'woocommerce_stripe_subscriptions_legacy_sepa_tokens_updated' );
@@ -342,6 +345,25 @@ class WC_Stripe {
 			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+		}
+	}
+
+	/**
+	 * Migrates to the new checkout experience.
+	 *
+	 * @since 9.6.0
+	 * @version 9.6.0
+	 */
+	public function migrate_to_new_checkout_experience() {
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		// If the flag is not set or not set to yes (set to no/disabled), it means the site was using the legacy checkout experience.
+		if ( empty( $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || 'yes' !== $stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
+			$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+			if ( class_exists( 'WC_Tracks' ) ) {
+				WC_Tracks::record_event( 'wcstripe_migrated_to_new_checkout_experience' );
+			}
 		}
 	}
 
