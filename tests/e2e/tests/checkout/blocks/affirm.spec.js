@@ -6,7 +6,7 @@ const { setupAffirmCheckout } = payments;
 test.describe( 'Affirm payment tests @blocks', () => {
 	test.beforeAll( async ( { browser } ) => {
 		await test.step( 'Setup test environment', async () => {
-			// Enable Klarna in admin
+			// Enable Affirm in admin
 			await admin.togglePaymentMethod( browser, 'Affirm', true );
 		} );
 	} );
