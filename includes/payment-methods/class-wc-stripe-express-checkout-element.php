@@ -12,9 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
-use Automattic\WooCommerce\StoreApi\StoreApi;
-use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
-use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
 
 /**
  * WC_Stripe_Express_Checkout_Element class.
