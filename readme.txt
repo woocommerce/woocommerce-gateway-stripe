@@ -151,5 +151,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Remove Payment Method Configurations fallback cache
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

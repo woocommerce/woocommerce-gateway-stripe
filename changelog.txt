@@ -39,7 +39,7 @@
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Method Configurations fallback cache
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
-* Update - Remove legacy checkout checkbox from settings
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
