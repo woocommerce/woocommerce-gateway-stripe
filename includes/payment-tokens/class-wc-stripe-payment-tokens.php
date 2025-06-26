@@ -371,7 +371,7 @@ class WC_Stripe_Payment_Tokens {
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer, $$payment_method_ids );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
 					$tokens[ $token->get_id() ] = $token;
 				} else {
 					unset( $stored_tokens[ $payment_method->id ] );
@@ -559,7 +559,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @param   array              $payment_method_ids  List of payment methods retrieved from Stripe.
 	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
-	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids ) {
+	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids = [] ) {
 		// Clear cached payment methods.
 		$customer->clear_cache();
 
