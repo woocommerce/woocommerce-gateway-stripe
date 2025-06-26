@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status.
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
 * Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
