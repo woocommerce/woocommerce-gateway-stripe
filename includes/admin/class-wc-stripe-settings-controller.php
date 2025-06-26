@@ -236,8 +236,14 @@ class WC_Stripe_Settings_Controller {
 			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
 			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
 
-		$has_other_bnpl_plugins_active = is_plugin_active( 'woocommerce-gateway-affirm/woocommerce-gateway-affirm.php' )
-			|| is_plugin_active( 'klarna-payments-for-woocommerce/klarna-payments-for-woocommerce.php' );
+		$has_other_bnpl_plugins_active = false;
+		$available_payment_gateways    = WC()->payment_gateways->payment_gateways;
+		foreach ( $available_payment_gateways as $gateway ) {
+			if ( ( 'affirm' === $gateway->id || 'klarna_payments' === $gateway->id ) && 'yes' === $gateway->enabled ) {
+				$has_other_bnpl_plugins_active = true;
+				break;
+			}
+		}
 
 		$params = [
 			'time'                         => time(),
