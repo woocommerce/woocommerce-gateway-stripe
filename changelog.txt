@@ -41,6 +41,7 @@
 * Tweak - Remove Payment Method Configurations fallback cache
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Dev - Add e2e tests to cover Affirm purchase flow
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
@@ -51,6 +52,7 @@
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fix buggy unsaved changes warning in settings page
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
+* Dev - Add Klarna e2e tests
 * Update - Improve checks in voucher purchase flow
 
 = 9.5.2 - 2025-05-22 =
