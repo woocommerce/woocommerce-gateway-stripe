@@ -33,6 +33,7 @@ describe( 'getPromotionalBannerType', () => {
 	it( 'BNPL promotion banner', () => {
 		global.wc_stripe_settings_params = {
 			plugin_version: '9.7.0',
+			has_other_bnpl_plugins: false,
 		};
 
 		const accountData = {
