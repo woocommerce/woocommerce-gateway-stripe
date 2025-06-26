@@ -17,8 +17,8 @@ test.describe( 'Affirm payment tests @blocks', () => {
 		await setupAffirmCheckout( page, 'blocks' );
 		await page.locator( 'text=Place order' ).click();
 		// Since we don't have control over the Affirm payment flow,
-		// verifying the redirect is all we can do consistently without introducing a
-		// flaky test.
+		// verifying the redirect to Stripe or Affirm is all we can do consistently
+		// without introducing a flaky test.
 		await expect( page ).toHaveURL( /.*(affirm\.com|stripe\.com)/ );
 	} );
 } );

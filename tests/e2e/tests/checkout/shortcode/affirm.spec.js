@@ -17,8 +17,8 @@ test.describe( 'Affirm payment tests @shortcode', () => {
 		await setupAffirmCheckout( page, 'shortcode' );
 		await page.locator( 'text=Place order' ).click();
 		// Since we don't have control over the Affirm payment flow,
-		// verifying the redirect is all we can do consistently without introducing a
-		// flaky test.
-		await expect( page ).toHaveURL( /.*affirm\.com/ );
+		// verifying the redirect to Stripe or Affirm is all we can do consistently
+		// without introducing a flaky test.
+		await expect( page ).toHaveURL( /.*(affirm\.com|stripe\.com)/ );
 	} );
 } );
