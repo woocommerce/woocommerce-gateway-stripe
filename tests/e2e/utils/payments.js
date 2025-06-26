@@ -9,13 +9,13 @@ export async function emptyCart( page ) {
 	await page.goto( '/cart-shortcode' );
 
 	// Remove products if they exist
-	if ( null !== ( await page.$$( '.remove' ) ) ) {
-		let products = await page.$$( '.remove' );
+	if ( null !== ( await page.$( '.remove' ) ) ) {
+		let products = await page.$( '.remove' );
 		while ( products && 0 < products.length ) {
 			for ( const product of products ) {
 				await product.click();
 			}
-			products = await page.$$( '.remove' );
+			products = await page.$( '.remove' );
 		}
 	}
 
@@ -692,6 +692,19 @@ export async function clickPlaceOrder( page ) {
 	await page
 		.getByRole( 'button', { name: 'Place order' } )
 		.dispatchEvent( 'click' );
+
+	// If we click the Place button too fast, we might sometimes get an error.
+	// One way to handl this is to always wait a few seconds before clicking Place order.
+	// But that would make the test flaky and slows down the test suite. So instead,
+	// we check if the error message is present and if it is, we dispatch the click event again.
+	const errorElement = page
+		.getByLabel( 'Checkout' )
+		.getByText( 'Your payment information is' );
+	if ( await errorElement.isVisible() ) {
+		await page
+			.getByRole( 'button', { name: 'Place order' } )
+			.dispatchEvent( 'click' );
+	}
 }
 
 /**
@@ -882,21 +895,22 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await setupShortcodeCheckout( page, billingDetails );
 	}
 
-	await page.waitForTimeout( 1000 );
-
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await page
-			.locator( 'label', { hasText: 'Affirm' } )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.locator( 'label' ).filter( { hasText: 'Affirm' } ).click();
+		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
+		await affirmLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await affirmLabel.click();
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_affirm__content'
+		);
 	} else {
-		await page
-			.getByText( 'Affirm' )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.getByText( 'Affirm' ).click();
+		const affirmLabel = page.getByText( 'Affirm' );
+		await affirmLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await affirmLabel.click();
+		await page.waitForSelector(
+			'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
+		);
 	}
-	await page.waitForTimeout( 1000 );
 };
 
 /**
@@ -919,32 +933,20 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await setupShortcodeCheckout( page, billingDetails );
 	}
 
-	await page.waitForTimeout( 1000 );
-
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await page
-			.locator( 'label', { hasText: 'Klarna' } )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.locator( 'label' ).filter( { hasText: 'Klarna' } ).click();
+		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
+		await klarnaLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await klarnaLabel.click();
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_klarna__content'
+		);
 	} else {
-		await page
-			.getByText( 'Klarna' )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.getByText( 'Klarna' ).click();
+		const klarnaLabel = page.getByText( 'Klarna' );
+		await klarnaLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await klarnaLabel.click();
+		await page.waitForSelector(
+			'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
+		);
 	}
-	await page.waitForTimeout( 1000 );
-};
-
-/**
- * Complete the Klarna payment flow.
- *
- * @param {Page} page Playwright page fixture.
- */
-export const completeKlarnaPayment = async ( page ) => {
-	await page.getByTestId( 'kaf-button' ).click();
-	await page.waitForSelector( '#otp_field' );
-	await page.getByTestId( 'kaf-field' ).click();
-	await page.getByTestId( 'kaf-field' ).fill( '000000' );
-	await page.getByTestId( 'confirm-and-pay' ).click();
 };
