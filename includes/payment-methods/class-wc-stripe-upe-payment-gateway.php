@@ -1303,7 +1303,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$token = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
 			if ( ! $token ) {
-				throw new WC_Stripe_Exception( __( "We're not able to process this payment. The saved payment method could not be found.", 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception(
+					sprintf(
+						/* translators: %s is the order ID */
+						__( "We're not able to process this payment. The saved payment method for order %s could not be found.", 'woocommerce-gateway-stripe' ),
+						$order_id
+					)
+				);
 			}
 
 			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
