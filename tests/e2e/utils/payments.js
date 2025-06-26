@@ -858,3 +858,52 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 		.fill( '000123456' );
 	await stripeFrame.locator( '[name="auBsb"]' ).fill( '000000' );
 };
+
+/**
+ * Set up the checkout page for Klarna payment.
+ *
+ * @param {Page} page Playwright page fixture.
+ * @param {string} checkoutType The type of checkout ('blocks' or 'shortcode').
+ */
+export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
+	await emptyCart( page );
+	await setupCart( page );
+
+	const isBlocks = checkoutType === 'blocks';
+
+	// Fill billing details
+	const billingDetails = config.get( 'addresses.customer.billing' );
+	if ( isBlocks ) {
+		await setupBlocksCheckout( page, billingDetails );
+	} else {
+		await setupShortcodeCheckout( page, billingDetails );
+	}
+
+	await page.waitForTimeout( 1000 );
+
+	// Wait for the payment method selector to be available
+	if ( isBlocks ) {
+		await page
+			.locator( 'label', { hasText: 'Klarna' } )
+			.waitFor( { state: 'visible', timeout: 5000 } );
+		await page.locator( 'label' ).filter( { hasText: 'Klarna' } ).click();
+	} else {
+		await page
+			.getByText( 'Klarna' )
+			.waitFor( { state: 'visible', timeout: 5000 } );
+		await page.getByText( 'Klarna' ).click();
+	}
+	await page.waitForTimeout( 1000 );
+};
+/**
+ * Complete the Klarna payment flow.
+ *
+ * @param {Page} page Playwright page fixture.
+ */
+export const completeKlarnaPayment = async ( page ) => {
+	await page.getByTestId( 'kaf-button' ).click();
+	await page.waitForSelector( '#otp_field' );
+	await page.getByTestId( 'kaf-field' ).click();
+	await page.getByTestId( 'kaf-field' ).fill( '000000' );
+	await page.getByTestId( 'confirm-and-pay' ).click();
+};
