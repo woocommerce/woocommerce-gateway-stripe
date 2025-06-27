@@ -212,10 +212,13 @@ const getKlarnaCurrencies = () => {
 		return [ 'EUR', 'SEK', 'PLN', 'CHF', 'CZK', 'DKK', 'GBP', 'NOK' ];
 	}
 
-	// Throw an error if the country is not recognized.
-	throw new Error(
-		`Unable to determine Klarna currencies for: ${ accountCountry }`
+	// eslint-disable-next-line no-console
+	console.error(
+		'Unable to determine Klarna currencies for:',
+		accountCountry
 	);
+
+	return [];
 };
 
 const getAmazonPayCurrencies = () => {

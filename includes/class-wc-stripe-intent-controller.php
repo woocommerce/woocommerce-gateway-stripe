@@ -848,30 +848,13 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_type && $order && $is_setup_intent ) {
-			$currency = $order->get_currency();
-			// We don't need to add mandate options if the currency is not supported for Indian recurring payment mandates.
-			if ( ! WC_Stripe_Helper::is_currency_supported_for_indian_recurring_payment_mandate( $currency ) ) {
-				return $request;
-			}
-
-			$mandate_options = [
-				'currency'        => strtolower( $currency ), // Currency is required for mandate options when creating a setup intent for card payment methods.
-				'reference'       => $order->get_id(),
-				'amount_type'     => 'fixed',
-				'amount'          => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
-				'start_date'      => time(),
-				'interval'        => 'sporadic',
-				'supported_types' => [ 'india' ],
-			];
-
-			$request['payment_method_options'][ WC_Stripe_Payment_Methods::CARD ]['mandate_options'] = $mandate_options;
-
 			// Run the necessary filter to make sure correct mandate information is added for recurring card payments for subscriptions.
 			$request = apply_filters(
 				'wc_stripe_generate_create_intent_request',
 				$request,
 				$order,
-				null // $prepared_source parameter is not necessary for adding mandate information.
+				null, // $prepared_source parameter is not necessary for adding mandate information.
+				true // $is_setup_intent parameter is true for setup intents.
 			);
 		}
 

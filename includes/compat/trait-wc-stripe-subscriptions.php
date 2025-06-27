@@ -89,7 +89,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
 		// Add the necessary information to create a mandate to the payment intent.
-		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 3 );
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 4 );
 
 		/*
 		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
@@ -758,7 +758,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order            The renewal order.
 	 * @param object   $prepared_source  The source object.
 	 */
-	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
+	public function add_subscription_information_to_intent( $request, $order, $prepared_source, $is_setup_intent = false ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
 		if ( ! $this->has_subscription( $order->get_id() ) ) {
 			return $request;
@@ -797,7 +797,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
 		// Note: This is for backwards compatibility if `_stripe_mandate_id` is not set.
-		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order, $is_setup_intent );
 		if ( ! empty( $mandate_options ) ) {
 			if ( ! isset( $request['payment_method_options']['card']['mandate_options'] ) ) {
 				$request['payment_method_options']['card']['mandate_options'] = [];
@@ -845,9 +845,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 * @param WC_Subscription[] $subscriptions Subscriptions for the renewal order.
+	 * @param bool $is_setup_intent Whether the intent is a setup intent.
 	 * @return array the mandate_options for the subscription order.
 	 */
-	private function create_mandate_options_for_order( $order, $subscriptions ) {
+	private function create_mandate_options_for_order( $order, $subscriptions, $is_setup_intent = false ) {
 		$mandate_options = [];
 		$currency        = strtolower( $order->get_currency() );
 
@@ -895,6 +896,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total(), $currency );
 			}
 
+			// If the total amount is 0 and it's a setup intent, then calculate the amount from the subscription subtotal.
+			// The total could be 0 if the subscription has a free trial or a coupon is used.
+			if ( 0 === $sub_amount && $is_setup_intent ) {
+				foreach ( $subscriptions as $sub ) {
+					$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_subtotal(), $currency );
+				}
+			}
+
 			// Get the first subscription associated with this order.
 			$sub = reset( $subscriptions );
 
@@ -918,6 +927,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
 			$mandate_options['amount_type'] = 'maximum';
 			$mandate_options['interval']    = 'sporadic';
+		}
+
+		// Currency is required for mandate options when creating a setup intent for card payment methods.
+		if ( $is_setup_intent ) {
+			$mandate_options['currency'] = $currency;
 		}
 
 		$mandate_options['amount']          = $sub_amount;
