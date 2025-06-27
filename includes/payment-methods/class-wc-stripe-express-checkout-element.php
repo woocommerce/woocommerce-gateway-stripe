@@ -170,7 +170,7 @@ class WC_Stripe_Express_Checkout_Element {
 		 * @param array $custom_checkout_data The custom checkout data.
 		 * @param WP_Error $errors The WP_Error object, for adding errors when validation fails.
 		 */
-		do_action( 'wc_gateway_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
+		do_action( 'wc_stripe_express_checkout_after_checkout_validation', $custom_checkout_data, $errors );
 
 		if ( $errors->has_errors() ) {
 			$error_messages = implode( "\n", $errors->get_error_messages() );
