@@ -187,7 +187,7 @@ class WC_Stripe_Express_Checkout_Element {
 		 * @param integer $order_id The order ID.
 		 * @param array $custom_checkout_data The custom checkout data.
 		 */
-		do_action( 'wc_gateway_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
+		do_action( 'wc_stripe_express_checkout_update_order_meta', $order->get_id(), $custom_checkout_data );
 	}
 
 	/**
