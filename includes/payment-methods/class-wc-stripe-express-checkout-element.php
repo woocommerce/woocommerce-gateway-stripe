@@ -211,6 +211,9 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		$custom_checkout_data = json_decode( $custom_checkout_data_json, true );
+		if ( empty( $custom_checkout_data ) || ! is_array( $custom_checkout_data ) ) {
+			return [];
+		}
 
 		// Perform basic sanitization before passing to actions.
 		$sanitized_custom_checkout_data = [];
