@@ -174,7 +174,7 @@ class WC_Stripe_Express_Checkout_Element {
 
 		if ( $errors->has_errors() ) {
 			$error_messages = implode( "\n", $errors->get_error_messages() );
-			throw new WC_Data_Exception( 'wc_gateway_stripe_express_checkout_invalid_data', $error_messages );
+			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_data', $error_messages );
 		}
 
 		/**
