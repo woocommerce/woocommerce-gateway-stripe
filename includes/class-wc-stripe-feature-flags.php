@@ -192,6 +192,11 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
+		// If PMC (Payment Method Configurations) is not enabled, we don't need to check the OC feature flag.
+		if ( ! WC_Stripe_Payment_Method_Configurations::is_enabled() ) {
+			return false;
+		}
+
 		$default_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
