@@ -2893,23 +2893,39 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * Test that a failed payment intent is not reused and a new one is created instead.
 	 *
 	 * @return void
+	 *
+	 * @dataProvider provide_test_is_oc_enabled
 	 */
-	public function test_is_oc_enabled() {
-		// Disabled
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'no' );
-
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$this->assertFalse( $gateway->is_oc_enabled() );
-
-		// Enabled
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
-
+	public function test_is_oc_enabled( $flag, $expected ) {
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = 'yes';
+		$stripe_settings['test_connection_type']       = 'connect';
+		$stripe_settings['pmc_enabled']                = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$this->assertTrue( $gateway->is_oc_enabled() );
+
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $flag );
+
+		$this->assertSame( $expected, $gateway->is_oc_enabled() );
+	}
+
+	/**
+	 * Data provider for `test_is_oc_enabled`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_oc_enabled() {
+		return [
+			'Disabled' => [
+				'flag'     => 'no',
+				'expected' => false,
+			],
+			'Enabled'  => [
+				'flag'     => 'yes',
+				'expected' => true,
+			],
+		];
 	}
 
 	/**
