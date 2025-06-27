@@ -44,6 +44,7 @@
 * Update - Remove legacy checkout checkbox from settings
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
