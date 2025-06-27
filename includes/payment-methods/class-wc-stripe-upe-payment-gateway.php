@@ -1616,12 +1616,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		try {
+			// First check if the order is already being processed by another request.
 			$locked = $this->lock_order_payment( $order );
 			if ( $locked ) {
 				return;
 			}
 
 			WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
+
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
 		} catch ( Exception $e ) {
 			$this->unlock_order_payment( $order );
