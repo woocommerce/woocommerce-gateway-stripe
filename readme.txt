@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
+* Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status.
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
 * Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
@@ -148,8 +151,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
 * Tweak - Remove Payment Method Configurations fallback cache
+* Dev - Add Klarna e2e tests
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
 * Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
+* Fix - Fix payment processing for $0 subscription with recurring coupon
+* Dev - Add e2e tests to cover Affirm purchase flow
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
