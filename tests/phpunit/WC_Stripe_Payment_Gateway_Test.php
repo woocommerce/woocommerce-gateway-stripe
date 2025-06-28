@@ -8,7 +8,6 @@ use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
 use WC_Stripe_Customer;
 use WC_Stripe_Exception;
-use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\OCTest_Helper;
