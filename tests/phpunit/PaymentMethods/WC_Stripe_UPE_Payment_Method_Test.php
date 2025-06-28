@@ -27,6 +27,7 @@ use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
 use WC_Stripe_UPE_Payment_Method_CC;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
@@ -857,11 +858,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		}
 
 		// Test custom description when OC is enabled. Should be always empty.
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		OC_Test_Helper::enable_oc();
 
 		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
 		$custom_description                      = 'Custom description for ' . $payment_method_id;
@@ -882,16 +879,13 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			)
 			->getMock();
 
-		$this->assertEmpty( $mocked_payment_method->get_description() );
+		$actual = $mocked_payment_method->get_title();
 
 		// Clean up.
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
+		OC_Test_Helper::disable_oc();
 		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
+
+		$this->assertEmpty( $actual );
 	}
 
 	/**

@@ -6,6 +6,7 @@ use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Method_CC;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WP_UnitTestCase;
 
 /**
@@ -25,11 +26,9 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_title
 	 */
 	public function test_get_title( $settings, $payment_details, $optimized_checkout_setting, $query_params, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_setting ? 'yes' : 'no' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_setting ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		if ( $optimized_checkout_setting ) {
+			OC_Test_Helper::enable_oc();
+		}
 
 		if ( is_array( $payment_details ) ) {
 			$payment_details = json_decode( wp_json_encode( $payment_details ) );
@@ -42,8 +41,12 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 		}
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
+		$actual         = $payment_method->get_title( $payment_details );
 
-		$this->assertEquals( $expected, $payment_method->get_title( $payment_details ) );
+		// Clean up.
+		OC_Test_Helper::disable_oc();
+
+		$this->assertEquals( $expected, $actual );
 	}
 
 	/**
@@ -116,22 +119,17 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_get_testing_instructions
 	 */
 	public function test_get_testing_instructions( $optimized_checkout_option, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' ); // Ensure the feature flag is enabled.
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_option ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		if ( $optimized_checkout_option ) {
+			OC_Test_Helper::enable_oc();
+		}
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
-
-		$this->assertEquals( $expected, $payment_method->get_testing_instructions() );
+		$actual         = $payment_method->get_testing_instructions();
 
 		// Clean up
-		delete_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME );
+		OC_Test_Helper::disable_oc();
 
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		$this->assertEquals( $expected, $actual );
 	}
 
 	/**
