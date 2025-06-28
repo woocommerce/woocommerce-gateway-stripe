@@ -117,7 +117,10 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 */
 	public function test_get_testing_instructions( $optimized_checkout_option, $expected ) {
 		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' ); // Ensure the feature flag is enabled.
-		update_option( 'optimized_checkout_element', $optimized_checkout_option ? 'yes' : 'no' );
+
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_option ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$payment_method = new WC_Stripe_UPE_Payment_Method_CC();
 
@@ -125,7 +128,10 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 
 		// Clean up
 		delete_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME );
-		delete_option( 'optimized_checkout_element' );
+
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
 
 	/**
