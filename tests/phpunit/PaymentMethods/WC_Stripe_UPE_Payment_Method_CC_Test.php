@@ -112,14 +112,14 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `get_testing_instructions`.
 	 *
-	 * @param bool   $optimized_checkout_option Optimized Checkout option.
+	 * @param bool   $optimized_checkout_setting Optimized Checkout setting.
 	 * @param string $expected Expected instructions.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_testing_instructions
 	 */
-	public function test_get_testing_instructions( $optimized_checkout_option, $expected ) {
-		if ( $optimized_checkout_option ) {
+	public function test_get_testing_instructions( $optimized_checkout_setting, $expected ) {
+		if ( $optimized_checkout_setting ) {
 			OC_Test_Helper::enable_oc();
 		}
 
@@ -140,12 +140,12 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	public function provide_test_get_testing_instructions() {
 		return [
 			'Optimized Checkout enabled'  => [
-				'optimized checkout option' => true,
-				'expected'                  => '<div id="wc-stripe-payment-method-instructions-card" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.</div><div id="wc-stripe-payment-method-instructions-blik" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use any 6-digit number to authorize payment.</div><div id="wc-stripe-payment-method-instructions-sepa_debit" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.</div>',
+				'optimized checkout setting' => true,
+				'expected'                   => '<div id="wc-stripe-payment-method-instructions-card" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.</div><div id="wc-stripe-payment-method-instructions-blik" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use any 6-digit number to authorize payment.</div><div id="wc-stripe-payment-method-instructions-sepa_debit" class="wc-stripe-payment-method-instruction" style="display: none;"><strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing?payment-method=sepa-direct-debit#non-card-payments" target="_blank">here</a>.</div>',
 			],
 			'Optimized Checkout disabled' => [
-				'optimized checkout option' => false,
-				'expected'                  => '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
+				'optimized checkout setting' => false,
+				'expected'                   => '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://docs.stripe.com/testing" target="_blank">here</a>.',
 			],
 		];
 	}
