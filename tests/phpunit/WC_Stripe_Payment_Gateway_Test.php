@@ -838,7 +838,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_payment_icons
 	 */
 	public function test_payment_icons( $optimized_checkout_enabled, $filter, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_enabled ? 'yes' : 'no' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_enabled ? 'yes' : 'no';
@@ -846,11 +846,21 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		if ( $filter ) {
 			add_filter( 'wc_stripe_payment_icons', $filter );
-		} else {
-			remove_filter( 'wc_stripe_payment_icons', [] );
 		}
 
-		$this->assertSame( $expected, $this->gateway->payment_icons() );
+		$gateway = new WC_Gateway_Stripe();
+		$this->assertSame( $expected, $gateway->payment_icons() );
+
+		// Clean up
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'no' );
+
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		if ( $filter ) {
+			remove_filter( 'wc_stripe_payment_icons', $filter );
+		}
 	}
 
 	/**
