@@ -2892,17 +2892,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test that a failed payment intent is not reused and a new one is created instead.
 	 *
-	 * @param string $option_value The value of the 'optimized_checkout_element' option.
+	 * @param bool $option_enabled Whether the optimized checkout option is enabled.
 	 * @param bool $expected The expected result of the `is_oc_enabled` method.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_is_oc_enabled
 	 */
-	public function test_is_oc_enabled( $option_value, $expected ) {
+	public function test_is_oc_enabled( $option_enabled, $expected ) {
 		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' ); // Not testing the feature flag.
 
 		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = $option_value;
+		$stripe_settings['optimized_checkout_element'] = $option_enabled ? 'yes' : 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
@@ -2926,11 +2926,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	public function provide_test_is_oc_enabled() {
 		return [
 			'Disabled' => [
-				'option value' => 'no',
+				'option value' => false,
 				'expected'     => false,
 			],
 			'Enabled'  => [
-				'option value' => 'yes',
+				'option value' => true,
 				'expected'     => true,
 			],
 		];

@@ -17,16 +17,19 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 *
 	 * @param array      $settings Settings.
 	 * @param array|bool $payment_details Payment details.
-	 * @param bool       $optimized_checkout_flag Optimized Checkout flag.
+	 * @param bool       $optimized_checkout_setting Optimized Checkout flag.
 	 * @param array      $query_params Query parameters.
 	 * @param string     $expected Expected title.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $settings, $payment_details, $optimized_checkout_flag, $query_params, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_flag ? 'yes' : 'no' );
-		update_option( 'optimized_checkout_element', $optimized_checkout_flag ? 'yes' : 'no' );
+	public function test_get_title( $settings, $payment_details, $optimized_checkout_setting, $query_params, $expected ) {
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_setting ? 'yes' : 'no' );
+
+		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_setting ? 'yes' : 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		if ( is_array( $payment_details ) ) {
 			$payment_details = json_decode( wp_json_encode( $payment_details ) );
