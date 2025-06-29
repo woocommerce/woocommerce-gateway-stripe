@@ -465,6 +465,10 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @param WC_Order $order The order that needs payment.
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
+		// Ensure the script is registered before localizing
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
+		}
 		$currency = get_woocommerce_currency();
 		$data     = [];
 		$items    = [];
@@ -552,18 +556,9 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
-	 * Load scripts and styles.
+	 * Register the express checkout script without enqueuing it.
 	 */
-	public function scripts() {
-		// If page is not supported, bail.
-		if ( ! $this->express_checkout_helper->is_page_supported() ) {
-			return;
-		}
-
-		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
-			return;
-		}
-
+	private function register_express_checkout_script() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -585,6 +580,34 @@ class WC_Stripe_Express_Checkout_Element {
 			$version,
 			true
 		);
+	}
+
+	/**
+	 * Load scripts and styles.
+	 */
+	public function scripts() {
+		// If page is not supported, bail.
+		if ( ! $this->express_checkout_helper->is_page_supported() ) {
+			return;
+		}
+
+		if ( ! $this->express_checkout_helper->should_show_express_checkout_button() ) {
+			return;
+		}
+
+		// Register the script if not already registered
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
+		}
+
+		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
+		$version    = WC_STRIPE_VERSION;
+		if ( file_exists( $asset_path ) ) {
+			$asset   = require $asset_path;
+			$version = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+		}
 
 		wp_enqueue_style(
 			'wc_stripe_express_checkout_style',
