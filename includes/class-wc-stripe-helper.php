@@ -1794,6 +1794,11 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
+		// Do not save the payment method if the user is not logged in.
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
 		/**
 		 * Filters the flag that decides if the payment method should be saved.
 		 *
