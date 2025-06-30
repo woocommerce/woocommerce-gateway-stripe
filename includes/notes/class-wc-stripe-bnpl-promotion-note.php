@@ -95,8 +95,8 @@ class WC_Stripe_BNPL_Promotion_Note {
 
 		$has_other_bnpl_plugins_active = false;
 		$available_payment_gateways    = WC()->payment_gateways->payment_gateways;
-		foreach ( $available_payment_gateways as $gateway ) {
-			if ( ( 'affirm' === $gateway->id || 'klarna_payments' === $gateway->id ) && 'yes' === $gateway->enabled ) {
+		foreach ( $available_payment_gateways as $available_payment_gateway ) {
+			if ( ( 'affirm' === $available_payment_gateway->id || 'klarna_payments' === $available_payment_gateway->id ) && 'yes' === $available_payment_gateway->enabled ) {
 				$has_other_bnpl_plugins_active = true;
 				break;
 			}
