@@ -8,8 +8,9 @@ use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
 use WC_Stripe_Customer;
 use WC_Stripe_Exception;
-use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\OCTest_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_Error;
 use WP_UnitTestCase;
@@ -838,19 +839,23 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_payment_icons
 	 */
 	public function test_payment_icons( $optimized_checkout_enabled, $filter, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_enabled ? 'yes' : 'no' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_enabled ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		if ( $optimized_checkout_enabled ) {
+			OC_Test_Helper::enable_oc();
+		}
 
 		if ( $filter ) {
 			add_filter( 'wc_stripe_payment_icons', $filter );
-		} else {
-			remove_filter( 'wc_stripe_payment_icons', [] );
 		}
 
-		$this->assertSame( $expected, $this->gateway->payment_icons() );
+		$gateway = new WC_Gateway_Stripe();
+		$actual  = $gateway->payment_icons();
+		// Clean up
+		OC_Test_Helper::disable_oc();
+		if ( $filter ) {
+			remove_filter( 'wc_stripe_payment_icons', $filter );
+		}
+
+		$this->assertSame( $expected, $actual );
 	}
 
 	/**
@@ -864,7 +869,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		};
 
 		return [
-			'default'                => [
+			'default'                    => [
 				'optimized checkout enabled' => false,
 				'filter'                     => null,
 				'expected'                   => [
@@ -892,8 +897,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			'Optimized Checkout enabled' => [
 				'optimized checkout enabled' => true,
-				'filter'                 => null,
-				'expected'               => [
+				'filter'                     => null,
+				'expected'                   => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
 					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
@@ -916,10 +921,10 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 				],
 			],
-			'filter applied'         => [
+			'filter applied'             => [
 				'optimized checkout enabled' => false,
-				'filter'                 => $mocked_filter,
-				'expected'               => [],
+				'filter'                     => $mocked_filter,
+				'expected'                   => [],
 			],
 		];
 	}
