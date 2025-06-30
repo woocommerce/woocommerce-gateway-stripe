@@ -1199,6 +1199,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			return $this->handle_process_payment_error( $e, $order );
+		} finally {
+			// Ensure the payment process request is unlocked, even if an exception occurs.
+			$this->unlock_payment_process_request( $order );
 		}
 	}
 
