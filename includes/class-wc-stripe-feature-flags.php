@@ -192,11 +192,14 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$default_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$default_value   = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $default_value,
-			$default_value
+			'yes' === $default_value && 'yes' === $pmc_enabled,
+			$default_value,
+			$pmc_enabled
 		);
 	}
 }
