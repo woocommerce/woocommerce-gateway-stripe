@@ -42,6 +42,7 @@
 * Tweak - Remove Payment Method Configurations fallback cache
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
 
