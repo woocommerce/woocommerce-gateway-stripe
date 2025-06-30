@@ -2,6 +2,8 @@
 
 = 9.6.0 - xxxx-xx-xx =
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna, Afterpay, and Affirm) on WooCommerce admin home page
+* Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
+* Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
 * Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
@@ -41,6 +43,8 @@
 * Tweak - Remove Payment Method Configurations fallback cache
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
+* Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
 
 = 9.5.3 - 2025-06-23 =
@@ -54,6 +58,7 @@
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 * Dev - Add Klarna e2e tests
 * Update - Improve checks in voucher purchase flow
+* Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
 
 = 9.5.2 - 2025-05-22 =
 * Add - Implement custom database cache for persistent caching with in-memory optimization.
