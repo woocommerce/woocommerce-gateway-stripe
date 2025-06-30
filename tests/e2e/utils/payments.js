@@ -820,27 +820,29 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 		await setupBlocksCheckout( page, billingDetails );
 
-		await page.waitForTimeout( 1000 );
-
 		// Select BECS in blocks checkout.
-		await page
+		const becsLabel = page
 			.locator( 'label' )
-			.filter( { hasText: 'BECS Direct Debit' } )
-			.click();
-
-		await page.waitForTimeout( 1000 );
+			.filter( { hasText: 'BECS Direct Debit' } );
+		await becsLabel.waitFor( { state: 'visible' } );
+		await becsLabel.dispatchEvent( 'click' );
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_australia.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select BECS in shortcode checkout.
-		await page.getByText( 'BECS Direct Debit' ).click();
+		const becsLabel = page.getByText( 'BECS Direct Debit' );
+		await becsLabel.waitFor( { state: 'visible' } );
+		await becsLabel.dispatchEvent( 'click' );
+		const frameHandle = await page.waitForSelector(
+			'.payment_method_stripe_au_becs_debit iframe[name^="__privateStripeFrame"]'
+		);
+		const stripeFrame = await frameHandle.contentFrame();
 
-		await page.waitForTimeout( 1000 );
+		// Wait for the iFrame to load.
+		await stripeFrame.waitForLoadState( 'networkidle' );
 	}
 };
 
@@ -862,6 +864,9 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 	}
 
 	const stripeFrame = await frameHandle.contentFrame();
+
+	// Wait for the iFrame to load.
+	await stripeFrame.waitForLoadState( 'networkidle' );
 
 	await stripeFrame
 		.locator( '[name="auBankAccountNumber"]' )
