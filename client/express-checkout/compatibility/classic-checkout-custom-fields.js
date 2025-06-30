@@ -23,28 +23,22 @@ addFilter(
 
 		// Extract the data from the checkout form.
 		const customCheckoutFieldsData = {};
-		Object.keys( customCheckoutFields ).forEach( ( field ) => {
-			const formElements = document.querySelectorAll(
-				`form[name="checkout"] [name="${ field }"]`
-			);
-			if ( ! formElements || formElements.length === 0 ) {
-				return;
-			}
-
-			formElements.forEach( ( formElement ) => {
-				if ( formElement.type === 'checkbox' ) {
-					if ( formElement.checked ) {
-						customCheckoutFieldsData[ field ] = 1;
+		const form = document.querySelector( 'form[name="checkout"]' );
+		const formData = new FormData( form );
+		for ( const [ name, value ] of formData.entries() ) {
+			const isMultiSelect = name.endsWith( '[]' );
+			const fieldName = isMultiSelect ? name.slice( 0, -2 ) : name;
+			if ( Object.keys( customCheckoutFields ).includes( fieldName ) ) {
+				if ( isMultiSelect ) {
+					if ( ! customCheckoutFieldsData[ fieldName ] ) {
+						customCheckoutFieldsData[ fieldName ] = [];
 					}
-				} else if ( formElement.type === 'radio' ) {
-					if ( formElement.checked ) {
-						customCheckoutFieldsData[ field ] = formElement.value;
-					}
+					customCheckoutFieldsData[ fieldName ].push( value );
 				} else {
-					customCheckoutFieldsData[ field ] = formElement.value;
+					customCheckoutFieldsData[ fieldName ] = value;
 				}
-			} );
-		} );
+			}
+		}
 
 		return {
 			...extensionData,
