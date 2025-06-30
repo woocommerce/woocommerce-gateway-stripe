@@ -1799,6 +1799,15 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
+		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		$force_save_payment_method = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save, $order_id ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
+		);
+
 		/**
 		 * Filters the flag that decides if the payment method must be saved in all possible situations.
 		 *
@@ -1809,16 +1818,7 @@ class WC_Stripe_Helper {
 		 *
 		 * @return bool Whether the payment method must be saved in all situations.
 		*/
-		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save, $order_id );
-
-		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
-		$force_save_payment_method = apply_filters_deprecated(
-			'wc_stripe_force_save_source',
-			[ $force_save_payment_method, $order_id ],
-			'9.6.0',
-			'wc_stripe_force_save_payment_method',
-			'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
-		);
+		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
 		// Save the payment method when forced by the filter.
 		if ( $force_save_payment_method ) {
