@@ -791,7 +791,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->spe_enabled ) :
+				if ( $this->oc_enabled ) :
 					echo wp_kses_post( self::get_testing_instructions_for_optimized_checkout() );
 				else :
 					?>
@@ -1972,7 +1972,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @deprecated 9.5.0 Use is_oc_enabled() instead.
 	 */
 	public function is_spe_enabled() {
-		return $this->spe_enabled;
+		return $this->oc_enabled;
 	}
 
 	/**

@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
 use WC_Order;
@@ -2892,38 +2893,40 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test that a failed payment intent is not reused and a new one is created instead.
 	 *
+	 * @param bool $setting_enabled Whether the optimized checkout setting is enabled.
+	 * @param bool $expected The expected result of the `is_oc_enabled` method.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_is_oc_enabled
 	 */
-	public function test_is_oc_enabled( $flag, $expected ) {
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = 'yes';
-		$stripe_settings['test_connection_type']       = 'connect';
-		$stripe_settings['pmc_enabled']                = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+	public function test_is_oc_enabled( $setting_enabled, $expected ) {
+		if ( $setting_enabled ) {
+			OC_Test_Helper::enable_oc();
+		}
 
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$actual  = $gateway->is_oc_enabled();
 
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $flag );
+		// Clean up
+		OC_Test_Helper::disable_oc();
 
-		$this->assertSame( $expected, $gateway->is_oc_enabled() );
+		$this->assertSame( $expected, $actual );
 	}
 
 	/**
 	 * Data provider for `test_is_oc_enabled`.
 	 *
-	 * @return array
+	 * @return array[]
 	 */
 	public function provide_test_is_oc_enabled() {
 		return [
 			'Disabled' => [
-				'flag'     => 'no',
-				'expected' => false,
+				'setting value' => false,
+				'expected'      => false,
 			],
 			'Enabled'  => [
-				'flag'     => 'yes',
-				'expected' => true,
+				'setting value' => true,
+				'expected'     => true,
 			],
 		];
 	}
