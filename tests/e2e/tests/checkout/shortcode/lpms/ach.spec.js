@@ -48,7 +48,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 	} ) => {
 		await setupACHCheckout( page, 'shortcode' );
 		await fillACHBankDetails( page );
-		await clickPlaceOrder( page );
+		await page.locator( 'text=Place order' ).click();
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
