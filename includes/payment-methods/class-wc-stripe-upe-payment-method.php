@@ -113,14 +113,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
-	 * Whether Optimized Checkout (previously known as SPE) is enabled.
+	 * Whether Optimized Checkout is enabled.
 	 *
 	 * @var bool
 	 */
 	protected $oc_enabled;
 
 	/**
-	 * The default title for the Optimized Checkout element (previously known as SPE).
+	 * The default title for the Optimized Checkout element
 	 *
 	 * @var string
 	 */

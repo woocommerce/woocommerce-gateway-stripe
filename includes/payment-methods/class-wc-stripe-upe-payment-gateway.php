@@ -306,7 +306,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
+	 * Returns the HTML for the bundled payment instructions when Optimized Checkout is enabled.
 	 *
 	 * @return string
 	 */
@@ -1956,7 +1956,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Checks if the Optimized Checkout (previously known as SPE) setting is enabled.
+	 * Checks if the Optimized Checkout setting is enabled.
 	 *
 	 * @return bool Whether the Optimized Checkout setting is enabled.
 	 */

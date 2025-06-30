@@ -169,7 +169,7 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Optimized Checkout (OC, previously known as SPE) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature flag is enabled.
 	 *
 	 * @return bool
 	 */
