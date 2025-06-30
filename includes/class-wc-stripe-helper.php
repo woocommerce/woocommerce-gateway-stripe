@@ -1820,12 +1820,7 @@ class WC_Stripe_Helper {
 		*/
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
 
-		// Save the payment method when forced by the filter.
-		if ( $force_save_payment_method ) {
-			return true;
-		}
-
-		return false;
+		return $force_save_payment_method;
 	}
 
 	/**
