@@ -219,7 +219,7 @@ class WC_Stripe_Express_Checkout_Element {
 		$sanitized_custom_checkout_data = [];
 		$custom_checkout_fields         = $this->get_custom_checkout_fields();
 		foreach ( $custom_checkout_data as $key => $value ) {
-			$field_type                                       = $custom_checkout_fields[ $key ]['type'] ?? 'text';
+			$field_type                                       = $custom_checkout_fields[ $key ]['type'] ?? '';
 			$sanitized_key                                    = sanitize_text_field( $key );
 			$sanitized_value                                  = $this->get_sanitized_value( $value, $field_type );
 			$sanitized_custom_checkout_data[ $sanitized_key ] = $sanitized_value;
@@ -233,16 +233,25 @@ class WC_Stripe_Express_Checkout_Element {
 	 *
 	 * @param string $value The value to sanitize.
 	 * @param string $type The type of the field.
-	 * @return string The sanitized value.
+	 * @return mixed The sanitized value.
 	 */
 	private function get_sanitized_value( $value, $type ) {
-		if ( 'textarea' === $type ) {
-			return sanitize_textarea_field( $value );
-		} elseif ( 'email' === $type ) {
-			return sanitize_email( $value );
+		if ( '' === $value ) {
+			return '';
 		}
 
-		return sanitize_text_field( $value );
+		switch ( $type ) {
+			case 'checkbox':
+				return empty( $value ) ? $value : 1;
+			case 'multiselect':
+				return implode( ', ', wc_clean( $value ) );
+			case 'textarea':
+				return wc_sanitize_textarea( $value );
+			case 'email':
+				return sanitize_email( $value );
+			default:
+				return wc_clean( $value );
+		}
 	}
 	/**
 	 * Get custom checkout data schema.
@@ -370,18 +379,19 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_cart_page'               => is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
-			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
+			'custom_checkout_fields'     => $this->get_custom_checkout_fields( has_block( 'woocommerce/checkout' ) ),
 		];
 	}
 
 	/**
 	 * Retrieve custom checkout field IDs.
 	 *
+	 * @param boolean $is_block_checkout Whether the checkout page is a block checkout page.
 	 * @return array Custom checkout field IDs.
 	 */
-	public function get_custom_checkout_fields() {
+	public function get_custom_checkout_fields( $is_block_checkout = false ) {
 		// Block checkout page
-		if ( has_block( 'woocommerce/checkout' ) ) {
+		if ( $is_block_checkout ) {
 			try {
 				$checkout_fields = Package::container()->get( CheckoutFields::class );
 				if ( ! $checkout_fields instanceof CheckoutFields ) {
@@ -405,28 +415,23 @@ class WC_Stripe_Express_Checkout_Element {
 		}
 
 		// Classic checkout page
-		if ( is_checkout() ) {
-			$custom_checkout_fields   = [];
-			$standard_checkout_fields = $this->get_standard_checkout_fields();
-			$all_fields               = WC()->checkout()->get_checkout_fields();
-			foreach ( $all_fields as $fieldset => $fields ) {
-				foreach ( $fields as $field_key => $field ) {
-					if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
-						continue;
-					}
-
-					$custom_checkout_fields[ $field_key ] = [
-						'type'     => $field['type'],
-						'location' => $fieldset,
-					];
+		$custom_checkout_fields   = [];
+		$standard_checkout_fields = $this->get_standard_checkout_fields();
+		$all_fields               = WC()->checkout()->get_checkout_fields();
+		foreach ( $all_fields as $fieldset => $fields ) {
+			foreach ( $fields as $field_key => $field ) {
+				if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
+					continue;
 				}
-			}
 
-			return $custom_checkout_fields;
+				$custom_checkout_fields[ $field_key ] = [
+					'type'     => $field['type'],
+					'location' => $fieldset,
+				];
+			}
 		}
 
-		// Not a checkout page, e.g. product page, cart page.
-		return [];
+		return $custom_checkout_fields;
 	}
 
 	/**
