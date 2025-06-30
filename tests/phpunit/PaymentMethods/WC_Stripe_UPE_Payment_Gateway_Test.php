@@ -7,6 +7,7 @@ use Exception;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Payment_Method_Configurations;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
 use WC_Order;
@@ -2904,22 +2905,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function test_is_oc_enabled( $pmc_enabled, $setting_enabled, $expected ) {
 		if ( $pmc_enabled ) {
-			$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
-			$stripe_settings['pmc_enabled'] = 'yes';
-			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+			PMC_Test_Helper::enable_pmc();
 
 			// Mock the payment method configuration for the test, to avoid it being disabled by default.
-			$payment_method_configuration = [
-				'id'                            => 'pmc_abcdef',
-				'object'                        => 'payment_method_configuration',
-				'active'                        => true,
-				'parent'                        => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
-				'livemode'                      => false,
-				WC_Stripe_Payment_Methods::CARD => (object) [
-					'display_preference' => (object) [ 'value' => 'on' ],
-				],
-			];
-			WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, $payment_method_configuration );
+			PMC_Test_Helper::cache_mocked_configuration();
 		}
 
 		if ( $setting_enabled ) {
@@ -2930,12 +2919,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$actual  = $gateway->is_oc_enabled();
 
 		// Clean up
-		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['pmc_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		WC_Stripe_Database_Cache::delete( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY );
-
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
 		OC_Test_Helper::disable_oc();
 
 		$this->assertSame( $expected, $actual );
