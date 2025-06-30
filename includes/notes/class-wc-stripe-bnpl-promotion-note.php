@@ -86,7 +86,7 @@ class WC_Stripe_BNPL_Promotion_Note {
 			return;
 		}
 
-		$available_upe_payment_methods = $gateway->get_upe_available_payment_methods();
+		$available_upe_payment_methods = $gateway->get_upe_enabled_payment_method_ids();
 		foreach ( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS as $bnpl_payment_method ) {
 			if ( in_array( $bnpl_payment_method, $available_upe_payment_methods, true ) ) {
 				return;
