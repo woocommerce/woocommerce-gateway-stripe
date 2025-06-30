@@ -108,6 +108,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $sepa_tokens_for_other_methods;
 
 	/**
+	 * Is Single Payment Element enabled?
+	 *
+	 * @var bool
+	 *
+	 * @deprecated 9.5.0 Use `oc_enabled`.
+	 */
+	public $spe_enabled;
+
+	/**
 	 * Is Optimized Checkout enabled?
 	 *
 	 * @var bool
@@ -306,7 +315,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Returns the HTML for the bundled payment instructions when Optimized Checkout is enabled.
+	 * Returns the HTML for the bundled payment instructions when Optimized Checkout (previously known as Smart Checkout and SPE) is enabled.
 	 *
 	 * @return string
 	 */
