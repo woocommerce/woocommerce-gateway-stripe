@@ -1800,15 +1800,15 @@ class WC_Stripe_Helper {
 		}
 
 		/**
-		 * Filters the flag that decides if the payment method should be saved.
+		 * Filters the flag that decides if the payment method must be saved in all possible situations.
 		 *
 		 * @since 9.6.0
 		 *
-		 * @param bool   $force_save Whether the payment method should be saved.
+		 * @param bool   $force_save Whether the payment method must be saved.
 		 * @param string $order_id   Order ID.
 		 *
-		 * @return bool Whether the payment method should be saved.
-		 */
+		 * @return bool Whether the payment method must be saved in all situations.
+		*/
 		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save, $order_id );
 
 		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
