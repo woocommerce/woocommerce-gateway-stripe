@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       max-parallel: 10
       matrix:
-        project: [ 'default', 'legacy', 'acss', 'optimized-checkout', 'blik', 'becs' ]
+        project: [ 'default', 'acss', 'optimized-checkout', 'blik', 'becs' ]
 
     name: E2E - ${{ matrix.project }} (WP=${{ inputs.wp-version }}, WC=${{ inputs.wc-version }}, PHP=${{ inputs.php-version }})
     steps:

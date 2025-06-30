@@ -50,6 +50,24 @@ class WC_Subscription extends WC_Order {
 	}
 
 	/**
+	 * Get billing period.
+	 *
+	 * @return string
+	 */
+	public function get_billing_period() {
+		return 'month';
+	}
+
+	/**
+	 * Get billing interval.
+	 *
+	 * @return int
+	 */
+	public function get_billing_interval() {
+		return 1;
+	}
+
+	/**
 	 * Generates a URL to add or change the subscription's payment method from the my account page.
 	 *
 	 * @return string

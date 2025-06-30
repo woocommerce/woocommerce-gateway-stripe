@@ -323,6 +323,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
+			'currency_decimals'       => wc_get_price_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
@@ -718,11 +719,16 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_taxable              = $this->is_product_or_cart_taxable();
-		$needs_shipping          = $this->product_or_cart_needs_shipping();
-		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
-
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+		// Hide express checkout when we have the following situation:
+		//  - Taxes are enabled
+		//  - The current product or cart is taxable
+		//  - The product or cart does not need shipping (e.g. a virtual product)
+		//  - Taxes are based on the user's billing address
+		if (
+			wc_tax_enabled()
+			&& $this->is_product_or_cart_taxable()
+			&& 'billing' === get_option( 'woocommerce_tax_based_on' )
+			&& ! $this->product_or_cart_needs_shipping() ) {
 			return true;
 		}
 

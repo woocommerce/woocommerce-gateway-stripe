@@ -21,9 +21,13 @@ export * from './normalize';
  * @return {string} Error messages.
  */
 export const getErrorMessageFromNotice = ( notice ) => {
+	if ( ! notice ) {
+		return '';
+	}
+
 	const div = document.createElement( 'div' );
 	div.innerHTML = notice.trim();
-	return div.firstChild ? div.firstChild.textContent : '';
+	return div.firstChild?.textContent || '';
 };
 
 /**
@@ -348,9 +352,13 @@ export const displayExpressCheckoutNotice = (
 	const $container = jQuery( '.' + containerClass ).first();
 
 	if ( $container.length ) {
+		const safeMessage = jQuery( '<div>' )
+			.text( message )
+			.html()
+			.replace( /\n/g, '<br>' );
 		const note = jQuery(
 			`<div class="${ classNames.join( ' ' ) }" role="note" />`
-		).text( message );
+		).html( safeMessage );
 		if ( isBlockCheckout ) {
 			$container.prepend( note );
 		} else {

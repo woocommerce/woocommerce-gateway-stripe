@@ -516,9 +516,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['genericErrorMessage']               = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['accountDescriptor']                 = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']               = wc_get_account_endpoint_url( 'payment-methods' );
+		$stripe_params['orderReceivedURL']                  = $this->get_return_url(); // $order argument is intentionally left empty as a fallback.
 		$stripe_params['enabledBillingFields']              = $enabled_billing_fields;
 		$stripe_params['cartContainsSubscription']          = $this->is_subscription_item_in_cart();
-		$stripe_params['subscriptionRequiresManualRenewal'] = $this->is_manual_renewal_required();
+		$stripe_params['subscriptionRequiresManualRenewal'] = WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
+		$stripe_params['subscriptionManualRenewalEnabled']  = WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		$stripe_params['accountCountry']                    = WC_Stripe::get_instance()->account->get_account_country();
 		$stripe_params['isPaymentRequestEnabled']           = $express_checkout_helper->is_payment_request_enabled();
 		$stripe_params['isAmazonPayEnabled']                = $express_checkout_helper->is_amazon_pay_enabled();
@@ -789,7 +791,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			<?php
 			if ( $this->testmode ) :
-				if ( $this->spe_enabled ) :
+				if ( $this->oc_enabled ) :
 					echo wp_kses_post( self::get_testing_instructions_for_optimized_checkout() );
 				else :
 					?>
@@ -1299,7 +1301,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return $this->process_pre_order( $order_id );
 			}
 
-			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+			$token = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+			if ( ! $token ) {
+				throw new WC_Stripe_Exception(
+					sprintf(
+						/* translators: %s is the order ID */
+						__( "We're not able to process this payment. The saved payment method for order %s could not be found.", 'woocommerce-gateway-stripe' ),
+						$order_id
+					)
+				);
+			}
+
 			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method );
 
@@ -1960,7 +1972,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @deprecated 9.5.0 Use is_oc_enabled() instead.
 	 */
 	public function is_spe_enabled() {
-		return $this->spe_enabled;
+		return $this->oc_enabled;
 	}
 
 	/**
@@ -2650,7 +2662,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Save it when paying for a subscription and manual renewal is not required.
 		if ( $this->has_subscription( $order_id ) ) {
-			return ! $this->is_manual_renewal_required();
+			return ! WC_Stripe_Subscriptions_Helper::is_manual_renewal_required();
 		}
 
 		// Unless it's paying for a subscription, don't save it when saving payment methods is disabled.

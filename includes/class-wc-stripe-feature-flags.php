@@ -145,9 +145,14 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_checkout_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] )
-			&& 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+		/**
+		 * Temporary filter to allow rollback to legacy checkout experience.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in version 9.8.0.
+		 * @param bool $enabled Whether new checkout experience is enabled. Default true.
+		 */
+		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
 	}
 
 	/**
@@ -187,6 +192,11 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		return 'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$default_value = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		return apply_filters(
+			'wc_stripe_is_optimized_checkout_available',
+			'yes' === $default_value,
+			$default_value
+		);
 	}
 }

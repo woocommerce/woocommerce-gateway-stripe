@@ -2,6 +2,7 @@ import { render } from '@testing-library/react';
 import {
 	extractOrderAttributionData,
 	populateOrderAttributionInputs,
+	shouldSetupOffSessionPayment,
 } from 'wcstripe/blocks/utils';
 
 describe( 'Blocks Utils', () => {
@@ -41,6 +42,35 @@ describe( 'Blocks Utils', () => {
 			expect(
 				global.wc_order_attribution.setOrderTracking
 			).toHaveBeenCalledWith( true );
+		} );
+	} );
+
+	describe( 'shouldSetupOffSessionPayment', () => {
+		let mockGetSetting;
+
+		beforeEach( () => {
+			mockGetSetting = jest.fn().mockReturnValue( {} );
+			global.wc = {
+				wcSettings: {
+					getSetting: mockGetSetting,
+				},
+			};
+		} );
+
+		test( 'cart has auto renewal subscription', () => {
+			mockGetSetting.mockReturnValue( {
+				cartContainsSubscription: true,
+				subscriptionManualRenewalEnabled: false,
+			} );
+			expect( shouldSetupOffSessionPayment( false, false ) ).toBeTruthy();
+		} );
+
+		test( 'showSaveOption is true', () => {
+			expect( shouldSetupOffSessionPayment( true, true ) ).toBeTruthy();
+		} );
+
+		test( 'cart does not have auto renewal subscription and showSaveOption is false', () => {
+			expect( shouldSetupOffSessionPayment( false, false ) ).toBeFalsy();
 		} );
 	} );
 } );
