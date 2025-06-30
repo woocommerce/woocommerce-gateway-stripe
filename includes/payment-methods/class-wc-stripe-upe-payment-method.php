@@ -157,7 +157,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->testmode                 = WC_Stripe_Mode::is_test();
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
-		$this->oc_enabled               = WC_Stripe_Payment_Method_Configurations::is_enabled() && WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
+		$this->oc_enabled               = 'yes' === $this->get_option( 'pmc_enabled' ) && WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 		$this->oc_title                 = $this->get_option( 'optimized_checkout_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 

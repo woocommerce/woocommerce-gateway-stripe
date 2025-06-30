@@ -4,6 +4,10 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
+use ReflectionClass;
+use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
+use WC_Stripe_Payment_Method_Configurations;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
@@ -2893,13 +2897,33 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test that a failed payment intent is not reused and a new one is created instead.
 	 *
+	 * @param bool $pmc_enabled Whether the payment method configurations are enabled.
 	 * @param bool $setting_enabled Whether the optimized checkout setting is enabled.
 	 * @param bool $expected The expected result of the `is_oc_enabled` method.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_is_oc_enabled
 	 */
-	public function test_is_oc_enabled( $setting_enabled, $expected ) {
+	public function test_is_oc_enabled( $pmc_enabled, $setting_enabled, $expected ) {
+		if ( $pmc_enabled ) {
+			$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+			$stripe_settings['pmc_enabled'] = 'yes';
+			WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+			// Mock the payment method configuration for the test, to avoid it being disabled by default.
+			$payment_method_configuration = [
+				'id'                            => 'pmc_abcdef',
+				'object'                        => 'payment_method_configuration',
+				'active'                        => true,
+				'parent'                        => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+				'livemode'                      => false,
+				WC_Stripe_Payment_Methods::CARD => (object) [
+					'display_preference' => (object) [ 'value' => 'on' ],
+				],
+			];
+			WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, $payment_method_configuration );
+		}
+
 		if ( $setting_enabled ) {
 			OC_Test_Helper::enable_oc();
 		}
@@ -2908,6 +2932,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$actual  = $gateway->is_oc_enabled();
 
 		// Clean up
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		WC_Stripe_Database_Cache::delete( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY );
+
 		OC_Test_Helper::disable_oc();
 
 		$this->assertSame( $expected, $actual );
@@ -2920,13 +2950,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_is_oc_enabled() {
 		return [
-			'Disabled' => [
+			'Disabled (all disabled)' => [
+				'pmc enabled'   => false,
 				'setting value' => false,
 				'expected'      => false,
 			],
-			'Enabled'  => [
+			'Disabled (pmc enabled)'  => [
+				'pmc enabled'   => true,
+				'setting value' => false,
+				'expected'      => false,
+			],
+			'Enabled'                 => [
+				'pmc enabled'   => true,
 				'setting value' => true,
-				'expected'     => true,
+				'expected'      => true,
 			],
 		];
 	}
