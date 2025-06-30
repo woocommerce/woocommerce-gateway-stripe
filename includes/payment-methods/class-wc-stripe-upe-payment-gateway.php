@@ -1033,6 +1033,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
 			if ( $this->is_payment_process_request_locked( $order, $payment_information['customer'] ) ) {
+				WC_Stripe_Logger::log( 'Payment process request is already locked for order ID: ' . $order->get_id() );
 				// If the request is already being processed, return an error.
 				return [
 					'result'   => 'failure',
