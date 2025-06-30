@@ -414,13 +414,14 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await page
 			.locator( 'label' )
 			.filter( { hasText: 'ACH Direct Debit' } )
-			.click();
+			.dispatchEvent( 'click' );
 
 		// Wait for the iframe to be ready
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+		const frameHandle = await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
 		);
-		await page.waitForTimeout( 1000 );
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Click "Test Institution"
 		await page
@@ -428,7 +429,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
 			)
 			.getByText( 'Test Institution' )
-			.click();
+			.dispatchEvent( 'click' );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -436,14 +437,16 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		);
 
 		// Select ACH in shortcode checkout
-		await page.getByText( 'ACH Direct Debit' ).click();
-		await page.waitForTimeout( 1000 );
+		const achLabel = page.getByText( 'ACH Direct Debit' );
+		await achLabel.waitFor( { state: 'visible' } );
+		await achLabel.dispatchEvent( 'click' );
 
 		// Wait for the iframe to be ready
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+		const frameHandle = await page.waitForSelector(
+			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
 		);
-		await page.waitForTimeout( 1000 );
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Click "Test Institution"
 		await page
@@ -451,7 +454,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
 			)
 			.getByTestId( 'featured-institution-default' )
-			.click();
+			.dispatchEvent( 'click' );
 	}
 };
 

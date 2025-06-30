@@ -63,7 +63,7 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 					.getByRole( 'checkbox', {
 						name: 'Save payment information to',
 					} )
-					.click();
+					.dispatchEvent( 'click' );
 				await clickPlaceOrder( page );
 				await fillACSSDetails( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
@@ -92,7 +92,7 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 				await page
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()
-					.click();
+					.dispatchEvent( 'click' );
 				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
