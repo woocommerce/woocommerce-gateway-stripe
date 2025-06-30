@@ -108,15 +108,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $sepa_tokens_for_other_methods;
 
 	/**
-	 * Is Single Payment Element enabled?
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `oc_enabled`.
-	 */
-	public $spe_enabled;
-
-	/**
 	 * Is Optimized Checkout enabled?
 	 *
 	 * @var bool
@@ -1962,17 +1953,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function is_sepa_tokens_for_other_methods_enabled() {
 		return $this->sepa_tokens_for_other_methods;
-	}
-
-	/**
-	 * Checks if the Single Payment Element setting is enabled.
-	 *
-	 * @return bool Whether the Single Payment Element setting is enabled.
-	 *
-	 * @deprecated 9.5.0 Use is_oc_enabled() instead.
-	 */
-	public function is_spe_enabled() {
-		return $this->oc_enabled;
 	}
 
 	/**

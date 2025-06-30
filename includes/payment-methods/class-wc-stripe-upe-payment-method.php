@@ -113,29 +113,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
-	 * Whether Single Payment Element is enabled.
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `$oc_enabled` instead.
-	 */
-	protected $spe_enabled;
-
-	/**
 	 * Whether Optimized Checkout (previously known as SPE) is enabled.
 	 *
 	 * @var bool
 	 */
 	protected $oc_enabled;
-
-	/**
-	 * The default title for the Single Payment Element.
-	 *
-	 * @var string
-	 *
-	 * @deprecated 9.5.0 Use `$oc_title` instead.
-	 */
-	protected $spe_title;
 
 	/**
 	 * The default title for the Optimized Checkout element (previously known as SPE).
