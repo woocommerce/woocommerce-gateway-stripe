@@ -496,28 +496,25 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select ACSS in blocks checkout.
-		await page
+		const acssLabel = page
 			.locator( 'label' )
-			.filter( { hasText: 'Pre-Authorized Debit' } )
-			.click();
-
-		await page.waitForTimeout( 1000 );
+			.filter( { hasText: 'Pre-Authorized Debit' } );
+		await acssLabel.waitFor( { state: 'visible' } );
+		await acssLabel.click();
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select ACSS in shortcode checkout.
-		await page.getByText( 'Pre-Authorized Debit' ).click();
-
-		await page.waitForTimeout( 1000 );
+		const acssLabel = page.getByText( 'Pre-Authorized Debit' );
+		await acssLabel.waitFor( { state: 'visible' } );
+		await acssLabel.click();
 	}
+
+	await page.waitForTimeout( 1000 );
 };
 
 /**
@@ -694,7 +691,7 @@ export async function clickPlaceOrder( page ) {
 		.dispatchEvent( 'click' );
 
 	// If we click the Place button too fast, we might sometimes get an error.
-	// One way to handl this is to always wait a few seconds before clicking Place order.
+	// One way to handle this is to always wait a few seconds before clicking Place order.
 	// But that would make the test flaky and slows down the test suite. So instead,
 	// we check if the error message is present and if it is, we dispatch the click event again.
 	const errorElement = page
@@ -898,14 +895,14 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
 		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
-		await affirmLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
 		await page.waitForSelector(
 			'#radio-control-wc-payment-method-options-stripe_affirm__content'
 		);
 	} else {
 		const affirmLabel = page.getByText( 'Affirm' );
-		await affirmLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
 		await page.waitForSelector(
 			'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
@@ -936,14 +933,14 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
 		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
-		await klarnaLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
 		await page.waitForSelector(
 			'#radio-control-wc-payment-method-options-stripe_klarna__content'
 		);
 	} else {
 		const klarnaLabel = page.getByText( 'Klarna' );
-		await klarnaLabel.waitFor( { state: 'visible', timeout: 5000 } );
+		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
 		await page.waitForSelector(
 			'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
