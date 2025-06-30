@@ -27,7 +27,7 @@ export const getErrorMessageFromNotice = ( notice ) => {
 
 	const div = document.createElement( 'div' );
 	div.innerHTML = notice.trim();
-	return div.firstChild?.textContent || '';
+	return div.textContent || '';
 };
 
 /**
