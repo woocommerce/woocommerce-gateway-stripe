@@ -13,8 +13,10 @@ use WC_Payment_Token_Link;
 use WC_Payment_Token_SEPA;
 use WC_Stripe;
 use WC_Stripe_Currency_Code;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Payment_Method_Configurations;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -867,6 +869,23 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$updated_payment_settings['description'] = $custom_description;
 		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
 
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'yes';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		$payment_method_configuration = [
+			'id'                            => 'pmc_abcdef',
+			'object'                        => 'payment_method_configuration',
+			'active'                        => true,
+			'parent'                        => WC_Stripe_Payment_Method_Configurations::TEST_MODE_CONFIGURATION_PARENT_ID,
+			'livemode'                      => false,
+			WC_Stripe_Payment_Methods::CARD => (object) [
+				'display_preference' => (object) [ 'value' => 'on' ],
+			],
+		];
+		WC_Stripe_Database_Cache::set( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY, $payment_method_configuration );
+
 		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
 			->setMethods(
 				[
@@ -884,6 +903,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		// Clean up.
 		OC_Test_Helper::disable_oc();
 		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
+
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'no';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		WC_Stripe_Database_Cache::delete( WC_Stripe_Payment_Method_Configurations::CONFIGURATION_CACHE_KEY );
 
 		$this->assertEmpty( $actual );
 	}
