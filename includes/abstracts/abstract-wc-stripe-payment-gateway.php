@@ -1462,12 +1462,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception If an order item has no quantity set.
 	 */
 	public function get_level3_data_from_order( $order ) {
-		$currency          = $order->get_currency();
 		$stripe_line_items = $this->get_line_items( $order );
-
-		$level3_data = [
+		$level3_data       = [
 			'merchant_reference' => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
-			'shipping_amount'    => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_shipping_total() + (float) $order->get_shipping_tax(), $currency ), // The shipping cost, in cents, as a non-negative integer.
+			'shipping_amount'    => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_shipping_total() + (float) $order->get_shipping_tax(), $order->get_currency() ), // The shipping cost, in cents, as a non-negative integer.
 			'line_items'         => $stripe_line_items,
 		];
 
