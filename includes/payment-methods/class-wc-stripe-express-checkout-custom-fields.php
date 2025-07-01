@@ -49,11 +49,24 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 */
 	public function process_custom_checkout_data( $order, $request ) {
 		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
-		if ( empty( $custom_checkout_data ) ) {
-			return;
-		}
 
 		$errors = new WP_Error();
+
+		// Enforce required fields.
+		$custom_checkout_fields = $this->get_custom_checkout_fields();
+		foreach ( $custom_checkout_fields as $key => $field ) {
+			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
+				$errors->add(
+					$key . '_required',
+					sprintf(
+						/* translators: %s: field name */
+						__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+						$field['label']
+					)
+				);
+			}
+		}
+
 		/**
 		 * Allow third-party plugins to validate custom checkout data for express checkout orders.
 		 *
@@ -182,8 +195,10 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				foreach ( $additional_fields as $field_key => $field ) {
 					$location                             = $checkout_fields->get_field_location( $field_key );
 					$custom_checkout_fields[ $field_key ] = [
+						'label'    => $field['label'],
 						'type'     => $field['type'],
 						'location' => $location,
+						'required' => $field['required'],
 					];
 				}
 
@@ -194,28 +209,25 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		}
 
 		// Classic checkout page
-		if ( is_checkout() ) {
-			$custom_checkout_fields   = [];
-			$standard_checkout_fields = $this->get_standard_checkout_fields();
-			$all_fields               = WC()->checkout()->get_checkout_fields();
-			foreach ( $all_fields as $fieldset => $fields ) {
-				foreach ( $fields as $field_key => $field ) {
-					if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
-						continue;
-					}
-
-					$custom_checkout_fields[ $field_key ] = [
-						'type'     => $field['type'],
-						'location' => $fieldset,
-					];
+		$custom_checkout_fields   = [];
+		$standard_checkout_fields = $this->get_standard_checkout_fields();
+		$all_fields               = WC()->checkout()->get_checkout_fields();
+		foreach ( $all_fields as $fieldset => $fields ) {
+			foreach ( $fields as $field_key => $field ) {
+				if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
+					continue;
 				}
-			}
 
-			return $custom_checkout_fields;
+				$custom_checkout_fields[ $field_key ] = [
+					'label'    => $field['label'],
+					'type'     => $field['type'],
+					'location' => $fieldset,
+					'required' => $field['required'],
+				];
+			}
 		}
 
-		// Not a checkout page, e.g. product page, cart page.
-		return [];
+		return $custom_checkout_fields;
 	}
 
 	/**
