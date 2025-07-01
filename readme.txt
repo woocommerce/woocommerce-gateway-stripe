@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
