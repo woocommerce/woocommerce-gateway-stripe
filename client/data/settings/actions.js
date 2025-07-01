@@ -35,13 +35,6 @@ export function updateIsSavingOrderedPaymentMethodIds(
 	};
 }
 
-export function updateIsCustomizingPaymentMethod( isCustomizingPaymentMethod ) {
-	return {
-		type: ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD,
-		isCustomizingPaymentMethod,
-	};
-}
-
 export function* saveSettings() {
 	let error = null;
 	try {
