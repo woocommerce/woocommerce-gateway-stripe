@@ -2,6 +2,7 @@
 
 = 9.6.0 - xxxx-xx-xx =
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
+* Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
 * Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
@@ -46,6 +47,7 @@
 * Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
+* Fix - Add safety check when checking error object
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
