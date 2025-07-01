@@ -46,6 +46,9 @@ class WC_Stripe_Inbox_Notes {
 		return trait_exists( 'Automattic\WooCommerce\Admin\Notes\NoteTraits' ) && class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' );
 	}
 
+	/**
+	 * Create UPE notes.
+	 */
 	public static function create_upe_notes() {
 		if ( ! self::are_inbox_notes_supported() ) {
 			return;
@@ -54,8 +57,13 @@ class WC_Stripe_Inbox_Notes {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::init();
 
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
-		WC_Stripe_UPE_StripeLink_Note::init( WC_Stripe::get_instance()->get_main_stripe_gateway() );
+		WC_Stripe_UPE_StripeLink_Note::init( $gateway );
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-bnpl-promotion-note.php';
+		WC_Stripe_BNPL_Promotion_Note::init( $gateway );
 	}
 
 	public static function get_campaign_2020_cutoff() {
