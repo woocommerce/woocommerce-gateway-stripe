@@ -162,6 +162,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
 * Fix - Add safety check when checking error object
-* Fix - Handle countries without states for express checkout
+* Fix - Correctly handle countries without states when using the express payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
