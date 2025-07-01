@@ -9,6 +9,7 @@ use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
 use Automattic\WooCommerce\StoreApi\StoreApi;
 use Automattic\WooCommerce\StoreApi\Schemas\ExtendSchema;
 use Automattic\WooCommerce\StoreApi\Schemas\V1\CheckoutSchema;
+use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 
 class WC_Stripe_Express_Checkout_Custom_Fields {
 	/**
@@ -50,23 +51,25 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	public function process_custom_checkout_data( $order, $request ) {
 		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
 
-		$errors = new WP_Error();
-
 		// Enforce required fields.
+		$required_field_errors  = [];
 		$custom_checkout_fields = $this->get_custom_checkout_fields( 'classic' );
 		foreach ( $custom_checkout_fields as $key => $field ) {
 			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
-				$errors->add(
-					$key . '_required',
-					sprintf(
-						/* translators: %s: field name */
-						__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
-						$field['label']
-					)
+				$required_field_errors[] = sprintf(
+					/* translators: %s: field name */
+					__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+					$field['label']
 				);
 			}
 		}
 
+		if ( ! empty( $required_field_errors ) ) {
+			$error_messages = implode( "\n", $required_field_errors );
+			throw new RouteException( 'wc_stripe_express_checkout_missing_required_fields', $error_messages, 400 );
+		}
+
+		$errors = new WP_Error();
 		/**
 		 * Allow third-party plugins to validate custom checkout data for express checkout orders.
 		 *
@@ -81,7 +84,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 
 		if ( $errors->has_errors() ) {
 			$error_messages = implode( "\n", $errors->get_error_messages() );
-			throw new WC_Data_Exception( 'wc_stripe_express_checkout_invalid_data', $error_messages );
+			throw new RouteException( 'wc_stripe_express_checkout_invalid_data', $error_messages, 400 );
 		}
 
 		/**
