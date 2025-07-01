@@ -9,13 +9,13 @@ export async function emptyCart( page ) {
 	await page.goto( '/cart-shortcode' );
 
 	// Remove products if they exist
-	if ( null !== ( await page.$( '.remove' ) ) ) {
-		let products = await page.$( '.remove' );
+	if ( null !== ( await page.$$( '.remove' ) ) ) {
+		let products = await page.$$( '.remove' );
 		while ( products && 0 < products.length ) {
 			for ( const product of products ) {
 				await product.click();
 			}
-			products = await page.$( '.remove' );
+			products = await page.$$( '.remove' );
 		}
 	}
 
