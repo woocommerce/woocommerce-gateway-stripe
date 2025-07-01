@@ -30,8 +30,17 @@ addFilter(
 
 		const formData = new FormData( form );
 		for ( const [ fieldName, fieldValue ] of formData.entries() ) {
-			if ( Object.keys( customCheckoutFields ).includes( fieldName ) ) {
-				customCheckoutFieldsData[ fieldName ] = fieldValue;
+			const isMultiSelect = fieldName.endsWith( '[]' );
+			const key = isMultiSelect ? fieldName.slice( 0, -2 ) : fieldName;
+			if ( Object.keys( customCheckoutFields ).includes( key ) ) {
+				if ( isMultiSelect ) {
+					if ( ! customCheckoutFieldsData[ key ] ) {
+						customCheckoutFieldsData[ key ] = [];
+					}
+					customCheckoutFieldsData[ key ].push( fieldValue );
+				} else {
+					customCheckoutFieldsData[ key ] = fieldValue;
+				}
 			}
 		}
 

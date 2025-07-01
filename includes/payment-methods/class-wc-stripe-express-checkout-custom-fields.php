@@ -115,7 +115,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		foreach ( $custom_checkout_data as $key => $value ) {
 			$field_type                                       = $custom_checkout_fields[ $key ]['type'] ?? 'text';
 			$sanitized_key                                    = sanitize_text_field( $key );
-			$sanitized_value                                  = $this->get_sanitized_value( $value, $field_type );
+			$sanitized_value                                  = $this->get_sanitized_field_value( $value, $field_type );
 			$sanitized_custom_checkout_data[ $sanitized_key ] = $sanitized_value;
 		}
 
@@ -127,17 +127,27 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 *
 	 * @param string $value The value to sanitize.
 	 * @param string $type The type of the field.
-	 * @return string The sanitized value.
+	 * @return mixed The sanitized field value.
 	 */
-	private function get_sanitized_value( $value, $type ) {
-		if ( 'textarea' === $type ) {
-			return sanitize_textarea_field( $value );
-		} elseif ( 'email' === $type ) {
-			return sanitize_email( $value );
+	private function get_sanitized_field_value( $value, $type ) {
+		if ( '' === $value ) {
+			return '';
 		}
 
-		return sanitize_text_field( $value );
+		switch ( $type ) {
+			case 'checkbox':
+				return empty( $value ) ? $value : 1;
+			case 'multiselect':
+				return implode( ', ', wc_clean( $value ) );
+			case 'textarea':
+				return wc_sanitize_textarea( $value );
+			case 'email':
+				return sanitize_email( $value );
+			default:
+				return wc_clean( $value );
+		}
 	}
+
 	/**
 	 * Get custom checkout data schema.
 	 *
