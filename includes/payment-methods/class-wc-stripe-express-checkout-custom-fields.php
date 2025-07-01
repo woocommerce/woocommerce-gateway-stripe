@@ -51,13 +51,40 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 			3
 		);
 
-		// Update order based on extended data.
+		// Update order based on custom checkout data.
 		add_action(
 			'woocommerce_store_api_checkout_update_order_from_request',
 			[ $this, 'process_custom_checkout_data' ],
 			10,
 			2
 		);
+
+		add_action(
+			'woocommerce_store_api_checkout_update_order_from_request',
+			[ $this, 'cleanup' ],
+			11,
+			2
+		);
+	}
+
+	/**
+	 * Cleanup: delete the space we used for other custom checkout fields --
+	 * we do not want it persisted separately in the order meta.
+	 *
+	 * @param WC_Order $order The order to cleanup.
+	 * @param WP_REST_Request $request The request object.
+	 * @return void
+	 */
+	public function cleanup( $order, $request ) {
+		// Bail if there is no custom checkout data.
+		$custom_checkout_data = $this->get_custom_checkout_data_from_request( $request );
+		if ( empty( $custom_checkout_data ) ) {
+			return;
+		}
+
+		$meta_key = CheckoutFields::OTHER_FIELDS_PREFIX . self::ECE_ADDITIONAL_CHECKOUT_FIELD_ID;
+		$order->delete_meta_data( $meta_key );
+		$order->save();
 	}
 
 	/**

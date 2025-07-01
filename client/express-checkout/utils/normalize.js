@@ -271,6 +271,11 @@ const getAdditionalFieldsData = () => {
 		return getAdditionalFieldsDataFromStore();
 	}
 
+	const additionalFieldsData = getAdditionalFieldsDataFromClassicCheckout();
+	if ( Object.keys( additionalFieldsData ).length === 0 ) {
+		return {};
+	}
+
 	return {
 		'wc-stripe/ece-custom-checkout-data': JSON.stringify(
 			getAdditionalFieldsDataFromClassicCheckout()
