@@ -111,8 +111,10 @@ class WC_Stripe_Express_Checkout_Element {
 
 		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
 
-		$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
-		$custom_checkout_fields_support->init();
+		if ( apply_filters( 'wc_stripe_ece_enable_custom_checkout_fields_support', false ) ) {
+			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+			$custom_checkout_fields_support->init();
+		}
 	}
 
 	/**
