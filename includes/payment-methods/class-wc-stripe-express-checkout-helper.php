@@ -1653,6 +1653,17 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT' header using superglobals.
+		if ( 'true' !== sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] ?? '' ) ) ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE' header using superglobals.
+		$nonce = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'wc_store_api_express_checkout' ) ) {
+			return false;
+		}
+
 		return true;
 	}
 

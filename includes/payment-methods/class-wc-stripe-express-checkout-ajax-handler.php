@@ -400,7 +400,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 	public function modify_country_locale_for_express_checkout( $locale ) {
 		// Only modify locale settings if this is an express checkout context.
 		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
-			wc_get_logger()->debug( 'element not express checkout context' );
 			return $locale;
 		}
 
