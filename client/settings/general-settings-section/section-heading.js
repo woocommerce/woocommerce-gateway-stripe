@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
@@ -76,15 +77,22 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 			<ActionItems>
 				{ ! isChangingDisplayOrder ? (
 					<>
-						<Button
-							variant="tertiary"
-							onClick={ () => onChangeDisplayOrder( true ) }
-						>
-							{ __(
-								'Change display order',
-								'woocommerce-gateway-stripe'
-							) }
-						</Button>
+						{
+							// eslint-disable-next-line camelcase
+							! wc_stripe_settings_params.is_oc_enabled && (
+								<Button
+									variant="tertiary"
+									onClick={ () =>
+										onChangeDisplayOrder( true )
+									}
+								>
+									{ __(
+										'Change display order',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
+							)
+						}
 						{ isUpeEnabled && (
 							<DropdownMenu
 								data-testid="upe-expandable-menu"
