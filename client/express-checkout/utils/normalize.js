@@ -1,6 +1,7 @@
 import { select } from '@wordpress/data';
 import { applyFilters } from '@wordpress/hooks';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
+import { getStripeServerData } from 'wcstripe/stripe-utils';
 
 /**
  * Normalizes incoming cart total items for use as a displayItems with the Stripe api.
@@ -156,7 +157,7 @@ const getCustomBillingAddressData = ( data ) => {
 	// to avoid sending "hidden" and possibly stale data from previous transactions,
 	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
 	// but session still holds data from a previous checkout.
-	if ( ! isBlockCheckoutPage() ) {
+	if ( ! getStripeServerData()?.isCheckout ) {
 		return emptyCustomFieldObject( [ 'address' ] );
 	}
 
@@ -193,7 +194,7 @@ const getCustomShippingAddressData = ( data ) => {
 	// to avoid sending "hidden" and possibly stale data from previous transactions,
 	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
 	// but session still holds data from a previous checkout.
-	if ( ! isBlockCheckoutPage() ) {
+	if ( ! getStripeServerData()?.isCheckout ) {
 		return emptyCustomFieldObject( [ 'address' ] );
 	}
 
@@ -262,11 +263,19 @@ const getAdditionalFieldsData = () => {
 	// to avoid sending "hidden" and possibly stale data from previous transactions,
 	// e.g. shopper is on the product page (hence, no checkout form fields are displayed),
 	// but session still holds data from a previous checkout.
-	if ( ! isBlockCheckoutPage() ) {
+	if ( ! getStripeServerData()?.isCheckout ) {
 		return emptyCustomFieldObject( [ 'contact', 'order' ] );
 	}
 
-	return getAdditionalFieldsDataFromStore();
+	if ( isBlockCheckoutPage() ) {
+		return getAdditionalFieldsDataFromStore();
+	}
+
+	return {
+		'wc-stripe/ece-custom-checkout-data': JSON.stringify(
+			getAdditionalFieldsDataFromClassicCheckout()
+		),
+	};
 };
 
 /**
@@ -286,6 +295,38 @@ const getAdditionalFieldsDataFromStore = () => {
 	}
 
 	return store.getAdditionalFields() || {};
+};
+
+const getAdditionalFieldsDataFromClassicCheckout = () => {
+	// List of fields we are interested in.
+	const customCheckoutFields = getExpressCheckoutData(
+		'custom_checkout_fields'
+	);
+
+	if ( ! customCheckoutFields ) {
+		return {};
+	}
+
+	// Extract the data from the checkout form.
+	const customCheckoutFieldsData = {};
+	const form = document.querySelector( 'form[name="checkout"]' );
+	const formData = new FormData( form );
+	for ( const [ name, value ] of formData.entries() ) {
+		const isMultiSelect = name.endsWith( '[]' );
+		const fieldName = isMultiSelect ? name.slice( 0, -2 ) : name;
+		if ( Object.keys( customCheckoutFields ).includes( fieldName ) ) {
+			if ( isMultiSelect ) {
+				if ( ! customCheckoutFieldsData[ fieldName ] ) {
+					customCheckoutFieldsData[ fieldName ] = [];
+				}
+				customCheckoutFieldsData[ fieldName ].push( value );
+			} else {
+				customCheckoutFieldsData[ fieldName ] = value;
+			}
+		}
+	}
+
+	return customCheckoutFieldsData;
 };
 
 /**
