@@ -29,7 +29,9 @@ export const shouldSetupOffSessionPayment = (
 ) => {
 	return (
 		shouldShowSaveOption ||
-		hasAutoRenewingSubscription( isPaymentMethodReusable )
+		hasAutoRenewingSubscription( isPaymentMethodReusable ) ||
+		( isPaymentMethodReusable &&
+			getBlocksConfiguration()?.forceSavePaymentMethod )
 	);
 };
 
