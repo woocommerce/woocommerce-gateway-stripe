@@ -1644,12 +1644,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
 
 			exit;
+		} finally {
+			$this->unlock_order_payment( $order );
 		}
-
-		finally {
-            $this->unlock_order_payment( $order );
-        }
-
 	}
 
 	/**
