@@ -495,4 +495,146 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( ' (Stripe)', $actual );
 	}
+
+	/**
+	 * Test is_express_checkout_context method.
+	 *
+	 * @dataProvider provide_test_is_express_checkout_context
+	 */
+	public function test_is_express_checkout_context( $is_store_api, $has_express_header, $has_nonce_header, $nonce_valid, $expected ) {
+		$helper = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[ 'is_request_to_store_api' ]
+		);
+
+		$helper->expects( $this->any() )
+			->method( 'is_request_to_store_api' )
+			->willReturn( $is_store_api );
+
+		// Set up $_SERVER superglobal for headers
+		$original_server = $_SERVER;
+
+		if ( $has_express_header ) {
+			$_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] = 'true';
+		} else {
+			unset( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] );
+		}
+
+		if ( $has_nonce_header ) {
+			if ( $nonce_valid ) {
+				$_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] = wp_create_nonce( 'wc_store_api_express_checkout' );
+			} else {
+				$_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] = 'invalid_nonce';
+			}
+		} else {
+			unset( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] );
+		}
+
+		$result = $helper->is_express_checkout_context();
+		$this->assertEquals( $expected, $result );
+
+		// Restore original $_SERVER
+		$_SERVER = $original_server;
+	}
+
+	/**
+	 * Data provider for test_is_express_checkout_context.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_express_checkout_context() {
+		return [
+			'Not Store API request' => [
+				'is_store_api'       => false,
+				'has_express_header' => true,
+				'has_nonce_header'   => true,
+				'nonce_valid'        => true,
+				'expected'           => false,
+			],
+			'Store API request but no express checkout header' => [
+				'is_store_api'       => true,
+				'has_express_header' => false,
+				'has_nonce_header'   => true,
+				'nonce_valid'        => true,
+				'expected'           => false,
+			],
+			'Store API request but no nonce header' => [
+				'is_store_api'       => true,
+				'has_express_header' => true,
+				'has_nonce_header'   => false,
+				'nonce_valid'        => false,
+				'expected'           => false,
+			],
+			'Store API request and express header but invalid nonce' => [
+				'is_store_api'       => true,
+				'has_express_header' => true,
+				'has_nonce_header'   => true,
+				'nonce_valid'        => false,
+				'expected'           => false,
+			],
+			'All conditions met - valid express checkout context' => [
+				'is_store_api'       => true,
+				'has_express_header' => true,
+				'has_nonce_header'   => true,
+				'nonce_valid'        => true,
+				'expected'           => true,
+			],
+		];
+	}
+
+	/**
+	 * Test is_request_to_store_api method.
+	 *
+	 * @dataProvider provide_test_is_request_to_store_api
+	 */
+	public function test_is_request_to_store_api( $rest_route, $expected ) {
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+
+		// Set up global WP query vars
+		$original_wp = $GLOBALS['wp'] ?? null;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		$GLOBALS['wp'] = (object) [
+			'query_vars' => [
+				'rest_route' => $rest_route,
+			],
+		];
+
+		$result = $helper->is_request_to_store_api();
+		$this->assertEquals( $expected, $result );
+
+		// Restore original global
+		if ( $original_wp ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$GLOBALS['wp'] = $original_wp;
+		} else {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			unset( $GLOBALS['wp'] );
+		}
+	}
+
+	/**
+	 * Data provider for test_is_request_to_store_api.
+	 *
+	 * @return array
+	 */
+	public function provide_test_is_request_to_store_api() {
+		return [
+			'No rest_route set' => [
+				'rest_route' => '',
+				'expected'   => false,
+			],
+			'Store API checkout route' => [
+				'rest_route' => '/wc/store/v1/checkout',
+				'expected'   => true,
+			],
+			'Different Store API route' => [
+				'rest_route' => '/wc/store/v1/cart',
+				'expected'   => false,
+			],
+			'Non-Store API route' => [
+				'rest_route' => '/wp/v2/posts',
+				'expected'   => false,
+			],
+		];
+	}
 }
