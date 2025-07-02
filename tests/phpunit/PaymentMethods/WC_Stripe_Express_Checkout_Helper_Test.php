@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use WC_Gateway_Stripe;
+use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
 use WC_Shipping_Zone;
 use WC_Shipping_Zones;
@@ -60,13 +61,28 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Test should_show_express_checkout_button, tax logic.
 	 *
+	 * @param array  $cart_contents Cart contents.
+	 * @param bool   $is_pay_for_order Whether this is a Pay for Order page.
+	 * @param bool   $taxes_enabled Whether taxes are enabled.
+	 * @param string $tax_based_on Tax based on setting.
+	 * @param mixed  $filter_value Value for the filter `wc_stripe_should_hide_express_checkout_button_based_on_tax_setup`.
+	 * @param bool   $expected Expected result of `should_show_express_checkout_button`.
+	 * @return void
+	 *
 	 * @dataProvider provide_test_hides_ece_if_cannot_compute_taxes
 	 */
-	public function test_hides_ece_if_cannot_compute_taxes( $cart_contents, $is_pay_for_order, $tax_based_on, $filter_value, $expected ) {
+	public function test_hides_ece_if_cannot_compute_taxes(
+		$cart_contents,
+		$is_pay_for_order,
+		$taxes_enabled,
+		$tax_based_on,
+		$filter_value,
+		$expected
+	) {
 		$this->set_up_shipping_methods();
 		$this->create_products_for_test_hides_ece_if_cannot_compute_taxes();
 
-		$gateway = $this->getMockBuilder( WC_Gateway_Stripe::class )
+		$gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
 
@@ -111,7 +127,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			$_GET['pay_for_order'] = 1;
 		}
 
-		update_option( 'woocommerce_calc_taxes', 'yes' ); // Should be overriden by product tax status.
+		update_option( 'woocommerce_calc_taxes', $taxes_enabled ? 'yes' : 'no' ); // Should be overriden by product tax status.
 		update_option( 'woocommerce_tax_based_on', $tax_based_on );
 
 		WC()->session->init();
@@ -129,6 +145,8 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
 	}
 
 	/**
@@ -176,13 +194,23 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Hide if cart has virtual product and tax is based on billing address.' => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $hide,
 			],
+			'Do not hide if cart has virtual product and tax is based on billing address, but taxes are now disabled.' => [
+				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
+				'is pay for order' => false,
+				'taxes enabled'    => false,
+				'tax based on'     => 'billing',
+				'filter value'     => null,
+				'expected'         => $show,
+			],
 			'Do not hide if cart has virtual product and tax is based on billing address, but filter forces to show.' => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => false,
 				'expected'         => $show,
@@ -190,6 +218,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if Pay for Order page.'     => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => true,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -197,6 +226,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if taxes are not enabled.'  => [
 				'cart contents'    => [ 'virtual_nontaxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => false,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -204,6 +234,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if cart has virtual product and tax is based on shipping address.' => [
 				'cart contents'    => [ 'virtual_taxable', 'virtual_nontaxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'shipping',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -211,6 +242,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if taxes are not based on customer billing or shipping address.' => [
 				'cart contents'    => [ 'virtual_taxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'base',
 				'filter value'     => null,
 				'expected'         => $show,
@@ -218,6 +250,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			'Do not hide if cart requires shipping.' => [
 				'cart contents'    => [ 'shippable_taxable' ],
 				'is pay for order' => false,
+				'taxes enabled'    => true,
 				'tax based on'     => 'billing',
 				'filter value'     => null,
 				'expected'         => $show,

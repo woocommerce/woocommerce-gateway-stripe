@@ -81,7 +81,6 @@ const config = {
 			name: 'default',
 			testMatch: '**/*.spec.js',
 			testIgnore: [
-				'**/_legacy-experience/**',
 				'**/acss.spec.js',
 				'**/optimized-checkout.spec.js',
 				'**/blik.spec.js',
@@ -111,17 +110,6 @@ const config = {
 			name: 'becs',
 			testMatch: '**/becs.spec.js',
 			dependencies: [ 'becs-setup' ],
-			use: { ...devices[ 'Desktop Chrome' ] },
-		},
-		{
-			name: 'legacy-setup',
-			testMatch: '_legacy-experience/legacy.setup.js',
-			use: { ...devices[ 'Desktop Chrome' ] },
-		},
-		{
-			name: 'legacy',
-			testMatch: '/_legacy-experience/**/*.spec.js',
-			dependencies: [ 'legacy-setup' ],
 			use: { ...devices[ 'Desktop Chrome' ] },
 		},
 		{

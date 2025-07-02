@@ -13,8 +13,10 @@ use WC_Payment_Token_Link;
 use WC_Payment_Token_SEPA;
 use WC_Stripe;
 use WC_Stripe_Currency_Code;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Payment_Method_Configurations;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -27,6 +29,8 @@ use WC_Stripe_UPE_Payment_Method_Cash_App_Pay;
 use WC_Stripe_UPE_Payment_Method_CC;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
@@ -153,9 +157,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 	 * Base template for Stripe AU BECS Debit Pay payment method.
 	 */
 	const MOCK_BECS_DEBIT_PAYMENT_METHOD_TEMPLATE = [
-		'id'                                        => 'pm_mock_payment_method_id',
-		'type'                                      => WC_Stripe_Payment_Methods::BECS_DEBIT,
-		WC_Stripe_Payment_Methods::BECS_DEBIT        => [
+		'id'                                  => 'pm_mock_payment_method_id',
+		'type'                                => WC_Stripe_Payment_Methods::BECS_DEBIT,
+		WC_Stripe_Payment_Methods::BECS_DEBIT => [
 			'last4'       => '4321',
 			'fingerprint' => 'F1ng3rpr1n7',
 		],
@@ -796,7 +800,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
 			'get_capabilities_response',
@@ -856,12 +860,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
 		}
 
-		// Test custom description when SPE is enabled. Should be always empty.
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		// Test custom description when OC is enabled. Should be always empty.
+		OC_Test_Helper::enable_oc();
 
 		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
 		$custom_description                      = 'Custom description for ' . $payment_method_id;
@@ -869,6 +869,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$updated_payment_settings                = $original_payment_settings;
 		$updated_payment_settings['description'] = $custom_description;
 		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
+
+		PMC_Test_Helper::enable_pmc();
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		PMC_Test_Helper::cache_mocked_configuration();
 
 		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
 			->setMethods(
@@ -882,7 +886,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			)
 			->getMock();
 
-		$this->assertEmpty( $mocked_payment_method->get_description() );
+		$actual = $mocked_payment_method->get_description();
+
+		// Clean up.
+		OC_Test_Helper::disable_oc();
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
+
+		$this->assertEmpty( $actual );
 	}
 
 	/**

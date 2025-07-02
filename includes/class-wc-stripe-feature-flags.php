@@ -15,13 +15,6 @@ class WC_Stripe_Feature_Flags {
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
 
 	/**
-	 * Feature flag to control SPE (Single Payment Element, now OC - Optimized CHeckout) feature availability.
-	 *
-	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
-	 */
-	const SPE_FEATURE_FLAG_NAME = '_wcstripe_feature_spe';
-
-	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
 	 * This single source of truth makes it easier to maintain our dev tools.
 	 *
@@ -145,9 +138,14 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_checkout_enabled() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] )
-			&& 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+		/**
+		 * Temporary filter to allow rollback to legacy checkout experience.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in version 9.8.0.
+		 * @param bool $enabled Whether new checkout experience is enabled. Default true.
+		 */
+		return apply_filters( 'wc_stripe_is_upe_checkout_enabled', true );
 	}
 
 	/**
@@ -171,22 +169,19 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
-	 * Whether the Single Payment Element (SPE) feature flag is enabled.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated since 9.5.0 Use `WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME` instead.
-	 */
-	public static function is_spe_available() {
-		return self::is_oc_available();
-	}
-
-	/**
-	 * Whether the Optimized Checkout (OC, previously known as SPE) feature flag is enabled.
+	 * Whether the Optimized Checkout (OC) feature flag is enabled.
 	 *
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		return 'yes' === self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$default_value   = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		return apply_filters(
+			'wc_stripe_is_optimized_checkout_available',
+			'yes' === $default_value && 'yes' === $pmc_enabled,
+			$default_value,
+			$pmc_enabled
+		);
 	}
 }
