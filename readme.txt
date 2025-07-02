@@ -151,7 +151,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Remove Payment Method Configurations fallback cache
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Fix - Fix buggy unsaved changes warning in settings page
-* Update - Include checkout extension data when submitting an express checkout order
+* Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
