@@ -164,5 +164,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add e2e tests to cover Affirm purchase flow
 * Fix - Add safety check when checking error object
 * Fix - Correctly handle countries without states when using the express payment methods
+* Update - Include extension data from block checkout when submitting an express checkout order
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
