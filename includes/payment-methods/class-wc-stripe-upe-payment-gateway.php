@@ -1645,7 +1645,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			exit;
 		}
 
-		$this->unlock_order_payment( $order );
+		finally {
+            $this->unlock_order_payment( $order );
+        }
+
 	}
 
 	/**
