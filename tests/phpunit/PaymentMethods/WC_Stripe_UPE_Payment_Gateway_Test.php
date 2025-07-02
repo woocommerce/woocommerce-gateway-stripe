@@ -1094,14 +1094,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->will(
 				$this->returnValue( true )
 			);
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'unlock_order_payment' );
 
 		// Expect the process to bail early.
 		$this->mock_gateway->expects( $this->never() )
 			->method( 'stripe_request' )
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" );
-
-		$this->mock_gateway->expects( $this->never() )
-			->method( 'unlock_order_payment' );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 	}
