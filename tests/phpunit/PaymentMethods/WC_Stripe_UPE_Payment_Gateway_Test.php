@@ -2762,35 +2762,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test test_set_payment_method_title_for_order with custom title.
-	 */
-	public function test_set_payment_method_title_for_order_custom_title() {
-		$order = WC_Helper_Order::create_order();
-
-		// CARD
-		// Set a custom title.
-		$payment_method_type              = WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID;
-		$payment_method_settings          = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
-		$payment_method_settings['title'] = 'Custom Card Title';
-		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
-
-		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		$this->assertEquals( 'Custom Card Title', $order->get_payment_method_title() );
-
-		// SEPA
-		// Set a custom title.
-		$payment_method_type              = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
-		$payment_method_settings          = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
-		$payment_method_settings['title'] = 'Custom SEPA Title';
-		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
-
-		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		$this->assertEquals( 'Custom SEPA Title', $order->get_payment_method_title() );
-	}
-
-	/**
 	 * Test test_set_payment_method_title_for_order with ECE wallet PM.
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {

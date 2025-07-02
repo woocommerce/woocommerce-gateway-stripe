@@ -56,17 +56,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'callback'            => [ $this, 'update_settings' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'is_stripe_enabled'                  => [
+					'is_stripe_enabled'                => [
 						'description'       => __( 'If Stripe should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_test_mode_enabled'               => [
+					'is_test_mode_enabled'             => [
 						'description'       => __( 'Stripe test mode setting.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'enabled_payment_method_ids'         => [
+					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -75,31 +75,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'individual_payment_method_settings' => [
-						'description'       => __( 'Individual payment method settings.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'object',
-						'items'             => [
-							'type' => 'object',
-						],
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'is_oc_enabled'                      => [
+					'is_oc_enabled'                    => [
 						'description'       => __( 'If Optimized Checkout should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'oc_title'                           => [
+					'oc_title'                         => [
 						'description'       => __( 'The default title to show above the Optimized Checkout element.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_size'             => [
+					'amazon_pay_button_size'           => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['amazon_pay_button_size']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'amazon_pay_button_locations'        => [
+					'amazon_pay_button_locations'      => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -108,31 +100,31 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_payment_request_enabled'         => [
+					'is_payment_request_enabled'       => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_type'        => [
+					'payment_request_button_type'      => [
 						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['payment_request_button_type']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_theme'       => [
+					'payment_request_button_theme'     => [
 						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'enum'              => array_keys( $form_fields['payment_request_button_theme']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_size'        => [
+					'payment_request_button_size'      => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						// it can happen that `$form_fields['payment_request_button_size']` is empty (in tests) - fixing temporarily.
 						'enum'              => array_keys( isset( $form_fields['payment_request_button_size']['options'] ) ? $form_fields['payment_request_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'payment_request_button_locations'   => [
+					'payment_request_button_locations' => [
 						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -141,12 +133,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_manual_capture_enabled'          => [
+					'is_manual_capture_enabled'        => [
 						'description'       => __( 'If manual capture of charges should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_saved_cards_enabled'             => [
+					'is_saved_cards_enabled'           => [
 						'description'       => __( 'If "Saved cards" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -156,7 +148,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_separate_card_form_enabled'      => [
+					'is_separate_card_form_enabled'    => [
 						'description'       => __( 'If credit card number field, expiry date field, and CVC field should be separate.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -166,7 +158,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_debug_log_enabled'               => [
+					'is_debug_log_enabled'             => [
 						'description'       => __( 'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -196,38 +188,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		);
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '/payment_method',
-			[
-				'methods'             => WP_REST_Server::EDITABLE,
-				'callback'            => [ $this, 'update_individual_payment_method_settings' ],
-				'permission_callback' => [ $this, 'check_permission' ],
-				'args'                => [
-					'payment_method' => [
-						'description'       => __( 'Payment method id.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'enum'              => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'is_enabled'     => [
-						'description'       => __( 'If payment method should be enabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'boolean',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'title'          => [
-						'description'       => __( 'Payment method title.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'description'    => [
-						'description'       => __( 'Payment method description.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-				],
-			]
-		);
-		register_rest_route(
-			$this->namespace,
 			'/' . $this->rest_base . '/notice',
 			[
 				'methods'             => WP_REST_Server::EDITABLE,
@@ -243,7 +203,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
-		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+		$is_upe_enabled = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
 		// When UPE and the payment method configurations API are enabled, fetch the enabled payment methods from the payment method configurations API.
 		// We force a refresh of the enabled payment methods (by passing true) when on the settings page to ensure the latest data.
 		// The available payment methods are also fetched from the payment method configurations API under similar conditions,
@@ -267,8 +227,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						[ WC_Stripe_Payment_Methods::AMAZON_PAY, WC_Stripe_Payment_Methods::LINK ]
 					)
 				), // exclude Amazon Pay and Link from this list as they are express methods only.
-				'individual_payment_method_settings'       => $is_upe_enabled ? WC_Stripe_Helper::get_upe_individual_payment_method_settings( $this->gateway ) : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
-
 				/* Settings > Express checkouts */
 				'amazon_pay_button_size'                   => $this->gateway->get_validated_option( 'amazon_pay_button_size' ),
 				'amazon_pay_button_locations'              => $this->gateway->get_validated_option( 'amazon_pay_button_locations' ),
@@ -312,7 +270,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
-		$this->update_individual_payment_method_settings( $request );
 		$this->update_payment_request_settings( $request );
 		$this->update_amazon_pay_settings( $request );
 
@@ -636,70 +593,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		if ( $this->gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
 			$this->gateway->update_enabled_payment_methods( $payment_method_ids_to_enable );
 		}
-	}
-
-	/**
-	 * Update individual payment gateway settings.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 *
-	 * @return WP_REST_Response
-	 */
-	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
-		$payment_method_id = $request->get_param( 'payment_method_id' );
-		$is_enabled        = $request->get_param( 'is_enabled' );
-		$title             = sanitize_text_field( $request->get_param( 'title' ) );
-		$description       = sanitize_text_field( $request->get_param( 'description' ) );
-		$is_upe_enabled    = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-
-		if ( $is_upe_enabled ) {
-			$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
-			if ( ! in_array( $payment_method_id, $available_payment_methods, true ) ) {
-				return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
-			}
-
-			$settings = [
-				'title'       => $title,
-				'description' => $description,
-			];
-
-			if ( in_array( $payment_method_id, [ WC_Stripe_Payment_Methods::BOLETO ], true ) ) {
-				$settings['expiration'] = sanitize_text_field( $request->get_param( 'expiration' ) );
-			}
-
-			update_option(
-				'woocommerce_stripe_' . $payment_method_id . '_settings',
-				$settings
-			);
-
-			return new WP_REST_Response( [], 200 );
-		}
-
-		// Map the ids used in the frontend to the legacy gateway class ids.
-		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
-
-		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
-		if ( WC_Stripe_Payment_Methods::CARD === $payment_method_id ) {
-			$this->gateway->update_option( 'title', $title );
-			$this->gateway->update_option( 'description', $description );
-			return new WP_REST_Response( [], 200 );
-		}
-
-		$payment_gateway = WC_Stripe_Helper::get_legacy_payment_method( $mapped_legacy_method_id );
-
-		if ( ! $payment_gateway ) {
-			return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
-		}
-
-		$payment_gateway->update_option( 'title', $title );
-		$payment_gateway->update_option( 'description', $description );
-
-		if ( $request->get_param( 'expiration' ) && method_exists( $payment_gateway, 'update_unique_settings' ) ) {
-			$request->set_param( $mapped_legacy_method_id . '_expiration', $request->get_param( 'expiration' ) );
-			$payment_gateway->update_unique_settings( $request );
-		}
-
-		return new WP_REST_Response( [], 200 );
 	}
 
 	/**

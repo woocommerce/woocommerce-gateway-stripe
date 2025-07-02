@@ -1,13 +1,11 @@
 /* global wc_stripe_settings_params */
-import { __, sprintf } from '@wordpress/i18n';
+import { sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
-import { Button } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
-import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import { useManualCapture } from 'wcstripe/data';
 import {
@@ -105,17 +103,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const CustomizeButton = styled( Button )`
-	margin-left: auto;
-`;
-
-const PaymentMethod = ( {
-	method,
-	onSaveChanges,
-	customizationStatus,
-	setCustomizationStatus,
-	data,
-} ) => {
+const PaymentMethod = ( { method, data } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
 
@@ -142,20 +130,6 @@ const PaymentMethod = ( {
 		paymentMethodCurrencies.length &&
 		! paymentMethodCurrencies.includes( storeCurrency );
 
-	const onSaveCustomization = ( methodName, customizationData = null ) => {
-		setCustomizationStatus( {
-			...customizationStatus,
-			[ methodName ]: false,
-		} );
-
-		if ( data ) {
-			onSaveChanges(
-				'individual_payment_method_settings',
-				customizationData
-			);
-		}
-	};
-
 	return (
 		<div key={ method }>
 			<ListElement
@@ -163,7 +137,6 @@ const PaymentMethod = ( {
 				className={ classnames( {
 					'has-overlay':
 						! isAllowingManualCapture && isManualCaptureEnabled,
-					expanded: customizationStatus[ method ],
 				} ) }
 			>
 				<PaymentMethodCheckbox
@@ -186,29 +159,7 @@ const PaymentMethod = ( {
 					/>
 					<StyledFees id={ method } />
 				</PaymentMethodWrapper>
-				{ ! customizationStatus[ method ] && (
-					<CustomizeButton
-						variant="secondary"
-						onClick={ () =>
-							setCustomizationStatus( {
-								...customizationStatus,
-								[ method ]: true,
-							} )
-						}
-						disabled={ deprecated }
-					>
-						{ __( 'Customize', 'woocommerce-gateway-stripe' ) }
-					</CustomizeButton>
-				) }
 			</ListElement>
-			{ customizationStatus[ method ] && (
-				<CustomizePaymentMethod
-					method={ method }
-					onClose={ ( customizationData ) =>
-						onSaveCustomization( method, customizationData )
-					}
-				/>
-			) }
 		</div>
 	);
 };

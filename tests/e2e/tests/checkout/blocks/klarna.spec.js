@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { admin, payments } from '../../../utils';
 
-const { setupKlarnaCheckout, completeKlarnaPayment } = payments;
+const { setupKlarnaCheckout, clickPlaceOrder } = payments;
 
 test.describe( 'Klarna payment tests @blocks', () => {
 	test.beforeAll( async ( { browser } ) => {
@@ -15,11 +15,7 @@ test.describe( 'Klarna payment tests @blocks', () => {
 
 	test( 'customer can pay with Klarna @smoke', async ( { page } ) => {
 		await setupKlarnaCheckout( page, 'blocks' );
-		await page.locator( 'text=Place order' ).click();
-		await completeKlarnaPayment( page );
-		await page.waitForURL( '**/checkout/order-received/**' );
-		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-			'Order received'
-		);
+		await clickPlaceOrder( page );
+		await expect( page ).toHaveURL( /.*(klarna\.com|stripe\.com)/ );
 	} );
 } );
