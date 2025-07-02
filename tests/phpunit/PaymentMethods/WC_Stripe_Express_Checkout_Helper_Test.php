@@ -592,6 +592,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		// Set up global WP query vars
 		$original_wp = $GLOBALS['wp'] ?? null;
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 		$GLOBALS['wp'] = (object) [
 			'query_vars' => [
 				'rest_route' => $rest_route,
@@ -603,8 +604,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		// Restore original global
 		if ( $original_wp ) {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			$GLOBALS['wp'] = $original_wp;
 		} else {
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 			unset( $GLOBALS['wp'] );
 		}
 	}
