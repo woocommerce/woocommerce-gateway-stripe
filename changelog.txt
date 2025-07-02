@@ -57,6 +57,7 @@
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
+* Tweak - Deprecate wc_connect_* filters
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
