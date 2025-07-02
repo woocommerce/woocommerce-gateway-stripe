@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\Domain\Services\CheckoutFields;
+use Automattic\WooCommerce\StoreApi\Exceptions\RouteException;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WC_Stripe_Express_Checkout_Custom_Fields;
 use WP_UnitTestCase;
@@ -57,6 +58,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 		add_filter( 'woocommerce_billing_fields', $custom_billing_fields );
 		add_filter( 'woocommerce_shipping_fields', $custom_shipping_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
 
 		$custom_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
 		$fields                = $custom_fields_support->get_custom_checkout_fields( 'classic' );
@@ -95,7 +98,8 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
 		remove_filter( 'woocommerce_billing_fields', $custom_billing_fields );
 		remove_filter( 'woocommerce_shipping_fields', $custom_shipping_fields );
-		WC()->checkout()->checkout_fields = [];
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
 	}
 
 	public function test_get_custom_checkout_fields_checkout_blocks() {
@@ -121,21 +125,78 @@ class WC_Stripe_Express_Checkout_Custom_Fields_Test extends WP_UnitTestCase {
 		$checkout_fields->deregister_checkout_field( 'my-plugin/gov-id' );
 	}
 
-	public function test_process_custom_checkout_data() {
-		$request = new \WP_REST_Request( 'POST', '/test-request' );
+	public function test_process_custom_checkout_data_valid_data() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
 		$request->set_param(
 			'extensions',
 			[
 				'wc-stripe/express-checkout' => [
-					'custom_checkout_data' => json_encode( [ 'my-custom-field' => 'test' ] ),
+					'custom_checkout_data' => json_encode( [ 'billing_custom_field1' => 'test' ] ),
 				],
 			]
 		);
 
 		$order                 = WC_Helper_Order::create_order();
 		$custom_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+
+		// Assert no exceptions are thrown.
+		try {
+			$custom_fields_support->process_custom_checkout_data( $order, $request );
+			$this->assertTrue( true );
+		} catch ( Exception $e ) {
+			$this->fail( 'Expected no exceptions to be thrown, but got: ' . $e->getMessage() );
+		}
+
+		// Remove filters and reset checkout fields.
+		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+	}
+
+	public function test_process_custom_checkout_data_missing_data() {
+		$custom_checkout_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1'] = [
+				'type'     => 'text',
+				'label'    => 'Billing Custom Field 1',
+				'required' => true,
+			];
+			return $fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
+
+		$request = new \WP_REST_Request( 'POST', '/wc/stripe-ece/v1/test-request' );
+		$request->set_param(
+			'extensions',
+			[
+				'wc-stripe/express-checkout' => [
+					'custom_checkout_data' => json_encode( [] ),
+				],
+			]
+		);
+		$order                 = WC_Helper_Order::create_order();
+		$custom_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+
+		// Assert RouteException is thrown.
+		$this->expectException( RouteException::class );
 		$custom_fields_support->process_custom_checkout_data( $order, $request );
-		// Assert no exceptions were thrown.
-		$this->assertTrue( true );
+
+		// Remove filters and reset checkout fields.
+		remove_filter( 'woocommerce_checkout_fields', $custom_checkout_fields );
+		WC()->checkout()->checkout_fields = null;
+		WC()->checkout()->get_checkout_fields();
 	}
 }
