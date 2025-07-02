@@ -16,7 +16,6 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `get_title`.
 	 *
-	 * @param array      $settings Settings.
 	 * @param array|bool $payment_details Payment details.
 	 * @param bool       $optimized_checkout_setting Optimized Checkout flag.
 	 * @param array      $query_params Query parameters.
@@ -25,16 +24,13 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_test_get_title
 	 */
-	public function test_get_title( $settings, $payment_details, $optimized_checkout_setting, $query_params, $expected ) {
+	public function test_get_title( $payment_details, $optimized_checkout_setting, $query_params, $expected ) {
 		if ( $optimized_checkout_setting ) {
 			OC_Test_Helper::enable_oc();
 		}
 
 		if ( is_array( $payment_details ) ) {
 			$payment_details = json_decode( wp_json_encode( $payment_details ) );
-		}
-		if ( ! empty( $settings['key'] ) ) {
-			update_option( $settings['key'], $settings['value'] );
 		}
 		if ( ! empty( $query_params ) ) {
 			$_GET = array_merge( $_GET, $query_params );
@@ -57,7 +53,6 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 	public function provide_test_get_title() {
 		return [
 			'optimized checkout, with payment details' => [
-				'settings'                => [],
 				'payment details'         => [
 					'type' => WC_Stripe_Payment_Methods::ALIPAY,
 				],
@@ -66,7 +61,6 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 				'expected'                => 'Alipay',
 			],
 			'optimized checkout, block checkout page / pay for order' => [
-				'settings'                => [],
 				'payment details'         => false,
 				'optimized checkout flag' => true,
 				'query params'            => [
@@ -75,7 +69,6 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 				'expected'                => 'Stripe',
 			],
 			'Google Pay'                               => [
-				'settings'                => [],
 				'payment details'         => [
 					'card' => [
 						'wallet' => [
@@ -87,20 +80,7 @@ class WC_Stripe_UPE_Payment_Method_CC_Test extends WP_UnitTestCase {
 				'query params'            => [],
 				'expected'                => 'Google Pay (Stripe)',
 			],
-			'default, from settings'                   => [
-				'settings'                => [
-					'key'   => 'woocommerce_stripe_card_settings',
-					'value' => [
-						'title' => 'Card Custom Title',
-					],
-				],
-				'payment details'         => false,
-				'optimized checkout flag' => false,
-				'query params'            => [],
-				'expected'                => 'Card Custom Title',
-			],
 			'default, hardcoded'                       => [
-				'settings'                => [],
 				'payment details'         => false,
 				'optimized checkout flag' => false,
 				'query params'            => [],

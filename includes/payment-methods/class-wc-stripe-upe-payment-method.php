@@ -212,8 +212,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['title'] ) ? $payment_method_settings['title'] : $this->title;
+		return $this->title;
 	}
 
 	/**
@@ -231,12 +230,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		if ( $this->oc_enabled ) { // Disable the description when OC is enabled.
-			return '';
-		}
-
-		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
+		return '';
 	}
 
 	/**
