@@ -113,32 +113,14 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
-	 * Whether Single Payment Element is enabled.
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `$oc_enabled` instead.
-	 */
-	protected $spe_enabled;
-
-	/**
-	 * Whether Optimized Checkout (previously known as SPE) is enabled.
+	 * Whether Optimized Checkout is enabled.
 	 *
 	 * @var bool
 	 */
 	protected $oc_enabled;
 
 	/**
-	 * The default title for the Single Payment Element.
-	 *
-	 * @var string
-	 *
-	 * @deprecated 9.5.0 Use `$oc_title` instead.
-	 */
-	protected $spe_title;
-
-	/**
-	 * The default title for the Optimized Checkout element (previously known as SPE).
+	 * The default title for the Optimized Checkout element
 	 *
 	 * @var string
 	 */
@@ -642,7 +624,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
-				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}

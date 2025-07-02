@@ -482,10 +482,14 @@ export const showErrorCheckout = ( errorMessage ) => {
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
 	) {
-		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
-			errorMessage = getStripeServerData()[ errorMessage.code ];
+		if (
+			errorMessage?.code &&
+			getStripeServerData()[ errorMessage?.code ]
+		) {
+			errorMessage = getStripeServerData()[ errorMessage?.code ];
 		} else {
-			errorMessage = errorMessage.message;
+			errorMessage =
+				errorMessage?.message || 'An unknown error occurred.';
 		}
 	}
 

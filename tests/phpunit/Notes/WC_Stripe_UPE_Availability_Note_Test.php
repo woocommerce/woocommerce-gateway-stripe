@@ -1,6 +1,6 @@
 <?php
 
-namespace WooCommerce\Stripe\Tests;
+namespace WooCommerce\Stripe\Tests\Notes;
 
 use WC_Stripe_UPE_Availability_Note;
 use WP_UnitTestCase;

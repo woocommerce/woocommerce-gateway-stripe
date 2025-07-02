@@ -333,7 +333,7 @@ const PaymentProcessor = ( {
 		} else {
 			removeCashAppLimitNotice();
 		}
-		// Apply single payment element styles if the selected payment method is card and SPE is enabled.
+		// Apply single payment element styles if the selected payment method is card and OC is enabled.
 		if ( getBlocksConfiguration()?.isOCEnabled ) {
 			applyStyles();
 

@@ -1786,6 +1786,44 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if the payment method should be saved.
+	 *
+	 * @since 9.6.0
+	 * @param bool $force_save Whether the payment method should be saved.
+	 * @param string $order_id Order ID.
+	 * @return bool
+	 */
+	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
+		// Do not save the payment method if the user is not logged in.
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		$force_save_payment_method = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save, $order_id ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
+		);
+
+		/**
+		 * Filters the flag that decides if the payment method must be saved in all possible situations.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param bool   $force_save Whether the payment method must be saved.
+		 * @param string $order_id   Order ID.
+		 *
+		 * @return bool Whether the payment method must be saved in all situations.
+		*/
+		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
+
+		return $force_save_payment_method;
+	}
+
+	/**
 	 * Returns the description for a refund reason.
 	 *
 	 * @return string
