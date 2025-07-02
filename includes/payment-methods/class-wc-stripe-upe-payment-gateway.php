@@ -1966,18 +1966,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Checks if the Single Payment Element setting is enabled.
-	 *
-	 * @return bool Whether the Single Payment Element setting is enabled.
-	 *
-	 * @deprecated 9.5.0 Use is_oc_enabled() instead.
-	 */
-	public function is_spe_enabled() {
-		return $this->oc_enabled;
-	}
-
-	/**
-	 * Checks if the Optimized Checkout (previously known as SPE) setting is enabled.
+	 * Checks if the Optimized Checkout setting is enabled.
 	 *
 	 * @return bool Whether the Optimized Checkout setting is enabled.
 	 */

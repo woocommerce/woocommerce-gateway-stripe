@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
