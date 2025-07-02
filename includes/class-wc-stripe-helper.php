@@ -582,6 +582,8 @@ class WC_Stripe_Helper {
 	 * Get settings of individual legacy payment methods.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
 		$stripe_settings = self::get_stripe_settings();
@@ -618,6 +620,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
 		$payment_method_settings = [];

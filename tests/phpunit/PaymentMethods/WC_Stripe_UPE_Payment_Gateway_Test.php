@@ -5,6 +5,9 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
+use WC_Stripe_Database_Cache;
+use WC_Stripe_Payment_Method_Configurations;
+use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Data_Exception;
 use WC_Order;
@@ -200,6 +203,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'has_pre_order',
 					'is_subscriptions_enabled',
 					'update_saved_payment_method',
+					'lock_order_payment',
+					'unlock_order_payment',
 				]
 			)
 			->getMock();
@@ -233,6 +238,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'update_customer' )
 			->will(
 				$this->returnValue( 'cus_mock' )
+			);
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'unlock_order_payment' )
+			->will(
+				$this->returnValue( null )
 			);
 	}
 
@@ -935,6 +945,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
 
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'lock_order_payment' )
+			->will(
+				$this->returnValue( false )
+			);
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
@@ -1046,6 +1061,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$final_order = wc_get_order( $order_id );
 
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
+	}
+
+	/**
+	 * Test locking for process redirect payment.
+	 */
+	public function test_process_redirect_payment_locks_order() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['latest_charge']      = 'ch_mock';
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->will(
+				$this->returnValue( true )
+			);
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'unlock_order_payment' );
+
+		// Expect the process to bail early.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" );
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 	}
 
 	/**
@@ -2759,35 +2816,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	/**
-	 * Test test_set_payment_method_title_for_order with custom title.
-	 */
-	public function test_set_payment_method_title_for_order_custom_title() {
-		$order = WC_Helper_Order::create_order();
-
-		// CARD
-		// Set a custom title.
-		$payment_method_type              = WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID;
-		$payment_method_settings          = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
-		$payment_method_settings['title'] = 'Custom Card Title';
-		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
-
-		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		$this->assertEquals( 'Custom Card Title', $order->get_payment_method_title() );
-
-		// SEPA
-		// Set a custom title.
-		$payment_method_type              = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
-		$payment_method_settings          = get_option( "woocommerce_stripe_{$payment_method_type}_settings", [] );
-		$payment_method_settings['title'] = 'Custom SEPA Title';
-		update_option( "woocommerce_stripe_{$payment_method_type}_settings", $payment_method_settings );
-
-		$this->mock_gateway->set_payment_method_title_for_order( $order, $payment_method_type );
-
-		$this->assertEquals( 'Custom SEPA Title', $order->get_payment_method_title() );
-	}
-
-	/**
 	 * Test test_set_payment_method_title_for_order with ECE wallet PM.
 	 */
 	public function test_set_payment_method_title_for_order_ECE_title() {
@@ -2893,13 +2921,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test that a failed payment intent is not reused and a new one is created instead.
 	 *
+	 * @param bool $pmc_enabled Whether the payment method configurations are enabled.
 	 * @param bool $setting_enabled Whether the optimized checkout setting is enabled.
 	 * @param bool $expected The expected result of the `is_oc_enabled` method.
 	 * @return void
 	 *
 	 * @dataProvider provide_test_is_oc_enabled
 	 */
-	public function test_is_oc_enabled( $setting_enabled, $expected ) {
+	public function test_is_oc_enabled( $pmc_enabled, $setting_enabled, $expected ) {
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+
+			// Mock the payment method configuration for the test, to avoid it being disabled by default.
+			PMC_Test_Helper::cache_mocked_configuration();
+		}
+
 		if ( $setting_enabled ) {
 			OC_Test_Helper::enable_oc();
 		}
@@ -2908,6 +2944,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$actual  = $gateway->is_oc_enabled();
 
 		// Clean up
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
 		OC_Test_Helper::disable_oc();
 
 		$this->assertSame( $expected, $actual );
@@ -2920,13 +2958,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 */
 	public function provide_test_is_oc_enabled() {
 		return [
-			'Disabled' => [
+			'Disabled (all disabled)' => [
+				'pmc enabled'   => false,
 				'setting value' => false,
 				'expected'      => false,
 			],
-			'Enabled'  => [
+			'Disabled (pmc enabled)'  => [
+				'pmc enabled'   => true,
+				'setting value' => false,
+				'expected'      => false,
+			],
+			'Enabled'                 => [
+				'pmc enabled'   => true,
 				'setting value' => true,
-				'expected'     => true,
+				'expected'      => true,
 			],
 		];
 	}
