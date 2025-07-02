@@ -625,10 +625,19 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise for the request to the server.
 	 */
 	expressCheckoutECECreateOrder( orderData ) {
-		return this.postToBlocksAPI( '/wc/store/v1/checkout', {
-			...orderData,
-			customer_note: getCustomerNote(),
-		} );
+		return this.postToBlocksAPI(
+			'/wc/store/v1/checkout',
+			{
+				...orderData,
+				customer_note: getCustomerNote(),
+			},
+			{
+				'X-WCSTRIPE-EXPRESS-CHECKOUT': true,
+				'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE': getExpressCheckoutData(
+					'nonce'
+				)?.wc_store_api_express_checkout,
+			}
+		);
 	}
 
 	/**
@@ -653,14 +662,16 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} path The path to post to.
 	 * @param {Object} data The data to post.
+	 * @param {Object} headers The headers for the request.
 	 * @return {Promise} The promise for the request to the server.
 	 */
-	postToBlocksAPI( path, data ) {
+	postToBlocksAPI( path, data, headers = {} ) {
 		return apiFetch( {
 			method: 'POST',
 			path,
 			headers: {
 				Nonce: getExpressCheckoutData( 'nonce' )?.wc_store_api,
+				...headers,
 			},
 			data,
 		} );

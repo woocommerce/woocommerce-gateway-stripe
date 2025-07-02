@@ -1,6 +1,6 @@
 /* global wc_stripe_settings_params */
 import { sprintf } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
@@ -163,11 +163,7 @@ const getFormattedPaymentMethodDescription = (
 	return description;
 };
 
-const GeneralSettingsSection = ( {
-	isChangingDisplayOrder,
-	onSaveChanges,
-} ) => {
-	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
+const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const {
@@ -235,7 +231,6 @@ const GeneralSettingsSection = ( {
 							'has-overlay':
 								! isAllowingManualCapture &&
 								isManualCaptureEnabled,
-							expanded: customizationStatus[ method ],
 						} ) }
 					>
 						<IconComponent
@@ -273,9 +268,6 @@ const GeneralSettingsSection = ( {
 					<PaymentMethod
 						key={ method }
 						method={ method }
-						onSaveChanges={ onSaveChanges }
-						customizationStatus={ customizationStatus }
-						setCustomizationStatus={ setCustomizationStatus }
 						data={ data }
 					/>
 				);

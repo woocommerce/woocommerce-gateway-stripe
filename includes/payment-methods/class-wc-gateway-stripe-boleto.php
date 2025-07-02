@@ -89,6 +89,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 * @return void
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public function update_unique_settings( WP_REST_Request $request ) {
 		$field_name = $this->id . '_expiration';
