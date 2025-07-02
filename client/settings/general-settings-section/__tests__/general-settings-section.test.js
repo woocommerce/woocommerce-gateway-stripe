@@ -8,6 +8,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
+	useIsOCEnabled,
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
@@ -28,6 +29,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 	useIndividualPaymentMethodSettings: jest.fn(),
 	useCustomizePaymentMethodSettings: jest.fn(),
+	useIsOCEnabled: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
 } ) );
 jest.mock( 'utils/use-payment-method-currencies', () => ( {
@@ -75,6 +77,7 @@ describe( 'GeneralSettingsSection', () => {
 			data: { testmode: false },
 		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,

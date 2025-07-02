@@ -2,23 +2,34 @@ import { render, screen } from '@testing-library/react';
 import { expect } from '@playwright/test';
 import SectionHeading from 'wcstripe/settings/general-settings-section/section-heading';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { useIsOCEnabled, useGetOrderedPaymentMethodIds } from 'wcstripe/data';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+jest.mock( 'wcstripe/data', () => ( {
+	useIsOCEnabled: jest.fn(),
+	useGetOrderedPaymentMethodIds: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+} ) );
+
 describe( 'SectionHeading', () => {
-	const globalValues = global.wc_stripe_settings_params;
-
 	beforeEach( () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_oc_enabled: false,
-		};
-	} );
-
-	afterEach( () => {
-		global.wc_stripe_settings_params = globalValues;
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [ PAYMENT_METHOD_CARD ],
+			isSaving: false,
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+		useAccount.mockReturnValue( {
+			refreshAccount: jest.fn(),
+		} );
 	} );
 
 	it( 'default display', () => {
@@ -53,10 +64,8 @@ describe( 'SectionHeading', () => {
 	} );
 
 	it( 'OC is enabled', () => {
-		global.wc_stripe_settings_params = {
-			...globalValues,
-			is_oc_enabled: true,
-		};
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
 		const { getByText, getByLabelText } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<SectionHeading isChangingDisplayOrder={ false } />
