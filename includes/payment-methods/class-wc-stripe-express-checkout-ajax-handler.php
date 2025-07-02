@@ -38,6 +38,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
+		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 	}
 
 	/**
@@ -387,5 +388,30 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		}
 
 		wp_send_json( $result );
+	}
+
+	/**
+	 * Modify country locale for express checkout.
+	 * Countries that don't have state fields, make the state field optional.
+	 *
+	 * @param array $locale The country locale.
+	 * @return array Modified country locale.
+	 */
+	public function modify_country_locale_for_express_checkout( $locale ) {
+		// Only modify locale settings if this is an express checkout context.
+		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
+			return $locale;
+		}
+
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+
+		// For countries that don't have state fields, make the state field optional.
+		foreach ( WC_Stripe_Payment_Request_Button_States::STATES as $country_code => $states ) {
+			if ( empty( $states ) ) {
+				$locale[ $country_code ]['state']['required'] = false;
+			}
+		}
+
+		return $locale;
 	}
 }

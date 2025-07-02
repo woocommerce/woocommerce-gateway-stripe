@@ -10,7 +10,6 @@ use WC_Stripe_Customer;
 use WC_Stripe_Exception;
 use WC_Stripe_Helper;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
-use WooCommerce\Stripe\Tests\Helpers\OCTest_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_Error;
 use WP_UnitTestCase;
