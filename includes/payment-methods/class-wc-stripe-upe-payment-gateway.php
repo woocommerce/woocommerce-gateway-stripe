@@ -1619,6 +1619,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			// First check if the order is already being processed by another request.
 			$locked = $this->lock_order_payment( $order );
 			if ( $locked ) {
+				WC_Stripe_Logger::log( "Skip processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}, order payment is already being processed (locked)" );
 				return;
 			}
 
