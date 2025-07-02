@@ -556,12 +556,15 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
-	 * Register the express checkout script without enqueuing it.
+	 * Get asset file data (version and dependencies).
+	 *
+	 * @return array Array containing 'version' and 'dependencies' keys.
 	 */
-	private function register_express_checkout_script() {
+	private function get_asset_data() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
+
 		if ( file_exists( $asset_path ) ) {
 			$asset        = require $asset_path;
 			$version      = is_array( $asset ) && isset( $asset['version'] )
@@ -572,12 +575,24 @@ class WC_Stripe_Express_Checkout_Element {
 				: $dependencies;
 		}
 
+		return [
+			'version'      => $version,
+			'dependencies' => $dependencies,
+		];
+	}
+
+	/**
+	 * Register the express checkout script without enqueuing it.
+	 */
+	private function register_express_checkout_script() {
+		$asset_data = $this->get_asset_data();
+
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script(
 			'wc_stripe_express_checkout',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $dependencies ),
-			$version,
+			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			$asset_data['version'],
 			true
 		);
 	}
@@ -600,20 +615,13 @@ class WC_Stripe_Express_Checkout_Element {
 			$this->register_express_checkout_script();
 		}
 
-		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
-		$version    = WC_STRIPE_VERSION;
-		if ( file_exists( $asset_path ) ) {
-			$asset   = require $asset_path;
-			$version = is_array( $asset ) && isset( $asset['version'] )
-				? $asset['version']
-				: $version;
-		}
+		$asset_data = $this->get_asset_data();
 
 		wp_enqueue_style(
 			'wc_stripe_express_checkout_style',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.css',
 			[],
-			$version
+			$asset_data['version']
 		);
 
 		wp_localize_script(
