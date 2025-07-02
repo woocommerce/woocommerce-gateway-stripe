@@ -50,6 +50,7 @@
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
 * Fix - Add safety check when checking error object
+* Fix - Correctly handle countries without states when using the express payment methods
 * Update - Improvements to custom checkout fields support for express checkout
 
 = 9.5.3 - 2025-06-23 =
