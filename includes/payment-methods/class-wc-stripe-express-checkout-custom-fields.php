@@ -53,7 +53,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 		$errors = new WP_Error();
 
 		// Enforce required fields.
-		$custom_checkout_fields = $this->get_custom_checkout_fields();
+		$custom_checkout_fields = $this->get_custom_checkout_fields( 'classic' );
 		foreach ( $custom_checkout_fields as $key => $field ) {
 			if ( $field['required'] && empty( $custom_checkout_data[ $key ] ) ) {
 				$errors->add(
@@ -124,7 +124,7 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 
 		// Perform basic sanitization before passing to actions.
 		$sanitized_custom_checkout_data = [];
-		$custom_checkout_fields         = $this->get_custom_checkout_fields();
+		$custom_checkout_fields         = $this->get_custom_checkout_fields( 'classic' );
 		foreach ( $custom_checkout_data as $key => $value ) {
 			$field_type                                       = $custom_checkout_fields[ $key ]['type'] ?? 'text';
 			$sanitized_key                                    = sanitize_text_field( $key );
@@ -181,53 +181,63 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 	 *
 	 * @return array Custom checkout field IDs.
 	 */
-	public function get_custom_checkout_fields() {
+	public function get_custom_checkout_fields( $context = '' ) {
 		// Block checkout page
-		if ( has_block( 'woocommerce/checkout' ) ) {
+		if ( has_block( 'woocommerce/checkout' ) || 'block' === $context ) {
 			try {
 				$checkout_fields = Package::container()->get( CheckoutFields::class );
 				if ( ! $checkout_fields instanceof CheckoutFields ) {
 					return [];
 				}
 
-				$custom_checkout_fields = [];
-				$additional_fields      = $checkout_fields->get_additional_fields();
+				$block_custom_checkout_fields = [];
+				$additional_fields            = $checkout_fields->get_additional_fields();
 				foreach ( $additional_fields as $field_key => $field ) {
-					$location                             = $checkout_fields->get_field_location( $field_key );
-					$custom_checkout_fields[ $field_key ] = [
+					$block_custom_checkout_fields[ $field_key ] = [
 						'label'    => $field['label'],
 						'type'     => $field['type'],
-						'location' => $location,
+						'location' => $checkout_fields->get_field_location( $field_key ),
 						'required' => $field['required'],
 					];
 				}
 
-				return $custom_checkout_fields;
+				return $block_custom_checkout_fields;
 			} catch ( Exception $e ) {
 				return [];
 			}
 		}
 
 		// Classic checkout page
-		$custom_checkout_fields   = [];
-		$standard_checkout_fields = $this->get_standard_checkout_fields();
-		$all_fields               = WC()->checkout()->get_checkout_fields();
-		foreach ( $all_fields as $fieldset => $fields ) {
-			foreach ( $fields as $field_key => $field ) {
-				if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
-					continue;
-				}
+		if ( is_checkout() || 'classic' === $context ) {
+			$classic_custom_checkout_fields = [];
+			$standard_checkout_fields       = $this->get_standard_checkout_fields();
+			$all_fields                     = WC()->checkout()->get_checkout_fields();
+			foreach ( $all_fields as $fieldset => $fields ) {
+				foreach ( $fields as $field_key => $field ) {
+					if ( in_array( $field_key, $standard_checkout_fields, true ) ) {
+						continue;
+					}
 
-				$custom_checkout_fields[ $field_key ] = [
-					'label'    => $field['label'],
-					'type'     => $field['type'],
-					'location' => $fieldset,
-					'required' => $field['required'],
-				];
+					$classic_custom_checkout_fields[ $field_key ] = [
+						'label'    => $field['label'],
+						'type'     => $field['type'],
+						'location' => $fieldset,
+						'required' => $field['required'],
+					];
+				}
 			}
+
+			return $classic_custom_checkout_fields;
 		}
 
-		return $custom_checkout_fields;
+		if ( is_cart() || is_product() ) {
+			return array_merge(
+				$this->get_custom_checkout_fields( 'block' ),
+				$this->get_custom_checkout_fields( 'classic' )
+			);
+		}
+
+		return [];
 	}
 
 	/**
