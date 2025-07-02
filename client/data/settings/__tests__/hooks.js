@@ -5,7 +5,6 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useSettings,
 	useGetOrderedPaymentMethodIds,
-	useCustomizePaymentMethodSettings,
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestButtonTheme,
 	usePaymentRequestLocations,
@@ -129,65 +128,6 @@ describe( 'Settings hooks tests', () => {
 				expect( isLoading ).toBeTruthy();
 			}
 		);
-	} );
-
-	describe( 'useCustomizePaymentMethodSettings()', () => {
-		beforeEach( () => {
-			actions = {
-				saveIndividualPaymentMethodSettings: jest.fn(),
-				updateSettingsValues: jest.fn(),
-			};
-
-			selectors = {
-				getIndividualPaymentMethodSettings: jest.fn( () => ( {
-					eps: {
-						title: 'EPS',
-						description: 'Pay with EPS',
-					},
-					giropay: {
-						title: 'Giropay',
-						description: 'Pay with Giropay',
-					},
-				} ) ),
-				isCustomizingPaymentMethod: jest.fn(),
-			};
-		} );
-
-		test( 'returns individula payment method settings from selector', () => {
-			const { result } = renderHook( useCustomizePaymentMethodSettings );
-			const {
-				individualPaymentMethodSettings,
-				customizePaymentMethod,
-			} = result.current;
-
-			expect( individualPaymentMethodSettings ).toEqual( {
-				eps: {
-					title: 'EPS',
-					description: 'Pay with EPS',
-				},
-				giropay: {
-					title: 'Giropay',
-					description: 'Pay with Giropay',
-				},
-			} );
-
-			customizePaymentMethod( PAYMENT_METHOD_GIROPAY, true, {
-				giropay: {
-					name: 'Giropay',
-					description: 'Pay with Giropay',
-					expiration: '10',
-				},
-			} );
-			expect(
-				actions.saveIndividualPaymentMethodSettings
-			).toHaveBeenCalledWith( {
-				isEnabled: true,
-				method: PAYMENT_METHOD_GIROPAY,
-				name: 'Giropay',
-				description: 'Pay with Giropay',
-				expiration: '10',
-			} );
-		} );
 	} );
 
 	describe( 'useGetOrderedPaymentMethodIds()', () => {

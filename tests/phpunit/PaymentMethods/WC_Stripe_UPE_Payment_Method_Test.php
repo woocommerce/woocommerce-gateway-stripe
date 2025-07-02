@@ -13,8 +13,10 @@ use WC_Payment_Token_Link;
 use WC_Payment_Token_SEPA;
 use WC_Stripe;
 use WC_Stripe_Currency_Code;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WC_Stripe_Payment_Method_Configurations;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Payment_Token_CC;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -28,6 +30,7 @@ use WC_Stripe_UPE_Payment_Method_CC;
 use WC_Stripe_UPE_Payment_Method_Link;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
+use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 /**
@@ -797,7 +800,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 		$stripe_settings                           = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['single_payment_element'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-		update_option( WC_Stripe_Feature_Flags::SPE_FEATURE_FLAG_NAME, 'yes' );
+		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, 'yes' );
 
 		$mocked_methods = [
 			'get_capabilities_response',
@@ -814,78 +817,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WC_Mock_Stripe_API_Unit_Test_Cas
 			->getMock();
 
 		$this->assertFalse( $mocked_payment_method->is_available() );
-	}
-
-	public function test_payment_methods_support_custom_name_and_description() {
-		$payment_method_ids = [
-			WC_Stripe_Payment_Methods::ACH,
-			WC_Stripe_Payment_Methods::ACSS_DEBIT,
-			WC_Stripe_Payment_Methods::BECS_DEBIT,
-			WC_Stripe_Payment_Methods::BLIK,
-			WC_Stripe_Payment_Methods::CARD,
-			WC_Stripe_Payment_Methods::KLARNA,
-			WC_Stripe_Payment_Methods::AFTERPAY_CLEARPAY,
-			WC_Stripe_Payment_Methods::AFFIRM,
-			WC_Stripe_Payment_Methods::P24,
-			WC_Stripe_Payment_Methods::EPS,
-			WC_Stripe_Payment_Methods::SEPA_DEBIT,
-			WC_Stripe_Payment_Methods::SOFORT,
-			WC_Stripe_Payment_Methods::BANCONTACT,
-			WC_Stripe_Payment_Methods::IDEAL,
-			WC_Stripe_Payment_Methods::BOLETO,
-			WC_Stripe_Payment_Methods::MULTIBANCO,
-			WC_Stripe_Payment_Methods::OXXO,
-			WC_Stripe_Payment_Methods::WECHAT_PAY,
-		];
-
-		foreach ( $payment_method_ids as $payment_method_id ) {
-			$payment_method = $this->mock_payment_methods[ $payment_method_id ];
-
-			// Update the payment method settings to have a custom name and description.
-			$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
-			$updated_payment_settings                = $original_payment_settings;
-			$custom_name                             = 'Custom Name for ' . $payment_method_id;
-			$custom_description                      = 'Custom description for ' . $payment_method_id;
-			$updated_payment_settings['title']       = $custom_name;
-			$updated_payment_settings['description'] = $custom_description;
-			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
-
-			$this->assertEquals( $custom_name, $payment_method->get_title() );
-			$this->assertEquals( $custom_description, $payment_method->get_description() );
-
-			// Restore original settings.
-			update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
-		}
-
-		// Test custom description when OC is enabled. Should be always empty.
-		OC_Test_Helper::enable_oc();
-
-		$payment_method_id                       = WC_Stripe_Payment_Methods::CARD;
-		$custom_description                      = 'Custom description for ' . $payment_method_id;
-		$original_payment_settings               = get_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', [] );
-		$updated_payment_settings                = $original_payment_settings;
-		$updated_payment_settings['description'] = $custom_description;
-		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $updated_payment_settings );
-
-		$mocked_payment_method = $this->getMockBuilder( WC_Stripe_UPE_Payment_Method_CC::class )
-			->setMethods(
-				[
-					'get_capabilities_response',
-					'get_woocommerce_currency',
-					'is_subscription_item_in_cart',
-					'get_current_order_amount',
-					'is_inside_currency_limits',
-				]
-			)
-			->getMock();
-
-		$actual = $mocked_payment_method->get_description();
-
-		// Clean up.
-		OC_Test_Helper::disable_oc();
-		update_option( 'woocommerce_stripe_' . $payment_method_id . '_settings', $original_payment_settings );
-
-		$this->assertEmpty( $actual );
 	}
 
 	/**

@@ -113,6 +113,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.6.0 - xxxx-xx-xx =
 
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
+* Update - Removes the customization of individual payment method titles and descriptions
+* Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
+* Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
@@ -156,10 +159,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add Klarna e2e tests
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Add - Introduced `wc_stripe_force_save_payment_method` filter
 * Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
 * Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
 * Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
 * Fix - Add safety check when checking error object
+* Fix - Correctly handle countries without states when using the express payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
