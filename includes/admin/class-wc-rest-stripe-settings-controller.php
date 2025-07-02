@@ -270,7 +270,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			// We need to update a separate setting for legacy checkout.
 			$this->update_is_payment_request_enabled_for_legacy_checkout( $request );
 		}
-		$this->update_individual_payment_method_settings( $request );
 		$this->update_payment_request_settings( $request );
 		$this->update_amazon_pay_settings( $request );
 
