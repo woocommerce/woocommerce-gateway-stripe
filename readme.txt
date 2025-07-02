@@ -116,10 +116,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
-* Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
-* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status.
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
 * Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
@@ -167,5 +166,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Improve e2e tests of some of the LPMs
 * Fix - Add safety check when checking error object
 * Fix - Correctly handle countries without states when using the express payment methods
+* Update - Include extension data from block checkout when submitting an express checkout order
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
