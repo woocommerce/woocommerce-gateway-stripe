@@ -304,7 +304,7 @@ const getExtensionDataFromStore = () => {
 		return {};
 	}
 
-	return store.getExtensionData() || {};
+	return store?.getExtensionData() || {};
 };
 
 /**
