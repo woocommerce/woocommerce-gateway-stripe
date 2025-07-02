@@ -4,6 +4,7 @@ import config from 'config';
 import { payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -38,7 +39,7 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 	test( 'customer can pay with BECS @smoke', async ( { page } ) => {
 		await setupBECSCheckout( page, 'shortcode' );
 		await fillBECSDetails( page, 'shortcode' );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'
@@ -64,7 +65,7 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 					} )
 					.click();
 				await fillBECSDetails( page, 'shortcode' );
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
@@ -83,12 +84,16 @@ test.describe( 'BECS payment tests @shortcode @becs', () => {
 					config.get( 'addresses.customer_australia.billing' )
 				);
 				await page.getByText( 'BECS Direct Debit' ).first().click();
-				await page.waitForTimeout( 1000 );
+				await expect(
+					page.locator(
+						'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe_au_becs_debit-payment-token-"]'
+					)
+				).toHaveCount( 1 );
 				await page
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
