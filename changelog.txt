@@ -59,6 +59,7 @@
 * Fix - Show correct price in express checkout for zero decimal currencies
 * Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
 * Fix - Fix buggy unsaved changes warning in settings page
+* Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Use the platform's payment method configuration id constant when rendering the Optimized Checkout
 * Dev - Add Klarna e2e tests
 * Update - Improve checks in voucher purchase flow
