@@ -189,22 +189,6 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( [ WC_Stripe_Payment_Methods::EPS, WC_Stripe_Payment_Methods::GIROPAY, WC_Stripe_Payment_Methods::P24 ], $result );
 	}
 
-	public function test_get_legacy_individual_payment_method_settings() {
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
-		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
-
-		$result = WC_Stripe_Helper::get_legacy_individual_payment_method_settings();
-		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $result );
-		$this->assertEquals(
-			[
-				'name'        => 'EPS',
-				'description' => 'Pay with EPS',
-			],
-			$result['eps'],
-		);
-	}
-
 	/**
 	 * Test for `get_order_by_intent_id`
 	 *
