@@ -4,6 +4,7 @@ import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupBlocksCheckout,
@@ -37,7 +38,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'blocks' );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await fillACSSDetails( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -59,7 +60,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 				);
 				await setupACSSCheckout( page, 'blocks' );
 				await page.getByLabel( 'Save payment information' ).click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await fillACSSDetails( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -82,7 +83,7 @@ test.describe( 'ACSS payment tests @blocks @acss', () => {
 					.locator( 'label' )
 					.filter( { hasText: 'STRIPE TEST BANK ending in' } )
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
