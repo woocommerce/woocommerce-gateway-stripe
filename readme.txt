@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
@@ -166,5 +167,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Add safety check when checking error object
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Include extension data from block checkout when submitting an express checkout order
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
@@ -55,6 +56,7 @@
 * Fix - Add safety check when checking error object
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Include extension data from block checkout when submitting an express checkout order
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats

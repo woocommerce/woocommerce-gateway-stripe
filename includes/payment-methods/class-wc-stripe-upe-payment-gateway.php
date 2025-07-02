@@ -1616,13 +1616,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
-
 		try {
+			// First check if the order is already being processed by another request.
+			$locked = $this->lock_order_payment( $order );
+			if ( $locked ) {
+				WC_Stripe_Logger::log( "Skip processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}, order payment is already being processed (locked)" );
+				return;
+			}
+
+			WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
+
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
 		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			$this->unlock_order_payment( $order );
 
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 			/* translators: localized exception message */
 			$order->update_status( OrderStatus::FAILED, sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
@@ -1637,6 +1645,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			wp_safe_redirect( wp_sanitize_redirect( $redirect_url ) );
 
 			exit;
+		} finally {
+			$this->unlock_order_payment( $order );
 		}
 	}
 
