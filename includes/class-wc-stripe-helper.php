@@ -582,6 +582,8 @@ class WC_Stripe_Helper {
 	 * Get settings of individual legacy payment methods.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
 		$stripe_settings = self::get_stripe_settings();
@@ -618,6 +620,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
 		$payment_method_settings = [];
@@ -1783,5 +1787,68 @@ class WC_Stripe_Helper {
 		];
 
 		return in_array( strtolower( $currency ), $supported_currencies, true );
+	}
+
+	/**
+	 * Checks if the payment method should be saved.
+	 *
+	 * @since 9.6.0
+	 * @param bool $force_save Whether the payment method should be saved.
+	 * @param string $order_id Order ID.
+	 * @return bool
+	 */
+	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
+		// Do not save the payment method if the user is not logged in.
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		$force_save_payment_method = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save, $order_id ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
+		);
+
+		/**
+		 * Filters the flag that decides if the payment method must be saved in all possible situations.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param bool   $force_save Whether the payment method must be saved.
+		 * @param string $order_id   Order ID.
+		 *
+		 * @return bool Whether the payment method must be saved in all situations.
+		*/
+		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
+
+		return $force_save_payment_method;
+	}
+
+	/**
+	 * Returns the description for a refund reason.
+	 *
+	 * @return string
+	 */
+	public static function get_refund_reason_description( $refund_reason_key ) {
+		switch ( $refund_reason_key ) {
+			case 'charge_for_pending_refund_disputed':
+				return __( 'The charge has been disputed', 'woocommerce-gateway-stripe' );
+			case 'declined':
+				return __( 'The refund was declined', 'woocommerce-gateway-stripe' );
+			case 'expired_or_canceled_card':
+				return __( 'The original payment method has expired or was canceled', 'woocommerce-gateway-stripe' );
+			case 'insufficient_funds':
+				return __( 'We could not process the refund at this time', 'woocommerce-gateway-stripe' );
+			case 'lost_or_stolen_card':
+				return __( 'The original payment method was lost or stolen', 'woocommerce-gateway-stripe' );
+			case 'merchant_request':
+				return __( 'We stopped processing the refund', 'woocommerce-gateway-stripe' );
+			case 'unknown':
+			default:
+				return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
+		}
 	}
 }

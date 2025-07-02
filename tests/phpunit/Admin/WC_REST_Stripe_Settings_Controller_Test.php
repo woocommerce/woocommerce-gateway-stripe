@@ -260,48 +260,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
-	public function test_individual_payment_method_settings() {
-		// Disable UPE and set up EPS gateway.
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled'     => 'yes',
-				'title'       => 'Credit card',
-				'description' => 'Pay with Credit card',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
-			]
-		);
-		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
-		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
-		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
-
-		$response                                = $this->rest_get_settings();
-		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->arrayHasKey( WC_Stripe_Payment_Methods::EPS, $individual_payment_method_settings_data );
-		$this->assertEquals(
-			[
-				'name'        => 'EPS',
-				'description' => 'Pay with EPS',
-			],
-			$individual_payment_method_settings_data['eps'],
-		);
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
-		$request->set_param( 'payment_method_id', WC_Stripe_Payment_Methods::GIROPAY );
-		$request->set_param( 'is_enabled', true );
-		$request->set_param( 'title', 'Giropay' );
-		$request->set_param( 'description', 'Pay with Giropay' );
-
-		$response         = rest_do_request( $request );
-		$gateway_settings = get_option( 'woocommerce_stripe_giropay_settings' );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'Giropay', $gateway_settings['title'] );
-		$this->assertEquals( 'Pay with Giropay', $gateway_settings['description'] );
-	}
-
 	public function test_get_settings_returns_available_payment_method_ids() {
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,

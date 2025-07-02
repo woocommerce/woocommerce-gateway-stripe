@@ -41,10 +41,16 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'prepare_source', 'has_subscription' ] )
+			->setMethods( [ 'prepare_source', 'has_subscription', 'get_upe_enabled_at_checkout_payment_method_ids' ] )
 			->getMock();
+
+		// Mock the UPE method to return card payment method
+		$this->wc_gateway_stripe
+			->expects( $this->any() )
+			->method( 'get_upe_enabled_at_checkout_payment_method_ids' )
+			->will( $this->returnValue( [ WC_Stripe_Payment_Methods::CARD ] ) );
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->statement_descriptor = 'This is a statement descriptor.';

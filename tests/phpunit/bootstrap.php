@@ -58,3 +58,4 @@ require_once __DIR__ . '/Helpers/WC_Subscription.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions_Cart.php';
 require_once __DIR__ . '/Helpers/WC_Subscriptions_Helpers.php';
+require_once __DIR__ . '/Helpers/WC_Subscriptions_Switcher.php';
