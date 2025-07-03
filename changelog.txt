@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
