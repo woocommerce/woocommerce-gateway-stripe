@@ -128,9 +128,9 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$url = apply_filters_deprecated(
 				'wc_connect_server_url',
 				[ $url ],
-				'9.7.0',
+				'9.6.0',
 				'',
-				'The wc_connect_server_url filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version.'
+				'The wc_connect_server_url filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
 			);
 			$url = trailingslashit( $url ) . ltrim( $path, '/' );
 
@@ -141,9 +141,9 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 					apply_filters_deprecated(
 						'wc_connect_api_client_body',
 						[ $body ],
-						'9.7.0',
+						'9.6.0',
 						'',
-						'The wc_connect_api_client_body filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version.'
+						'The wc_connect_api_client_body filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
 					)
 				);
 
@@ -174,9 +174,9 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$args          = apply_filters_deprecated(
 				'wc_connect_request_args',
 				[ $args ],
-				'9.7.0',
+				'9.6.0',
 				'',
-				'The wc_connect_request_args filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version.'
+				'The wc_connect_request_args filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
 			);
 			$response      = wp_remote_request( $url, $args );
 			$response_code = wp_remote_retrieve_response_code( $response );
