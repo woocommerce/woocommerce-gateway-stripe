@@ -1149,7 +1149,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 *
 		 * @since 9.7.0
 		 *
-		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses.
+		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses from the deprecated filter.
 		 *
 		 * @return array The allowed payment processing statuses.
 		 */
