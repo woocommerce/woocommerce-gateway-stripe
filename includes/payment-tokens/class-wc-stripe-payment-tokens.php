@@ -338,7 +338,7 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 
-			$payment_methods     = array_merge( ...$payment_methods );
+			$payment_methods    = array_merge( ...$payment_methods );
 			$payment_method_ids = array_map(
 				function ( $payment_method ) {
 					return $payment_method->id;
