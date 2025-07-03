@@ -169,6 +169,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
+* Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
 * Tweak - Use the Database Cache for the Stripe Account Data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
