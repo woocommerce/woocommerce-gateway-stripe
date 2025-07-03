@@ -45,7 +45,7 @@ const StripeAccountConnectedNotice = () => {
 		dispatch( 'core/notices' ).createSuccessNotice(
 			__( 'Stripe Account Connected', 'woocommerce' ),
 			{
-				id: 'WOOCOMMERCE_ONBOARDING_LOAD_SAMPLE_PRODUCTS_NOTICE',
+				id: 'WOOCOMMERCE_STRIPE_ACCOUNT_CONNECTED_NOTICE',
 				actions: [
 					{
 						url: getAdminLink( 'admin.php?page=wc-admin' ),
