@@ -69,12 +69,13 @@ jQuery( function ( $ ) {
 			! ( errorMessage instanceof String )
 		) {
 			if (
-				errorMessage.code &&
-				getStripeServerData()[ errorMessage.code ]
+				errorMessage?.code &&
+				getStripeServerData()[ errorMessage?.code ]
 			) {
-				errorMessage = getStripeServerData()[ errorMessage.code ];
+				errorMessage = getStripeServerData()[ errorMessage?.code ];
 			} else {
-				errorMessage = errorMessage.message;
+				errorMessage =
+					errorMessage?.message || 'An unknown error occurred.';
 			}
 		}
 
