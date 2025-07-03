@@ -1972,15 +1972,15 @@ class WC_Stripe_Payment_Request {
 		$calculated_total = apply_filters_deprecated(
 			'woocommerce_stripe_calculated_total',
 			[ WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ],
-			'9.7.0',
+			'9.6.0',
 			'wc_stripe_calculated_total',
-			'The woocommerce_stripe_calculated_total filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_calculated_total instead.'
+			'The woocommerce_stripe_calculated_total filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_calculated_total instead.'
 		);
 
 		/**
 		 * Filters the calculated total for the order.
 		 *
-		 * @since 9.7.0
+		 * @since 9.6.0
 		 *
 		 * @param float $calculated_total The calculated total from the deprecated filter.
 		 * @param float $order_total The order total.

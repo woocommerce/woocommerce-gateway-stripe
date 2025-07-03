@@ -182,7 +182,7 @@ class WC_Stripe_Database_Cache {
 		/**
 		 * Filters the result of the database cache entry expiration check.
 		 *
-		 * @since 9.7.0
+		 * @since 9.6.0
 		 *
 		 * @param bool   $is_expired Whether the cache is expired.
 		 * @param string $prefixed_key The cache key (with prefix).
