@@ -121,17 +121,13 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Important Fixes and Updates**
 
+* Fix - Apply shipping country restrictions to Express Checkout
+* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
+* Fix - Void intent when cancelling an uncaptured order
 * Update - Remove BACS from the unsupported ‘change payment method for subscription’ page
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
-* Update - Add prefix to the custom database cache keys
-* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
-* Update - Remove Payment Method Configurations fallback cache
 * Update - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
-* Update - Remove legacy checkout checkbox from settings
-* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
-* Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
-* Fix - Void intent when cancelling an uncaptured order
-* Fix - Apply shipping country restrictions to Express Checkout
 
 **Other Fixes**
 
@@ -149,7 +145,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Internal Changes and Upcoming Features**
 
+* Update - Remove legacy checkout checkbox from settings
+* Update - Remove Payment Method Configurations fallback cache
+* Update - Add prefix to the custom database cache keys
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
+* Fix - [OC] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
 * Fix - [OC] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
 * Fix - [OC] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
 * Fix - [OC] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
