@@ -116,7 +116,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
-* Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
 * Show an icon beside the payment methods that support automatic recurring payments
 
 **Important Fixes and Updates**
@@ -149,6 +148,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove Payment Method Configurations fallback cache
 * Update - Add prefix to the custom database cache keys
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
+* Add - [OC] Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
 * Fix - [OC] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
 * Fix - [OC] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
 * Fix - [OC] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
