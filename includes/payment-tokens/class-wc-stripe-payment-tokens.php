@@ -338,7 +338,13 @@ class WC_Stripe_Payment_Tokens {
 				}
 			}
 
-			$payment_methods = array_merge( ...$payment_methods );
+			$payment_methods    = array_merge( ...$payment_methods );
+			$payment_method_ids = array_map(
+				function ( $payment_method ) {
+					return $payment_method->id;
+				},
+				$payment_methods
+			);
 
 			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -365,7 +371,7 @@ class WC_Stripe_Payment_Tokens {
 					$this->is_valid_payment_method_id( $payment_method->id, $payment_method_type ) &&
 					( empty( $gateway_id ) || $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) )
 				) {
-					$token                      = $this->add_token_to_user( $payment_method, $customer );
+					$token                      = $this->add_token_to_user( $payment_method, $customer, $payment_method_ids );
 					$tokens[ $token->get_id() ] = $token;
 				} else {
 					unset( $stored_tokens[ $payment_method->id ] );
@@ -548,11 +554,12 @@ class WC_Stripe_Payment_Tokens {
 	/**
 	 * Creates and add a token to an user, based on the PaymentMethod object.
 	 *
-	 * @param   object             $payment_method Payment method to be added.
-	 * @param   WC_Stripe_Customer $customer       WC_Stripe_Customer we're processing the tokens for.
+	 * @param   object             $payment_method      Payment method to be added.
+	 * @param   WC_Stripe_Customer $customer            WC_Stripe_Customer we're processing the tokens for.
+	 * @param   array              $payment_method_ids  List of payment methods retrieved from Stripe.
 	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
-	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer ) {
+	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids = [] ) {
 		// Clear cached payment methods.
 		$customer->clear_cache();
 
@@ -561,9 +568,11 @@ class WC_Stripe_Payment_Tokens {
 
 		$found_token = $this->get_duplicate_token( $payment_method, $customer->get_user_id(), $gateway_id );
 		if ( $found_token ) {
-			// Update the token with the new payment method ID.
-			$found_token->set_token( $payment_method->id );
-			$found_token->save();
+			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
+			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
+				$found_token->set_token( $payment_method->id );
+				$found_token->save();
+			}
 			return $found_token;
 		}
 
