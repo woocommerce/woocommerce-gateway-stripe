@@ -431,4 +431,82 @@ class WC_Stripe_Express_Checkout_Element_Test extends WP_UnitTestCase {
 		$output = ob_get_clean();
 		$this->assertStringMatchesFormat( '%aid="wc-stripe-express-checkout__order-attribution-inputs"%a', $output );
 	}
+
+	public function test_get_custom_checkout_fields() {
+		$is_checkout = function () {
+			return true;
+		};
+		add_filter( 'woocommerce_is_checkout', $is_checkout );
+
+		// Using `woocommerce_checkout_fields` filter.
+		$custom_fields = function ( $fields ) {
+			$fields['billing']['billing_custom_field1']   = [ 'type' => 'text' ];
+			$fields['shipping']['shipping_custom_field1'] = [ 'type' => 'radio' ];
+			$fields['order']['order_custom_field']        = [ 'type' => 'select' ];
+
+			return $fields;
+		};
+		add_filter(
+			'woocommerce_checkout_fields',
+			$custom_fields
+		);
+
+		// Using `woocommerce_billing_fields` filter.
+		$custom_billing_fields = function ( $fields ) {
+			$fields['billing_custom_field2'] = [ 'type' => 'textarea' ];
+			return $fields;
+		};
+		add_filter(
+			'woocommerce_billing_fields',
+			$custom_billing_fields
+		);
+
+		// Using `woocommerce_shipping_fields` filter.
+		$custom_shipping_fields = function ( $fields ) {
+			$fields['shipping_custom_field2'] = [ 'type' => 'checkbox' ];
+			return $fields;
+		};
+		add_filter(
+			'woocommerce_shipping_fields',
+			$custom_shipping_fields
+		);
+
+		$actual = $this->element->get_custom_checkout_fields();
+		$this->assertCount( 5, $actual );
+		$this->assertArrayHasKey( 'billing_custom_field1', $actual );
+		$this->assertArrayHasKey( 'shipping_custom_field1', $actual );
+		$this->assertArrayHasKey( 'order_custom_field', $actual );
+		$this->assertArrayHasKey( 'billing_custom_field2', $actual );
+		$this->assertArrayHasKey( 'shipping_custom_field2', $actual );
+
+		$this->assertSame( 'text', $actual['billing_custom_field1']['type'] );
+		$this->assertSame( 'radio', $actual['shipping_custom_field1']['type'] );
+		$this->assertSame( 'select', $actual['order_custom_field']['type'] );
+		$this->assertSame( 'textarea', $actual['billing_custom_field2']['type'] );
+		$this->assertSame( 'checkbox', $actual['shipping_custom_field2']['type'] );
+
+		$this->assertSame( 'billing', $actual['billing_custom_field1']['location'] );
+		$this->assertSame( 'shipping', $actual['shipping_custom_field1']['location'] );
+		$this->assertSame( 'order', $actual['order_custom_field']['location'] );
+		$this->assertSame( 'billing', $actual['billing_custom_field2']['location'] );
+		$this->assertSame( 'shipping', $actual['shipping_custom_field2']['location'] );
+
+		// Restore original settings.
+		remove_filter(
+			'woocommerce_checkout_fields',
+			$custom_fields
+		);
+
+		remove_filter(
+			'woocommerce_billing_fields',
+			$custom_billing_fields
+		);
+
+		remove_filter(
+			'woocommerce_shipping_fields',
+			$custom_shipping_fields
+		);
+
+		remove_filter( 'woocommerce_is_checkout', $is_checkout );
+	}
 }

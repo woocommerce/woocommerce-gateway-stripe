@@ -1,7 +1,6 @@
 import React from 'react';
-import { fireEvent, screen, render } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { act } from 'react-dom/test-utils';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
@@ -9,7 +8,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
-	useCustomizePaymentMethodSettings,
+	useIsOCEnabled,
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
@@ -30,6 +29,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 	useIndividualPaymentMethodSettings: jest.fn(),
 	useCustomizePaymentMethodSettings: jest.fn(),
+	useIsOCEnabled: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
 } ) );
 jest.mock( 'utils/use-payment-method-currencies', () => ( {
@@ -77,6 +77,7 @@ describe( 'GeneralSettingsSection', () => {
 			data: { testmode: false },
 		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,
@@ -378,122 +379,6 @@ describe( 'GeneralSettingsSection', () => {
 				name: 'Alipay',
 			} )
 		).not.toBeInTheDocument();
-	} );
-
-	it( 'display customization section in the payment method', async () => {
-		const PromiseMock = Promise.resolve();
-		const customizePaymentMethodMock = jest
-			.fn()
-			.mockImplementation( () => PromiseMock );
-		useCustomizePaymentMethodSettings.mockReturnValue( {
-			individualPaymentMethodSettings: {
-				card: {
-					name: 'Card',
-					description: 'Pay with Card',
-				},
-				alipay: {
-					name: 'Alipay',
-					description: 'Pay with Alipay',
-				},
-			},
-			isCustomizing: false,
-			customizePaymentMethod: customizePaymentMethodMock,
-		} );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_ALIPAY,
-		] );
-		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ PAYMENT_METHOD_ALIPAY ],
-			setOrderedPaymentMethodIds: jest.fn(),
-			saveOrderedPaymentMethodIds: jest.fn(),
-		} );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection onSaveChanges={ jest.fn() } />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByRole( 'checkbox', {
-				name: 'Alipay',
-			} )
-		).toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Customize',
-			} )
-		).toBeInTheDocument();
-		// Click on the customize button
-		userEvent.click(
-			screen.queryByRole( 'button', {
-				name: 'Customize',
-			} )
-		);
-
-		// Expect the customization section to be open
-		expect( screen.getByLabelText( 'Name' ) ).toHaveValue( 'Alipay' );
-		expect( screen.getByLabelText( 'Description' ) ).toHaveValue(
-			'Pay with Alipay'
-		);
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Cancel',
-			} )
-		).toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Save changes',
-			} )
-		).toBeInTheDocument();
-
-		// Change settings of this method
-		fireEvent.change( screen.getByLabelText( 'Name' ), {
-			target: { value: 'New Name' },
-		} );
-		fireEvent.change( screen.getByLabelText( 'Description' ), {
-			target: { value: 'New Description' },
-		} );
-
-		fireEvent.click(
-			screen.queryByRole( 'button', {
-				name: 'Save changes',
-			} )
-		);
-
-		expect( customizePaymentMethodMock ).toHaveBeenCalled();
-
-		await act( async () => {
-			await Promise.resolve();
-		} );
-	} );
-
-	it( 'should display customization section in the payment method when UPE is enabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_ALIPAY,
-		] );
-		useGetOrderedPaymentMethodIds.mockReturnValue( {
-			orderedPaymentMethodIds: [ PAYMENT_METHOD_ALIPAY ],
-			setOrderedPaymentMethodIds: jest.fn(),
-			saveOrderedPaymentMethodIds: jest.fn(),
-		} );
-
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByRole( 'checkbox', {
-				name: 'Alipay',
-			} )
-		).toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Customize',
-			} )
-		).toBeInTheDocument();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {

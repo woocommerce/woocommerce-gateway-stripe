@@ -49,7 +49,7 @@ export const normalizeOrderData = ( {
 		} ),
 		extensions: applyFilters(
 			'wcstripe.express-checkout.cart-place-order-extension-data',
-			{}
+			getExtensionDataFromStore()
 		),
 		additional_fields: getAdditionalFieldsData(),
 	};
@@ -286,6 +286,25 @@ const getAdditionalFieldsDataFromStore = () => {
 	}
 
 	return store.getAdditionalFields() || {};
+};
+
+/**
+ * Get extension data from the checkout store.
+ *
+ * @return {Object} The extension data.
+ */
+const getExtensionDataFromStore = () => {
+	const checkoutStore = window.wc?.wcBlocksData?.checkoutStore;
+	if ( ! checkoutStore ) {
+		return {};
+	}
+
+	const store = select( checkoutStore );
+	if ( ! store ) {
+		return {};
+	}
+
+	return store?.getExtensionData() || {};
 };
 
 /**
