@@ -1464,8 +1464,6 @@ class WC_Stripe_Express_Checkout_Helper {
 		 * @param float $calculated_total The calculated total.
 		 * @param float $order_total The order total.
 		 * @param WC_Cart $cart The cart object.
-		 *
-		 * @return float The calculated total.
 		 */
 		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 

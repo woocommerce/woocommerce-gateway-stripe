@@ -1140,7 +1140,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$allowed_payment_processing_statuses = apply_filters_deprecated(
 			'wc_gateway_stripe_allowed_payment_processing_statuses',
-			[ [ OrderStatus::PENDING, OrderStatus::FAILED ] ],
+			[ $allowed_payment_processing_statuses ],
 			'9.6.0',
 			'wc_stripe_allowed_payment_processing_statuses',
 			'The wc_gateway_stripe_allowed_payment_processing_statuses filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version.'
@@ -1152,8 +1152,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * @since 9.6.0
 		 *
 		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses.
-		 *
-		 * @return array The allowed payment processing statuses.
 		 */
 		$allowed_payment_processing_statuses = apply_filters(
 			'wc_stripe_allowed_payment_processing_statuses',
