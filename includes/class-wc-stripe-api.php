@@ -198,11 +198,11 @@ class WC_Stripe_API {
 		}
 
 		$request = apply_filters_deprecated(
-			'woocommerce_stripe_request',
+			'woocommerce_stripe_request_body',
 			[ $request, $api ],
 			'9.6.0',
-			'wc_stripe_request',
-			'The woocommerce_stripe_request filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_request instead.'
+			'wc_stripe_request_body',
+			'The woocommerce_stripe_request_body filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_request_body instead.'
 		);
 
 		/**
@@ -215,7 +215,7 @@ class WC_Stripe_API {
 		 *
 		 * @return array The request body to send to Stripe API.
 		 */
-		$request = apply_filters( 'wc_stripe_request', $request, $api );
+		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
 		// Log the request after the filters have been applied.
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
