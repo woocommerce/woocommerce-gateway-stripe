@@ -123,6 +123,11 @@ class WC_Stripe_API {
 		$user_agent = self::get_user_agent();
 		$app_info   = $user_agent['application'];
 
+		$headers = [
+			'Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Version' => self::STRIPE_API_VERSION,
+		];
+
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[
