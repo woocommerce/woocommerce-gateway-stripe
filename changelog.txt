@@ -60,7 +60,7 @@
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
 * Tweak - Deprecate wc_connect_* filters
-* Tweak - Update filter names to use the wc_stripe_* prefix
+* Update - Update filter names to use the wc_stripe_* prefix
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats

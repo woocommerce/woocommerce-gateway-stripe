@@ -141,7 +141,7 @@ class WC_Stripe_API {
 		 *
 		 * @since 9.6.0
 		 *
-		 * @param array $headers The headers from the deprecated filter.
+		 * @param array $headers The default headers we send to the Stripe API.
 		 * @param array $user_agent The user agent.
 		 *
 		 * @return array The headers to send to the Stripe API.
@@ -210,7 +210,7 @@ class WC_Stripe_API {
 		 *
 		 * @since 9.6.0
 		 *
-		 * @param array $request The request body from the deprecated filter.
+		 * @param array $request The default request body we will send to the Stripe API.
 		 * @param string $api The Stripe API endpoint.
 		 *
 		 * @return array The request body to send to Stripe API.
