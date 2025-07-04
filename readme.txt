@@ -121,16 +121,22 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 **Important Fixes and Updates**
 
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
+* Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
+* Fix - Apply shipping country restrictions to Express Checkout
+* Add - Introduced `wc_stripe_force_save_payment_method` filter
+* Update - Removes the customization of individual payment method titles and descriptions
+* Fix - Correctly handle countries without states when using the express payment methods
 * Update - Remove legacy checkout checkbox from settings
 * Update - Remove BACS from the unsupported ‘change payment method for subscription’ page
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Update - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
-* Fix - Apply shipping country restrictions to Express Checkout
 * Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
 * Fix - Void intent when cancelling an uncaptured order
+* Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
 
 **Other Fixes**
 
+* Fix - Fix payment processing for $0 subscription with recurring coupon
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
 * Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method
 * Fix - Fix payment method title display when new payment settings experience is enabled
@@ -142,17 +148,23 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
+* Fix - Add safety check when checking error object
 
 **Internal Changes and Upcoming Features**
 
 * Update - Remove Payment Method Configurations fallback cache
 * Update - Add prefix to the custom database cache keys
+* Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
+* Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
+* Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
 * Add - [Optimized Checkout] Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
 * Fix - [Optimized Checkout] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
 * Fix - [Optimized Checkout] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
 * Fix - [Optimized Checkout] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
 * Fix - [Optimized Checkout] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
+* Update - [Optimized Checkout] Removes the change display order feature from the settings page when the Optimized Checkout is enabled
+* Fix - [Optimized Checkout] Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP)
 * Dev - Moves the main Stripe class to a new file
@@ -160,6 +172,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
 * Dev - Add e2e tests for BLIK
 * Dev - Add e2e tests for BECS
+* Dev - Add e2e tests to cover Affirm purchase flow
+* Dev - Add Klarna e2e tests
+* Dev - Improve e2e tests of some of the LPMs
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
 * Dev - Prevent changelog entries with trailing periods
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
