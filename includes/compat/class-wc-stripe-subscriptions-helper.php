@@ -185,19 +185,22 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		$intro_message = sprintf(
-		/* translators: %s: subscriptions count */
-			_n(
-				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
-				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
-				count( $subscriptions ),
-				'woocommerce-gateway-stripe'
+			wp_kses
+			/* translators: %s: subscriptions count */
+				_n(
+					'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
+					'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
+					count( $subscriptions ),
+					'woocommerce-gateway-stripe'
+				),
+				[ 'strong' => array() ]
 			),
 			count( $subscriptions )
 		);
-		$intro_message .= __( 'To fix this, either:', 'woocommerce-gateway-stripe' ) . '<br />';
-		$intro_message .= __( '1) Share the payment method page link with the customer to update it, or', 'woocommerce-gateway-stripe' ) . '<br />';
-		$intro_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
-		$intro_message .= __( 'Below are the affected subscriptions and their update links:', 'woocommerce-gateway-stripe' ) . '<br />';
+		$intro_message .= esc_html__( 'To fix this, either:', 'woocommerce-gateway-stripe' ) . '<br />';
+		$intro_message .= esc_html__( '1) Share the payment method page link with the customer to update it, or', 'woocommerce-gateway-stripe' ) . '<br />';
+		$intro_message .= esc_html__( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
+		$intro_message .= esc_html__( 'Below are the affected subscriptions and their update links:', 'woocommerce-gateway-stripe' ) . '<br />';
 		return $intro_message . $detached_messages;
 	}
 }
