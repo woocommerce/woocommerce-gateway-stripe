@@ -135,6 +135,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
 * Fix - Void intent when cancelling an uncaptured order
 * Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
+* Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call
 
 **Other Fixes**
 
@@ -167,7 +168,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - [Optimized Checkout] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
 * Update - [Optimized Checkout] Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Fix - [Optimized Checkout] Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
-* Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP)
 * Dev - Moves the main Stripe class to a new file
 * Dev - Renames all PHP Unit test files to follow the PSR-4
