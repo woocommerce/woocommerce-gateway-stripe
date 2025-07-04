@@ -185,7 +185,7 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		$intro_message = sprintf(
-			wp_kses
+			wp_kses(
 			/* translators: %s: subscriptions count */
 				_n(
 					'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
@@ -193,7 +193,7 @@ class WC_Stripe_Subscriptions_Helper {
 					count( $subscriptions ),
 					'woocommerce-gateway-stripe'
 				),
-				[ 'strong' => array() ]
+				[ 'strong' => [] ]
 			),
 			count( $subscriptions )
 		);
