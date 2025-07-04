@@ -120,13 +120,14 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Important Fixes and Updates**
 
-* Fix - Apply shipping country restrictions to Express Checkout
 * Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
-* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
-* Fix - Void intent when cancelling an uncaptured order
+* Update - Remove legacy checkout checkbox from settings
 * Update - Remove BACS from the unsupported ‘change payment method for subscription’ page
 * Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
 * Update - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
+* Fix - Apply shipping country restrictions to Express Checkout
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
+* Fix - Void intent when cancelling an uncaptured order
 
 **Other Fixes**
 
@@ -144,7 +145,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **Internal Changes and Upcoming Features**
 
-* Update - Remove legacy checkout checkbox from settings
 * Update - Remove Payment Method Configurations fallback cache
 * Update - Add prefix to the custom database cache keys
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
