@@ -68,7 +68,7 @@ class WC_Stripe_Subscriptions_Helper {
 			$batch             = wcs_get_subscriptions(
 				[
 					'subscriptions_per_page' => $per_page,
-					'paged'                   => $page,
+					'paged'                  => $page,
 					'orderby'                => 'date',
 					'order'                  => 'DESC',
 					'subscription_status'    => [ 'active' ],
