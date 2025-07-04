@@ -148,11 +148,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Remove Payment Method Configurations fallback cache
 * Update - Add prefix to the custom database cache keys
 * Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
-* Add - [OC] Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
-* Fix - [OC] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
-* Fix - [OC] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
-* Fix - [OC] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
-* Fix - [OC] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
+* Add - [Optimized Checkout] Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
+* Fix - [Optimized Checkout] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
+* Fix - [Optimized Checkout] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
+* Fix - [Optimized Checkout] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
+* Fix - [Optimized Checkout] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
 * Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call
 * Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP)
 * Dev - Moves the main Stripe class to a new file
