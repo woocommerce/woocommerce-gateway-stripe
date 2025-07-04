@@ -170,6 +170,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
+* Tweak - Deprecate wc_connect_* filters
 * Tweak - Update filter names to use the wc_stripe_* prefix
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
