@@ -11,6 +11,7 @@ import {
 	useManualCapture,
 	useCustomizePaymentMethodSettings,
 	useGetOrderedPaymentMethodIds,
+	useIsPMCEnabled,
 } from 'wcstripe/data';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
@@ -31,6 +32,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useIndividualPaymentMethodSettings: jest.fn(),
 	useCustomizePaymentMethodSettings: jest.fn(),
 	useGetOrderedPaymentMethodIds: jest.fn(),
+	useIsPMCEnabled: jest.fn(),
 } ) );
 jest.mock( 'utils/use-payment-method-currencies', () => ( {
 	usePaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
@@ -85,6 +87,7 @@ describe( 'GeneralSettingsSection', () => {
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
+		useIsPMCEnabled.mockReturnValue( true );
 	} );
 
 	afterEach( () => {
