@@ -228,9 +228,16 @@ class WC_Stripe_Customer {
 				}
 			}
 			if ( is_array( $field_requirements ) ) {
-				$field_value = $create_customer_request[ $field ];
-				foreach ( $field_value as $sub_field => $sub_field_requirements ) {
-					if ( true === $sub_field_requirements && empty( $sub_field_value ) ) {
+				if ( ! isset( $create_customer_request[ $field ] ) || ! is_array( $create_customer_request[ $field ] ) ) {
+					throw new WC_Stripe_Exception(
+						sprintf( 'missing_required_customer_field: %s', $field ),
+						/* translators: %s is a field name, e.g. 'email' or 'name'. */
+						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field )
+					);
+				}
+
+				foreach ( $field_requirements as $sub_field => $sub_field_requirements ) {
+					if ( true === $sub_field_requirements && empty( $create_customer_request[ $field ][ $sub_field ] ) ) {
 						throw new WC_Stripe_Exception(
 							sprintf( 'missing_required_customer_field: %s->%s', $field, $sub_field ),
 							/* translators: %1$s is a field name, e.g. address, and %2$s is a secondary field name, e.g. line1 or city. */
