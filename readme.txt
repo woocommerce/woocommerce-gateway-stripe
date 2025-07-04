@@ -117,6 +117,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
 * Show an icon beside the payment methods that support automatic recurring payments
+* Include extension data from block checkout when submitting an express checkout order
 
 **Important Fixes and Updates**
 
@@ -125,6 +126,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Apply shipping country restrictions to Express Checkout
 * Add - Introduced `wc_stripe_force_save_payment_method` filter
 * Update - Removes the customization of individual payment method titles and descriptions
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Remove legacy checkout checkbox from settings
 * Update - Remove BACS from the unsupported ‘change payment method for subscription’ page
