@@ -1978,15 +1978,7 @@ class WC_Stripe_Payment_Request {
 		);
 
 		/**
-		 * Filters the calculated total for the order.
-		 *
-		 * @since 9.6.0
-		 *
-		 * @param float $calculated_total The calculated total from the deprecated filter.
-		 * @param float $order_total The order total.
-		 * @param WC_Cart $cart The cart object.
-		 *
-		 * @return float The calculated total.
+		 * This filter is documented in includes/payment-methods/class-wc-stripe-express-checkout-helper.php
 		 */
 		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 
