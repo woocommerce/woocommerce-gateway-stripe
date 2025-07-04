@@ -44,7 +44,7 @@ const GeneralSettingsSection = ( {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
-	const { isPMCEnabled } = useIsPMCEnabled();
+	const isPMCEnabled = useIsPMCEnabled();
 
 	const [ initialOrder, setInitialOrder ] = useState( [] );
 
