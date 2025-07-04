@@ -93,7 +93,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 */
 	public function test_list_detached_subscriptions( $subscriptions, $expected_output ) {
 		// Clear database cache
-		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_-1' );
+		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_1000' );
 
 		// Mock response from Stripe API.
 		$test_request = function () {
@@ -145,7 +145,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $test_request, 10 );
 
-		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_-1' );
+		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_1000' );
 
 		$this->assertStringContainsString( $expected_output, $output );
 	}
