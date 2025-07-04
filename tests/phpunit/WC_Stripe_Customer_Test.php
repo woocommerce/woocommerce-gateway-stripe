@@ -23,6 +23,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => 'missing_required_customer_field: email',
 				'expected_exception_string'  => 'Missing required customer field: email',
 			],
+			'email is whitespace string' => [
+				'billing_fields'             => [ 'email' => '   	  ' ],
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+			],
 			'name is null' => [
 				'billing_fields'             => [
 					'first_name' => null,
@@ -38,6 +43,11 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			],
 			'address city is empty string' => [
 				'billing_fields'             => [ 'city' => '' ],
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+			],
+			'address city is whitespace string' => [
+				'billing_fields'             => [ 'city' => '    ' ],
 				'expected_exception_message' => 'missing_required_customer_field: address->city',
 				'expected_exception_string'  => 'Missing required customer field: address->city',
 			],
