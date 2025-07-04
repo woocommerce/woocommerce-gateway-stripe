@@ -1136,6 +1136,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$allowed_payment_processing_statuses = [ OrderStatus::PENDING, OrderStatus::FAILED ];
+
 		$allowed_payment_processing_statuses = apply_filters_deprecated(
 			'wc_gateway_stripe_allowed_payment_processing_statuses',
 			[ [ OrderStatus::PENDING, OrderStatus::FAILED ] ],
@@ -1149,7 +1151,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 *
 		 * @since 9.6.0
 		 *
-		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses from the deprecated filter.
+		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses.
 		 *
 		 * @return array The allowed payment processing statuses.
 		 */
