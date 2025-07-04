@@ -200,6 +200,49 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Validate that we have valid data before we try to create a customer.
+	 *
+	 * @param array $create_customer_request
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	private function validate_create_customer_request( $create_customer_request ) {
+		$required_fields = [
+			'email'   => true,
+			'name'    => true,
+			'address' => [
+				'line1'   => true,
+				'city'    => true,
+				'country' => true,
+			],
+		];
+
+		foreach ( $required_fields as $field => $field_requirements ) {
+			if ( true === $field_requirements ) {
+				if ( empty( $create_customer_request[ $field ] ) ) {
+					throw new WC_Stripe_Exception(
+						sprintf( 'missing_required_customer_field: %s', $field ),
+						/* translators: %s is a field name, e.g. 'email' or 'name'. */
+						sprintf( __( 'Missing required customer field: %s', 'woocommerce-gateway-stripe' ), $field )
+					);
+				}
+			}
+			if ( is_array( $field_requirements ) ) {
+				$field_value = $create_customer_request[ $field ];
+				foreach ( $field_value as $sub_field => $sub_field_requirements ) {
+					if ( true === $sub_field_requirements && empty( $sub_field_value ) ) {
+						throw new WC_Stripe_Exception(
+							sprintf( 'missing_required_customer_field: %s->%s', $field, $sub_field ),
+							/* translators: %1$s is a field name, e.g. address, and %2$s is a secondary field name, e.g. line1 or city. */
+							sprintf( __( 'Missing required customer field: %1$s->%2$s', 'woocommerce-gateway-stripe' ), $field, $sub_field )
+						);
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Get value of billing data field, either from POST or order object.
 	 *
 	 * @param string $field Field name.
@@ -311,6 +354,8 @@ class WC_Stripe_Customer {
 	 *
 	 * @param array $args
 	 * @return WP_Error|int
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
 	public function create_customer( $args = [] ) {
 		$args = $this->generate_customer_request( $args );
@@ -321,9 +366,24 @@ class WC_Stripe_Customer {
 		}
 
 		if ( empty( $response ) ) {
-			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
+			/**
+			 * Filters the arguments used to create a customer.
+			 *
+			 * @since 4.0.0
+			 *
+			 * @param array $args The arguments used to create a customer.
+			 */
+			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
+
+			$this->validate_create_customer_request( $create_customer_args );
+
+			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 		} else {
-			$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_update_customer_args', $args ), 'customers/' . $response->id );
+			/**
+			 * This filter is documented in includes/class-wc-stripe-customer.php.
+			 */
+			$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
+			$response = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
 		}
 
 		if ( ! empty( $response->error ) ) {
@@ -358,7 +418,15 @@ class WC_Stripe_Customer {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$args     = $this->generate_customer_request( $args );
+		$args = $this->generate_customer_request( $args );
+
+		/**
+		 * Filters the arguments used to update a customer.
+		 *
+		 * @since 4.3.1
+		 *
+		 * @param array $args The arguments used to update a customer.
+		 */
 		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
 		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
 
