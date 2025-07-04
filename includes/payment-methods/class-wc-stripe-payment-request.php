@@ -1988,7 +1988,7 @@ class WC_Stripe_Payment_Request {
 		 *
 		 * @return float The calculated total.
 		 */
-		$calculated_total = apply_filters( 'wc_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart );
+		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
 
 		return [
 			'displayItems' => $items,
