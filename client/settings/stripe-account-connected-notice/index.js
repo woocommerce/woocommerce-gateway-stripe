@@ -51,7 +51,7 @@ const StripeAccountConnectedNotice = () => {
 						url: getAdminLink( 'admin.php?page=wc-admin' ),
 						label: __(
 							'Continue setting up your store',
-							'woocommerce'
+							'woocommerce-gateway-stripe'
 						),
 					},
 				],
