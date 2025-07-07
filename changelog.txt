@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.6.0 - xxxx-xx-xx =
+* Dev - Re-include the deprecated WC_Stripe_Order class to avoid breaking changes for merchants using it.
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
