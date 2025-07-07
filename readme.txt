@@ -180,6 +180,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
 * Dev - Prevent changelog entries with trailing periods
 * Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
-* Dev - Re-include the deprecated WC_Stripe_Order class to avoid breaking changes for merchants using it.
+* Dev - Re-include the deprecated WC_Stripe_Order class to avoid breaking changes for merchants using it
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
