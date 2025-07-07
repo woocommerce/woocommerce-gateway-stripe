@@ -223,17 +223,33 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_subscription_payment_method_detached() {
 		return [
-			'missing meta'                        => [
+			'missing meta'                            => [
 				'source meta'     => null,
 				'mocked response' => null,
 				'expected'        => false,
 			],
-			'wp error response, assumed detached' => [
+			'wp error response, assumed detached'     => [
 				'source meta'     => 'src_123',
 				'mocked response' => new \WP_Error( 'error', 'An error occurred.' ),
 				'expected'        => true,
 			],
-			'existing customer data'              => [
+			'Stripe error response, assumed detached' => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
+					'response' => 400,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'invalid_request_error',
+								'message' => 'Invalid request.',
+							],
+						]
+					),
+				],
+				'expected'        => true,
+			],
+			'existing customer data'                  => [
 				'source meta'     => 'src_123',
 				'mocked response' => [
 					'response' => 200,
@@ -246,7 +262,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				],
 				'expected'        => false,
 			],
-			'detached payment method'             => [
+			'detached payment method'                 => [
 				'source meta'     => 'src_123',
 				'mocked response' => [
 					'response' => 200,
