@@ -14,6 +14,12 @@ class WC_Stripe_Logger {
 	public static $logger;
 	const WC_LOG_FILENAME = 'woocommerce-gateway-stripe';
 
+	protected const LOG_CONTEXT = [
+		'source'             => self::WC_LOG_FILENAME,
+		'stripe_version'     => WC_STRIPE_VERSION,
+		'stripe_api_version' => WC_Stripe_API::STRIPE_API_VERSION,
+	];
+
 	/**
 	 * Utilize WC logger class
 	 *
@@ -56,9 +62,11 @@ class WC_Stripe_Logger {
 	 * Creates a log entry of type error.
 	 *
 	 * @param string $message To send to the log file.
+	 * @param array $context Additional context to add to the log.
+	 *
 	 * @return void
 	 */
-	public static function error( $message ) {
+	public static function error( $log_entry, $context = [] ) {
 		if ( ! self::can_log() ) {
 			return;
 		}
@@ -67,16 +75,18 @@ class WC_Stripe_Logger {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->error( $message, [ 'source' => self::WC_LOG_FILENAME ] );
+		self::$logger->error( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
 	}
 
 	/**
 	 * Creates a log entry of type debug.
 	 *
 	 * @param string $message To send to the log file.
+	 * @param array $context Additional context to add to the log.
+	 *
 	 * @return void
 	 */
-	public static function debug( $message ) {
+	public static function debug( $message, $context = [] ) {
 		if ( ! self::can_log() ) {
 			return;
 		}
@@ -85,7 +95,7 @@ class WC_Stripe_Logger {
 			self::$logger = wc_get_logger();
 		}
 
-		self::$logger->debug( $message, [ 'source' => self::WC_LOG_FILENAME ] );
+		self::$logger->debug( $message, array_merge( self::LOG_CONTEXT, $context ) );
 	}
 
 	/**
