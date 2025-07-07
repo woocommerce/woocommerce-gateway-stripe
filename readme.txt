@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
+* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
@@ -170,5 +172,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
 * Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
+* Tweak - Deprecate wc_connect_* filters
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
