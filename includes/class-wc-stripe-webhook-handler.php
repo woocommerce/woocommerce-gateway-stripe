@@ -1354,6 +1354,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+
+		/**
+		 * Fires after a webhook has been processed, but before we respond to Stripe.
+		 * This allows for custom processing of the webhook after it has been processed.
+		 *
+		 * @since 9.7.0
+		 *
+		 * @param string $webhook_type The type of webhook that was processed.
+		 * @param object $notification The webhook data sent from Stripe.
+		 */
+		do_action( 'wc_stripe_webhook_processed', (string) $notification->type, $notification );
 	}
 
 	/**
