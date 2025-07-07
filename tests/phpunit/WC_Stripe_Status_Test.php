@@ -75,7 +75,11 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 
 		$tools = $status->debug_tools( [] );
 
-		$this->assertArrayHasKey( 'list_detached_subscriptions', $tools );
+		$this->assertArrayHasKey( 'wc_stripe_list_detached_subscriptions', $tools );
+
+		$this->assertSame( 'List Stripe subscriptions with detached payment method', $tools['wc_stripe_list_detached_subscriptions']['name'] );
+		$this->assertSame( 'List subscriptions', $tools['wc_stripe_list_detached_subscriptions']['button'] );
+		$this->assertSame( 'This tool will list all Stripe subscriptions with detached payment methods.<br/><strong class="red">Note:</strong> This tool will make an API request to Stripe for each active Stripe subscription in your store that is due to renew in the next month. For stores with many subscriptions, this may temporarily impact performance.<br/><strong>Not recommended if you have more than 100 active subscriptions due for renewal within 30 days.</strong>', $tools['wc_stripe_list_detached_subscriptions']['desc'] );
 	}
 
 	/**
@@ -89,7 +93,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 	 */
 	public function test_list_detached_subscriptions( $subscriptions, $expected_output ) {
 		// Clear database cache
-		WC_Stripe_Database_Cache::set( 'wcstripe_detached_subscriptions_-1', null );
+		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_1000' );
 
 		// Mock response from Stripe API.
 		$test_request = function () {
@@ -137,11 +141,13 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 		$status->list_detached_subscriptions();
 		$output = ob_get_clean();
 
-		$this->assertStringContainsString( $expected_output, $output );
-
 		WC_Subscriptions_Helpers::$wcs_get_subscriptions = null;
 
 		remove_filter( 'pre_http_request', $test_request, 10 );
+
+		WC_Stripe_Database_Cache::delete( 'detached_subscriptions_1000' );
+
+		$this->assertStringContainsString( $expected_output, $output );
 	}
 
 	/**

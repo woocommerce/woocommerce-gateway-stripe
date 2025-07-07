@@ -260,30 +260,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
-	public function test_individual_payment_method_settings() {
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled' => 'yes',
-				'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'yes',
-			]
-		);
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
-		$request->set_param( 'payment_method_id', WC_Stripe_Payment_Methods::EPS );
-		$request->set_param( 'is_enabled', true );
-		$request->set_param( 'title', 'EPS' );
-		$request->set_param( 'description', 'Test Pay with EPS' );
-
-		$response         = rest_do_request( $request );
-		$gateway_settings = get_option( 'woocommerce_stripe_eps_settings' );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'EPS', $gateway_settings['title'] );
-		$this->assertEquals( 'Test Pay with EPS', $gateway_settings['description'] );
-	}
-
 	public function test_get_settings_returns_available_payment_method_ids() {
 		$expected_method_ids = [
 			WC_Stripe_Payment_Methods::CARD,

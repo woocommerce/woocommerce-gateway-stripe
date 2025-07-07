@@ -19,7 +19,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 *
 	 * @var string
 	 */
-	private const DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY = 'wcstripe_detached_subscriptions';
+	private const DETACHED_SUBSCRIPTIONS_CACHE_PREFIX = 'detached_subscriptions';
 
 	/**
 	 * Maximum number of subscriptions to load per page.
@@ -55,7 +55,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 */
 	public static function get_detached_subscriptions( $limit = -1 ) {
 		// Check if we have a cached result.
-		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . '_' . $limit );
+		$cached_subscriptions = WC_Stripe_Database_Cache::get( self::DETACHED_SUBSCRIPTIONS_CACHE_PREFIX . '_' . $limit );
 		if ( is_array( $cached_subscriptions ) ) {
 			return $cached_subscriptions;
 		}
@@ -105,7 +105,7 @@ class WC_Stripe_Subscriptions_Helper {
 		}
 
 		// Cache the result for a day.
-		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_TRANSIENT_KEY . '_' . $limit, $detached_subscriptions, DAY_IN_SECONDS );
+		WC_Stripe_Database_Cache::set( self::DETACHED_SUBSCRIPTIONS_CACHE_PREFIX . '_' . $limit, $detached_subscriptions, DAY_IN_SECONDS );
 
 		return $detached_subscriptions;
 	}
@@ -122,18 +122,23 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		$payment_method = WC_Stripe_API::get_payment_method( $source_id );
-		if ( is_wp_error( $payment_method ) ) {
-			// If we can't retrieve the payment method, assume it's detached.
-			WC_Stripe_Logger::error(
-				sprintf(
+		$payment_method = WC_Stripe_Database_Cache::get( 'payment_method_for_source_' . $source_id );
+		if ( ! $payment_method ) {
+			$payment_method = WC_Stripe_API::get_payment_method( $source_id );
+			if ( is_wp_error( $payment_method ) ) {
+				// If we can't retrieve the payment method, assume it's detached.
+				WC_Stripe_Logger::error(
+					sprintf(
 					/* translators: %1$s is the subscription ID, %2$s is the error message */
-					__( 'Error retrieving payment method for subscription %1$s: %2$s', 'woocommerce-gateway-stripe' ),
-					$subscription->get_id(),
-					$payment_method->get_error_message()
-				)
-			);
-			return true;
+						__( 'Error retrieving payment method for subscription %1$s: %2$s', 'woocommerce-gateway-stripe' ),
+						$subscription->get_id(),
+						$payment_method->get_error_message()
+					)
+				);
+				return true;
+			}
+
+			WC_Stripe_Database_Cache::set( 'payment_method_for_source_' . $source_id, $payment_method, HOUR_IN_SECONDS );
 		}
 
 		if ( ! empty( $payment_method->customer ) ) {
@@ -184,23 +189,48 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$detached_messages = '';
 		foreach ( $subscriptions as $subscription ) {
-			$detached_messages .= self::build_subscription_detached_message( $subscription );
+			$customer_payment_method_link = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $subscription['change_payment_method_url'] ),
+				esc_html(
+				/* translators: this is a text for a link pointing to the customer's payment method page */
+					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+			$customer_stripe_page = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
+				esc_html(
+				/* translators: this is a text for a link pointing to the customer's page on Stripe */
+					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+			$detached_messages .= sprintf(
+			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
+				__( '#%1$s: %2$s | %3$s<br/>', 'woocommerce-gateway-stripe' ),
+				esc_html( $subscription['id'] ),
+				$customer_payment_method_link,
+				$customer_stripe_page
+			);
 		}
 
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
 		$intro_message = sprintf(
+			wp_kses(
 			/* translators: %s: subscriptions count */
-			_n(
-				'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
-				'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
-				count( $subscriptions ),
-				'woocommerce-gateway-stripe'
+				_n(
+					'%s subscription is missing the payment method, <strong>preventing renewals</strong>. ',
+					'%s subscriptions are missing payment methods, <strong>preventing renewals</strong>. ',
+					count( $subscriptions ),
+					'woocommerce-gateway-stripe'
+				),
+				[ 'strong' => [] ]
 			),
 			count( $subscriptions )
-		); /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */
-		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped
-		$intro_message .= __( "To fix this, either: <br />1) Share the payment method page link with the customer to update it, or <br />2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
-		$intro_message .= __( 'Below are the affected subscriptions and their update links:<br />', 'woocommerce-gateway-stripe' );
+		);
+		$intro_message .= esc_html__( 'To fix this, either:', 'woocommerce-gateway-stripe' ) . '<br />';
+		$intro_message .= esc_html__( '1) Share the payment method page link with the customer to update it, or', 'woocommerce-gateway-stripe' ) . '<br />';
+		$intro_message .= esc_html__( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account. ", 'woocommerce-gateway-stripe' );
+		$intro_message .= esc_html__( 'Below are the affected subscriptions and their update links:', 'woocommerce-gateway-stripe' ) . '<br />';
 		return $intro_message . $detached_messages;
 	}
 

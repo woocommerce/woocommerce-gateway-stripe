@@ -1641,4 +1641,41 @@ class WC_Stripe_Express_Checkout_Helper {
 
 		return false;
 	}
+
+	/**
+	 * Check if the current request is an express checkout context.
+	 *
+	 * @return bool True if express checkout context, false otherwise.
+	 */
+	public function is_express_checkout_context() {
+		// Only proceed if this is a Store API request.
+		if ( ! $this->is_request_to_store_api() ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT' header using superglobals.
+		if ( 'true' !== sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] ?? '' ) ) ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE' header using superglobals.
+		$nonce = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'wc_store_api_express_checkout' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Check if is request to the Store API.
+	 *
+	 * @return bool
+	 */
+	public function is_request_to_store_api() {
+		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+			return false;
+		}
+		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
+	}
 }

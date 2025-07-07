@@ -203,14 +203,14 @@ class WC_Stripe_Status {
 	 */
 	public function debug_tools( $tools ) {
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
-			$tools['list_detached_subscriptions'] = [
+			$tools['wc_stripe_list_detached_subscriptions'] = [
 				'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 				'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
 				'desc'     => sprintf(
 					'%1$s<br/><strong class="red">%2$s</strong> %3$s<br/><strong>%4$s</strong>',
 					__( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
 					__( 'Note:', 'woocommerce-gateway-stripe' ),
-					__( 'This tool will make an API request to Stripe for each Stripe subscription in your store. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
+					__( 'This tool will make an API request to Stripe for each active Stripe subscription in your store that is due to renew in the next month. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
 					__( 'Not recommended if you have more than 100 active subscriptions due for renewal within 30 days.', 'woocommerce-gateway-stripe' ),
 				),
 
@@ -226,7 +226,7 @@ class WC_Stripe_Status {
 	 * @return void
 	 */
 	public function list_detached_subscriptions() {
-		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions();
+		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions( 1000 ); // Limiting to 1000 subscriptions for safety.
 		$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 		echo '<div class="wrap woocommerce">';
 			echo '<h1>' . esc_html__( 'List Detached Stripe Subscriptions', 'woocommerce-gateway-stripe' ) . '</h1>';

@@ -80,6 +80,15 @@ jobs:
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e-setup
 
+      - name: Upload e2e setup logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.checkout }}-WP_latest-WC_latest-setup-logs
+          path: tests/e2e/e2e-setup.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Run ${{ matrix.checkout }} E2E tests
         shell: bash
         env:

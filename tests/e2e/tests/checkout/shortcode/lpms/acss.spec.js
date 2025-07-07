@@ -4,6 +4,7 @@ import config from 'config';
 import { payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -37,7 +38,7 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 
 	test( 'customer can pay with ACSS @smoke', async ( { page } ) => {
 		await setupACSSCheckout( page, 'shortcode' );
-		await page.locator( 'text=Place order' ).click();
+		await clickPlaceOrder( page );
 		await fillACSSDetails( page );
 		await page.waitForURL( '**/checkout/order-received/**' );
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -62,8 +63,8 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 					.getByRole( 'checkbox', {
 						name: 'Save payment information to',
 					} )
-					.click();
-				await page.locator( 'text=Place order' ).click();
+					.dispatchEvent( 'click' );
+				await clickPlaceOrder( page );
 				await fillACSSDetails( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
@@ -83,12 +84,16 @@ test.describe( 'ACSS payment tests @shortcode @acss', () => {
 					config.get( 'addresses.customer_canada.billing' )
 				);
 				await page.getByText( 'Pre-Authorized Debit' ).click();
-				await page.waitForTimeout( 1000 );
+				await expect(
+					page.locator(
+						'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe_acss_debit-payment-token-"]'
+					)
+				).toHaveCount( 1 );
 				await page
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()
-					.click();
-				await page.locator( 'text=Place order' ).click();
+					.dispatchEvent( 'click' );
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
