@@ -111,7 +111,13 @@ class WC_Stripe_Express_Checkout_Element {
 
 		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
 
-		if ( apply_filters( 'wc_stripe_ece_enable_custom_checkout_fields_support', false ) ) {
+		/**
+		 * Determines whether express checkout orders should process or ignore
+		 * custom, classic checkout fields. Disabled by default.
+		 *
+		 * @since 9.7.0
+		 */
+		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', false ) ) {
 			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
 			$custom_checkout_fields_support->init();
 		}
