@@ -186,6 +186,8 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_subscription_payment_method_detached
 	 */
 	public function test_is_subscription_payment_method_detached( $source_meta, $mocked_response, $expected ) {
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
+
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 1 );
 		$subscription->set_status( 'active' );
@@ -205,9 +207,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		// Mock response from Stripe API.
 		add_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
 
-		$this->assertSame( $expected, WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) );
+		$actual = WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription );
 
+		// Clean up.
 		remove_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
+
+		$this->assertSame( $expected, $actual );
 	}
 
 	/**
