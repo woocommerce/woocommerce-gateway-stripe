@@ -203,6 +203,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 					'has_pre_order',
 					'is_subscriptions_enabled',
 					'update_saved_payment_method',
+					'lock_order_payment',
+					'unlock_order_payment',
 				]
 			)
 			->getMock();
@@ -236,6 +238,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->method( 'update_customer' )
 			->will(
 				$this->returnValue( 'cus_mock' )
+			);
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'unlock_order_payment' )
+			->will(
+				$this->returnValue( null )
 			);
 	}
 
@@ -938,6 +945,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
 
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'lock_order_payment' )
+			->will(
+				$this->returnValue( false )
+			);
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
@@ -1049,6 +1061,48 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$final_order = wc_get_order( $order_id );
 
 		$this->assertEquals( OrderStatus::FAILED, $final_order->get_status() );
+	}
+
+	/**
+	 * Test locking for process redirect payment.
+	 */
+	public function test_process_redirect_payment_locks_order() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['latest_charge']      = 'ch_mock';
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'lock_order_payment' )
+			->will(
+				$this->returnValue( true )
+			);
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'unlock_order_payment' );
+
+		// Expect the process to bail early.
+		$this->mock_gateway->expects( $this->never() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" );
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 	}
 
 	/**

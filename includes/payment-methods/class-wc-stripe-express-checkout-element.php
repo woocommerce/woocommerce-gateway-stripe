@@ -239,6 +239,10 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @param WC_Order $order The order that needs payment.
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
+		// Ensure the script is registered before localizing
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
+		}
 		$currency = get_woocommerce_currency();
 		$data     = [];
 		$items    = [];
@@ -326,6 +330,48 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
+	 * Get asset file data (version and dependencies).
+	 *
+	 * @return array Array containing 'version' and 'dependencies' keys.
+	 */
+	private function get_asset_data() {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		return [
+			'version'      => $version,
+			'dependencies' => $dependencies,
+		];
+	}
+
+	/**
+	 * Register the express checkout script without enqueuing it.
+	 */
+	private function register_express_checkout_script() {
+		$asset_data = $this->get_asset_data();
+
+		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script(
+			'wc_stripe_express_checkout',
+			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
+			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			$asset_data['version'],
+			true
+		);
+	}
+
+	/**
 	 * Load scripts and styles.
 	 */
 	public function scripts() {
@@ -338,33 +384,18 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
-		$version      = WC_STRIPE_VERSION;
-		$dependencies = [];
-		if ( file_exists( $asset_path ) ) {
-			$asset        = require $asset_path;
-			$version      = is_array( $asset ) && isset( $asset['version'] )
-				? $asset['version']
-				: $version;
-			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
-				? $asset['dependencies']
-				: $dependencies;
+		// Register the script if not already registered
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
 		}
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script(
-			'wc_stripe_express_checkout',
-			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $dependencies ),
-			$version,
-			true
-		);
+		$asset_data = $this->get_asset_data();
 
 		wp_enqueue_style(
 			'wc_stripe_express_checkout_style',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.css',
 			[],
-			$version
+			$asset_data['version']
 		);
 
 		wp_localize_script(
