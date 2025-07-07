@@ -1184,6 +1184,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$redirect = $this->get_return_url( $order );
 			}
 
+			$this->unlock_order_payment( $order );
+
 			return array_merge(
 				[
 					'result'   => 'success',
@@ -1192,10 +1194,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$response_args
 			);
 		} catch ( WC_Stripe_Exception $e ) {
-			return $this->handle_process_payment_error( $e, $order );
-		} finally {
 			// Ensure the order is unlocked in case of an exception.
 			$this->unlock_order_payment( $order );
+			return $this->handle_process_payment_error( $e, $order );
 		}
 	}
 
