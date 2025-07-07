@@ -63,6 +63,7 @@
 * Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
 * Tweak - Deprecate wc_connect_* filters
+* Fix - Prevent text field reset while editing Optimized Checkout title
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats

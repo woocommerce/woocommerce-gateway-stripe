@@ -174,5 +174,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
 * Tweak - Deprecate wc_connect_* filters
+* Fix - Prevent text field reset while editing Optimized Checkout title
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
