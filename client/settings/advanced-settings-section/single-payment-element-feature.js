@@ -32,12 +32,14 @@ const SinglePaymentElementFeature = () => {
 	};
 
 	const handleTitleBlur = () => {
-		setOCTitle( localOCTitle );
+		const finalTitle = localOCTitle.trim() || OCTitle;
+		setOCTitle( finalTitle );
+		setLocalOCTitle( finalTitle );
 	};
 
 	const handleTitleKeyDown = ( event ) => {
 		if ( event.key === 'Enter' ) {
-			setOCTitle( localOCTitle );
+			handleTitleBlur();
 		}
 	};
 
