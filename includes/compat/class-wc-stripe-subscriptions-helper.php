@@ -125,14 +125,15 @@ class WC_Stripe_Subscriptions_Helper {
 		$payment_method = WC_Stripe_Database_Cache::get( 'payment_method_for_source_' . $source_id );
 		if ( ! $payment_method ) {
 			$payment_method = WC_Stripe_API::get_payment_method( $source_id );
-			if ( is_wp_error( $payment_method ) ) {
+			if ( is_wp_error( $payment_method ) || isset( $payment_method->error ) ) {
+				$error_message = is_wp_error( $payment_method ) ? $payment_method->get_error_message() : ( $payment_method->error->message ?? 'Unknown error.' );
 				// If we can't retrieve the payment method, assume it's detached.
 				WC_Stripe_Logger::error(
 					sprintf(
 					/* translators: %1$s is the subscription ID, %2$s is the error message */
 						__( 'Error retrieving payment method for subscription %1$s: %2$s', 'woocommerce-gateway-stripe' ),
 						$subscription->get_id(),
-						$payment_method->get_error_message()
+						$error_message
 					)
 				);
 				return true;
