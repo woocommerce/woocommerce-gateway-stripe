@@ -189,29 +189,7 @@ class WC_Stripe_Subscriptions_Helper {
 
 		$detached_messages = '';
 		foreach ( $subscriptions as $subscription ) {
-			$customer_payment_method_link = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $subscription['change_payment_method_url'] ),
-				esc_html(
-				/* translators: this is a text for a link pointing to the customer's payment method page */
-					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-			$customer_stripe_page = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
-				esc_html(
-				/* translators: this is a text for a link pointing to the customer's page on Stripe */
-					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-				)
-			);
-			$detached_messages .= sprintf(
-			/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
-				__( '#%1$s: %2$s | %3$s<br/>', 'woocommerce-gateway-stripe' ),
-				esc_html( $subscription['id'] ),
-				$customer_payment_method_link,
-				$customer_stripe_page
-			);
+			$detached_messages .= self::build_subscription_detached_message( $subscription );
 		}
 
 		$intro_message = sprintf(
