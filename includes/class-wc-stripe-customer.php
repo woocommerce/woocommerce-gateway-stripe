@@ -614,7 +614,7 @@ class WC_Stripe_Customer {
 
 		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
 
-		$this->clear_cache();
+		$this->clear_cache( $source_id );
 
 		if ( empty( $response->error ) ) {
 			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
@@ -637,7 +637,7 @@ class WC_Stripe_Customer {
 
 		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
 
-		$this->clear_cache();
+		$this->clear_cache( $payment_method_id );
 
 		if ( empty( $response->error ) ) {
 			do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
@@ -702,12 +702,18 @@ class WC_Stripe_Customer {
 
 	/**
 	 * Deletes caches for this users cards.
+	 *
+	 * @param string|null $payment_method_id The ID of the payment method to clear cache for, if specified.
 	 */
-	public function clear_cache() {
+	public function clear_cache( $payment_method_id = null ) {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		foreach ( self::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
 			delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
+		}
+		// Clear cache for the specific payment method if provided.
+		if ( $payment_method_id ) {
+			WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method_id );
 		}
 		$this->customer_data = [];
 	}

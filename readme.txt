@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
 * Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
