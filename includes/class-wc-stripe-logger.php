@@ -68,7 +68,6 @@ class WC_Stripe_Logger {
 		self::$logger->debug( $log_entry, [ 'source' => self::WC_LOG_FILENAME ] );
 	}
 
-
 	// Logs have eight different severity levels:
 	// - emergency
 	// - alert
@@ -79,13 +78,56 @@ class WC_Stripe_Logger {
 	// - info
 	// - debug
 
+	/**
+	 * Creates a log entry of type emergency.
+	 *
+	 * @since 9.7.0
+	 *
+	 * @param string $message Message to send to the log file.
+	 * @param array $context Additional context to add to the log.
+	 *
+	 * @return void
+	 */
+	public static function emergency( $message, $context = [] ) {
+		if ( ! self::can_log() ) {
+			return;
+		}
+
+		if ( empty( self::$logger ) ) {
+			self::$logger = wc_get_logger();
+		}
+
+		self::$logger->emergency( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+	}
+
+	/**
+	 * Creates a log entry of type alert.
+	 *
+	 * @since 9.7.0
+	 *
+	 * @param string $message Message to send to the log file.
+	 * @param array $context Additional context to add to the log.
+	 *
+	 * @return void
+	 */
+	public static function alert( $message, $context = [] ) {
+		if ( ! self::can_log() ) {
+			return;
+		}
+
+		if ( empty( self::$logger ) ) {
+			self::$logger = wc_get_logger();
+		}
+
+		self::$logger->alert( $message, array_merge( self::LOG_CONTEXT, $context, [ 'backtrace' => true ] ) );
+	}
 
 	/**
 	 * Creates a log entry of type critical.
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message To send to the log file.
+	 * @param string $message Message to send to the log file.
 	 * @param array $context Additional context to add to the log.
 	 *
 	 * @return void
@@ -107,7 +149,7 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $message To send to the log file.
+	 * @param string $message Message to send to the log file.
 	 * @param array $context Additional context to add to the log.
 	 *
 	 * @return void
@@ -129,7 +171,7 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message To send to the log file.
+	 * @param string $message Message to send to the log file.
 	 * @param array $context Additional context to add to the log.
 	 *
 	 * @return void
@@ -147,11 +189,33 @@ class WC_Stripe_Logger {
 	}
 
 	/**
+	 * Creates a log entry of type notice.
+	 *
+	 * @since 9.7.0
+	 *
+	 * @param string $message Message to send to the log file.
+	 * @param array $context Additional context to add to the log.
+	 *
+	 * @return void
+	 */
+	public static function notice( $message, $context = [] ) {
+		if ( ! self::can_log() ) {
+			return;
+		}
+
+		if ( empty( self::$logger ) ) {
+			self::$logger = wc_get_logger();
+		}
+
+		self::$logger->notice( $message, array_merge( self::LOG_CONTEXT, $context ) );
+	}
+
+	/**
 	 * Creates a log entry of type info.
 	 *
 	 * @since 9.7.0
 	 *
-	 * @param string $message To send to the log file.
+	 * @param string $message Message to send to the log file.
 	 * @param array $context Additional context to add to the log.
 	 *
 	 * @return void
@@ -173,7 +237,7 @@ class WC_Stripe_Logger {
 	 *
 	 * @since 4.0.0
 	 *
-	 * @param string $message To send to the log file.
+	 * @param string $message Message to send to the log file.
 	 * @param array $context Additional context to add to the log.
 	 *
 	 * @return void
@@ -191,7 +255,7 @@ class WC_Stripe_Logger {
 	}
 
 	/**
-	 * Whether we can log based on settings and filters.
+	 * Whether we can log based on the plugin settings.
 	 *
 	 * @return boolean
 	 */
