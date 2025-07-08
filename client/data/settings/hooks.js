@@ -93,47 +93,6 @@ export const useGetOrderedPaymentMethodIds = () => {
 	};
 };
 
-export const useCustomizePaymentMethodSettings = () => {
-	const {
-		saveIndividualPaymentMethodSettings,
-		updateSettingsValues,
-	} = useDispatch( STORE_NAME );
-
-	const individualPaymentMethodSettings = useSelect( ( select ) => {
-		const { getIndividualPaymentMethodSettings } = select( STORE_NAME );
-
-		return getIndividualPaymentMethodSettings();
-	}, [] );
-
-	const isCustomizing = useSelect( ( select ) => {
-		const { isCustomizingPaymentMethod } = select( STORE_NAME );
-
-		return isCustomizingPaymentMethod();
-	}, [] );
-
-	const customizePaymentMethod = useCallback(
-		async ( method, isEnabled, data ) => {
-			updateSettingsValues( {
-				individual_payment_method_settings: data,
-			} );
-			await saveIndividualPaymentMethodSettings( {
-				isEnabled,
-				method,
-				name: data[ method ].name,
-				description: data[ method ].description,
-				expiration: data[ method ].expiration,
-			} );
-		},
-		[ saveIndividualPaymentMethodSettings, updateSettingsValues ]
-	);
-
-	return {
-		individualPaymentMethodSettings,
-		isCustomizing,
-		customizePaymentMethod,
-	};
-};
-
 export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR

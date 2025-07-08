@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import ConnectStripeAccount from './connect-stripe-account';
+import StripeAccountConnectedNotice from './stripe-account-connected-notice';
 import SettingsManager from './settings-manager';
 import PaymentGatewayManager from './payment-gateway-manager';
 import UpeToggleContextProvider from './upe-toggle/provider';
@@ -27,6 +28,7 @@ if ( settingsContainer ) {
 				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
+			<StripeAccountConnectedNotice />
 			<SettingsManager />
 		</UpeToggleContextProvider>,
 		settingsContainer

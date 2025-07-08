@@ -414,13 +414,14 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await page
 			.locator( 'label' )
 			.filter( { hasText: 'ACH Direct Debit' } )
-			.click();
+			.dispatchEvent( 'click' );
 
 		// Wait for the iframe to be ready
-		await page.waitForSelector(
-			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
+		const frameHandle = await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[name^="__privateStripeFrame"]'
 		);
-		await page.waitForTimeout( 1000 );
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Click "Test Institution"
 		await page
@@ -428,7 +429,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'#radio-control-wc-payment-method-options-stripe_us_bank_account__content iframe[src*="elements-inner-payment"]'
 			)
 			.getByText( 'Test Institution' )
-			.click();
+			.dispatchEvent( 'click' );
 	} else {
 		await setupShortcodeCheckout(
 			page,
@@ -436,14 +437,16 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 		);
 
 		// Select ACH in shortcode checkout
-		await page.getByText( 'ACH Direct Debit' ).click();
-		await page.waitForTimeout( 1000 );
+		const achLabel = page.getByText( 'ACH Direct Debit' );
+		await achLabel.waitFor( { state: 'visible' } );
+		await achLabel.dispatchEvent( 'click' );
 
 		// Wait for the iframe to be ready
-		await page.waitForSelector(
-			'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
+		const frameHandle = await page.waitForSelector(
+			'.payment_method_stripe_us_bank_account iframe[name^="__privateStripeFrame"]'
 		);
-		await page.waitForTimeout( 1000 );
+		const stripeFrame = await frameHandle.contentFrame();
+		await stripeFrame.waitForLoadState( 'networkidle' );
 
 		// Click "Test Institution"
 		await page
@@ -451,7 +454,7 @@ export const setupACHCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'.wc_payment_method.payment_method_stripe_us_bank_account iframe[src*="elements-inner-payment"]'
 			)
 			.getByTestId( 'featured-institution-default' )
-			.click();
+			.dispatchEvent( 'click' );
 	}
 };
 
@@ -496,28 +499,25 @@ export const setupACSSCheckout = async ( page, checkoutType = 'blocks' ) => {
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select ACSS in blocks checkout.
-		await page
+		const acssLabel = page
 			.locator( 'label' )
-			.filter( { hasText: 'Pre-Authorized Debit' } )
-			.click();
-
-		await page.waitForTimeout( 1000 );
+			.filter( { hasText: 'Pre-Authorized Debit' } );
+		await acssLabel.waitFor( { state: 'visible' } );
+		await acssLabel.click();
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_canada.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select ACSS in shortcode checkout.
-		await page.getByText( 'Pre-Authorized Debit' ).click();
-
-		await page.waitForTimeout( 1000 );
+		const acssLabel = page.getByText( 'Pre-Authorized Debit' );
+		await acssLabel.waitFor( { state: 'visible' } );
+		await acssLabel.click();
 	}
+
+	await page.waitForTimeout( 1000 );
 };
 
 /**
@@ -692,6 +692,19 @@ export async function clickPlaceOrder( page ) {
 	await page
 		.getByRole( 'button', { name: 'Place order' } )
 		.dispatchEvent( 'click' );
+
+	// If we click the Place button too fast, we might sometimes get an error.
+	// One way to handle this is to always wait a few seconds before clicking Place order.
+	// But that would make the test flaky and slows down the test suite. So instead,
+	// we check if the error message is present and if it is, we dispatch the click event again.
+	const errorElement = page
+		.getByLabel( 'Checkout' )
+		.getByText( 'Your payment information is' );
+	if ( await errorElement.isVisible() ) {
+		await page
+			.getByRole( 'button', { name: 'Place order' } )
+			.dispatchEvent( 'click' );
+	}
 }
 
 /**
@@ -810,27 +823,29 @@ export const setupBECSCheckout = async ( page, checkoutType = 'blocks' ) => {
 
 		await setupBlocksCheckout( page, billingDetails );
 
-		await page.waitForTimeout( 1000 );
-
 		// Select BECS in blocks checkout.
-		await page
+		const becsLabel = page
 			.locator( 'label' )
-			.filter( { hasText: 'BECS Direct Debit' } )
-			.click();
-
-		await page.waitForTimeout( 1000 );
+			.filter( { hasText: 'BECS Direct Debit' } );
+		await becsLabel.waitFor( { state: 'visible' } );
+		await becsLabel.dispatchEvent( 'click' );
 	} else {
 		await setupShortcodeCheckout(
 			page,
 			config.get( 'addresses.customer_australia.billing' )
 		);
 
-		await page.waitForTimeout( 1000 );
-
 		// Select BECS in shortcode checkout.
-		await page.getByText( 'BECS Direct Debit' ).click();
+		const becsLabel = page.getByText( 'BECS Direct Debit' );
+		await becsLabel.waitFor( { state: 'visible' } );
+		await becsLabel.dispatchEvent( 'click' );
+		const frameHandle = await page.waitForSelector(
+			'.payment_method_stripe_au_becs_debit iframe[name^="__privateStripeFrame"]'
+		);
+		const stripeFrame = await frameHandle.contentFrame();
 
-		await page.waitForTimeout( 1000 );
+		// Wait for the iFrame to load.
+		await stripeFrame.waitForLoadState( 'networkidle' );
 	}
 };
 
@@ -852,6 +867,9 @@ export const fillBECSDetails = async ( page, checkoutType = 'blocks' ) => {
 	}
 
 	const stripeFrame = await frameHandle.contentFrame();
+
+	// Wait for the iFrame to load.
+	await stripeFrame.waitForLoadState( 'networkidle' );
 
 	await stripeFrame
 		.locator( '[name="auBankAccountNumber"]' )
@@ -882,21 +900,22 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await setupShortcodeCheckout( page, billingDetails );
 	}
 
-	await page.waitForTimeout( 1000 );
-
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await page
-			.locator( 'label', { hasText: 'Affirm' } )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.locator( 'label' ).filter( { hasText: 'Affirm' } ).click();
+		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
+		await affirmLabel.waitFor( { state: 'visible' } );
+		await affirmLabel.click();
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_affirm__content'
+		);
 	} else {
-		await page
-			.getByText( 'Affirm' )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.getByText( 'Affirm' ).click();
+		const affirmLabel = page.getByText( 'Affirm' );
+		await affirmLabel.waitFor( { state: 'visible' } );
+		await affirmLabel.click();
+		await page.waitForSelector(
+			'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
+		);
 	}
-	await page.waitForTimeout( 1000 );
 };
 
 /**
@@ -919,32 +938,20 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 		await setupShortcodeCheckout( page, billingDetails );
 	}
 
-	await page.waitForTimeout( 1000 );
-
 	// Wait for the payment method selector to be available
 	if ( isBlocks ) {
-		await page
-			.locator( 'label', { hasText: 'Klarna' } )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.locator( 'label' ).filter( { hasText: 'Klarna' } ).click();
+		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
+		await klarnaLabel.waitFor( { state: 'visible' } );
+		await klarnaLabel.click();
+		await page.waitForSelector(
+			'#radio-control-wc-payment-method-options-stripe_klarna__content'
+		);
 	} else {
-		await page
-			.getByText( 'Klarna' )
-			.waitFor( { state: 'visible', timeout: 5000 } );
-		await page.getByText( 'Klarna' ).click();
+		const klarnaLabel = page.getByText( 'Klarna' );
+		await klarnaLabel.waitFor( { state: 'visible' } );
+		await klarnaLabel.click();
+		await page.waitForSelector(
+			'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
+		);
 	}
-	await page.waitForTimeout( 1000 );
-};
-
-/**
- * Complete the Klarna payment flow.
- *
- * @param {Page} page Playwright page fixture.
- */
-export const completeKlarnaPayment = async ( page ) => {
-	await page.getByTestId( 'kaf-button' ).click();
-	await page.waitForSelector( '#otp_field' );
-	await page.getByTestId( 'kaf-field' ).click();
-	await page.getByTestId( 'kaf-field' ).fill( '000000' );
-	await page.getByTestId( 'confirm-and-pay' ).click();
 };

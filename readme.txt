@@ -112,9 +112,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.6.0 - xxxx-xx-xx =
 
+* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
+* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
+* Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
+* Update - Removes the customization of individual payment method titles and descriptions
+* Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
+* Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
 * Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
 * Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
-* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status.
+* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
 * Update - Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
 * Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
 * Add - Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
@@ -154,7 +160,20 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Add Klarna e2e tests
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
+* Add - Introduced `wc_stripe_force_save_payment_method` filter
+* Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
+* Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
+* Fix - Fix payment processing for $0 subscription with recurring coupon
 * Dev - Add e2e tests to cover Affirm purchase flow
+* Dev - Improve e2e tests of some of the LPMs
+* Fix - Add safety check when checking error object
+* Fix - Correctly handle countries without states when using the express payment methods
+* Update - Include extension data from block checkout when submitting an express checkout order
+* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
+* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
+* Tweak - Deprecate wc_connect_* filters
 * Add - Show payment methods sync status on the UI
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
