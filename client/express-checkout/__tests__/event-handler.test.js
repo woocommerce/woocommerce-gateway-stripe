@@ -14,6 +14,12 @@ import {
 
 jest.mock( '@woocommerce/blocks-checkout', () => {}, { virtual: true } );
 
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn( () => ( {
+		isCheckout: true,
+	} ) ),
+} ) );
+
 describe( 'Express checkout event handlers', () => {
 	describe( 'shippingAddressChangeHandler', () => {
 		let api;
