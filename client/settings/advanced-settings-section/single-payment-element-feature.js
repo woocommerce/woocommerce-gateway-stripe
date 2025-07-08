@@ -5,7 +5,7 @@ import {
 	ExternalLink,
 	TextControl,
 } from '@wordpress/components';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
 const SinglePaymentElementFeature = () => {
@@ -18,6 +18,30 @@ const SinglePaymentElementFeature = () => {
 			setIsOCEnabled( false );
 		}
 	}, [ isUpeEnabled, setIsOCEnabled ] );
+
+	// Local state for the title input to prevent value reset during typing
+	const [ localOCTitle, setLocalOCTitle ] = useState( OCTitle );
+
+	// Update local state when store value changes
+	useEffect( () => {
+		setLocalOCTitle( OCTitle );
+	}, [ OCTitle ] );
+
+	const handleTitleChange = ( value ) => {
+		setLocalOCTitle( value );
+	};
+
+	const handleTitleBlur = () => {
+		const finalTitle = localOCTitle.trim() || OCTitle;
+		setOCTitle( finalTitle );
+		setLocalOCTitle( finalTitle );
+	};
+
+	const handleTitleKeyDown = ( event ) => {
+		if ( event.key === 'Enter' ) {
+			handleTitleBlur();
+		}
+	};
 
 	return (
 		<>
@@ -55,8 +79,10 @@ const SinglePaymentElementFeature = () => {
 						'woocommerce-gateway-stripe'
 					) }
 					label={ __( 'Title', 'woocommerce-gateway-stripe' ) }
-					value={ OCTitle }
-					onChange={ setOCTitle }
+					value={ localOCTitle }
+					onChange={ handleTitleChange }
+					onBlur={ handleTitleBlur }
+					onKeyDown={ handleTitleKeyDown }
 				/>
 			) }
 		</>
