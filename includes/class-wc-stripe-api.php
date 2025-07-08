@@ -131,15 +131,15 @@ class WC_Stripe_API {
 		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
 			[ $headers ],
-			'9.6.0',
+			'9.7.0',
 			'wc_stripe_request_headers',
-			'The woocommerce_stripe_request_headers filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_request_headers instead.'
+			'The woocommerce_stripe_request_headers filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_headers instead.'
 		);
 
 		/**
 		 * Filters the request headers sent to the Stripe API.
 		 *
-		 * @since 9.6.0
+		 * @since 9.7.0
 		 *
 		 * @param array $headers The default headers we send to the Stripe API.
 		 * @param array $user_agent The user agent.
@@ -198,15 +198,15 @@ class WC_Stripe_API {
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
-			'9.6.0',
+			'9.7.0',
 			'wc_stripe_request_body',
-			'The woocommerce_stripe_request_body filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_request_body instead.'
+			'The woocommerce_stripe_request_body filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_body instead.'
 		);
 
 		/**
 		 * Filters the request body sent to the Stripe API.
 		 *
-		 * @since 9.6.0
+		 * @since 9.7.0
 		 *
 		 * @param array $request The default request body we will send to the Stripe API.
 		 * @param string $api The Stripe API endpoint.
