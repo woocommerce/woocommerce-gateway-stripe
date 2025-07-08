@@ -1,9 +1,17 @@
 *** Changelog ***
 
-= 9.6.0 - xxxx-xx-xx =
+= 9.7.0 - xxxx-xx-xx =
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
 * Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
+* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Tweak - Deprecate wc_connect_* filters
+* Fix - Prevent text field reset while editing Optimized Checkout title
+
+= 9.6.0 - 2025-07-07 =
+* Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
+* Dev - Re-include the deprecated WC_Stripe_Order class to avoid breaking changes for merchants using it
 * Update - Removes the change display order feature from the settings page when the Optimized Checkout is enabled
 * Update - Removes the customization of individual payment method titles and descriptions
 * Fix - Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
@@ -50,7 +58,6 @@
 * Dev - Add Klarna e2e tests
 * Tweak - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
 * Update - Remove legacy checkout checkbox from settings
-* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 * Add - Introduced `wc_stripe_force_save_payment_method` filter
 * Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
 * Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
@@ -61,10 +68,7 @@
 * Fix - Correctly handle countries without states when using the express payment methods
 * Update - Include extension data from block checkout when submitting an express checkout order
 * Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
-* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
-* Tweak - Deprecate wc_connect_* filters
-* Fix - Prevent text field reset while editing Optimized Checkout title
 
 = 9.5.3 - 2025-06-23 =
 * Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
