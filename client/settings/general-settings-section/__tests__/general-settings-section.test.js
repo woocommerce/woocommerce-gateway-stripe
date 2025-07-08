@@ -143,9 +143,6 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByTestId( 'opt-in-banner' )
 		).not.toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Get more payment methods' )
-		).toBeInTheDocument();
-		expect(
 			screen.queryByRole( 'button', {
 				name: 'Payment methods menu',
 			} )
@@ -438,7 +435,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should render the list of missing payment methods if UPE is enabled', () => {
+	it( 'should render the list of missing payment methods if UPE is enabled and PMC is disabled', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 		} );
@@ -452,7 +449,7 @@ describe( 'GeneralSettingsSection', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ PAYMENT_METHOD_CARD ],
 		] );
-
+		useIsPMCEnabled.mockReturnValue( false );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -469,8 +466,22 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should not render the list of missing payment methods if UPE is disabled', () => {
+		useIsPMCEnabled.mockReturnValue( false );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByTestId( 'unavailable-payment-methods-list' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should not render the list of missing payment methods if PMC is enabled', () => {
+		useIsPMCEnabled.mockReturnValue( true );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
 			</UpeToggleContext.Provider>
 		);
