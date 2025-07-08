@@ -120,9 +120,10 @@ class WC_Stripe_Status {
 				<td>
 					<?php
 					$is_pmc_enabled = 'yes' === $this->gateway->get_option( 'pmc_enabled', 'no' );
-					$class          = $is_pmc_enabled ? 'yes' : 'no';
+					$class          = $is_pmc_enabled ? 'yes' : 'error';
+					$icon           = $is_pmc_enabled ? 'yes' : 'no';
 					?>
-					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>"></span>
 					<?php $is_pmc_enabled ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' ); ?>
 					</mark>
 				</td>
