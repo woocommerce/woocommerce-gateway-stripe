@@ -100,7 +100,7 @@ const GeneralSettingsSection = ( {
 							onCancel={ () => onChangeDisplayOrder( false ) }
 						/>
 					</AccountRefreshingOverlay>
-					{ isUpeEnabled && isPMCEnabled && <SectionFooter /> }
+					{ isUpeEnabled && ! isPMCEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
 			</Card>
 		</>

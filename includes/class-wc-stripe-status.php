@@ -119,7 +119,7 @@ class WC_Stripe_Status {
 				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment methods are synced between Stripe dashboard and the plugin.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
 				<td>
 					<?php
-					$is_pmc_enabled = $this->gateway->get_option( 'pmc_enabled', 'no' );
+					$is_pmc_enabled = 'yes' === $this->gateway->get_option( 'pmc_enabled', 'no' );
 					$class          = $is_pmc_enabled ? 'yes' : 'no';
 					?>
 					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
