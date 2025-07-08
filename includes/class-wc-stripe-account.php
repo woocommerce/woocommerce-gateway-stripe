@@ -10,8 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Account {
 
-	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
-	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
+	/**
+	 * The Account Data cache key.
+	 *
+	 * @var string
+	 */
+	const ACCOUNT_CACHE_KEY = 'account_data';
+
+	/**
+	 * The Account Data cache expiration (TTL).
+	 *
+	 * @var int
+	 */
+	const ACCOUNT_CACHE_EXPIRATION = 2 * HOUR_IN_SECONDS;
 
 	const LIVE_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_live';
 	const TEST_WEBHOOK_STATUS_OPTION = 'wcstripe_webhook_status_test';
@@ -83,7 +94,7 @@ class WC_Stripe_Account {
 			return [];
 		}
 
-		$account = $this->read_account_from_cache( $mode );
+		$account = $this->read_account_from_cache();
 
 		if ( ! empty( $account ) ) {
 			return $account;
@@ -95,11 +106,10 @@ class WC_Stripe_Account {
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
-	 * @return array empty when no data found in transient, otherwise returns cached data
+	 * @return array empty when no data found, otherwise returns the cached data
 	 */
-	private function read_account_from_cache( $mode = null ) {
-		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key( $mode ) ) ), true );
+	private function read_account_from_cache() {
+		$account_cache = WC_Stripe_Database_Cache::get( self::ACCOUNT_CACHE_KEY );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
@@ -125,37 +135,20 @@ class WC_Stripe_Account {
 			return [];
 		}
 
-		// Add the account data and mode to the array we're caching.
-		$account_cache = $account;
+		// Convert the account data to an array.
+		$account_cache = json_decode( wp_json_encode( $account ), true );
 
-		// Create or update the account option cache.
-		set_transient( $this->get_transient_key( $mode ), $account_cache, 2 * HOUR_IN_SECONDS );
+		// Create or update the account data cache.
+		WC_Stripe_Database_Cache::set( self::ACCOUNT_CACHE_KEY, $account_cache, self::ACCOUNT_CACHE_EXPIRATION );
 
-		return json_decode( wp_json_encode( $account ), true );
-	}
-
-	/**
-	 * Fetches the transient key for the account data for a given mode.
-	 * If no mode is provided, it will use the current mode.
-	 *
-	 * @param string|null $mode Optional. The mode to get the account data for. 'live' or 'test'. Default will use the current mode.
-	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
-	 */
-	private function get_transient_key( $mode = null ) {
-		// If the mode is not provided or is invalid, we'll check the current mode.
-		if ( ! in_array( $mode, [ 'test', 'live' ], true ) ) {
-			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-		}
-
-		return 'test' === $mode ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
+		return $account_cache;
 	}
 
 	/**
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
-		delete_transient( self::LIVE_ACCOUNT_OPTION );
-		delete_transient( self::TEST_ACCOUNT_OPTION );
+		WC_Stripe_Database_Cache::delete( self::ACCOUNT_CACHE_KEY );
 
 		// Clear the webhook status cache.
 		delete_transient( self::LIVE_WEBHOOK_STATUS_OPTION );
