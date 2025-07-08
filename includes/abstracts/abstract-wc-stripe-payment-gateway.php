@@ -2525,6 +2525,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected function get_order_signature( $order ) {
 		if ( is_a( $order, 'WC_Order_Refund' ) ) {
 			$order = wc_get_order( $order->get_parent_id() );
+		} elseif ( ! is_a( $order, 'WC_Order' ) ) {
+			$order = wc_get_order( $order );
 		}
 
 		$signature = [
