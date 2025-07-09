@@ -12,6 +12,12 @@ jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn( () => ( {
+		isCheckout: true,
+	} ) ),
+} ) );
+
 describe( 'Express checkout normalization', () => {
 	describe( 'normalizeLineItems', () => {
 		test( 'normalizes blocks array properly', () => {
