@@ -250,7 +250,7 @@ class WC_Stripe_Status {
 		/**
 		 * Maximum number of subscriptions to process.
 		 *
-		 * @since 9.6.0
+		 * @since 9.7.0
 		 * @param int $max_count The maximum number of subscriptions to process.
 		 */
 		$max_count         = apply_filters( 'wc_stripe_detached_subscriptions_maximum_count', self::SUBSCRIPTIONS_DETACHED_LIST_LIMIT ); // Limit the number of subscriptions to process for safety.
