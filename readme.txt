@@ -113,6 +113,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 = 9.7.0 - xxxx-xx-xx =
 * Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
+* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
+* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
+* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Tweak - Deprecate wc_connect_* filters
+* Fix - Prevent text field reset while editing Optimized Checkout title
 * Update - Improvements to custom checkout fields support for express checkout
 * Tweak - Use the Database Cache for the Stripe Account Data
 * Update - Update filter names to use the wc_stripe_* prefix
