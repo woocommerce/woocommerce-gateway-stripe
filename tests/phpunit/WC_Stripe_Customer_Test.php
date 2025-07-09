@@ -170,7 +170,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		$mock_order = $this->getMockBuilder( \WC_Order::class )
 			->disableOriginalConstructor()
-			->setMethods(
+			->onlyMethods(
 				[
 					'get_billing_address_1',
 					'get_billing_city',
