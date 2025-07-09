@@ -179,7 +179,18 @@ class WC_Stripe_Database_Cache {
 		$expires = $cache_contents['updated'] + $cache_contents['ttl'];
 		$now     = time();
 
-		return apply_filters( 'wcstripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
+		/**
+		 * Filters the result of the database cache entry expiration check.
+		 *
+		 * @since 9.7.0
+		 *
+		 * @param bool   $is_expired Whether the cache is expired.
+		 * @param string $prefixed_key The cache key (with prefix).
+		 * @param array  $cache_contents The cache contents.
+		 *
+		 * @return bool Whether the cache is expired.
+		 */
+		return apply_filters( 'wc_stripe_database_cache_is_expired', $expires < $now, $prefixed_key, $cache_contents );
 	}
 
 	/**

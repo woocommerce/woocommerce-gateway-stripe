@@ -114,5 +114,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
 * Update - Improvements to custom checkout fields support for express checkout
 * Tweak - Use the Database Cache for the Stripe Account Data
+* Update - Update filter names to use the wc_stripe_* prefix
+* Add - Show payment methods sync status on the UI
+
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
