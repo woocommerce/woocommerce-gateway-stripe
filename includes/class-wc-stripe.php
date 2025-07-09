@@ -779,18 +779,11 @@ class WC_Stripe {
 	 * @return WC_Stripe_Payment_Gateway
 	 */
 	public function get_main_stripe_gateway() {
-		if ( ! is_null( $this->stripe_gateway ) ) {
+		if ( ! is_null( $this->stripe_gateway ) && is_a( $this->stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return $this->stripe_gateway;
 		}
 
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-
-			return $this->stripe_gateway;
-		}
-
-		$this->stripe_gateway = new WC_Gateway_Stripe();
-
+		$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 		return $this->stripe_gateway;
 	}
 
