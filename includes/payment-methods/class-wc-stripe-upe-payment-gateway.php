@@ -1033,7 +1033,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
-			if ( $this->is_order_payment_locked( $order ) ) {
+			// Attempt to acquire lock, bail if already locked
+			$is_order_payment_locked = $this->lock_order_payment( $order );
+			if ( $is_order_payment_locked ) {
 				// If the request is already being processed, return an error.
 				return [
 					'result'   => 'failure',
@@ -1041,9 +1043,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'message'  => __( 'Your payment is already being processed. Please wait.', 'woocommerce-gateway-stripe' ),
 				];
 			}
-
-			// Lock the order before we create and confirm the payment/setup intents to prevent Stripe sending the success webhook before this request is completed.
-			$this->lock_order_payment( $order );
 
 			$payment_needed                = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id             = $payment_information['payment_method'];
