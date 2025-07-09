@@ -248,6 +248,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'is_upe_enabled'                           => $is_upe_enabled,
 				'is_oc_enabled'                            => 'yes' === $this->gateway->get_option( 'optimized_checkout_element' ),
 				'oc_title'                                 => $this->gateway->get_validated_option( 'optimized_checkout_element_title' ),
+				'is_pmc_enabled'                           => 'yes' === $this->gateway->get_option( 'pmc_enabled' ),
 			]
 		);
 	}
