@@ -176,7 +176,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests for `is_subscription_payment_method_detached`.
+	 * Tests for {@see WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached()}.
 	 *
 	 * @param array|null $source_meta The source meta data for the subscription.
 	 * @param array|\WP_Error $mocked_response The mocked response from the Stripe API.
