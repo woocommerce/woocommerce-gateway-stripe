@@ -207,15 +207,51 @@ class WC_Stripe_Customer {
 	 * @throws WC_Stripe_Exception
 	 */
 	private function validate_create_customer_request( $create_customer_request ) {
-		$required_fields = [
-			'email'   => true,
-			'name'    => true,
-			'address' => [
-				'line1'   => true,
-				'city'    => true,
-				'country' => true,
-			],
+		$checkout_billing_fields = WC_Checkout::instance()->get_checkout_fields( 'billing' );
+		$required_billing_fields = array_filter(
+			$checkout_billing_fields,
+			function ( $field_data ) {
+				return $field_data['required'] ?? false;
+			}
+		);
+
+		$required_fields = [];
+
+		if ( isset( $required_billing_fields['billing_email'] ) ) {
+			$required_fields['email'] = true;
+		}
+
+		if ( isset( $required_billing_fields['billing_first_name'] ) || isset( $required_billing_fields['billing_last_name'] ) ) {
+			$required_fields['name'] = true;
+		}
+
+		$required_address_fields = [];
+		$address_field_mapping = [
+			'billing_address_1' => 'line1',
+			'billing_address_2' => 'line2',
+			'billing_city'      => 'city',
+			'billing_country'   => 'country',
+			'billing_postcode'  => 'postal_code',
+			'billing_state'     => 'state',
 		];
+
+		foreach ( $address_field_mapping as $field => $stripe_field_name ) {
+			if ( isset( $required_billing_fields[ $field ] ) ) {
+				$required_address_fields[ $stripe_field_name ] = true;
+			}
+		}
+
+		if ( [] !== $required_address_fields ) {
+			$required_fields['address'] = $required_address_fields;
+		}
+
+		/**
+		 * Filters the required customer fields when creating a customer in Stripe.
+		 *
+		 * @since 9.7.0
+		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout.
+		 */
+		$required_fields = apply_filters( 'wc_stripe_required_customer_fields', $required_fields );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
