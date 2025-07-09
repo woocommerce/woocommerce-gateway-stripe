@@ -10,7 +10,7 @@ import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
-import { useGetOrderedPaymentMethodIds } from 'wcstripe/data';
+import { useGetOrderedPaymentMethodIds, useIsPMCEnabled } from 'wcstripe/data';
 import './styles.scss';
 
 const AccountRefreshingOverlay = styled.div`
@@ -44,6 +44,7 @@ const GeneralSettingsSection = ( {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
+	const isPMCEnabled = useIsPMCEnabled();
 
 	const [ initialOrder, setInitialOrder ] = useState( [] );
 
@@ -99,7 +100,7 @@ const GeneralSettingsSection = ( {
 							onCancel={ () => onChangeDisplayOrder( false ) }
 						/>
 					</AccountRefreshingOverlay>
-					{ isUpeEnabled && <SectionFooter /> }
+					{ isUpeEnabled && ! isPMCEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
 			</Card>
 		</>

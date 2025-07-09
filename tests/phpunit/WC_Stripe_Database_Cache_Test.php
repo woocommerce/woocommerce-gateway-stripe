@@ -150,13 +150,13 @@ class WC_Stripe_Database_Cache_Test extends WP_UnitTestCase {
 		$this->assertEquals( $data, WC_Stripe_Database_Cache::get( $key ) );
 
 		// Force expiration using the filter.
-		add_filter( 'wcstripe_database_cache_is_expired', '__return_true' );
+		add_filter( 'wc_stripe_database_cache_is_expired', '__return_true' );
 
 		// Should be expired.
 		$this->assertNull( WC_Stripe_Database_Cache::get( $key ) );
 
 		// Remove the filter.
-		remove_filter( 'wcstripe_database_cache_is_expired', '__return_true' );
+		remove_filter( 'wc_stripe_database_cache_is_expired', '__return_true' );
 	}
 
 	/**
