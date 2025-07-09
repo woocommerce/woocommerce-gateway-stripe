@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.0 - xxxx-xx-xx =
+* Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
 * Update - Improvements to custom checkout fields support for express checkout
 * Tweak - Use the Database Cache for the Stripe Account Data
