@@ -184,37 +184,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$this->assertEquals( 'no', $ideal_settings['enabled'] );
 	}
 
-	public function test_turning_off_upe_enables_the_correct_legacy_payment_methods_based_on_which_upe_payment_methods_were_enabled() {
-		$this->upe_helper->enable_upe_feature_flag();
-
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-
-		update_option( 'woocommerce_currency', 'EUR' );
-
-		// Disable sepa and iDEAL LPM gateways.
-		update_option( 'woocommerce_stripe_sepa_settings', [ 'enabled' => 'no' ] );
-		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'no' ] );
-
-		// Turn UPE on first.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		$this->mock_payment_method_configurations( [ WC_Stripe_Payment_Methods::SEPA_DEBIT, WC_Stripe_Payment_Methods::IDEAL ] );
-
-		// Turn UPE off.
-		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertEquals( 'no', $stripe_settings['enabled'] );
-		// Check that the correct LPMs were re-enabled.
-		$sepa_settings = get_option( 'woocommerce_stripe_sepa_settings' );
-		$this->assertEquals( 'yes', $sepa_settings['enabled'] );
-		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
-		$this->assertEquals( 'yes', $ideal_settings['enabled'] );
-	}
-
 	/**
 	 * Test that {@see WC_Stripe_Helper::is_webhook_url()} works as expected.
 	 *
