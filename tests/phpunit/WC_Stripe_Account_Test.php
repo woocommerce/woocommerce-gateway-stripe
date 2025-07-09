@@ -5,6 +5,7 @@ namespace WooCommerce\Stripe\Tests;
 use WC_Stripe_Account;
 use WC_Stripe_Helper;
 use WC_Stripe_Connect;
+use WC_Stripe_Database_Cache;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Stripe_Api;
 use WP_UnitTestCase;
 
@@ -47,13 +48,11 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 									)
 									->getMock();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
 		$this->account = new WC_Stripe_Account( $this->mock_connect, WC_Helper_Stripe_Api::class );
 	}
 
 	public function tear_down() {
-		delete_transient( 'wcstripe_account_data_test' );
-		delete_transient( 'wcstripe_account_data_live' );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
 		WC_Stripe_Helper::delete_main_stripe_settings();
 
 		WC_Helper_Stripe_Api::reset();
@@ -74,7 +73,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'    => '1234',
 			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 
 		$cached_data = $this->account->get_cached_account_data();
 
@@ -98,12 +97,10 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'    => '1234',
 			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
-		set_transient( 'wcstripe_account_data_live', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 
 		$this->account->clear_cache();
-		$this->assertFalse( get_transient( 'wcstripe_account_data_test' ) );
-		$this->assertFalse( get_transient( 'wcstripe_account_data_live' ) );
+		$this->assertEquals( [], $this->account->get_cached_account_data() );
 	}
 
 	public function test_no_pending_requirements() {
@@ -112,7 +109,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'    => '1234',
 			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertFalse( $this->account->has_pending_requirements() );
 	}
 
@@ -125,7 +122,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'currently_due' => [ 'example' ],
 			],
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertTrue( $this->account->has_pending_requirements() );
 	}
 
@@ -138,7 +135,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'currently_due' => [ 'example' ],
 			],
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertFalse( $this->account->has_overdue_requirements() );
 	}
 
@@ -151,7 +148,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'past_due' => [ 'example' ],
 			],
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertTrue( $this->account->has_overdue_requirements() );
 	}
 
@@ -161,7 +158,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'    => '1234',
 			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertEquals( 'complete', $this->account->get_account_status() );
 	}
 
@@ -174,7 +171,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'disabled_reason' => 'other',
 			],
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertEquals( 'restricted', $this->account->get_account_status() );
 	}
 
@@ -187,7 +184,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 				'eventually_due' => [ 'example' ],
 			],
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertEquals( 'restricted_soon', $this->account->get_account_status() );
 	}
 
@@ -203,7 +200,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'email'   => 'test@example.com',
 			'country' => 'US',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 		$this->assertEquals( 'US', $this->account->get_account_country() );
 	}
 
@@ -219,7 +216,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'email'   => 'test@example.com',
 			'country' => 'US',
 		];
-		set_transient( 'wcstripe_account_data_test', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 
 		$this->assertSame( $this->account->get_cached_account_data( 'test' ), $account );
 	}
@@ -236,43 +233,9 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'email'   => 'live@example.com',
 			'country' => 'US',
 		];
-		set_transient( 'wcstripe_account_data_live', $account );
+		WC_Stripe_Database_Cache::set( WC_Stripe_Account::ACCOUNT_CACHE_KEY, $account );
 
 		$this->assertSame( $this->account->get_cached_account_data( 'live' ), $account );
-	}
-
-	/**
-	 * Test for get_cached_account_data() with no mode parameter.
-	 */
-	public function test_get_cached_account_data_no_mode() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->mock_connect->method( 'is_connected' )->with( null )->willReturn( true );
-
-		$test_account = [
-			'id'    => 'acct_test-1234',
-			'email' => 'john@example.com',
-		];
-
-		$live_account = [
-			'id'    => 'acct_live-1234',
-			'email' => 'john@example.com',
-		];
-		set_transient( 'wcstripe_account_data_test', $test_account );
-		set_transient( 'wcstripe_account_data_live', $live_account );
-
-		// Enable TEST mode.
-		$stripe_settings['testmode'] = 'yes';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Confirm test mode data is returned.
-		$this->assertSame( $this->account->get_cached_account_data(), $test_account );
-
-		// Enable LIVE mode.
-		$stripe_settings['testmode'] = 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
-		// Confirm live mode data is returned.
-		$this->assertSame( $this->account->get_cached_account_data(), $live_account );
 	}
 
 	/**

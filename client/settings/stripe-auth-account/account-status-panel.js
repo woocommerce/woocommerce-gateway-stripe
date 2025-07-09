@@ -11,6 +11,7 @@ import {
 	useAccountKeysTestWebhookURL,
 } from 'wcstripe/data/account-keys';
 import { useAccount } from 'wcstripe/data/account';
+import { useIsPMCEnabled } from 'wcstripe/data';
 
 /**
  * Generates a status chip.
@@ -203,6 +204,19 @@ const getWebhookStatus = ( webhookSecret, hasWebhookURL ) => {
 };
 
 /**
+ * Gets the sync status.
+ *
+ * @param {boolean} isPMCEnabled Whether the payment methods are synced between Stripe dashboard and the plugin.
+ *
+ * @return {string} The sync status.
+ */
+const getSyncStatus = ( isPMCEnabled ) => {
+	return isPMCEnabled
+		? __( 'Enabled', 'woocommerce-gateway-stripe' )
+		: __( 'Disabled', 'woocommerce-gateway-stripe' );
+};
+
+/**
  * The AccountStatusPanel component.
  *
  * @param {Object} props           The component props.
@@ -212,6 +226,7 @@ const getWebhookStatus = ( webhookSecret, hasWebhookURL ) => {
  */
 const AccountStatusPanel = ( { testMode } ) => {
 	const { accountKeys } = useAccountKeys();
+	const isPMCEnabled = useIsPMCEnabled();
 	const { data } = useAccount();
 	const getWebhookSecret = testMode
 		? useAccountKeysTestWebhookSecret
@@ -243,6 +258,11 @@ const AccountStatusPanel = ( { testMode } ) => {
 				label={ __( 'Webhooks', 'woocommerce-gateway-stripe' ) }
 				text={ webhookStatus.text }
 				color={ webhookStatus.color }
+			/>
+			<Status
+				label={ __( 'Sync', 'woocommerce-gateway-stripe' ) }
+				text={ getSyncStatus( isPMCEnabled ) }
+				color={ isPMCEnabled ? 'green' : 'red' }
 			/>
 		</div>
 	);

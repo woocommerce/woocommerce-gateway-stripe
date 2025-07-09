@@ -127,7 +127,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] ) ) );
+				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
+				if ( ! is_wp_error( $response ) ) {
+					$redirect_url = add_query_arg( [ 'wc_stripe_connected' => 'true' ], $redirect_url );
+				}
+				wp_safe_redirect( esc_url_raw( $redirect_url ) );
 				exit;
 			}
 		}

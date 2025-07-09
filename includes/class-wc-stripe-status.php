@@ -41,6 +41,7 @@ class WC_Stripe_Status {
 	 */
 	public function init_hooks() {
 		add_action( 'woocommerce_system_status_report', [ $this, 'render_status_report_section' ], 1 );
+		add_filter( 'woocommerce_debug_tools', [ $this, 'debug_tools' ] );
 	}
 
 	/**
@@ -110,6 +111,20 @@ class WC_Stripe_Status {
 					?>
 					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $class ); ?>"></span>
 					<?php $oauth_connected ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' ); ?>
+					</mark>
+				</td>
+			</tr>
+			<tr>
+				<td data-export-label="Sync Enabled"><?php esc_html_e( 'Sync Enabled', 'woocommerce-gateway-stripe' ); ?>:</td>
+				<td class="help"><?php echo wc_help_tip( esc_html__( 'Whether the payment methods are synced between Stripe dashboard and the plugin.', 'woocommerce-gateway-stripe' ) ); /* phpcs:ignore WordPress.XSS.EscapeOutput.OutputNotEscaped, WordPress.Security.EscapeOutput.OutputNotEscaped */ ?></td>
+				<td>
+					<?php
+					$is_pmc_enabled = 'yes' === $this->gateway->get_option( 'pmc_enabled', 'no' );
+					$class          = $is_pmc_enabled ? 'yes' : 'error';
+					$icon           = $is_pmc_enabled ? 'yes' : 'no';
+					?>
+					<mark class="<?php echo esc_attr( $class ); ?>"><span class="dashicons dashicons-<?php echo esc_attr( $icon ); ?>"></span>
+					<?php $is_pmc_enabled ? esc_html_e( 'Yes', 'woocommerce-gateway-stripe' ) : esc_html_e( 'No', 'woocommerce-gateway-stripe' ); ?>
 					</mark>
 				</td>
 			</tr>
@@ -193,5 +208,63 @@ class WC_Stripe_Status {
 			</tbody>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Add Stripe tools to the Woo debug tools.
+	 *
+	 * @param array $tools List of current available tools.
+	 */
+	public function debug_tools( $tools ) {
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			$tools['wc_stripe_list_detached_subscriptions'] = [
+				'name'     => __( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+				'button'   => __( 'List subscriptions', 'woocommerce-gateway-stripe' ),
+				'desc'     => sprintf(
+					'%1$s<br/><strong class="red">%2$s</strong> %3$s<br/><strong>%4$s</strong>',
+					__( 'This tool will list all Stripe subscriptions with detached payment methods.', 'woocommerce-gateway-stripe' ),
+					__( 'Note:', 'woocommerce-gateway-stripe' ),
+					__( 'This tool will make an API request to Stripe for each active Stripe subscription in your store that is due to renew in the next month. For stores with many subscriptions, this may temporarily impact performance.', 'woocommerce-gateway-stripe' ),
+					__( 'Not recommended if you have more than 100 active subscriptions due for renewal within 30 days.', 'woocommerce-gateway-stripe' ),
+				),
+
+				'callback' => [ $this, 'list_detached_subscriptions' ],
+			];
+		}
+		return $tools;
+	}
+
+	/**
+	 * Lists Stripe subscriptions with detached payment methods.
+	 *
+	 * @return void
+	 */
+	public function list_detached_subscriptions() {
+		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions( 1000 ); // Limiting to 1000 subscriptions for safety.
+		$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+		echo '<div class="wrap woocommerce">';
+			echo '<h1>' . esc_html__( 'List Detached Stripe Subscriptions', 'woocommerce-gateway-stripe' ) . '</h1>';
+		if ( empty( $detached_messages ) ) {
+			echo '<div class="notice notice-info inline">';
+				echo '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
+			echo '</div>';
+		} else {
+			echo '<div class="notice notice-error inline">';
+				echo '<p>';
+					echo wp_kses(
+						$detached_messages,
+						[
+							'a'      => [
+								'href'   => [],
+								'target' => [],
+							],
+							'strong' => [],
+							'br'     => [],
+						]
+					);
+				echo '</p>';
+			echo '</div>';
+		}
+		echo '</div>';
 	}
 }
