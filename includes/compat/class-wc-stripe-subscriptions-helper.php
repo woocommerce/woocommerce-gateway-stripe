@@ -81,7 +81,7 @@ class WC_Stripe_Subscriptions_Helper {
 		/**
 		 * Filter the maximum time allowed for fetching detached subscriptions.
 		 *
-		 * @since 9.6.0
+		 * @since 9.7.0
 		 * @param int $max_time The maximum time allowed in seconds. Default is server's `max_execution_time` (when available, or 30 if not) minus 5 seconds.
 		 */
 		$max_time = apply_filters( 'wc_stripe_detached_subscriptions_maximum_time', $default_max_time );
