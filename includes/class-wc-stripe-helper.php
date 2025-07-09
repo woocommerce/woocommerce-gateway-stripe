@@ -438,7 +438,7 @@ class WC_Stripe_Helper {
 	/**
 	 * List of legacy payment methods.
 	 *
-	 * @return array
+	 * @return WC_Stripe_Payment_Gateway[]
 	 */
 	public static function get_legacy_payment_methods() {
 		if ( ! empty( self::$stripe_legacy_gateways ) ) {

@@ -558,11 +558,7 @@ class WC_Stripe {
 		// Note that we need to run these checks before we call toggle_upe() below.
 		$this->maybe_reset_stripe_in_memory_key( $settings, $old_settings );
 
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return $settings;
-		}
-
-		return $this->toggle_upe( $settings, $old_settings );
+		return $this->enable_upe( $settings, $old_settings );
 	}
 
 	/**
@@ -598,32 +594,18 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Enable or disable UPE.
+	 * Enables UPE by disabling legacy payment methods and enabling UPE methods.
 	 *
-	 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
-	 *
-	 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
-	 *
-	 * @param array      $settings New settings to save.
-	 * @param array|bool $old_settings Existing settings, if any.
-	 * @return array New value but with defaults initially filled in for missing settings.
+	 * @param array $settings Settings to update.
+	 * @param array $old_settings Old settings to compare against.
+	 * @return array Updated settings with UPE enabled.
 	 */
-	protected function toggle_upe( $settings, $old_settings ) {
-		if ( false === $old_settings || ! isset( $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) ) {
-			$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
-		}
+	protected function enable_upe( $settings, $old_settings ) {
+		// If the UPE checkout feature key is not set or has not changed, we don't need to do anything.
 		if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 			return $settings;
 		}
 
-		if ( 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
-			return $this->enable_upe( $settings );
-		}
-
-		return $this->disable_upe( $settings );
-	}
-
-	protected function enable_upe( $settings ) {
 		$settings['upe_checkout_experience_accepted_payments'] = [];
 
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
@@ -635,67 +617,25 @@ class WC_Stripe {
 			$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
 			if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
 				// DISABLE LPM
-				/**
-				 * TODO: This can be replaced with:
-				 *
-				 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
-				 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
-				 *
-				 * ...once the minimum WC version is 3.4.0.
-				 */
-				$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
-				update_option(
-					$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
-					apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
-					'yes'
-				);
+				$payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
+				$payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
+
 				// ENABLE UPE METHOD
 				$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 			}
 
 			if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
-				$settings['upe_checkout_experience_accepted_payments'][] = 'card';
-				$settings['upe_checkout_experience_accepted_payments'][] = 'link';
+				$settings['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::CARD;
+				$settings['upe_checkout_experience_accepted_payments'][] = WC_Stripe_Payment_Methods::LINK;
 			}
 		}
 		if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$settings['upe_checkout_experience_accepted_payments'] = [ 'card', 'link' ];
+			$settings['upe_checkout_experience_accepted_payments'] = [ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::LINK ];
 		} else {
 			// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 			$settings['enabled'] = 'yes';
 		}
 
-		return $settings;
-	}
-
-	protected function disable_upe( $settings ) {
-		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
-				continue;
-			}
-			// ENABLE LPM
-			$gateway_class = $method_class::LPM_GATEWAY_CLASS;
-			$gateway       = new $gateway_class();
-			/**
-			 * TODO: This can be replaced with:
-			 *
-			 *   $gateway->update_option( 'enabled', 'yes' );
-			 *
-			 * ...once the minimum WC version is 3.4.0.
-			 */
-			$gateway->settings['enabled'] = 'yes';
-			update_option( $gateway->get_option_key(), apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $gateway::ID, $gateway->settings ), 'yes' );
-		}
-		// Disable main Stripe/card LPM if 'card' UPE method wasn't enabled.
-		if ( ! in_array( 'card', $upe_enabled_method_ids, true ) ) {
-			$settings['enabled'] = 'no';
-		}
-		// DISABLE ALL UPE METHODS
-		if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$settings['upe_checkout_experience_accepted_payments'] = [];
-		}
 		return $settings;
 	}
 
