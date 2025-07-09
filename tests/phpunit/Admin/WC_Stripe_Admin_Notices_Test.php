@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use WC_Stripe;
 use WC_Stripe_Admin_Notices;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
@@ -541,18 +542,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		global $theorder;
 		$original_order = $theorder;
 
-		$_GET = [
+		$_REQUEST = [
 			'page' => 'wc-orders--shop_subscription',
 			'id'   => '123',
 		];
 
 		update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
 
+		$source_id = 'src_123';
+
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 123 );
 		$subscription->save();
 
-		$subscription->update_meta_data( '_stripe_source_id', 'src_123' );
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
 		$subscription->save_meta_data();
 
 		$theorder = $subscription;
@@ -583,9 +588,10 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		unset( $_GET );
 		$theorder = $original_order;
 		update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
 
 		$this->assertCount( 1, $actual );
 		$this->assertArrayHasKey( 'subscription_detached', $actual );
-		$this->assertMatchesRegularExpression( '/The payment method for this subscription has been detached/', $actual['subscription_detached']['message'] );
+		$this->assertStringContainsString( 'The payment method for this subscription has been detached', $actual['subscription_detached']['message'] );
 	}
 }
