@@ -204,7 +204,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 		if ( ! empty( $billing_data['email'] ) && ( ! empty( $billing_data['first_name'] ) || ! empty( $billing_data['last_name'] ) ) ) {
 			$mock_customer_search_call = function ( $return_value, $parsed_args, $url ) {
-				if ( ! str_starts_with( 'https://api.stripe.com/v1/customers/search', $url ) ) {
+				if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/customers/search' ) ) {
 					return $return_value;
 				}
 
