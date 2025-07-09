@@ -251,7 +251,7 @@ class WC_Stripe_Customer {
 		 * @since 9.7.0
 		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_required_customer_fields', $required_fields );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $required_fields );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {

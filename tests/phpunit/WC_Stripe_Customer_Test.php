@@ -165,7 +165,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 
 				return $required_fields;
 			};
-			add_filter( 'wc_stripe_required_customer_fields', $stripe_billing_fields_filter, 10, 1 );
+			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
 		}
 
 		$mock_order = $this->getMockBuilder( \WC_Order::class )
@@ -264,7 +264,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 			remove_filter( 'woocommerce_checkout_fields', $woo_checkout_fields_filter, 10 );
 
 			if ( null !== $stripe_billing_fields_filter ) {
-				remove_filter( 'wc_stripe_required_customer_fields', $stripe_billing_fields_filter, 10 );
+				remove_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10 );
 			}
 
 			// Reset checkout fields, otherwise they persist across test cases.
