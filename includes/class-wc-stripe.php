@@ -549,7 +549,7 @@ class WC_Stripe {
 	 */
 	public function gateway_settings_update( $settings, $old_settings ) {
 		if ( false === $old_settings ) {
-			$gateway      = new WC_Gateway_Stripe();
+			$gateway      = new WC_Stripe_UPE_Payment_Gateway();
 			$fields       = $gateway->get_form_fields();
 			$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 			$settings     = array_merge( $old_settings, $settings );

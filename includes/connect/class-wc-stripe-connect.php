@@ -246,9 +246,8 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * Gets default Stripe settings
 		 */
 		private function get_default_stripe_config() {
-
 			$result  = [];
-			$gateway = new WC_Gateway_Stripe();
+			$gateway = new WC_Stripe_UPE_Payment_Gateway();
 			foreach ( $gateway->form_fields as $key => $value ) {
 				if ( isset( $value['default'] ) ) {
 					$result[ $key ] = $value['default'];
