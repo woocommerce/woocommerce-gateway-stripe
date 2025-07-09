@@ -539,6 +539,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 */
 	public function test_subscription_check_detachment() {
 		global $theorder;
+		$original_order = $theorder;
 
 		$_GET = [
 			'page' => 'wc-orders--shop_subscription',
@@ -582,6 +583,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 
 		// Clean up.
 		unset( $_GET );
+		$theorder = $original_order;
 		update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 	}
 }
