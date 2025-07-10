@@ -122,6 +122,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use the Database Cache for the Stripe Account Data
 * Update - Update filter names to use the wc_stripe_* prefix
 * Add - Show payment methods sync status on the UI
+* Fix - No such customer error when creating a payment method with a new Stripe account
 
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
