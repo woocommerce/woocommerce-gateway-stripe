@@ -13,6 +13,13 @@ use WC_Subscriptions;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/**
+	 * The original value of the HPOS option.
+	 *
+	 * @var string
+	 */
+	private static $original_hpos_value;
+
 	public function set_up() {
 		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -38,6 +45,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				WC_Stripe_Payment_Methods::EPS,
 			]
 		);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+		self::$original_hpos_value = get_option( 'woocommerce_custom_orders_table_enabled' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function tear_down_after_class() {
+		parent::tear_down_after_class();
+		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
@@ -602,7 +625,6 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		}
 
 		$theorder = $original_order;
-		update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_123' );
 
 		$this->assertCount( 1, $actual );
