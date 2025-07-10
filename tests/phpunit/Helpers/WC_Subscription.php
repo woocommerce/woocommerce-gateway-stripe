@@ -9,6 +9,12 @@
  * This helper class should ONLY be used for unit tests!.
  */
 class WC_Subscription extends WC_Order {
+	/**
+	 * Subscription ID.
+	 *
+	 * @var int
+	 */
+	public $ID = 0;
 
 	/**
 	 * Order type
@@ -16,6 +22,13 @@ class WC_Subscription extends WC_Order {
 	 * @var string
 	 */
 	public $order_type = 'shop_subscription';
+
+	/**
+	 * Post type for subscriptions.
+	 *
+	 * @var string
+	 */
+	public $post_type = 'shop_subscription';
 
 	/**
 	 * An array storing the times for specific fields.
@@ -45,6 +58,16 @@ class WC_Subscription extends WC_Order {
 			}
 		);
 		parent::__construct( $subscription );
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return void
+	 */
+	public function set_id( $id ) {
+		parent::set_id( $id );
+
+		$this->ID = $id;
 	}
 
 	/**
