@@ -465,16 +465,13 @@ class WC_Stripe_Admin_Notices {
 
 		if ( isset( $theorder ) ) {
 			$subscription = $theorder;
-		}
-		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
-		elseif ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
+		} elseif ( ! empty( $GLOBALS['post']->ID ) ) { // If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
 			$subscription = wcs_get_subscription( $GLOBALS['post']->ID );
 		}
 
 		if ( ! isset( $subscription ) || ! $subscription instanceof WC_Subscription ) {
 			return;
 		}
-
 
 		if ( ! $subscription->has_status( [ 'active' ] ) ) {
 			// Only show the notice for active subscriptions.
