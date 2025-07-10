@@ -15,11 +15,13 @@ class WC_Stripe_Webhook_State {
 	const OPTION_LIVE_LAST_SUCCESS_AT     = 'wc_stripe_wh_last_success_at';
 	const OPTION_LIVE_LAST_FAILURE_AT     = 'wc_stripe_wh_last_failure_at';
 	const OPTION_LIVE_LAST_ERROR          = 'wc_stripe_wh_last_error';
+	const OPTION_LIVE_PENDING_WEBHOOKS    = 'wc_stripe_wh_live_pending_webhooks';
 
 	const OPTION_TEST_MONITORING_BEGAN_AT = 'wc_stripe_wh_test_monitor_began_at';
 	const OPTION_TEST_LAST_SUCCESS_AT     = 'wc_stripe_wh_test_last_success_at';
 	const OPTION_TEST_LAST_FAILURE_AT     = 'wc_stripe_wh_test_last_failure_at';
 	const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
+	const OPTION_TEST_PENDING_WEBHOOKS    = 'wc_stripe_wh_test_pending_webhooks';
 
 	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
 	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
@@ -57,6 +59,7 @@ class WC_Stripe_Webhook_State {
 			delete_option( self::OPTION_LIVE_LAST_SUCCESS_AT );
 			delete_option( self::OPTION_LIVE_LAST_FAILURE_AT );
 			delete_option( self::OPTION_LIVE_LAST_ERROR );
+			delete_option( self::OPTION_LIVE_PENDING_WEBHOOKS );
 		}
 
 		if ( 'all' === $mode || 'test' === $mode ) {
@@ -64,6 +67,7 @@ class WC_Stripe_Webhook_State {
 			delete_option( self::OPTION_TEST_LAST_SUCCESS_AT );
 			delete_option( self::OPTION_TEST_LAST_FAILURE_AT );
 			delete_option( self::OPTION_TEST_LAST_ERROR );
+			delete_option( self::OPTION_TEST_PENDING_WEBHOOKS );
 		}
 	}
 
@@ -228,6 +232,30 @@ class WC_Stripe_Webhook_State {
 	}
 
 	/**
+	 * Sets the number of pending webhooks.
+	 *
+	 * @since 9.7.0
+	 *
+	 * @param int $pending_webhooks The number of pending webhooks.
+	 */
+	public static function set_pending_webhooks_count( $pending_webhooks ) {
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
+		update_option( $option, $pending_webhooks );
+	}
+
+	/**
+	 * Gets the number of pending webhooks.
+	 *
+	 * @since 9.7.0
+	 *
+	 * @return int The number of pending webhooks.
+	 */
+	public static function get_pending_webhooks_count() {
+		$option = WC_Stripe_Mode::is_test() ? self::OPTION_TEST_PENDING_WEBHOOKS : self::OPTION_LIVE_PENDING_WEBHOOKS;
+		return get_option( $option, 0 );
+	}
+
+	/**
 	 * Gets the state of webhook processing in a human readable format.
 	 *
 	 * @since 5.0.0
@@ -240,6 +268,7 @@ class WC_Stripe_Webhook_State {
 		$last_error          = self::get_last_error_reason();
 		$test_mode           = WC_Stripe_Mode::is_test();
 		$code                = self::get_webhook_status_code();
+		$pending_webhooks    = self::get_pending_webhooks_count();
 
 		$date_format = 'Y-m-d H:i:s e';
 
@@ -269,17 +298,20 @@ class WC_Stripe_Webhook_State {
 						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+						 * translators: 4) number of pending webhooks
 						 */
-						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
+						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s, and there are approximately %4$d webhooks pending)', 'woocommerce-gateway-stripe' ) :
 						/*
 						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+						 * translators: 4) number of pending webhooks
 						 */
-						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
+						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s, and there are approximately %4$d webhooks pending)', 'woocommerce-gateway-stripe' ),
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
-					gmdate( $date_format, $last_success_at )
+					gmdate( $date_format, $last_success_at ),
+					$pending_webhooks,
 				);
 			default: // Case 4: Failure with no prior success
 				return sprintf(
@@ -287,16 +319,19 @@ class WC_Stripe_Webhook_State {
 						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+						 * translators: 4) number of pending webhooks
 						 */
-						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
+						__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s, and there are approximately %4$d webhooks pending)', 'woocommerce-gateway-stripe' ) :
 						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
 						 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+						 * translators: 4) number of pending webhooks
 						 */
-						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
+						__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s, and there are approximately %4$d webhooks pending)', 'woocommerce-gateway-stripe' ),
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
-					gmdate( $date_format, $monitoring_began_at )
+					gmdate( $date_format, $monitoring_began_at ),
+					$pending_webhooks,
 				);
 		}
 	}

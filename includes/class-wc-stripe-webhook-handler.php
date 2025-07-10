@@ -100,6 +100,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::debug( 'Webhook received: ' . $event_type );
 
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks );
+
 		// Validate it to make sure it is legit.
 		$request_headers   = array_change_key_case( $this->get_request_headers(), CASE_UPPER );
 		$validation_result = $this->validate_request( $request_headers, $request_body );
