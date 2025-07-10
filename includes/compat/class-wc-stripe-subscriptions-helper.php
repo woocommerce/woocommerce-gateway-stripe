@@ -117,6 +117,10 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @return bool True if the payment method is detached, false otherwise.
 	 */
 	public static function is_subscription_payment_method_detached( $subscription ) {
+		if ( ! $subscription instanceof WC_Subscription ) {
+			return false;
+		}
+
 		$source_id = $subscription->get_meta( '_stripe_source_id' );
 		if ( ! $source_id ) {
 			return false;
