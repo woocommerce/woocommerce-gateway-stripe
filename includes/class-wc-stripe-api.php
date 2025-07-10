@@ -214,7 +214,7 @@ class WC_Stripe_API {
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -227,34 +227,32 @@ class WC_Stripe_API {
 		);
 
 		$response_headers = wp_remote_retrieve_headers( $response );
-		// Log the stripe version in the response headers, if present.
-		if ( isset( $response_headers['stripe-version'] ) ) {
-			WC_Stripe_Logger::log( "{$api} response with stripe-version: " . $response_headers['stripe-version'] );
-		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::log(
-				'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r(
-					[
-						'api'             => $api,
-						'request'         => $request,
-						'idempotency_key' => $idempotency_key,
-					],
-					true
-				)
+			WC_Stripe_Logger::error(
+				"Stripe API error: {$method} {$api}",
+				[
+					'request'         => $request,
+					'idempotency_key' => $idempotency_key,
+					'response'        => $response,
+				]
 			);
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
+		$response_body = json_decode( $response['body'] );
+
+		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+
 		if ( $with_headers ) {
 			return [
 				'headers' => $response_headers,
-				'body'    => json_decode( $response['body'] ),
+				'body'    => $response_body,
 			];
 		}
 
-		return json_decode( $response['body'] );
+		return $response_body;
 	}
 
 	/**
@@ -265,7 +263,7 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		WC_Stripe_Logger::log( "{$api}" );
+		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -289,7 +287,11 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		return json_decode( $response['body'] );
+		$response_body = json_decode( $response['body'] );
+
+		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+
+		return $response_body;
 	}
 
 	/**
