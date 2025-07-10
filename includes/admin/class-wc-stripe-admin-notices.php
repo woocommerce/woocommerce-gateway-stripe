@@ -450,7 +450,7 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
-	 * Adds a notice to the order details page if the (active) subscription payment method has been detached.
+	 * Adds a notice to the subscription details page if we are looking at an active subscription and the payment method has been detached.
 	 *
 	 * @return void
 	 */
