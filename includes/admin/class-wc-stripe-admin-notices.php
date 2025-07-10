@@ -505,10 +505,11 @@ class WC_Stripe_Admin_Notices {
 			$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
 			$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
 			$detached_message .= '<br />' . sprintf(
-				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>List Stripe subscriptions with detached payment method</strong>.', 'woocommerce-gateway-stripe' ),
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
+				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
 				'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
-				'</a>'
+				'</a>',
+				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
 			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
 		}
