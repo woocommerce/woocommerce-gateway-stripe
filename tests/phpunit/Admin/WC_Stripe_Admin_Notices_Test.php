@@ -634,7 +634,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'theorder global' => $subscription,
 				'request params'  => [
 					'page' => 'wc-orders--shop_subscription',
-					'id'   => '123',
+					'id'   => $subscription->get_id(),
 				],
 				'post globals'    => [],
 			],
@@ -643,7 +643,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'theorder global' => null,
 				'request params'  => [
 					'page'   => 'wc-orders--shop_subscription',
-					'id'     => '123',
+					'id'     => $subscription->get_id(),
 					'post'   => $subscription,
 					'action' => 'edit',
 				],

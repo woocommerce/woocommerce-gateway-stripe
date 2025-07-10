@@ -38,6 +38,13 @@ class WC_Subscription extends WC_Order {
 	private $times = [];
 
 	/**
+	 * Status of the subscription.
+	 *
+	 * @var string
+	 */
+	private $status = 'pending';
+
+	/**
 	 * Initializes a specific subscription if the ID is passed, otherwise a new and empty instance of a subscription.
 	 *
 	 * This class should NOT be instantiated, instead the functions wcs_create_subscription() and wcs_get_subscription()
@@ -126,5 +133,21 @@ class WC_Subscription extends WC_Order {
 	 */
 	public function get_time( $field ) {
 		return $this->times[ $field ] ?? false;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return void
+	 */
+	public function set_status( $status, $note = '', $manual_update = false ) {
+		$this->status = $status;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return string
+	 */
+	public function get_status( $context = 'view' ) {
+		return $this->status;
 	}
 }
