@@ -450,7 +450,7 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
-	 * Adds a notice to the order details page if the subscription payment method has been detached.
+	 * Adds a notice to the order details page if the (active) subscription payment method has been detached.
 	 *
 	 * @return void
 	 */
@@ -471,6 +471,12 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		$subscription = $theorder;
+
+		if ( ! $subscription->has_status( [ 'active' ] ) ) {
+			// Only show the notice for active subscriptions.
+			return;
+		}
+
 		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
 			$customer_payment_method_link = sprintf(
 				'<a href="%s">%s</a>',
