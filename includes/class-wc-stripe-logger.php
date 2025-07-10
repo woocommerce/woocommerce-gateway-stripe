@@ -89,10 +89,6 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function emergency( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
-			return;
-		}
-
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
@@ -111,10 +107,6 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function alert( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
-			return;
-		}
-
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
@@ -133,10 +125,6 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function critical( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
-			return;
-		}
-
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
@@ -155,10 +143,6 @@ class WC_Stripe_Logger {
 	 * @return void
 	 */
 	public static function error( $message, $context = [] ) {
-		if ( ! self::can_log() ) {
-			return;
-		}
-
 		if ( empty( self::$logger ) ) {
 			self::$logger = wc_get_logger();
 		}
@@ -260,10 +244,6 @@ class WC_Stripe_Logger {
 	 * @return boolean
 	 */
 	public static function can_log(): bool {
-		if ( ! class_exists( 'WC_Logger' ) ) {
-			return false;
-		}
-
 		$settings = WC_Stripe_Helper::get_stripe_settings();
 
 		if ( empty( $settings ) || ( isset( $settings['logging'] ) && 'yes' !== $settings['logging'] ) ) {
