@@ -33,10 +33,10 @@ class WC_Subscriptions {
 	public static $wcs_get_subscription = null;
 
 	/**
-	 * @param callable $calback Function to call when wcs_get_subscription is called.
+	 * @param callable $callback Function to call when wcs_get_subscription is called.
 	 * @return void
 	 */
-	public static function set_wcs_get_subscription( $calback ) {
-		self::$wcs_get_subscription = $calback;
+	public static function set_wcs_get_subscription( $callback ) {
+		self::$wcs_get_subscription = $callback;
 	}
 }
