@@ -14,7 +14,7 @@
 * Update - Update filter names to use the wc_stripe_* prefix
 * Add - Show payment methods sync status on the UI
 * Fix - No such customer error when creating a payment method with a new Stripe account
-* Update - Add the number of pending webhooks to the Account status secction
+* Update - Add the number of pending webhooks to the Account status section
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
