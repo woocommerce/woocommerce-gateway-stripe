@@ -440,6 +440,17 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->method( 'get_latest_charge_from_intent' )
 			->willReturn( (object) self::MOCK_PAYMENT_INTENT['charges']['data'][0] );
 
+		// // Mock process_response to trigger the action wc_gateway_stripe_process_payment
+		$this->mock_webhook_handler->expects( $this->any() )
+			->method( 'process_response' )
+			->willReturnCallback(
+				function ( $response, $order ) {
+					// Create a temporary instance to call the real method (that need to be mocked for the other tests)
+					$real_handler = new WC_Stripe_Webhook_Handler();
+					return $real_handler->process_response( $response, $order );
+				}
+			);
+
 		$order = WC_Helper_Order::create_order();
 		$order->set_status( $order_status );
 		if ( $order_locked ) {
@@ -590,7 +601,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'order locked'                   => false,
 				'payment type'                   => WC_Stripe_Payment_Methods::BOLETO,
 				'order status final'             => false,
-				'expected status'                => OrderStatus::PENDING,
+				'expected status'                => OrderStatus::PROCESSING,
 				'expected note'                  => '',
 				'expected process payment calls' => 1,
 				'expected process payment intent incomplete calls' => 0,
