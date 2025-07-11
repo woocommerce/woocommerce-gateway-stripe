@@ -1,0 +1,282 @@
+<?php
+
+namespace WooCommerce\Stripe\Tests;
+
+/**
+ * These tests make assertions against the class WC_Stripe_Customer
+ *
+ * Class WC_Stripe_Customer_Test
+ *
+ * @package WooCommerce/Stripe/WC_Stripe_Customer
+ */
+class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
+
+	public function provide_test_validate_create_customer_request_cases(): array {
+		return [
+			'all fields present and required, no overrides' => [
+				'billing_fields'             => [],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'all required fields present with Woo-level overrides to not require state and postcode' => [
+				'billing_fields'             => [
+					'state'    => '',
+					'postcode' => '',
+				],
+				'woo_billing_fields'         => [
+					'billing_state'    => false,
+					'billing_postcode' => false,
+				],
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'all required fields present with Stripe-level overrides to not require state and postcode' => [
+				'billing_fields'             => [
+					'state'    => '',
+					'postcode' => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => [
+					'state'       => false,
+					'postal_code' => false,
+				],
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+			],
+			'email is empty string' => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+			],
+			'email is whitespace string' => [
+				'billing_fields'             => [ 'email' => '   	  ' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+			],
+			'name is null' => [
+				'billing_fields'             => [
+					'first_name' => null,
+					'last_name' => '',
+				],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: name',
+				'expected_exception_string'  => 'Missing required customer field: name',
+			],
+			'address line1 is empty string' => [
+				'billing_fields'             => [ 'address_1' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->line1',
+				'expected_exception_string'  => 'Missing required customer field: address->line1',
+			],
+			'address city is empty string' => [
+				'billing_fields'             => [ 'city' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+			],
+			'address city is whitespace string' => [
+				'billing_fields'             => [ 'city' => '    ' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->city',
+				'expected_exception_string'  => 'Missing required customer field: address->city',
+			],
+			'address country is empty string' => [
+				'billing_fields'             => [ 'country' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: address->country',
+				'expected_exception_string'  => 'Missing required customer field: address->country',
+			],
+		];
+	}
+
+	/**
+	 * @dataProvider provide_test_validate_create_customer_request_cases
+	 */
+	public function test_validate_create_customer_request( array $billing_fields = [], ?array $woo_billing_fields = null, ?array $stripe_billing_fields = null, ?string $expected_exception_message = null, ?string $expected_exception_string = null ) {
+		$default_billing_data = [
+			'email'      => 'test@example.com',
+			'first_name' => 'John',
+			'last_name'  => 'Doe',
+			'address_1'  => '123 Main St',
+			'city'       => 'Anytown',
+			'state'      => 'CA',
+			'postcode'   => '12345',
+			'country'    => 'US',
+		];
+
+		$billing_data = wp_parse_args( $billing_fields, $default_billing_data );
+
+		$woo_billing_fields_required = wp_parse_args(
+			$woo_billing_fields ?? [],
+			[
+				'billing_email'      => true,
+				'billing_first_name' => true,
+				'billing_last_name'  => true,
+				'billing_address_1'  => true,
+				'billing_city'       => true,
+				'billing_country'    => true,
+				'billing_state'      => true,
+				'billing_postcode'   => true,
+			]
+		);
+
+		// Provide a default set of fields so these tests are not dependent on default WooCommerce configuration.
+		$woo_checkout_fields_filter = function ( $checkout_fields ) use ( $woo_billing_fields_required ) {
+			if ( ! isset( $checkout_fields['billing'] ) ) {
+				return $checkout_fields;
+			}
+
+			foreach ( $woo_billing_fields_required as $field => $required ) {
+				if ( ! isset( $checkout_fields['billing'][ $field ] ) ) {
+					$checkout_fields['billing'][ $field ] = [
+						'required' => $required,
+					];
+				} else {
+					$checkout_fields['billing'][ $field ]['required'] = $required;
+				}
+			}
+
+			return $checkout_fields;
+		};
+		add_filter( 'woocommerce_checkout_fields', $woo_checkout_fields_filter, 10, 1 );
+
+		$stripe_billing_fields_filter = null;
+		if ( null !== $stripe_billing_fields ) {
+			$stripe_billing_fields_filter = function ( $required_fields ) use ( $stripe_billing_fields ) {
+				foreach ( $stripe_billing_fields as $field => $required ) {
+					if ( isset( $required_fields[ $field ] ) ) {
+						$required_fields[ $field ] = $required;
+					} elseif ( isset( $required_fields['address'][ $field ] ) ) {
+						$required_fields['address'][ $field ] = $required;
+					}
+				}
+
+				return $required_fields;
+			};
+			add_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10, 1 );
+		}
+
+		$mock_order = $this->getMockBuilder( \WC_Order::class )
+			->disableOriginalConstructor()
+			->onlyMethods(
+				[
+					'get_billing_address_1',
+					'get_billing_city',
+					'get_billing_country',
+					'get_billing_email',
+					'get_billing_first_name',
+					'get_billing_last_name',
+					'get_billing_postcode',
+					'get_billing_state',
+				]
+			)
+			->getMock();
+
+		$mock_order->method( 'get_billing_address_1' )->willReturn( $billing_data['address_1'] );
+		$mock_order->method( 'get_billing_city' )->willReturn( $billing_data['city'] );
+		$mock_order->method( 'get_billing_country' )->willReturn( $billing_data['country'] );
+		$mock_order->method( 'get_billing_email' )->willReturn( $billing_data['email'] );
+		$mock_order->method( 'get_billing_first_name' )->willReturn( $billing_data['first_name'] );
+		$mock_order->method( 'get_billing_last_name' )->willReturn( $billing_data['last_name'] );
+		$mock_order->method( 'get_billing_postcode' )->willReturn( $billing_data['postcode'] );
+		$mock_order->method( 'get_billing_state' )->willReturn( $billing_data['state'] );
+
+		$args = [
+			'order' => $mock_order,
+		];
+		$customer = new \WC_Stripe_Customer();
+
+		$was_exception_thrown = false;
+
+		$mock_customer_search_call = null;
+
+		if ( ! empty( $billing_data['email'] ) && ( ! empty( $billing_data['first_name'] ) || ! empty( $billing_data['last_name'] ) ) ) {
+			$mock_customer_search_call = function ( $return_value, $parsed_args, $url ) {
+				if ( ! str_starts_with( $url, 'https://api.stripe.com/v1/customers/search' ) ) {
+					return $return_value;
+				}
+
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode(
+						[
+							'data' => [],
+						]
+					),
+				];
+			};
+			add_filter( 'pre_http_request', $mock_customer_search_call, 10, 3 );
+		}
+
+		$mock_create_customer_call = null;
+		if ( null === $expected_exception_message ) {
+			$mock_create_customer_call = function ( $return_value, $parsed_args, $url ) {
+				if ( 'https://api.stripe.com/v1/customers' !== $url ) {
+					return $return_value;
+				}
+
+				return [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => json_encode(
+						[
+							'id' => 'cus_123',
+						]
+					),
+				];
+			};
+			add_filter( 'pre_http_request', $mock_create_customer_call, 10, 3 );
+		}
+
+		try {
+			$customer->create_customer( $args );
+		} catch ( \WC_Stripe_Exception $stripe_exception ) {
+			$was_exception_thrown = true;
+
+			if ( null === $expected_exception_message ) {
+				throw $stripe_exception;
+			}
+			$this->assertEquals( $expected_exception_message, $stripe_exception->getMessage() );
+			$this->assertEquals( $expected_exception_string, $stripe_exception->getLocalizedMessage() );
+		} finally {
+			// Clean up the filter configuration.
+			if ( null !== $mock_customer_search_call ) {
+				remove_filter( 'pre_http_request', $mock_customer_search_call, 10 );
+			}
+
+			if ( null !== $mock_create_customer_call ) {
+				remove_filter( 'pre_http_request', $mock_create_customer_call, 10 );
+			}
+
+			remove_filter( 'woocommerce_checkout_fields', $woo_checkout_fields_filter, 10 );
+
+			if ( null !== $stripe_billing_fields_filter ) {
+				remove_filter( 'wc_stripe_create_customer_required_fields', $stripe_billing_fields_filter, 10 );
+			}
+
+			// Reset checkout fields, otherwise they persist across test cases.
+			\WC_Checkout::instance()->checkout_fields = null;
+		}
+
+		if ( null !== $expected_exception_message && ! $was_exception_thrown ) {
+			$this->fail( 'Expected exception not thrown' );
+		}
+
+		if ( null === $expected_exception_message ) {
+			$this->assertFalse( $was_exception_thrown, 'No exception was thrown when no exception was expected' );
+		}
+	}
+}
