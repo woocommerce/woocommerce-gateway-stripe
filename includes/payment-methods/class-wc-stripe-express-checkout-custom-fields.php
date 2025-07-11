@@ -221,9 +221,22 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 						continue;
 					}
 
+					$type = $field['type'] ?? null;
+
+					if ( null === $type ) {
+						WC_Stripe_Logger::warning(
+							sprintf(
+								'Checkout field "%1$s" is missing a "type" key – falling back to "text".',
+								$field_key
+							)
+						);
+
+						$type = 'text';
+					}
+
 					$classic_custom_checkout_fields[ $field_key ] = [
 						'label'    => $field['label'],
-						'type'     => $field['type'],
+						'type'     => $type,
 						'location' => $fieldset,
 						'required' => $field['required'],
 					];
