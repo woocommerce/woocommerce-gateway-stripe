@@ -373,8 +373,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
-				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-
 				// Process valid response.
 				$this->process_response( $response, $order );
 			} else {
