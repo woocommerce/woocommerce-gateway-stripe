@@ -198,9 +198,9 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 				foreach ( $additional_fields as $field_key => $field ) {
 					$block_custom_checkout_fields[ $field_key ] = [
 						'label'    => $field['label'],
-						'type'     => $field['type'],
+						'type'     => $field['type'] ?? 'text',
 						'location' => $checkout_fields->get_field_location( $field_key ),
-						'required' => $field['required'],
+						'required' => $field['required'] ?? false,
 					];
 				}
 
@@ -221,24 +221,11 @@ class WC_Stripe_Express_Checkout_Custom_Fields {
 						continue;
 					}
 
-					$type = $field['type'] ?? null;
-
-					if ( null === $type ) {
-						WC_Stripe_Logger::warning(
-							sprintf(
-								'Checkout field "%1$s" is missing a "type" key',
-								$field_key
-							)
-						);
-
-						$type = '';
-					}
-
 					$classic_custom_checkout_fields[ $field_key ] = [
 						'label'    => $field['label'],
-						'type'     => $type,
+						'type'     => $field['type'] ?? 'text',
 						'location' => $fieldset,
-						'required' => $field['required'],
+						'required' => $field['required'] ?? false,
 					];
 				}
 			}
