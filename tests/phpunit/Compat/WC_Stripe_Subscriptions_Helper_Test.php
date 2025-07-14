@@ -174,4 +174,124 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Tests for {@see WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached()}.
+	 *
+	 * @param array|null $source_meta The source meta data for the subscription.
+	 * @param array|\WP_Error $mocked_response The mocked response from the Stripe API.
+	 * @param bool $expected The expected result of the check.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_is_subscription_payment_method_detached
+	 */
+	public function test_is_subscription_payment_method_detached( $source_meta, $mocked_response, $expected ) {
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 1 );
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		if ( ! is_null( $source_meta ) ) {
+			$subscription->update_meta_data( '_stripe_source_id', $source_meta );
+		} else {
+			$subscription->delete_meta_data( '_stripe_source_id' );
+		}
+		$subscription->save_meta_data();
+
+		$mock_response_fn = function () use ( $mocked_response ) {
+			return $mocked_response;
+		};
+
+		// Mock response from Stripe API.
+		add_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+
+		$actual = WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription );
+
+		// Clean up.
+		remove_filter( 'pre_http_request', $mock_response_fn, 10, 3 );
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_is_subscription_payment_method_detached`.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_is_subscription_payment_method_detached() {
+		return [
+			'missing meta'                            => [
+				'source meta'     => null,
+				'mocked response' => null,
+				'expected'        => false,
+			],
+			'wp error response, assumed detached'     => [
+				'source meta'     => 'src_123',
+				'mocked response' => new \WP_Error( 'error', 'An error occurred.' ),
+				'expected'        => true,
+			],
+			'Stripe error response, assumed detached' => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
+					'response' => 400,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'error' => [
+								'type'    => 'invalid_request_error',
+								'message' => 'Invalid request.',
+							],
+						]
+					),
+				],
+				'expected'        => true,
+			],
+			'existing customer data'                  => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'customer' => 'cus_123',
+						]
+					),
+				],
+				'expected'        => false,
+			],
+			'detached payment method'                 => [
+				'source meta'     => 'src_123',
+				'mocked response' => [
+					'response' => 200,
+					'headers'  => [ 'Content-Type' => 'application/json' ],
+					'body'     => wp_json_encode(
+						[
+							'customer' => null,
+						]
+					),
+				],
+				'expected'        => true,
+			],
+		];
+	}
+
+	/**
+	 * Tests for `build_subscription_detached_message`.
+	 *
+	 * @return void
+	 */
+	public function test_build_subscription_detached_message() {
+		$subscription_data = [
+			'id'                        => 1,
+			'customer_id'               => 'cus_123',
+			'change_payment_method_url' => 'https://example.com/my-account/subscription-payment-method/1',
+		];
+
+		$expected = '#1: <a href="https://example.com/my-account/subscription-payment-method/1">Payment method page &rarr;</a> | <a href="https://dashboard.stripe.com/customers/cus_123">Stripe customer page &rarr;</a><br/>';
+		$actual   = WC_Stripe_Subscriptions_Helper::build_subscription_detached_message( $subscription_data );
+		$this->assertEquals( $expected, $actual );
+	}
 }

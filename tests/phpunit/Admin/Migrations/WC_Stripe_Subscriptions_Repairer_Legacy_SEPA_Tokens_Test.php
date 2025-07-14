@@ -431,7 +431,7 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 	 * @return WC_Subscription The created subscription.
 	*/
 	private function create_subscription( $payment_method, $customer_id, $source_id ) {
-		$subscription = new \WC_Subscription();
+		$subscription = new WC_Subscription();
 		$subscription->set_customer_id( $customer_id );
 		$subscription->set_payment_method( $payment_method );
 
