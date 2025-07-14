@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.7.0 - xxxx-xx-xx =
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
+* Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
+* Add - Show a notice when editing an active subscription that has no payment method attached
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
 * Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
 * Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
@@ -123,5 +125,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use the Database Cache for the Stripe Account Data
 * Update - Update filter names to use the wc_stripe_* prefix
 * Add - Show payment methods sync status on the UI
+* Fix - No such customer error when creating a payment method with a new Stripe account
+* Fix - Validate create customer payload against required billing fields before sending to Stripe
+* Update - Enhanced logging system with support for all log levels and improved context handling
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

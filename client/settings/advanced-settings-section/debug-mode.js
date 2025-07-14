@@ -12,11 +12,11 @@ const DebugMode = () => {
 			<CheckboxControl
 				data-testid="logging-checkbox"
 				label={ __(
-					'Log error messages',
+					'Log debug messages',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ __(
-					'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.',
+					'When enabled, payment debug logs will be saved to WooCommerce > Status > Logs.',
 					'woocommerce-gateway-stripe'
 				) }
 				checked={ isLoggingChecked }
