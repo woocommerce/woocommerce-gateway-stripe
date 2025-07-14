@@ -10,6 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Status {
 	/**
+	 * Maximum number of subscriptions to process in the detached subscriptions tool.
+	 *
+	 * @var int
+	 */
+	private const SUBSCRIPTIONS_DETACHED_LIST_LIMIT = 1000;
+
+	/**
 	 * Instance of WC_Gateway_Stripe
 	 *
 	 * @var WC_Gateway_Stripe
@@ -240,7 +247,14 @@ class WC_Stripe_Status {
 	 * @return void
 	 */
 	public function list_detached_subscriptions() {
-		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions( 1000 ); // Limiting to 1000 subscriptions for safety.
+		/**
+		 * Maximum number of subscriptions to process.
+		 *
+		 * @since 9.7.0
+		 * @param int $max_count The maximum number of subscriptions to process.
+		 */
+		$max_count         = apply_filters( 'wc_stripe_detached_subscriptions_maximum_count', self::SUBSCRIPTIONS_DETACHED_LIST_LIMIT ); // Limit the number of subscriptions to process for safety.
+		$subscriptions     = WC_Stripe_Subscriptions_Helper::get_detached_subscriptions( $max_count );
 		$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 		echo '<div class="wrap woocommerce">';
 			echo '<h1>' . esc_html__( 'List Detached Stripe Subscriptions', 'woocommerce-gateway-stripe' ) . '</h1>';
