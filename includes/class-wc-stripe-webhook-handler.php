@@ -362,8 +362,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				'wc_gateway_stripe_process_webhook_payment',
 				[ $response, $order ],
 				'9.7.0',
-				'wc_gateway_stripe_process_payment',
-				'The wc_gateway_stripe_process_webhook_payment action is deprecated. Use wc_gateway_stripe_process_payment instead.'
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_webhook_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
 			);
 
 			$response->is_webhook_response = true;
@@ -1083,6 +1083,15 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
+
+					do_action_deprecated(
+						'wc_gateway_stripe_process_payment',
+						[ $charge, $order ],
+						'9.7.0',
+						'wc_gateway_stripe_process_payment_charge',
+						'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+					);
+
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
 				} else {
@@ -1286,6 +1295,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
+
+		do_action_deprecated(
+			'wc_gateway_stripe_process_payment',
+			[ $charge, $order ],
+			'9.7.0',
+			'wc_gateway_stripe_process_payment_charge',
+			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+		);
 
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );

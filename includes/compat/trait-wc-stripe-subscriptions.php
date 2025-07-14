@@ -571,6 +571,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				do_action( 'wc_gateway_stripe_process_payment_subscription_charge_attempt_delayed', $response, $renewal_order );
 			} else {
 				// The charge was successfully captured
+				do_action_deprecated(
+					'wc_gateway_stripe_process_payment',
+					[ $response, $renewal_order ],
+					'9.7.0',
+					'wc_gateway_stripe_process_payment_charge',
+					'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+				);
+
 				// Use the last charge within the intent or the full response body in case of SEPA.
 				$latest_charge = $this->get_latest_charge_from_intent( $response );
 				$this->process_response( ( ! empty( $latest_charge ) ) ? $latest_charge : $response, $renewal_order );
