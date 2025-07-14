@@ -1747,16 +1747,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @param WC_Order $order  The order that is being paid.
-	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
-	public function lock_order_payment( $order, $intent = null ) {
-		if ( $this->is_order_payment_locked( $order, $intent ) ) {
+	public function lock_order_payment( $order ) {
+		if ( $this->is_order_payment_locked( $order ) ) {
 			// If the order is already locked, return true.
 			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
 
 		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
 		$order->save_meta_data();
@@ -1790,18 +1789,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Checks if an order is locked for payment processing.
 	 *
 	 * @param WC_Order $order The order to check the lock for
-	 * @param stdClass|null $intent The intent that is being processed, if any.
 	 * @return bool
 	 */
-	protected function is_order_payment_locked( $order, $intent = null ) {
+	protected function is_order_payment_locked( $order ) {
 		$existing_lock = $this->get_order_existing_lock( $order );
 		if ( $existing_lock ) {
-			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
-			$expiration    = (int) $parts[0];
-			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
 
 			// If the lock is still active, return true.
-			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
+			if ( time() <= $expiration ) {
 				return true;
 			}
 		}
