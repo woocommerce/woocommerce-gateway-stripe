@@ -415,11 +415,12 @@ class WC_Stripe_Customer {
 	 * Create a customer via API.
 	 *
 	 * @param array $args
+	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function create_customer( $args = [] ) {
+	public function create_customer( $args = [], $is_add_payment_method_page = false ) {
 		$args = $this->generate_customer_request( $args );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
@@ -437,8 +438,6 @@ class WC_Stripe_Customer {
 			 */
 			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$is_add_payment_method_page = isset( $args['is_add_payment_method_page'] ) && true === $args['is_add_payment_method_page'];
-			unset( $create_customer_args['is_add_payment_method_page'] );
 			$this->validate_create_customer_request( $create_customer_args, $is_add_payment_method_page );
 
 			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
@@ -522,9 +521,9 @@ class WC_Stripe_Customer {
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_or_create_customer( $args = [] ) {
+	public function update_or_create_customer( $args = [], $is_add_payment_method_page = false ) {
 		if ( empty( $this->get_id() ) ) {
-			return $this->recreate_customer( $args );
+			return $this->recreate_customer( $args, $is_add_payment_method_page );
 		} else {
 			return $this->update_customer( $args );
 		}
@@ -879,12 +878,13 @@ class WC_Stripe_Customer {
 	 * Recreates the customer for this user.
 	 *
 	 * @param array $args Additional arguments for the request (optional).
+	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [] ) {
+	private function recreate_customer( $args = [], $is_add_payment_method_page = false ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer( $args );
+		return $this->create_customer( $args, $is_add_payment_method_page );
 	}
 
 	/**
