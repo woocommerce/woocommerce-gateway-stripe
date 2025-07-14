@@ -128,6 +128,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Update - Enhanced logging system with support for all log levels and improved context handling
-* Fix - Fixes wc_gateway_stripe_process_payment action not being called for synchronous payments
+* Update - Depreacte `wc_gateway_stripe_process_payment` action in favor of `wc_gateway_stripe_process_payment_charge`
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
