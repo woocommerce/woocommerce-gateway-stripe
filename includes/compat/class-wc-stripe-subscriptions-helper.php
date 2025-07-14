@@ -23,8 +23,17 @@ class WC_Stripe_Subscriptions_Helper {
 
 	/**
 	 * Maximum number of subscriptions to load per page.
+	 *
+	 * @var int
 	 */
 	private const MAX_SUBSCRIPTIONS_PER_PAGE = 50;
+
+	/**
+	 * Fallback maximum execution time in seconds.
+	 *
+	 * @var int
+	 */
+	private const MAX_EXECUTION_TIME_FALLBACK = 30;
 
 	/**
 	 * Checks if subscriptions are enabled on the site.
@@ -60,11 +69,36 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_subscriptions;
 		}
 
-		$subscriptions = [];
-		$page          = 1;
-		$per_page      = self::MAX_SUBSCRIPTIONS_PER_PAGE;
+		$subscriptions     = [];
+		$num_subscriptions = 0;
+		$page              = 1;
+		$per_page          = self::MAX_SUBSCRIPTIONS_PER_PAGE;
+		$start_time        = time();
+
+		// Defaults maximum execution time to server's `max_execution_time` (when available, or 30 if not) minus 5 seconds.
+		$default_max_time = ( ini_get( 'max_execution_time' ) ? ini_get( 'max_execution_time' ) : self::MAX_EXECUTION_TIME_FALLBACK ) - 5;
+
+		/**
+		 * Filter the maximum time allowed for fetching detached subscriptions.
+		 *
+		 * @since 9.7.0
+		 * @param int $max_time The maximum time allowed in seconds. Default is server's `max_execution_time` (when available, or 30 if not) minus 5 seconds.
+		 */
+		$max_time = apply_filters( 'wc_stripe_detached_subscriptions_maximum_time', $default_max_time );
 
 		do {
+			if ( ( time() - $start_time ) > $max_time ) {
+				// If we have been running for more than the default limit, stop to avoid long execution times.
+				WC_Stripe_Logger::log(
+					sprintf(
+						/* translators: %d is the maximum time allowed for fetching detached subscriptions */
+						__( 'Stopped fetching detached subscriptions before the %d seconds limit for safety.', 'woocommerce-gateway-stripe' ),
+						$max_time
+					)
+				);
+				break;
+			}
+
 			$batch             = wcs_get_subscriptions(
 				[
 					'subscriptions_per_page' => $per_page,
