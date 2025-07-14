@@ -99,11 +99,12 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_string'  => 'Missing required customer field: address->country',
 			],
 			'add payment method page, all fields present and required, no overrides' => [
-				'billing_fields'             => [],
+				'billing_fields'             => [], // only email is required
 				'woo_billing_fields'         => null,
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
+				'is_add_payment_method_page' => true,
 			],
 			'add payment method page, email is empty string' => [
 				'billing_fields'             => [ 'email' => '' ],
@@ -111,6 +112,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => 'missing_required_customer_field: email',
 				'expected_exception_string'  => 'Missing required customer field: email',
+				'is_add_payment_method_page' => true,
 			],
 		];
 	}
@@ -128,7 +130,14 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 	) {
 		if ( $is_add_payment_method_page ) {
 			$default_billing_data = [
-				'email' => 'test@example.com',
+				'email'      => 'test@example.com',
+				'first_name' => '',
+				'last_name'  => '',
+				'address_1'  => '',
+				'city'       => '',
+				'state'      => '',
+				'postcode'   => '',
+				'country'    => '',
 			];
 		} else {
 			$default_billing_data = [
@@ -269,7 +278,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args );
+			$customer->create_customer( $args, $is_add_payment_method_page );
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 

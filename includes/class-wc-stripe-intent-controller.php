@@ -1120,8 +1120,10 @@ class WC_Stripe_Intent_Controller {
 			// similar rate limiter is present in WC Core, but it's executed on page submission (and not on AJAX calls).
 			$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
 			if ( WC_Rate_Limiter::retried_too_soon( $wc_add_payment_method_rate_limit_id ) ) {
+				error_log( 'rate limit hit' );
 				throw new WC_Stripe_Exception( 'Failed to save payment method.', __( 'You cannot add a new payment method so soon after the previous one.', 'woocommerce-gateway-stripe' ) );
 			}
+			error_log( 'rate limit not hit' );
 
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
 
@@ -1140,6 +1142,7 @@ class WC_Stripe_Intent_Controller {
 			$user = wp_get_current_user();
 			// This page is only accessible to logged in users.
 			if ( ! $user->ID ) {
+				error_log( 'user not found' );
 				throw new WC_Stripe_Exception( 'User not found.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 			$customer = new WC_Stripe_Customer( $user->ID );
