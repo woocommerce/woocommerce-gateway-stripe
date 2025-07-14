@@ -439,7 +439,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	) {
 		$mock_action_process_payment = new MockAction();
 		add_action(
-			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
 			[ &$mock_action_process_payment, 'action' ]
 		);
 
