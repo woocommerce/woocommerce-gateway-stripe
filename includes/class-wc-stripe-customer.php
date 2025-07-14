@@ -249,7 +249,7 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Get the list ofrequired fields for the create customer request.
+	 * Get the list of required fields for the create customer request.
 	 *
 	 * @param bool $is_add_payment_method_page
 	 *
