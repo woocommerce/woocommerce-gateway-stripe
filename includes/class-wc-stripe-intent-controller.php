@@ -1176,13 +1176,14 @@ class WC_Stripe_Intent_Controller {
 			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
 
 			/**
-			 * Filter the rate limit delay when adding a payment method.
+			 * Filter the rate limit delay after a failure adding a payment method.
 			 *
 			 * @since 9.7.0
 			 *
 			 * @param int $rate_limit_delay The rate limit delay in seconds.
+			 * @param WC_Stripe_Exception $e The exception that occurred.
 			 */
-			$rate_limit_delay = apply_filters( 'wc_stripe_add_payment_method_rate_limit_delay', 10 );
+			$rate_limit_delay = apply_filters( 'wc_stripe_add_payment_method_on_error_rate_limit_delay', 10, $e );
 
 			WC_Rate_Limiter::set_rate_limit( $wc_add_payment_method_rate_limit_id, $rate_limit_delay );
 
