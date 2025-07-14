@@ -17,6 +17,7 @@
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Update - Enhanced logging system with support for all log levels and improved context handling
+* Fix - Fixes wrong price formatting in express checkout
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
