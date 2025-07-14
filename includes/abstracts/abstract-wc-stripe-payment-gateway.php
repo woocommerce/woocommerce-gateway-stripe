@@ -559,7 +559,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param object $response The Charge response from Stripe.
 		 * @param WC_Order $order The Order object.
 		 */
-		do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+		do_action( 'wc_gateway_stripe_process_payment_charge', $response, $order );
 
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
