@@ -1137,7 +1137,11 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			// Determine the customer managing the payment methods, create one if we don't have one already.
-			$user     = wp_get_current_user();
+			$user = wp_get_current_user();
+			// This page is only accessible to logged in users.
+			if ( ! $user->ID ) {
+				throw new WC_Stripe_Exception( 'User not found.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
 			$customer = new WC_Stripe_Customer( $user->ID );
 
 			// Manually create the payment information array to create & confirm the setup intent.
