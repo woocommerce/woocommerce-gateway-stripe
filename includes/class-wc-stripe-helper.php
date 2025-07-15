@@ -1858,7 +1858,7 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function has_other_bnpl_plugins_active() {
-		$available_payment_gateways = WC()->payment_gateways->payment_gateways;
+		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
 		$other_bnpl_gateway_ids     = [ 'affirm', 'klarna_payments' ];
 		foreach ( $available_payment_gateways as $available_payment_gateway ) {
 			if ( in_array( $available_payment_gateway->id, $other_bnpl_gateway_ids, true ) && 'yes' === $available_payment_gateway->enabled ) {

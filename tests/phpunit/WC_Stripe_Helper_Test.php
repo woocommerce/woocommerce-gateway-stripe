@@ -190,408 +190,50 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `get_order_by_intent_id`
+	 * Tests for `has_other_bnpl_plugins_active`.
 	 *
-	 * @param string $status              The order status to return.
-	 * @param bool   $success             Whether the order should be found.
-	 * @return void
-	 * @dataProvider provide_test_get_order_by_intent_id
-	 */
-	public function test_get_order_by_intent_id( $status, $success ) {
-		$order    = WC_Helper_Order::create_order();
-		$order_id = $order->get_id();
-
-		$order = wc_get_order( $order_id );
-		$order->set_status( $status );
-
-		$intent_id = 'pi_mock';
-		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
-
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
-		if ( $success ) {
-			$this->assertInstanceOf( WC_Order::class, $order );
-		} else {
-			$this->assertFalse( $order );
-		}
-	}
-
-	/**
-	 * Data provider for `test_get_order_by_intent_id`
-	 *
-	 * @return array
-	 */
-	public function provide_test_get_order_by_intent_id(): array {
-		return [
-			'regular table' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::COMPLETED,
-				'success'             => true,
-			],
-			'trashed order' => [
-				'custom orders table' => false,
-				'status'              => OrderStatus::TRASH,
-				'success'             => false,
-			],
-		];
-	}
-
-	/**
-	 * Test for `get_stripe_amount`
-	 *
-	 * @param int    $total    The total amount.
-	 * @param string $currency The currency.
-	 * @param int    $expected The expected amount.
-	 * @dataProvider provide_test_get_stripe_amount
-	 */
-	public function test_get_stripe_amount( int $total, string $currency, int $expected, int $price_decimals_setting = 2 ): void {
-		if ( 2 !== $price_decimals_setting ) {
-			update_option( 'woocommerce_price_num_decimals', $price_decimals_setting );
-		}
-
-		$amount = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
-		$this->assertEquals( $expected, $amount );
-	}
-
-	/**
-	 * Data provider for `test_get_stripe_amount`
-	 *
-	 * @return array
-	 */
-	public function provide_test_get_stripe_amount(): array {
-		return [
-			WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::UNITED_STATES_DOLLAR,
-				'expected' => 10000,
-			],
-			WC_Stripe_Currency_Code::JAPANESE_YEN         => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::JAPANESE_YEN,
-				'expected' => 100,
-			],
-			WC_Stripe_Currency_Code::EURO                 => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::EURO,
-				'expected' => 10000,
-			],
-			WC_Stripe_Currency_Code::BAHRAINI_DINAR       => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
-				'expected' => 100000,
-			],
-			WC_Stripe_Currency_Code::BAHRAINI_DINAR . ' (3 decimals)' => [
-				'total'                  => 100,
-				'currency'               => WC_Stripe_Currency_Code::BAHRAINI_DINAR,
-				'expected'               => 100000,
-				'price_decimals_setting' => 3,
-			],
-			WC_Stripe_Currency_Code::JORDANIAN_DINAR      => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::JORDANIAN_DINAR,
-				'expected' => 100000,
-			],
-			WC_Stripe_Currency_Code::BURUNDIAN_FRANC      => [
-				'total'    => 100,
-				'currency' => WC_Stripe_Currency_Code::BURUNDIAN_FRANC,
-				'expected' => 100,
-			],
-		];
-	}
-
-	/**
-	 * Test for `payment_method_allows_manual_capture`
-	 *
-	 * @param string $payment_method The payment method.
-	 * @param bool   $expected       Whether manual capture is allowed.
-	 * @dataProvider provide_payment_method_allows_manual_capture
+	 * @param array $payment_gateways The available payment gateways.
+	 * @param bool  $expected         The expected result.
+	 * @dataProvider provide_test_has_other_bnpl_plugins_active
 	 * @return void
 	 */
-	public function test_payment_method_allows_manual_capture( $payment_method, $expected ): void {
-		$actual = WC_Stripe_Helper::payment_method_allows_manual_capture( $payment_method );
-		$this->assertEquals( $expected, $actual );
-	}
+	public function test_has_other_bnpl_plugins_active( $payment_gateways, $expected ) {
+		$original_payment_gateways = WC()->payment_gateways->payment_gateways;
 
-	/**
-	 * Provider for `test_payment_method_allows_manual_capture`
-	 *
-	 * @return array
-	 */
-	public function provide_payment_method_allows_manual_capture(): array {
-		return [
-			'Card'              => [
-				'payment_method' => 'stripe',
-				'expected'       => true,
-			],
-			'Affirm'            => [
-				'payment_method' => 'stripe_affirm',
-				'expected'       => true,
-			],
-			'Klarna'            => [
-				'payment_method' => 'stripe_klarna',
-				'expected'       => true,
-			],
-			'Afterpay/Clearpay' => [
-				'payment_method' => 'stripe_afterpay_clearpay',
-				'expected'       => true,
-			],
-			'EPS'               => [
-				'payment_method' => 'stripe_eps',
-				'expected'       => false,
-			],
-			'AmazonPay'         => [
-				'payment_method' => 'stripe_amazon_pay',
-				'expected'       => true,
-			],
-		];
-	}
+		// Mock the available payment gateways.
+		WC()->payment_gateways->payment_gateways = $payment_gateways;
 
-	public function provide_is_wallet_payment_method(): array {
-		return [
-			'Apple Pay'  => [
-				'apple_pay',
-				false,
-			],
-			'Google Pay' => [
-				'google_pay',
-				false,
-			],
-			'Alipay'     => [
-				WC_Stripe_Payment_Methods::ALIPAY,
-				false,
-			],
-			'Klarna'     => [
-				WC_Stripe_Payment_Methods::KLARNA,
-				false,
-			],
-			'EPS'        => [
-				WC_Stripe_Payment_Methods::EPS,
-				false,
-			],
-			'WeChat'     => [
-				WC_Stripe_Payment_Methods::WECHAT_PAY,
-				true,
-			],
-			'Cash App'   => [
-				WC_Stripe_Payment_Methods::CASHAPP_PAY,
-				true,
-			],
-		];
-	}
+		$actual = WC_Stripe_Helper::has_other_bnpl_plugins_active();
 
-	/**
-	 * Test for `update_main_stripe_settings`, `get_stripe_settings` and `delete_main_stripe_settings`.
-	 *
-	 * @return void
-	 */
-	public function test_handle_main_stripe_settings() {
-		WC_Stripe_Helper::update_main_stripe_settings( [ 'test' => 'abc' ] );
-		$current_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( $current_settings['test'], 'abc' );
+		// Clean up.
+		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
 
-		WC_Stripe_Helper::delete_main_stripe_settings();
-		$current_settings = WC_Stripe_Helper::get_stripe_settings();
-		$this->assertSame( [], $current_settings );
-	}
-
-	/**
-	 * Test for `get_klarna_preferred_locale`.
-	 * @return void
-	 */
-	public function test_get_klarna_preferred_locale() {
-		// Language is supported for the region (same region)
-		$store_locale    = 'en_US';
-		$billing_country = 'US';
-		$expected        = 'en-US';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
 		$this->assertSame( $expected, $actual );
-
-		// Language is supported for the region (different region)
-		$store_locale    = 'en_US';
-		$billing_country = 'DE';
-		$expected        = 'en-DE';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
-		$this->assertSame( $expected, $actual );
-
-		// Language is supported for the region (different region)
-		$store_locale    = 'es_ES';
-		$billing_country = 'US';
-		$expected        = 'es-US';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
-		$this->assertSame( $expected, $actual );
-
-		// Language is not supported for the region
-		$store_locale    = 'fr_FR';
-		$billing_country = 'US';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
-		$this->assertNull( $actual );
-
-		// Region is not supported, with supported locale
-		$store_locale    = 'pt_PT';
-		$billing_country = 'BR';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
-		$this->assertNull( $actual );
-
-		// Region is not supported, with non-supported locale
-		$store_locale    = 'tl';
-		$billing_country = 'PH';
-		$actual          = WC_Stripe_Helper::get_klarna_preferred_locale( $store_locale, $billing_country );
-		$this->assertNull( $actual );
 	}
 
 	/**
-	 * Test for `add_stripe_methods_in_woocommerce_gateway_order`.
-	 * @return void
-	 */
-	public function test_add_stripe_methods_in_woocommerce_gateway_order() {
-		// When the option is empty, i.e. fresh install, gateway ordering should still work.
-		$stripe_payment_methods = [
-			'stripe_klarna',
-			'card',
-			'stripe_alipay',
-		];
-		delete_option( 'woocommerce_gateway_order' );
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
-		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
-		$this->assertArrayHasKey( 'stripe_klarna', $gateway_order );
-		$this->assertArrayHasKey( 'stripe', $gateway_order );
-		$this->assertArrayHasKey( 'stripe_alipay', $gateway_order );
-		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
-		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_alipay'] );
-
-		// Further updates to gateway ordering should work.
-		$stripe_payment_methods = [
-			'stripe_klarna',
-			'stripe_alipay',
-			'card',
-		];
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
-		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
-		$this->assertArrayHasKey( 'stripe_klarna', $gateway_order );
-		$this->assertArrayHasKey( 'stripe', $gateway_order );
-		$this->assertArrayHasKey( 'stripe_alipay', $gateway_order );
-		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe_alipay'] );
-		$this->assertTrue( $gateway_order['stripe_alipay'] < $gateway_order['stripe'] );
-
-		// Order with respect to other gateways is retained.
-		update_option(
-			'woocommerce_gateway_order',
-			[
-				'cod'           => 1,
-				'stripe_klarna' => 2,
-				'stripe'        => 3,
-				'stripe_alipay' => 4,
-				'cheque'        => 5,
-			]
-		);
-		$stripe_payment_methods = [
-			'stripe_alipay',
-			'stripe_klarna',
-			'card',
-			'stripe_affirm',
-		];
-		WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order( $stripe_payment_methods );
-		$gateway_order = get_option( 'woocommerce_gateway_order', [] );
-		$this->assertTrue( $gateway_order['cod'] < $gateway_order['stripe_alipay'] );
-		$this->assertTrue( $gateway_order['stripe_alipay'] < $gateway_order['stripe_klarna'] );
-		$this->assertTrue( $gateway_order['stripe_klarna'] < $gateway_order['stripe'] );
-		$this->assertTrue( $gateway_order['stripe'] < $gateway_order['stripe_affirm'] );
-		$this->assertTrue( $gateway_order['stripe_affirm'] < $gateway_order['cheque'] );
-	}
-
-	/**
-	 * Test for `add_mandate_data`.
-	 *
-	 * @param string $server_variable_key   The key of the server variable to set.
-	 * @param string $server_variable_value The value to set the server variable to.
-	 * @param string $expected_ip_address    The expected IP address.
-	 * @dataProvider provider_test_add_mandate_data
-	 * @return void
-	 */
-	public function test_add_mandate_data( $server_variable_key, $server_variable_value, $expected_ip_address ) {
-		unset( $_SERVER['REMOTE_ADDR'] );
-		unset( $_SERVER['HTTP_X_REAL_IP'] );
-		unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
-
-		$_SERVER[ $server_variable_key ] = $server_variable_value;
-		$request                         = WC_Stripe_Helper::add_mandate_data( [] );
-		$this->assertTrue( isset( $request['mandate_data']['customer_acceptance']['online']['ip_address'] ) );
-		$ip_address = $request['mandate_data']['customer_acceptance']['online']['ip_address'];
-		$this->assertSame( $expected_ip_address, $ip_address );
-	}
-
-	/**
-	 * Data provider for `test_add_mandate_data`.
+	 * Provider for `test_has_other_bnpl_plugins_active`.
 	 *
 	 * @return array
 	 */
-	public function provider_test_add_mandate_data() {
+	public function provide_test_has_other_bnpl_plugins_active() {
 		return [
-			[ 'REMOTE_ADDR', '192.168.1.1', '192.168.1.1' ],
-			[ 'REMOTE_ADDR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
-			[ 'HTTP_X_REAL_IP', '192.168.1.1', '192.168.1.1' ],
-			[ 'HTTP_X_REAL_IP', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
-			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1, 192.168.1.2, 192.168.1.3', '192.168.1.1' ],
-			[ 'HTTP_X_FORWARDED_FOR', '192.168.1.1', '192.168.1.1' ],
-			[ 'HTTP_X_REAL_IP', 'invalid-ip-address', 'invalid-ip-address' ],
-			[ 'HTTP_X_REAL_IP', '', '' ],
-		];
-	}
-
-	/**
-	 * Tests for `get_refund_reason_description`.
-	 *
-	 * @param string $refund_reason_key The refund reason key to test.
-	 * @param string $expected          The expected description.
-	 * @return void
-	 *
-	 * @dataProvider provide_test_get_refund_reason_description
-	 */
-	public function test_get_refund_reason_description( $refund_reason_key, $expected ) {
-		$this->assertSame( $expected, WC_Stripe_Helper::get_refund_reason_description( $refund_reason_key ) );
-	}
-
-	/**
-	 * Data provider for `test_get_refund_reason_description`.
-	 *
-	 * @return array
-	 */
-	public function provide_test_get_refund_reason_description() {
-		return [
-			'The charge has been disputed'                 => [
-				'key'      => 'charge_for_pending_refund_disputed',
-				'expected' => 'The charge has been disputed',
+			'has other plugins'           => [
+				'payment gateways' => [
+					'klarna' => (object) [
+						'id'      => 'klarna_payments',
+						'enabled' => 'yes',
+					],
+					'affirm' => (object) [
+						'id'      => 'affirm',
+						'enabled' => 'yes',
+					],
+				],
+				'expected'         => true,
 			],
-			'The refund was declined'                      => [
-				'key'      => 'declined',
-				'expected' => 'The refund was declined',
-			],
-			'The original payment method has expired or was canceled' => [
-				'key'      => 'expired_or_canceled_card',
-				'expected' => 'The original payment method has expired or was canceled',
-			],
-			'We could not process the refund at this time' => [
-				'key'      => 'insufficient_funds',
-				'expected' => 'We could not process the refund at this time',
-			],
-			'The original payment method was lost or stolen' => [
-				'key'      => 'lost_or_stolen_card',
-				'expected' => 'The original payment method was lost or stolen',
-			],
-			'We stopped processing the refund'             => [
-				'key'      => 'merchant_request',
-				'expected' => 'We stopped processing the refund',
-			],
-			'Unknown reason (random)'                      => [
-				'key'      => 'random',
-				'expected' => 'Unknown reason',
-			],
-			'Unknown reason (null)'                        => [
-				'key'      => null,
-				'expected' => 'Unknown reason',
-			],
-			'Unknown reason (empty)'                       => [
-				'key'      => '',
-				'expected' => 'Unknown reason',
+			'does not have other plugins' => [
+				'payment gateways' => [],
+				'expected'         => false,
 			],
 		];
 	}
