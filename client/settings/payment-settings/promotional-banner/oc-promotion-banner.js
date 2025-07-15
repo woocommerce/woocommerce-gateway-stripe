@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { ExternalLink } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
-import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {
 	BannerIllustration,
 	ButtonsRow,
