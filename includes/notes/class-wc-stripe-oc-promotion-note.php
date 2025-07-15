@@ -25,7 +25,7 @@ class WC_Stripe_OC_Promotion_Note {
 	/**
 	 * Link to learn more about OC.
 	 */
-	const LEARN_MORE_LINK = 'https://href.li/?https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/';
+	const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/';
 
 	/**
 	 * Get the note.
