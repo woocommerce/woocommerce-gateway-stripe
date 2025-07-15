@@ -10,11 +10,12 @@ import DisplayOrderCustomizationNotice from '../display-order-customization-noti
 import {
 	BNPL_PROMOTION_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	OC_PROMOTION_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 
 const PaymentMethodsDescription = () => {
@@ -56,18 +57,32 @@ const PaymentRequestDescription = () => (
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const { data } = useAccount();
+	const [ isOCEnabled ] = useIsOCEnabled();
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const promotionalBannerType = getPromotionalBannerType(
 		data,
 		isUpeEnabled,
+		isOCEnabled,
 		enabledPaymentMethodIds
 	);
+	let initialBannerState;
+	if (
+		promotionalBannerType === BNPL_PROMOTION_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
+	if (
+		promotionalBannerType === OC_PROMOTION_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
 	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		promotionalBannerType === BNPL_PROMOTION_BANNER
-			? // eslint-disable-next-line camelcase
-			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-			: true
+		initialBannerState
 	);
 
 	return (

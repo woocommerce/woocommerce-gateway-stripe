@@ -4,6 +4,8 @@ import {
 	BNPL_PROMOTION_BANNER_TARGET_VERSION,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	OC_PROMOTION_BANNER,
+	OC_PROMOTION_BANNER_TARGET_VERSION,
 	RECONNECT_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import {
@@ -16,12 +18,14 @@ import {
  *
  * @param {Object} accountData The account data object containing information about the Stripe account.
  * @param {boolean} isUpeEnabled Whether the Unified Payments Experience (UPE) is enabled.
+ * @param {boolean} isOCEnabled Whether the Optimized Checkout Suite (OC) is enabled.
  * @param {Array} enabledPaymentMethodIds List of enabled payment method IDs.
  * @return {null|string} The type of promotional banner to display, or null if no banner is applicable.
  */
 export const getPromotionalBannerType = (
 	accountData,
 	isUpeEnabled,
+	isOCEnabled,
 	enabledPaymentMethodIds
 ) => {
 	const isTestModeEnabled = Boolean( accountData.testmode );
@@ -38,8 +42,32 @@ export const getPromotionalBannerType = (
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
 	} else if (
+		! isOCEnabled &&
+		getPluginVersion() >= OC_PROMOTION_BANNER_TARGET_VERSION
+	) {
+		return OC_PROMOTION_BANNER;
+	} else if (
 		isUpeEnabled &&
 		! hasBNPLEnabled &&
+		getPluginVersion() >= BNPL_PROMOTION_BANNER_TARGET_VERSION
+	) {
+		return BNPL_PROMOTION_BANNER;
+	} else if ( ! isUpeEnabled ) {
+		if ( hasAPMEnabled ) {
+			return NEW_CHECKOUT_EXPERIENCE_APMS_BANNER;
+		}
+		return NEW_CHECKOUT_EXPERIENCE_BANNER;
+	}
+	return null;
+};
+
+/**
+ * Returns the plugin version if it is available.
+ *
+ * @return {number|null} The plugin version as a float, or null if not available.
+ */
+const getPluginVersion = () => {
+	return (
 		// eslint-disable-next-line camelcase
 		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
 		// eslint-disable-next-line camelcase
@@ -50,14 +78,6 @@ export const getPromotionalBannerType = (
 				.split( '.' )
 				.slice( 0, 2 )
 				.join( '.' )
-		) >= BNPL_PROMOTION_BANNER_TARGET_VERSION
-	) {
-		return BNPL_PROMOTION_BANNER;
-	} else if ( ! isUpeEnabled ) {
-		if ( hasAPMEnabled ) {
-			return NEW_CHECKOUT_EXPERIENCE_APMS_BANNER;
-		}
-		return NEW_CHECKOUT_EXPERIENCE_BANNER;
-	}
-	return null;
+		)
+	);
 };
