@@ -42,6 +42,8 @@ export const getPromotionalBannerType = (
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
 	} else if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.is_oc_available &&
 		! isOCEnabled &&
 		getPluginVersion() >= OC_PROMOTION_BANNER_TARGET_VERSION
 	) {
