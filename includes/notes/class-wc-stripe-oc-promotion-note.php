@@ -23,9 +23,9 @@ class WC_Stripe_OC_Promotion_Note {
 	const NOTE_NAME = 'wc-stripe-oc-promotion-note';
 
 	/**
-	 * Link to activate OC.
+	 * Link to learn more about OC.
 	 */
-	const ACTIVATE_NOW_LINK = 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/';
+	const LEARN_MORE_LINK = 'https://href.li/?https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/';
 
 	/**
 	 * Get the note.
@@ -41,8 +41,8 @@ class WC_Stripe_OC_Promotion_Note {
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
-			__( 'Activate now', 'woocommerce-gateway-stripe' ),
-			self::ACTIVATE_NOW_LINK,
+			__( 'Learn more', 'woocommerce-gateway-stripe' ),
+			self::LEARN_MORE_LINK,
 			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
