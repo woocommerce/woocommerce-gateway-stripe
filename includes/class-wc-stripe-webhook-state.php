@@ -272,11 +272,11 @@ class WC_Stripe_Webhook_State {
 
 		$date_format = 'Y-m-d H:i:s e';
 
-		$meesage = '';
+		$message = '';
 
 		switch ( $code ) {
 			case 1: // Case 1 (Nominal case): Most recent = success
-				$meesage = sprintf(
+				$message = sprintf(
 					$test_mode ?
 						/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
 						__( 'The most recent test webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ) :
@@ -286,7 +286,7 @@ class WC_Stripe_Webhook_State {
 				);
 				break;
 			case 2: // Case 2: No webhooks received yet
-				$meesage = sprintf(
+				$message = sprintf(
 					$test_mode ?
 						/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
 						__( 'No test webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ) :
@@ -296,7 +296,7 @@ class WC_Stripe_Webhook_State {
 				);
 				break;
 			case 3: // Case 3: Failure after success
-				$meesage = sprintf(
+				$message = sprintf(
 					$test_mode ?
 						/*
 						 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
@@ -313,11 +313,10 @@ class WC_Stripe_Webhook_State {
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
 					gmdate( $date_format, $last_success_at ),
-					$pending_webhooks,
 				);
 				break;
 			default: // Case 4: Failure with no prior success
-				$meesage = sprintf(
+				$message = sprintf(
 					$test_mode ?
 						/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 						 * translators: 2) reason webhook failed
@@ -332,12 +331,11 @@ class WC_Stripe_Webhook_State {
 					gmdate( $date_format, $last_failure_at ),
 					$last_error,
 					gmdate( $date_format, $monitoring_began_at ),
-					$pending_webhooks,
 				);
 		}
 
 		if ( $pending_webhooks > 0 ) {
-			$meesage .= '. ' . sprintf(
+			$message .= '. ' . sprintf(
 				/* translators: 1) number of pending webhooks */
 				_n(
 					'There is at least %d webhook pending.',
@@ -349,7 +347,7 @@ class WC_Stripe_Webhook_State {
 			);
 		}
 
-		return $meesage;
+		return $message;
 	}
 
 	/**
