@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import { ExternalLink } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
 import CardBody from 'wcstripe/settings/card-body';
-import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/bnpl.svg';
+import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/default.svg';
 import {
 	BannerIllustration,
 	ButtonsRow,
@@ -59,7 +59,7 @@ export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
 					</TitleBNPL>
 					<p>
 						{ __(
-							'Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer. ',
+							'Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer.',
 							'woocommerce-gateway-stripe'
 						) }
 					</p>

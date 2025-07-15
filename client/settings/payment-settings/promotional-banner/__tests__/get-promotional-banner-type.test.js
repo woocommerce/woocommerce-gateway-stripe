@@ -3,6 +3,7 @@ import {
 	BNPL_PROMOTION_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import {
@@ -20,15 +21,41 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = true;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
 		expect(
 			getPromotionalBannerType(
 				accountData,
 				isUpeEnabled,
+				isOCEnabled,
 				enabledPaymentMethodIds
 			)
 		).toBe( RECONNECT_BANNER );
+	} );
+	it( 'OC promotion banner', () => {
+		global.wc_stripe_settings_params = {
+			plugin_version: '9.8.0',
+		};
+
+		const accountData = {
+			testmode: false,
+			oauth_connections: {
+				live: { connected: true },
+			},
+		};
+		const isUpeEnabled = true;
+		const isOCEnabled = true;
+		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
+
+		expect(
+			getPromotionalBannerType(
+				accountData,
+				isUpeEnabled,
+				isOCEnabled,
+				enabledPaymentMethodIds
+			)
+		).toBe( OC_PROMOTION_BANNER );
 	} );
 	it( 'BNPL promotion banner', () => {
 		global.wc_stripe_settings_params = {
@@ -43,12 +70,14 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = true;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
 		expect(
 			getPromotionalBannerType(
 				accountData,
 				isUpeEnabled,
+				isOCEnabled,
 				enabledPaymentMethodIds
 			)
 		).toBe( BNPL_PROMOTION_BANNER );
@@ -61,6 +90,7 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = false;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_IDEAL,
@@ -70,6 +100,7 @@ describe( 'getPromotionalBannerType', () => {
 			getPromotionalBannerType(
 				accountData,
 				isUpeEnabled,
+				isOCEnabled,
 				enabledPaymentMethodIds
 			)
 		).toBe( NEW_CHECKOUT_EXPERIENCE_APMS_BANNER );
@@ -82,12 +113,14 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = false;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
 		expect(
 			getPromotionalBannerType(
 				accountData,
 				isUpeEnabled,
+				isOCEnabled,
 				enabledPaymentMethodIds
 			)
 		).toBe( NEW_CHECKOUT_EXPERIENCE_BANNER );
@@ -100,6 +133,7 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = true;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_KLARNA,
@@ -109,6 +143,7 @@ describe( 'getPromotionalBannerType', () => {
 			getPromotionalBannerType(
 				accountData,
 				isUpeEnabled,
+				isOCEnabled,
 				enabledPaymentMethodIds
 			)
 		).toBeNull();
