@@ -45,7 +45,7 @@ describe( 'getPromotionalBannerType', () => {
 			},
 		};
 		const isUpeEnabled = true;
-		const isOCEnabled = true;
+		const isOCEnabled = false;
 		const enabledPaymentMethodIds = [ PAYMENT_METHOD_CARD ];
 
 		expect(
