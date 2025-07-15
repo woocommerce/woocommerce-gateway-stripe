@@ -1462,7 +1462,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	/**
 	 * Test that the wc_gateway_stripe_process_payment_charge action is triggered when process_response() is called for synchronous payment paths.
 	 */
-	public function test_process_response_triggers_wc_gateway_stripe_process_payment_action() {
+	public function test_process_response_triggers_wc_gateway_stripe_process_payment_charge_action() {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
