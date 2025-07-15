@@ -66,7 +66,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 		isOCEnabled,
 		enabledPaymentMethodIds
 	);
-	let initialBannerState;
+	let initialBannerState = false;
 	if (
 		promotionalBannerType === BNPL_PROMOTION_BANNER &&
 		// eslint-disable-next-line camelcase
