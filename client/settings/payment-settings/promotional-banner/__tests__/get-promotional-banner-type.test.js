@@ -35,6 +35,7 @@ describe( 'getPromotionalBannerType', () => {
 	} );
 	it( 'OC promotion banner', () => {
 		global.wc_stripe_settings_params = {
+			is_oc_available: true,
 			plugin_version: '9.8.0',
 		};
 
