@@ -18,7 +18,8 @@
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Update - Enhanced logging system with support for all log levels and improved context handling
-* Update - Depreacte `wc_gateway_stripe_process_payment` action in favour of `wc_gateway_stripe_process_payment_charge`
+* Fix - Set default values for custom field options
+* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
