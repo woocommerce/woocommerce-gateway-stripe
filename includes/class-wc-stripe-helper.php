@@ -21,6 +21,20 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * The identifier for the official Affirm gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
+
+	/**
+	 * The identifier for the official Klarna gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -1858,7 +1872,7 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function has_other_bnpl_plugins_active() {
-		$other_bnpl_gateway_ids = [ 'affirm', 'klarna_payments' ];
+		$other_bnpl_gateway_ids = [ self::OFFICIAL_PLUGIN_ID_AFFIRM, self::OFFICIAL_PLUGIN_ID_KLARNA ];
 		foreach ( $other_bnpl_gateway_ids as $bnpl_gateway_id ) {
 			if ( self::has_gateway_plugin_active( $bnpl_gateway_id ) ) {
 				return true;

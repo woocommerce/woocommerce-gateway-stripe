@@ -278,8 +278,8 @@ class WC_Stripe_Settings_Controller {
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 			'is_sepa_tokens_enabled'                => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
-			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( 'affirm' ),
-			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( 'klarna_payments' ),
+			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
+			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
 			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
 			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
 		];

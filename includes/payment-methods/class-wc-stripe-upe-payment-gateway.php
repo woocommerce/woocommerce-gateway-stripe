@@ -220,11 +220,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			// Disable BNPLs when other official plugins are installed and enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Affirm::class === $payment_method_class && WC_Stripe_Helper::has_gateway_plugin_active( 'affirm' ) ) {
+			if ( WC_Stripe_UPE_Payment_Method_Affirm::class === $payment_method_class && WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ) ) {
 				continue;
 			}
 
-			if ( WC_Stripe_UPE_Payment_Method_Klarna::class === $payment_method_class && WC_Stripe_Helper::has_gateway_plugin_active( 'klarna_payments' ) ) {
+			if ( WC_Stripe_UPE_Payment_Method_Klarna::class === $payment_method_class && WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ) ) {
 				continue;
 			}
 
