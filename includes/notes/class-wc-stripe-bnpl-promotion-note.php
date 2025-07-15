@@ -23,7 +23,7 @@ class WC_Stripe_BNPL_Promotion_Note {
 	const NOTE_NAME = 'wc-stripe-bnpl-promotion-note';
 
 	/**
-	 * Link to enable the UPE in store.
+	 * Link to learn more about BNPLs.
 	 */
 	const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/';
 
