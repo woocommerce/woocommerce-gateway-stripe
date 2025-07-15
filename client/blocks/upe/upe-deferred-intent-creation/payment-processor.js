@@ -194,6 +194,14 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					const hasError = document.querySelector(
+						'.wc-block-components-validation-error'
+					);
+					// Return if there is a validation error on the checkout fields.
+					if ( hasError ) {
+						return;
+					}
+
 					// BLIK is a special case which is not handled through the Stripe element.
 					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
 						return {
