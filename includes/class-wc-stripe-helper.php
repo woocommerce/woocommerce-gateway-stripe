@@ -1858,10 +1858,25 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function has_other_bnpl_plugins_active() {
+		$other_bnpl_gateway_ids = [ 'affirm', 'klarna_payments' ];
+		foreach ( $other_bnpl_gateway_ids as $bnpl_gateway_id ) {
+			if ( self::has_gateway_plugin_active( $bnpl_gateway_id ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if a given payment gateway plugin is active.
+	 *
+	 * @param string $plugin_id
+	 * @return bool
+	 */
+	public static function has_gateway_plugin_active( $plugin_id ) {
 		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
-		$other_bnpl_gateway_ids     = [ 'affirm', 'klarna_payments' ];
 		foreach ( $available_payment_gateways as $available_payment_gateway ) {
-			if ( in_array( $available_payment_gateway->id, $other_bnpl_gateway_ids, true ) && 'yes' === $available_payment_gateway->enabled ) {
+			if ( $plugin_id === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
 				return true;
 			}
 		}

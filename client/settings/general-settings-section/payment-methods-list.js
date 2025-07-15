@@ -21,6 +21,7 @@ import {
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_SOFORT,
 } from 'wcstripe/stripe-utils/constants';
 
@@ -182,6 +183,28 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	) {
 		availablePaymentMethods.splice(
 			availablePaymentMethods.indexOf( PAYMENT_METHOD_SOFORT ),
+			1
+		);
+	}
+
+	// Remove Affirm and Klarna if other official plugins are active
+	if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.has_affirm_gateway_plugin &&
+		availablePaymentMethods.includes( PAYMENT_METHOD_AFFIRM )
+	) {
+		availablePaymentMethods.splice(
+			availablePaymentMethods.indexOf( PAYMENT_METHOD_AFFIRM ),
+			1
+		);
+	}
+	if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.has_klarna_gateway_plugin &&
+		availablePaymentMethods.includes( PAYMENT_METHOD_KLARNA )
+	) {
+		availablePaymentMethods.splice(
+			availablePaymentMethods.indexOf( PAYMENT_METHOD_KLARNA ),
 			1
 		);
 	}
