@@ -203,55 +203,18 @@ class WC_Stripe_Customer {
 	 * Validate that we have valid data before we try to create a customer.
 	 *
 	 * @param array $create_customer_request
+	 * @param bool  $is_add_payment_method_page
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	private function validate_create_customer_request( $create_customer_request ) {
-		$checkout_billing_fields = WC_Checkout::instance()->get_checkout_fields( 'billing' );
-		$required_billing_fields = array_filter(
-			$checkout_billing_fields,
-			function ( $field_data ) {
-				return $field_data['required'] ?? false;
-			}
-		);
-
-		$required_fields = [];
-
-		if ( isset( $required_billing_fields['billing_email'] ) ) {
-			$required_fields['email'] = true;
-		}
-
-		if ( isset( $required_billing_fields['billing_first_name'] ) || isset( $required_billing_fields['billing_last_name'] ) ) {
-			$required_fields['name'] = true;
-		}
-
-		$required_address_fields = [];
-		$address_field_mapping = [
-			'billing_address_1' => 'line1',
-			'billing_address_2' => 'line2',
-			'billing_city'      => 'city',
-			'billing_country'   => 'country',
-			'billing_postcode'  => 'postal_code',
-			'billing_state'     => 'state',
-		];
-
-		foreach ( $address_field_mapping as $field => $stripe_field_name ) {
-			if ( isset( $required_billing_fields[ $field ] ) ) {
-				$required_address_fields[ $stripe_field_name ] = true;
-			}
-		}
-
-		if ( [] !== $required_address_fields ) {
-			$required_fields['address'] = $required_address_fields;
-		}
-
+	private function validate_create_customer_request( $create_customer_request, $is_add_payment_method_page = false ) {
 		/**
 		 * Filters the required customer fields when creating a customer in Stripe.
 		 *
 		 * @since 9.7.0
 		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $required_fields );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $is_add_payment_method_page ) );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
@@ -283,6 +246,62 @@ class WC_Stripe_Customer {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get the list of required fields for the create customer request.
+	 *
+	 * @param bool $is_add_payment_method_page
+	 *
+	 * @return array
+	 */
+	private function get_create_customer_required_fields( $is_add_payment_method_page = false ) {
+		// If we are on the add payment method page, we need to check just for the email field.
+		if ( $is_add_payment_method_page ) {
+			return [
+				'email' => true,
+			];
+		}
+
+		$checkout_billing_fields = WC_Checkout::instance()->get_checkout_fields( 'billing' );
+		$required_billing_fields = array_filter(
+			$checkout_billing_fields,
+			function ( $field_data ) {
+				return $field_data['required'] ?? false;
+			}
+		);
+
+		$required_fields = [];
+
+		if ( isset( $required_billing_fields['billing_email'] ) ) {
+			$required_fields['email'] = true;
+		}
+
+		if ( isset( $required_billing_fields['billing_first_name'] ) || isset( $required_billing_fields['billing_last_name'] ) ) {
+			$required_fields['name'] = true;
+		}
+
+		$required_address_fields = [];
+		$address_field_mapping   = [
+			'billing_address_1' => 'line1',
+			'billing_address_2' => 'line2',
+			'billing_city'      => 'city',
+			'billing_country'   => 'country',
+			'billing_postcode'  => 'postal_code',
+			'billing_state'     => 'state',
+		];
+
+		foreach ( $address_field_mapping as $field => $stripe_field_name ) {
+			if ( isset( $required_billing_fields[ $field ] ) ) {
+				$required_address_fields[ $stripe_field_name ] = true;
+			}
+		}
+
+		if ( [] !== $required_address_fields ) {
+			$required_fields['address'] = $required_address_fields;
+		}
+
+		return $required_fields;
 	}
 
 	/**
@@ -396,11 +415,12 @@ class WC_Stripe_Customer {
 	 * Create a customer via API.
 	 *
 	 * @param array $args
+	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function create_customer( $args = [] ) {
+	public function create_customer( $args = [], $is_add_payment_method_page = false ) {
 		$args = $this->generate_customer_request( $args );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
@@ -418,7 +438,7 @@ class WC_Stripe_Customer {
 			 */
 			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$this->validate_create_customer_request( $create_customer_args );
+			$this->validate_create_customer_request( $create_customer_args, $is_add_payment_method_page );
 
 			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 		} else {
@@ -426,7 +446,7 @@ class WC_Stripe_Customer {
 			 * This filter is documented in includes/class-wc-stripe-customer.php.
 			 */
 			$update_customer_args = apply_filters( 'wc_stripe_update_customer_args', $args );
-			$response = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
+			$response             = WC_Stripe_API::request( $update_customer_args, 'customers/' . $response->id );
 		}
 
 		if ( ! empty( $response->error ) ) {
@@ -501,9 +521,9 @@ class WC_Stripe_Customer {
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_or_create_customer( $args = [] ) {
+	public function update_or_create_customer( $args = [], $is_add_payment_method_page = false ) {
 		if ( empty( $this->get_id() ) ) {
-			return $this->recreate_customer( $args );
+			return $this->recreate_customer( $args, $is_add_payment_method_page );
 		} else {
 			return $this->update_customer( $args );
 		}
@@ -858,12 +878,13 @@ class WC_Stripe_Customer {
 	 * Recreates the customer for this user.
 	 *
 	 * @param array $args Additional arguments for the request (optional).
+	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [] ) {
+	private function recreate_customer( $args = [], $is_add_payment_method_page = false ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer( $args );
+		return $this->create_customer( $args, $is_add_payment_method_page );
 	}
 
 	/**

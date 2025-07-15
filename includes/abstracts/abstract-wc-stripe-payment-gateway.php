@@ -534,7 +534,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Store extra meta data for an order from a Stripe Response.
+	 * Store extra meta data for an order from a Stripe charge response.
+	 *
+	 * @param object $response The Charge response from Stripe.
+	 * @param WC_Order $order The Order object.
+	 *
+	 * @return object The Charge response from Stripe.
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -547,6 +552,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 		}
+
+		/**
+		 * Allow third-party code to add custom logic before processing the charge data from Stripe.
+		 *
+		 * @param object $response The Charge response from Stripe.
+		 * @param WC_Order $order The Order object.
+		 */
+		do_action( 'wc_gateway_stripe_process_payment_charge', $response, $order );
 
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
