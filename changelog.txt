@@ -21,6 +21,7 @@
 * Fix - Set default values for custom field options
 * Fix - Enforce rate limiter for failed add payment method attempts
 * Update - Add the number of pending webhooks to the Account status section
+* Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages

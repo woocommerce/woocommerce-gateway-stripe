@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Set default values for custom field options
 * Fix - Enforce rate limiter for failed add payment method attempts
 * Update - Add the number of pending webhooks to the Account status section
+* Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
