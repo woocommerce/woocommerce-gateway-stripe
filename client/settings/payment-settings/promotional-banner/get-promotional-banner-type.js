@@ -49,6 +49,8 @@ export const getPromotionalBannerType = (
 	} else if (
 		isUpeEnabled &&
 		! hasBNPLEnabled &&
+		// eslint-disable-next-line camelcase
+		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
 		getPluginVersion() >= BNPL_PROMOTION_BANNER_TARGET_VERSION
 	) {
 		return BNPL_PROMOTION_BANNER;
@@ -68,8 +70,6 @@ export const getPromotionalBannerType = (
  */
 const getPluginVersion = () => {
 	return (
-		// eslint-disable-next-line camelcase
-		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.plugin_version &&
 		parseFloat(
