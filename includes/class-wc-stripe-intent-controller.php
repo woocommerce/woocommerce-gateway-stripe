@@ -1116,9 +1116,10 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception If the AJAX request is missing the required data or if there's an error creating and confirming the setup intent.
 	 */
 	public function create_and_confirm_setup_intent_ajax() {
+		$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
+
 		try {
 			// similar rate limiter is present in WC Core, but it's executed on page submission (and not on AJAX calls).
-			$wc_add_payment_method_rate_limit_id = 'add_payment_method_' . get_current_user_id();
 			if ( WC_Rate_Limiter::retried_too_soon( $wc_add_payment_method_rate_limit_id ) ) {
 				throw new WC_Stripe_Exception( 'Failed to save payment method.', __( 'You cannot add a new payment method so soon after the previous one.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -1173,6 +1174,18 @@ class WC_Stripe_Intent_Controller {
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
+
+			/**
+			 * Filter the rate limit delay after a failure adding a payment method.
+			 *
+			 * @since 9.7.0
+			 *
+			 * @param int $rate_limit_delay The rate limit delay in seconds.
+			 * @param WC_Stripe_Exception $e The exception that occurred.
+			 */
+			$rate_limit_delay = apply_filters( 'wc_stripe_add_payment_method_on_error_rate_limit_delay', 10, $e );
+
+			WC_Rate_Limiter::set_rate_limit( $wc_add_payment_method_rate_limit_id, $rate_limit_delay );
 
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
