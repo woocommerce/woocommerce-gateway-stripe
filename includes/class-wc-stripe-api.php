@@ -17,6 +17,27 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
+	 * The Invalid API Keys cache key.
+	 *
+	 * @var string
+	 */
+	const INVALID_API_KEYS_CACHE_KEY = 'invalid_api_keys_rate_limit';
+
+	/**
+	 * The Invalid API Keys consecutive 401 error count threshold.
+	 *
+	 * @var int
+	 */
+	const INVALID_API_KEYS_COUNT_THRESHOLD = 5;
+
+	/**
+	 * The Invalid API Keys delay in seconds enforced for Stripe API calls after the threshold is reached.
+	 *
+	 * @var int
+	 */
+	const INVALID_API_KEYS_DELAY_IN_SECONDS = 2 * HOUR_IN_SECONDS;
+
+	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -265,6 +286,14 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
+		// If we have the option flag indicating that the secret key is not valid,
+		// we don't attempt the API call and we return null (the UI expects this empty response in case of invalid API keys).
+		$invalid_api_keys_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEYS_CACHE_KEY );
+		if ( ! empty( $invalid_api_keys_count ) && self::INVALID_API_KEYS_COUNT_THRESHOLD <= $invalid_api_keys_count ) {
+			WC_Stripe_Logger::error( 'Invalid API keys request rate limit exceeded', [ 'count' => $invalid_api_keys_count ] );
+			return null; // The UI expects this empty response in case of invalid API keys.
+		}
+
 		WC_Stripe_Logger::log( "{$api}" );
 
 		$response = wp_safe_remote_get(
@@ -281,7 +310,14 @@ class WC_Stripe_API {
 			// Stripe redacts API keys in the response.
 			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
 
+			++$invalid_api_keys_count;
+			WC_Stripe_Database_Cache::set( self::INVALID_API_KEYS_CACHE_KEY, $invalid_api_keys_count, self::INVALID_API_KEYS_DELAY_IN_SECONDS );
+
 			return null; // The UI expects this empty response in case of invalid API keys.
+
+		} elseif ( null !== $api_keys_rate_limit ) {
+			// We only track consecutive 401 errors, so we delete the cache when we get a valid response.
+			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEYS_CACHE_KEY );
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
