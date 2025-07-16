@@ -320,7 +320,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array $currencies
 	 */
-	private static function three_decimal_currencies() {
+	public static function three_decimal_currencies() {
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar

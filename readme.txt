@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Update - Enhanced logging system with support for all log levels and improved context handling
+* Fix - Fixes wrong price formatting in express checkout
 * Fix - Require email address only for Stripe customer validation when request is from the Add Payment Method page
 * Fix - Set default values for custom field options
 * Fix - Enforce rate limiter for failed add payment method attempts
