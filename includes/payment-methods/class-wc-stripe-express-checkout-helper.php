@@ -325,9 +325,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			return 0;
 		} elseif ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
 			return 3;
-		} else {
-			return 2;
 		}
+
+		return 2;
 	}
 
 	/**
