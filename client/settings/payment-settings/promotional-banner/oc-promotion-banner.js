@@ -33,6 +33,7 @@ const ColumnIllustration = styled( CardColumn )`
 
 const TitleBNPL = styled.h4`
 	margin-top: 0.6em !important;
+	font-weight: 500;
 `;
 
 export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
