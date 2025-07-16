@@ -8,7 +8,7 @@ describe( 'PaymentMethodUnavailableDueConflictPill', () => {
 		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: false };
 	} );
 
-	it( 'should render the "Unavailable due conflict" text', () => {
+	it( 'should render the "Has plugin conflict" text', () => {
 		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: true };
 
 		render(
@@ -19,7 +19,7 @@ describe( 'PaymentMethodUnavailableDueConflictPill', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Unavailable due conflict' )
+			screen.queryByText( 'Has plugin conflict' )
 		).toBeInTheDocument();
 	} );
 
