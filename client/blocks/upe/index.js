@@ -3,9 +3,11 @@ import {
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
 import {
+	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
+	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_LINK,
 } from '../../stripe-utils/constants';
 import { updateTokenLabelsWhenLoaded } from './token-label-updater.js';
@@ -38,18 +40,26 @@ const api = new WCStripeAPI(
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 
-const methodsToFilter = [
-	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_LINK,
-	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
-];
-
 // Register UPE Elements.
 if ( getBlocksConfiguration()?.isOCEnabled ) {
 	registerPaymentMethod(
 		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
 	);
 } else {
+	const methodsToFilter = [
+		PAYMENT_METHOD_AMAZON_PAY,
+		PAYMENT_METHOD_LINK,
+		PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
+	];
+
+	// Filter out some BNPLs when other official extensions are present.
+	if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {
+		methodsToFilter.push( PAYMENT_METHOD_AFFIRM );
+	}
+	if ( getBlocksConfiguration()?.hasKlarnaGatewayPlugin ) {
+		methodsToFilter.push( PAYMENT_METHOD_KLARNA );
+	}
+
 	Object.entries( paymentMethodsConfig )
 		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
 		.forEach( ( [ method, config ] ) => {
