@@ -98,6 +98,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		WC_Stripe_Webhook_State::set_pending_webhooks_count( $event->pending_webhooks );
+
 		// Validate it to make sure it is legit.
 		$request_headers   = array_change_key_case( $this->get_request_headers(), CASE_UPPER );
 		$validation_result = $this->validate_request( $request_headers, $request_body );
@@ -358,7 +360,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			do_action( 'wc_gateway_stripe_process_webhook_payment', $response, $order );
+			do_action_deprecated(
+				'wc_gateway_stripe_process_webhook_payment',
+				[ $response, $order ],
+				'9.7.0',
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_webhook_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+			);
 
 			$response->is_webhook_response = true;
 			$this->process_response( $response, $order );
@@ -1078,7 +1086,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
-					do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+					do_action_deprecated(
+						'wc_gateway_stripe_process_payment',
+						[ $charge, $order ],
+						'9.7.0',
+						'wc_gateway_stripe_process_payment_charge',
+						'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+					);
 
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
@@ -1284,7 +1298,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::log( "Processing Stripe PaymentIntent {$intent_id} for order {$order->get_id()} via deferred webhook." );
 
-		do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+		do_action_deprecated(
+			'wc_gateway_stripe_process_payment',
+			[ $charge, $order ],
+			'9.7.0',
+			'wc_gateway_stripe_process_payment_charge',
+			'The wc_gateway_stripe_process_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+		);
+
 		$charge->is_webhook_response = true;
 		$this->process_response( $charge, $order );
 	}

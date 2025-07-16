@@ -219,7 +219,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			do_action( 'wc_gateway_stripe_process_redirect_payment', $response, $order );
+			do_action_deprecated(
+				'wc_gateway_stripe_process_redirect_payment',
+				[ $response, $order ],
+				'9.7.0',
+				'wc_gateway_stripe_process_payment_charge',
+				'The wc_gateway_stripe_process_redirect_payment action is deprecated. Use wc_gateway_stripe_process_payment_charge instead.'
+			);
 
 			$this->process_response( $response, $order );
 

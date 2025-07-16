@@ -224,7 +224,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// by hooking into it.
 		$mock_action_process_payment = new MockAction();
 		add_action(
-			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
 			[ &$mock_action_process_payment, 'action' ]
 		);
 
@@ -256,7 +256,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 
 		// Assert: Only our hook was called.
-		$this->assertEquals( [ 'wc_gateway_stripe_process_payment' ], $mock_action_process_payment->get_tags() );
+		$this->assertEquals( [ 'wc_gateway_stripe_process_payment_charge' ], $mock_action_process_payment->get_tags() );
 
 		// Clean up.
 		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
