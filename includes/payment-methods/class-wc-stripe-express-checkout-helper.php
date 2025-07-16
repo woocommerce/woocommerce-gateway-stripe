@@ -320,7 +320,7 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return int
 	 */
 	public static function get_stripe_currency_decimals() {
-		$currency = get_woocommerce_currency();
+		$currency = strtolower( get_woocommerce_currency() );
 		if ( in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 			return 0;
 		} elseif ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
