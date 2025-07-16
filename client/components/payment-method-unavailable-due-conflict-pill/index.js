@@ -60,7 +60,7 @@ const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
 		return (
 			<StyledPill>
 				{ __(
-					'Unavailable due conflict',
+					'Has plugin conflict',
 					'woocommerce-gateway-stripe'
 				) }
 				<Popover
