@@ -1,28 +1,20 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import PaymentMethodUnavailableDueConflictPill from '..';
-import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
-
-jest.mock( '../../../payment-methods-map', () => ( {
-	card: { currencies: [] },
-	giropay: { currencies: [ 'EUR' ] },
-} ) );
-
-jest.mock( 'utils/use-payment-method-currencies', () => ( {
-	usePaymentMethodCurrencies: jest.fn(),
-} ) );
+import { PAYMENT_METHOD_AFFIRM } from 'wcstripe/stripe-utils/constants';
 
 describe( 'PaymentMethodUnavailableDueConflictPill', () => {
 	beforeEach( () => {
-		global.wcSettings = { currency: { code: 'USD' } };
-		usePaymentMethodCurrencies.mockReturnValue( [ 'EUR' ] );
+		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: false };
 	} );
 
-	it( 'should render the "Requires currency" text', () => {
+	it( 'should render the "Unavailable due conflict" text', () => {
+		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: true };
+
 		render(
 			<PaymentMethodUnavailableDueConflictPill
-				id="giropay"
-				label="giropay"
+				id={ PAYMENT_METHOD_AFFIRM }
+				label="Affirm"
 			/>
 		);
 
@@ -31,28 +23,14 @@ describe( 'PaymentMethodUnavailableDueConflictPill', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should not render when currency matches', () => {
-		global.wcSettings = { currency: { code: 'EUR' } };
+	it( 'should not render when other extensions are not active', () => {
 		const { container } = render(
 			<PaymentMethodUnavailableDueConflictPill
-				id="giropay"
-				label="giropay"
+				id={ PAYMENT_METHOD_AFFIRM }
+				label="Affirm"
 			/>
 		);
 
 		expect( container.firstChild ).toBeNull();
-	} );
-
-	it( 'should render when currency differs', () => {
-		render(
-			<PaymentMethodUnavailableDueConflictPill
-				id="giropay"
-				label="giropay"
-			/>
-		);
-
-		expect(
-			screen.queryByText( 'Unavailable due conflict' )
-		).toBeInTheDocument();
 	} );
 } );
