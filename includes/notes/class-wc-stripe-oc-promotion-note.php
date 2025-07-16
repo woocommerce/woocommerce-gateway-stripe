@@ -94,4 +94,13 @@ class WC_Stripe_OC_Promotion_Note {
 
 		self::possibly_add_note();
 	}
+
+	/**
+	 * Should this note exist?
+	 *
+	 * @inheritDoc
+	 */
+	public static function is_applicable() {
+		return ! WC_Stripe::get_instance()->get_main_stripe_gateway()->is_oc_enabled();
+	}
 }
