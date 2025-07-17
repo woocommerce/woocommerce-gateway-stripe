@@ -194,11 +194,11 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					const hasError = document.querySelector(
+					const hasValidationError = document.querySelector(
 						'.wc-block-components-validation-error'
 					);
 					// Return if there is a validation error on the checkout fields.
-					if ( hasError ) {
+					if ( hasValidationError ) {
 						return;
 					}
 

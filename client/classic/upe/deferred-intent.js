@@ -48,10 +48,12 @@ jQuery( function ( $ ) {
 			.trigger( 'validate' )
 			.trigger( 'blur' );
 
-		if (
+		const hasValidationErrors =
 			$form.find( '.woocommerce-invalid' ).length > 0 &&
-			$form.find( '.woocommerce-invalid' ).is( ':visible' )
-		) {
+			$form.find( '.woocommerce-invalid' ).is( ':visible' );
+
+		// Return if there is a validation error on the checkout fields
+		if ( hasValidationErrors ) {
 			return;
 		}
 
