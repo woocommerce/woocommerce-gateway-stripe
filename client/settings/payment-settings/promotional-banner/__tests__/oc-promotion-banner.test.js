@@ -1,14 +1,30 @@
+import { useDispatch } from '@wordpress/data';
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import apiFetch from '@wordpress/api-fetch';
 import { OCPromotionBanner } from '../oc-promotion-banner';
 
+const noticesDispatch = {
+	createErrorNotice: jest.fn(),
+	createSuccessNotice: jest.fn(),
+};
+
+jest.mock( '@wordpress/data' );
+
 jest.mock( '@wordpress/api-fetch' );
 
 describe( 'OC promotional banner', () => {
 	const setShowPromotionalBanner = jest.fn();
+	const setIsOCEnabled = jest.fn( () => Promise.resolve() );
 
 	beforeEach( () => {
+		useDispatch.mockImplementation( ( storeName ) => {
+			if ( storeName === 'core/notices' ) {
+				return noticesDispatch;
+			}
+
+			return {};
+		} );
 		apiFetch.mockImplementation(
 			jest.fn( () => Promise.resolve( { data: {} } ) )
 		);
@@ -22,6 +38,7 @@ describe( 'OC promotional banner', () => {
 		const { getByText } = render(
 			<OCPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
 		expect(
@@ -31,7 +48,7 @@ describe( 'OC promotional banner', () => {
 		).toBeInTheDocument();
 		expect(
 			getByText(
-				'Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer.'
+				/Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer./
 			)
 		).toBeInTheDocument();
 	} );
@@ -51,6 +68,7 @@ describe( 'OC promotional banner', () => {
 		const { getByText } = render(
 			<OCPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
 		const dismissButton = getByText( 'Dismiss' );
@@ -66,17 +84,18 @@ describe( 'OC promotional banner', () => {
 		} );
 	} );
 
-	it( 'link should contain the correct attributes', async () => {
+	it( 'should attempt to enable OC when clicking the "Activate now" button', async () => {
 		const { getByText } = render(
 			<OCPromotionBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
+				setIsOCEnabled={ setIsOCEnabled }
 			/>
 		);
-		const link = getByText( 'Learn more' );
+		const activateButton = getByText( 'Activate now' );
 
-		expect( link ).toHaveAttribute(
-			'href',
-			'https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/'
-		);
+		await act( async () => {
+			await userEvent.click( activateButton );
+		} );
+		expect( setIsOCEnabled ).toHaveBeenCalled();
 	} );
 } );
