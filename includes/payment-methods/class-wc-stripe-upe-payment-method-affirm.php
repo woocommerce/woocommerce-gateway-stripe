@@ -61,4 +61,18 @@ class WC_Stripe_UPE_Payment_Method_Affirm extends WC_Stripe_UPE_Payment_Method {
 	public function requires_automatic_capture() {
 		return false;
 	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_available() {
+		// Affirm is only available if the official Affirm plugin is not active.
+		if ( WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ) ) {
+			return false;
+		}
+
+		return parent::is_available();
+	}
 }

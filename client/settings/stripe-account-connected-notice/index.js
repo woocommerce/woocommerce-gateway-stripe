@@ -8,6 +8,8 @@ import {
 } from 'wcstripe/stripe-utils/utils';
 
 const LOCAL_STORAGE_KEY = 'wc_stripe_is_onboarding_through_wc_setup';
+const EXPIRATION_TIME = 60 * 60 * 1000; // 1 hour in milliseconds
+
 const query = new URLSearchParams( window.location.search );
 const from = query.get( 'from' );
 
@@ -27,7 +29,7 @@ if (
 	newAccountContainer &&
 	! isPaymentOnboardingTaskComplete
 ) {
-	setStorageWithExpiration( LOCAL_STORAGE_KEY, 'true', 60000 );
+	setStorageWithExpiration( LOCAL_STORAGE_KEY, 'true', EXPIRATION_TIME );
 }
 
 const shouldShowNotice = () => {
