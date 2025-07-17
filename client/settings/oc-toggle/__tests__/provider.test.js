@@ -45,7 +45,7 @@ describe( 'OCToggleContextProvider', () => {
 	it( 'should render the initial state given a default value for isOCEnabled', () => {
 		const childrenMock = jest.fn().mockReturnValue( null );
 		render(
-			<OCToggleContextProvider defaultIsUpeEnabled={ true }>
+			<OCToggleContextProvider defaultIsOCEnabled={ true }>
 				<OCToggleContext.Consumer>
 					{ childrenMock }
 				</OCToggleContext.Consumer>
@@ -54,7 +54,7 @@ describe( 'OCToggleContextProvider', () => {
 
 		expect( childrenMock ).toHaveBeenCalledWith(
 			expect.objectContaining( {
-				isUpeEnabled: true,
+				isOCEnabled: true,
 			} )
 		);
 		expect( apiFetch ).not.toHaveBeenCalled();
