@@ -546,4 +546,59 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'succeeded', $result->status );
 	}
+
+	/**
+	 * Test that rate limiting works after a failed attempt.
+	 */
+	public function test_rate_limiting_on_consecutive_failed_calls() {
+		add_filter( 'wp_doing_ajax', '__return_true' );
+		add_filter( 'wp_die_ajax_handler', [ $this, 'wp_ajax_halt_handler_filter' ] );
+
+		wp_set_current_user( 1 );
+		$_POST['wc-stripe-payment-method'] = 'pm_test_123';
+		$_POST['wc-stripe-payment-type']   = WC_Stripe_Payment_Methods::CARD;
+		// First call with invalid nonce - should fail and trigger rate limiting
+		$_POST['_ajax_nonce'] = 'invalid_nonce';
+
+		ob_start();
+		$this->mock_controller->create_and_confirm_setup_intent_ajax();
+		$output = ob_get_clean();
+		$response = json_decode( $output, true );
+		$this->assertFalse( $response['success'] );
+		$this->assertArrayHasKey( 'error', $response['data'] );
+		$this->assertEquals( 'Unable to verify your request. Please refresh the page and try again.', $response['data']['error']['message'] );
+
+		// Second call should fail due to rate limiting, regardless of nonce.
+		$_POST['_ajax_nonce'] = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
+
+		ob_start();
+		$this->mock_controller->create_and_confirm_setup_intent_ajax();
+		$output = ob_get_clean();
+
+		$response = json_decode( $output, true );
+		$this->assertFalse( $response['success'] );
+		$this->assertArrayHasKey( 'error', $response['data'] );
+		$this->assertEquals( 'You cannot add a new payment method so soon after the previous one.', $response['data']['error']['message'] );
+
+		remove_filter( 'wp_die_ajax_handler', [ $this, 'wp_ajax_halt_handler_filter' ] );
+		remove_filter( 'wp_doing_ajax', '__return_true' );
+	}
+
+	/**
+	 * Filter to return a custom handler for AJAX requests.
+	 *
+	 * @return callable The custom handler function.
+	 */
+	public function wp_ajax_halt_handler_filter() {
+		return [ $this, 'wp_ajax_print_handler' ];
+	}
+
+	/**
+	 * Custom handler function to output the message.
+	 *
+	 * @param string $message The message to print.
+	 */
+	public function wp_ajax_print_handler( $message ) {
+		echo wp_kses_post( $message );
+	}
 }

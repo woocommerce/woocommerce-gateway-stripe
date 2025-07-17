@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.0 - xxxx-xx-xx =
+* Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
 * Add - Show a notice when editing an active subscription that has no payment method attached
@@ -128,5 +129,12 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Update - Enhanced logging system with support for all log levels and improved context handling
+* Fix - Fixes wrong price formatting in express checkout
+* Fix - Require email address only for Stripe customer validation when request is from the Add Payment Method page
+* Fix - Set default values for custom field options
+* Fix - Enforce rate limiter for failed add payment method attempts
+* Update - Add the number of pending webhooks to the Account status section
+* Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
+* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
