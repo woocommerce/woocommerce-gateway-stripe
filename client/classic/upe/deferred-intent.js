@@ -41,6 +41,20 @@ jQuery( function ( $ ) {
 	} );
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
+		const $form = $( 'form.checkout' );
+		// Lose focus for all fields to trigger validation
+		$form
+			.find( '.input-text, select, input:checkbox' )
+			.trigger( 'validate' )
+			.trigger( 'blur' );
+
+		if (
+			$form.find( '.woocommerce-invalid' ).length > 0 &&
+			$form.find( '.woocommerce-invalid' ).is( ':visible' )
+		) {
+			return;
+		}
+
 		return processPaymentIfNotUsingSavedMethod( $( this ) );
 	} );
 
