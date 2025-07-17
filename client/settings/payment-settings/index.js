@@ -14,9 +14,10 @@ import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 import { BNPL_PROMOTION_BANNER } from 'wcstripe/settings/payment-settings/constants';
+import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -75,7 +76,7 @@ const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
-	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();

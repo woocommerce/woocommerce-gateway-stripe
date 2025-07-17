@@ -15,8 +15,9 @@ import {
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds, useIsOCEnabled } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
+import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -57,7 +58,7 @@ const PaymentRequestDescription = () => (
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const { data } = useAccount();
-	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
+	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const promotionalBannerType = getPromotionalBannerType(
