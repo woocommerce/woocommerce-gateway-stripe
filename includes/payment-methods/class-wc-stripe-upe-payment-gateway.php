@@ -557,6 +557,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Single Payment Element payment method parent configuration ID
 		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
 
+		// Checking for other BNPL extensions.
+		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
+		$stripe_params['hasKlarnaGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
+
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
 
