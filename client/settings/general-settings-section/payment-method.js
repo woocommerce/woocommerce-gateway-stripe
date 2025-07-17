@@ -12,6 +12,7 @@ import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_KLARNA,
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
@@ -127,8 +128,14 @@ const PaymentMethod = ( { method, data } ) => {
 
 	const storeCurrency = window?.wcSettings?.currency?.code;
 	const isDisabled =
-		paymentMethodCurrencies.length &&
-		! paymentMethodCurrencies.includes( storeCurrency );
+		( paymentMethodCurrencies.length &&
+			! paymentMethodCurrencies.includes( storeCurrency ) ) ||
+		( PAYMENT_METHOD_AFFIRM === method &&
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
+		( PAYMENT_METHOD_KLARNA === method &&
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.has_klarna_gateway_plugin );
 
 	return (
 		<div key={ method }>

@@ -21,6 +21,20 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * The identifier for the official Affirm gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
+
+	/**
+	 * The identifier for the official Klarna gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -306,7 +320,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array $currencies
 	 */
-	private static function three_decimal_currencies() {
+	public static function three_decimal_currencies() {
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar
@@ -1850,5 +1864,36 @@ class WC_Stripe_Helper {
 			default:
 				return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
 		}
+	}
+
+	/**
+	 * Checks if there are other Buy Now Pay Later plugins active.
+	 *
+	 * @return bool
+	 */
+	public static function has_other_bnpl_plugins_active() {
+		$other_bnpl_gateway_ids = [ self::OFFICIAL_PLUGIN_ID_AFFIRM, self::OFFICIAL_PLUGIN_ID_KLARNA ];
+		foreach ( $other_bnpl_gateway_ids as $bnpl_gateway_id ) {
+			if ( self::has_gateway_plugin_active( $bnpl_gateway_id ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if a given payment gateway plugin is active.
+	 *
+	 * @param string $plugin_id
+	 * @return bool
+	 */
+	public static function has_gateway_plugin_active( $plugin_id ) {
+		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
+		foreach ( $available_payment_gateways as $available_payment_gateway ) {
+			if ( $plugin_id === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
