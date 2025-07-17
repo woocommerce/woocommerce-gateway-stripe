@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import styled from '@emotion/styled';
-import { ExternalLink } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
+import interpolateComponents from 'interpolate-components';
 import CardBody from 'wcstripe/settings/card-body';
 import illustration from 'wcstripe/settings/payment-settings/promotional-banner/illustrations/oc.svg';
 import {
@@ -11,6 +12,7 @@ import {
 	CardColumn,
 	CardInner,
 	DismissButton,
+	MainCTALink,
 } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
 
 const BannerIllustrationBNPL = styled( BannerIllustration )`
@@ -36,7 +38,14 @@ const TitleBNPL = styled.h4`
 	font-weight: 500;
 `;
 
-export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
+export const OCPromotionBanner = ( {
+	setShowPromotionalBanner,
+	setIsOCEnabled,
+} ) => {
+	const { createErrorNotice, createSuccessNotice } = useDispatch(
+		'core/notices'
+	);
+
 	const handleBannerDismiss = () => {
 		apiFetch( {
 			path: '/wc/v3/wc_stripe/settings/notice',
@@ -46,6 +55,33 @@ export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
 			setShowPromotionalBanner( false );
 		} );
 		window.location.reload();
+	};
+
+	const handleButtonClick = () => {
+		const callback = async () => {
+			try {
+				await setIsOCEnabled( true );
+
+				createSuccessNotice(
+					__(
+						'Optimized Checkout suite enabled',
+						'woocommerce-gateway-stripe'
+					)
+				);
+
+				window.location.reload();
+			} catch ( err ) {
+				createErrorNotice(
+					__(
+						'There was an error. Please reload the page and try again.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
+		};
+
+		// creating a separate callback so that the UI isn't blocked by the async call.
+		callback();
 	};
 
 	return (
@@ -59,10 +95,23 @@ export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
 						) }
 					</TitleBNPL>
 					<p>
-						{ __(
-							'Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer.',
-							'woocommerce-gateway-stripe'
-						) }
+						{ __( '', 'woocommerce-gateway-stripe' ) }
+						{ interpolateComponents( {
+							mixedString: __(
+								"Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer. {{docLink}}Learn more{{/docLink}} about Stripe's Optimized Checkout Suite.",
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								docLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										target="_blank"
+										rel="noreferrer"
+										href="https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/"
+									/>
+								),
+							},
+						} ) }
 					</p>
 				</CardColumn>
 				<ColumnIllustration>
@@ -76,9 +125,9 @@ export const OCPromotionBanner = ( { setShowPromotionalBanner } ) => {
 				</ColumnIllustration>
 			</CardInner>
 			<ButtonsRowBNPL>
-				<ExternalLink href="https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/">
-					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
-				</ExternalLink>
+				<MainCTALink variant="secondary" onClick={ handleButtonClick }>
+					{ __( 'Activate now', 'woocommerce-gateway-stripe' ) }
+				</MainCTALink>
 				<DismissButton
 					variant="secondary"
 					onClick={ handleBannerDismiss }

@@ -75,7 +75,7 @@ const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
-	const [ isOCEnabled ] = useIsOCEnabled();
+	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const { data } = useAccount();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -117,6 +117,7 @@ const PaymentSettingsPanel = () => {
 									setShowPromotionalBanner
 								}
 								setIsUpeEnabled={ setIsUpeEnabled }
+								setIsOCEnabled={ setIsOCEnabled }
 								promotionalBannerType={ promotionalBannerType }
 								oauthUrl={
 									// eslint-disable-next-line camelcase

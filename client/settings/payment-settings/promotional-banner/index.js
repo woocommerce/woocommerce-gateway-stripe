@@ -17,6 +17,7 @@ const PromotionalBanner = ( {
 	setShowPromotionalBanner,
 	promotionalBannerType,
 	setIsUpeEnabled,
+	setIsOCEnabled,
 	oauthUrl,
 	testOauthUrl,
 } ) => {
@@ -34,6 +35,7 @@ const PromotionalBanner = ( {
 			BannerContent = (
 				<OCPromotionBanner
 					setShowPromotionalBanner={ setShowPromotionalBanner }
+					setIsOCEnabled={ setIsOCEnabled }
 				/>
 			);
 			break;

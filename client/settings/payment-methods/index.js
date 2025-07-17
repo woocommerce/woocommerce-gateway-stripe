@@ -57,7 +57,7 @@ const PaymentRequestDescription = () => (
 
 const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	const { data } = useAccount();
-	const [ isOCEnabled ] = useIsOCEnabled();
+	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const promotionalBannerType = getPromotionalBannerType(
@@ -92,6 +92,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
 						setIsUpeEnabled={ setIsUpeEnabled }
+						setIsOCEnabled={ setIsOCEnabled }
 						promotionalBannerType={ promotionalBannerType }
 						oauthUrl={
 							// eslint-disable-next-line camelcase
