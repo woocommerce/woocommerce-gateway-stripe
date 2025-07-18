@@ -539,16 +539,16 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'         => [
+					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
 					],
-					'wc_stripe_show_style_notice'         => 'no',
-					'home'                                => 'https://...',
-					'wc_stripe_show_sca_notice'           => 'no',
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+					'wc_stripe_show_sca_notice'   => 'no',
 				],
 				[
 					'upe_payment_methods',
@@ -672,6 +672,61 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'post globals'    => [
 					'post' => $subscription,
 				],
+			],
+		];
+	}
+
+	/**
+	 * Tests for `subscription_check_detachment_bulk_action`.
+	 *
+	 * @param array|null $request_params Request parameters to simulate.
+	 * @param int $expected_count Expected number of notices.
+	 * @param string $expected_content Expected content in the notice message.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_subscription_check_detachment_bulk_action
+	 */
+	public function test_subscription_check_detachment_bulk_action( $request_params, $expected_count, $expected_content ) {
+		if ( $request_params ) {
+			$_REQUEST = $request_params;
+		}
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment_bulk_action();
+
+		$actual = $notices->notices;
+
+		$this->assertCount( $expected_count, $actual );
+
+		if ( $expected_content ) {
+			$this->assertArrayHasKey( 'subscription_detached_bulk_action', $actual );
+			$this->assertStringContainsString( $expected_content, $actual['subscription_detached_bulk_action']['message'] );
+		} else {
+			$this->assertArrayNotHasKey( 'subscription_detached_bulk_action', $actual );
+		}
+	}
+
+	/**
+	 * Data provider for `test_subscription_check_detachment_bulk_action`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_subscription_check_detachment_bulk_action() {
+		return [
+			'detached subscription IDs, but not actual subscriptions' => [
+				'request params'   => [ 'detached-subscriptions' => '456' ],
+				'expected count'   => 1,
+				'expected content' => 'No detached subscriptions found.',
+			],
+			'detached subscription IDs, with actual subscriptions' => [
+				'request params'   => [ 'detached-subscriptions' => '123' ],
+				'expected count'   => 1,
+				'expected content' => 'Below are the affected subscriptions and their update links:',
+			],
+			'no detached subscriptions' => [
+				'request params'   => null,
+				'expected count'   => 0,
+				'expected content' => '',
 			],
 		];
 	}

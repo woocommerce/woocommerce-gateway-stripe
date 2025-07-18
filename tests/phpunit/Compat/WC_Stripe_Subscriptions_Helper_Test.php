@@ -311,8 +311,8 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 
 		$expected = [
 			'id'                        => 1,
-			'customer_id'               => '',
-			'change_payment_method_url' => '',
+			'customer_id'               => 'cus_1234',
+			'change_payment_method_url' => 'http://example.org?subscription-payment-method=1',
 		];
 
 		$actual = WC_Stripe_Subscriptions_Helper::get_detached_data_from_subscription( $subscription );

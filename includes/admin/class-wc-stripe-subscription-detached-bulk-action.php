@@ -1,6 +1,7 @@
 <?php
-if ( ! class_exists( 'WC_Abstract_Privacy' ) ) {
-	return;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
