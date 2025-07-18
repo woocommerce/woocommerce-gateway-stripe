@@ -178,16 +178,13 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise containing the setup intent.
 	 */
 	setupIntent( paymentMethod, additionalData = {} ) {
-		return this.request(
-			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
-			{
-				...additionalData,
-				action: 'create_and_confirm_setup_intent',
-				'wc-stripe-payment-method': paymentMethod.id,
-				'wc-stripe-payment-type': paymentMethod.type,
-				_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
-			}
-		).then( ( response ) => {
+		return this.request( this.options?.wp_ajax_url, {
+			...additionalData,
+			action: 'wc_stripe_create_and_confirm_setup_intent',
+			'wc-stripe-payment-method': paymentMethod.id,
+			'wc-stripe-payment-type': paymentMethod.type,
+			_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
+		} ).then( ( response ) => {
 			if ( ! response.success ) {
 				throw response.data.error;
 			}
