@@ -622,6 +622,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			foreach ( $post_globals as $key => $value ) {
 				unset( $GLOBALS[ $key ] );
 			}
+			WC_Subscriptions::$wcs_get_subscription = null;
 		}
 
 		$theorder = $original_order;
@@ -686,15 +687,27 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @dataProvider provide_test_subscription_check_detachment_bulk_action
 	 */
-	public function test_subscription_check_detachment_bulk_action( $request_params, $expected_count, $expected_content ) {
+	public function test_subscription_check_detachment_bulk_action( $request_params, $subscriptions, $expected_count, $expected_content ) {
 		if ( $request_params ) {
 			$_REQUEST = $request_params;
+		}
+
+		if ( count( $subscriptions ) > 0 ) {
+			WC_Subscriptions::set_wcs_get_subscription(
+				function ( $id ) use ( $subscriptions ) {
+					return $subscriptions[0];
+				}
+			);
 		}
 
 		$notices = new WC_Stripe_Admin_Notices();
 		$notices->subscription_check_detachment_bulk_action();
 
 		$actual = $notices->notices;
+
+		// Clean up.
+		unset( $_REQUEST );
+		WC_Subscriptions::$wcs_get_subscription = null;
 
 		$this->assertCount( $expected_count, $actual );
 
@@ -712,19 +725,25 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 * @return array
 	 */
 	public function provide_test_subscription_check_detachment_bulk_action() {
+		$subscription = new WC_Subscription();
+		$subscription->save();
+
 		return [
 			'detached subscription IDs, but not actual subscriptions' => [
-				'request params'   => [ 'detached-subscriptions' => '456' ],
+				'request params'   => [ 'detached-subscriptions' => '123' ],
+				'subscriptions'    => [],
 				'expected count'   => 1,
 				'expected content' => 'No detached subscriptions found.',
 			],
 			'detached subscription IDs, with actual subscriptions' => [
 				'request params'   => [ 'detached-subscriptions' => '123' ],
+				'subscriptions'    => [ $subscription ],
 				'expected count'   => 1,
 				'expected content' => 'Below are the affected subscriptions and their update links:',
 			],
 			'no detached subscriptions' => [
 				'request params'   => null,
+				'subscriptions'    => [],
 				'expected count'   => 0,
 				'expected content' => '',
 			],
