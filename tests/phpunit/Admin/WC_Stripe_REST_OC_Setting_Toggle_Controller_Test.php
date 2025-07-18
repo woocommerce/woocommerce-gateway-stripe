@@ -60,24 +60,8 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller_Test extends WC_Mock_Stripe_AP
 
 		$this->controller = new WC_Stripe_REST_OC_Setting_Toggle_Controller( $gateway );
 
-		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
-
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
-	}
-
-	/**
-	 * Deregister WooCommerce Blocks REST routes to prevent _doing_it_wrong() notices
-	 * after calls to rest_do_request().
-	 */
-	public function deregister_wc_blocks_rest_api() {
-		try {
-			$wc_blocks_rest_api = Package::container()->get( RestApi::class );
-			remove_action( 'rest_api_init', [ $wc_blocks_rest_api, 'register_rest_routes' ] );
-		} catch ( Exception $e ) {
-			/* For WooCommerce Blocks < 2.6.0: */
-			remove_action( 'rest_api_init', [ RestApi::class, 'register_rest_routes' ] );
-		}
 	}
 
 	/**
