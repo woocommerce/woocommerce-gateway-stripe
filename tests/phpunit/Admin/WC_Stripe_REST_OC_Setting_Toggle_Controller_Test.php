@@ -40,9 +40,6 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller_Test extends WC_Mock_Stripe_AP
 		parent::set_up_before_class();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-oc-setting-toggle-controller.php';
-
-		// All tests assume UPE is enabled.
-		update_option( '_wcstripe_feature_upe', 'yes' );
 	}
 
 	/**
