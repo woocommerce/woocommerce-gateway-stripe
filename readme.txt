@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.0 - xxxx-xx-xx =
+* Add - Adds a new action (`wc_stripe_webhook_processed`) to allow hooking into the webhook processing flow
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
