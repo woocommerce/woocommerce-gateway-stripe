@@ -613,6 +613,10 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
  *
  * @return {Object} The appearance object for the UPE.
  */
+
+// Track if save appearance is already in progress to prevent multiple calls
+let isSavingAppearance = false;
+
 export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 	let appearance =
 		isBlockCheckout === 'true'
@@ -631,8 +635,21 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 				! data.isChangingPayment );
 
 		// If we have re-built the appearance, only update the settings in the checkout context
-		if ( isValidUpdateContext ) {
-			api.saveAppearance( appearance, isBlockCheckout );
+		if ( isValidUpdateContext && ! isSavingAppearance ) {
+			// Set flag to prevent concurrent saves
+			isSavingAppearance = true;
+
+			// Update the global variable immediately to prevent multiple AJAX calls
+			if ( isBlockCheckout === 'true' ) {
+				data.blocksAppearance = appearance;
+			} else {
+				data.appearance = appearance;
+			}
+
+			api.saveAppearance( appearance, isBlockCheckout ).finally( () => {
+				// Reset flag when save completes (success or failure)
+				isSavingAppearance = false;
+			} );
 		}
 	}
 
