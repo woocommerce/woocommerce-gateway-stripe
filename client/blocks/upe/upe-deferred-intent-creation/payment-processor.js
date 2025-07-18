@@ -3,6 +3,7 @@
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
 import { __ } from '@wordpress/i18n';
+import { select } from '@wordpress/data';
 import {
 	PaymentElement,
 	useElements,
@@ -194,12 +195,14 @@ const PaymentProcessor = ( {
 						};
 					}
 
-					const hasValidationError = document.querySelector(
-						'.wc-block-components-validation-error'
-					);
-					// Return if there is a validation error on the checkout fields.
-					if ( hasValidationError ) {
-						return;
+					const { validationStore } = window.wc?.wcBlocksData ?? {};
+					if ( validationStore ) {
+						const store = select( validationStore );
+						const hasValidationErrors = store.hasValidationErrors();
+						// Return if there is a validation error on the checkout fields.
+						if ( hasValidationErrors ) {
+							return;
+						}
 					}
 
 					// BLIK is a special case which is not handled through the Stripe element.
