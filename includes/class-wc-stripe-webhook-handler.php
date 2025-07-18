@@ -1082,7 +1082,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
 				$is_awaiting_action    = $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false;
 
-				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
+				// Process the webhook now if it's for a voucher or wallet payment, or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {
 					$charge = $this->get_latest_charge_from_intent( $intent );
 
@@ -1096,6 +1096,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
+
+					/**
+					 * Fires after a webhook has been processed, but before we respond to Stripe.
+					 * This allows for custom processing of the webhook after it has been processed.
+					 *
+					 * @since 9.8.0
+					 *
+					 * @param string $webhook_type The type of webhook that was processed.
+					 * @param object $notification The webhook data sent from Stripe.
+					 */
+					do_action( 'wc_stripe_webhook_processed', (string) $notification->type, $notification );
 				} else {
 					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
@@ -1112,7 +1123,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					}
 				}
-
 				break;
 			default:
 				if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
@@ -1396,11 +1406,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		}
 
+		// These events might be processed async. Skip the action trigger for them here. The trigger will be called inside the specific methods.
+		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
+			return;
+		}
+
 		/**
 		 * Fires after a webhook has been processed, but before we respond to Stripe.
 		 * This allows for custom processing of the webhook after it has been processed.
 		 *
-		 * @since 9.7.0
+		 * @since 9.8.0
 		 *
 		 * @param string $webhook_type The type of webhook that was processed.
 		 * @param object $notification The webhook data sent from Stripe.
