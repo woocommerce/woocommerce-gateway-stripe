@@ -46,11 +46,11 @@ describe( 'AdvancedSettings', () => {
 
 		render( <AdvancedSettings /> );
 
-		const debugModeCheckbox = screen.getByLabelText( 'Log error messages' );
+		const debugModeCheckbox = screen.getByLabelText( 'Log debug messages' );
 
 		expect( screen.getByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
-			screen.getByLabelText( 'Log error messages' )
+			screen.getByLabelText( 'Log debug messages' )
 		).not.toBeChecked();
 
 		userEvent.click( debugModeCheckbox );
