@@ -505,6 +505,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                        = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                          = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['wp_ajax_url']                       = admin_url( 'admin-ajax.php' );
 		$stripe_params['theme_name']                        = get_option( 'stylesheet' );
 		$stripe_params['testMode']                          = $this->testmode;
 		$stripe_params['createPaymentIntentNonce']          = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
@@ -556,6 +557,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Single Payment Element payment method parent configuration ID
 		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
+
+		// Checking for other BNPL extensions.
+		$stripe_params['hasAffirmGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
+		$stripe_params['hasKlarnaGatewayPlugin'] = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
