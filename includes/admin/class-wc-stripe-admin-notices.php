@@ -69,6 +69,7 @@ class WC_Stripe_Admin_Notices {
 		// Check for subscriptions detached from the customer.
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscription_check_detachment();
+			$this->subscription_check_detachment_bulk_action();
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
@@ -509,6 +510,49 @@ class WC_Stripe_Admin_Notices {
 				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
 			);
 			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+		}
+	}
+
+	/**
+	 * Add a notice to the admin area if there are subscriptions with payment method detached.
+	 *
+	 * @return void
+	 */
+	public function subscription_check_detachment_bulk_action() {
+		if ( ! empty( $_REQUEST['detached-subscriptions'] ) ) {
+			$detached_subs_ids = explode( ',', wp_unslash( $_REQUEST['detached-subscriptions'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$subscriptions     = [];
+			foreach ( $detached_subs_ids as $detached_sub_id ) {
+				$detached_sub_id = absint( $detached_sub_id );
+				$subscription    = wcs_get_subscription( $detached_sub_id );
+				if ( ! $subscription instanceof WC_Subscription ) {
+					continue;
+				}
+				$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_data_from_subscription( $subscription );
+			}
+			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+
+			$notice_content = '';
+			if ( empty( $detached_messages ) ) {
+				$notice_content .= '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
+				$notice_class    = 'info';
+			} else {
+				$notice_content .= '<p>';
+				$notice_content .= wp_kses(
+					$detached_messages,
+					[
+						'a'      => [
+							'href'   => [],
+							'target' => [],
+						],
+						'strong' => [],
+						'br'     => [],
+					]
+				);
+				$notice_content .= '</p>';
+				$notice_class    = 'error';
+			}
+			$this->add_admin_notice( 'subscription_detached_bulk_action', 'notice notice-' . $notice_class, $notice_content );
 		}
 	}
 
