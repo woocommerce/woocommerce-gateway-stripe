@@ -1,11 +1,9 @@
 /* global wc_stripe_settings_params */
 import {
 	BNPL_PROMOTION_BANNER,
-	BNPL_PROMOTION_BANNER_TARGET_VERSION,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
 	OC_PROMOTION_BANNER,
-	OC_PROMOTION_BANNER_TARGET_VERSION,
 	RECONNECT_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import {
@@ -44,16 +42,14 @@ export const getPromotionalBannerType = (
 	} else if (
 		// eslint-disable-next-line camelcase
 		wc_stripe_settings_params?.is_oc_available &&
-		! isOCEnabled &&
-		getPluginVersion() >= OC_PROMOTION_BANNER_TARGET_VERSION
+		! isOCEnabled
 	) {
 		return OC_PROMOTION_BANNER;
 	} else if (
 		isUpeEnabled &&
 		! hasBNPLEnabled &&
 		// eslint-disable-next-line camelcase
-		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
-		getPluginVersion() >= BNPL_PROMOTION_BANNER_TARGET_VERSION
+		! wc_stripe_settings_params?.has_other_bnpl_plugins
 	) {
 		return BNPL_PROMOTION_BANNER;
 	} else if ( ! isUpeEnabled ) {
@@ -63,23 +59,4 @@ export const getPromotionalBannerType = (
 		return NEW_CHECKOUT_EXPERIENCE_BANNER;
 	}
 	return null;
-};
-
-/**
- * Returns the plugin version if it is available.
- *
- * @return {number|null} The plugin version as a float, or null if not available.
- */
-const getPluginVersion = () => {
-	return (
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.plugin_version &&
-		parseFloat(
-			// eslint-disable-next-line camelcase
-			String( wc_stripe_settings_params.plugin_version )
-				.split( '.' )
-				.slice( 0, 2 )
-				.join( '.' )
-		)
-	);
 };
