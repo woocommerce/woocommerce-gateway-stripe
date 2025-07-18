@@ -89,7 +89,7 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 		}
 
 		$settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$settings['optimized_checkout_element'] = $is_oc_enabled ? 'yes' : 'disabled';
+		$settings['optimized_checkout_element'] = $is_oc_enabled ? 'yes' : 'no';
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
