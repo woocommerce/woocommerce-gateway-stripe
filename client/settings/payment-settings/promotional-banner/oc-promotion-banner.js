@@ -54,7 +54,6 @@ export const OCPromotionBanner = ( {
 		} ).finally( () => {
 			setShowPromotionalBanner( false );
 		} );
-		window.location.reload();
 	};
 
 	const handleButtonClick = () => {
