@@ -53,7 +53,7 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 				'callback'            => [ $this, 'set_setting' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'is_upe_enabled' => [
+					'is_oc_enabled' => [
 						'description'       => __( 'Determines if the OC setting is enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
