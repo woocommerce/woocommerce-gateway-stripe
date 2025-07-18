@@ -1,6 +1,6 @@
 /* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
-import { React, useContext, useState } from 'react';
+import { React, useState } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
@@ -12,12 +12,6 @@ import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
-import { BNPL_PROMOTION_BANNER } from 'wcstripe/settings/payment-settings/constants';
-import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -72,26 +66,16 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
-const PaymentSettingsPanel = () => {
+const PaymentSettingsPanel = ( {
+	showPromotionalBanner,
+	setShowPromotionalBanner,
+	promotionalBannerType,
+	setIsOCEnabled,
+	setIsUpeEnabled,
+} ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const [ keepModalContent, setKeepModalContent ] = useState( false );
-	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
-	const { data } = useAccount();
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const promotionalBannerType = getPromotionalBannerType(
-		data,
-		isUpeEnabled,
-		isOCEnabled,
-		enabledPaymentMethodIds
-	);
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		promotionalBannerType === BNPL_PROMOTION_BANNER
-			? // eslint-disable-next-line camelcase
-			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-			: true
-	);
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
