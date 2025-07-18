@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Add the number of pending webhooks to the Account status section
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 * Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
+* Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
