@@ -23,9 +23,9 @@ class WC_Stripe_BNPL_Promotion_Note_Test extends WP_UnitTestCase {
 		$this->assertSame( 'wc-stripe-bnpl-promotion-note', $note->get_name() );
 		$this->assertSame( 'woocommerce-gateway-stripe', $note->get_source() );
 
-		list( $enable_upe_action ) = $note->get_actions();
-		$this->assertSame( 'wc-stripe-bnpl-promotion-note', $enable_upe_action->name );
-		$this->assertSame( 'Learn more', $enable_upe_action->label );
-		$this->assertSame( 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/', $enable_upe_action->query );
+		list( $learn_more_action ) = $note->get_actions();
+		$this->assertSame( 'wc-stripe-bnpl-promotion-note', $learn_more_action->name );
+		$this->assertSame( 'Learn more', $learn_more_action->label );
+		$this->assertSame( 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/', $learn_more_action->query );
 	}
 }
