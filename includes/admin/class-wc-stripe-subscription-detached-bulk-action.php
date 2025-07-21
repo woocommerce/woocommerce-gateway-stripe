@@ -42,6 +42,8 @@ class WC_Stripe_Subscription_Detached_Bulk_Action {
 	 */
 	public function handle_subscription_detachment_check( $redirect_url, $action, $post_ids ) {
 		if ( 'check-for-payment-method-detachment' === $action ) {
+			update_option( 'wc_stripe_show_subscription_detached_bulk_action_notice', 'yes' );
+
 			$detached_subscriptions_ids = [];
 			foreach ( $post_ids as $post_id ) {
 				$subscription = wcs_get_subscription( $post_id );
