@@ -1,6 +1,7 @@
+/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { TabPanel } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
@@ -9,7 +10,15 @@ import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
-import { useSettings } from '../../data';
+import { useEnabledPaymentMethodIds, useSettings } from '../../data';
+import { useAccount } from 'wcstripe/data/account';
+import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
+import {
+	BNPL_PROMOTION_BANNER,
+	OC_PROMOTION_BANNER,
+} from 'wcstripe/settings/payment-settings/constants';
 
 const StyledTabPanel = styled( TabPanel )`
 	.components-tab-panel__tabs {
@@ -32,6 +41,34 @@ const TABS_CONTENT = [
 const SettingsManager = () => {
 	const { settings, isLoading } = useSettings();
 	const [ initialSettings, setInitialSettings ] = useState( settings );
+	const { data } = useAccount();
+	const { isOCEnabled, setIsOCEnabled } = useContext( OCToggleContext );
+	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const promotionalBannerType = getPromotionalBannerType(
+		data,
+		isUpeEnabled,
+		isOCEnabled,
+		enabledPaymentMethodIds
+	);
+	let initialBannerState;
+	if (
+		promotionalBannerType === BNPL_PROMOTION_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
+	if (
+		promotionalBannerType === OC_PROMOTION_BANNER &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.show_oc_promotional_banner === '1'
+	) {
+		initialBannerState = true;
+	}
+	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
+		initialBannerState
+	);
 
 	useEffect( () => {
 		if ( isLoading && ! isEmpty( settings ) ) {
@@ -43,10 +80,10 @@ const SettingsManager = () => {
 		setInitialSettings( settings );
 	};
 
-	const onSaveChanges = ( key, data ) => {
+	const onSaveChanges = ( key, value ) => {
 		setInitialSettings( {
 			...initialSettings,
-			[ key ]: data,
+			[ key ]: value,
 		} );
 	};
 
@@ -68,10 +105,25 @@ const SettingsManager = () => {
 				{ ( tab ) => (
 					<div data-testid={ `${ tab.name }-tab` }>
 						{ tab.name === 'settings' ? (
-							<PaymentSettingsPanel />
+							<PaymentSettingsPanel
+								showPromotionalBanner={ showPromotionalBanner }
+								setShowPromotionalBanner={
+									setShowPromotionalBanner
+								}
+								promotionalBannerType={ promotionalBannerType }
+								setIsOCEnabled={ setIsOCEnabled }
+								setIsUpeEnabled={ setIsUpeEnabled }
+							/>
 						) : (
 							<PaymentMethodsPanel
 								onSaveChanges={ onSaveChanges }
+								showPromotionalBanner={ showPromotionalBanner }
+								setShowPromotionalBanner={
+									setShowPromotionalBanner
+								}
+								promotionalBannerType={ promotionalBannerType }
+								setIsOCEnabled={ setIsOCEnabled }
+								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
 						) }
 						<SaveSettingsSection
