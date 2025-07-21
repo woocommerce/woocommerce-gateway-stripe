@@ -24,7 +24,7 @@ class WC_Stripe_Subscription_Detached_Bulk_Action {
 	/**
 	 * Add custom bulk action to check for detachment of subscriptions' payment methods.
 	 *
-	 * @param $bulk_actions array An associative array of actions which can be performed on the subscription post type.
+	 * @param array $bulk_actions An associative array of actions which can be performed on the subscription post type.
 	 * @return array
 	 */
 	public function subscriptions_bulk_actions( $bulk_actions ) {
