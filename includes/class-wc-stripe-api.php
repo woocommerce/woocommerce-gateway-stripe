@@ -235,7 +235,7 @@ class WC_Stripe_API {
 				[
 					'request'         => $request,
 					'idempotency_key' => $idempotency_key,
-					'response'        => json_decode( $response ) ?? $response,
+					'response'        => ! empty( $response['body'] ) ? json_decode( $response['body'] ) : $response,
 				]
 			);
 
@@ -292,7 +292,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
-					'response' => json_decode( $response ) ?? $response,
+					'response' => ! empty( $response['body'] ) ? json_decode( $response['body'] ) : $response,
 				]
 			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
@@ -376,15 +376,14 @@ class WC_Stripe_API {
 			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
 		} elseif ( $is_level_3data_incorrect ) {
 			// Log the issue so we could debug it.
-			WC_Stripe_Logger::log(
-				'Level3 data sum incorrect: ' . PHP_EOL
-				. print_r( $result->error->message, true ) . PHP_EOL
-				. print_r( 'Order line items: ', true ) . PHP_EOL
-				. print_r( $order->get_items(), true ) . PHP_EOL
-				. print_r( 'Order shipping amount: ', true ) . PHP_EOL
-				. print_r( $order->get_shipping_total(), true ) . PHP_EOL
-				. print_r( 'Order currency: ', true ) . PHP_EOL
-				. print_r( $order->get_currency(), true )
+			WC_Stripe_Logger::error(
+				'Level3 data sum incorrect',
+				[
+					'error'         => $result->error,
+					'order_line_items'      => $order->get_items(),
+					'order_shipping_amount' => $order->get_shipping_total(),
+					'order_currency'        => $order->get_currency(),
+				]
 			);
 		}
 
