@@ -217,7 +217,7 @@ class WC_Stripe_Subscriptions_Helper {
 	 * @param WC_Subscription $subscription The subscription object to extract data from.
 	 * @return array
 	 */
-	public static function get_detached_data_from_subscription( $subscription ) {
+	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
 			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
