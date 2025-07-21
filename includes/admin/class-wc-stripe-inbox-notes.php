@@ -64,6 +64,9 @@ class WC_Stripe_Inbox_Notes {
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-bnpl-promotion-note.php';
 		WC_Stripe_BNPL_Promotion_Note::init( $gateway );
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-oc-promotion-note.php';
+		WC_Stripe_OC_Promotion_Note::init( $gateway );
 	}
 
 	public static function get_campaign_2020_cutoff() {
