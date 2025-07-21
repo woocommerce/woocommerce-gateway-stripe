@@ -137,6 +137,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Improvements to custom checkout fields support for express checkout
 * Update - Enhanced logging system with support for all log levels and improved context handling
 * Tweak - Deprecate `wc_connect_*` filters
+* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 
 **Other Fixes**
 
@@ -147,7 +148,5 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Fix - Prevent text field reset while editing Optimized Checkout title
 * Update - Use the Database Cache for the Stripe Account Data
-* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
-
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
