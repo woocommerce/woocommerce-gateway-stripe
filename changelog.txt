@@ -26,7 +26,7 @@
 * Update - Add the number of pending webhooks to the Account status section
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 * Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
-* Dev - Fix wc version fetching in GH workflows
+* Dev - Fix WooCommerce version fetching in GitHub workflows
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
