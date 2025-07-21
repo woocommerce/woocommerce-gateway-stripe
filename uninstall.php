@@ -100,6 +100,9 @@ if ( ! defined( 'WC_REMOVE_ALL_DATA' ) || true !== WC_REMOVE_ALL_DATA ) {
 	// BNPL promotional banner
 	delete_option( 'wc_stripe_show_bnpl_promotion_banner' );
 
+	// OC promotional banner
+	delete_option( 'wc_stripe_show_oc_promotion_banner' );
+
 	// Webhook stats
 	delete_option( 'wc_stripe_wh_monitor_began_at' );
 	delete_option( 'wc_stripe_wh_last_success_at' );
