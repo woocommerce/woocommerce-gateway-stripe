@@ -130,7 +130,7 @@ class WC_Stripe_Subscriptions_Helper {
 			}
 
 			if ( self::is_subscription_payment_method_detached( $subscription ) ) {
-				$detached_subscriptions[] = self::get_detached_data_from_subscription( $subscription );
+				$detached_subscriptions[] = self::get_detached_payment_data_from_subscription( $subscription );
 			}
 		}
 

@@ -528,7 +528,7 @@ class WC_Stripe_Admin_Notices {
 				if ( ! $subscription instanceof WC_Subscription ) {
 					continue;
 				}
-				$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_data_from_subscription( $subscription );
+				$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
 			}
 			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 

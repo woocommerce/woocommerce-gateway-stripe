@@ -296,11 +296,11 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests for `get_detached_data_from_subscription`.
+	 * Tests for `get_detached_payment_data_from_subscription`.
 	 *
 	 * @return void
 	 */
-	public function test_get_detached_data_from_subscription() {
+	public function test_get_detached_payment_data_from_subscription() {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 1 );
 		$subscription->set_status( 'active' );
@@ -315,7 +315,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 			'change_payment_method_url' => 'http://example.org?subscription-payment-method=1',
 		];
 
-		$actual = WC_Stripe_Subscriptions_Helper::get_detached_data_from_subscription( $subscription );
+		$actual = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
 
 		$this->assertSame( $expected, $actual );
 	}
