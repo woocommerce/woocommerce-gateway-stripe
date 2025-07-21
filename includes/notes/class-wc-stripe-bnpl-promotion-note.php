@@ -23,7 +23,7 @@ class WC_Stripe_BNPL_Promotion_Note {
 	const NOTE_NAME = 'wc-stripe-bnpl-promotion-note';
 
 	/**
-	 * Link to enable the UPE in store.
+	 * Link to learn more about BNPLs.
 	 */
 	const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/setup-and-configuration/additional-payment-methods/';
 
@@ -93,16 +93,7 @@ class WC_Stripe_BNPL_Promotion_Note {
 			}
 		}
 
-		$has_other_bnpl_plugins_active = false;
-		$available_payment_gateways    = WC()->payment_gateways->payment_gateways;
-		$other_bnpl_gateway_ids        = [ 'affirm', 'klarna_payments' ];
-		foreach ( $available_payment_gateways as $available_payment_gateway ) {
-			if ( in_array( $available_payment_gateway->id, $other_bnpl_gateway_ids, true ) && 'yes' === $available_payment_gateway->enabled ) {
-				$has_other_bnpl_plugins_active = true;
-				break;
-			}
-		}
-		if ( $has_other_bnpl_plugins_active ) {
+		if ( WC_Stripe_Helper::has_other_bnpl_plugins_active() ) {
 			return;
 		}
 
