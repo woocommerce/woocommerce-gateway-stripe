@@ -114,17 +114,18 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 
-* Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
-* Show a notice when editing an active subscription that has no payment method attached
+* Remove BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Show payment methods sync status on the UI
 * Add the number of pending webhooks to the Account status section
 * New WooCommerce Debug Tool to list subscriptions without a payment method attached
-* Remove BNPL payment methods (Klarna and Affirm) when other official plugins are active
+* Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
+* Show a notice when editing an active subscription that has no payment method attached
 
 **Important Fixes and Updates**
 
 * Fix - Fixes wrong price formatting in express checkout
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
+* Update - Improvements to custom checkout fields support for express checkout
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
 * Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
 * Fix - No such customer error when creating a payment method with a new Stripe account
@@ -134,7 +135,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 * Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
 * Update - Update filter names to use the `wc_stripe_*` prefix
-* Update - Improvements to custom checkout fields support for express checkout
 * Update - Enhanced logging system with support for all log levels and improved context handling
 * Tweak - Deprecate `wc_connect_*` filters
 * Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
