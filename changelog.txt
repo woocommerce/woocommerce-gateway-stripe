@@ -30,6 +30,7 @@
 * Tweak - Check for checkout validation error before creating a payment method in Stripe
 * Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
+* Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
 
 = 9.6.0 - 2025-07-07 =
 * Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
