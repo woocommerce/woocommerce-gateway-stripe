@@ -214,7 +214,7 @@ class WC_Stripe_Subscriptions_Helper {
 	/**
 	 * Extracts data from a subscription object for detached subscriptions.
 	 *
-	 * @param $subscription WC_Subscription The subscription object to extract data from.
+	 * @param WC_Subscription $subscription The subscription object to extract data from.
 	 * @return array
 	 */
 	public static function get_detached_data_from_subscription( $subscription ) {
