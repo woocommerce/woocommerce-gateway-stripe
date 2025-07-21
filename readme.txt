@@ -114,7 +114,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 **New Features**
 
-* New WooCommerce Debug Tool to list subscriptions without a payment method attached
 * Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
 * Show a notice when editing an active subscription that has no payment method attached
 * A notice to take user back to WC onboarding flow after connecting the Stripe account
@@ -133,11 +132,15 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Set default values for custom field options
 * Fix - Enforce rate limiter for failed add payment method attempts
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
-* Fix - Prevent text field reset while editing Optimized Checkout title
+
+**Other Fixes**
+
+* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
 * Fix - Fixes wrong price formatting in express checkout
 
 **Internal Changes and Upcoming Features**
 
+* Fix - Prevent text field reset while editing Optimized Checkout title
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Update - Improvements to custom checkout fields support for express checkout
 * Update - Enhanced logging system with support for all log levels and improved context handling
