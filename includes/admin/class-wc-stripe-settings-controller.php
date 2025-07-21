@@ -257,6 +257,12 @@ class WC_Stripe_Settings_Controller {
 			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
 			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
 
+		$is_oc_enabled = $this->get_gateway()->is_oc_enabled();
+
+		$show_oc_promotion_banner = get_option( 'wc_stripe_show_oc_promotion_banner', 'yes' ) === 'yes'
+			// Show the OC promotional banner only if OC is disabled
+			&& ! $is_oc_enabled;
+
 		$params = [
 			'time'                                  => time(),
 			'i18n_out_of_sync'                      => $message,
@@ -270,12 +276,14 @@ class WC_Stripe_Settings_Controller {
 			'stripe_test_oauth_url'                 => $test_oauth_url,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
+			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
 			'plugin_version'                        => WC_STRIPE_VERSION,
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
+			'is_oc_enabled'                         => $is_oc_enabled,
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 			'is_sepa_tokens_enabled'                => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
 			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),

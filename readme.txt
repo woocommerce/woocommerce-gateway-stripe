@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.0 - xxxx-xx-xx =
+* Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
