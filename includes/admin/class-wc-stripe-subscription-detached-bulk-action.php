@@ -35,9 +35,9 @@ class WC_Stripe_Subscription_Detached_Bulk_Action {
 	/**
 	 * Handle the custom bulk action to check for detachment of subscriptions' payment methods.
 	 *
-	 * @param $redirect_url string The URL to redirect to after the action is performed.
-	 * @param $action string The action being performed.
-	 * @param $post_ids array The IDs of the posts being acted upon.
+	 * @param string $redirect_url The URL to redirect to after the action is performed.
+	 * @param string $action The action being performed.
+	 * @param array $post_ids The IDs of the posts being acted upon.
 	 * @return string
 	 */
 	public function handle_subscription_detachment_check( $redirect_url, $action, $post_ids ) {
