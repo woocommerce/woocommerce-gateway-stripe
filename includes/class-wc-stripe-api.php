@@ -235,7 +235,7 @@ class WC_Stripe_API {
 				[
 					'request'         => $request,
 					'idempotency_key' => $idempotency_key,
-					'response'        => ! empty( $response['body'] ) ? json_decode( $response['body'] ) : $response,
+					'response'        => $response,
 				]
 			);
 
@@ -292,7 +292,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				"Stripe API error: GET {$api}",
 				[
-					'response' => ! empty( $response['body'] ) ? json_decode( $response['body'] ) : $response,
+					'response' => $response,
 				]
 			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
