@@ -290,10 +290,11 @@ class WC_Stripe_API {
 		// we return null until the cache expires (INVALID_API_KEYS_DELAY_IN_SECONDS) or the keys are updated.
 		$invalid_api_keys_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEYS_CACHE_KEY );
 		if ( ! empty( $invalid_api_keys_count ) && self::INVALID_API_KEYS_COUNT_THRESHOLD <= $invalid_api_keys_count ) {
-			WC_Stripe_Logger::error( 'Invalid API keys request rate limit exceeded', [ 'count' => $invalid_api_keys_count ] );
-
-			// We need to invalidate the Account Data cache here, so that the UI shows the "Connect to Stripe" button.
-			WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+			// We skip logging the error here because when there is no Account cache,
+			// the instantiation of the UPE gateway triggers a call to this method for
+			// every available payment method. This would result in excessive log entries
+			// which is not useful.
+			// We only log the error when the count exceeds the threshold.
 
 			// The UI expects a null response (and not an error) in case of invalid API keys.
 			return null;
@@ -317,6 +318,19 @@ class WC_Stripe_API {
 
 			++$invalid_api_keys_count;
 			WC_Stripe_Database_Cache::set( self::INVALID_API_KEYS_CACHE_KEY, $invalid_api_keys_count, self::INVALID_API_KEYS_DELAY_IN_SECONDS );
+
+			if ( $invalid_api_keys_count >= self::INVALID_API_KEYS_COUNT_THRESHOLD ) {
+				WC_Stripe_Logger::error(
+					'Invalid API keys request rate limit exceeded',
+					[
+						'count'      => $invalid_api_keys_count,
+						'next_retry' => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEYS_DELAY_IN_SECONDS ),
+					]
+				);
+
+				// We need to invalidate the Account Data cache here, so that the UI shows the "Connect to Stripe" button.
+				WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+			}
 
 			return null; // The UI expects this empty response in case of invalid API keys.
 
