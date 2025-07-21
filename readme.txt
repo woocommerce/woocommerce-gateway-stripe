@@ -116,37 +116,37 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
 * Show a notice when editing an active subscription that has no payment method attached
-* A notice to take user back to WC onboarding flow after connecting the Stripe account
 * Show payment methods sync status on the UI
 * Add the number of pending webhooks to the Account status section
+* New WooCommerce Debug Tool to list subscriptions without a payment method attached
+* Remove BNPL payment methods (Klarna and Affirm) when other official plugins are active
 
 **Important Fixes and Updates**
 
+* Fix - Fixes wrong price formatting in express checkout
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
 * Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
-* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 * Fix - No such customer error when creating a payment method with a new Stripe account
 * Fix - Validate create customer payload against required billing fields before sending to Stripe
 * Fix - Require email address only for Stripe customer validation when request is from the Add Payment Method page
-* Fix - Set default values for custom field options
 * Fix - Enforce rate limiter for failed add payment method attempts
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
+* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Update - Update filter names to use the `wc_stripe_*` prefix
+* Update - Improvements to custom checkout fields support for express checkout
+* Update - Enhanced logging system with support for all log levels and improved context handling
+* Tweak - Deprecate `wc_connect_*` filters
 
 **Other Fixes**
 
-* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
-* Fix - Fixes wrong price formatting in express checkout
+* Fix - Set default values for custom field options
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 
 **Internal Changes and Upcoming Features**
 
 * Fix - Prevent text field reset while editing Optimized Checkout title
-* Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
-* Update - Improvements to custom checkout fields support for express checkout
-* Update - Enhanced logging system with support for all log levels and improved context handling
 * Update - Use the Database Cache for the Stripe Account Data
-* Update - Update filter names to use the `wc_stripe_*` prefix
-* Tweak - Deprecate `wc_connect_*` filters
 * Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 
 
