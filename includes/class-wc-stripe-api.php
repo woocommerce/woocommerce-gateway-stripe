@@ -315,7 +315,7 @@ class WC_Stripe_API {
 
 			return null; // The UI expects this empty response in case of invalid API keys.
 
-		} elseif ( null !== $api_keys_rate_limit ) {
+		} elseif ( null !== $invalid_api_keys_count ) {
 			// We only track consecutive 401 errors, so we delete the cache when we get a valid response.
 			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEYS_CACHE_KEY );
 		}
