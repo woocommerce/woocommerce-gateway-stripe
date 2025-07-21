@@ -45,7 +45,8 @@ runs:
       # - returns the last version for each major.minor version
       run: |
         echo 'versions-json<<EOF' >> $GITHUB_OUTPUT
-        cat ${{ inputs.plugin-slug }}.json | jq '.versions | keys | map( select( test("^\\d+\\.\\d+\\.\\d+$"; "s") ) ) | group_by( split( "." ) | .[0:2] | join( "." ) ) | reverse | .[0:${{ inputs.version-count }}] | [.[][-1]]' >> $GITHUB_OUTPUT
+        cat ${{ inputs.plugin-slug }}.json | jq --argjson count "${{ inputs.version-count }}" '.versions | keys | map(select(test("^\\d+\\.\\d+\\.\\d+$"))) | map({ major_minor: (split(".")[0:2] | join(".")), full: ., parts: (split(".") | map(tonumber)) })
+            | group_by(.major_minor) | map(max_by(.parts[2])) | sort_by(.parts[0], .parts[1], .parts[2]) | reverse | .[0:$count] | map(.full) ' >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
 
     - name: Get versions in text format
