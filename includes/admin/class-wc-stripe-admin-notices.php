@@ -520,7 +520,7 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function subscription_check_detachment_bulk_action() {
 		if ( ! empty( $_REQUEST['detached-subscriptions'] ) ) {
-			$detached_subs_ids = explode( ',', wp_unslash( $_REQUEST['detached-subscriptions'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$detached_subs_ids = explode( ',', wp_unslash( sanitize_text_field( $_REQUEST['detached-subscriptions'] ) ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$subscriptions     = [];
 			foreach ( $detached_subs_ids as $detached_sub_id ) {
 				$detached_sub_id = absint( $detached_sub_id );
