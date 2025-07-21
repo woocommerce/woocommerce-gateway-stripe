@@ -286,12 +286,17 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		// If we have the option flag indicating that the secret key is not valid,
-		// we don't attempt the API call and we return null (the UI expects this empty response in case of invalid API keys).
+		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEYS_COUNT_THRESHOLD,
+		// we return null until the cache expires (INVALID_API_KEYS_DELAY_IN_SECONDS) or the keys are updated.
 		$invalid_api_keys_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEYS_CACHE_KEY );
 		if ( ! empty( $invalid_api_keys_count ) && self::INVALID_API_KEYS_COUNT_THRESHOLD <= $invalid_api_keys_count ) {
 			WC_Stripe_Logger::error( 'Invalid API keys request rate limit exceeded', [ 'count' => $invalid_api_keys_count ] );
-			return null; // The UI expects this empty response in case of invalid API keys.
+
+			// We need to invalidate the Account Data cache here, so that the UI shows the "Connect to Stripe" button.
+			WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+
+			// The UI expects a null response (and not an error) in case of invalid API keys.
+			return null;
 		}
 
 		WC_Stripe_Logger::log( "{$api}" );
