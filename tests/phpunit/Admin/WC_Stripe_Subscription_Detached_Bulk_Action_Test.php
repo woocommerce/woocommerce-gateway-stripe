@@ -97,12 +97,12 @@ class WC_Stripe_Subscription_Detached_Bulk_Action_Test extends WP_UnitTestCase {
 			'not actual subscriptions'                 => [
 				'action'                => 'check-for-payment-method-detachment',
 				'subscription'          => null,
-				'expected redirect_url' => '',
+				'expected redirect_url' => '?detached-subscriptions',
 			],
 			'existing subscriptions, but not detached' => [
 				'action'                => 'check-for-payment-method-detachment',
 				'subscription'          => $subscription,
-				'expected redirect_url' => '',
+				'expected redirect_url' => '?detached-subscriptions',
 			],
 			'existing subscriptions, and detached'     => [
 				'action'                => 'check-for-payment-method-detachment',

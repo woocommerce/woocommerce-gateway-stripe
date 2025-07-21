@@ -54,13 +54,11 @@ class WC_Stripe_Subscription_Detached_Bulk_Action {
 					$detached_subscriptions_ids[] = $subscription->get_id();
 				}
 			}
-			if ( ! empty( $detached_subscriptions_ids ) ) {
-				return add_query_arg(
-					'detached-subscriptions',
-					implode( ',', $detached_subscriptions_ids ),
-					$redirect_url
-				);
-			}
+			return add_query_arg(
+				'detached-subscriptions',
+				implode( ',', $detached_subscriptions_ids ),
+				$redirect_url
+			);
 		}
 		return $redirect_url;
 	}

@@ -519,38 +519,37 @@ class WC_Stripe_Admin_Notices {
 	 * @return void
 	 */
 	public function subscription_check_detachment_bulk_action() {
-		if ( ! empty( $_REQUEST['detached-subscriptions'] ) ) {
-			$detached_subs_ids = explode( ',', sanitize_text_field( wp_unslash( $_REQUEST['detached-subscriptions'] ) ) );
-			$subscriptions     = [];
-			foreach ( $detached_subs_ids as $detached_sub_id ) {
-				$detached_sub_id = absint( $detached_sub_id );
-				$subscription    = wcs_get_subscription( $detached_sub_id );
-				if ( ! $subscription instanceof WC_Subscription ) {
-					continue;
+		if ( isset( $_REQUEST['detached-subscriptions'] ) ) {
+			$notice_content = '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
+			$notice_class   = 'info';
+			if ( ! empty( $_REQUEST['detached-subscriptions'] ) ) {
+				$detached_subs_ids = explode( ',', sanitize_text_field( wp_unslash( $_REQUEST['detached-subscriptions'] ) ) );
+				$subscriptions     = [];
+				foreach ( $detached_subs_ids as $detached_sub_id ) {
+					$detached_sub_id = absint( $detached_sub_id );
+					$subscription    = wcs_get_subscription( $detached_sub_id );
+					if ( ! $subscription instanceof WC_Subscription ) {
+						continue;
+					}
+					$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
 				}
-				$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
-			}
-			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
-
-			$notice_content = '';
-			if ( empty( $detached_messages ) ) {
-				$notice_content .= '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
-				$notice_class    = 'info';
-			} else {
-				$notice_content .= '<p>';
-				$notice_content .= wp_kses(
-					$detached_messages,
-					[
-						'a'      => [
-							'href'   => [],
-							'target' => [],
-						],
-						'strong' => [],
-						'br'     => [],
-					]
-				);
-				$notice_content .= '</p>';
-				$notice_class    = 'error';
+				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+				if ( ! empty( $detached_messages ) ) {
+					$notice_content .= '<p>';
+					$notice_content .= wp_kses(
+						$detached_messages,
+						[
+							'a'      => [
+								'href'   => [],
+								'target' => [],
+							],
+							'strong' => [],
+							'br'     => [],
+						]
+					);
+					$notice_content .= '</p>';
+					$notice_class    = 'error';
+				}
 			}
 			$this->add_admin_notice( 'subscription_detached_bulk_action', 'notice notice-' . $notice_class, $notice_content );
 		}
