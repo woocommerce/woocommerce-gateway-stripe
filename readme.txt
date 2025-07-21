@@ -136,7 +136,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent text field reset while editing Optimized Checkout title
 * Fix - Fixes wrong price formatting in express checkout
 
-**Other Changes**
+**Internal Changes and Upcoming Features**
 
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Update - Improvements to custom checkout fields support for express checkout
