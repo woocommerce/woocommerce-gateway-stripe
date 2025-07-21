@@ -121,7 +121,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Show payment methods sync status on the UI
 * Add the number of pending webhooks to the Account status section
 
-**Improvements**
+**Important Fixes and Updates**
 
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
