@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.7.0 - xxxx-xx-xx =
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
+* Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
 * Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
 * Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
@@ -137,6 +138,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Add the number of pending webhooks to the Account status section
 * Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
 * Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
+* Tweak - Check for checkout validation error before creating a payment method in Stripe
+* Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
