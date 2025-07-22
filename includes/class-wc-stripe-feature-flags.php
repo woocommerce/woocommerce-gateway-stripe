@@ -24,7 +24,7 @@ class WC_Stripe_Feature_Flags {
 		'_wcstripe_feature_upe'                => 'yes',
 		self::ECE_FEATURE_FLAG_NAME            => 'yes',
 		self::AMAZON_PAY_FEATURE_FLAG_NAME     => 'no',
-		self::OC_FEATURE_FLAG_NAME             => 'no',
+		self::OC_FEATURE_FLAG_NAME             => 'yes',
 		self::LPM_ACH_FEATURE_FLAG_NAME        => 'yes',
 		self::LPM_ACSS_FEATURE_FLAG_NAME       => 'yes',
 		self::LPM_BACS_FEATURE_FLAG_NAME       => 'yes',
@@ -174,13 +174,20 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$default_value   = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		/**
+		 * Filter to control the availability of the Optimized Checkout feature.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in version 9.9.0.
+		 * @param string $default_value The default value for the feature flag.
+		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
+		 */
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $default_value && 'yes' === $pmc_enabled,
-			$default_value,
+			'yes' === $pmc_enabled,
+			'yes',
 			$pmc_enabled
 		);
 	}
