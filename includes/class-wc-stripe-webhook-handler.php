@@ -78,7 +78,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// plugin when this code first appears.
 		WC_Stripe_Webhook_State::get_monitoring_began_at();
 
-		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 2 );
+		add_action( $this->deferred_webhook_action, [ $this, 'process_deferred_webhook' ], 10, 3 );
 	}
 
 	/**
@@ -1286,8 +1286,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			time() + $this->deferred_webhook_delay,
 			$this->deferred_webhook_action,
 			[
-				'type' => $webhook_notification->type,
-				'data' => $additional_data,
+				'type'         => $webhook_notification->type,
+				'data'         => $additional_data,
+				'notification' => $webhook_notification,
 			]
 		);
 	}
@@ -1299,8 +1300,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param string $webhook_type    The webhook event name/type.
 	 * @param array  $additional_data Additional data passed to the scheduled job.
+	 * @param stdClass $notification  The webhook notification payload.
 	 */
-	public function process_deferred_webhook( $webhook_type, $additional_data ) {
+	public function process_deferred_webhook( $webhook_type, $additional_data, $notification ) {
 		try {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
@@ -1311,6 +1313,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					if ( empty( $order ) ) {
 						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
+
+					// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+					$this->resolved_order = $order;
 
 					if ( empty( $intent_id ) ) {
 						throw new Exception( "Missing required data. 'intent_id' is missing for the deferred '{$webhook_type}' event." );
@@ -1323,6 +1328,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					}
 
 					$this->handle_deferred_payment_intent_succeeded( $order, $intent_id );
+					/**
+					 * Fires after a webhook has been processed, but before we respond to Stripe.
+					 * This allows for custom processing of the webhook after it has been processed.
+					 *
+					 * @since 9.8.0
+					 *
+					 * @param string $webhook_type The type of webhook that was processed.
+					 * @param object $notification The webhook data sent from Stripe.
+					 * @param WC_Order $order The order being processed by the webhook.
+					 */
+					do_action( 'wc_stripe_webhook_processed', (string) $webhook_type, $notification, $this->resolved_order );
 					break;
 				default:
 					throw new Exception( "Unsupported webhook type: {$webhook_type}" );
