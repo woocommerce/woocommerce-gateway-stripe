@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -225,7 +227,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
@@ -424,9 +426,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
-				'simple',
-				'variable',
-				'variation',
+				ProductType::SIMPLE,
+				ProductType::VARIABLE,
+				ProductType::VARIATION,
 				'subscription',
 				'variable-subscription',
 				'subscription_variation',
@@ -689,7 +691,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $is_product && $product && in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
