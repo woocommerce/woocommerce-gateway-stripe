@@ -24,11 +24,13 @@ class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_is_oc_available
 	 */
 	public function test_is_oc_available( $pmc_enabled, $filter_function, $expected ) {
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		PMC_Test_Helper::cache_mocked_configuration();
+
 		if ( $pmc_enabled ) {
 			PMC_Test_Helper::enable_pmc();
-
-			// Mock the payment method configuration for the test, to avoid it being disabled by default.
-			PMC_Test_Helper::cache_mocked_configuration();
+		} else {
+			PMC_Test_Helper::disable_pmc();
 		}
 
 		if ( ! empty( $filter_function ) ) {
