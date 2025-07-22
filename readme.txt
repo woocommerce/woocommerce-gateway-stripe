@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
-Tested up to: 6.8.1
+Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.6.0
+Stable tag: 9.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,36 +110,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.7.0 - xxxx-xx-xx =
+= 9.8.0 - xxxx-xx-xx =
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
-* Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
-* Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
-* Add - Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
-* Add - Show a notice when editing an active subscription that has no payment method attached
-* Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
-* Add - New WooCommerce Debug Tool to list subscriptions without a payment method attached
-* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
-* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
-* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
-* Tweak - Deprecate wc_connect_* filters
-* Fix - Prevent text field reset while editing Optimized Checkout title
-* Update - Improvements to custom checkout fields support for express checkout
-* Tweak - Use the Database Cache for the Stripe Account Data
-* Update - Update filter names to use the wc_stripe_* prefix
-* Add - Show payment methods sync status on the UI
-* Fix - No such customer error when creating a payment method with a new Stripe account
-* Fix - Validate create customer payload against required billing fields before sending to Stripe
-* Update - Enhanced logging system with support for all log levels and improved context handling
-* Fix - Fixes wrong price formatting in express checkout
-* Fix - Require email address only for Stripe customer validation when request is from the Add Payment Method page
-* Fix - Set default values for custom field options
-* Fix - Enforce rate limiter for failed add payment method attempts
-* Update - Add the number of pending webhooks to the Account status section
-* Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
-* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 * Tweak - Check for checkout validation error before creating a payment method in Stripe
 * Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
