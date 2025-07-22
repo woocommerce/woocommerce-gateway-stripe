@@ -118,6 +118,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Check for checkout validation error before creating a payment method in Stripe
 * Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
+* Dev - Fix WooCommerce version fetching in GitHub workflows
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
