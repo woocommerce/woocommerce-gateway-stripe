@@ -9,6 +9,12 @@
  * This helper class should ONLY be used for unit tests!.
  */
 class WC_Subscription extends WC_Order {
+	/**
+	 * Subscription ID.
+	 *
+	 * @var int
+	 */
+	public $ID = 0;
 
 	/**
 	 * Order type
@@ -16,6 +22,27 @@ class WC_Subscription extends WC_Order {
 	 * @var string
 	 */
 	public $order_type = 'shop_subscription';
+
+	/**
+	 * Post type for subscriptions.
+	 *
+	 * @var string
+	 */
+	public $post_type = 'shop_subscription';
+
+	/**
+	 * An array storing the times for specific fields.
+	 *
+	 * @var array
+	 */
+	private $times = [];
+
+	/**
+	 * Status of the subscription.
+	 *
+	 * @var string
+	 */
+	private $status = 'pending';
 
 	/**
 	 * Initializes a specific subscription if the ID is passed, otherwise a new and empty instance of a subscription.
@@ -38,6 +65,16 @@ class WC_Subscription extends WC_Order {
 			}
 		);
 		parent::__construct( $subscription );
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return void
+	 */
+	public function set_id( $id ) {
+		parent::set_id( $id );
+
+		$this->ID = $id;
 	}
 
 	/**
@@ -75,5 +112,42 @@ class WC_Subscription extends WC_Order {
 	public function get_change_payment_method_url() {
 		$change_payment_method_url = wc_get_endpoint_url( 'subscription-payment-method', $this->get_id(), wc_get_page_permalink( 'myaccount' ) );
 		return apply_filters( 'wcs_get_change_payment_method_url', $change_payment_method_url, $this->get_id() );
+	}
+
+	/**
+	 * Sets the time for a specific field.
+	 *
+	 * @param $field string Field to set the time for.
+	 * @param $time int|false Time to set for the field.
+	 * @return void
+	 */
+	public function set_time( $field, $time ) {
+		$this->times[ $field ] = $time;
+	}
+
+	/**
+	 * Get the time for a specific field.
+	 *
+	 * @param $field string Field to get the time for.
+	 * @return false|int
+	 */
+	public function get_time( $field ) {
+		return $this->times[ $field ] ?? false;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return void
+	 */
+	public function set_status( $status, $note = '', $manual_update = false ) {
+		$this->status = $status;
+	}
+
+	/**
+	 * @inheritDoc
+	 * @return string
+	 */
+	public function get_status( $context = 'view' ) {
+		return $this->status;
 	}
 }

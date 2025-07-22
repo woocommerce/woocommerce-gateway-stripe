@@ -167,6 +167,10 @@ export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 export const useIsUpeEnabled = makeSettingsHook( 'is_upe_enabled' );
 export const useIsOCEnabled = makeSettingsHook( 'is_oc_enabled' );
 export const useOCTitle = makeSettingsHook( 'oc_title', 'Stripe' );
+export const useIsPMCEnabled = makeReadOnlySettingsHook(
+	'is_pmc_enabled',
+	false
+);
 
 export const useIndividualPaymentMethodSettings = makeSettingsHook(
 	'individual_payment_method_settings',

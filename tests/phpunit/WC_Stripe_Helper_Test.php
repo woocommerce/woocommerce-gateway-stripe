@@ -595,4 +595,107 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Tests for `has_other_bnpl_plugins_active`.
+	 *
+	 * @param array $payment_gateways The available payment gateways.
+	 * @param bool  $expected         The expected result.
+	 * @dataProvider provide_test_has_other_bnpl_plugins_active
+	 * @return void
+	 */
+	public function test_has_other_bnpl_plugins_active( $payment_gateways, $expected ) {
+		$original_payment_gateways = WC()->payment_gateways->payment_gateways;
+
+		// Mock the available payment gateways.
+		WC()->payment_gateways->payment_gateways = $payment_gateways;
+
+		$actual = WC_Stripe_Helper::has_other_bnpl_plugins_active();
+
+		// Clean up.
+		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_has_other_bnpl_plugins_active`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_has_other_bnpl_plugins_active() {
+		return [
+			'has other plugins'           => [
+				'payment gateways' => [
+					'klarna' => (object) [
+						'id'      => 'klarna_payments',
+						'enabled' => 'yes',
+					],
+					'affirm' => (object) [
+						'id'      => 'affirm',
+						'enabled' => 'yes',
+					],
+				],
+				'expected'         => true,
+			],
+			'does not have other plugins' => [
+				'payment gateways' => [],
+				'expected'         => false,
+			],
+		];
+	}
+
+	/**
+	 * Tests for `has_gateway_plugin_active`.
+	 *
+	 * @param string $plugin_id The plugin ID to evaluate.
+	 * @param array $payment_gateways The available payment gateways.
+	 * @param bool $expected The expected result.
+	 * @return void
+	 *
+	 * @dataProvider provide_has_gateway_plugin_active
+	 */
+	public function test_has_gateway_plugin_active( $plugin_id, $payment_gateways, $expected ) {
+		$original_payment_gateways = WC()->payment_gateways->payment_gateways;
+
+		// Mock the available payment gateways.
+		WC()->payment_gateways->payment_gateways = $payment_gateways;
+
+		$actual = WC_Stripe_Helper::has_gateway_plugin_active( $plugin_id );
+
+		// Clean up.
+		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
+
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_has_gateway_plugin_active`.
+	 *
+	 * @return array
+	 */
+	public function provide_has_gateway_plugin_active() {
+		return [
+			'has Klarna official plugin active'           => [
+				'plugin id'        => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA,
+				'payment gateways' => [
+					'klarna' => (object) [
+						'id'      => 'klarna_payments',
+						'enabled' => 'yes',
+					],
+				],
+				'expected'         => true,
+			],
+			'does not have Klarna official plugin active' => [
+				'plugin id'        => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA,
+				'payment gateways' => [
+					'affirm' => (object) [
+						'id'      => 'affirm',
+						'enabled' => 'yes',
+					],
+				],
+				'expected'         => false,
+			],
+		];
+	}
 }

@@ -66,6 +66,11 @@ class WC_Stripe_Admin_Notices {
 		// All other payment methods.
 		$this->payment_methods_check_environment();
 
+		// Check for subscriptions detached from the customer.
+		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+			$this->subscription_check_detachment();
+		}
+
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
@@ -445,6 +450,69 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Adds a notice to the subscription details page if we are looking at an active subscription and the payment method has been detached.
+	 *
+	 * @return void
+	 */
+	public function subscription_check_detachment() {
+		if ( ! self::is_subscription_edit_page() ) {
+			return;
+		}
+
+		global $theorder;
+
+		$subscription = null;
+
+		if ( isset( $theorder ) ) {
+			$subscription = $theorder;
+		} elseif ( ! empty( $GLOBALS['post']->ID ) ) { // If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
+			$subscription = wcs_get_subscription( $GLOBALS['post']->ID );
+		}
+
+		if ( ! isset( $subscription ) || ! $subscription instanceof WC_Subscription ) {
+			return;
+		}
+
+		if ( ! $subscription->has_status( [ 'active' ] ) ) {
+			// Only show the notice for active subscriptions.
+			return;
+		}
+
+		if ( WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached( $subscription ) ) {
+			$customer_payment_method_link = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $subscription->get_change_payment_method_url() ),
+				esc_html(
+					/* translators: this is a text for a link pointing to the customer's payment method page */
+					__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+			$customer_stripe_page = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( WC_Stripe_Subscriptions_Helper::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription->get_meta( '_stripe_customer_id' ) ),
+				esc_html(
+					/* translators: this is a text for a link pointing to the customer's page on Stripe */
+					__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
+				)
+			);
+
+			$detached_message  = __( 'The payment method for this subscription has been detached, <strong>preventing renewals</strong>. ', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( 'To fix this, either: <br />', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( '1) Share the payment method page link with the customer to update it: ', 'woocommerce-gateway-stripe' ) . $customer_payment_method_link . '<br />';
+			$detached_message .= __( ' or <br />', 'woocommerce-gateway-stripe' );
+			$detached_message .= __( "2) Manually update the payment method in the subscription's billing details using a valid payment method from the customer's Stripe account: ", 'woocommerce-gateway-stripe' ) . $customer_stripe_page . '<br />';
+			$detached_message .= '<br />' . sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The already-translated title of the tool*/
+				__( 'To list all your current subscriptions with payment methods detached, go to WooCommerce -> Status -> %1$sTools%2$s -> <strong>%3$s</strong>.', 'woocommerce-gateway-stripe' ),
+				'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=tools' ) ) . '">',
+				'</a>',
+				__( 'List Stripe subscriptions with detached payment method', 'woocommerce-gateway-stripe' ),
+			);
+			$this->add_admin_notice( 'subscription_detached', 'notice notice-error', $detached_message );
+		}
+	}
+
+	/**
 	 * Environment check for subscriptions.
 	 *
 	 * @return void
@@ -456,34 +524,8 @@ class WC_Stripe_Admin_Notices {
 		$options = WC_Stripe_Helper::get_stripe_settings();
 		if ( 'yes' === ( $options['enabled'] ?? null ) && 'no' !== get_option( 'wc_stripe_show_subscriptions_notice' ) ) {
 			$subscriptions     = WC_Stripe_Subscriptions_Helper::get_some_detached_subscriptions();
-			$detached_messages = '';
-			foreach ( $subscriptions as $subscription ) {
-				$customer_payment_method_link = sprintf(
-					'<a href="%s">%s</a>',
-					esc_url( $subscription['change_payment_method_url'] ),
-					esc_html(
-						/* translators: this is a text for a link pointing to the customer's payment method page */
-						__( 'Payment method page &rarr;', 'woocommerce-gateway-stripe' )
-					)
-				);
-				$customer_stripe_page = sprintf(
-					'<a href="%s">%s</a>',
-					esc_url( self::STRIPE_CUSTOMER_PAGE_BASE_URL . $subscription['customer_id'] ),
-					esc_html(
-						/* translators: this is a text for a link pointing to the customer's page on Stripe */
-						__( 'Stripe customer page &rarr;', 'woocommerce-gateway-stripe' )
-					)
-				);
-				$detached_messages .= sprintf(
-					/* translators: %1$s is the subscription ID. %2$s is a customer payment method page. %3$s is the customer's page on Stripe */
-					__( '#%1$s: %2$s | %3$s<br/>', 'woocommerce-gateway-stripe' ),
-					$subscription['id'],
-					$customer_payment_method_link,
-					$customer_stripe_page
-				);
-			}
+			$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
 			if ( ! empty( $detached_messages ) ) {
-				$detached_messages = __( 'Some subscriptions are missing payment methods, <strong>preventing renewals</strong>. Share the payment method page link with the customer to update it or manually set the Stripe Payment Method ID meta field in the subscriptions details\' "Billing" section to another from the customer\'s page on Stripe. Below are the last subscriptions affected and the links as mentioned earlier:<br />', 'woocommerce-gateway-stripe' ) . $detached_messages;
 				$this->add_admin_notice( 'subscriptions', 'notice notice-error', $detached_messages, true );
 			}
 		}
@@ -583,6 +625,24 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
 			update_option( 'wc_stripe_show_sca_notice', 'no' );
 		}
+	}
+
+	/**
+	 * Checks if the current page is a subscription edit page in wp-admin.
+	 *
+	 * This should be removed once WooCommerce provides a way to check for subscription edit pages.
+	 *
+	 * @return bool
+	 */
+	private static function is_subscription_edit_page() {
+		$query_params = wp_unslash( $_REQUEST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) { // If custom order tables are enabled, we need to check the page query param.
+			return isset( $query_params['page'] ) && 'wc-orders--shop_subscription' === $query_params['page'] && isset( $query_params['id'] );
+		}
+
+		// If custom order tables are not enabled, we need to check the post type and action query params.
+		$is_shop_subscription_post_type = isset( $query_params['post'] ) && 'shop_subscription' === get_post_type( $query_params['post'] );
+		return isset( $query_params['action'] ) && 'edit' === $query_params['action'] && $is_shop_subscription_post_type;
 	}
 }
 

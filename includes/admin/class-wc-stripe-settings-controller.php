@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Admin\Features\OnboardingTasks\TaskLists;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -116,6 +118,25 @@ class WC_Stripe_Settings_Controller {
 
 		$account_data_exists = ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) || ( ! empty( $settings['test_publishable_key'] ) && ! empty( $settings['test_secret_key'] ) );
 		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
+	}
+
+	/**
+	 * Determines if the payments task is completed in WooCommerce onboarding flow.
+	 *
+	 * @return bool True if the payments task is completed, false otherwise.
+	 */
+	private function is_payments_onboarding_task_completed(): bool {
+		$task_list = TaskLists::get_list( 'setup' );
+		if ( empty( $task_list ) ) {
+			return false;
+		}
+
+		$payments_task = $task_list->get_task( 'payments' );
+		if ( empty( $payments_task ) ) {
+			return false;
+		}
+
+		return $payments_task->is_complete();
 	}
 
 	/**
@@ -236,37 +257,31 @@ class WC_Stripe_Settings_Controller {
 			// Show the BNPL promotional banner only if no BNPL payment methods are enabled.
 			&& ! array_intersect( WC_Stripe_Payment_Methods::BNPL_PAYMENT_METHODS, $enabled_payment_methods );
 
-		$has_other_bnpl_plugins_active = false;
-		$available_payment_gateways    = WC()->payment_gateways->payment_gateways;
-		foreach ( $available_payment_gateways as $gateway ) {
-			if ( ( 'affirm' === $gateway->id || 'klarna_payments' === $gateway->id ) && 'yes' === $gateway->enabled ) {
-				$has_other_bnpl_plugins_active = true;
-				break;
-			}
-		}
-
 		$params = [
-			'time'                         => time(),
-			'i18n_out_of_sync'             => $message,
-			'is_upe_checkout_enabled'      => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-			'is_ach_enabled'               => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
-			'is_acss_enabled'              => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
-			'is_bacs_enabled'              => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
-			'is_blik_enabled'              => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
-			'is_becs_debit_enabled'        => WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled(),
-			'stripe_oauth_url'             => $oauth_url,
-			'stripe_test_oauth_url'        => $test_oauth_url,
-			'show_customization_notice'    => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
-			'show_bnpl_promotional_banner' => $show_bnpl_promotion_banner,
-			'is_test_mode'                 => $this->get_gateway()->is_in_test_mode(),
-			'plugin_version'               => WC_STRIPE_VERSION,
-			'account_country'              => $this->account->get_account_country(),
-			'are_apms_deprecated'          => WC_Stripe_Feature_Flags::are_apms_deprecated(),
-			'is_amazon_pay_available'      => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_oc_available'              => WC_Stripe_Feature_Flags::is_oc_available(),
-			'oauth_nonce'                  => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
-			'is_sepa_tokens_enabled'       => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
-			'has_other_bnpl_plugins'       => $has_other_bnpl_plugins_active,
+			'time'                                  => time(),
+			'i18n_out_of_sync'                      => $message,
+			'is_upe_checkout_enabled'               => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'is_ach_enabled'                        => WC_Stripe_Feature_Flags::is_ach_lpm_enabled(),
+			'is_acss_enabled'                       => WC_Stripe_Feature_Flags::is_acss_lpm_enabled(),
+			'is_bacs_enabled'                       => WC_Stripe_Feature_Flags::is_bacs_lpm_enabled(),
+			'is_blik_enabled'                       => WC_Stripe_Feature_Flags::is_blik_lpm_enabled(),
+			'is_becs_debit_enabled'                 => WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled(),
+			'stripe_oauth_url'                      => $oauth_url,
+			'stripe_test_oauth_url'                 => $test_oauth_url,
+			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
+			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
+			'plugin_version'                        => WC_STRIPE_VERSION,
+			'account_country'                       => $this->account->get_account_country(),
+			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
+			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
+			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
+			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
+			'is_sepa_tokens_enabled'                => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
+			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
+			'has_klarna_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ),
+			'has_other_bnpl_plugins'                => WC_Stripe_Helper::has_other_bnpl_plugins_active(),
+			'is_payments_onboarding_task_completed' => $this->is_payments_onboarding_task_completed(),
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

@@ -637,4 +637,48 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 			],
 		];
 	}
+
+	/**
+	 * Test for `get_stripe_currency_decimals`.
+	 *
+	 * @param string $currency Currency code.
+	 * @param int    $expected Expected number of decimals.
+	 *
+	 * @dataProvider provide_test_get_stripe_currency_decimals
+	 */
+	public function test_get_stripe_currency_decimals( $currency, $expected ) {
+		update_option( 'woocommerce_currency', $currency );
+
+		$actual = WC_Stripe_Express_Checkout_Helper::get_stripe_currency_decimals();
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_stripe_currency_decimals`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_stripe_currency_decimals() {
+		return [
+			// No decimal currencies - should return 0
+			'Japanese Yen (no decimals)' => [
+				'currency' => 'JPY',
+				'expected' => 0,
+			],
+			// Three decimal currencies - should return 3
+			'Bahraini Dinar (three decimals)' => [
+				'currency' => 'BHD',
+				'expected' => 3,
+			],
+			// Default currencies - should return 2
+			'US Dollar (default)' => [
+				'currency' => 'USD',
+				'expected' => 2,
+			],
+			'Euro (default)' => [
+				'currency' => 'EUR',
+				'expected' => 2,
+			],
+		];
+	}
 }

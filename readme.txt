@@ -2,7 +2,7 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
-Tested up to: 6.8.1
+Tested up to: 6.8.2
 Requires PHP: 7.4
 Stable tag: 9.7.0
 License: GPLv3
@@ -110,76 +110,43 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.6.0 - 2025-07-07 =
+= 9.7.0 - 2025-07-21 =
 
 **New Features**
 
-* Legacy checkout experience has been deprecated, new checkout experience is now the default for all sites
-* Voucher payment methods (Boleto, Multibanco, and Oxxo) can now be used when purchasing subscriptions if manual renewals are enabled or required
-* Show an icon beside the payment methods that support automatic recurring payments
-* Include extension data from block checkout when submitting an express checkout order
+* Remove BNPL payment methods (Klarna and Affirm) when other official plugins are active
+* Show payment methods sync status on the UI
+* Add the number of pending webhooks to the Account status section
+* New WooCommerce Debug Tool to list subscriptions without a payment method attached
+* Adds two new safety filters to the subscriptions detached debug tool: `wc_stripe_detached_subscriptions_maximum_time` and `wc_stripe_detached_subscriptions_maximum_count`
+* Show a notice when editing an active subscription that has no payment method attached
 
 **Important Fixes and Updates**
 
-* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
-* Update - Express Checkout: introduce new WP actions for supporting custom checkout fields for classic, shortcode-based checkout
-* Fix - Apply shipping country restrictions to Express Checkout
-* Add - Introduced `wc_stripe_force_save_payment_method` filter
-* Update - Removes the customization of individual payment method titles and descriptions
-* Fix - Add order locking when processing payment redirects, to mitigate cases of double status updates
-* Fix - Correctly handle countries without states when using the express payment methods
-* Update - Remove legacy checkout checkbox from settings
-* Update - Remove BACS from the unsupported ‘change payment method for subscription’ page
-* Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
-* Update - Update deprecation notice message to specify that legacy checkout experience has been deprecated since version 9.6.0
-* Fix - Correctly notifies customers and merchants of a failed refund and reverts the refunded status
-* Fix - Void intent when cancelling an uncaptured order
-* Fix - Fixes page crash when Klarna payment method is not supported in the merchant's country by returning an empty array instead of throwing an error
-* Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call
+* Fix - Fixes wrong price formatting in express checkout
+* Fix - Moves the existing order lock functionality earlier in the order processing flow to prevent duplicate processing requests
+* Update - Improvements to custom checkout fields support for express checkout
+* Fix - Fixes a possible fatal error when trying to generate the order signature for a `WC_Order_Refund` object
+* Fix - Fixes a possible error notice when the `payment_request` Stripe setting key is not defined
+* Fix - No such customer error when creating a payment method with a new Stripe account
+* Fix - Validate create customer payload against required billing fields before sending to Stripe
+* Fix - Require email address only for Stripe customer validation when request is from the Add Payment Method page
+* Fix - Enforce rate limiter for failed add payment method attempts
+* Fix - Prevent "Undefined array key charges_enabled" PHP warning when determining live‑mode status
+* Add - A notice to take user back to WC onboarding flow after connecting the Stripe account
+* Update - Update filter names to use the `wc_stripe_*` prefix
+* Update - Enhanced logging system with support for all log levels and improved context handling
+* Tweak - Deprecate `wc_connect_*` filters
+* Update - Deprecate `wc_gateway_stripe_process_payment`, `wc_gateway_stripe_process_redirect_payment` and `wc_gateway_stripe_process_webhook_payment` actions in favour of `wc_gateway_stripe_process_payment_charge`
 
 **Other Fixes**
 
-* Fix - Fix payment processing for $0 subscription with recurring coupon
-* Fix - Fixes an edge case where the express payment method buttons would not be displayed on the checkout if taxes used to be enabled
-* Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method
-* Fix - Fix payment method title display when new payment settings experience is enabled
-* Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element
-* Fix - Send correct attribute when setting the default payment method
-* Fix - Hide future payments message from payment element when manual renewal is required
-* Fix - Fix a rare warning when searching customers with missing name
-* Fix - Fix legacy deprecation notice displayed on new plugin installs
-* Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
-* Fix - Throws a specific exception on an edge case where a saved payment method could not be found when processing an order in the new checkout experience
-* Fix - Register Express Checkout script before use to restore buttons on “order-pay” pages
-* Fix - Add safety check when checking error object
+* Fix - Set default values for custom field options
+* Fix - Prevent irrelevant payment method update requests to Stripe during checkout
 
 **Internal Changes and Upcoming Features**
 
-* Update - Remove Payment Method Configurations fallback cache
-* Update - Add prefix to the custom database cache keys
-* Add - Introduces a new marketing note to promote BNPLs (Buy Now Pay Later) payment methods (Klarna and Affirm) on WooCommerce admin home page
-* Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
-* Fix - Checks if the store has other BNPL extensions installed before displaying the promotional banner
-* Fix - Restricts the BNPLs promotional banner to only be displayed after version 9.7.0
-* Add - [Optimized Checkout] Adds a new filter (wc_stripe_is_optimized_checkout_available) to allow merchants to test the Optimized Checkout feature earlier
-* Fix - [Optimized Checkout] Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout
-* Fix - [Optimized Checkout] Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout
-* Fix - [Optimized Checkout] Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value
-* Fix - [Optimized Checkout] Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled
-* Update - [Optimized Checkout] Removes the change display order feature from the settings page when the Optimized Checkout is enabled
-* Fix - [Optimized Checkout] Fixes some inconsistencies related to the Optimized Checkout feature and improves its unit tests
-* Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP)
-* Dev - Moves the main Stripe class to a new file
-* Dev - Renames all PHP Unit test files to follow the PSR-4
-* Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
-* Dev - Add e2e tests for BLIK
-* Dev - Add e2e tests for BECS
-* Dev - Add e2e tests to cover Affirm purchase flow
-* Dev - Add Klarna e2e tests
-* Dev - Improve e2e tests of some of the LPMs
-* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests
-* Dev - Prevent changelog entries with trailing periods
-* Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
-* Dev - Re-include the deprecated WC_Stripe_Order class to avoid breaking changes for merchants using it
+* Fix - Prevent text field reset while editing Optimized Checkout title
+* Update - Use the Database Cache for the Stripe Account Data
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

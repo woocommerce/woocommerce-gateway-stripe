@@ -123,13 +123,28 @@ class WC_Stripe_API {
 		$user_agent = self::get_user_agent();
 		$app_info   = $user_agent['application'];
 
-		$headers = apply_filters(
+		$headers = [
+			'Authorization' => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Version' => self::STRIPE_API_VERSION,
+		];
+
+		$headers = apply_filters_deprecated(
 			'woocommerce_stripe_request_headers',
-			[
-				'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-				'Stripe-Version' => self::STRIPE_API_VERSION,
-			]
+			[ $headers ],
+			'9.7.0',
+			'wc_stripe_request_headers',
+			'The woocommerce_stripe_request_headers filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_headers instead.'
 		);
+
+		/**
+		 * Filters the request headers sent to the Stripe API.
+		 *
+		 * @since 9.7.0
+		 *
+		 * @param array $headers The default headers we send to the Stripe API.
+		 * @param array $user_agent The user agent.
+		 */
+		$headers = apply_filters( 'wc_stripe_request_headers', $headers );
 
 		// These headers should not be overridden for this gateway.
 		$headers['User-Agent']                 = $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')';
@@ -173,8 +188,6 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
-		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
-
 		$headers = self::get_headers();
 
 		$idempotency_key = apply_filters( 'wc_stripe_idempotency_key', self::get_idempotency_key( $api, $method, $request ), $request );
@@ -182,12 +195,33 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		$request = apply_filters_deprecated(
+			'woocommerce_stripe_request_body',
+			[ $request, $api ],
+			'9.7.0',
+			'wc_stripe_request_body',
+			'The woocommerce_stripe_request_body filter is deprecated since WooCommerce Stripe Gateway 9.7.0, and will be removed in a future version. Use wc_stripe_request_body instead.'
+		);
+
+		/**
+		 * Filters the request body sent to the Stripe API.
+		 *
+		 * @since 9.7.0
+		 *
+		 * @param array $request The default request body we will send to the Stripe API.
+		 * @param string $api The Stripe API endpoint.
+		 */
+		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
+
+		// Log the request after the filters have been applied.
+		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			[
 				'method'  => $method,
 				'headers' => $headers,
-				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
+				'body'    => $request,
 				'timeout' => 70,
 			]
 		);

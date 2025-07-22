@@ -534,7 +534,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Store extra meta data for an order from a Stripe Response.
+	 * Store extra meta data for an order from a Stripe charge response.
+	 *
+	 * @param object $response The Charge response from Stripe.
+	 * @param WC_Order $order The Order object.
+	 *
+	 * @return object The Charge response from Stripe.
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
@@ -547,6 +552,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 		}
+
+		/**
+		 * Allow third-party code to add custom logic before processing the charge data from Stripe.
+		 *
+		 * @param object $response The Charge response from Stripe.
+		 * @param WC_Order $order The Order object.
+		 */
+		do_action( 'wc_gateway_stripe_process_payment_charge', $response, $order );
 
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
@@ -1747,26 +1760,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @param WC_Order $order  The order that is being paid.
-	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
-	public function lock_order_payment( $order, $intent = null ) {
-		$order->read_meta_data( true );
-
-		$existing_lock = $order->get_meta( '_stripe_lock_payment', true );
-
-		if ( $existing_lock ) {
-			$parts         = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}" or "{expiry_timestamp}|{pi_xxxx}" if an intent is passed.
-			$expiration    = (int) $parts[0];
-			$locked_intent = ! empty( $parts[1] ) ? $parts[1] : '';
-
-			// If the lock is still active, return true.
-			if ( time() <= $expiration && ( empty( $intent ) || empty( $locked_intent ) || ( $intent->id ?? '' ) === $locked_intent ) ) {
-				return true;
-			}
+	public function lock_order_payment( $order ) {
+		if ( $this->is_order_payment_locked( $order ) ) {
+			// If the order is already locked, return true.
+			return true;
 		}
 
-		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS ) . ( isset( $intent->id ) ? '|' . $intent->id : '' );
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
 
 		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
 		$order->save_meta_data();
@@ -1783,6 +1785,38 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		$order->delete_meta_data( '_stripe_lock_payment' );
 		$order->save_meta_data();
+	}
+
+	/**
+	 * Retrieves the existing lock for an order.
+	 *
+	 * @param WC_Order $order The order to retrieve the lock for
+	 * @return mixed
+	 */
+	protected function get_order_existing_lock( $order ) {
+		$order->read_meta_data( true );
+		return $order->get_meta( '_stripe_lock_payment', true );
+	}
+
+	/**
+	 * Checks if an order is locked for payment processing.
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 */
+	protected function is_order_payment_locked( $order ) {
+		$existing_lock = $this->get_order_existing_lock( $order );
+		if ( $existing_lock ) {
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -2523,7 +2557,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string The order's unique signature. Format: order_id:md5(order_id-order_key-customer_id-order_total).
 	 */
 	protected function get_order_signature( $order ) {
-		$order = ! is_a( $order, 'WC_Order' ) ? wc_get_order( $order ) : $order;
+		if ( is_a( $order, 'WC_Order_Refund' ) ) {
+			$order = wc_get_order( $order->get_parent_id() );
+		} elseif ( ! is_a( $order, 'WC_Order' ) ) {
+			$order = wc_get_order( $order );
+		}
 
 		$signature = [
 			absint( $order->get_id() ),

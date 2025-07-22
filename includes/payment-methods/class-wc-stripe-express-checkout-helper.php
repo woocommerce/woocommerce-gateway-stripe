@@ -315,6 +315,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Get the number of decimals supported by Stripe for the currency.
+	 *
+	 * @return int
+	 */
+	public static function get_stripe_currency_decimals() {
+		$currency = strtolower( get_woocommerce_currency() );
+		if ( in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			return 0;
+		} elseif ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			return 3;
+		}
+
+		return 2;
+	}
+
+	/**
 	 * JS params data used by cart and checkout pages.
 	 *
 	 * @param array $data
@@ -323,7 +339,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
-			'currency_decimals'       => wc_get_price_decimals(),
+			'currency_decimals'       => $this->get_stripe_currency_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
@@ -1446,11 +1462,32 @@ class WC_Stripe_Express_Checkout_Helper {
 			];
 		}
 
+		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+
+		$calculated_total = apply_filters_deprecated(
+			'woocommerce_stripe_calculated_total',
+			[ $calculated_total, $order_total, WC()->cart ],
+			'9.6.0',
+			'wc_stripe_calculated_total',
+			'The woocommerce_stripe_calculated_total filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_calculated_total instead.'
+		);
+
+		/**
+		 * Filters the calculated total for the order.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param float $calculated_total The calculated total.
+		 * @param float $order_total The order total.
+		 * @param WC_Cart $cart The cart object.
+		 */
+		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
+
 		return [
 			'displayItems' => $items,
 			'total'        => [
 				'label'   => $this->total_label,
-				'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
+				'amount'  => max( 0, $calculated_total ),
 				'pending' => false,
 			],
 		];
