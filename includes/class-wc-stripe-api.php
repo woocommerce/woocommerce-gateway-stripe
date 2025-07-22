@@ -21,7 +21,7 @@ class WC_Stripe_API {
 	 *
 	 * @var string
 	 */
-	const INVALID_API_KEY_ERROR_COUNT_CACHE_KEY = 'invalid_api_key_error_count';
+	public const INVALID_API_KEY_ERROR_COUNT_CACHE_KEY = 'invalid_api_key_error_count';
 
 	/**
 	 * The invalid API key error count cache timeout.
@@ -29,14 +29,14 @@ class WC_Stripe_API {
 	 *
 	 * @var int
 	 */
-	const INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT = 2 * HOUR_IN_SECONDS;
+	protected const INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT = 2 * HOUR_IN_SECONDS;
 
 	/**
 	 * The invalid API key error count threshold.
 	 *
 	 * @var int
 	 */
-	const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
+	protected const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
 
 	/**
 	 * Secret API Key.

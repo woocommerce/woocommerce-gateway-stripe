@@ -2,11 +2,10 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use WC_Stripe;
+use ReflectionClass;
 use WC_Stripe_API;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Helper;
-use WC_Stripe_Mode;
 use WP_UnitTestCase;
 
 /**
@@ -142,7 +141,8 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$threshold = WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_THRESHOLD;
+		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
+		$threshold  = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
 
 		// Call retrieve up to the threshold, each should make an HTTP call.
 		for ( $i = 0; $i < $threshold; $i++ ) {
