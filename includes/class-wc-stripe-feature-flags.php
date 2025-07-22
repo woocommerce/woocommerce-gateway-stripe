@@ -7,12 +7,20 @@ class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-	const OC_FEATURE_FLAG_NAME                = '_wcstripe_feature_oc';
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
 	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
+
+	/**
+	 * Feature flag for Optimized Checkout (OC).
+	 *
+	 * @var string
+	 *
+	 * @deprecated This feature flag will be removed in version 9.9.0.
+	 */
+	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
