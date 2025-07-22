@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 9.7.0 - xxxx-xx-xx =
-* Dev - Makes use of the new product type constants in the whole codebase
+* Dev - Use product type constants that were added in WooCommerce 9.7
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
