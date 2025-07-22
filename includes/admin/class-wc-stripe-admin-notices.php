@@ -638,11 +638,12 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'subscription_detached_bulk_action':
 					update_option( 'wc_stripe_show_subscription_detached_bulk_action_notice', 'no' );
+
+					// Redirect back to the current page without the query param to hide the notice to avoid issues.
+					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
+					}
 					break;
-			}
-			// Redirect back to the current page without the query param to hide the notice to avoid issues.
-			if ( isset( $_SERVER['REQUEST_URI'] ) ) {
-				wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
 			}
 		}
 	}
