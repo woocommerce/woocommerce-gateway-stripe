@@ -41,7 +41,7 @@ const OptimizedCheckoutFeature = () => {
 				block: 'start',
 			} );
 		}
-	}, [] );
+	}, [ headingRef ] );
 
 	const handleTitleChange = ( value ) => {
 		setLocalOCTitle( value );
