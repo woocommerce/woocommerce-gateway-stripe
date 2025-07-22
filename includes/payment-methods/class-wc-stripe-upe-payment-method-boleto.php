@@ -34,23 +34,5 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
 			'woocommerce-gateway-stripe'
 		);
-
-		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
-	}
-
-	/**
-	 * Adds on-hold as accepted status during webhook handling on orders paid with Boleto
-	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
-	 */
-	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::BOLETO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
-			$allowed_statuses[] = OrderStatus::ON_HOLD;
-		}
-
-		return $allowed_statuses;
 	}
 }

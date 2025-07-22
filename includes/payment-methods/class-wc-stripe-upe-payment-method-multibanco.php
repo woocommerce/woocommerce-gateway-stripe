@@ -31,8 +31,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 			'woocommerce-gateway-stripe'
 		);
 
-		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
-
 		add_action( 'wc_gateway_stripe_process_payment_intent_requires_action', [ $this, 'save_instructions' ], 10, 2 );
 		add_action( 'woocommerce_thankyou_stripe_multibanco', [ $this, 'thankyou_page' ] );
 		add_action( 'woocommerce_email_before_order_table', [ $this, 'email_instructions' ], 10, 3 );
@@ -129,22 +127,6 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 		];
 
 		$order->update_meta_data( '_stripe_multibanco', $data );
-	}
-
-	/**
-	 * Adds on-hold as accepted status during webhook handling on orders paid with Mukltibanco
-	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
-	 */
-	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
-			$allowed_statuses[] = OrderStatus::ON_HOLD;
-		}
-
-		return $allowed_statuses;
 	}
 
 	/**
