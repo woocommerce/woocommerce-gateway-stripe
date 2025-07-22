@@ -9,6 +9,7 @@
 * Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 * Dev - Fix WooCommerce version fetching in GitHub workflows
+* Dev - Fix failing test cases associated with WooCommerce 10.0.x
 
 = 9.7.0 - 2025-07-21 =
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active

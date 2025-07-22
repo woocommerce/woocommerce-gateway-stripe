@@ -119,5 +119,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 * Dev - Fix WooCommerce version fetching in GitHub workflows
+* Dev - Fix failing test cases associated with WooCommerce 10.0.x
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
