@@ -1,21 +1,14 @@
 /* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import React from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
-import {
-	BNPL_PROMOTION_BANNER,
-	NEW_CHECKOUT_EXPERIENCE_BANNER,
-} from 'wcstripe/settings/payment-settings/constants';
+import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-import { useAccount } from 'wcstripe/data/account';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-import { getPromotionalBannerType } from 'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -54,22 +47,14 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
-const PaymentMethodsPanel = ( { onSaveChanges } ) => {
-	const { data } = useAccount();
-	const { isUpeEnabled, setIsUpeEnabled } = useContext( UpeToggleContext );
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const promotionalBannerType = getPromotionalBannerType(
-		data,
-		isUpeEnabled,
-		enabledPaymentMethodIds
-	);
-	const [ showPromotionalBanner, setShowPromotionalBanner ] = useState(
-		promotionalBannerType === BNPL_PROMOTION_BANNER
-			? // eslint-disable-next-line camelcase
-			  wc_stripe_settings_params?.show_bnpl_promotional_banner === '1'
-			: true
-	);
-
+const PaymentMethodsPanel = ( {
+	onSaveChanges,
+	setShowPromotionalBanner,
+	showPromotionalBanner,
+	promotionalBannerType,
+	setIsOCEnabled,
+	setIsUpeEnabled,
+} ) => {
 	return (
 		<>
 			{ showPromotionalBanner && (
@@ -77,6 +62,7 @@ const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 					<PromotionalBanner
 						setShowPromotionalBanner={ setShowPromotionalBanner }
 						setIsUpeEnabled={ setIsUpeEnabled }
+						setIsOCEnabled={ setIsOCEnabled }
 						promotionalBannerType={ promotionalBannerType }
 						oauthUrl={
 							// eslint-disable-next-line camelcase

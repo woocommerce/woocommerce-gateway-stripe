@@ -4,17 +4,20 @@ import {
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
 	BNPL_PROMOTION_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
+	OC_PROMOTION_BANNER,
 } from '../constants';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
 import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
 import { BNPLPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/bnpl-promotion-banner';
 import { BannerCard } from 'wcstripe/settings/payment-settings/promotional-banner/banner-layout';
+import { OCPromotionBanner } from 'wcstripe/settings/payment-settings/promotional-banner/oc-promotion-banner';
 
 const PromotionalBanner = ( {
 	setShowPromotionalBanner,
 	promotionalBannerType,
 	setIsUpeEnabled,
+	setIsOCEnabled,
 	oauthUrl,
 	testOauthUrl,
 } ) => {
@@ -25,6 +28,14 @@ const PromotionalBanner = ( {
 				<ReConnectAccountBanner
 					testOauthUrl={ testOauthUrl }
 					oauthUrl={ oauthUrl }
+				/>
+			);
+			break;
+		case OC_PROMOTION_BANNER:
+			BannerContent = (
+				<OCPromotionBanner
+					setShowPromotionalBanner={ setShowPromotionalBanner }
+					setIsOCEnabled={ setIsOCEnabled }
 				/>
 			);
 			break;

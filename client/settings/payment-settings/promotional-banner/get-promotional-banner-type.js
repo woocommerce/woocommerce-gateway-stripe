@@ -1,9 +1,9 @@
 /* global wc_stripe_settings_params */
 import {
 	BNPL_PROMOTION_BANNER,
-	BNPL_PROMOTION_BANNER_TARGET_VERSION,
 	NEW_CHECKOUT_EXPERIENCE_APMS_BANNER,
 	NEW_CHECKOUT_EXPERIENCE_BANNER,
+	OC_PROMOTION_BANNER,
 	RECONNECT_BANNER,
 } from 'wcstripe/settings/payment-settings/constants';
 import {
@@ -16,12 +16,14 @@ import {
  *
  * @param {Object} accountData The account data object containing information about the Stripe account.
  * @param {boolean} isUpeEnabled Whether the Unified Payments Experience (UPE) is enabled.
+ * @param {boolean} isOCEnabled Whether the Optimized Checkout Suite (OC) is enabled.
  * @param {Array} enabledPaymentMethodIds List of enabled payment method IDs.
  * @return {null|string} The type of promotional banner to display, or null if no banner is applicable.
  */
 export const getPromotionalBannerType = (
 	accountData,
 	isUpeEnabled,
+	isOCEnabled,
 	enabledPaymentMethodIds
 ) => {
 	const isTestModeEnabled = Boolean( accountData.testmode );
@@ -38,19 +40,16 @@ export const getPromotionalBannerType = (
 	if ( oauthConnected === false ) {
 		return RECONNECT_BANNER;
 	} else if (
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params?.is_oc_available &&
+		! isOCEnabled
+	) {
+		return OC_PROMOTION_BANNER;
+	} else if (
 		isUpeEnabled &&
 		! hasBNPLEnabled &&
 		// eslint-disable-next-line camelcase
-		! wc_stripe_settings_params?.has_other_bnpl_plugins &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params?.plugin_version &&
-		parseFloat(
-			// eslint-disable-next-line camelcase
-			String( wc_stripe_settings_params.plugin_version )
-				.split( '.' )
-				.slice( 0, 2 )
-				.join( '.' )
-		) >= BNPL_PROMOTION_BANNER_TARGET_VERSION
+		! wc_stripe_settings_params?.has_other_bnpl_plugins
 	) {
 		return BNPL_PROMOTION_BANNER;
 	} else if ( ! isUpeEnabled ) {

@@ -505,6 +505,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['isCheckout']                        = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                        = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                          = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['wp_ajax_url']                       = admin_url( 'admin-ajax.php' );
 		$stripe_params['theme_name']                        = get_option( 'stylesheet' );
 		$stripe_params['testMode']                          = $this->testmode;
 		$stripe_params['createPaymentIntentNonce']          = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
@@ -2841,8 +2842,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
 	 *
-	 * @param WC_Stripe_Order $order The order.
-	 * @param string   $customer_id The value to be set.
+	 * @param WC_Subscription $subscription The subscription.
+	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
 		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );
