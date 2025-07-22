@@ -35,7 +35,7 @@ class WC_Stripe_API {
 	 *
 	 * @var int
 	 */
-	const INVALID_API_KEYS_DELAY_IN_SECONDS = 2 * HOUR_IN_SECONDS;
+	const INVALID_API_KEYS_CACHE_TIMEOUT_IN_SECONDS = 2 * HOUR_IN_SECONDS;
 
 	/**
 	 * Secret API Key.
@@ -294,7 +294,7 @@ class WC_Stripe_API {
 			// the instantiation of the UPE gateway triggers a call to this method for
 			// every available payment method. This would result in excessive log entries
 			// which is not useful.
-			// We only log the error when the count exceeds the threshold.
+			// We only log the error when the count exceeds the threshold for the first time.
 
 			// The UI expects a null response (and not an error) in case of invalid API keys.
 			return null;
@@ -334,8 +334,10 @@ class WC_Stripe_API {
 
 			return null; // The UI expects this empty response in case of invalid API keys.
 
-		} elseif ( null !== $invalid_api_keys_count ) {
-			// We only track consecutive 401 errors, so we delete the cache when we get a valid response.
+		}
+
+		// We got a valid, non-401 response, so clear the invalid API key count if it is present.
+		if ( null !== $invalid_api_keys_count ) {
 			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEYS_CACHE_KEY );
 		}
 

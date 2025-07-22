@@ -163,7 +163,6 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 * Test WC_Stripe_API::retrieve() resets the invalid API key count on successful response.
 	 */
 	public function test_retrieve_resets_invalid_api_key_count_on_successful_response() {
-		$full_cache_key = 'wcstripe_cache_' . ( WC_Stripe_Mode::is_test() ? 'test_' : 'live_' ) . WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY;
 
 		// 1. Mock a 401 response for the first call.
 		add_filter( 'pre_http_request', [ $this, 'mock_unauthorized_response' ] );
