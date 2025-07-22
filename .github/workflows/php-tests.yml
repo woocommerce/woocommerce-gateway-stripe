@@ -69,6 +69,8 @@ jobs:
           - php_support_policy: '7.4'
             php: '7.4'
         exclude: # incompatible versions of PHP, WordPress, and WooCommerce
+          - woocommerce_support_policy: L
+            wordpress_support_policy: L-2
           - woocommerce_support_policy: L-1
             wordpress_support_policy: L-2
 
