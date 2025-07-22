@@ -2842,8 +2842,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * Set to public so it can be called from confirm_change_payment_from_setup_intent_ajax()
 	 *
-	 * @param WC_Stripe_Order $order The order.
-	 * @param string   $customer_id The value to be set.
+	 * @param WC_Subscription $subscription The subscription.
+	 * @param string          $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_subscription( $subscription, string $customer_id ) {
 		$subscription->update_meta_data( '_stripe_customer_id', $customer_id );

@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -92,7 +95,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
 
-		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 			$data_store   = WC_Data_Store::load( 'product' );
@@ -232,7 +235,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
+			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
