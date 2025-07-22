@@ -180,7 +180,7 @@ class WC_Stripe_Feature_Flags {
 		 * Filter to control the availability of the Optimized Checkout feature.
 		 *
 		 * @since 9.6.0
-		 * @deprecated This filter will be removed in version 9.9.0.
+		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
 		 * @param string $default_value The default value for the feature flag.
 		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
 		 */
