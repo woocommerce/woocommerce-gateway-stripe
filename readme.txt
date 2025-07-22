@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.0 - xxxx-xx-xx =
-* Fix - Fixes the CTA button on the Optimized Checkout promotional banner to correctly link to the Stripe settings page
+* Fix - Fixes the CTA button on the Optimized Checkout promotional inbox note to correctly link to the Stripe settings page
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
