@@ -42,7 +42,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	/**
@@ -53,7 +53,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		WC_Stripe_API::set_secret_key( null );
 
 		// Reset the invalid API keys count cache.
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		parent::tear_down();
 	}
@@ -142,7 +142,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 			}
 		);
 
-		$threshold = WC_Stripe_API::INVALID_API_KEYS_COUNT_THRESHOLD;
+		$threshold = WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_THRESHOLD;
 
 		// Call retrieve up to the threshold, each should make an HTTP call.
 		for ( $i = 0; $i < $threshold; $i++ ) {
@@ -156,20 +156,19 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$this->assertEquals( $threshold, $call_count, 'Should not make another HTTP call after threshold is reached.' );
 
 		remove_all_filters( 'pre_http_request' );
-		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	/**
 	 * Test WC_Stripe_API::retrieve() resets the invalid API key count on successful response.
 	 */
 	public function test_retrieve_resets_invalid_api_key_count_on_successful_response() {
-
 		// 1. Mock a 401 response for the first call.
 		add_filter( 'pre_http_request', [ $this, 'mock_unauthorized_response' ] );
 
 		// First call: should set the cache count to 1.
 		WC_Stripe_API::retrieve( 'test_endpoint' );
-		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY );
+		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertEquals( 1, $count, 'Cache count should be 1 after first 401.' );
 
 		remove_all_filters( 'pre_http_request' );
@@ -179,7 +178,7 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 
 		// Second call: should delete the cache.
 		WC_Stripe_API::retrieve( 'test_endpoint' );
-		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEYS_CACHE_KEY );
+		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		$this->assertNull( $count, 'Cache should be deleted after a successful response.' );
 
 		remove_all_filters( 'pre_http_request' );
