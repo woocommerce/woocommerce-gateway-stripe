@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
-const SinglePaymentElementFeature = () => {
+const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const [ OCTitle, setOCTitle ] = useOCTitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
@@ -105,4 +105,4 @@ const SinglePaymentElementFeature = () => {
 	);
 };
 
-export default SinglePaymentElementFeature;
+export default OptimizedCheckoutFeature;
