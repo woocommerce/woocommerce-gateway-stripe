@@ -120,6 +120,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 * Dev - Fix WooCommerce version fetching in GitHub workflows
 * Dev - Fix failing test cases associated with WooCommerce 10.0.x
-* Fix - Fix PHP warning about undefined labels for custom checkout fields
+* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
