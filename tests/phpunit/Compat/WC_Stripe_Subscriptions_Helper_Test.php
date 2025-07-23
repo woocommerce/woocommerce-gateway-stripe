@@ -294,4 +294,29 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$actual   = WC_Stripe_Subscriptions_Helper::build_subscription_detached_message( $subscription_data );
 		$this->assertEquals( $expected, $actual );
 	}
+
+	/**
+	 * Tests for `get_detached_payment_data_from_subscription`.
+	 *
+	 * @return void
+	 */
+	public function test_get_detached_payment_data_from_subscription() {
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 1 );
+		$subscription->set_status( 'active' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_customer_id', 'cus_1234' );
+		$subscription->save_meta_data();
+
+		$expected = [
+			'id'                        => 1,
+			'customer_id'               => 'cus_1234',
+			'change_payment_method_url' => 'http://example.org?subscription-payment-method=1',
+		];
+
+		$actual = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
+
+		$this->assertSame( $expected, $actual );
+	}
 }
