@@ -25,7 +25,7 @@ class WC_Stripe_OC_Promotion_Note {
 	/**
 	 * Link to activate OC in store.
 	 */
-	const ACTIVATE_NOW_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-oc';
+	private const ACTIVATE_NOW_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-oc';
 
 	/**
 	 * Get the note.
