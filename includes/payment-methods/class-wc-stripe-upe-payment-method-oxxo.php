@@ -35,4 +35,20 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Adds on-hold as accepted status during webhook handling on orders paid with OXXO
+	 *
+	 * @param $allowed_statuses
+	 * @param $order
+	 *
+	 * @return mixed
+	 */
+	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
+		if ( WC_Stripe_Payment_Methods::OXXO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+			$allowed_statuses[] = OrderStatus::ON_HOLD;
+		}
+
+		return $allowed_statuses;
+	}
 }

@@ -130,6 +130,22 @@ class WC_Stripe_UPE_Payment_Method_Multibanco extends WC_Stripe_UPE_Payment_Meth
 	}
 
 	/**
+	 * Adds on-hold as accepted status during webhook handling on orders paid with Mukltibanco
+	 *
+	 * @param $allowed_statuses
+	 * @param $order
+	 *
+	 * @return mixed
+	 */
+	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
+		if ( WC_Stripe_Payment_Methods::MULTIBANCO === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses, true ) ) {
+			$allowed_statuses[] = OrderStatus::ON_HOLD;
+		}
+
+		return $allowed_statuses;
+	}
+
+	/**
 	 * Returns whether the payment method is available for the Stripe account's country.
 	 *
 	 * Multibanco is available for the following countries: 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GI', 'GR', 'HU', 'IE', 'IT', 'LV', 'LI', 'LT', 'LU', 'MT', 'NL', 'NO', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'CH', 'GB', 'US'.

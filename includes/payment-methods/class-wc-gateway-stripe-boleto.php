@@ -105,6 +105,22 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	}
 
 	/**
+	 * Adds on-hold as accepted status during webhook handling on orders paid with voucher
+	 *
+	 * @param $allowed_statuses
+	 * @param $order
+	 *
+	 * @return mixed
+	 */
+	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
+		if ( $this->stripe_id === $order->get_meta( '_stripe_upe_payment_type' ) && ! in_array( OrderStatus::ON_HOLD, $allowed_statuses ) ) {
+			$allowed_statuses[] = OrderStatus::ON_HOLD;
+		}
+
+		return $allowed_statuses;
+	}
+
+	/**
 	 * Payment_scripts function.
 	 *
 	 * @since 5.8.0
