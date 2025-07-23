@@ -440,7 +440,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with(
 				"payment_intents/$payment_intent_id",
 				$expected_request,
-				wc_get_order( $order_id )
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			)
 			->will(
 				$this->returnValue( [] )
@@ -1979,7 +1983,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			->with(
 				"payment_intents/$payment_intent_id",
 				$expected_request,
-				wc_get_order( $order_id )
+				$this->callback(
+					function ( $passed_order ) use ( $order ) {
+						return $order->get_id() === $passed_order->get_id();
+					}
+				)
 			)
 			->will(
 				$this->returnValue( [] )
