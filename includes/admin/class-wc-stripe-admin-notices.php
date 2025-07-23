@@ -69,6 +69,7 @@ class WC_Stripe_Admin_Notices {
 		// Check for subscriptions detached from the customer.
 		if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
 			$this->subscription_check_detachment();
+			$this->subscription_check_detachment_bulk_action();
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
@@ -513,6 +514,48 @@ class WC_Stripe_Admin_Notices {
 	}
 
 	/**
+	 * Add a notice to the admin area if there are subscriptions with payment method detached.
+	 *
+	 * @return void
+	 */
+	public function subscription_check_detachment_bulk_action() {
+		if ( isset( $_REQUEST['detached-subscriptions'] ) && 'no' !== get_option( 'wc_stripe_show_subscription_detached_bulk_action_notice' ) ) {
+			$notice_content = '<p>' . esc_html__( 'No detached subscriptions found.', 'woocommerce-gateway-stripe' ) . '</p>';
+			$notice_class   = 'info';
+			if ( ! empty( $_REQUEST['detached-subscriptions'] ) ) {
+				$detached_subs_ids = explode( ',', sanitize_text_field( wp_unslash( $_REQUEST['detached-subscriptions'] ) ) );
+				$subscriptions     = [];
+				foreach ( $detached_subs_ids as $detached_sub_id ) {
+					$detached_sub_id = absint( $detached_sub_id );
+					$subscription    = wcs_get_subscription( $detached_sub_id );
+					if ( ! $subscription instanceof WC_Subscription ) {
+						continue;
+					}
+					$subscriptions[] = WC_Stripe_Subscriptions_Helper::get_detached_payment_data_from_subscription( $subscription );
+				}
+				$detached_messages = WC_Stripe_Subscriptions_Helper::build_subscriptions_detached_messages( $subscriptions );
+				if ( ! empty( $detached_messages ) ) {
+					$notice_content = '<p>';
+					$notice_content .= wp_kses(
+						$detached_messages,
+						[
+							'a'      => [
+								'href'   => [],
+								'target' => [],
+							],
+							'strong' => [],
+							'br'     => [],
+						]
+					);
+					$notice_content .= '</p>';
+					$notice_class    = 'error';
+				}
+			}
+			$this->add_admin_notice( 'subscription_detached_bulk_action', 'notice notice-' . $notice_class, $notice_content, true );
+		}
+	}
+
+	/**
 	 * Environment check for subscriptions.
 	 *
 	 * @return void
@@ -592,6 +635,14 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'subscriptions':
 					update_option( 'wc_stripe_show_subscriptions_notice', 'no' );
+					break;
+				case 'subscription_detached_bulk_action':
+					update_option( 'wc_stripe_show_subscription_detached_bulk_action_notice', 'no' );
+
+					// Redirect back to the current page without the query param to hide the notice to avoid issues.
+					if ( isset( $_SERVER['REQUEST_URI'] ) ) {
+						wp_safe_redirect( remove_query_arg( [ 'wc-stripe-hide-notice', '_wc_stripe_notice_nonce' ], esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) );
+					}
 					break;
 			}
 		}
