@@ -35,7 +35,7 @@ const OptimizedCheckoutFeature = () => {
 		}
 
 		const { highlight } = getQuery();
-		if ( highlight === 'enable-oc' ) {
+		if ( highlight === 'enable-optimized-checkout' ) {
 			headingRef.current.scrollIntoView( {
 				behavior: 'smooth',
 				block: 'start',
