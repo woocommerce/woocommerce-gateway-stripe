@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 9.8.0 - xxxx-xx-xx =
-* Fix - Fixes the CTA button on the Optimized Checkout promotional inbox note to correctly link to the Stripe settings page
+* Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
