@@ -130,11 +130,7 @@ class WC_Stripe_Subscriptions_Helper {
 			}
 
 			if ( self::is_subscription_payment_method_detached( $subscription ) ) {
-				$detached_subscriptions[] = [
-					'id'                        => $subscription->get_id(),
-					'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
-					'change_payment_method_url' => $subscription->get_change_payment_method_url(),
-				];
+				$detached_subscriptions[] = self::get_detached_payment_data_from_subscription( $subscription );
 			}
 		}
 
@@ -213,6 +209,20 @@ class WC_Stripe_Subscriptions_Helper {
 			return function_exists( 'wcs_is_manual_renewal_enabled' ) && wcs_is_manual_renewal_enabled();
 		}
 		return false;
+	}
+
+	/**
+	 * Extracts data from a subscription object for detached subscriptions.
+	 *
+	 * @param WC_Subscription $subscription The subscription object to extract data from.
+	 * @return array
+	 */
+	public static function get_detached_payment_data_from_subscription( $subscription ) {
+		return [
+			'id'                        => $subscription->get_id(),
+			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
+		];
 	}
 
 	/**
