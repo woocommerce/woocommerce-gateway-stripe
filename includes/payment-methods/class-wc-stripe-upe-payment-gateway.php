@@ -3354,7 +3354,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				&& WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ) ) {
 				$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::KLARNA;
 			}
-			if ( count( $payment_method_ids_to_disable ) > 0 ) {
+			if ( $payment_method_ids_to_disable !== [] ) {
 				$this->update_enabled_payment_methods(
 					array_diff(
 						$enabled_payment_methods,
