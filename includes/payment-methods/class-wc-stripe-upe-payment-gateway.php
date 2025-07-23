@@ -3341,27 +3341,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return void
 	 */
 	private function maybe_deactivate_bnpls() {
-		if ( ! WC_Stripe_Helper::has_other_bnpl_plugins_active() ) {
+		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
+		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
+		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
 			return;
 		}
 
 		$enabled_payment_methods       = $this->get_upe_enabled_payment_method_ids();
 		$payment_method_ids_to_disable = [];
-		if ( in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true )
-			&& WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ) ) {
+		if ( in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true ) && $has_affirm_plugin_active ) {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::AFFIRM;
 		}
-		if ( in_array( WC_Stripe_Payment_Methods::KLARNA, $enabled_payment_methods, true )
-			&& WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA ) ) {
+		if ( in_array( WC_Stripe_Payment_Methods::KLARNA, $enabled_payment_methods, true ) && $has_klarna_plugin_active ) {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::KLARNA;
 		}
-		if ( [] !== $payment_method_ids_to_disable ) {
-			$this->update_enabled_payment_methods(
-				array_diff(
-					$enabled_payment_methods,
-					$payment_method_ids_to_disable
-				)
-			);
+
+		if ( [] === $payment_method_ids_to_disable ) {
+			return;
 		}
+
+		$this->update_enabled_payment_methods(
+			array_diff(
+				$enabled_payment_methods,
+				$payment_method_ids_to_disable
+			)
+		);
 	}
 }
