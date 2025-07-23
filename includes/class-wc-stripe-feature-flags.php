@@ -184,6 +184,10 @@ class WC_Stripe_Feature_Flags {
 	public static function is_oc_available() {
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		if ( 'yes' !== $pmc_enabled ) {
+			return false;
+		}
+
 		/**
 		 * Filter to control the availability of the Optimized Checkout feature.
 		 *

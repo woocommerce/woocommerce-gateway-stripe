@@ -57,22 +57,27 @@ class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_oc_available() {
 		return [
-			'PMC enabled'         => [
+			'PMC enabled'                                => [
 				'PMC enabled'     => true,
 				'filter function' => '',
 				'expected'        => true,
 			],
-			'PMC disabled'        => [
+			'PMC disabled'                               => [
 				'PMC enabled'     => false,
 				'filter function' => '',
 				'expected'        => false,
 			],
-			'filter set to true'  => [
+			'PMC disabled, filter set to true (ignored)' => [
+				'PMC enabled'     => false,
+				'filter function' => '__return_true',
+				'expected'        => false,
+			],
+			'filter set to true'                         => [
 				'PMC enabled'     => true,
 				'filter function' => '__return_true',
 				'expected'        => true,
 			],
-			'filter set to false' => [
+			'filter set to false'                        => [
 				'PMC enabled'     => true,
 				'filter function' => '__return_false',
 				'expected'        => false,
