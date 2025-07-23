@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class WC_Stripe_OC_Promotion_Note
  */
-class WC_Stripe_OC_Promotion_Note {
+final class WC_Stripe_OC_Promotion_Note {
 	use NoteTraits;
 
 	/**
