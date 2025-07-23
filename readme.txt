@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.8.0 - xxxx-xx-xx =
+* Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 13.0.3, and `form-data` to 4.0.4 in the JavaScript development dependencies
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
