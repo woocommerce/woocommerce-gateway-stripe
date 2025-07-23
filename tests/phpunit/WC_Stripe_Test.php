@@ -7,6 +7,13 @@ use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
 
+/**
+ * These tests make assertions against the class WC_Stripe.
+ *
+ * Class WC_Stripe_Test
+ *
+ * @package WooCommerce/Stripe/WC_Stripe
+ */
 class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );
