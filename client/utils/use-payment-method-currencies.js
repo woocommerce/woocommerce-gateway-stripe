@@ -230,6 +230,14 @@ const getAmazonPayCurrencies = () => {
 	}
 };
 
+/**
+ * Returns the currencies supported by a payment method.
+ * Note that [] is returned for payment methods that support all currencies.
+ *
+ * @param {string} paymentMethodId
+ * @param {boolean} isUpeEnabled
+ * @return {string[]} Array of currencies supported by that payment method.
+ */
 export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
 	switch ( paymentMethodId ) {
 		case PAYMENT_METHOD_ALIPAY:
@@ -245,6 +253,13 @@ export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
 	}
 };
 
+/**
+ * Hook to return the currencies supported by a payment method.
+ * Note that [] is returned for payment methods that support all currencies.
+ *
+ * @param {string} paymentMethodId
+ * @return {string[]} Array of currencies supported by that payment method.
+ */
 export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
