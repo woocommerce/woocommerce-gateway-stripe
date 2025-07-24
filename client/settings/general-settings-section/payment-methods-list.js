@@ -10,6 +10,7 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
+import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
@@ -17,7 +18,6 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import { getPaymentMethodCurrencies } from 'wcstripe/utils/use-payment-method-currencies';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,

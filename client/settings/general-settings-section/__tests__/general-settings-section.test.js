@@ -12,7 +12,10 @@ import {
 	useGetOrderedPaymentMethodIds,
 	useIsPMCEnabled,
 } from 'wcstripe/data';
-import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import {
+	usePaymentMethodCurrencies,
+	getPaymentMethodCurrencies,
+} from 'utils/use-payment-method-currencies';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import {
 	PAYMENT_METHOD_ALIPAY,
@@ -36,6 +39,7 @@ jest.mock( 'wcstripe/data', () => ( {
 } ) );
 jest.mock( 'utils/use-payment-method-currencies', () => ( {
 	usePaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
+	getPaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -515,7 +519,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should disable the payment method checkbox when currency is not supported', () => {
+	it( 'should disable the payment method checkbox and show the requires currency notice when currency is not supported', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -536,9 +540,11 @@ describe( 'GeneralSettingsSection', () => {
 				name: /Credit card/,
 			} )
 		).toBeDisabled();
+
+		expect( screen.queryByText( 'Requires currency' ) ).toBeVisible();
 	} );
 
-	it( 'should enable the payment method checkbox when currency is supported', () => {
+	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -559,5 +565,78 @@ describe( 'GeneralSettingsSection', () => {
 				name: /Credit card/,
 			} )
 		).toBeEnabled();
+
+		expect(
+			screen.queryByText( 'Requires currency' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'should show the payment method with supported currencies at the top of the list', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			PAYMENT_METHOD_CARD,
+			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_SEPA,
+		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_ALIPAY,
+				PAYMENT_METHOD_SEPA,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
+		/*useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
+		 */
+		usePaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
+			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
+				return [ 'USD' ];
+			}
+			return [ 'EUR' ];
+		} );
+		window.wcSettings = { currency: { code: 'EUR' } };
+
+		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
+			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
+				return [ 'USD' ];
+			}
+			return [ 'EUR' ];
+		} );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		const cardElement = screen.getByRole( 'checkbox', {
+			name: /Credit card/,
+		} );
+		const alipayElement = screen.getByRole( 'checkbox', {
+			name: 'Alipay',
+		} );
+		const sepaElement = screen.getByRole( 'checkbox', {
+			name: 'Direct debit payment',
+		} );
+
+		expect( cardElement ).toBeEnabled();
+		expect( alipayElement ).not.toBeEnabled();
+		expect( sepaElement ).toBeEnabled();
+
+		// Card should be first
+		expect( cardElement.compareDocumentPosition( alipayElement ) ).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING
+		);
+		expect( cardElement.compareDocumentPosition( sepaElement ) ).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING
+		);
+
+		// SEPA should be before AliPay
+		expect( sepaElement.compareDocumentPosition( alipayElement ) ).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING
+		);
 	} );
 } );
