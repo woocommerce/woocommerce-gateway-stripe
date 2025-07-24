@@ -123,5 +123,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Fix failing test cases associated with WooCommerce 10.0.x
 * Fix - Prevent multiple save appearance AJAX calls on Block Checkout
 * Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
+* Fix - Fix fatal when processing Boleto setup intents via webhooks
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
