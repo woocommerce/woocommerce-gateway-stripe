@@ -379,7 +379,7 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::error(
 				'Level3 data sum incorrect',
 				[
-					'error'         => $result->error,
+					'error'                 => $result->error,
 					'order_line_items'      => $order->get_items(),
 					'order_shipping_amount' => $order->get_shipping_total(),
 					'order_currency'        => $order->get_currency(),
