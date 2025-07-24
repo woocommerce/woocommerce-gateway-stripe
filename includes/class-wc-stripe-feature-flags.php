@@ -198,7 +198,7 @@ class WC_Stripe_Feature_Flags {
 		 */
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $pmc_enabled,
+			true,
 			'yes',
 			$pmc_enabled
 		);
