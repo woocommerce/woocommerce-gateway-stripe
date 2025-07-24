@@ -48,11 +48,11 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
-		WC_Stripe_Helper::delete_main_stripe_settings();
-		WC_Stripe_API::set_secret_key( null );
-
 		// Reset the invalid API keys count cache.
 		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
+		WC_Stripe_Helper::delete_main_stripe_settings();
+		WC_Stripe_API::set_secret_key( null );
 
 		parent::tear_down();
 	}

@@ -6,6 +6,8 @@ use Automattic\WooCommerce\Blocks\RestApi;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe;
 use WC_REST_Stripe_Settings_Controller;
+use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
@@ -105,6 +107,17 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
+
+	public function tear_down() {
+		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
+		// this is not a problem for these tests as they don't depend on the reponses.
+		//
+		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
+		parent::tear_down();
+	}
+
 
 	public function test_get_settings_returns_available_payment_method_ids_for_gb() {
 		$expected_method_ids = [
