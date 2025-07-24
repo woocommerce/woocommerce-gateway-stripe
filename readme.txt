@@ -125,5 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 * Fix - Fix fatal when processing Boleto setup intents via webhooks
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
+* Fix - Google Pay 3DS authentication model not shown
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
