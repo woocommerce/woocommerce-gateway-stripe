@@ -649,6 +649,7 @@ jQuery( function ( $ ) {
 		 */
 		addToCart: async () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
+			let emptyCartParams = {};
 
 			const data = {
 				qty: $( quantityInputSelector ).val(),
@@ -663,6 +664,9 @@ jQuery( function ( $ ) {
 
 			if ( $( '.wc-bookings-booking-form' ).length ) {
 				productId = $( '.wc-booking-product-id' ).val();
+				emptyCartParams = {
+					bookingId: productId,
+				};
 			}
 
 			// Add extension data to the POST body
@@ -701,7 +705,7 @@ jQuery( function ( $ ) {
 			//  do not interfere with computed totals.
 			// Use the non-StoreAPI method as it is faster; Stripe requires
 			// the click event to be resolved within 1 second.
-			await api.expressCheckoutEmptyCartLegacy( {} );
+			await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
 
 			return api.expressCheckoutAddToCart( data );
 		},
