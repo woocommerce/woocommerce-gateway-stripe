@@ -115,6 +115,7 @@ class WC_Stripe {
 		if ( is_admin() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-privacy.php';
 		}
+
 		if ( file_exists( WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php' ) ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		}
@@ -242,6 +243,11 @@ class WC_Stripe {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 				new WC_Stripe_Payment_Gateways_Controller();
+			}
+
+			if ( WC_Stripe_Subscriptions_Helper::is_subscriptions_enabled() ) {
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-subscription-detached-bulk-action.php';
+				new WC_Stripe_Subscription_Detached_Bulk_Action();
 			}
 		}
 

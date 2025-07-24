@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.8.0 - xxxx-xx-xx =
 * Dev - Upgrades `jest` to version 29.7.0, `@wordpress/scripts` to 13.0.3, and `form-data` to 4.0.4 in the JavaScript development dependencies
+* Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
@@ -121,5 +122,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
 * Dev - Fix WooCommerce version fetching in GitHub workflows
 * Dev - Fix failing test cases associated with WooCommerce 10.0.x
+* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
+* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
+* Fix - Fix fatal when processing Boleto setup intents via webhooks
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
