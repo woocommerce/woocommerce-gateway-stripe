@@ -698,8 +698,10 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		$product->save();
 
 		WC()->cart->cart_contents = [
-			'booking' => [
-				'_booking_id' => $product->get_id(),
+			[
+				'booking' => [
+					'_booking_id' => $product->get_id(),
+				],
 			],
 		];
 
