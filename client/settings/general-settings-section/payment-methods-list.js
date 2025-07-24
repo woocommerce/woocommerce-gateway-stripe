@@ -1,12 +1,13 @@
 /* global wc_stripe_settings_params */
 import { sprintf } from '@wordpress/i18n';
-import React from 'react';
+import React, { useContext, useMemo } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
+import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
 import {
@@ -16,6 +17,7 @@ import {
 } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import { getPaymentMethodCurrencies } from 'wcstripe/utils/use-payment-method-currencies';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
@@ -127,6 +129,55 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 /**
+ * Hook to sort the payment methods based on whether the payment method is supported by the store currency.
+ * Unsupported payment methods are placed at the end of the list so irrelevant payment methods don't clutter the screen.
+ *
+ * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
+ * @return {string[]} Sorted payment method IDs.
+ */
+const usePaymentMethodsSortedByStoreCurrencySupport = (
+	orderedPaymentMethodIds
+) => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
+	const storeCurrency = window?.wcSettings?.currency?.code;
+
+	// In the logic below, note that getPaymentMethodCurrencies() can return []
+	// when the payment method supports all currencies.
+	// Note that when we don't have a store currency, we put all methods in the supported list.
+
+	const supportedPaymentMethodIds = useMemo( () => {
+		return orderedPaymentMethodIds.filter( ( paymentMethodId ) => {
+			const paymentMethodCurrencies = getPaymentMethodCurrencies(
+				paymentMethodId,
+				isUpeEnabled
+			);
+			return (
+				! storeCurrency ||
+				paymentMethodCurrencies.length === 0 ||
+				paymentMethodCurrencies.includes( storeCurrency )
+			);
+		} );
+	}, [ orderedPaymentMethodIds, storeCurrency, isUpeEnabled ] );
+
+	const unsupportedPaymentMethodIds = useMemo( () => {
+		return orderedPaymentMethodIds.filter( ( paymentMethodId ) => {
+			const paymentMethodCurrencies = getPaymentMethodCurrencies(
+				paymentMethodId,
+				isUpeEnabled
+			);
+			return (
+				storeCurrency &&
+				paymentMethodCurrencies.length > 0 &&
+				! paymentMethodCurrencies.includes( storeCurrency )
+			);
+		} );
+	}, [ orderedPaymentMethodIds, storeCurrency, isUpeEnabled ] );
+
+	return [ ...supportedPaymentMethodIds, ...unsupportedPaymentMethodIds ];
+};
+
+/**
  * Formats the payment method description with the account default currency.
  *
  * @param {*} method Payment method ID.
@@ -190,13 +241,17 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
+	const sortedPaymentMethodIds = usePaymentMethodsSortedByStoreCurrencySupport(
+		availablePaymentMethods
+	);
+
 	return isChangingDisplayOrder ? (
 		<DraggableList
 			axis="y"
-			values={ availablePaymentMethods }
+			values={ sortedPaymentMethodIds }
 			onReorder={ onReorder }
 		>
-			{ availablePaymentMethods.map( ( method ) => {
+			{ sortedPaymentMethodIds.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
 				if ( method === PAYMENT_METHOD_GIROPAY ) {
 					return null;
@@ -258,7 +313,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		</DraggableList>
 	) : (
 		<List>
-			{ availablePaymentMethods.map( ( method ) => {
+			{ sortedPaymentMethodIds.map( ( method ) => {
 				// Skip giropay as it was deprecated by Jun, 30th 2024.
 				if ( method === PAYMENT_METHOD_GIROPAY ) {
 					return null;

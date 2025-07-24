@@ -230,9 +230,7 @@ const getAmazonPayCurrencies = () => {
 	}
 };
 
-export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
+export const getPaymentMethodCurrencies = ( paymentMethodId, isUpeEnabled ) => {
 	switch ( paymentMethodId ) {
 		case PAYMENT_METHOD_ALIPAY:
 			return getAliPayCurrencies( isUpeEnabled );
@@ -245,6 +243,12 @@ export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
 		default:
 			return PaymentMethodsMap[ paymentMethodId ]?.currencies || [];
 	}
+};
+
+export const usePaymentMethodCurrencies = ( paymentMethodId ) => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
+	return getPaymentMethodCurrencies( paymentMethodId, isUpeEnabled );
 };
 
 export default usePaymentMethodCurrencies;
