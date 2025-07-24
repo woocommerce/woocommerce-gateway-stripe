@@ -146,35 +146,34 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 	// when the payment method supports all currencies.
 	// Note that when we don't have a store currency, we put all methods in the supported list.
 
-	const supportedPaymentMethodIds = useMemo( () => {
-		return orderedPaymentMethodIds.filter( ( paymentMethodId ) => {
+	const sortedPaymentMethodIds = useMemo( () => {
+		if ( ! storeCurrency ) {
+			return orderedPaymentMethodIds;
+		}
+
+		const supportedPaymentMethodIds = [];
+		const unsupportedPaymentMethodIds = [];
+
+		orderedPaymentMethodIds.forEach( ( paymentMethodId ) => {
 			const paymentMethodCurrencies = getPaymentMethodCurrencies(
 				paymentMethodId,
 				isUpeEnabled
 			);
-			return (
-				! storeCurrency ||
+
+			if (
 				paymentMethodCurrencies.length === 0 ||
 				paymentMethodCurrencies.includes( storeCurrency )
-			);
+			) {
+				supportedPaymentMethodIds.push( paymentMethodId );
+			} else {
+				unsupportedPaymentMethodIds.push( paymentMethodId );
+			}
 		} );
+
+		return [ ...supportedPaymentMethodIds, ...unsupportedPaymentMethodIds ];
 	}, [ orderedPaymentMethodIds, storeCurrency, isUpeEnabled ] );
 
-	const unsupportedPaymentMethodIds = useMemo( () => {
-		return orderedPaymentMethodIds.filter( ( paymentMethodId ) => {
-			const paymentMethodCurrencies = getPaymentMethodCurrencies(
-				paymentMethodId,
-				isUpeEnabled
-			);
-			return (
-				storeCurrency &&
-				paymentMethodCurrencies.length > 0 &&
-				! paymentMethodCurrencies.includes( storeCurrency )
-			);
-		} );
-	}, [ orderedPaymentMethodIds, storeCurrency, isUpeEnabled ] );
-
-	return [ ...supportedPaymentMethodIds, ...unsupportedPaymentMethodIds ];
+	return sortedPaymentMethodIds;
 };
 
 /**
