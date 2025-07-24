@@ -26,6 +26,6 @@ class WC_Stripe_OC_Promotion_Note_Test extends WP_UnitTestCase {
 		list( $learn_more_action ) = $note->get_actions();
 		$this->assertSame( 'wc-stripe-oc-promotion-note', $learn_more_action->name );
 		$this->assertSame( 'Activate now', $learn_more_action->label );
-		$this->assertSame( '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-oc', $learn_more_action->query );
+		$this->assertSame( '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-optimized-checkout', $learn_more_action->query );
 	}
 }
