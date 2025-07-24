@@ -1,9 +1,12 @@
 name: PHP code coverage
 
 on:
-  push:
-    paths:
-      - '**.php'
+  workflow_dispatch:
+# Temporarily disabled to reduce noise.
+#
+#  push:
+#    paths:
+#      - '**.php'
 
 permissions:
   pull-requests: write
