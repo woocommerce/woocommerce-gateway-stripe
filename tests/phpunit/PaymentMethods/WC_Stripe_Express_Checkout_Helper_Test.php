@@ -544,7 +544,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_express_checkout_context() {
 		return [
-			'Not Store API request' => [
+			'Not Store API request'                 => [
 				'is_store_api'       => false,
 				'has_express_header' => true,
 				'has_nonce_header'   => true,
@@ -619,11 +619,11 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_request_to_store_api() {
 		return [
-			'No rest_route set' => [
+			'No rest_route set'         => [
 				'rest_route' => '',
 				'expected'   => false,
 			],
-			'Store API checkout route' => [
+			'Store API checkout route'  => [
 				'rest_route' => '/wc/store/v1/checkout',
 				'expected'   => true,
 			],
@@ -631,7 +631,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'rest_route' => '/wc/store/v1/cart',
 				'expected'   => false,
 			],
-			'Non-Store API route' => [
+			'Non-Store API route'       => [
 				'rest_route' => '/wp/v2/posts',
 				'expected'   => false,
 			],
@@ -661,7 +661,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	public function provide_test_get_stripe_currency_decimals() {
 		return [
 			// No decimal currencies - should return 0
-			'Japanese Yen (no decimals)' => [
+			'Japanese Yen (no decimals)'      => [
 				'currency' => 'JPY',
 				'expected' => 0,
 			],
@@ -671,14 +671,45 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 				'expected' => 3,
 			],
 			// Default currencies - should return 2
-			'US Dollar (default)' => [
+			'US Dollar (default)'             => [
 				'currency' => 'USD',
 				'expected' => 2,
 			],
-			'Euro (default)' => [
+			'Euro (default)'                  => [
 				'currency' => 'EUR',
 				'expected' => 2,
 			],
 		];
+	}
+
+	/**
+	 * Tests for `get_booking_ids_from_cart`.
+	 *
+	 * @return void
+	 */
+	public function test_get_booking_ids_from_cart() {
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		// Add a booking product to the cart.
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_virtual( false );
+		$product->set_tax_status( 'none' );
+		$product->save();
+
+		WC()->cart->cart_contents = [
+			'booking' => [
+				'_booking_id' => $product->get_id(),
+			],
+		];
+
+		$helper = new WC_Stripe_Express_Checkout_Helper();
+		$actual = $helper->get_booking_ids_from_cart();
+
+		// Clean up.
+		WC()->session->cleanup_sessions();
+		WC()->cart->empty_cart();
+
+		$this->assertSame( [ $product->get_id() ], $actual );
 	}
 }
