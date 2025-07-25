@@ -17,6 +17,28 @@ class WC_Stripe_API {
 	const STRIPE_API_VERSION = '2024-06-20';
 
 	/**
+	 * The invalid API key error count cache key.
+	 *
+	 * @var string
+	 */
+	public const INVALID_API_KEY_ERROR_COUNT_CACHE_KEY = 'invalid_api_key_error_count';
+
+	/**
+	 * The invalid API key error count cache timeout.
+	 * This is the delay in seconds enforced for Stripe API calls after the consecutive error count threshold is reached.
+	 *
+	 * @var int
+	 */
+	protected const INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT = 2 * HOUR_IN_SECONDS;
+
+	/**
+	 * The invalid API key error count threshold.
+	 *
+	 * @var int
+	 */
+	protected const INVALID_API_KEY_ERROR_COUNT_THRESHOLD = 5;
+
+	/**
 	 * Secret API Key.
 	 *
 	 * @var string
@@ -265,6 +287,20 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
+		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
+		// we return null until the cache expires (INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT) or the keys are updated.
+		$invalid_api_key_error_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		if ( ! empty( $invalid_api_key_error_count ) && self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD <= $invalid_api_key_error_count ) {
+			// We skip logging the error here because when there is no Account cache,
+			// the instantiation of the UPE gateway triggers a call to this method for
+			// every available payment method. This would result in excessive log entries
+			// which is not useful.
+			// We only log the error when the count exceeds the threshold for the first time.
+
+			// The UI expects a null response (and not an error) in case of invalid API keys.
+			return null;
+		}
+
 		WC_Stripe_Logger::log( "{$api}" );
 
 		$response = wp_safe_remote_get(
@@ -281,7 +317,29 @@ class WC_Stripe_API {
 			// Stripe redacts API keys in the response.
 			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
 
+			++$invalid_api_key_error_count;
+			WC_Stripe_Database_Cache::set( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $invalid_api_key_error_count, self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT );
+
+			if ( $invalid_api_key_error_count >= self::INVALID_API_KEY_ERROR_COUNT_THRESHOLD ) {
+				WC_Stripe_Logger::error(
+					'Invalid API keys request rate limit exceeded',
+					[
+						'count'      => $invalid_api_key_error_count,
+						'next_retry' => date_i18n( 'Y-m-d H:i:sP', time() + self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT ),
+					]
+				);
+
+				// We need to invalidate the Account Data cache here, so that the UI shows the "Connect to Stripe" button.
+				WC_Stripe_Database_Cache::delete( WC_Stripe_Account::ACCOUNT_CACHE_KEY );
+			}
+
 			return null; // The UI expects this empty response in case of invalid API keys.
+
+		}
+
+		// We got a valid, non-401 response, so clear the invalid API key count if it is present.
+		if ( null !== $invalid_api_key_error_count ) {
+			WC_Stripe_Database_Cache::delete( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {

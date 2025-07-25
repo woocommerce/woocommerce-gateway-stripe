@@ -180,6 +180,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Enable ECE for new connections.
 			$this->enable_ece_in_new_accounts();
 
+			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.

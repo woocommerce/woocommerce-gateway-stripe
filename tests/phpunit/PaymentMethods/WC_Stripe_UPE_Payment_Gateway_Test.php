@@ -42,6 +42,7 @@ use WC_Stripe_UPE_Payment_Method_Sepa;
 use WC_Stripe_UPE_Payment_Method_Wechat_Pay;
 use WC_Subscriptions_Helpers;
 use MockAction;
+use WC_Stripe_API;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Token;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
@@ -247,13 +248,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	}
 
 	public function tear_down() {
-		parent::tear_down();
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_ACSS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BLIK_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::LPM_BECS_DEBIT_FEATURE_FLAG_NAME );
+
+		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
+		// this is not a problem for these tests as they don't depend on the reponses.
+		//
+		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
+		parent::tear_down();
 	}
 
 	/**

@@ -1169,10 +1169,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		 * @since 9.7.0
 		 *
 		 * @param array $allowed_payment_processing_statuses The allowed payment processing statuses.
+		 * @param WC_Order $order The order object.
 		 */
 		$allowed_payment_processing_statuses = apply_filters(
 			'wc_stripe_allowed_payment_processing_statuses',
 			$allowed_payment_processing_statuses,
+			$order
 		);
 
 		if ( ! $order->has_status( $allowed_payment_processing_statuses ) ) {
