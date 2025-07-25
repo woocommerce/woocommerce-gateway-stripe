@@ -376,6 +376,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		remove_filter( 'user_has_cap', $cb );
 	}
 
+	/**
+	 * Tests that Apple Pay and Google Pay can be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
 	public function test_update_settings_enables_apple_pay_google_pay() {
 		// Before the update: card and CashApp are enabled, Apple Pay and Google Pay are disabled
 		$this->mock_payment_method_configurations(
@@ -399,6 +403,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->assertEquals( 200, $response->get_status() );
 	}
 
+	/**
+	 * Tests that Apple Pay and Google Pay can only be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
 	public function test_update_settings_enforces_apple_pay_google_pay_requires_card() {
 		// Before the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
 		$this->mock_payment_method_configurations(
