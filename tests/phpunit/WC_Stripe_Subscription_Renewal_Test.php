@@ -9,6 +9,8 @@ use WC_Stripe_Payment_Methods;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_UnitTestCase;
 use MockAction;
+use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
 
 /**
  * These tests assert various things about processing a renewal payment for a WooCommerce Subscription.
@@ -71,6 +73,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 */
 	public function tear_down() {
 		WC_Stripe_Helper::delete_main_stripe_settings();
+
+		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
+		// this is not a problem for these tests as they don't depend on the reponses.
+		//
+		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 
 		parent::tear_down();
 	}
