@@ -111,11 +111,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.7.1 - xxxx-xx-xx
-* Add - Add state mapping for Lithuania in express checkout
-* Tweak - Check for checkout validation error before creating a payment method in Stripe
-* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
-* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 * Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
+* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
+* Add - Add state mapping for Lithuania in express checkout
+* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
+* Tweak - Check for checkout validation error before creating a payment method in Stripe
 * Dev - Fix WooCommerce version fetching in GitHub workflows
 * Dev - Fix failing test cases associated with WooCommerce 10.0.x
 
