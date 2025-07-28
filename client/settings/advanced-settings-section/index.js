@@ -6,7 +6,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
-import SinglePaymentElementFeature from 'wcstripe/settings/advanced-settings-section/single-payment-element-feature';
+import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
 
 const AdvancedSettingsDescription = () => (
 	<>
@@ -28,7 +28,7 @@ const AdvancedSettings = () => {
 				<Card>
 					<CardBody>
 						<DebugMode />
-						{ isOcAvailable && <SinglePaymentElementFeature /> }
+						{ isOcAvailable && <OptimizedCheckoutFeature /> }
 					</CardBody>
 				</Card>
 			</LoadableSettingsSection>
