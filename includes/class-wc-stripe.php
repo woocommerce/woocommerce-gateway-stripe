@@ -877,10 +877,10 @@ class WC_Stripe {
 
 		$enabled_payment_methods       = $gateway->get_upe_enabled_payment_method_ids();
 		$payment_method_ids_to_disable = [];
-		if ( in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true ) && $has_affirm_plugin_active ) {
+		if ( $has_affirm_plugin_active && in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true ) ) {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::AFFIRM;
 		}
-		if ( in_array( WC_Stripe_Payment_Methods::KLARNA, $enabled_payment_methods, true ) && $has_klarna_plugin_active ) {
+		if ( $has_klarna_plugin_active && in_array( WC_Stripe_Payment_Methods::KLARNA, $enabled_payment_methods, true ) ) {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::KLARNA;
 		}
 
