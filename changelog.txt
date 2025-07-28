@@ -16,7 +16,7 @@
 * Update - Improve Stripe API connector logging to include request/response context
 * Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
-* Fix - 3DS authentication model not shown when using Google Pay
+* Fix - 3DS authentication modal not shown when using Google Pay
 
 = 9.7.0 - 2025-07-21 =
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
