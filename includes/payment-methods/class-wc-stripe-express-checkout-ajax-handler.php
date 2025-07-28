@@ -103,8 +103,10 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
 		// This status is used to prevent the booking from being booked by another customer
 		// and should be removed when the cart is emptied for ECE purposes.
-		foreach ( $booking_ids as $booking_id ) {
-			do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+		if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			foreach ( $booking_ids as $booking_id ) {
+				do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			}
 		}
 
 		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
