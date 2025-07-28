@@ -127,5 +127,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
 * Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
+* Tweak - Disable Amazon Pay in the PMC if it is still behind a feature flag
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
