@@ -1284,7 +1284,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		);
 
 		// If the error message is 'Invalid API Key...', we want to show a more generic error message,
-		// as the user won't not be able to do anything about it.
+		// as the user won't be able to do anything about it.
 		// The log and the order note will still show the full error message for debugging purposes.
 		if ( 0 === strpos( $e->getLocalizedMessage(), 'Invalid API Key' ) ) {
 			$error_message = __( "We're not able to process this payment. This may be an error on our side. Please contact us if you need any help placing your order.", 'woocommerce-gateway-stripe' );
