@@ -110,7 +110,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.7.1 - xxxx-xx-xx
+= 9.7.1 - xxxx-xx-xx =
 * Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
 * Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 * Add - Add state mapping for Lithuania in express checkout
