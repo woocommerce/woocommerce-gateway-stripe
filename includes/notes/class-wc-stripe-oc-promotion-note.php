@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Class WC_Stripe_OC_Promotion_Note
  */
-class WC_Stripe_OC_Promotion_Note {
+final class WC_Stripe_OC_Promotion_Note {
 	use NoteTraits;
 
 	/**
@@ -23,9 +23,9 @@ class WC_Stripe_OC_Promotion_Note {
 	const NOTE_NAME = 'wc-stripe-oc-promotion-note';
 
 	/**
-	 * Link to learn more about OC.
+	 * Link to activate OC in store.
 	 */
-	const LEARN_MORE_LINK = 'https://woocommerce.com/document/stripe/admin-experience/optimized-checkout-suite/';
+	private const ACTIVATE_NOW_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-optimized-checkout';
 
 	/**
 	 * Get the note.
@@ -41,8 +41,8 @@ class WC_Stripe_OC_Promotion_Note {
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
-			__( 'Learn more', 'woocommerce-gateway-stripe' ),
-			self::LEARN_MORE_LINK,
+			__( 'Activate now', 'woocommerce-gateway-stripe' ),
+			self::ACTIVATE_NOW_LINK,
 			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
