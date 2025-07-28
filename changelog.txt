@@ -2,6 +2,7 @@
 
 = 9.8.0 - xxxx-xx-xx =
 * Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
+* Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
 * Add - Makes the Optimized Checkout feature available for all merchants by default
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
 * Dev - Use product type constants that were added in WooCommerce 9.7
@@ -18,6 +19,8 @@
 * Update - Improve Stripe API connector logging to include request/response context
 * Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
+* Fix - 3DS authentication modal not shown when using Google Pay
+* Update - Improve Stripe API connector logging to include request/response context
 
 = 9.7.0 - 2025-07-21 =
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
