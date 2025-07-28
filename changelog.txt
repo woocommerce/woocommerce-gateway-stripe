@@ -21,6 +21,7 @@
 * Fix - 3DS authentication modal not shown when using Google Pay
 * Update - Improve Stripe API connector logging to include request/response context
 * Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
+* Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 
 = 9.7.0 - 2025-07-21 =
 * Update - Removes BNPL payment methods (Klarna and Affirm) when other official plugins are active
