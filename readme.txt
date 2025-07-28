@@ -128,6 +128,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 * Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
+* Fix - 3DS authentication modal not shown when using Google Pay
 * Update - Improve Stripe API connector logging to include request/response context
+* Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
