@@ -1698,7 +1698,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			}
 		}
 
-		return ! empty( $booking_ids ) ? array_unique( $booking_ids ) : [];
+		return array_unique( $booking_ids );
 	}
 
 	/**
