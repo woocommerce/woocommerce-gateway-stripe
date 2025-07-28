@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.8.0 - xxxx-xx-xx =
 * Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
+* Add - Makes the Optimized Checkout feature available for all merchants by default
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
@@ -125,5 +126,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Prevent multiple save appearance AJAX calls on Block Checkout
 * Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
 * Fix - Fix fatal when processing Boleto setup intents via webhooks
+* Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
