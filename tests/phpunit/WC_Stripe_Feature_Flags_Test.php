@@ -3,6 +3,7 @@
 namespace WooCommerce\Stripe\Tests;
 
 use WC_Stripe_Feature_Flags;
+use WooCommerce\Stripe\Tests\Helpers\PMC_Test_Helper;
 use WP_UnitTestCase;
 
 /**
@@ -16,19 +17,33 @@ class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	/**
 	 * Test for `is_oc_available`.
 	 *
-	 * @param string $option_value The value of the feature flag option.
+	 * @param bool $pmc_enabled Whether the Payment Method Configuration API is enabled.
 	 * @param string $filter_function The filter function to apply.
 	 * @param bool   $expected     The expected result.
 	 * @return void
 	 * @dataProvider provide_test_is_oc_available
 	 */
-	public function test_is_oc_available( $option_value, $filter_function, $expected ) {
+	public function test_is_oc_available( $pmc_enabled, $filter_function, $expected ) {
+		// Mock the payment method configuration for the test, to avoid it being disabled by default.
+		PMC_Test_Helper::cache_mocked_configuration();
+
+		if ( $pmc_enabled ) {
+			PMC_Test_Helper::enable_pmc();
+		} else {
+			PMC_Test_Helper::disable_pmc();
+		}
+
 		if ( ! empty( $filter_function ) ) {
 			add_filter( 'wc_stripe_is_optimized_checkout_available', $filter_function );
 		}
 
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $option_value );
-		$this->assertSame( $expected, WC_Stripe_Feature_Flags::is_oc_available() );
+		$actual = WC_Stripe_Feature_Flags::is_oc_available();
+
+		// Clean up
+		PMC_Test_Helper::disable_pmc();
+		PMC_Test_Helper::delete_cached_configuration();
+
+		$this->assertSame( $expected, $actual );
 
 		if ( ! empty( $filter_function ) ) {
 			remove_filter( 'wc_stripe_is_optimized_checkout_available', $filter_function );
@@ -42,23 +57,28 @@ class WC_Stripe_Feature_Flags_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_oc_available() {
 		return [
-			'available'           => [
-				'option value'    => 'yes',
+			'PMC enabled'                                => [
+				'PMC enabled'     => true,
 				'filter function' => '',
 				'expected'        => true,
 			],
-			'not available'       => [
-				'option value'    => 'no',
+			'PMC disabled'                               => [
+				'PMC enabled'     => false,
 				'filter function' => '',
 				'expected'        => false,
 			],
-			'filter set to true'  => [
-				'option value'    => 'no',
+			'PMC disabled, filter set to true (ignored)' => [
+				'PMC enabled'     => false,
+				'filter function' => '__return_true',
+				'expected'        => false,
+			],
+			'filter set to true'                         => [
+				'PMC enabled'     => true,
 				'filter function' => '__return_true',
 				'expected'        => true,
 			],
-			'filter set to false' => [
-				'option value'    => 'yes',
+			'filter set to false'                        => [
+				'PMC enabled'     => true,
 				'filter function' => '__return_false',
 				'expected'        => false,
 			],
