@@ -874,6 +874,9 @@ class WC_Stripe {
 		}
 
 		$gateway = $this->get_main_stripe_gateway();
+		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			return;
+		}
 
 		$enabled_payment_methods       = $gateway->get_upe_enabled_payment_method_ids();
 		$payment_method_ids_to_disable = [];
