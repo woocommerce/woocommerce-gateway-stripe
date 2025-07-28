@@ -7,12 +7,20 @@ class WC_Stripe_Feature_Flags {
 	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
 	const ECE_FEATURE_FLAG_NAME               = '_wcstripe_feature_ece';
 	const AMAZON_PAY_FEATURE_FLAG_NAME        = '_wcstripe_feature_amazon_pay';
-	const OC_FEATURE_FLAG_NAME                = '_wcstripe_feature_oc';
 	const LPM_ACH_FEATURE_FLAG_NAME           = '_wcstripe_feature_lpm_ach';
 	const LPM_ACSS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_acss';
 	const LPM_BACS_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_bacs';
 	const LPM_BLIK_FEATURE_FLAG_NAME          = '_wcstripe_feature_lpm_blik';
 	const LPM_BECS_DEBIT_FEATURE_FLAG_NAME    = '_wcstripe_feature_lpm_becs_debit';
+
+	/**
+	 * Feature flag for Optimized Checkout (OC).
+	 *
+	 * @var string
+	 *
+	 * @deprecated This feature flag will be removed in version 9.9.0.
+	 */
+	const OC_FEATURE_FLAG_NAME = '_wcstripe_feature_oc';
 
 	/**
 	 * Map of feature flag option names => their default "yes"/"no" value.
@@ -174,13 +182,24 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_oc_available() {
-		$default_value   = self::get_option_with_default( self::OC_FEATURE_FLAG_NAME );
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 		$pmc_enabled     = $stripe_settings['pmc_enabled'] ?? 'no';
+		if ( 'yes' !== $pmc_enabled ) {
+			return false;
+		}
+
+		/**
+		 * Filter to control the availability of the Optimized Checkout feature.
+		 *
+		 * @since 9.6.0
+		 * @deprecated This filter will be removed in version 9.9.0. No replacement will be provided as the Optimized Checkout feature will be permanently enabled.
+		 * @param string $default_value The default value for the feature flag.
+		 * @param string $pmc_enabled The value of the 'pmc_enabled' setting.
+		 */
 		return apply_filters(
 			'wc_stripe_is_optimized_checkout_available',
-			'yes' === $default_value && 'yes' === $pmc_enabled,
-			$default_value,
+			true,
+			'yes',
 			$pmc_enabled
 		);
 	}
