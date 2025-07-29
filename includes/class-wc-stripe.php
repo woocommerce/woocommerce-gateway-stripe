@@ -281,6 +281,9 @@ class WC_Stripe {
 		add_action( 'init', [ $this, 'initialize_status_page' ], 15 );
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
+
+		// Check if other official plugins are active for Klarna or Affirm and deactivate those BNPLs if so.
+		add_action( 'init', [ $this, 'maybe_deactivate_bnpls' ] );
 	}
 
 	/**
@@ -856,5 +859,43 @@ class WC_Stripe {
 
 		$wcstripe_status = new WC_Stripe_Status( self::get_main_stripe_gateway(), $this->account );
 		$wcstripe_status->init_hooks();
+	}
+
+	/**
+	 * Maybe deactivate Affirm or Klarna payment methods if other official plugins are active.
+	 *
+	 * @return void
+	 */
+	public function maybe_deactivate_bnpls() {
+		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
+		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
+		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
+			return;
+		}
+
+		$gateway = $this->get_main_stripe_gateway();
+		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			return;
+		}
+
+		$enabled_payment_methods       = $gateway->get_upe_enabled_payment_method_ids();
+		$payment_method_ids_to_disable = [];
+		if ( $has_affirm_plugin_active && in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true ) ) {
+			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::AFFIRM;
+		}
+		if ( $has_klarna_plugin_active && in_array( WC_Stripe_Payment_Methods::KLARNA, $enabled_payment_methods, true ) ) {
+			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::KLARNA;
+		}
+
+		if ( [] === $payment_method_ids_to_disable ) {
+			return;
+		}
+
+		$gateway->update_enabled_payment_methods(
+			array_diff(
+				$enabled_payment_methods,
+				$payment_method_ids_to_disable
+			)
+		);
 	}
 }
