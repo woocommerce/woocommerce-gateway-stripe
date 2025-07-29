@@ -118,14 +118,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
-* Tweak - Check for checkout validation error before creating a payment method in Stripe
-* Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
-* Dev - Fix WooCommerce version fetching in GitHub workflows
-* Dev - Fix failing test cases associated with WooCommerce 10.0.x
-* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
-* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
-* Fix - Fix fatal when processing setup intents for free subscriptions via webhooks
 * Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
 * Fix - 3DS authentication modal not shown when using Google Pay
 * Update - Improve Stripe API connector logging to include request/response context
