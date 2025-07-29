@@ -1,5 +1,5 @@
 /* global Stripe */
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
 import { applyFilters } from '@wordpress/hooks';
 import {
@@ -46,19 +46,22 @@ export default class WCStripeAPI {
 		// error is a jqXHR and statusText is one of "timeout", "error", "abort", and "parsererror".
 		switch ( error.statusText ) {
 			case 'timeout':
-				return __(
+				return _x(
 					'A timeout occurred while connecting to the server. Please try again.',
+					'shopper',
 					'woocommerce-gateway-stripe'
 				);
 			case 'abort':
-				return __(
+				return _x(
 					'The connection to the server was aborted. Please try again.',
+					'shopper',
 					'woocommerce-gateway-stripe'
 				);
 			case 'error':
 			default:
-				return __(
+				return _x(
 					'An error occurred while connecting to the server. Please try again.',
+					'shopper',
 					'woocommerce-gateway-stripe'
 				);
 		}

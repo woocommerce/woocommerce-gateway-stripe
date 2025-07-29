@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
 
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
@@ -19,8 +19,9 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 		}
 	}
 	if ( ! errorMessage ) {
-		errorMessage = __(
+		errorMessage = _x(
 			'There was a problem processing the order.',
+			'shopper',
 			'woocommerce-gateway-stripe'
 		);
 	}

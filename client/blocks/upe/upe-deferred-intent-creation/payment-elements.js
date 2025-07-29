@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { useEffect, useState } from '@wordpress/element';
-import { __, sprintf } from '@wordpress/i18n';
+import { _x, sprintf } from '@wordpress/i18n';
 import { StoreNotice } from '@woocommerce/blocks-checkout';
 import { Elements } from '@stripe/react-stripe-js';
 /**
@@ -75,8 +75,9 @@ const PaymentElements = ( {
 					error?.message ??
 						sprintf(
 							// translators: %s is the payment method title.
-							__(
+							_x(
 								'Failed to load %s payment method. Please refresh the page and try again.',
+								'shopper',
 								'woocommerce-gateway-stripe'
 							),
 							paymentMethodTitle
@@ -111,8 +112,9 @@ const PaymentElements = ( {
 			<LoadingMask
 				isLoading={ true }
 				showSpinner={ true }
-				screenReaderLabel={ __(
+				screenReaderLabel={ _x(
 					'Loading payment method…',
+					'shopper',
 					'woocommerce-gateway-stripe'
 				) }
 			/>

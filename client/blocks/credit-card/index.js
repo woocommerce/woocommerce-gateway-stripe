@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
@@ -33,7 +33,7 @@ const StripeLabel = ( props ) => {
 
 	const labelText =
 		getBlocksConfiguration()?.title ??
-		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
+		_x( 'Credit / Debit Card', 'shopper', 'woocommerce-gateway-stripe' );
 
 	return <PaymentMethodLabel text={ labelText } />;
 };
@@ -58,8 +58,9 @@ const stripeCcPaymentMethod = {
 	),
 	icons: cardIcons,
 	canMakePayment: () => stripePromise,
-	ariaLabel: __(
+	ariaLabel: _x(
 		'Stripe Credit Card payment method',
+		'shopper',
 		'woocommerce-gateway-stripe'
 	),
 	supports,

@@ -1,4 +1,4 @@
-import { __, sprintf } from '@wordpress/i18n';
+import { _x, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -118,8 +118,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				error?.message ??
 					sprintf(
 						// translators: %s is the payment method title.
-						__(
+						_x(
 							'Failed to load %s payment method. Please refresh the page and try again.',
+							'shopper',
 							'woocommerce-gateway-stripe'
 						),
 						paymentMethodsConfig?.[ paymentMethodType ]?.title ?? ''
@@ -419,8 +420,9 @@ export const processPayment = (
 	blockUI( jQueryForm );
 
 	const getErrorMessage = ( err ) => {
-		const genericErrorMessage = __(
+		const genericErrorMessage = _x(
 			'Payment failed. Please try again.',
+			'shopper',
 			'woocommerce-gateway-stripe'
 		);
 		if ( ! err ) {
@@ -452,7 +454,11 @@ export const processPayment = (
 		};
 		return sprintf(
 			/* translators: %s is an input field name */
-			__( '%s is a required field.', 'woocommerce-gateway-stripe' ),
+			_x(
+				'%s is a required field.',
+				'shopper',
+				'woocommerce-gateway-stripe'
+			),
 			( section && section[ 1 ]
 				? toProperCase( section[ 1 ] ) + ' '
 				: '' ) + toProperCase( field[ 1 ] )
@@ -467,8 +473,9 @@ export const processPayment = (
 
 			if ( hasLoadError ) {
 				throw new Error(
-					__(
+					_x(
 						'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+						'shopper',
 						'woocommerce-gateway-stripe'
 					)
 				);
@@ -669,8 +676,9 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 
 	if ( ! stripeServerData?.orderReceivedURL ) {
 		showErrorCheckout(
-			__(
+			_x(
 				'There was a problem processing the payment. Please refresh the page to try again.',
+				'shopper',
 				'woocommerce-gateway-stripe'
 			)
 		);

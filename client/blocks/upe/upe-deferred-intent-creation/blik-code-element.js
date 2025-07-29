@@ -1,5 +1,5 @@
 import { ValidatedTextInput } from '@woocommerce/blocks-checkout';
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { useState } from 'react';
 
 const BlikCodeElement = () => {
@@ -16,15 +16,17 @@ const BlikCodeElement = () => {
 				value={ blikCode }
 				customValidityMessage={ ( validity ) => {
 					if ( validity.valueMissing ) {
-						return __(
+						return _x(
 							'Please enter a valid BLIK code',
+							'shopper',
 							'woocommerce-gateway-stripe'
 						);
 					}
 
 					if ( validity.patternMismatch ) {
-						return __(
+						return _x(
 							'BLIK Code is invalid',
+							'shopper',
 							'woocommerce-gateway-stripe'
 						);
 					}
@@ -36,8 +38,9 @@ const BlikCodeElement = () => {
 					marginTop: 'var(--wp--preset--spacing--50)',
 				} }
 			>
-				{ __(
+				{ _x(
 					'After submitting your order, please authorize the payment in your mobile banking application.',
+					'shopper',
 					'woocommerce-gateway-stripe'
 				) }
 			</p>

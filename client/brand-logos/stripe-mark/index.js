@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import classNames from 'classnames';
 import mark from './mark.svg';
 
@@ -17,7 +17,7 @@ const StripeMark = ( { className, ...restProps } ) => (
 		src={ mark }
 		width="64"
 		height="64"
-		alt={ __( 'Stripe logo', 'woocommerce-gateway-stripe' ) }
+		alt={ _x( 'Stripe logo', 'shopper', 'woocommerce-gateway-stripe' ) }
 		{ ...restProps }
 	/>
 );

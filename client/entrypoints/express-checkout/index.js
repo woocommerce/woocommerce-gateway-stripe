@@ -1,7 +1,7 @@
 /* global wcStripeExpressCheckoutPayForOrderParams */
 /* global wc_stripe_express_checkout_params */
 
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
@@ -70,8 +70,9 @@ jQuery( function ( $ ) {
 	);
 
 	let wcStripeECEError = '';
-	const defaultErrorMessage = __(
+	const defaultErrorMessage = _x(
 		'There was an error getting the product information.',
+		'shopper',
 		'woocommerce-gateway-stripe'
 	);
 
@@ -127,8 +128,9 @@ jQuery( function ( $ ) {
 
 		// First check if product can be added to cart.
 		if ( addToCartButton.classList.contains( 'disabled' ) ) {
-			const defaultMessage = __(
+			const defaultMessage = _x(
 				'Please select your product options before proceeding.',
+				'shopper',
 				'woocommerce-gateway-stripe'
 			);
 			let message;
@@ -139,8 +141,9 @@ jQuery( function ( $ ) {
 			) {
 				message =
 					getAddToCartVariationParams( 'i18n_unavailable_text' ) ||
-					__(
+					_x(
 						'Sorry, this product is unavailable. Please choose a different combination.',
+						'shopper',
 						'woocommerce-gateway-stripe'
 					);
 			}
@@ -378,8 +381,9 @@ jQuery( function ( $ ) {
 
 				if ( getExpressCheckoutData( 'taxes_based_on_billing' ) ) {
 					displayExpressCheckoutNotice(
-						__(
+						_x(
 							'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
+							'shopper',
 							'woocommerce-gateway-stripe'
 						),
 						'info',
@@ -426,8 +430,9 @@ jQuery( function ( $ ) {
 					);
 
 					if ( wcStripeECE.isAddToCartSuccessful === false ) {
-						const message = __(
+						const message = _x(
 							'There was an error adding the product to the cart.',
+							'shopper',
 							'woocommerce-gateway-stripe'
 						);
 						return wcStripeECE.abortPayment( event, message );

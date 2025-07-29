@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import classNames from 'classnames';
 import logo from './logo.svg';
 
@@ -20,7 +20,7 @@ const WooLogo = ( { className, ...restProps } ) => (
 		src={ logo }
 		width="64"
 		height="64"
-		alt={ __( 'Woo logo', 'woocommerce-gateway-stripe' ) }
+		alt={ _x( 'Woo logo', 'shopper', 'woocommerce-gateway-stripe' ) }
 		{ ...restProps }
 	/>
 );

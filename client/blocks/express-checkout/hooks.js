@@ -1,5 +1,5 @@
 import { useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { useStripe, useElements } from '@stripe/react-stripe-js';
 import {
 	onAbortPaymentHandler,
@@ -113,8 +113,9 @@ export const useExpressCheckout = ( {
 
 			if ( getExpressCheckoutData( 'taxes_based_on_billing' ) ) {
 				displayExpressCheckoutNotice(
-					__(
+					_x(
 						'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
+						'shopper',
 						'woocommerce-gateway-stripe'
 					),
 					'info',

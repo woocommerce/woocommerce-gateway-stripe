@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import { decodeEntities } from '@wordpress/html-entities';
 import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
@@ -63,7 +63,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( taxAmount ) {
 		displayItems.push( {
 			amount: transformPrice( taxAmount, cartData.totals ),
-			name: __( 'Tax', 'woocommerce-gateway-stripe' ),
+			name: _x( 'Tax', 'shopper', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -78,7 +78,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 		displayItems.push( {
 			key: 'total_shipping',
 			amount: transformPrice( shippingAmount, cartData.totals ),
-			name: __( 'Shipping', 'woocommerce-gateway-stripe' ),
+			name: _x( 'Shipping', 'shopper', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -89,7 +89,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( discountAmount ) {
 		displayItems.push( {
 			amount: -transformPrice( discountAmount, cartData.totals ),
-			name: __( 'Discount', 'woocommerce-gateway-stripe' ),
+			name: _x( 'Discount', 'shopper', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 
@@ -97,7 +97,7 @@ export const transformCartDataForDisplayItems = ( rawCartData ) => {
 	if ( refundAmount ) {
 		displayItems.push( {
 			amount: -transformPrice( refundAmount, cartData.totals ),
-			name: __( 'Refund', 'woocommerce-gateway-stripe' ),
+			name: _x( 'Refund', 'shopper', 'woocommerce-gateway-stripe' ),
 		} );
 	}
 

@@ -1,5 +1,5 @@
 import { useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import {
 	CardElement,
 	CardNumberElement,
@@ -49,8 +49,9 @@ export const InlineCard = ( {
 					onChange={ errorCallback }
 				/>
 				<label htmlFor="wc-stripe-inline-card-element">
-					{ __(
+					{ _x(
 						'Credit Card Information',
+						'shopper',
 						'woocommerce-gateway-stripe'
 					) }
 				</label>
@@ -115,7 +116,11 @@ export const CardElements = ( {
 					onBlur={ () => cardNumOnActive( isEmpty.cardNumber ) }
 				/>
 				<label htmlFor="wc-stripe-card-number-element">
-					{ __( 'Card Number', 'woocommerce-gateway-stripe' ) }
+					{ _x(
+						'Card Number',
+						'shopper',
+						'woocommerce-gateway-stripe'
+					) }
 				</label>
 				<ValidationInputError errorMessage={ cardNumError } />
 			</div>
@@ -132,7 +137,11 @@ export const CardElements = ( {
 					id="wc-stripe-card-expiry-element"
 				/>
 				<label htmlFor="wc-stripe-card-expiry-element">
-					{ __( 'Expiry Date', 'woocommerce-gateway-stripe' ) }
+					{ _x(
+						'Expiry Date',
+						'shopper',
+						'woocommerce-gateway-stripe'
+					) }
 				</label>
 				<ValidationInputError errorMessage={ cardExpiryError } />
 			</div>
@@ -146,7 +155,7 @@ export const CardElements = ( {
 					id="wc-stripe-card-code-element"
 				/>
 				<label htmlFor="wc-stripe-card-code-element">
-					{ __( 'CVV/CVC', 'woocommerce-gateway-stripe' ) }
+					{ _x( 'CVV/CVC', 'shopper', 'woocommerce-gateway-stripe' ) }
 				</label>
 				<ValidationInputError errorMessage={ cardCvcError } />
 			</div>

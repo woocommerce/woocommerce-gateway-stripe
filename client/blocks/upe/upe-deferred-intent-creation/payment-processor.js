@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { select } from '@wordpress/data';
 import {
 	PaymentElement,
@@ -188,8 +188,9 @@ const PaymentProcessor = ( {
 					if ( hasLoadErrorRef.current ) {
 						return {
 							type: 'error',
-							message: __(
+							message: _x(
 								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
+								'shopper',
 								'woocommerce-gateway-stripe'
 							),
 						};
@@ -209,8 +210,9 @@ const PaymentProcessor = ( {
 					if ( ! ( isPaymentElementComplete || isBlikSelected ) ) {
 						return {
 							type: 'error',
-							message: __(
+							message: _x(
 								'Your payment information is incomplete.',
+								'shopper',
 								'woocommerce-gateway-stripe'
 							),
 						};

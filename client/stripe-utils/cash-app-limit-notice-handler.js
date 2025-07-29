@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { _x } from '@wordpress/i18n';
 import { callWhenElementIsAvailable } from 'wcstripe/blocks/upe/call-when-element-is-available';
 import { CASH_APP_NOTICE_AMOUNT_THRESHOLD } from 'wcstripe/data/constants';
 
@@ -10,8 +10,10 @@ const LIMIT_NOTICE_CLASSNAME = 'wc-block-checkout__payment-method-limit-notice';
  */
 export const cashAppLimitNotice = document.createElement( 'div' );
 cashAppLimitNotice.classList.add( 'woocommerce-info', LIMIT_NOTICE_CLASSNAME );
-cashAppLimitNotice.textContent = __(
-	'Please note that, depending on your account and transaction history, Cash App Pay may reject your transaction due to its amount.'
+cashAppLimitNotice.textContent = _x(
+	'Please note that, depending on your account and transaction history, Cash App Pay may reject your transaction due to its amount.',
+	'shopper',
+	'woocommerce-gateway-stripe'
 );
 cashAppLimitNotice.setAttribute( 'data-testid', 'cash-app-limit-notice' );
 
