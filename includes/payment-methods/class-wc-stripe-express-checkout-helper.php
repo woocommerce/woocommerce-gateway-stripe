@@ -1693,7 +1693,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$booking_ids = [];
 
 		foreach ( $cart as $item ) {
-			if ( isset( $item['booking']['_booking_id'] ) ) {
+			if ( ! empty( $item['booking']['_booking_id'] ) ) {
 				$booking_ids[] = $item['booking']['_booking_id'];
 			}
 		}
