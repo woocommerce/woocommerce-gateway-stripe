@@ -685,25 +685,17 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `get_booking_ids_from_cart`.
 	 *
+	 * @param array $cart_contents Cart contents.
+	 * @param array $expected Expected booking IDs.
 	 * @return void
+	 *
+	 * @dataProvider provide_test_get_booking_ids_from_cart
 	 */
-	public function test_get_booking_ids_from_cart() {
+	public function test_get_booking_ids_from_cart( $cart_contents, $expected ) {
 		WC()->session->init();
 		WC()->cart->empty_cart();
 
-		// Add a booking product to the cart.
-		$product = WC_Helper_Product::create_simple_product();
-		$product->set_virtual( false );
-		$product->set_tax_status( 'none' );
-		$product->save();
-
-		WC()->cart->cart_contents = [
-			[
-				'booking' => [
-					'_booking_id' => $product->get_id(),
-				],
-			],
-		];
+		WC()->cart->cart_contents = $cart_contents;
 
 		$helper = new WC_Stripe_Express_Checkout_Helper();
 		$actual = $helper->get_booking_ids_from_cart();
@@ -712,6 +704,104 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		WC()->session->cleanup_sessions();
 		WC()->cart->empty_cart();
 
-		$this->assertSame( [ $product->get_id() ], $actual );
+		$this->assertSame( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_get_booking_ids_from_cart`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_booking_ids_from_cart() {
+		$product_1 = WC_Helper_Product::create_simple_product();
+		$product_1->save();
+
+		$product_2 = WC_Helper_Product::create_simple_product();
+		$product_2->save();
+
+		$product_3 = WC_Helper_Product::create_simple_product();
+		$product_3->save();
+
+		return [
+			'no products'                => [
+				'cart contents' => [],
+				'expected'      => [],
+			],
+			'single product'             => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+				],
+			],
+			'multiple products'          => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_2->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_2->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+					$product_2->get_id(),
+				],
+			],
+			'multiple products, same ID' => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+				],
+			],
+			'mixed products (booking data not always present)' => [
+				'cart contents' => [
+					[
+						'product_id' => $product_1->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_1->get_id(),
+						],
+					],
+					[
+						'product_id' => $product_2->get_id(),
+					],
+					[
+						'product_id' => $product_3->get_id(),
+						'booking'    => [
+							'_booking_id' => $product_3->get_id(),
+						],
+					],
+				],
+				'expected'      => [
+					$product_1->get_id(),
+					$product_3->get_id(),
+				],
+			],
+		];
 	}
 }
