@@ -72,7 +72,7 @@ jQuery( function ( $ ) {
 	let wcStripeECEError = '';
 	const defaultErrorMessage = _x(
 		'There was an error getting the product information.',
-		'shopper',
+		'[shopper]',
 		'woocommerce-gateway-stripe'
 	);
 
@@ -130,7 +130,7 @@ jQuery( function ( $ ) {
 		if ( addToCartButton.classList.contains( 'disabled' ) ) {
 			const defaultMessage = _x(
 				'Please select your product options before proceeding.',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			);
 			let message;
@@ -143,7 +143,7 @@ jQuery( function ( $ ) {
 					getAddToCartVariationParams( 'i18n_unavailable_text' ) ||
 					_x(
 						'Sorry, this product is unavailable. Please choose a different combination.',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					);
 			}
@@ -383,7 +383,7 @@ jQuery( function ( $ ) {
 					displayExpressCheckoutNotice(
 						_x(
 							'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
-							'shopper',
+							'[shopper]',
 							'woocommerce-gateway-stripe'
 						),
 						'info',
@@ -432,7 +432,7 @@ jQuery( function ( $ ) {
 					if ( wcStripeECE.isAddToCartSuccessful === false ) {
 						const message = _x(
 							'There was an error adding the product to the cart.',
-							'shopper',
+							'[shopper]',
 							'woocommerce-gateway-stripe'
 						);
 						return wcStripeECE.abortPayment( event, message );

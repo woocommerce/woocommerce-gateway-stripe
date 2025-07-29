@@ -18,7 +18,7 @@ const BlikCodeElement = () => {
 					if ( validity.valueMissing ) {
 						return _x(
 							'Please enter a valid BLIK code',
-							'shopper',
+							'[shopper]',
 							'woocommerce-gateway-stripe'
 						);
 					}
@@ -26,7 +26,7 @@ const BlikCodeElement = () => {
 					if ( validity.patternMismatch ) {
 						return _x(
 							'BLIK Code is invalid',
-							'shopper',
+							'[shopper]',
 							'woocommerce-gateway-stripe'
 						);
 					}
@@ -40,7 +40,7 @@ const BlikCodeElement = () => {
 			>
 				{ _x(
 					'After submitting your order, please authorize the payment in your mobile banking application.',
-					'shopper',
+					'[shopper]',
 					'woocommerce-gateway-stripe'
 				) }
 			</p>

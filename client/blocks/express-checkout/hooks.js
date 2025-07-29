@@ -115,7 +115,7 @@ export const useExpressCheckout = ( {
 				displayExpressCheckoutNotice(
 					_x(
 						'Final taxes charged can differ based on your actual billing address when using Express Checkout buttons (Link, Google Pay or Apple Pay).',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					),
 					'info',

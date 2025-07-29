@@ -48,20 +48,20 @@ export default class WCStripeAPI {
 			case 'timeout':
 				return _x(
 					'A timeout occurred while connecting to the server. Please try again.',
-					'shopper',
+					'[shopper]',
 					'woocommerce-gateway-stripe'
 				);
 			case 'abort':
 				return _x(
 					'The connection to the server was aborted. Please try again.',
-					'shopper',
+					'[shopper]',
 					'woocommerce-gateway-stripe'
 				);
 			case 'error':
 			default:
 				return _x(
 					'An error occurred while connecting to the server. Please try again.',
-					'shopper',
+					'[shopper]',
 					'woocommerce-gateway-stripe'
 				);
 		}

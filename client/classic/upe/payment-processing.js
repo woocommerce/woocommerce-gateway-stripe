@@ -120,7 +120,7 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 						// translators: %s is the payment method title.
 						_x(
 							'Failed to load %s payment method. Please refresh the page and try again.',
-							'shopper',
+							'[shopper]',
 							'woocommerce-gateway-stripe'
 						),
 						paymentMethodsConfig?.[ paymentMethodType ]?.title ?? ''
@@ -422,7 +422,7 @@ export const processPayment = (
 	const getErrorMessage = ( err ) => {
 		const genericErrorMessage = _x(
 			'Payment failed. Please try again.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		);
 		if ( ! err ) {
@@ -456,7 +456,7 @@ export const processPayment = (
 			/* translators: %s is an input field name */
 			_x(
 				'%s is a required field.',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			),
 			( section && section[ 1 ]
@@ -475,7 +475,7 @@ export const processPayment = (
 				throw new Error(
 					_x(
 						'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					)
 				);
@@ -678,7 +678,7 @@ export const confirmVoucherPayment = async ( api, jQueryForm ) => {
 		showErrorCheckout(
 			_x(
 				'There was a problem processing the payment. Please refresh the page to try again.',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			)
 		);

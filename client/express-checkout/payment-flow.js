@@ -21,7 +21,7 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	if ( ! errorMessage ) {
 		errorMessage = _x(
 			'There was a problem processing the order.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		);
 	}

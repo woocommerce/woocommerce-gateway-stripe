@@ -51,7 +51,7 @@ export const InlineCard = ( {
 				<label htmlFor="wc-stripe-inline-card-element">
 					{ _x(
 						'Credit Card Information',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					) }
 				</label>
@@ -118,7 +118,7 @@ export const CardElements = ( {
 				<label htmlFor="wc-stripe-card-number-element">
 					{ _x(
 						'Card Number',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					) }
 				</label>
@@ -139,7 +139,7 @@ export const CardElements = ( {
 				<label htmlFor="wc-stripe-card-expiry-element">
 					{ _x(
 						'Expiry Date',
-						'shopper',
+						'[shopper]',
 						'woocommerce-gateway-stripe'
 					) }
 				</label>
@@ -155,7 +155,11 @@ export const CardElements = ( {
 					id="wc-stripe-card-code-element"
 				/>
 				<label htmlFor="wc-stripe-card-code-element">
-					{ _x( 'CVV/CVC', 'shopper', 'woocommerce-gateway-stripe' ) }
+					{ _x(
+						'CVV/CVC',
+						'[shopper]',
+						'woocommerce-gateway-stripe'
+					) }
 				</label>
 				<ValidationInputError errorMessage={ cardCvcError } />
 			</div>

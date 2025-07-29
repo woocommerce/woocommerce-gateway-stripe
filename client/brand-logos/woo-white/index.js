@@ -20,7 +20,7 @@ const WooLogo = ( { className, ...restProps } ) => (
 		src={ logo }
 		width="64"
 		height="64"
-		alt={ _x( 'Woo logo', 'shopper', 'woocommerce-gateway-stripe' ) }
+		alt={ _x( 'Woo logo', '[shopper]', 'woocommerce-gateway-stripe' ) }
 		{ ...restProps }
 	/>
 );

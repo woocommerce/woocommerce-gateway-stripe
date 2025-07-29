@@ -190,7 +190,7 @@ const PaymentProcessor = ( {
 							type: 'error',
 							message: _x(
 								'Invalid or missing payment details. Please ensure the provided payment method is correctly entered.',
-								'shopper',
+								'[shopper]',
 								'woocommerce-gateway-stripe'
 							),
 						};
@@ -212,7 +212,7 @@ const PaymentProcessor = ( {
 							type: 'error',
 							message: _x(
 								'Your payment information is incomplete.',
-								'shopper',
+								'[shopper]',
 								'woocommerce-gateway-stripe'
 							),
 						};

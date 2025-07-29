@@ -33,7 +33,7 @@ const StripeLabel = ( props ) => {
 
 	const labelText =
 		getBlocksConfiguration()?.title ??
-		_x( 'Credit / Debit Card', 'shopper', 'woocommerce-gateway-stripe' );
+		_x( 'Credit / Debit Card', '[shopper]', 'woocommerce-gateway-stripe' );
 
 	return <PaymentMethodLabel text={ labelText } />;
 };
@@ -60,7 +60,7 @@ const stripeCcPaymentMethod = {
 	canMakePayment: () => stripePromise,
 	ariaLabel: _x(
 		'Stripe Credit Card payment method',
-		'shopper',
+		'[shopper]',
 		'woocommerce-gateway-stripe'
 	),
 	supports,

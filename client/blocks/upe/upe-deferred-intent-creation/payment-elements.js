@@ -77,7 +77,7 @@ const PaymentElements = ( {
 							// translators: %s is the payment method title.
 							_x(
 								'Failed to load %s payment method. Please refresh the page and try again.',
-								'shopper',
+								'[shopper]',
 								'woocommerce-gateway-stripe'
 							),
 							paymentMethodTitle
@@ -114,7 +114,7 @@ const PaymentElements = ( {
 				showSpinner={ true }
 				screenReaderLabel={ _x(
 					'Loading payment method…',
-					'shopper',
+					'[shopper]',
 					'woocommerce-gateway-stripe'
 				) }
 			/>

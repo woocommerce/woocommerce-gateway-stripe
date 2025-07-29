@@ -17,7 +17,7 @@ const StripeMark = ( { className, ...restProps } ) => (
 		src={ mark }
 		width="64"
 		height="64"
-		alt={ _x( 'Stripe logo', 'shopper', 'woocommerce-gateway-stripe' ) }
+		alt={ _x( 'Stripe logo', '[shopper]', 'woocommerce-gateway-stripe' ) }
 		{ ...restProps }
 	/>
 );

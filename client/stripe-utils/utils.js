@@ -57,77 +57,77 @@ const getErrorMessageForCode = ( code ) => {
 	const messages = {
 		[ errorCodes.INVALID_NUMBER ]: _x(
 			'The card number is not a valid credit card number.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INVALID_EXPIRY_MONTH ]: _x(
 			'The card expiration month is invalid.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INVALID_EXPIRY_YEAR ]: _x(
 			'The card expiration year is invalid.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INVALID_CVC ]: _x(
 			'The card security code is invalid.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCORRECT_NUMBER ]: _x(
 			'The card number is incorrect.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCOMPLETE_NUMBER ]: _x(
 			'The card number is incomplete.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCOMPLETE_CVC ]: _x(
 			'The card security code is incomplete.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCOMPLETE_EXPIRY ]: _x(
 			'The card expiration date is incomplete.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.EXPIRED_CARD ]: _x(
 			'The card has expired.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCORRECT_CVC ]: _x(
 			'The card security code is incorrect.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INCORRECT_ZIP ]: _x(
 			'The card zip code failed validation.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.INVALID_EXPIRY_YEAR_PAST ]: _x(
 			'The card expiration year is in the past.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.CARD_DECLINED ]: _x(
 			'The card was declined.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.MISSING ]: _x(
 			'There is no card on a customer that is being charged.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 		[ errorCodes.PROCESSING_ERROR ]: _x(
 			'An error occurred while processing the card.',
-			'shopper',
+			'[shopper]',
 			'woocommerce-gateway-stripe'
 		),
 	};
@@ -139,13 +139,13 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 		case errorTypes.INVALID_EMAIL:
 			return _x(
 				'Invalid email address, please correct and try again.',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			);
 		case isNonFriendlyError( type ):
 			return _x(
 				'Unable to process this payment, please try again or use alternative method.',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			);
 		case errorTypes.CARD_ERROR:
@@ -840,7 +840,7 @@ export const validateBlikCode = ( jQueryForm = undefined ) => {
 		throw new Error(
 			_x(
 				'BLIK Code is invalid',
-				'shopper',
+				'[shopper]',
 				'woocommerce-gateway-stripe'
 			)
 		);
