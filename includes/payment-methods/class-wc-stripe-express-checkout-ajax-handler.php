@@ -143,7 +143,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		if ( $booking_id ) {
 			// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
 			// This status is used to prevent the booking from being booked by another customer
-			// and should be removed when the cart is emptied for ECE purposes.
+			// and should be removed when the cart is emptied for express checkout purposes.
 			do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 		}
 
