@@ -17,6 +17,7 @@
 * Fix - 3DS authentication modal not shown when using Google Pay
 * Update - Improve Stripe API connector logging to include request/response context
 * Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
+* Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout
