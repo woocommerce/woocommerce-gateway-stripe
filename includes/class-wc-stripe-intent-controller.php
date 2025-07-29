@@ -1098,7 +1098,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Removes the return URL if the request doesn't need redirection.
-		if ( ( ! $this->request_needs_redirection( $request['payment_method_types'] ) ) ) {
+		if ( ! $this->request_needs_redirection( $request['payment_method_types'] ) ) {
 			unset( $request['return_url'] );
 		}
 
