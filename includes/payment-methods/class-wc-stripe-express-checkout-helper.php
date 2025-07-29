@@ -1669,16 +1669,36 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Used to remove the booking from WC Bookings in-cart status.
 	 *
 	 * @return int|false
+	 *
+	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
 	 */
 	public function get_booking_id_from_cart() {
-		$cart      = WC()->cart->get_cart();
-		$cart_item = reset( $cart );
-
-		if ( $cart_item && isset( $cart_item['booking']['_booking_id'] ) ) {
-			return $cart_item['booking']['_booking_id'];
+		$booking_ids = $this->get_booking_ids_from_cart();
+		if ( ! empty( $booking_ids ) ) {
+			return $booking_ids[0];
 		}
 
 		return false;
+	}
+
+	/**
+	 * Gets a list of booking ids from the cart.
+	 *
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return array
+	 */
+	public function get_booking_ids_from_cart() {
+		$cart        = WC()->cart->get_cart();
+		$booking_ids = [];
+
+		foreach ( $cart as $item ) {
+			if ( ! empty( $item['booking']['_booking_id'] ) ) {
+				$booking_ids[] = $item['booking']['_booking_id'];
+			}
+		}
+
+		return array_unique( $booking_ids );
 	}
 
 	/**

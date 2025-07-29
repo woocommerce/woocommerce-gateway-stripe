@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.8.0 - xxxx-xx-xx =
+* Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
 * Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
 * Add - Makes the Optimized Checkout feature available for all merchants by default
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
