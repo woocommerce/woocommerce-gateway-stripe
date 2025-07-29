@@ -377,6 +377,61 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	}
 
 	/**
+	 * Tests that Apple Pay and Google Pay can be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
+	public function test_update_settings_enables_apple_pay_google_pay() {
+		// Before the update: card and CashApp are enabled, Apple Pay and Google Pay are disabled
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		// After the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
+		$this->expect_payment_method_configurations_update(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ]
+		);
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		// Disable CashApp, keep card enabled.
+		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CARD ] );
+		$request->set_param( 'is_upe_enabled', true );
+		// Enable Apple Pay and Google Pay.
+		$request->set_param( 'is_payment_request_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Tests that Apple Pay and Google Pay can only be enabled in the PMC
+	 * when payment request is enabled, and card is enabled.
+	 */
+	public function test_update_settings_enforces_apple_pay_google_pay_requires_card() {
+		// Before the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
+		$this->mock_payment_method_configurations(
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ]
+		);
+
+		// After the update: CashApp is enabled, card, Apple Pay, and Google Pay are disabled
+		$this->expect_payment_method_configurations_update(
+			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ],
+			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		// Disable card, enable CashApp.
+		$request->set_param( 'enabled_payment_method_ids', [ WC_Stripe_Payment_Methods::CASHAPP_PAY ] );
+		$request->set_param( 'is_upe_enabled', true );
+		// Enable Apple Pay and Google Pay -- this will be ignored because card is disabled
+		$request->set_param( 'is_payment_request_enabled', true );
+
+		$response = $this->controller->update_settings( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
 	 * Tests for the dismiss notice endpoint.
 	 *
 	 * @param array $request_params The request parameters.
