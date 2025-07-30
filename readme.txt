@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.8.0 - xxxx-xx-xx =
+* Fix - Require credit cards to be enabled when the Optimized Checkout is active
 * Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
 * Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
 * Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
