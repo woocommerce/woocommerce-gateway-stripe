@@ -298,17 +298,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function get_payment_method_ids_to_enable( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
+		$is_oc_enabled                = $request->get_param( 'is_oc_enabled' );
 		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
 
-		// Card is required for Apple Pay and Google Pay.
-		if ( $is_upe_enabled &&
-			 $is_payment_request_enabled &&
-			 in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
-		) {
-			$payment_method_ids_to_enable = array_merge(
-				$payment_method_ids_to_enable,
-				[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
-			);
+		// Card is required for Apple Pay, Google Pay and the Optimized Checkout.
+		if ( $is_upe_enabled ) {
+			if ( $is_oc_enabled ) {
+				$payment_method_ids_to_enable = array_merge( $payment_method_ids_to_enable, [ WC_Stripe_Payment_Methods::CARD ] );
+			}
+
+			if ( $is_payment_request_enabled &&
+				in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
+			) {
+				$payment_method_ids_to_enable = array_merge(
+					$payment_method_ids_to_enable,
+					[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
+				);
+			}
 		}
 
 		return $payment_method_ids_to_enable;
