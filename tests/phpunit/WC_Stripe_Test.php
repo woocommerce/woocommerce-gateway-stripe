@@ -61,7 +61,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $upe_payment_gateway );
 
-		$wc_stripe->maybe_deactivate_payment_methods( $enabled_payment_method_ids );
+		$wc_stripe->maybe_deactivate_payment_methods();
 
 		// Clean up.
 		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
