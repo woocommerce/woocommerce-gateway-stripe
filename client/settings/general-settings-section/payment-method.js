@@ -135,7 +135,10 @@ const PaymentMethod = ( { method, data } ) => {
 			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
 		( PAYMENT_METHOD_KLARNA === method &&
 			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_klarna_gateway_plugin );
+			wc_stripe_settings_params.has_klarna_gateway_plugin ) ||
+		( PAYMENT_METHOD_CARD === method &&
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.is_oc_enabled );
 
 	return (
 		<div key={ method }>
