@@ -568,7 +568,7 @@ class WC_Stripe_Payment_Tokens {
 			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
 			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
 				// Clear cached payment methods.
-		        $customer->clear_cache();
+				$customer->clear_cache();
 				$found_token->set_token( $payment_method->id );
 				$found_token->save();
 			}
