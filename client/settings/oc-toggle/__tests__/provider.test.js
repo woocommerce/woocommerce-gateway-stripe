@@ -3,6 +3,7 @@ import { render, waitFor } from '@testing-library/react';
 import apiFetch from '@wordpress/api-fetch';
 import OCToggleContextProvider from '../provider';
 import OCToggleContext from '../context';
+import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( 'wcstripe/tracking', () => ( { recordEvent: jest.fn() } ) );
@@ -40,6 +41,7 @@ describe( 'OCToggleContextProvider', () => {
 			status: 'resolved',
 		} );
 		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).not.toHaveBeenCalled();
 	} );
 
 	it( 'should render the initial state given a default value for isOCEnabled', () => {
@@ -58,6 +60,7 @@ describe( 'OCToggleContextProvider', () => {
 			} )
 		);
 		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).not.toHaveBeenCalled();
 	} );
 
 	it( 'should locally update the value for isOCEnabled', () => {
@@ -82,6 +85,12 @@ describe( 'OCToggleContextProvider', () => {
 		);
 
 		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_optimized_checkout_enabled',
+			{
+				source: 'settings-tab-checkbox',
+			}
+		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isOCEnabled: false,
 			setIsOCEnabled: expect.any( Function ),
@@ -136,6 +145,12 @@ describe( 'OCToggleContextProvider', () => {
 
 		await waitFor( () => expect( apiFetch ).toHaveReturned() );
 
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_optimized_checkout_enabled',
+			{
+				source: 'settings-tab-checkbox',
+			}
+		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isOCEnabled: false,
 			setIsOCEnabled: expect.any( Function ),
