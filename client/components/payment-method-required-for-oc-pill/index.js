@@ -5,10 +5,7 @@ import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
 import Popover from 'wcstripe/components/popover';
-import {
-	PAYMENT_METHOD_AFFIRM,
-	PAYMENT_METHOD_KLARNA,
-} from 'wcstripe/stripe-utils/constants';
+import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -48,25 +45,22 @@ const IconComponent = ( { children, ...props } ) => (
 	</IconWrapper>
 );
 
-const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
+const PaymentMethodRequiredForOCPill = ( { id, label } ) => {
 	if (
-		( id === PAYMENT_METHOD_AFFIRM &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
-		( id === PAYMENT_METHOD_KLARNA &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_klarna_gateway_plugin )
+		id === PAYMENT_METHOD_CARD &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params.is_oc_enabled
 	) {
 		return (
 			<StyledPill>
-				{ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
+				{ __( 'Required', 'woocommerce-gateway-stripe' ) }
 				<Popover
 					BaseComponent={ IconComponent }
 					content={ interpolateComponents( {
 						mixedString: sprintf(
 							/* translators: $1: a payment method name */
 							__(
-								'%1$s is unavailable due to another official plugin being active.',
+								'%1$s is required for the Optimized Checkout Suite.',
 								'woocommerce-gateway-stripe'
 							),
 							label
@@ -93,4 +87,4 @@ const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
 	return null;
 };
 
-export default PaymentMethodUnavailableDueConflictPill;
+export default PaymentMethodRequiredForOCPill;

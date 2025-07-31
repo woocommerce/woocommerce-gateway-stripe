@@ -1,31 +1,33 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import PaymentMethodRequiredForOCPill from '..';
-import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import PaymentMethodUnavailableDueConflictPill from '..';
+import { PAYMENT_METHOD_AFFIRM } from 'wcstripe/stripe-utils/constants';
 
-describe( 'PaymentMethodRequiredForOCPill', () => {
+describe( 'PaymentMethodUnavailableDueConflictPill', () => {
 	beforeEach( () => {
-		global.wc_stripe_settings_params = { is_oc_enabled: false };
+		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: false };
 	} );
 
-	it( 'should render the "Required for the Optimized Checkout Suite" text', () => {
-		global.wc_stripe_settings_params = { is_oc_enabled: true };
+	it( 'should render the "Has plugin conflict" text', () => {
+		global.wc_stripe_settings_params = { has_affirm_gateway_plugin: true };
 
 		render(
-			<PaymentMethodRequiredForOCPill
-				id={ PAYMENT_METHOD_CARD }
-				label="Card"
+			<PaymentMethodUnavailableDueConflictPill
+				id={ PAYMENT_METHOD_AFFIRM }
+				label="Affirm"
 			/>
 		);
 
-		expect( screen.queryByText( 'Required' ) ).toBeInTheDocument();
+		expect(
+			screen.queryByText( 'Has plugin conflict' )
+		).toBeInTheDocument();
 	} );
 
-	it( 'should not render when OC is not active', () => {
+	it( 'should not render when other extensions are not active', () => {
 		const { container } = render(
-			<PaymentMethodRequiredForOCPill
-				id={ PAYMENT_METHOD_CARD }
-				label="Card"
+			<PaymentMethodUnavailableDueConflictPill
+				id={ PAYMENT_METHOD_AFFIRM }
+				label="Affirm"
 			/>
 		);
 
