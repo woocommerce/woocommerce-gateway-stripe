@@ -7,6 +7,8 @@ use PHPUnit\Framework\MockObject\MockObject;
 use WooCommerce\Stripe\Tests\Helpers\UPE_Test_Helper;
 use WC_Gateway_Stripe_Sepa;
 use WC_Logger;
+use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Helper;
 use WC_Stripe_Subscriptions_Legacy_SEPA_Token_Update;
 use WC_Stripe_UPE_Payment_Gateway;
@@ -85,6 +87,16 @@ class WC_Stripe_Subscriptions_Repairer_Legacy_SEPA_Tokens_Test extends WP_UnitTe
 								   ->getMock();
 
 		WC_Stripe_Helper::update_main_stripe_settings( [ 'test_connection_type' => 'connect' ] );
+	}
+
+	public function tear_down() {
+		// The tests in this file do not mock ALL the calls to the Stripe API, and as we use mocked API keys they trigger the 401 rate-limiter,
+		// this is not a problem for these tests as they don't depend on the reponses.
+		//
+		// TODO: Remove this once we've mocked all calls to the Stripe API (either using the pre_http_request filter, or by using a mocked WC_Stripe_API class).
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
+		parent::tear_down();
 	}
 
 	/**

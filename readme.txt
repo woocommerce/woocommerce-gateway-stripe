@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.7.0
+Stable tag: 9.7.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,18 +111,22 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.8.0 - xxxx-xx-xx =
+* Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
+* Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
+* Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
+* Add - Makes the Optimized Checkout feature available for all merchants by default
 * Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
 * Dev - Use product type constants that were added in WooCommerce 9.7
 * Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
 * Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
 * Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
-* Tweak - Check for checkout validation error before creating a payment method in Stripe
-* Add - Add state mapping for Lithuania in express checkout
 * Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
-* Dev - Fix WooCommerce version fetching in GitHub workflows
-* Dev - Fix failing test cases associated with WooCommerce 10.0.x
-* Fix - Prevent multiple save appearance AJAX calls on Block Checkout
-* Fix - Fix required field error message and PHP warning for custom checkout fields that don't have a label
-* Fix - Fix fatal when processing Boleto setup intents via webhooks
+* Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
+* Fix - 3DS authentication modal not shown when using Google Pay
+* Update - Improve Stripe API connector logging to include request/response context
+* Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
+* Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
+* Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
+* Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

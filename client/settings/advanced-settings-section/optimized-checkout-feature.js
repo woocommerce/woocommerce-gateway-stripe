@@ -5,13 +5,15 @@ import {
 	ExternalLink,
 	TextControl,
 } from '@wordpress/components';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { getQuery } from '@woocommerce/navigation';
 import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
-const SinglePaymentElementFeature = () => {
+const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
 	const [ OCTitle, setOCTitle ] = useOCTitle();
 	const [ isUpeEnabled ] = useIsUpeEnabled();
+	const headingRef = useRef( null );
 
 	useEffect( () => {
 		if ( ! isUpeEnabled ) {
@@ -26,6 +28,20 @@ const SinglePaymentElementFeature = () => {
 	useEffect( () => {
 		setLocalOCTitle( OCTitle );
 	}, [ OCTitle ] );
+
+	useEffect( () => {
+		if ( ! headingRef.current ) {
+			return;
+		}
+
+		const { highlight } = getQuery();
+		if ( highlight === 'enable-optimized-checkout' ) {
+			headingRef.current.scrollIntoView( {
+				behavior: 'smooth',
+				block: 'start',
+			} );
+		}
+	}, [ headingRef ] );
 
 	const handleTitleChange = ( value ) => {
 		setLocalOCTitle( value );
@@ -45,7 +61,7 @@ const SinglePaymentElementFeature = () => {
 
 	return (
 		<>
-			<h4>
+			<h4 ref={ headingRef }>
 				{ __(
 					'Enable Optimized Checkout Suite (recommended)',
 					'woocommerce-gateway-stripe'
@@ -89,4 +105,4 @@ const SinglePaymentElementFeature = () => {
 	);
 };
 
-export default SinglePaymentElementFeature;
+export default OptimizedCheckoutFeature;

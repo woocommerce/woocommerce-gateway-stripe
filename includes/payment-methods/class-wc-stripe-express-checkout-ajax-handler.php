@@ -92,8 +92,22 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$product      = wc_get_product( $product_id );
 		$product_type = $product->get_type();
 
+		$booking_ids = [];
+		if ( 'booking' === $product_type ) {
+			$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
+		}
+
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
+
+		// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
+		// This status is used to prevent the booking from being booked by another customer
+		// and should be removed when the cart is emptied for ECE purposes.
+		if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			foreach ( $booking_ids as $booking_id ) {
+				do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			}
+		}
 
 		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
@@ -112,14 +126,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$data          += $this->express_checkout_helper->build_display_items();
 		$data['result'] = 'success';
 
-		if ( 'booking' === $product_type ) {
-			$booking_id = $this->express_checkout_helper->get_booking_id_from_cart();
-
-			if ( ! empty( $booking_id ) ) {
-				$data['bookingId'] = $booking_id;
-			}
-		}
-
 		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
@@ -135,9 +141,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		WC()->cart->empty_cart();
 
 		if ( $booking_id ) {
-			// When a bookable product is added to the cart, a 'booking' is create with status 'in-cart'.
+			// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
 			// This status is used to prevent the booking from being booked by another customer
-			// and should be removed when the cart is emptied for PRB purposes.
+			// and should be removed when the cart is emptied for express checkout purposes.
 			do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 		}
 
