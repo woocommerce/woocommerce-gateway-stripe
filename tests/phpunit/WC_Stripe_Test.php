@@ -6,6 +6,7 @@ use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 
 /**
  * These tests make assertions against the class WC_Stripe.
@@ -25,16 +26,20 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests for `maybe_deactivate_bnpls`.
+	 * Tests for `maybe_toggle_payment_methods`.
 	 *
+	 * @param array $active_gateways The active payment gateways.
+	 * @param array $enabled_payment_method_ids The enabled payment method IDs.
+	 * @param bool $oc_enabled Whether the one-click payment methods are enabled.
+	 * @param int $update_enable_payment_methods_calls The number of times `update_enabled_payment_methods` should be called.
 	 * @return void
 	 *
-	 * @dataProvider provide_test_maybe_deactivate_bnpls
+	 * @dataProvider provide_test_maybe_toggle_payment_methods
 	 */
-	public function test_maybe_deactivate_bnpls(
+	public function test_maybe_toggle_payment_methods(
 		$active_gateways,
-		$get_upe_payment_method_ids_calls,
 		$enabled_payment_method_ids,
+		$oc_enabled,
 		$update_enable_payment_methods_calls
 	) {
 		$original_payment_gateways = WC()->payment_gateways->payment_gateways;
@@ -46,7 +51,11 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			->disableOriginalConstructor()
 			->getMock();
 
-		$upe_payment_gateway->expects( $this->exactly( $get_upe_payment_method_ids_calls ) )
+		$upe_payment_gateway->expects( $this->once() )
+			->method( 'is_oc_enabled' )
+			->willReturn( $oc_enabled );
+
+		$upe_payment_gateway->expects( $this->once() )
 			->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( $enabled_payment_method_ids );
 
@@ -62,56 +71,56 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $upe_payment_gateway );
 
-		$wc_stripe->maybe_deactivate_bnpls();
+		$wc_stripe->maybe_toggle_payment_methods();
 
 		// Clean up.
 		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
 	}
 
 	/**
-	 * Provider for `test_maybe_deactivate_bnpls`.
+	 * Provider for `test_maybe_deactivate_payment_methods`.
 	 *
 	 * @return array
 	 */
-	public function provide_test_maybe_deactivate_bnpls() {
+	public function provide_test_maybe_toggle_payment_methods() {
 		return [
-			'none active'                    => [
+			'none active'                                 => [
 				'active gateways'                     => [],
-				'get UPE payment method IDs calls'    => 0,
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 0,
 			],
-			'affirm'                         => [
+			'affirm'                                      => [
 				'active gateways'                     => [
 					WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM => (object) [
 						'id'      => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM,
 						'enabled' => 'yes',
 					],
 				],
-				'get UPE payment method IDs calls'    => 1,
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AFFIRM,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
-			'klarna'                         => [
+			'klarna'                                      => [
 				'active gateways'                     => [
 					WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA => (object) [
 						'id'      => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA,
 						'enabled' => 'yes',
 					],
 				],
-				'get UPE payment method IDs calls'    => 1,
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
-			'both active, but not on Stripe' => [
+			'klarna and affirm active, but not on Stripe' => [
 				'active gateways'                     => [
 					WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM => (object) [
 						'id'      => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM,
@@ -122,13 +131,13 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'enabled' => 'yes',
 					],
 				],
-				'get UPE payment method IDs calls'    => 1,
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 0,
 			],
-			'both active in both'            => [
+			'klarna and affirm active in both'            => [
 				'active gateways'                     => [
 					WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM => (object) [
 						'id'      => WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM,
@@ -139,12 +148,27 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 						'enabled' => 'yes',
 					],
 				],
-				'get UPE payment method IDs calls'    => 1,
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AFFIRM,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
+				'OC enabled'                          => false,
+				'update enable payment methods calls' => 1,
+			],
+			'amazon pay'                                  => [
+				'active gateways'                     => [],
+				'enabled payment method IDs'          => [
+					WC_Stripe_Payment_Methods::CARD,
+					WC_Stripe_Payment_Methods::AMAZON_PAY,
+				],
+				'OC enabled'                          => false,
+				'update enable payment methods calls' => 1,
+			],
+			'card, OC enabled'                            => [
+				'active gateways'                     => [],
+				'enabled payment method IDs'          => [],
+				'OC enabled'                          => true,
 				'update enable payment methods calls' => 1,
 			],
 		];

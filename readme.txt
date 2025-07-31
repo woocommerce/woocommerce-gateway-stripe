@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.8.0 - xxxx-xx-xx =
-* Fix - Require credit cards to be enabled when the Optimized Checkout is active
+* Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
 * Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
 * Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
 * Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
@@ -126,7 +126,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - 3DS authentication modal not shown when using Google Pay
 * Update - Improve Stripe API connector logging to include request/response context
 * Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
+* Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
-
+* Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
