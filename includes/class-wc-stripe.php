@@ -282,8 +282,9 @@ class WC_Stripe {
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
-		// Check if other official plugins are active for Klarna or Affirm and deactivate those BNPLs if so.
-		add_action( 'init', [ $this, 'maybe_deactivate_bnpls' ] );
+		// Check for payment methods that should be deactivated, e.g. unreleased,
+		// BNPLs when official plugins are active, etc.
+		add_action( 'init', [ $this, 'maybe_deactivate_payment_methods' ] );
 	}
 
 	/**
@@ -862,23 +863,54 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Maybe deactivate Affirm or Klarna payment methods if other official plugins are active.
+	 * Deactivate payment methods that should be deactivated, e.g. unreleased,
+	 * BNPLs when other official plugins are active, etc.
 	 *
 	 * @return void
 	 */
-	public function maybe_deactivate_bnpls() {
-		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
-		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
-		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
-			return;
-		}
-
+	public function maybe_deactivate_payment_methods() {
 		$gateway = $this->get_main_stripe_gateway();
 		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return;
 		}
 
+		$payment_method_ids_to_disable = [];
 		$enabled_payment_methods       = $gateway->get_upe_enabled_payment_method_ids();
+
+		// Check for BNPLs that should be deactivated.
+		$payment_method_ids_to_disable = array_merge(
+			$payment_method_ids_to_disable,
+			$this->maybe_deactivate_bnpls( $enabled_payment_methods )
+		);
+
+		// Check if Amazon Pay should be deactivated.
+		$payment_method_ids_to_disable = array_merge(
+			$payment_method_ids_to_disable,
+			$this->maybe_deactivate_amazon_pay( $enabled_payment_methods )
+		);
+
+		if ( [] === $payment_method_ids_to_disable ) {
+			return;
+		}
+
+		$gateway->update_enabled_payment_methods(
+			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
+		);
+	}
+
+	/**
+	 * Deactivate Affirm or Klarna payment methods if other official plugins are active.
+	 *
+	 * @param array $enabled_payment_methods The enabled payment methods.
+	 * @return array The payment method IDs to disable.
+	 */
+	private function maybe_deactivate_bnpls( $enabled_payment_methods ) {
+		$has_affirm_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM );
+		$has_klarna_plugin_active = WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_KLARNA );
+		if ( ! $has_affirm_plugin_active && ! $has_klarna_plugin_active ) {
+			return [];
+		}
+
 		$payment_method_ids_to_disable = [];
 		if ( $has_affirm_plugin_active && in_array( WC_Stripe_Payment_Methods::AFFIRM, $enabled_payment_methods, true ) ) {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::AFFIRM;
@@ -887,15 +919,30 @@ class WC_Stripe {
 			$payment_method_ids_to_disable[] = WC_Stripe_Payment_Methods::KLARNA;
 		}
 
-		if ( [] === $payment_method_ids_to_disable ) {
-			return;
+		return $payment_method_ids_to_disable;
+	}
+
+	/**
+	 * Deactivate Amazon Pay if it's not available, i.e. unreleased.
+	 *
+	 * TODO: Remove this method once Amazon Pay is released.
+	 *
+	 * @param array $enabled_payment_methods The enabled payment methods.
+	 * @return array Amazon Pay payment method ID, if it should be disabled.
+	 */
+	private function maybe_deactivate_amazon_pay( $enabled_payment_methods ) {
+		// Safety guard only. Ideally, we will remove this method once Amazon Pay is released.
+		if ( WC_Stripe_Feature_Flags::is_amazon_pay_available() ) {
+			// Nothing to do if Amazon Pay is already released.
+			return [];
 		}
 
-		$gateway->update_enabled_payment_methods(
-			array_diff(
-				$enabled_payment_methods,
-				$payment_method_ids_to_disable
-			)
-		);
+		if ( ! in_array( WC_Stripe_Payment_Methods::AMAZON_PAY, $enabled_payment_methods, true ) ) {
+			// Nothing to do if Amazon Pay is not enabled.
+			return [];
+		}
+
+		// Disable Amazon Pay.
+		return [ WC_Stripe_Payment_Methods::AMAZON_PAY ];
 	}
 }
