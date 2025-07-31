@@ -21,6 +21,7 @@
 * Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
+* Fix - Only clear customer cache when an action has been performed
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout
