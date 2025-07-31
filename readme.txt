@@ -128,5 +128,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
+* Update - Show all available payment methods before unavailable payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
