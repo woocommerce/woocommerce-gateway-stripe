@@ -145,10 +145,9 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 
 	// In the logic below, note that getPaymentMethodCurrencies() can return []
 	// when the payment method supports all currencies.
-	// Note that when we don't have a store currency, we put all methods in the supported list.
-
+	// When we don't have a store currency or UPE is disabled, we put all methods in the supported list.
 	const sortedPaymentMethodIds = useMemo( () => {
-		if ( ! storeCurrencyCode ) {
+		if ( ! storeCurrencyCode || ! isUpeEnabled ) {
 			return orderedPaymentMethodIds;
 		}
 
