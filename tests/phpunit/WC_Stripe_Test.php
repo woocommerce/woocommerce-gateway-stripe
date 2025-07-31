@@ -6,6 +6,7 @@ use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 
 /**
  * These tests make assertions against the class WC_Stripe.
@@ -49,6 +50,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_payment_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
+
+		$upe_payment_gateway->expects( $this->once() )
+			->method( 'is_oc_enabled' )
+			->willReturn( $oc_enabled );
 
 		$upe_payment_gateway->expects( $this->once() )
 			->method( 'get_upe_enabled_payment_method_ids' )
