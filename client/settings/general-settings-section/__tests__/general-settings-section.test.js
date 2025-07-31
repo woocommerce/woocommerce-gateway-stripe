@@ -1,3 +1,4 @@
+import { getSetting } from '@woocommerce/settings';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -45,6 +46,9 @@ jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 	useGetCapabilities: jest.fn(),
 } ) );
+jest.mock( '@woocommerce/settings', () => ( {
+	getSetting: jest.fn(),
+} ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
 	createReduxStore: jest.fn(),
@@ -62,8 +66,18 @@ jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
 
+	/**
+	 * Helper to ensure that the wcSettings global and the getSetting() helper are in sync.
+	 *
+	 * @param {string} currencyCode Currency code to set.
+	 */
+	const mockCurrencyCode = ( currencyCode ) => {
+		global.wcSettings = { currency: { code: currencyCode } };
+		getSetting.mockReturnValue( { code: currencyCode } );
+	};
+
 	beforeEach( () => {
-		global.wcSettings = { currency: { code: 'EUR' } };
+		mockCurrencyCode( 'EUR' );
 		global.wc_stripe_settings_params = { are_apms_deprecated: false };
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
@@ -338,7 +352,7 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'does not display the payment method checkbox when currency is not supprted', () => {
-		global.wcSettings = { currency: { code: 'USD' } };
+		mockCurrencyCode( 'USD' );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
@@ -528,7 +542,7 @@ describe( 'GeneralSettingsSection', () => {
 			[ PAYMENT_METHOD_CARD ],
 		] );
 		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
-		window.wcSettings = { currency: { code: 'EUR' } };
+		mockCurrencyCode( 'EUR' );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -553,7 +567,7 @@ describe( 'GeneralSettingsSection', () => {
 			[ PAYMENT_METHOD_CARD ],
 		] );
 		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
-		window.wcSettings = { currency: { code: 'USD' } };
+		mockCurrencyCode( 'USD' );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -587,17 +601,13 @@ describe( 'GeneralSettingsSection', () => {
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 
-		/*useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-		] );
-		 */
 		usePaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
 			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
 				return [ 'USD' ];
 			}
 			return [ 'EUR' ];
 		} );
-		window.wcSettings = { currency: { code: 'EUR' } };
+		mockCurrencyCode( 'EUR' );
 
 		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
 			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
