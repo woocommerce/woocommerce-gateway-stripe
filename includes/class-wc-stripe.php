@@ -282,9 +282,10 @@ class WC_Stripe {
 
 		add_action( 'init', [ $this, 'initialize_apple_pay_registration' ] );
 
-		// Check for payment methods that should be deactivated, e.g. unreleased,
-		// BNPLs when official plugins are active, etc.
-		add_action( 'init', [ $this, 'maybe_deactivate_payment_methods' ] );
+		// Check for payment methods that should be toggled, e.g. unreleased,
+		// BNPLs when official plugins are active,
+		// cards when the Optimized Checkout is enabled, etc.
+		add_action( 'init', [ $this, 'maybe_toggle_payment_methods' ] );
 	}
 
 	/**
@@ -863,18 +864,20 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Deactivate payment methods that should be deactivated, e.g. unreleased,
-	 * BNPLs when other official plugins are active, etc.
+	 * Toggle payment methods that should be enabled/disabled, e.g. unreleased,
+	 * BNPLs when other official plugins are active,
+	 * cards when the Optimized Checkout is enabled, etc.
 	 *
 	 * @return void
 	 */
-	public function maybe_deactivate_payment_methods() {
+	public function maybe_toggle_payment_methods() {
 		$gateway = $this->get_main_stripe_gateway();
 		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return;
 		}
 
 		$payment_method_ids_to_disable = [];
+		$payment_method_ids_to_enable  = [];
 		$enabled_payment_methods       = $gateway->get_upe_enabled_payment_method_ids();
 
 		// Check for BNPLs that should be deactivated.
@@ -889,9 +892,21 @@ class WC_Stripe {
 			$this->maybe_deactivate_amazon_pay( $enabled_payment_methods )
 		);
 
-		if ( [] === $payment_method_ids_to_disable ) {
+		// Check if cards should be activated.
+		// TODO: Remove this once card is not a requirement for the Optimized Checkout.
+		if ( $gateway->is_oc_enabled()
+			&& ! in_array( WC_Stripe_Payment_Methods::CARD, $enabled_payment_methods, true ) ) {
+			$payment_method_ids_to_enable[] = WC_Stripe_Payment_Methods::CARD;
+		}
+
+		if ( [] === $payment_method_ids_to_disable && [] === $payment_method_ids_to_enable ) {
 			return;
 		}
+
+		$enabled_payment_methods = array_merge(
+			$enabled_payment_methods,
+			$payment_method_ids_to_enable
+		);
 
 		$gateway->update_enabled_payment_methods(
 			array_diff( $enabled_payment_methods, $payment_method_ids_to_disable )
