@@ -86,9 +86,9 @@ describe( 'OCToggleContextProvider', () => {
 
 		expect( apiFetch ).not.toHaveBeenCalled();
 		expect( recordEvent ).toHaveBeenCalledWith(
-			'wcstripe_optimized_checkout_enabled',
+			'wcstripe_optimized_checkout_disabled',
 			{
-				source: 'settings-tab-checkbox',
+				source: 'oc-promotional-banner',
 			}
 		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
@@ -146,9 +146,9 @@ describe( 'OCToggleContextProvider', () => {
 		await waitFor( () => expect( apiFetch ).toHaveReturned() );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
-			'wcstripe_optimized_checkout_enabled',
+			'wcstripe_optimized_checkout_disabled',
 			{
-				source: 'settings-tab-checkbox',
+				source: 'oc-promotional-banner',
 			}
 		);
 		expect( childrenMock ).toHaveBeenCalledWith( {
