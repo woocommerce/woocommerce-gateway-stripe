@@ -1,4 +1,5 @@
 /* global wc_stripe_settings_params */
+import { getSetting } from '@woocommerce/settings';
 import { sprintf } from '@wordpress/i18n';
 import React, { useContext, useMemo } from 'react';
 import styled from '@emotion/styled';
@@ -140,14 +141,14 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
-	const storeCurrency = window?.wcSettings?.currency?.code;
+	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
 	// In the logic below, note that getPaymentMethodCurrencies() can return []
 	// when the payment method supports all currencies.
 	// Note that when we don't have a store currency, we put all methods in the supported list.
 
 	const sortedPaymentMethodIds = useMemo( () => {
-		if ( ! storeCurrency ) {
+		if ( ! storeCurrencyCode ) {
 			return orderedPaymentMethodIds;
 		}
 
@@ -162,7 +163,7 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 
 			if (
 				paymentMethodCurrencies.length === 0 ||
-				paymentMethodCurrencies.includes( storeCurrency )
+				paymentMethodCurrencies.includes( storeCurrencyCode )
 			) {
 				supportedPaymentMethodIds.push( paymentMethodId );
 			} else {
@@ -171,7 +172,7 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 		} );
 
 		return [ ...supportedPaymentMethodIds, ...unsupportedPaymentMethodIds ];
-	}, [ orderedPaymentMethodIds, storeCurrency, isUpeEnabled ] );
+	}, [ orderedPaymentMethodIds, storeCurrencyCode, isUpeEnabled ] );
 
 	return sortedPaymentMethodIds;
 };
