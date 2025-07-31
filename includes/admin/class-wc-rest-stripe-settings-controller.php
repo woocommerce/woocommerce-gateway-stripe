@@ -558,7 +558,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
 				wc_admin_record_tracks_event(
 					$value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
-					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+					[
+						'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+						'source'    => 'settings_rest_api',
+					]
 				);
 			}
 		}
