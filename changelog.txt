@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.8.0 - xxxx-xx-xx =
+* Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
 * Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
 * Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
 * Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
