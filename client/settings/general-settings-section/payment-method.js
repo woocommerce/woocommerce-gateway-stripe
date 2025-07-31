@@ -135,10 +135,12 @@ const PaymentMethod = ( { method, data } ) => {
 			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
 		( PAYMENT_METHOD_KLARNA === method &&
 			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.has_klarna_gateway_plugin ) ||
-		( PAYMENT_METHOD_CARD === method &&
-			// eslint-disable-next-line camelcase
-			wc_stripe_settings_params.is_oc_enabled );
+			wc_stripe_settings_params.has_klarna_gateway_plugin );
+
+	const isDisabledButChecked =
+		PAYMENT_METHOD_CARD === method &&
+		// eslint-disable-next-line camelcase
+		wc_stripe_settings_params.is_oc_enabled;
 
 	return (
 		<div key={ method }>
@@ -154,6 +156,7 @@ const PaymentMethod = ( { method, data } ) => {
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
 					disabled={ deprecated || isDisabled }
+					disabledButChecked={ isDisabledButChecked }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription

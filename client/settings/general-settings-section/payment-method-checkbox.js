@@ -33,6 +33,7 @@ const PaymentMethodCheckbox = ( {
 	label,
 	isAllowingManualCapture,
 	disabled,
+	disabledButChecked,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
@@ -44,9 +45,17 @@ const PaymentMethodCheckbox = ( {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
+	let checked;
+	if ( disabled ) {
+		checked = false;
+	} else if ( disabledButChecked ) {
+		checked = true;
+	} else {
+		checked = enabledPaymentMethods.includes( id );
+	}
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
-		if ( disabled ) {
+		if ( disabled || disabledButChecked ) {
 			return;
 		}
 		if ( ! hasBeenChecked ) {
@@ -107,10 +116,8 @@ const PaymentMethodCheckbox = ( {
 				<StyledCheckbox
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }
 					onChange={ handleCheckboxChange }
-					checked={
-						disabled ? false : enabledPaymentMethods.includes( id )
-					}
-					disabled={ disabled }
+					checked={ checked }
+					disabled={ disabled || disabledButChecked }
 				/>
 			) }
 			{ isConfirmationModalOpen && (

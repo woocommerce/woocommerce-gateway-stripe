@@ -5,6 +5,7 @@ import RecurringPaymentIcon from '../../components/recurring-payment-icon';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import PaymentMethodDeprecationPill from 'wcstripe/components/payment-method-deprecation-pill';
 import PaymentMethodUnavailableDueConflictPill from 'wcstripe/components/payment-method-unavailable-due-conflict-pill';
+import PaymentMethodRequiredForOCPill from 'wcstripe/components/payment-method-required-for-oc-pill';
 
 const Wrapper = styled.div`
 	display: flex;
@@ -71,6 +72,10 @@ const PaymentMethodDescription = ( {
 								label={ label }
 							/>
 							<PaymentMethodUnavailableDueConflictPill
+								id={ id }
+								label={ label }
+							/>
+							<PaymentMethodRequiredForOCPill
 								id={ id }
 								label={ label }
 							/>
