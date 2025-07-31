@@ -8,7 +8,6 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
-import { trackOCToggle } from 'wcstripe/settings/track-oc-toggle';
 
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
@@ -18,7 +17,6 @@ const OptimizedCheckoutFeature = () => {
 
 	useEffect( () => {
 		if ( ! isUpeEnabled ) {
-			trackOCToggle( false, 'settings-tab-checkbox' );
 			setIsOCEnabled( false );
 		}
 	}, [ isUpeEnabled, setIsOCEnabled ] );
@@ -44,11 +42,6 @@ const OptimizedCheckoutFeature = () => {
 			} );
 		}
 	}, [ headingRef ] );
-
-	const handleOCChange = ( value ) => {
-		trackOCToggle( value, 'settings-tab-checkbox' );
-		setIsOCEnabled( value );
-	};
 
 	const handleTitleChange = ( value ) => {
 		setLocalOCTitle( value );
@@ -92,7 +85,7 @@ const OptimizedCheckoutFeature = () => {
 					}
 				) }
 				checked={ isOCEnabled }
-				onChange={ handleOCChange }
+				onChange={ setIsOCEnabled }
 				disabled={ ! isUpeEnabled }
 			/>
 			{ isOCEnabled && (

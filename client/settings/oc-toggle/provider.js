@@ -3,14 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE, STORE_NAME } from 'wcstripe/data/constants';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
-import { trackOCToggle } from 'wcstripe/settings/track-oc-toggle';
 
-/**
- * @param {Object} props The component props.
- * @param {JSX.Element} props.children The child components that will consume the context.
- * @param {boolean} props.defaultIsOCEnabled Initial state of the Optimized Checkout feature.
- * @return {JSX.Element} The context provider component that wraps the children.
- */
 const OCToggleContextProvider = ( { children, defaultIsOCEnabled } ) => {
 	const [ isOCEnabled, setIsOCEnabled ] = useState(
 		Boolean( defaultIsOCEnabled )
@@ -21,7 +14,6 @@ const OCToggleContextProvider = ( { children, defaultIsOCEnabled } ) => {
 	const updateSettingLocally = useCallback(
 		( value ) => {
 			const sanitizedValue = Boolean( value );
-			trackOCToggle( sanitizedValue, 'oc-promotional-banner' );
 			setIsOCEnabled( sanitizedValue );
 		},
 		[ setIsOCEnabled ]
@@ -39,7 +31,6 @@ const OCToggleContextProvider = ( { children, defaultIsOCEnabled } ) => {
 				data: { is_oc_enabled: sanitizedValue },
 			} )
 				.then( () => {
-					trackOCToggle( sanitizedValue, 'oc-promotional-banner' );
 					invalidateResolutionForStoreSelector( 'getSettings' );
 					setIsOCEnabled( sanitizedValue );
 					setStatus( 'resolved' );
