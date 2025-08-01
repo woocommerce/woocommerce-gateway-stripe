@@ -6,7 +6,6 @@ use WC_Stripe;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_UPE_Payment_Gateway;
-use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 
 /**
  * These tests make assertions against the class WC_Stripe.
