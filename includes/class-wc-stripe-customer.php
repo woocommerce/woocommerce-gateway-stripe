@@ -744,9 +744,8 @@ class WC_Stripe_Customer {
 
 		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
 
-		$this->clear_cache( $source_id );
-
 		if ( empty( $response->error ) ) {
+			$this->clear_cache( $source_id );
 			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
 
 			return true;
@@ -767,9 +766,8 @@ class WC_Stripe_Customer {
 
 		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $payment_method_id );
 
-		$this->clear_cache( $payment_method_id );
-
 		if ( empty( $response->error ) ) {
+			$this->clear_cache( $payment_method_id );
 			do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
 
 			return true;
@@ -792,9 +790,8 @@ class WC_Stripe_Customer {
 			'POST'
 		);
 
-		$this->clear_cache();
-
 		if ( empty( $response->error ) ) {
+			$this->clear_cache();
 			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
 
 			return true;
@@ -819,9 +816,8 @@ class WC_Stripe_Customer {
 			'POST'
 		);
 
-		$this->clear_cache();
-
 		if ( empty( $response->error ) ) {
+			$this->clear_cache();
 			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
 
 			return true;

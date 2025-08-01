@@ -112,6 +112,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.8.0 - xxxx-xx-xx =
 * Add - Adds a new action (`wc_stripe_webhook_processed`) to allow hooking into the webhook processing flow
+* Add - A new pill to the payment methods page to indicate the credit card requirement when the Optimized Checkout feature is enabled
+* Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
+* Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
 * Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
 * Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
 * Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
@@ -129,5 +132,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
+* Fix - Only clear customer cache when an action has been performed
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
