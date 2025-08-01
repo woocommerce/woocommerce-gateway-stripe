@@ -45,7 +45,9 @@ const PaymentMethodCheckbox = ( {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const checked = !disabled && ( disabledButChecked || enabledPaymentMethods.includes( id ) );
+	const checked =
+		! disabled &&
+		( disabledButChecked || enabledPaymentMethods.includes( id ) );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
 		if ( disabled || disabledButChecked ) {
