@@ -1,6 +1,6 @@
-import { useContext } from '@wordpress/element';
 import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
+import { useContext } from '@wordpress/element';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,

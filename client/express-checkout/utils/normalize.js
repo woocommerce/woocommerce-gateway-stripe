@@ -28,8 +28,8 @@ export const normalizeLineItems = ( displayItems ) => {
  * Normalize order data from Stripe's object to the expected format for WC (when using the Blocks API).
  *
  * @param {Object} params
- * @param {Object} params.event Stripe's event object.
- * @param {string} params.paymentMethodId Payment method ID from Stripe, if using manual payment method flow.
+ * @param {Object} params.event               Stripe's event object.
+ * @param {string} params.paymentMethodId     Payment method ID from Stripe, if using manual payment method flow.
  * @param {string} params.confirmationTokenId Confirmation token ID from Stripe, if using confirmation token flow.*
  *
  * @return {Object} Order object in the format WooCommerce expects.
@@ -122,9 +122,9 @@ const getShippingAddressData = ( event ) => {
 /**
  * Get the approximate first name from the full name.
  *
- * @param {string|undefined} name The full name.
- * @param {string} defaultValue The default string to return if the name
- * is undefined or empty.
+ * @param {string|undefined} name         The full name.
+ * @param {string}           defaultValue The default string to return if the name
+ *                                        is undefined or empty.
  *
  * @return {string} The approximate first name.
  */
@@ -135,9 +135,9 @@ const approximateFirstName = ( name, defaultValue = '' ) => {
 /**
  * Get the approximate last name from the full name.
  *
- * @param {string|undefined} name The full name.
- * @param {string} defaultValue The default string to return if the name
- * is undefined or empty.
+ * @param {string|undefined} name         The full name.
+ * @param {string}           defaultValue The default string to return if the name
+ *                                        is undefined or empty.
  *
  * @return {string} The approximate last name.
  */
@@ -330,7 +330,7 @@ const getExtensionDataFromStore = () => {
  * Build the custom fields object with empty values.
  *
  * @param {Array} locations A list of locations we are interested in,
- * e.g. [ 'address', 'contact', 'order' ].
+ *                          e.g. [ 'address', 'contact', 'order' ].
  *
  * @return {Object} The custom fields object with empty values.
  */
@@ -399,8 +399,8 @@ export const normalizeShippingAddress = ( shippingAddress ) => {
  * Builds the payment data for the Blocks API.
  *
  * @param {Object} params
- * @param {string} params.expressPaymentType The express payment type.
- * @param {string} params.paymentMethodId The payment method ID.
+ * @param {string} params.expressPaymentType  The express payment type.
+ * @param {string} params.paymentMethodId     The payment method ID.
  * @param {string} params.confirmationTokenId The confirmation token ID.
  *
  * @return {Array} The payment data.

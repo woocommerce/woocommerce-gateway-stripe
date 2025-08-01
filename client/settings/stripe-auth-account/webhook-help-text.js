@@ -1,6 +1,6 @@
+import interpolateComponents from 'interpolate-components';
 import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-import interpolateComponents from 'interpolate-components';
 import {
 	useAccountKeysWebhookURL,
 	useAccountKeysTestWebhookURL,
@@ -12,7 +12,7 @@ import { useAccount } from 'wcstripe/data/account';
 /**
  * Generates the webhook help text for the component.
  *
- * @param {Object} props            The component props.
+ * @param {Object}   props          The component props.
  * @param {Function} props.testMode Whether the component is for test mode.
  *
  * @return {JSX.Element} The generated help text.
@@ -33,9 +33,8 @@ const WebhookHelpText = ( { testMode } ) => {
 	const { data } = useAccount();
 	const initialWebhookURL = data?.configured_webhook_urls?.[ mode ] ?? '';
 
-	const [ webhookURLForDisplay, setDisplayWebhookURL ] = useState(
-		initialWebhookURL
-	);
+	const [ webhookURLForDisplay, setDisplayWebhookURL ] =
+		useState( initialWebhookURL );
 
 	// If the webhook URL is changed via the hook, use that value in the component.
 	useEffect( () => {

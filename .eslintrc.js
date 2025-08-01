@@ -62,6 +62,7 @@ module.exports = {
 		'testing-library/no-unnecessary-act': 'off',
 		'@typescript-eslint/no-empty-function': 'off',
 		'@typescript-eslint/no-var-requires': 'off',
+		'@typescript-eslint/no-use-before-define': 'off',
 		'@wordpress/i18n-text-domain': [
 			'error',
 			{

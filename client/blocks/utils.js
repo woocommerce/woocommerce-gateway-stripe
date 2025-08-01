@@ -19,7 +19,7 @@ export const getBlocksConfiguration = () => {
 /**
  * Determines if off-session payment should be set up.
  *
- * @param {boolean} shouldShowSaveOption - Whether to show the save option.
+ * @param {boolean} shouldShowSaveOption    - Whether to show the save option.
  * @param {boolean} isPaymentMethodReusable - Whether the payment method is reusable.
  * @return {boolean} True if off-session payment should be set up, false otherwise.
  */
@@ -39,7 +39,7 @@ export const shouldSetupOffSessionPayment = (
  * Creates a payment request using cart data from WooCommerce.
  *
  * @param {Object} stripe - The Stripe JS object.
- * @param {Object} cart - The cart data response from the store's AJAX API.
+ * @param {Object} cart   - The cart data response from the store's AJAX API.
  *
  * @return {Object} A Stripe payment request.
  */
@@ -67,8 +67,8 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		country: cart.order_data.country_code,
 		requestPayerName: true,
 		requestPayerEmail: true,
-		requestPayerPhone: getBlocksConfiguration()?.checkout
-			?.needs_payer_phone,
+		requestPayerPhone:
+			getBlocksConfiguration()?.checkout?.needs_payer_phone,
 		requestShipping: cart.shipping_required ? true : false,
 		displayItems: cart.order_data.displayItems,
 		disableWallets,
@@ -92,8 +92,8 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 /**
  * Updates the given PaymentRequest using the data in the cart object.
  *
- * @param {Object} paymentRequest  The payment request object.
- * @param {Object} cart  The cart data response from the store's AJAX API.
+ * @param {Object} paymentRequest The payment request object.
+ * @param {Object} cart           The cart data response from the store's AJAX API.
  */
 export const updatePaymentRequestUsingCart = ( paymentRequest, cart ) => {
 	const options = {

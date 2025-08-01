@@ -1,10 +1,10 @@
 /* global wcStripeExpressCheckoutPayForOrderParams */
 /* global wc_stripe_express_checkout_params */
 
-import { __ } from '@wordpress/i18n';
 import { debounce } from 'lodash';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
+import { __ } from '@wordpress/i18n';
 import {
 	displayExpressCheckoutNotice,
 	displayLoginConfirmation,
@@ -90,8 +90,8 @@ jQuery( function ( $ ) {
 	const resolveClickEvent = ( event, options ) => {
 		const getDefaultShippingRates = () => {
 			// Return a default shipping option when shipping is required but no rates are provided
-			const defaultShippingOption = getExpressCheckoutData( 'checkout' )
-				?.default_shipping_option;
+			const defaultShippingOption =
+				getExpressCheckoutData( 'checkout' )?.default_shipping_option;
 			return defaultShippingOption ? [ defaultShippingOption ] : [];
 		};
 		const allowedShippingCountries = getExpressCheckoutData(
@@ -340,9 +340,8 @@ jQuery( function ( $ ) {
 				} ),
 				appearance: getExpressCheckoutButtonAppearance(),
 				locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
-				paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
-					expressPaymentType
-				),
+				paymentMethodTypes:
+					getPaymentMethodTypesForExpressMethod( expressPaymentType ),
 			} );
 
 			const eceButton = wcStripeECE.createButton( elements, {
@@ -503,8 +502,8 @@ jQuery( function ( $ ) {
 				wcStripeECE.startExpressCheckout( {
 					mode: 'payment',
 					total,
-					currency: getExpressCheckoutData( 'checkout' )
-						.currency_code,
+					currency:
+						getExpressCheckoutData( 'checkout' ).currency_code,
 					appearance: getExpressCheckoutButtonAppearance(),
 					locale: getExpressCheckoutData( 'stripe' )?.locale ?? 'en',
 					displayItems: transformLabeledDisplayItems(
@@ -553,11 +552,12 @@ jQuery( function ( $ ) {
 					wcStripeECE.startExpressCheckout( {
 						mode: 'payment',
 						total,
-						currency: getExpressCheckoutData( 'checkout' )
-							?.currency_code,
+						currency:
+							getExpressCheckoutData( 'checkout' )?.currency_code,
 						requestShipping: cart.needs_shipping === true,
-						requestPhone: getExpressCheckoutData( 'checkout' )
-							?.needs_payer_phone,
+						requestPhone:
+							getExpressCheckoutData( 'checkout' )
+								?.needs_payer_phone,
 						displayItems: transformCartDataForDisplayItems( cart ),
 					} );
 				} );
@@ -723,9 +723,9 @@ jQuery( function ( $ ) {
 		/**
 		 * Abort the payment and display error messages.
 		 *
-		 * @param {PaymentResponse} payment Payment response instance.
-		 * @param {string} message Error message to display.
-		 * @param {boolean} isOrderError Whether the error is related to the order creation.
+		 * @param {PaymentResponse} payment      Payment response instance.
+		 * @param {string}          message      Error message to display.
+		 * @param {boolean}         isOrderError Whether the error is related to the order creation.
 		 */
 		abortPayment: ( payment, message, isOrderError = false ) => {
 			if ( ! isOrderError ) {
@@ -767,7 +767,8 @@ jQuery( function ( $ ) {
 							if ( response.error ) {
 								wcStripeECE.hide();
 							} else {
-								const isDeposits = wcStripeECE.productHasDepositOption();
+								const isDeposits =
+									wcStripeECE.productHasDepositOption();
 								/**
 								 * If the customer aborted the express checkout,
 								 * we need to re init the express checkout button to ensure the shipping

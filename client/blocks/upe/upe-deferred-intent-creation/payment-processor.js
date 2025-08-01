@@ -2,8 +2,6 @@
  * External dependencies
  */
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
-import { __ } from '@wordpress/i18n';
-import { select } from '@wordpress/data';
 import {
 	PaymentElement,
 	useElements,
@@ -16,6 +14,8 @@ import { useEffect, useState, useRef } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import BlikCodeElement from './blik-code-element';
+import { select } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import WCStripeAPI from 'wcstripe/api';
 import {
@@ -148,13 +148,10 @@ const PaymentProcessor = ( {
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
-	const [
-		selectedPaymentMethodType,
-		setSelectedPaymentMethodType,
-	] = useState( null );
-	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
-		false
-	);
+	const [ selectedPaymentMethodType, setSelectedPaymentMethodType ] =
+		useState( null );
+	const [ isPaymentElementComplete, setIsPaymentElementComplete ] =
+		useState( false );
 	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
 		? testingInstructions
 		: '';

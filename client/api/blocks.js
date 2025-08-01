@@ -9,7 +9,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
  * Construct WC AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
- * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+ * @param {string} prefix   Endpoint URI prefix (default: 'wc_stripe_').
  * @return {string} URL with interpolated endpoint.
  */
 const getAjaxUrl = ( endpoint, prefix = 'wc_stripe_' ) => {
@@ -33,7 +33,7 @@ export const getCartDetails = () => {
 /**
  * Update shipping options.
  *
- * @param {Object} address Customer address.
+ * @param {Object} address            Customer address.
  * @param {string} paymentRequestType Either 'apple_pay' or 'payment_request_api' depending on the type of request.
  */
 export const updateShippingOptions = ( address, paymentRequestType ) => {

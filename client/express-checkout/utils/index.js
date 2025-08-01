@@ -44,7 +44,7 @@ export const getExpressCheckoutData = ( key ) =>
  * Construct Express Checkout AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
- * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+ * @param {string} prefix   Endpoint URI prefix (default: 'wc_stripe_').
  * @return {string} URL with interpolated endpoint.
  */
 export const getExpressCheckoutAjaxURL = (
@@ -244,9 +244,8 @@ const getRequiredFieldDataFromShortcodeCheckoutForm = ( data ) => {
 		return data;
 	}
 
-	const requiredfields = checkoutForm.querySelectorAll(
-		'.validate-required'
-	);
+	const requiredfields =
+		checkoutForm.querySelectorAll( '.validate-required' );
 
 	if ( requiredfields.length ) {
 		requiredfields.forEach( ( element ) => {
@@ -327,9 +326,9 @@ export const getPaymentMethodTypesForExpressMethod = ( paymentMethodType ) => {
 /**
  * Display a notice on the checkout page (for Express Checkout Element).
  *
- * @param {string} message The message to display.
- * @param {string} type The type of notice.
- * @param {Array} additionalClasses Additional classes to add to the notice.
+ * @param {string} message           The message to display.
+ * @param {string} type              The type of notice.
+ * @param {Array}  additionalClasses Additional classes to add to the notice.
  */
 export const displayExpressCheckoutNotice = (
 	message,

@@ -1,10 +1,10 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
-import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
+import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	useEnabledPaymentMethodIds,
 	useManualCapture,
@@ -36,13 +36,10 @@ const PaymentMethodCheckbox = ( {
 	disabledButChecked,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
-		false
-	);
-	const [
-		enabledPaymentMethods,
-		setEnabledPaymentMethods,
-	] = useEnabledPaymentMethodIds();
+	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] =
+		useState( false );
+	const [ enabledPaymentMethods, setEnabledPaymentMethods ] =
+		useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const checked =
@@ -100,7 +97,8 @@ const PaymentMethodCheckbox = ( {
 							{ sprintf(
 								/* translators: %s: a payment method name. */
 								__(
-									'%s cannot be enabled at checkout. Click to expand.'
+									'%s cannot be enabled at checkout. Click to expand.',
+									'woocommerce-gateway-stripe'
 								),
 								label
 							) }

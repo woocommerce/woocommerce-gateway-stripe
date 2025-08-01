@@ -59,55 +59,49 @@ test.describe( 'ACH payment tests @shortcode', () => {
 		page,
 	} ) => {
 		// First order - Save the payment method
-		await test.step(
-			'Save payment method during first checkout',
-			async () => {
-				await user.login(
-					page,
-					username,
-					config.get( 'users.customer.password' )
-				);
-				await setupACHCheckout( page, 'shortcode' );
-				await fillACHBankDetails( page );
-				await page
-					.getByRole( 'checkbox', {
-						name: 'Save payment information to',
-					} )
-					.click();
-				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Save payment method during first checkout', async () => {
+			await user.login(
+				page,
+				username,
+				config.get( 'users.customer.password' )
+			);
+			await setupACHCheckout( page, 'shortcode' );
+			await fillACHBankDetails( page );
+			await page
+				.getByRole( 'checkbox', {
+					name: 'Save payment information to',
+				} )
+				.click();
+			await clickPlaceOrder( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 
 		// Second order - Use saved payment method
-		await test.step(
-			'Use saved payment method for second checkout',
-			async () => {
-				await emptyCart( page );
-				await setupCart( page );
-				await setupShortcodeCheckout(
-					page,
-					config.get( 'addresses.customer.billing' )
-				);
-				await page.getByText( 'ACH Direct Debit' ).click();
-				await expect(
-					page.locator(
-						'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe_us_bank_account-payment-token-"]'
-					)
-				).toHaveCount( 1 );
-				await page
-					.locator( '.woocommerce-SavedPaymentMethods-token' )
-					.first()
-					.click();
-				await clickPlaceOrder( page );
-				await page.waitForURL( '**/checkout/order-received/**' );
-				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
-					'Order received'
-				);
-			}
-		);
+		await test.step( 'Use saved payment method for second checkout', async () => {
+			await emptyCart( page );
+			await setupCart( page );
+			await setupShortcodeCheckout(
+				page,
+				config.get( 'addresses.customer.billing' )
+			);
+			await page.getByText( 'ACH Direct Debit' ).click();
+			await expect(
+				page.locator(
+					'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe_us_bank_account-payment-token-"]'
+				)
+			).toHaveCount( 1 );
+			await page
+				.locator( '.woocommerce-SavedPaymentMethods-token' )
+				.first()
+				.click();
+			await clickPlaceOrder( page );
+			await page.waitForURL( '**/checkout/order-received/**' );
+			await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
+				'Order received'
+			);
+		} );
 	} );
 } );

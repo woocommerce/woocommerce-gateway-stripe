@@ -83,11 +83,8 @@ describe( 'PaymentRequestsSettingsSection', () => {
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
-		const [
-			checkoutCheckbox,
-			productPageCheckbox,
-			cartCheckbox,
-		] = screen.getAllByRole( 'checkbox' );
+		const [ checkoutCheckbox, productPageCheckbox, cartCheckbox ] =
+			screen.getAllByRole( 'checkbox' );
 
 		expect( checkoutCheckbox ).not.toBeDisabled();
 		expect( checkoutCheckbox ).toBeChecked();
@@ -113,19 +110,19 @@ describe( 'PaymentRequestsSettingsSection', () => {
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
 		userEvent.click( screen.getByText( 'Product page' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'checkout', 'cart' ]
+		);
 
 		userEvent.click( screen.getByText( 'Checkout' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'product', 'cart' ]
+		);
 
 		userEvent.click( screen.getByText( 'Cart' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'checkout', 'product' ]
+		);
 	} );
 
 	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
@@ -143,18 +140,18 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
 		userEvent.click( screen.getByText( 'Cart' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'cart' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'cart' ]
+		);
 
 		userEvent.click( screen.getByText( 'Product page' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'product' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'product' ]
+		);
 
 		userEvent.click( screen.getByText( 'Checkout' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout' ] );
+		expect( updatePaymentRequestLocationsHandler ).toHaveBeenLastCalledWith(
+			[ 'checkout' ]
+		);
 	} );
 } );

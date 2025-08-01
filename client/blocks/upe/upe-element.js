@@ -21,9 +21,9 @@ const upeMethods = getPaymentMethodsConstants();
 /**
  * Returns the UPE payment method element for registration.
  *
- * @param {string} paymentMethod The payment method name.
- * @param {WCStripeAPI} api The Stripe API object.
- * @param {Object} upeConfig The UPE configuration.
+ * @param {string}      paymentMethod The payment method name.
+ * @param {WCStripeAPI} api           The Stripe API object.
+ * @param {Object}      upeConfig     The UPE configuration.
  * @return {Object} The UPE payment method configuration.
  */
 export const upeElement = ( paymentMethod, api, upeConfig ) => {

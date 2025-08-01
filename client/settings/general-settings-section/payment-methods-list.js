@@ -1,5 +1,4 @@
 /* global wc_stripe_settings_params */
-import { sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -9,6 +8,7 @@ import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
+import { sprintf } from '@wordpress/i18n';
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
@@ -129,7 +129,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 /**
  * Formats the payment method description with the account default currency.
  *
- * @param {*} method Payment method ID.
+ * @param {*} method                 Payment method ID.
  * @param {*} accountDefaultCurrency Account default currency.
  */
 const getFormattedPaymentMethodDescription = (
@@ -166,10 +166,8 @@ const getFormattedPaymentMethodDescription = (
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const {
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-	} = useGetOrderedPaymentMethodIds();
+	const { orderedPaymentMethodIds, setOrderedPaymentMethodIds } =
+		useGetOrderedPaymentMethodIds();
 	const { data } = useAccount();
 
 	const availablePaymentMethods = orderedPaymentMethodIds;

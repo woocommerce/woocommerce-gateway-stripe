@@ -1,13 +1,13 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
 import { React, useState } from 'react';
-import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import AccountDetailsSection from './account-details-section';
 import GeneralSettingsSection from './general-settings-section';
 import { AccountKeysModal } from './account-keys-modal';
+import { ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';

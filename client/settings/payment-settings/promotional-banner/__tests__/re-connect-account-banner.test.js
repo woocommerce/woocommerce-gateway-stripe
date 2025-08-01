@@ -1,6 +1,6 @@
-import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useDispatch } from '@wordpress/data';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { recordEvent } from 'wcstripe/tracking';
 import { useTestMode } from 'wcstripe/data';

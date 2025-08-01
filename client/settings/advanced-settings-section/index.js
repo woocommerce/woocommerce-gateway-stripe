@@ -1,10 +1,10 @@
 /* global wc_stripe_settings_params */
-import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Card } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
+import { Card } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
 

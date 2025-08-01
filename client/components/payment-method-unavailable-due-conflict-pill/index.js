@@ -1,9 +1,9 @@
 /* global wc_stripe_settings_params */
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
 import Popover from 'wcstripe/components/popover';
 import {
 	PAYMENT_METHOD_AFFIRM,

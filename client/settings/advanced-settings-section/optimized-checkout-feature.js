@@ -1,3 +1,6 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { getQuery } from '@woocommerce/navigation';
+import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import {
@@ -5,9 +8,6 @@ import {
 	ExternalLink,
 	TextControl,
 } from '@wordpress/components';
-import React, { useEffect, useRef, useState } from 'react';
-import { getQuery } from '@woocommerce/navigation';
-import { useIsOCEnabled, useIsUpeEnabled, useOCTitle } from '../../data';
 
 const OptimizedCheckoutFeature = () => {
 	const [ isOCEnabled, setIsOCEnabled ] = useIsOCEnabled();
