@@ -741,6 +741,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$refund_order->save();
 
 		$notification = (object) [
+			'type' => 'charge.refund.updated',
 			'data' => (object) [
 				'object' => (object) [
 					'id'             => $refund_id,

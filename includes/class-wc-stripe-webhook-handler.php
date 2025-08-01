@@ -262,7 +262,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $notification->data->object->id );
@@ -395,7 +395,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_dispute( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
@@ -436,7 +436,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_dispute_closed( $notification ) {
-		$order  = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$order  = $this->get_order_from_notification( $notification );
 		$status = $notification->data->object->status;
 
 		if ( ! $order ) {
@@ -488,7 +488,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_capture( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
@@ -560,7 +560,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $charge->id );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $charge->id );
@@ -618,7 +618,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_failed( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
@@ -653,16 +653,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_source_canceled( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order = $this->get_order_from_notification( $notification );
 
-		// If can't find order by charge ID, try source ID.
 		if ( ! $order ) {
-			$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
-
-			if ( ! $order ) {
-				WC_Stripe_Logger::log( 'Could not find order via charge/source ID: ' . $notification->data->object->id );
-				return;
-			}
+			WC_Stripe_Logger::log( 'Could not find order via charge/source ID: ' . $notification->data->object->id );
+			return;
 		}
 
 		// Don't proceed if payment method isn't Stripe.
@@ -689,18 +684,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_refund( $notification ) {
-		$refund_object = $this->get_refund_object( $notification );
-		$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+		$order = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
-			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
-		}
-
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $notification->data->object->id );
 			return;
 		}
+
+		$refund_object = $this->get_refund_object( $notification );
 
 		$order_id = $order->get_id();
 
@@ -777,8 +768,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_refund_updated( $notification ) {
+		// Note that we avoid calling `get_refund_object()` as that code makes a call to Stripe.
 		$refund_object = $notification->data->object;
-		$order         = WC_Stripe_Helper::get_order_by_charge_id( $refund_object->charge );
+		$order         = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order to update refund via charge ID: ' . $refund_object->charge );
@@ -872,20 +864,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_opened( $notification ) {
-		if ( isset( $notification->data->object->payment_intent ) ) {
-			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+		$order = $this->get_order_from_notification( $notification );
 
-			if ( ! $order ) {
-				WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
-				return;
-			}
-		} else {
-			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
-
-			if ( ! $order ) {
-				WC_Stripe_Logger::log( '[Review Opened] Could not find order via charge ID: ' . $notification->data->object->charge );
-				return;
-			}
+		if ( ! $order ) {
+			$reference_type = isset( $notification->data->object->payment_intent ) ? 'payment_intent' : 'charge';
+			$reference      = 'payment_intent' === $reference_type ? $notification->data->object->payment_intent : $notification->data->object->charge ?? 'unknown';
+			WC_Stripe_Logger::log( '[Review Opened] Could not find order via ' . $reference_type . ': ' . $reference );
+			return;
 		}
 
 		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
@@ -913,20 +898,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_closed( $notification ) {
-		if ( isset( $notification->data->object->payment_intent ) ) {
-			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+		$order = $this->get_order_from_notification( $notification );
 
-			if ( ! $order ) {
-				WC_Stripe_Logger::log( '[Review Closed] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
-				return;
-			}
-		} else {
-			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
-
-			if ( ! $order ) {
-				WC_Stripe_Logger::log( '[Review Closed] Could not find order via charge ID: ' . $notification->data->object->charge );
-				return;
-			}
+		if ( ! $order ) {
+			$reference_type = isset( $notification->data->object->payment_intent ) ? 'payment_intent' : 'charge';
+			$reference      = 'payment_intent' === $reference_type ? $notification->data->object->payment_intent : $notification->data->object->charge ?? 'unknown';
+			WC_Stripe_Logger::log( '[Review Closed] Could not find order via ' . $reference_type . ': ' . $reference );
+			return;
 		}
 
 		/* translators: 1) The reason type. */
@@ -1030,7 +1008,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment_intent( $notification ) {
 		$intent = $notification->data->object;
-		$order  = $this->get_order_from_intent( $intent );
+		$order  = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via intent ID: ' . $intent->id );
@@ -1146,7 +1124,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	public function process_setup_intent( $notification ) {
 		$intent = $notification->data->object;
-		$order  = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent->id );
+		$order  = $this->get_order_from_notification( $notification );
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via setup intent ID: ' . $intent->id );
@@ -1334,6 +1312,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
 
+		$order = $this->get_order_from_notification( $notification );
+
 		switch ( $notification->type ) {
 			case 'account.updated':
 				$this->process_account_updated( $notification );
@@ -1397,6 +1377,98 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+	}
+
+	protected function get_order_from_notification( $notification ) {
+		$object = $notification->data->object ?? new stdClass();
+		$order  = false;
+
+		// Handle different notification types based on their structure
+		switch ( $notification->type ) {
+			case 'source.chargeable':
+				// Source-based notifications
+				$order = WC_Stripe_Helper::get_order_by_source_id( $object->id );
+				break;
+
+			case 'source.canceled':
+				// Try charge ID first, then source ID as fallback
+				$order = WC_Stripe_Helper::get_order_by_charge_id( $object->id );
+				if ( ! $order ) {
+					$order = WC_Stripe_Helper::get_order_by_source_id( $object->id );
+				}
+				break;
+
+			case 'charge.succeeded':
+			case 'charge.failed':
+			case 'charge.expired':
+			case 'charge.captured':
+				// Charge-based notifications
+				$order = WC_Stripe_Helper::get_order_by_charge_id( $object->id );
+				break;
+
+			case 'charge.dispute.created':
+			case 'charge.dispute.closed':
+				// Dispute notifications - use charge ID from dispute object
+				$order = WC_Stripe_Helper::get_order_by_charge_id( $object->charge );
+				break;
+
+			case 'charge.refunded':
+				// Refund notifications - try refund ID first, then charge ID
+				$refund_object = $this->get_refund_object( $notification );
+				$order         = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+				if ( ! $order ) {
+					$order = WC_Stripe_Helper::get_order_by_charge_id( $object->id );
+				}
+				break;
+
+			case 'charge.refund.updated':
+				// Refund update notifications - use charge ID from refund object
+				$order = WC_Stripe_Helper::get_order_by_charge_id( $object->charge );
+				break;
+
+			case 'review.opened':
+			case 'review.closed':
+				// Review notifications - try payment intent first, then charge
+				if ( isset( $object->payment_intent ) ) {
+					$order = WC_Stripe_Helper::get_order_by_intent_id( $object->payment_intent );
+				} else {
+					$order = WC_Stripe_Helper::get_order_by_charge_id( $object->charge );
+				}
+				break;
+
+			case 'payment_intent.processing':
+			case 'payment_intent.succeeded':
+			case 'payment_intent.payment_failed':
+			case 'payment_intent.amount_capturable_updated':
+			case 'payment_intent.requires_action':
+				// Payment intent notifications - rely on get_order_from_intent()
+				$order = $this->get_order_from_intent( $object );
+				break;
+
+			case 'setup_intent.succeeded':
+			case 'setup_intent.setup_failed':
+				// Setup intent notifications
+				$order = WC_Stripe_Helper::get_order_by_setup_intent_id( $object->id );
+				break;
+
+			default:
+				// For unknown notification types, try common patterns
+				if ( isset( $object->payment_intent ) ) {
+					$order = WC_Stripe_Helper::get_order_by_intent_id( $object->payment_intent );
+				} elseif ( isset( $object->charge ) ) {
+					$order = WC_Stripe_Helper::get_order_by_charge_id( $object->charge );
+				} elseif ( isset( $object->id ) ) {
+					// Try as charge ID first
+					$order = WC_Stripe_Helper::get_order_by_charge_id( $object->id );
+					if ( ! $order ) {
+						// Try as source ID
+						$order = WC_Stripe_Helper::get_order_by_source_id( $object->id );
+					}
+				}
+				break;
+		}
+
+		return $order;
 	}
 
 	/**
