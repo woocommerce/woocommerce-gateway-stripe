@@ -1,10 +1,14 @@
 const path = require( 'path' );
 const webpack = require( 'webpack' );
-const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
+const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 
 module.exports = {
 	...defaultConfig,
+	output: {
+		...defaultConfig.output,
+		devtoolModuleFilenameTemplate: 'webpack://[resource-path]',
+	},
 	devtool:
 		process.env.NODE_ENV === 'production'
 			? 'hidden-source-map'
@@ -21,7 +25,7 @@ module.exports = {
 				return plugin;
 			} ),
 		],
-		splitChunks: undefined,
+		splitChunks: false,
 	},
 	plugins: [
 		...defaultConfig.plugins.filter(
@@ -40,18 +44,53 @@ module.exports = {
 	module: {
 		...defaultConfig.module,
 		rules: [
-			...defaultConfig.module.rules,
+			...defaultConfig.module.rules.map( ( rule ) => {
+				if ( ! rule.test.test( 'test.scss' ) ) {
+					return rule;
+				}
+
+				return {
+					...rule,
+					use: [
+						...rule.use.map( ( useEntry ) => {
+							if (
+								useEntry.loader !==
+								require.resolve( 'sass-loader' )
+							) {
+								return useEntry;
+							}
+
+							return {
+								...useEntry,
+								options: {
+									...( useEntry?.options || {} ),
+									sassOptions: {
+										...( useEntry?.options?.sassOptions ||
+											{} ),
+										quietDeps: true,
+									},
+								},
+							};
+						} ),
+					],
+				};
+			} ),
 			{
 				test: /\.mjs$/,
 				include: /node_modules/,
 				type: 'javascript/auto',
+				resolve: {
+					fullySpecified: false,
+				},
 			},
 		],
 	},
 	resolve: {
+		...defaultConfig.resolve,
 		extensions: [ '.json', '.js', '.jsx', '.mjs' ],
 		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
 		alias: {
+			...defaultConfig.resolve.alias,
 			wcstripe: path.resolve( __dirname, 'client' ),
 		},
 	},
