@@ -94,6 +94,7 @@ if [[ -n "$WC_VERSION" && $WC_VERSION != 'latest' ]]; then
 	if [[ $WC_VERSION == 'rc' ]]; then
 		WC_VERSION=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r '.versions | with_entries(select(.key|match("rc";"i"))) | keys[0]' --sort-keys)
 	fi
+
 	step "Installing WooCommerce ${WC_VERSION}"
 	redirect_output cli wp plugin install woocommerce --version="$WC_VERSION" --activate
 else
