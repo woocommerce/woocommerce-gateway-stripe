@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -6,6 +5,7 @@ import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
 import Popover from 'wcstripe/components/popover';
 import { PAYMENT_METHOD_CARD } from 'wcstripe/stripe-utils/constants';
+import { useIsOCEnabled } from 'wcstripe/data';
 
 const StyledPill = styled.span`
 	display: inline-flex;
@@ -46,11 +46,8 @@ const IconComponent = ( { children, ...props } ) => (
 );
 
 const PaymentMethodRequiredForOCPill = ( { id, label } ) => {
-	if (
-		id === PAYMENT_METHOD_CARD &&
-		// eslint-disable-next-line camelcase
-		wc_stripe_settings_params.is_oc_enabled
-	) {
+	const [ isOCEnabled ] = useIsOCEnabled();
+	if ( id === PAYMENT_METHOD_CARD && isOCEnabled ) {
 		return (
 			<StyledPill>
 				{ __( 'Required', 'woocommerce-gateway-stripe' ) }
