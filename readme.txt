@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 * Fix - Only clear customer cache when an action has been performed
+* Dev - Update SCSS to replace @import with @use and @forward
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
