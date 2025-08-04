@@ -1152,7 +1152,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						 * @param WC_Order $order The order being processed by the webhook.
 						 */
 						do_action( 'wc_stripe_webhook_processed', (string) $notification->type, $notification, $this->resolved_order );
-					} catch ( Exception $e ) {
+					} catch ( Throwable $e ) {
 						WC_Stripe_Logger::error( 'Error in wc_stripe_webhook_processed action: ' . $e->getMessage(), [ 'error' => $e ] );
 					}
 				} else {
@@ -1480,17 +1480,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		/**
-		 * Fires after a webhook has been processed, but before we respond to Stripe.
-		 * This allows for custom processing of the webhook after it has been processed.
-		 *
-		 * @since 9.8.0
-		 *
-		 * @param string $webhook_type The type of webhook that was processed.
-		 * @param object $notification The webhook data sent from Stripe.
-		 * @param WC_Order $order The order being processed by the webhook.
-		 */
-		do_action( 'wc_stripe_webhook_processed', (string) $notification->type, $notification, $this->resolved_order );
+		try {
+			/**
+			 * Fires after a webhook has been processed, but before we respond to Stripe.
+			 * This allows for custom processing of the webhook after it has been processed.
+			 *
+			 * @since 9.8.0
+			 *
+			 * @param string $webhook_type The type of webhook that was processed.
+			 * @param object $notification The webhook data sent from Stripe.
+			 * @param WC_Order $order The order being processed by the webhook.
+			 */
+			do_action( 'wc_stripe_webhook_processed', (string) $notification->type, $notification, $this->resolved_order );
+		} catch ( Throwable $e ) {
+			WC_Stripe_Logger::error( 'Error in wc_stripe_webhook_processed action: ' . $e->getMessage(), [ 'error' => $e ] );
+		}
 	}
 
 	/**
