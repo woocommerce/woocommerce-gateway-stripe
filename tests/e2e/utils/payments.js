@@ -924,7 +924,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'#radio-control-wc-payment-method-options-stripe_affirm__content iframe[name^="__privateStripeFrame"]'
 			)
 			.getByTestId( 'next-action-text' )
-			.click();
+			.toBeVisible();
 	} else {
 		const affirmLabel = page.getByText( 'Affirm' );
 		await affirmLabel.waitFor( { state: 'visible' } );
@@ -934,7 +934,7 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
 			)
 			.getByTestId( 'next-action-text' )
-			.click();
+			.toBeVisible();
 	}
 };
 
@@ -968,7 +968,7 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'#radio-control-wc-payment-method-options-stripe_klarna__content iframe[name^="__privateStripeFrame"]'
 			)
 			.getByTestId( 'next-action-text' )
-			.click();
+			.toBeVisible();
 	} else {
 		const klarnaLabel = page.getByText( 'Klarna' );
 		await klarnaLabel.waitFor( { state: 'visible' } );
@@ -978,6 +978,6 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 				'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
 			)
 			.getByTestId( 'next-action-text' )
-			.click();
+			.toBeVisible();
 	}
 };
