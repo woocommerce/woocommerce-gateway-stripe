@@ -1290,7 +1290,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param array  $additional_data Additional data passed to the scheduled job.
 	 * @param stdClass $notification  The webhook notification payload.
 	 */
-	public function process_deferred_webhook( $webhook_type, $additional_data, $notification ) {
+	public function process_deferred_webhook( $webhook_type, $additional_data, $notification = null ) {
 		try {
 			switch ( $webhook_type ) {
 				case 'payment_intent.succeeded':
