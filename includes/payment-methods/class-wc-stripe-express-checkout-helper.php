@@ -684,10 +684,9 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		// Don't show in the product page if the product price is 0.
-		// ToDo: support free trials. Free trials should be supported if the product does not require shipping.
-		if ( $is_product && $product && 0.0 === (float) $product->get_price() ) {
-			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products.' );
+		// Don't show in the product page if the product price is 0 and the product requires shipping.
+		if ( $is_product && $product && 0.0 === (float) $product->get_price() && $this->product_or_cart_needs_shipping() ) {
+			WC_Stripe_Logger::log( 'Stripe Express Checkout does not support free products that requires shipping.' );
 			return false;
 		}
 
