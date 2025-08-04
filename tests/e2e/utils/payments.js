@@ -919,22 +919,24 @@ export const setupAffirmCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const affirmLabel = page.locator( 'label', { hasText: 'Affirm' } );
 		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
-		await page
-			.frameLocator(
-				'#radio-control-wc-payment-method-options-stripe_affirm__content iframe[name^="__privateStripeFrame"]'
-			)
-			.getByTestId( 'next-action-text' )
-			.toBeVisible();
+		await expect(
+			page
+				.frameLocator(
+					'#radio-control-wc-payment-method-options-stripe_affirm__content iframe[name^="__privateStripeFrame"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	} else {
 		const affirmLabel = page.getByText( 'Affirm' );
 		await affirmLabel.waitFor( { state: 'visible' } );
 		await affirmLabel.click();
-		await page
-			.frameLocator(
-				'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
-			)
-			.getByTestId( 'next-action-text' )
-			.toBeVisible();
+		await expect(
+			page
+				.frameLocator(
+					'.payment_method_stripe_affirm iframe[src*="elements-inner-payment"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	}
 };
 
@@ -963,21 +965,23 @@ export const setupKlarnaCheckout = async ( page, checkoutType = 'blocks' ) => {
 		const klarnaLabel = page.locator( 'label', { hasText: 'Klarna' } );
 		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
-		await page
-			.frameLocator(
-				'#radio-control-wc-payment-method-options-stripe_klarna__content iframe[name^="__privateStripeFrame"]'
-			)
-			.getByTestId( 'next-action-text' )
-			.toBeVisible();
+		await expect(
+			page
+				.frameLocator(
+					'#radio-control-wc-payment-method-options-stripe_klarna__content iframe[name^="__privateStripeFrame"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	} else {
 		const klarnaLabel = page.getByText( 'Klarna' );
 		await klarnaLabel.waitFor( { state: 'visible' } );
 		await klarnaLabel.click();
-		await page
-			.frameLocator(
-				'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
-			)
-			.getByTestId( 'next-action-text' )
-			.toBeVisible();
+		await expect(
+			page
+				.frameLocator(
+					'.payment_method_stripe_klarna iframe[src*="elements-inner-payment"]'
+				)
+				.getByTestId( 'next-action-text' )
+		).toBeVisible();
 	}
 };
