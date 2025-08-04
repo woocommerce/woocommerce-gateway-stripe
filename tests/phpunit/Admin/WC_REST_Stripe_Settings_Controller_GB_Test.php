@@ -74,9 +74,6 @@ class WC_REST_Stripe_Settings_Controller_GB_Test extends WC_Mock_Stripe_API_Unit
 			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
 		}
 
-		// Enable Bacs for tests.
-		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
-
 		// All tests assume UPE feature is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
 
