@@ -276,7 +276,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$order_id = $order->get_id();
@@ -412,7 +412,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
@@ -457,7 +457,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		if ( 'lost' === $status ) {
@@ -511,7 +511,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		if ( WC_Stripe_Helper::payment_method_allows_manual_capture( $order->get_payment_method() ) ) {
@@ -586,7 +586,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		if ( ! $order->has_status( OrderStatus::ON_HOLD ) ) {
@@ -647,7 +647,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		// If order status is already in failed status don't continue.
@@ -690,7 +690,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		// Don't proceed if payment method isn't Stripe.
@@ -725,7 +725,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		if ( ! $order ) {
@@ -816,7 +816,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$order_id = $order->get_id();
@@ -922,7 +922,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$this->set_stripe_order_status_before_hold( $order, $order->get_status() );
@@ -966,7 +966,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		/* translators: 1) The reason type. */
@@ -1087,7 +1087,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		if ( $this->lock_order_payment( $order, $intent ) ) {
@@ -1140,7 +1140,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$charge->is_webhook_response = true;
 					$this->process_response( $charge, $order );
 
-					$this->run_webhook_processed_action( (string) $notification->type, $notification, $this->resolved_order );
+					$this->run_webhook_received_action( (string) $notification->type, $notification, $this->resolved_order );
 				} else {
 					WC_Stripe_Logger::log( "Processing $notification->type ($intent->id) asynchronously for order $order_id." );
 
@@ -1197,7 +1197,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
 		$allowed_payment_processing_statuses = [ OrderStatus::PENDING, OrderStatus::FAILED ];
@@ -1302,7 +1302,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						throw new Exception( "Missing required data. 'order_id' is invalid or not found for the deferred '{$webhook_type}' event." );
 					}
 
-					// Set the order being processed for the `wc_stripe_webhook_processed` action later.
+					// Set the order being processed for the `wc_stripe_webhook_received` action later.
 					$this->resolved_order = $order;
 
 					if ( empty( $intent_id ) ) {
@@ -1322,7 +1322,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					break;
 			}
 
-			$this->run_webhook_processed_action( (string) $webhook_type, $notification, $this->resolved_order );
+			$this->run_webhook_received_action( (string) $webhook_type, $notification, $this->resolved_order );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error processing deferred webhook: ' . $e->getMessage() );
 
@@ -1459,17 +1459,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$this->run_webhook_processed_action( $notification->type, $notification, $this->resolved_order );
+		$this->run_webhook_received_action( $notification->type, $notification, $this->resolved_order );
 	}
 
 	/**
-	 * Helper function to run the `wc_stripe_webhook_processed` action consistently.
+	 * Helper function to run the `wc_stripe_webhook_received` action consistently.
 	 *
 	 * @param string $webhook_type The type of webhook that was processed.
 	 * @param object $notification The webhook data sent from Stripe.
 	 * @param WC_Order|null $order The order being processed by the webhook.
 	 */
-	private function run_webhook_processed_action( string $webhook_type, object $notification, ?WC_Order $order = null ): void {
+	private function run_webhook_received_action( string $webhook_type, object $notification, ?WC_Order $order = null ): void {
 		try {
 			/**
 			 * Fires after a webhook has been processed, but before we respond to Stripe.
@@ -1483,9 +1483,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			 * @param object $notification The webhook data sent from Stripe.
 			 * @param WC_Order|null $order The order being processed by the webhook.
 			 */
-			do_action( 'wc_stripe_webhook_processed', $webhook_type, $notification, $this->resolved_order );
+			do_action( 'wc_stripe_webhook_received', $webhook_type, $notification, $this->resolved_order );
 		} catch ( Throwable $e ) {
-			WC_Stripe_Logger::error( 'Error in wc_stripe_webhook_processed action: ' . $e->getMessage(), [ 'error' => $e ] );
+			WC_Stripe_Logger::error( 'Error in wc_stripe_webhook_received action: ' . $e->getMessage(), [ 'error' => $e ] );
 		}
 	}
 	/**
