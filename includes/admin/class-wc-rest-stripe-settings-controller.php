@@ -300,7 +300,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 		$is_payment_request_enabled   = $request->get_param( 'is_payment_request_enabled' );
 
-		if ( $is_upe_enabled && $is_payment_request_enabled ) {
+		// Card is required for Apple Pay and Google Pay.
+		if ( $is_upe_enabled &&
+			 $is_payment_request_enabled &&
+			 in_array( WC_Stripe_Payment_Methods::CARD, $payment_method_ids_to_enable, true )
+		) {
 			$payment_method_ids_to_enable = array_merge(
 				$payment_method_ids_to_enable,
 				[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
@@ -554,7 +558,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			if ( 'is_oc_enabled' === $request_key && $value !== $current_value ) {
 				wc_admin_record_tracks_event(
 					$value ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
-					[ 'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0 ]
+					[
+						'test_mode' => WC_Stripe_Mode::is_test() ? 1 : 0,
+						'source'    => 'settings_rest_api',
+					]
 				);
 			}
 		}

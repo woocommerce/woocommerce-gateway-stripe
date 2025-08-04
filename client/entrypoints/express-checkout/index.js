@@ -649,6 +649,7 @@ jQuery( function ( $ ) {
 		 */
 		addToCart: async () => {
 			let productId = $( '.single_add_to_cart_button' ).val();
+			let emptyCartParams = {};
 
 			const data = {
 				qty: $( quantityInputSelector ).val(),
@@ -663,6 +664,9 @@ jQuery( function ( $ ) {
 
 			if ( $( '.wc-bookings-booking-form' ).length ) {
 				productId = $( '.wc-booking-product-id' ).val();
+				emptyCartParams = {
+					bookingId: productId,
+				};
 			}
 
 			// Add extension data to the POST body
@@ -701,7 +705,7 @@ jQuery( function ( $ ) {
 			//  do not interfere with computed totals.
 			// Use the non-StoreAPI method as it is faster; Stripe requires
 			// the click event to be resolved within 1 second.
-			await api.expressCheckoutEmptyCartLegacy( {} );
+			await api.expressCheckoutEmptyCartLegacy( emptyCartParams );
 
 			return api.expressCheckoutAddToCart( data );
 		},
@@ -901,49 +905,5 @@ jQuery( function ( $ ) {
 	// We need to refresh ECE data when total is updated.
 	$( document.body ).on( 'updated_checkout', () => {
 		wcStripeECE.init();
-	} );
-
-	// Handle bookable products on the product page.
-	let wcBookingFormChanged = false;
-
-	$( document.body )
-		.off( 'wc_booking_form_changed' )
-		.on( 'wc_booking_form_changed', () => {
-			wcBookingFormChanged = true;
-		} );
-
-	// Listen for the WC Bookings wc_bookings_calculate_costs event to complete
-	// and add the bookable product to the cart, using the response to update the
-	// payment request request params with correct totals.
-	$( document ).ajaxComplete( function ( event, xhr, settings ) {
-		if ( wcBookingFormChanged ) {
-			if (
-				settings.url === window.booking_form_params.ajax_url &&
-				settings.data.includes( 'wc_bookings_calculate_costs' ) &&
-				xhr.responseText.includes( 'SUCCESS' )
-			) {
-				wcStripeECE.blockExpressCheckoutButton();
-				wcBookingFormChanged = false;
-
-				return wcStripeECE.addToCart().then( ( response ) => {
-					getExpressCheckoutData( 'product' ).total = response.total;
-					getExpressCheckoutData( 'product' ).displayItems =
-						response.displayItems;
-
-					// Empty the cart to avoid having 2 products in the cart when payment request is not used.
-					if ( useLegacyCartEndpoints ) {
-						api.expressCheckoutEmptyCartLegacy( {
-							bookingId: response.bookingId,
-						} );
-					} else {
-						api.expressCheckoutEmptyCart( response.bookingId );
-					}
-
-					wcStripeECE.init();
-
-					wcStripeECE.unblockExpressCheckoutButton();
-				} );
-			}
-		}
 	} );
 } );

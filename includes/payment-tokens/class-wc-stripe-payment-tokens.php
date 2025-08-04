@@ -560,9 +560,6 @@ class WC_Stripe_Payment_Tokens {
 	 * @return  WC_Payment_Token   The WC object for the payment token.
 	 */
 	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer, $payment_method_ids = [] ) {
-		// Clear cached payment methods.
-		$customer->clear_cache();
-
 		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
@@ -570,11 +567,16 @@ class WC_Stripe_Payment_Tokens {
 		if ( $found_token ) {
 			// Update the token with the new payment method ID if the current payment method ID is not in the list of payment method IDs retrieved from Stripe.
 			if ( ! in_array( $found_token->get_token(), $payment_method_ids, true ) ) {
+				// Clear cached payment methods.
+				$customer->clear_cache();
 				$found_token->set_token( $payment_method->id );
 				$found_token->save();
 			}
 			return $found_token;
 		}
+
+		// Clear cached payment methods.
+		$customer->clear_cache();
 
 		switch ( $payment_method_type ) {
 			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:

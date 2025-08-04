@@ -236,7 +236,7 @@ class WC_Stripe_API {
 		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
 
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -249,34 +249,33 @@ class WC_Stripe_API {
 		);
 
 		$response_headers = wp_remote_retrieve_headers( $response );
-		// Log the stripe version in the response headers, if present.
-		if ( isset( $response_headers['stripe-version'] ) ) {
-			WC_Stripe_Logger::log( "{$api} response with stripe-version: " . $response_headers['stripe-version'] );
-		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::log(
-				'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r(
-					[
-						'api'             => $api,
-						'request'         => $request,
-						'idempotency_key' => $idempotency_key,
-					],
-					true
-				)
+			// Stripe redacts API keys in the response.
+			WC_Stripe_Logger::error(
+				"Stripe API error: {$method} {$api}",
+				[
+					'request'         => $request,
+					'idempotency_key' => $idempotency_key,
+					'response'        => $response,
+				]
 			);
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
+		$response_body = json_decode( $response['body'] );
+
+		WC_Stripe_Logger::debug( "Stripe API response: {$method} {$api}", [ 'response' => $response_body ] );
+
 		if ( $with_headers ) {
 			return [
 				'headers' => $response_headers,
-				'body'    => json_decode( $response['body'] ),
+				'body'    => $response_body,
 			];
 		}
 
-		return json_decode( $response['body'] );
+		return $response_body;
 	}
 
 	/**
@@ -301,7 +300,7 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::log( "{$api}" );
+		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -315,7 +314,12 @@ class WC_Stripe_API {
 		// If we get a 401 error, we know the secret key is not valid.
 		if ( is_array( $response ) && isset( $response['response'] ) && is_array( $response['response'] ) && isset( $response['response']['code'] ) && 401 === $response['response']['code'] ) {
 			// Stripe redacts API keys in the response.
-			WC_Stripe_Logger::log( "Error: GET {$api} returned a 401" );
+			WC_Stripe_Logger::error(
+				"Stripe API error: GET {$api} returned a 401",
+				[
+					'response' => json_decode( $response['body'] ),
+				]
+			);
 
 			++$invalid_api_key_error_count;
 			WC_Stripe_Database_Cache::set( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY, $invalid_api_key_error_count, self::INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT );
@@ -343,11 +347,20 @@ class WC_Stripe_API {
 		}
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
+			WC_Stripe_Logger::error(
+				"Stripe API error: GET {$api}",
+				[
+					'response' => $response,
+				]
+			);
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		return json_decode( $response['body'] );
+		$response_body = json_decode( $response['body'] );
+
+		WC_Stripe_Logger::debug( "Stripe API response: GET {$api}", [ 'response' => $response_body ] );
+
+		return $response_body;
 	}
 
 	/**
@@ -421,15 +434,14 @@ class WC_Stripe_API {
 			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
 		} elseif ( $is_level_3data_incorrect ) {
 			// Log the issue so we could debug it.
-			WC_Stripe_Logger::log(
-				'Level3 data sum incorrect: ' . PHP_EOL
-				. print_r( $result->error->message, true ) . PHP_EOL
-				. print_r( 'Order line items: ', true ) . PHP_EOL
-				. print_r( $order->get_items(), true ) . PHP_EOL
-				. print_r( 'Order shipping amount: ', true ) . PHP_EOL
-				. print_r( $order->get_shipping_total(), true ) . PHP_EOL
-				. print_r( 'Order currency: ', true ) . PHP_EOL
-				. print_r( $order->get_currency(), true )
+			WC_Stripe_Logger::error(
+				'Level3 data sum incorrect',
+				[
+					'error'                 => $result->error,
+					'order_line_items'      => $order->get_items(),
+					'order_shipping_amount' => $order->get_shipping_total(),
+					'order_currency'        => $order->get_currency(),
+				]
 			);
 		}
 
