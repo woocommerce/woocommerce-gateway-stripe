@@ -1,3 +1,5 @@
+@use 'node_modules/@wordpress/base-styles/variables';
+
 // Rem output with px fallback
 @mixin font-size( $sizeValue: 16, $lineHeight: false ) {
 	font-size: $sizeValue + px;
@@ -24,7 +26,7 @@
 
 	> * {
 		&:not( :first-child ) {
-			margin-left: $grid-unit-20;
+			margin-left: variable.$grid-unit-20;
 		}
 	}
 }
@@ -34,7 +36,7 @@
 
 	> * {
 		&:not( :last-child ) {
-			margin-right: $grid-unit-20;
+			margin-right: variable.$grid-unit-20;
 		}
 	}
 }

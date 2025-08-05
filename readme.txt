@@ -112,6 +112,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.8.0 - xxxx-xx-xx =
 * Add - Allow the purchase of free trials using the Express Payment methods when the product does not require shipping
+* Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
 * Add - A new pill to the payment methods page to indicate the credit card requirement when the Optimized Checkout feature is enabled
 * Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
 * Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
@@ -133,5 +134,10 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 * Fix - Only clear customer cache when an action has been performed
+* Fix - Remove validation error check from classic checkout before payment method creation
+* Dev - Clean up LPM (Local Payment Method) feature flags and related code
+* Dev - Move some testing and compiler node dependencies to devDependencies
+* Dev - Minor CSS change to comply with a SASS rule deprecation
+* Dev - Update SCSS to replace @import with @use and @forward
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
