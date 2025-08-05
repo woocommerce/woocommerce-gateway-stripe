@@ -1080,7 +1080,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 				$process_webhook_async = apply_filters( 'wc_stripe_process_payment_intent_webhook_async', true, $order, $intent, $notification );
-				$is_awaiting_action    = $order->get_meta(  WC_Stripe_Order_Metas::META_STRIPE_UPE_WAITING_FOR_REDIRECT ) ?? false;
+				$is_awaiting_action    = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_UPE_WAITING_FOR_REDIRECT ) ?? false;
 
 				// Process the webhook now if it's for a voucher or wallet payment , or if filtered to process immediately and order is not awaiting action.
 				if ( $is_voucher_payment || $is_wallet_payment || ( ! $process_webhook_async && ! $is_awaiting_action ) ) {

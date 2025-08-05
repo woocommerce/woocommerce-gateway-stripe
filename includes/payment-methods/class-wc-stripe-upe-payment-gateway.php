@@ -2803,7 +2803,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param string   $customer_id The value to be set.
 	 */
 	public function set_customer_id_for_order( WC_Order $order, string $customer_id ) {
-		$order->update_meta_data(  WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $customer_id );
+		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID, $customer_id );
 		$order->save_meta_data();
 	}
 
