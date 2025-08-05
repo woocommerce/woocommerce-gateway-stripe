@@ -68,14 +68,14 @@ const OptimizedCheckoutFeature = () => {
 				) }
 			</h4>
 			<CheckboxControl
-				data-testid="single-payment-element-checkbox"
+				data-testid="optimized-checkout-element-checkbox"
 				label={ __(
-					'Automatically display the most relevant payment methods',
+					'Dynamically display the most relevant payment methods',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						"Maximize conversions by enabling Stripe's Optimized Checkout Suite. Display the most relevant payment methods for each of your customers automatically. <learnMoreLink>Learn more</learnMoreLink>.",
+						"Maximize conversions by enabling Stripe's Optimized Checkout Suite. Display the most relevant payment methods for each of your customers dynamically. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{

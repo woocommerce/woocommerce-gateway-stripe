@@ -97,7 +97,7 @@ export const OCPromotionBanner = ( {
 						{ __( '', 'woocommerce-gateway-stripe' ) }
 						{ interpolateComponents( {
 							mixedString: __(
-								"Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer. {{docLink}}Learn more{{/docLink}} about Stripe's Optimized Checkout Suite.",
+								"Optimize your checkout for more sales by dynamically displaying the most relevant payment methods for each customer. {{docLink}}Learn more{{/docLink}} about Stripe's Optimized Checkout Suite.",
 								'woocommerce-gateway-stripe'
 							),
 							components: {

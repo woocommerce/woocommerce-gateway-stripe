@@ -6,7 +6,7 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.useFakeTimers();
 
-describe( 'Single Payment Element feature setting', () => {
+describe( 'Optimized Checkout Element feature setting', () => {
 	it( 'should render', () => {
 		render( <OptimizedCheckoutFeature /> );
 
@@ -34,7 +34,7 @@ describe( 'Single Payment Element feature setting', () => {
 		);
 
 		const checkbox = screen.getByTestId(
-			'single-payment-element-checkbox'
+			'optimized-checkout-element-checkbox'
 		);
 
 		userEvent.click( checkbox );
