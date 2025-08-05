@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 9.8.0 - xxxx-xx-xx =
+* Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
 * Add - A new pill to the payment methods page to indicate the credit card requirement when the Optimized Checkout feature is enabled
 * Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
 * Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
@@ -23,6 +24,9 @@
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 * Fix - Only clear customer cache when an action has been performed
+* Dev - Move some testing and compiler node dependencies to devDependencies
+* Dev - Minor CSS change to comply with a SASS rule deprecation
+* Dev - Remove LPM feature flags
 * Dev - Update SCSS to replace @import with @use and @forward
 
 = 9.7.1 - 2025-07-28 =

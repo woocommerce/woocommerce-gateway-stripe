@@ -182,31 +182,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			// Show ACH only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACH::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_ach_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show ACSS only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_ACSS::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_acss_lpm_enabled() ) {
-				continue;
-			}
-
-			// Consider Bacs only if the feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Bacs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_bacs_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show BECS Debit only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_Becs_Debit::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled() ) {
-				continue;
-			}
-
-			// Show BLIK only if feature is enabled.
-			if ( WC_Stripe_UPE_Payment_Method_BLIK::class === $payment_method_class && ! WC_Stripe_Feature_Flags::is_blik_lpm_enabled() ) {
-				continue;
-			}
-
 			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
@@ -538,18 +513,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Amazon Pay feature flag.
 		$stripe_params['isAmazonPayAvailable'] = WC_Stripe_Feature_Flags::is_amazon_pay_available();
-
-		// ACH LPM Feature flag.
-		$stripe_params['is_ach_enabled'] = WC_Stripe_Feature_Flags::is_ach_lpm_enabled();
-
-		// ACSS LPM Feature flag.
-		$stripe_params['is_acss_enabled'] = WC_Stripe_Feature_Flags::is_acss_lpm_enabled();
-
-		// BLIK LPM Feature flag.
-		$stripe_params['is_blik_enabled'] = WC_Stripe_Feature_Flags::is_blik_lpm_enabled();
-
-		// BECS Debit LPM Feature flag.
-		$stripe_params['is_becs_debit_enabled'] = WC_Stripe_Feature_Flags::is_becs_debit_lpm_enabled();
 
 		// Optimized Checkout feature flag + setting.
 		$stripe_params['isOCEnabled'] = $this->oc_enabled;
