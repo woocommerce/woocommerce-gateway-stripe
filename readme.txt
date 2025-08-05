@@ -134,6 +134,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 * Fix - Only clear customer cache when an action has been performed
 * Tweak - Remove validation error check from classic checkout before payment method creation
-* Dev - Remove LPM feature flags
+* Dev - Clean up LPM (Local Payment Method) feature flags and related code
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
