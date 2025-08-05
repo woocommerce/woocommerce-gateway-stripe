@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\Helpers;
 
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Cache_Helper;
 
 /**
@@ -28,7 +29,7 @@ class WC_Helper_Shipping {
 			'title'        => 'Flat rate',
 			'availability' => 'all',
 			'countries'    => '',
-			'tax_status'   => 'taxable',
+			'tax_status'   => ProductTaxStatus::TAXABLE,
 			'cost'         => $cost,
 		];
 

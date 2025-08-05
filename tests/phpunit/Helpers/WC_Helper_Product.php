@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\Helpers;
 
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Cache_Helper;
 use WC_Product_Attribute;
 use WC_Product_External;
@@ -50,7 +51,7 @@ class WC_Helper_Product {
 				'price'         => 10,
 				'sku'           => 'DUMMY SKU',
 				'manage_stock'  => false,
-				'tax_status'    => 'taxable',
+				'tax_status'    => ProductTaxStatus::TAXABLE,
 				'downloadable'  => false,
 				'virtual'       => false,
 				'stock_status'  => 'instock',
