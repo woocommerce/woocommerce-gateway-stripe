@@ -70,7 +70,7 @@ const OptimizedCheckoutFeature = () => {
 			<CheckboxControl
 				data-testid="optimized-checkout-element-checkbox"
 				label={ __(
-					'Dynamically display the most relevant payment methods',
+					"Dynamically display the most relevant payment methods you've enabled",
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(

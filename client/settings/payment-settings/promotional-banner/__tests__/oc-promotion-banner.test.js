@@ -48,7 +48,7 @@ describe( 'OC promotional banner', () => {
 		).toBeInTheDocument();
 		expect(
 			getByText(
-				/Optimize your checkout for more sales by automatically displaying the most relevant payment methods for each customer./
+				/Optimize your checkout for more sales by dynamically displaying the most relevant payment methods you've enabled for each customer./
 			)
 		).toBeInTheDocument();
 	} );
