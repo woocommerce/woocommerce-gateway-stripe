@@ -70,6 +70,13 @@ class WC_Stripe_Order_Metas {
 	const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
 
 	/**
+	 * Meta key for the Stripe card ID.
+	 *
+	 * @var string
+	 */
+	const META_STRIPE_CARD_ID = '_stripe_card_id';
+
+	/**
 	 * Meta key for the Stripe card brand.
 	 *
 	 * @var string

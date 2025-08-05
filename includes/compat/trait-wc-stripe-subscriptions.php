@@ -644,7 +644,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		$resubscribe_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID );
 		$resubscribe_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
 		// For BW compat will remove in future.
-		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
+		$resubscribe_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID );
 		// Delete payment intent ID.
 		$resubscribe_order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID );
 		$this->delete_renewal_meta( $resubscribe_order );
@@ -696,11 +696,11 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$source_id = $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID, true );
 
 			// Take this opportunity to update the key name.
 			$subscription->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $source_id );
-			$subscription->delete_meta_data( '_stripe_card_id' );
+			$subscription->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID );
 			$subscription->save();
 		}
 
@@ -744,10 +744,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			if (
-				! empty( $payment_meta['post_meta'][WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID]['value'] ) && (
-					0 !== strpos( $payment_meta['post_meta'][WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID]['value'], 'card_' )
-					&& 0 !== strpos( $payment_meta['post_meta'][WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID]['value'], 'src_' )
-					&& 0 !== strpos( $payment_meta['post_meta'][WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID]['value'], 'pm_' )
+				! empty( $payment_meta['post_meta'][ WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID ]['value'] ) && (
+					0 !== strpos( $payment_meta['post_meta'][ WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID ]['value'], 'card_' )
+					&& 0 !== strpos( $payment_meta['post_meta'][ WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID ]['value'], 'src_' )
+					&& 0 !== strpos( $payment_meta['post_meta'][ WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID ]['value'], 'pm_' )
 				)
 			) {
 				throw new Exception( __( 'Invalid payment method ID. A valid "Stripe Payment Method ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
@@ -970,7 +970,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = $subscription->get_meta( '_stripe_card_id', true );
+			$stripe_source_id = $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID, true );
 
 			// Take this opportunity to update the key name.
 			$subscription->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $stripe_source_id );
@@ -988,7 +988,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = get_user_option( '_stripe_card_id', $user_id );
+				$stripe_source_id = get_user_option( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID, $user_id );
 
 				// Take this opportunity to update the key name.
 				update_user_option( $user_id, WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $stripe_source_id, false );
@@ -1003,7 +1003,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
+				$stripe_source_id = $parent_order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID, true );
 
 				// Take this opportunity to update the key name.
 				$parent_order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $stripe_source_id );

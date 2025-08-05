@@ -151,7 +151,7 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
-		$source_id = $subscription->get_meta( '_stripe_source_id' );
+		$source_id = $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID );
 		if ( ! $source_id ) {
 			return false;
 		}
@@ -220,7 +220,7 @@ class WC_Stripe_Subscriptions_Helper {
 	public static function get_detached_payment_data_from_subscription( $subscription ) {
 		return [
 			'id'                        => $subscription->get_id(),
-			'customer_id'               => $subscription->get_meta( '_stripe_customer_id' ),
+			'customer_id'               => $subscription->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CUSTOMER_ID ),
 			'change_payment_method_url' => $subscription->get_change_payment_method_url(),
 		];
 	}

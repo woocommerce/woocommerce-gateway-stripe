@@ -1020,7 +1020,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = $order->get_meta( '_stripe_card_id', true );
+				$source_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CARD_ID, true );
 
 				// Take this opportunity to update the key name.
 				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $source_id );
@@ -1688,12 +1688,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$charge = $this->get_latest_charge_from_intent( $intent );
 
 			if ( isset( $charge->payment_method_details->card->mandate ) ) {
-				$order->update_meta_data(  WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $charge->payment_method_details->card->mandate );
+				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $charge->payment_method_details->card->mandate );
 			} elseif ( isset( $charge->payment_method_details->acss_debit->mandate ) ) {
 				$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_MANDATE_ID, $charge->payment_method_details->acss_debit->mandate );
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$order->update_meta_data(  WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT, $intent->id );
+			$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT, $intent->id );
 
 			// Add mandate for free trial subscriptions.
 			if ( isset( $intent->mandate ) ) {
