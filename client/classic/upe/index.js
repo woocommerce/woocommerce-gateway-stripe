@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
@@ -310,6 +311,16 @@ jQuery( function ( $ ) {
 				);
 			} else {
 				removeCashAppLimitNotice();
+			}
+
+			// Change the payment method container title when the Optimized Checkout is enabled
+			if (
+				getStripeServerData()?.isOCEnabled &&
+				$( 'input#payment_method_stripe' ).is( ':checked' )
+			) {
+				$( 'label[for=payment_method_stripe]' ).text(
+					__( 'Stripe', 'woocommerce-gateway-stripe' )
+				);
 			}
 
 			maybeClearBlikCodeValidation();
