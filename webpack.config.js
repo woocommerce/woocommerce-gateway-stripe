@@ -40,7 +40,38 @@ module.exports = {
 	module: {
 		...defaultConfig.module,
 		rules: [
-			...defaultConfig.module.rules,
+			...defaultConfig.module.rules.map( ( rule ) => {
+				// If the rule doesn't apply to SCSS files, return the rule as is.
+				if ( ! rule.test.test( 'test.scss' ) ) {
+					return rule;
+				}
+
+				return {
+					...rule,
+					use: [
+						...rule.use.map( ( useEntry ) => {
+							if (
+								useEntry.loader !==
+								require.resolve( 'sass-loader' )
+							) {
+								return useEntry;
+							}
+
+							return {
+								...useEntry,
+								options: {
+									...( useEntry?.options || {} ),
+									sassOptions: {
+										...( useEntry?.options?.sassOptions ||
+											{} ),
+										quietDeps: true,
+									},
+								},
+							};
+						} ),
+					],
+				};
+			} ),
 			{
 				test: /\.mjs$/,
 				include: /node_modules/,
