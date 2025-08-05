@@ -315,6 +315,86 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test should_show_express_checkout_button, free trial logic.
+	 *
+	 * @return void
+	 */
+	public function test_hides_ece_if_free_trial_requires_shipping() {
+		$this->set_up_shipping_methods();
+
+		$wc_stripe_ece_helper_mock = $this->createPartialMock(
+			WC_Stripe_Express_Checkout_Helper::class,
+			[
+				'is_product',
+				'get_product',
+				'allowed_items_in_cart',
+				'should_show_ece_on_cart_page',
+				'should_show_ece_on_checkout_page',
+			],
+		);
+
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'is_product' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'allowed_items_in_cart' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_cart_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->expects( $this->any() )->method( 'should_show_ece_on_checkout_page' )->willReturn( true );
+		$wc_stripe_ece_helper_mock->testmode = true;
+
+		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
+			define( 'WOOCOMMERCE_CHECKOUT', true );
+		}
+
+		// Ensure that the 'stripe' gateway is available.
+		$original_gateways                         = WC()->payment_gateways()->payment_gateways;
+		WC()->payment_gateways()->payment_gateways = [
+			'stripe' => new WC_Gateway_Stripe(),
+		];
+
+		update_option( 'woocommerce_calc_taxes', 'no' );
+
+		// Should show, as free virtual products does not require shipping.
+		$virtual_product = WC_Helper_Product::create_simple_product();
+		$virtual_product->set_virtual( true );
+		$virtual_product->set_tax_status( 'none' );
+		$virtual_product->set_price( 0 );
+		$virtual_product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $virtual_product->get_id(), 1 );
+		$wc_stripe_ece_helper_mock
+			->expects( $this->any() )
+			->method( 'get_product' )
+			->willReturn( $virtual_product );
+
+		$this->assertTrue( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Should hide if the free product requires shipping.
+		$shippable_product = WC_Helper_Product::create_simple_product();
+		$shippable_product->set_virtual( false );
+		$shippable_product->set_tax_status( 'none' );
+		$shippable_product->save();
+
+		WC()->session->init();
+		WC()->cart->empty_cart();
+
+		WC()->cart->add_to_cart( $shippable_product->get_id(), 1 );
+		$wc_stripe_ece_helper_mock
+			->expects( $this->any() )
+			->method( 'get_product' )
+			->willReturn( $shippable_product );
+
+		$this->assertFalse( $wc_stripe_ece_helper_mock->should_show_express_checkout_button() );
+
+		// Restore original settings.
+		WC()->cart->empty_cart();
+		WC()->session->cleanup_sessions();
+		WC()->payment_gateways()->payment_gateways = $original_gateways;
+
+		update_option( 'woocommerce_calc_taxes', 'yes' );
+	}
+
+	/**
 	 * Test for get_checkout_data().
 	 */
 	public function test_get_checkout_data() {
