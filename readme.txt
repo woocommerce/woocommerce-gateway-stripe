@@ -135,5 +135,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Only clear customer cache when an action has been performed
 * Tweak - Remove validation error check from classic checkout before payment method creation
 * Dev - Clean up LPM (Local Payment Method) feature flags and related code
+* Dev - Move some testing and compiler node dependencies to devDependencies
+* Dev - Minor CSS change to comply with a SASS rule deprecation
+* Dev - Update SCSS to replace @import with @use and @forward
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
