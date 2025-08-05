@@ -75,7 +75,7 @@ const OptimizedCheckoutFeature = () => {
 				) }
 				help={ createInterpolateElement(
 					__(
-						"Maximize conversions by enabling Stripe's Optimized Checkout Suite. Display the most relevant payment methods for each of your customers dynamically. <learnMoreLink>Learn more</learnMoreLink>.",
+						"Stripe's Optimized Checkout Suite uses AI models to order the most relevant payment methods you've enabled for each of your customers dynamically. <learnMoreLink>Learn more</learnMoreLink>.",
 						'woocommerce-gateway-stripe'
 					),
 					{
