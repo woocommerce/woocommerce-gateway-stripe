@@ -1,4 +1,3 @@
-import { __ } from '@wordpress/i18n';
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
@@ -318,9 +317,7 @@ jQuery( function ( $ ) {
 				getStripeServerData()?.isOCEnabled &&
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
-				$( 'label[for=payment_method_stripe]' ).text(
-					__( 'Stripe', 'woocommerce-gateway-stripe' )
-				);
+				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
 			}
 
 			maybeClearBlikCodeValidation();
