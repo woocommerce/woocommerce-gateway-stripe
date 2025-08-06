@@ -723,17 +723,20 @@ class WC_Stripe_Customer {
 		$all_payment_methods = get_transient( $cache_key );
 
 		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
-			$all_payment_methods  = [];
+			$all_payment_methods    = [];
+			$last_payment_method_id = null;
 
-			while ( true ) {
-				$response = WC_Stripe_API::request(
-					[
-						'customer' => $this->get_id(),
-						'limit'    => 100,
-					],
-					'payment_methods',
-					'GET'
-				);
+			do {
+				$request_params = [
+					'customer' => $this->get_id(),
+					'limit'    => 100,
+				];
+
+				if ( $last_payment_method_id ) {
+					$request_params['starting_after'] = $last_payment_method_id;
+				}
+
+				$response = WC_Stripe_API::request( $request_params, 'payment_methods', 'GET' );
 
 				if ( ! empty( $response->error ) ) {
 					if (
@@ -754,10 +757,16 @@ class WC_Stripe_Customer {
 
 				$all_payment_methods = array_merge( $all_payment_methods, $response->data );
 
-				if ( ! isset( $response->has_more ) || ! $response->has_more ) {
-					break;
+				// Reset the last payment method ID so we can paginate correctly.
+				$last_payment_method_id = null;
+				if ( isset( $response->has_more ) && $response->has_more ) {
+					$last_payment_method = end( $response->data );
+
+					if ( $last_payment_method && ! empty( $last_payment_method->id ) ) {
+						$last_payment_method_id = $last_payment_method->id;
+					}
 				}
-			}
+			} while ( null !== $last_payment_method_id );
 
 			// Always cache the result without any filters applied.
 			set_transient( $cache_key, $all_payment_methods, DAY_IN_SECONDS );
