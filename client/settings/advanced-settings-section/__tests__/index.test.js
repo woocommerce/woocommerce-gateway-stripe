@@ -5,7 +5,6 @@ import AdvancedSettings from '..';
 import {
 	useDebugLog,
 	useIsUpeEnabled,
-	useOCTitle,
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
@@ -15,7 +14,6 @@ jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
-	useOCTitle: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
 } ) );
@@ -27,7 +25,6 @@ describe( 'AdvancedSettings', () => {
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useOCTitle.mockReturnValue( 'Stripe' );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
@@ -78,20 +75,5 @@ describe( 'AdvancedSettings', () => {
 				'Enable Optimized Checkout Suite (recommended)'
 			)
 		).toBeInTheDocument();
-	} );
-
-	it( 'should display the Optimized Checkout title setting if the Optimized Checkout feature is enabled', () => {
-		global.wc_stripe_settings_params = { is_oc_available: true };
-
-		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
-
-		render( <AdvancedSettings /> );
-
-		expect(
-			screen.queryByText(
-				'This will appear as the title of the Optimized Checkout Suite payment element on checkout.'
-			)
-		).toBeInTheDocument();
-		expect( screen.queryByLabelText( 'Title' ) ).toBeInTheDocument();
 	} );
 } );
