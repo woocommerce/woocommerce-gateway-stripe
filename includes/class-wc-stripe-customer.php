@@ -704,32 +704,81 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
+		return $this->get_all_payment_methods( [ $payment_method_type ] );
+	}
 
-		if ( false === $payment_methods ) {
-			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt' : '';
-			$response = WC_Stripe_API::request(
-				[
-					'customer' => $this->get_id(),
-					'type'     => $payment_method_type,
-					'limit'    => 100, // Maximum allowed value.
-				],
-				'payment_methods' . $params,
-				'GET'
-			);
-
-			if ( ! empty( $response->error ) ) {
-				return [];
-			}
-
-			if ( is_array( $response->data ) ) {
-				$payment_methods = $response->data;
-			}
-
-			set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id(), $payment_methods, DAY_IN_SECONDS );
+	/**
+	 * Get all payment methods for a customer.
+	 *
+	 * @param string[] $payment_method_types The payment method types to look for using Stripe method IDs. If the array is empty, it implies all payment method types.
+	 * @param int      $limit                The maximum number of payment methods to return. If the value is -1, no limit is applied.
+	 * @return array
+	 */
+	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1 ) {
+		if ( ! $this->get_id() ) {
+			return [];
 		}
 
-		return empty( $payment_methods ) ? [] : $payment_methods;
+		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
+		$all_payment_methods = get_transient( $cache_key );
+
+		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
+			$all_payment_methods  = [];
+
+			while ( true ) {
+				$response = WC_Stripe_API::request(
+					[
+						'customer' => $this->get_id(),
+						'limit'    => 100,
+					],
+					'payment_methods',
+					'GET'
+				);
+
+				if ( ! empty( $response->error ) ) {
+					if (
+						isset( $response->error->code )
+						&& isset( $response->error->param )
+						&& 'customer' === $response->error->param
+						&& 'resource_missing' === $response->error->code
+					) {
+						// If the customer doesn't exist, cache an empty array.
+						set_transient( $cache_key, [], DAY_IN_SECONDS );
+					}
+					return [];
+				}
+
+				if ( ! is_array( $response->data ) || [] === $response->data ) {
+					break;
+				}
+
+				$all_payment_methods = array_merge( $all_payment_methods, $response->data );
+
+				if ( ! isset( $response->has_more ) || ! $response->has_more ) {
+					break;
+				}
+			}
+
+			// Always cache the result without any filters applied.
+			set_transient( $cache_key, $all_payment_methods, DAY_IN_SECONDS );
+		}
+
+		// Note that we only apply the limit and type filters after fetching and caching all payment methods.
+		$filtered_payment_methods = $all_payment_methods;
+		if ( [] !== $payment_method_types ) {
+			$filtered_payment_methods = array_filter(
+				$filtered_payment_methods,
+				function ( $payment_method ) use ( $payment_method_types ) {
+					return in_array( $payment_method->type, $payment_method_types, true );
+				}
+			);
+		}
+
+		if ( $limit > 0 ) {
+			return array_slice( $filtered_payment_methods, 0, $limit );
+		}
+
+		return $filtered_payment_methods;
 	}
 
 	/**
@@ -837,6 +886,7 @@ class WC_Stripe_Customer {
 		foreach ( self::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
 			delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 		}
+		delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id() );
 		// Clear cache for the specific payment method if provided.
 		if ( $payment_method_id ) {
 			WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method_id );
