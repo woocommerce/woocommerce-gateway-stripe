@@ -29,6 +29,7 @@
 * Dev - Move some testing and compiler node dependencies to devDependencies
 * Dev - Minor CSS change to comply with a SASS rule deprecation
 * Dev - Update SCSS to replace @import with @use and @forward
+* Fix - Handle missing customer when calling payment_methods API
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout
