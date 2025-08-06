@@ -1,6 +1,7 @@
 <?php
 
 use Automattic\WooCommerce\Enums\ProductType;
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -765,7 +766,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			if ( ! $product ) {
 				return false;
 			}
-			return $product->get_tax_status() !== 'none';
+			return $product->get_tax_status() !== ProductTaxStatus::NONE;
 		}
 
 		// Cart or checkout page: the cart is taxable if any item in the cart
@@ -782,7 +783,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				$cart_item_key
 			);
 
-			if ( 'none' !== $product->get_tax_status() ) {
+			if ( ProductTaxStatus::NONE !== $product->get_tax_status() ) {
 				return true;
 			}
 		}
