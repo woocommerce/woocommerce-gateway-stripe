@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.8.0 - xxxx-xx-xx =
 * Update - Removes the ability to change the title for the Optimized Checkout payment element, as it is now set to "Stripe" by default
+* Update - Copy for the Optimized Checkout settings and notices
+* Dev - Implements WooCommerce constants for the tax statuses
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
 * Add - A new pill to the payment methods page to indicate the credit card requirement when the Optimized Checkout feature is enabled
 * Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
