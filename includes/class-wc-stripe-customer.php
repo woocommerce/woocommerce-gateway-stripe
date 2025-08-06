@@ -719,6 +719,15 @@ class WC_Stripe_Customer {
 			);
 
 			if ( ! empty( $response->error ) ) {
+				if (
+					isset( $response->error->code, $response->error->param, $response->error->type )
+					&& 'customer' === $response->error->param
+					&& 'resource_missing' === $response->error->code
+					&& 'invalid_request_error' === $response->error->type
+				) {
+					// If the customer doesn't exist, cache an empty array as a result.
+					set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id(), [], DAY_IN_SECONDS );
+				}
 				return [];
 			}
 
