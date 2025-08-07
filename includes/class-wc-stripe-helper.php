@@ -1896,4 +1896,14 @@ class WC_Stripe_Helper {
 		}
 		return false;
 	}
+
+	/**
+	 * Checks if the order is using a Stripe payment method.
+	 *
+	 * @param $order WC_Order The order to check.
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_order( $order ) {
+		return WC_Gateway_Stripe::ID !== substr( (string) $order->get_payment_method(), 0, 6 );
+	}
 }
