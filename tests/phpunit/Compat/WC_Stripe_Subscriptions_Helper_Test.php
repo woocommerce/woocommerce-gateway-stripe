@@ -178,6 +178,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for {@see WC_Stripe_Subscriptions_Helper::is_subscription_payment_method_detached()}.
 	 *
+	 * @param string $payment_method The payment method type for the subscription.
 	 * @param array|null $source_meta The source meta data for the subscription.
 	 * @param array|\WP_Error $mocked_response The mocked response from the Stripe API.
 	 * @param bool $expected The expected result of the check.
@@ -185,12 +186,13 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 *
 	 * @dataProvider provide_test_is_subscription_payment_method_detached
 	 */
-	public function test_is_subscription_payment_method_detached( $source_meta, $mocked_response, $expected ) {
+	public function test_is_subscription_payment_method_detached( $payment_method, $source_meta, $mocked_response, $expected ) {
 		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_meta );
 
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 1 );
 		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( $payment_method );
 		$subscription->save();
 
 		if ( ! is_null( $source_meta ) ) {
@@ -223,17 +225,26 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_is_subscription_payment_method_detached() {
 		return [
+			'not a Stripe subscription'               => [
+				'payment method' => 'not_stripe',
+				'source meta'     => null,
+				'mocked response' => null,
+				'expected'        => false,
+			],
 			'missing meta'                            => [
+				'payment method'  => 'stripe_klarna',
 				'source meta'     => null,
 				'mocked response' => null,
 				'expected'        => false,
 			],
 			'wp error response, assumed detached'     => [
+				'payment method'  => 'stripe_klarna',
 				'source meta'     => 'src_123',
 				'mocked response' => new \WP_Error( 'error', 'An error occurred.' ),
 				'expected'        => true,
 			],
 			'Stripe error response, assumed detached' => [
+				'payment method'  => 'stripe_klarna',
 				'source meta'     => 'src_123',
 				'mocked response' => [
 					'response' => 400,
@@ -250,6 +261,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				'expected'        => true,
 			],
 			'existing customer data'                  => [
+				'payment method'  => 'stripe_klarna',
 				'source meta'     => 'src_123',
 				'mocked response' => [
 					'response' => 200,
@@ -263,6 +275,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 				'expected'        => false,
 			],
 			'detached payment method'                 => [
+				'payment method'  => 'stripe_klarna',
 				'source meta'     => 'src_123',
 				'mocked response' => [
 					'response' => 200,
