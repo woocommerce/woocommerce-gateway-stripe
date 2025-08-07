@@ -115,6 +115,7 @@ class WC_Stripe_Status_Test extends WP_UnitTestCase {
 				$subscription = new WC_Subscription();
 				$subscription->set_id( $subscription_data['id'] );
 				$subscription->set_status( 'active' );
+				$subscription->set_payment_method( 'stripe_klarna' );
 				$subscription->save();
 
 				$subscription->update_meta_data( '_stripe_customer_id', $subscription_data['customer_id'] );
