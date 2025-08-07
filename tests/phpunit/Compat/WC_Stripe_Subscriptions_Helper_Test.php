@@ -60,6 +60,7 @@ class WC_Stripe_Subscriptions_Helper_Test extends WP_UnitTestCase {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( $subscription_id );
 		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
 		$subscription->set_time( 'next_payment_date', strtotime( '+1 week' ) );
 		$subscription->save();
 
