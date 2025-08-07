@@ -1,10 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
-import React, { useContext } from 'react';
+import React from 'react';
 import { Icon, Notice } from '@wordpress/components';
 import { info } from '@wordpress/icons';
 import interpolateComponents from 'interpolate-components';
-import OCToggleContext from 'wcstripe/settings/oc-toggle/context';
 
 const NoticeWrapper = styled( Notice )`
 	margin: 0 0 24px 0;
@@ -20,8 +19,7 @@ const NoticeContent = styled.div`
 	}
 `;
 
-const OptimizedCheckoutNotice = () => {
-	const { isOCEnabled } = useContext( OCToggleContext );
+const OptimizedCheckoutNotice = ( { isOCEnabled } ) => {
 	if ( ! isOCEnabled ) {
 		return null;
 	}

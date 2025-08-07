@@ -53,6 +53,7 @@ const PaymentMethodsPanel = ( {
 	setShowPromotionalBanner,
 	showPromotionalBanner,
 	promotionalBannerType,
+	isOCEnabled,
 	setIsOCEnabled,
 	setIsUpeEnabled,
 } ) => {
@@ -78,7 +79,7 @@ const PaymentMethodsPanel = ( {
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
-				<OptimizedCheckoutNotice />
+				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
 				<GeneralSettingsSection
 					onSaveChanges={ onSaveChanges }
 					showLegacyExperienceTransitionNotice={
