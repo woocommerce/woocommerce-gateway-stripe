@@ -11,6 +11,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';
 import WCStripeAPI from 'wcstripe/api';
 import {
+	getFontSizeBaseForOC,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
@@ -121,10 +122,11 @@ const PaymentElements = ( {
 
 	const stripe = api.getStripe();
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
+	const UPEAppearance = initializeUPEAppearance( api, 'true' );
 
 	// Build options object.
 	let options = {
-		appearance: initializeUPEAppearance( api, 'true' ),
+		appearance: UPEAppearance,
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -145,6 +147,15 @@ const PaymentElements = ( {
 				...{
 					paymentMethodConfiguration: getBlocksConfiguration()
 						?.paymentMethodConfigurationParentId,
+				},
+				appearance: {
+					...UPEAppearance,
+					variables: {
+						...UPEAppearance?.variables,
+						fontSizeBase: getFontSizeBaseForOC(
+							UPEAppearance?.variables?.fontSizeBase
+						),
+					},
 				},
 			};
 		} else {

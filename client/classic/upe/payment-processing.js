@@ -15,6 +15,7 @@ import {
 	resetBlockCheckoutPaymentState,
 	getAdditionalSetupIntentData,
 	validateBlikCode,
+	getFontSizeBaseForOC,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
@@ -92,10 +93,11 @@ export function validateElements( elements ) {
 async function createStripePaymentElement( api, paymentMethodType ) {
 	const { supportsDeferredIntent } =
 		paymentMethodsConfig[ paymentMethodType ] || {};
+	const UPEAppearance = initializeUPEAppearance( api );
 	let intent, options;
 
 	options = {
-		appearance: initializeUPEAppearance( api ),
+		appearance: UPEAppearance,
 		paymentMethodCreation: 'manual',
 		fonts: getFontRulesFromPage(),
 	};
@@ -153,6 +155,15 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 				...options,
 				paymentMethodConfiguration: getStripeServerData()
 					?.paymentMethodConfigurationParentId,
+				appearance: {
+					...UPEAppearance,
+					variables: {
+						...UPEAppearance?.variables,
+						fontSizeBase: getFontSizeBaseForOC(
+							UPEAppearance?.variables?.fontSizeBase
+						),
+					},
+				},
 			};
 
 			const setupFutureUsage =
