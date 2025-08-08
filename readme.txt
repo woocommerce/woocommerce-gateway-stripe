@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.8.0 - xxxx-xx-xx =
+* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Update - Removes the ability to change the title for the Optimized Checkout payment element, as it is now set to "Stripe" by default
 * Update - Copy for the Optimized Checkout settings and notices
 * Dev - Implements WooCommerce constants for the tax statuses
