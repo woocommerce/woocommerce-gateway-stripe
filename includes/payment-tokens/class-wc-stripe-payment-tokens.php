@@ -303,45 +303,21 @@ class WC_Stripe_Payment_Tokens {
 			$payment_methods = [];
 
 			$reusable_payment_method_types = array_keys( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD );
-			$active_payment_method_types = [];
 
-			if ( $gateway->is_oc_enabled() ) {
-				// For Optimized Checkout, get all available payment method types.
-				foreach ( $reusable_payment_method_types as $payment_method_type ) {
-					$payment_method_instance = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_method_type );
-					if ( $payment_method_instance ) {
-						$active_payment_method_types[] = $payment_method_type;
-					}
-				}
-			} else {
-				foreach ( $reusable_payment_method_types as $payment_method_type ) {
-					// The payment method type doesn't match the ones we use. Nothing to do here.
-					if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
-						continue;
-					}
-
-					$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
-					if ( $payment_method_instance->is_enabled() ) {
-						$active_payment_method_types[] = $payment_method_type;
-					}
-				}
-			}
+			$enabled_payment_methods = $gateway->get_upe_enabled_payment_method_ids();
+			$active_reusable_payment_method_types = array_intersect( $enabled_payment_methods, $reusable_payment_method_types );
 
 			// Add SEPA if it is disabled and iDEAL or Bancontact are enabled. iDEAL and Bancontact tokens are saved as SEPA tokens.
-			if ( $gateway->is_sepa_tokens_for_other_methods_enabled() ) {
-				if ( $gateway->is_oc_enabled() ) {
-					if ( ! in_array( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID, $active_payment_method_types, true ) ) {
-						$active_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
-					}
-				} elseif ( ! $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID ]->is_enabled()
-						&& ( $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID ]->is_enabled()
-							|| $gateway->payment_methods[ WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID ]->is_enabled() ) ) {
-
-						$active_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			if ( $gateway->is_sepa_tokens_for_other_methods_enabled() && ! in_array( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID, $active_reusable_payment_method_types, true ) ) {
+				if (
+					in_array( WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID, $active_reusable_payment_method_types, true )
+					|| in_array( WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID, $active_reusable_payment_method_types, true )
+				) {
+					$active_reusable_payment_method_types[] = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
 				}
 			}
 
-			$payment_methods = $customer->get_all_payment_methods( $active_payment_method_types );
+			$payment_methods = $customer->get_all_payment_methods( $active_reusable_payment_method_types );
 
 			$payment_method_ids = array_map(
 				function ( $payment_method ) {
