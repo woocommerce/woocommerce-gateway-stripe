@@ -23,6 +23,15 @@ describe( 'utils', () => {
 			expect( result ).toBe( expectedFontSize );
 		} );
 
+		it( 'Optimized Checkout - should increase the provided font size by 2 (decimal value)', () => {
+			global.wc_stripe_upe_params = { isOCEnabled: true };
+
+			const fontSize = '16.5px';
+			const expectedFontSize = '18.5px';
+			const result = getFontSizeBase( fontSize );
+			expect( result ).toBe( expectedFontSize );
+		} );
+
 		it( 'default size', () => {
 			const fontSize = '16px';
 			const expectedFontSize = '16px';
