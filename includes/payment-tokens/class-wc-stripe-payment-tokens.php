@@ -343,7 +343,6 @@ class WC_Stripe_Payment_Tokens {
 
 			$payment_methods = $customer->get_all_payment_methods( $active_payment_method_types );
 
-			$payment_methods    = array_merge( ...$payment_methods );
 			$payment_method_ids = array_map(
 				function ( $payment_method ) {
 					return $payment_method->id;
