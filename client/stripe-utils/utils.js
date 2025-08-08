@@ -851,5 +851,7 @@ export const maybeClearBlikCodeValidation = () => {
  * @return {string} The base font size for the OC element, e.g. '18px'.
  */
 export const getFontSizeBaseForOC = ( defaultFontSize ) => {
-	return parseInt( defaultFontSize.match( /(\d+)px/ )[ 0 ], 10 ) + 2 + 'px';
+	return (
+		parseFloat( defaultFontSize.match( /(\d+(?:\.\d+)?)/ )[ 0 ] ) + 2 + 'px'
+	);
 };
