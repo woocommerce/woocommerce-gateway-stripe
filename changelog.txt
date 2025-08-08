@@ -35,6 +35,7 @@
 * Dev - Update SCSS to replace @import with @use and @forward
 * Fix - Handle missing customer when calling payment_methods API
 * Dev - Fix some e2e issues: timing, optional flows, and WooCommerce RC support
+* Fix - Reduce number of calls to Stripe payment_methods API
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout
