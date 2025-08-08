@@ -940,6 +940,7 @@ class WC_Stripe_Customer {
 		foreach ( self::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
 			delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 		}
+		delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id() );
 		// Clear cache for the specific payment method if provided.
 		if ( $payment_method_id ) {
 			WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method_id );
