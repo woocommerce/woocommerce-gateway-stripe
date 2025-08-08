@@ -14,7 +14,7 @@ describe( 'utils', () => {
 			global.wc_stripe_upe_params = globalValues;
 		} );
 
-		it( 'OC - should increase the provided font size by 2', () => {
+		it( 'Optimized Checkout - should increase the provided font size by 2', () => {
 			global.wc_stripe_upe_params = { isOCEnabled: true };
 
 			const fontSize = '16px';
