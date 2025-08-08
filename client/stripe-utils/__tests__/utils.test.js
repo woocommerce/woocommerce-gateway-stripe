@@ -1,11 +1,32 @@
-import { getFontSizeBaseForOC } from '../utils';
+import { getFontSizeBase } from '../utils';
 
 describe( 'utils', () => {
-	describe( 'getFontSizeBaseForOC', () => {
-		it( 'should increase the provided font size by 2', () => {
+	describe( 'getFontSizeBase', () => {
+		const globalValues = global.wc_stripe_upe_params;
+
+		beforeEach( () => {
+			global.wc_stripe_upe_params = {
+				isOCEnabled: false,
+			};
+		} );
+
+		afterEach( () => {
+			global.wc_stripe_upe_params = globalValues;
+		} );
+
+		it( 'OC - should increase the provided font size by 2', () => {
+			global.wc_stripe_upe_params = { isOCEnabled: true };
+
 			const fontSize = '16px';
 			const expectedFontSize = '18px';
-			const result = getFontSizeBaseForOC( fontSize );
+			const result = getFontSizeBase( fontSize );
+			expect( result ).toBe( expectedFontSize );
+		} );
+
+		it( 'default size', () => {
+			const fontSize = '16px';
+			const expectedFontSize = '16px';
+			const result = getFontSizeBase( fontSize );
 			expect( result ).toBe( expectedFontSize );
 		} );
 	} );
