@@ -775,8 +775,7 @@ class WC_Stripe_Customer {
 					$request_params['starting_after'] = $last_payment_method_id;
 				}
 
-				// TODO: work out how we can add the SEPA `expand[]` parameters to the request. Will that work when all types are being returned?
-				$response = WC_Stripe_API::request( $request_params, 'payment_methods', 'GET' );
+				$response = WC_Stripe_API::request( $request_params, 'payment_methods?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt', 'GET' );
 
 				if ( ! empty( $response->error ) ) {
 					if (
