@@ -852,11 +852,15 @@ export const maybeClearBlikCodeValidation = () => {
  */
 export const getFontSizeBase = ( defaultFontSize ) => {
 	if ( getStripeServerData()?.isOCEnabled ) {
-		return (
-			parseFloat( defaultFontSize.match( /(\d+(?:\.\d+)?)/ )[ 0 ] ) +
-			2 +
-			'px'
-		);
+		// Find digits for font size, ignoring decimals.
+		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
+		if ( matches.length > 0 ) {
+			return (
+				parseFloat( matches[ 0 ] ) +
+				2 +
+				'px'
+			);
+		}
 	}
 
 	return defaultFontSize;
