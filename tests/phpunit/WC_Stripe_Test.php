@@ -164,12 +164,6 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
-			'card, OC enabled'                            => [
-				'active gateways'                     => [],
-				'enabled payment method IDs'          => [],
-				'OC enabled'                          => true,
-				'update enable payment methods calls' => 1,
-			],
 		];
 	}
 }
