@@ -629,6 +629,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
+		// If the Optimized Checkout is enabled, we need to return just the card payment method.
+		// All payment methods are rendered inside of it.
+		if ( $this->oc_enabled ) {
+			return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
+		}
+
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
 		$account_domestic_currency    = WC_Stripe::get_instance()->account->get_account_default_currency();
