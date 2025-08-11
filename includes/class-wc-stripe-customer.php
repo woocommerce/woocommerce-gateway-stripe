@@ -781,8 +781,7 @@ class WC_Stripe_Customer {
 
 				if ( ! empty( $response->error ) ) {
 					if (
-						isset( $response->error->code )
-						&& isset( $response->error->param )
+						isset( $response->error->param, $response->error->code )
 						&& 'customer' === $response->error->param
 						&& 'resource_missing' === $response->error->code
 					) {
