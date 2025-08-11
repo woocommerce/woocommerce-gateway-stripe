@@ -120,13 +120,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $oc_enabled;
 
 	/**
-	 * The default title for the Optimized Checkout element
-	 *
-	 * @var string
-	 */
-	protected $oc_title;
-
-	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -140,7 +133,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
-		$this->oc_title                 = $this->get_option( 'optimized_checkout_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**

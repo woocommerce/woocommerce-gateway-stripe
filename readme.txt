@@ -151,5 +151,9 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Move some testing and compiler node dependencies to devDependencies
 * Dev - Minor CSS change to comply with a SASS rule deprecation
 * Dev - Update SCSS to replace @import with @use and @forward
+* Update - Copy for the Optimized Checkout settings and notices
+* Update - Removes the ability to change the title for the Optimized Checkout payment element, as it is now set to "Stripe" by default
+* Fix - Handle missing customer when calling payment_methods API
+* Fix - Reduce number of calls to Stripe payment_methods API
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
