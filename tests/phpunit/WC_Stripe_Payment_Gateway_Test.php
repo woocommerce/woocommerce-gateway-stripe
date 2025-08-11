@@ -595,7 +595,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription->save();
 
 		// This is the key the customer's payment methods are stored under in the transient.
-		$transient_key = WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock';
+		$transient_key = WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . '__all_cus_mock';
 
 		$mock_payment_method       = new stdClass();
 		$mock_payment_method->id   = 'src_mock';
