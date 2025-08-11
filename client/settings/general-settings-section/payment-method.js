@@ -7,7 +7,7 @@ import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useIsOCEnabled, useManualCapture } from 'wcstripe/data';
+import { useManualCapture } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
@@ -105,7 +105,6 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const PaymentMethod = ( { method, data } ) => {
-	const [ isOCEnabled ] = useIsOCEnabled();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
 
@@ -138,7 +137,7 @@ const PaymentMethod = ( { method, data } ) => {
 			// eslint-disable-next-line camelcase
 			wc_stripe_settings_params.has_klarna_gateway_plugin );
 
-	const isDisabledButChecked = PAYMENT_METHOD_CARD === method && isOCEnabled;
+	const isDisabledButChecked = false;
 
 	return (
 		<div key={ method }>
