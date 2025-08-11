@@ -32,6 +32,8 @@ class WC_Stripe_Customer {
 
 	/**
 	 * The maximum value for the `limit` argument in the Stripe payment_methods API.
+	 *
+	 * @see https://docs.stripe.com/api/payment_methods/customer_list#list_customer_payment_methods-limit
 	 */
 	protected const PAYMENT_METHODS_API_LIMIT = 100;
 
@@ -779,8 +781,7 @@ class WC_Stripe_Customer {
 
 				if ( ! empty( $response->error ) ) {
 					if (
-						isset( $response->error->code )
-						&& isset( $response->error->param )
+						isset( $response->error->param, $response->error->code )
 						&& 'customer' === $response->error->param
 						&& 'resource_missing' === $response->error->code
 					) {

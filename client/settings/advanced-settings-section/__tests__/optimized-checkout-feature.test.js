@@ -7,8 +7,12 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 jest.useFakeTimers();
 
 describe( 'Optimized Checkout Element feature setting', () => {
+	const setIsOCEnabled = jest.fn().mockImplementation();
+
 	it( 'should render', () => {
-		render( <OptimizedCheckoutFeature /> );
+		render(
+			<OptimizedCheckoutFeature setIsOCEnabled={ setIsOCEnabled } />
+		);
 
 		expect(
 			screen.queryByText(
@@ -29,7 +33,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		render(
 			<div>
 				<UpdateUpeDisabledFlagMock />
-				<OptimizedCheckoutFeature />
+				<OptimizedCheckoutFeature setIsOCEnabled={ setIsOCEnabled } />
 			</div>
 		);
 
