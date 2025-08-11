@@ -270,6 +270,7 @@ class WC_Stripe_Settings_Controller {
 			'stripe_oauth_url'                      => $oauth_url,
 			'stripe_test_oauth_url'                 => $test_oauth_url,
 			'show_customization_notice'             => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
+			'show_optimized_checkout_notice'        => get_option( 'wc_stripe_show_optimized_checkout_notice', 'yes' ) === 'yes' ? true : false,
 			'show_bnpl_promotional_banner'          => $show_bnpl_promotion_banner,
 			'show_oc_promotional_banner'            => $show_oc_promotion_banner,
 			'is_test_mode'                          => $this->get_gateway()->is_in_test_mode(),
