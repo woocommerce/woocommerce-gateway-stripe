@@ -842,3 +842,22 @@ export const maybeClearBlikCodeValidation = () => {
 		);
 	}
 };
+
+/**
+ * Gets the base font size for both the regular checkout and the Optimized Checkout (which is 2px larger than the default font size).
+ * So it matches the rest of the checkout form when it is scaled down.
+ *
+ * @param {string} defaultFontSize The default font size of the checkout form, e.g. '16px'.
+ * @return {string} The base font size.
+ */
+export const getFontSizeBase = ( defaultFontSize ) => {
+	if ( getStripeServerData()?.isOCEnabled ) {
+		// Find numbers for font size.
+		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
+		if ( matches.length > 0 ) {
+			return parseFloat( matches[ 0 ] ) + 2 + 'px';
+		}
+	}
+
+	return defaultFontSize;
+};

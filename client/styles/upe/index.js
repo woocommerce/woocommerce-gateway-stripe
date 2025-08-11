@@ -5,6 +5,7 @@ import {
 	getBackgroundColor,
 	isColorLight,
 } from './utils.js';
+import { getFontSizeBase } from 'wcstripe/stripe-utils';
 
 const appearanceSelectors = {
 	default: {
@@ -387,7 +388,7 @@ export const getAppearance = ( isBlocksCheckout = false ) => {
 			? inputRules.color
 			: paragraphRules.color,
 		fontFamily: paragraphRules.fontFamily,
-		fontSizeBase: paragraphRules.fontSize,
+		fontSizeBase: getFontSizeBase( paragraphRules.fontSize ),
 	};
 
 	const appearance = {
