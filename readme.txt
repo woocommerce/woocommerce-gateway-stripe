@@ -116,7 +116,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Optimized Checkout is now available to all users via a configuration setting.
   - Optimized Checkout maximizes conversion by displaying the most relevant payment methods for each customer.
-* We will now prevent Stripe API calls after several consecutive 401 (Unauthorized) responses.
+* After several consecutive 401 (Unauthorized) responses, we will now temporarily stop making Stripe API calls to prevent further authentication failures. API calls will resume automatically after a cooldown period.
 * When we detect the official Affirm or Klarna plugin is active, we will deactivate the related Stripe payment method.
 
 **Important Fixes and Updates**
