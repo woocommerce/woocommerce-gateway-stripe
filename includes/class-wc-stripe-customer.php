@@ -16,7 +16,7 @@ class WC_Stripe_Customer {
 	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
 
 	/**
-	 * Cache prefix for all saved payment methods per customer..
+	 * Cache prefix for all saved payment methods per customer.
 	 */
 	protected const ALL_PAYMENT_METHODS_CACHE_PREFIX = 'all_payment_methods_';
 
