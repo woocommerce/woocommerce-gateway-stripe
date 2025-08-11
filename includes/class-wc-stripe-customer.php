@@ -16,6 +16,11 @@ class WC_Stripe_Customer {
 	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
 
 	/**
+	 * Cache prefix for all saved payment methods per customer..
+	 */
+	protected const ALL_PAYMENT_METHODS_CACHE_PREFIX = 'all_payment_methods_';
+
+	/**
 	 * Queryable Stripe payment method types.
 	 */
 	const STRIPE_PAYMENT_METHODS = [
@@ -760,8 +765,8 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
-		$all_payment_methods = get_transient( $cache_key );
+		$cache_key           = self::ALL_PAYMENT_METHODS_CACHE_PREFIX . $this->get_id();
+		$all_payment_methods = WC_Stripe_Database_Cache::get( $cache_key );
 
 		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
 			$all_payment_methods    = [];
@@ -786,7 +791,7 @@ class WC_Stripe_Customer {
 						&& 'resource_missing' === $response->error->code
 					) {
 						// If the customer doesn't exist, cache an empty array.
-						set_transient( $cache_key, [], DAY_IN_SECONDS );
+						WC_Stripe_Database_Cache::set( $cache_key, [], DAY_IN_SECONDS );
 					}
 					return [];
 				}
@@ -809,7 +814,7 @@ class WC_Stripe_Customer {
 			} while ( null !== $last_payment_method_id );
 
 			// Always cache the result without any filters applied.
-			set_transient( $cache_key, $all_payment_methods, DAY_IN_SECONDS );
+			WC_Stripe_Database_Cache::set( $cache_key, $all_payment_methods, DAY_IN_SECONDS );
 		}
 
 		// If there are no payment methods, no need to apply any filters below.
@@ -940,7 +945,7 @@ class WC_Stripe_Customer {
 		foreach ( self::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
 			delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 		}
-		delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id() );
+		WC_Stripe_Database_Cache::delete( self::ALL_PAYMENT_METHODS_CACHE_PREFIX . $this->get_id() );
 		// Clear cache for the specific payment method if provided.
 		if ( $payment_method_id ) {
 			WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method_id );
