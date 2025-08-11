@@ -387,16 +387,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 	 * @dataProvider provide_test_get_upe_enabled_at_checkout_payment_method_ids
 	 */
 	public function test_get_upe_enabled_at_checkout_payment_method_ids( $available_methods, $oc_enabled, $expected ) {
-		if ( $oc_enabled ) {
-			OC_Test_Helper::enable_oc();
-		}
+		$this->mock_gateway->oc_enabled = $oc_enabled;
 
 		$this->mock_payment_method_configurations( $available_methods );
 
 		$actual = $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids();
 
 		// Clean up.
-		OC_Test_Helper::disable_oc();
+		$this->mock_gateway->oc_enabled = false;
 
 		$this->assertSame( $expected, $actual );
 	}
