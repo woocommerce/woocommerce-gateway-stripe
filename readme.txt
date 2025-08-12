@@ -147,5 +147,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Handle missing customer when calling payment_methods API
 * Dev - Fix some e2e issues: timing, optional flows, and WooCommerce RC support
 * Fix - Reduce number of calls to Stripe payment_methods API
+* Fix - Add `get_icon_url()` to Payment Method base class
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
