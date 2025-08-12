@@ -714,14 +714,15 @@ class WC_Stripe_Customer {
 		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 
 		if ( false === $payment_methods ) {
-			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt' : '';
-			$response = WC_Stripe_API::request(
+			$expand_params = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? [ 'data.sepa_debit.generated_from.charge', 'data.sepa_debit.generated_from.setup_attempt' ] : null;
+			$response      = WC_Stripe_API::request(
 				[
-					'customer' => $this->get_id(),
-					'type'     => $payment_method_type,
-					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
+					'customer'      => $this->get_id(),
+					'type'          => $payment_method_type,
+					'limit'         => self::PAYMENT_METHODS_API_LIMIT,
+					'stripe_expand' => $expand_params,
 				],
-				'payment_methods' . $params,
+				'payment_methods',
 				'GET'
 			);
 
@@ -769,15 +770,19 @@ class WC_Stripe_Customer {
 
 			do {
 				$request_params = [
-					'customer' => $this->get_id(),
-					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
+					'customer'      => $this->get_id(),
+					'limit'         => self::PAYMENT_METHODS_API_LIMIT,
+					'stripe_expand' => [
+						'data.sepa_debit.generated_from.charge',
+						'data.sepa_debit.generated_from.setup_attempt',
+					],
 				];
 
 				if ( $last_payment_method_id ) {
 					$request_params['starting_after'] = $last_payment_method_id;
 				}
 
-				$response = WC_Stripe_API::request( $request_params, 'payment_methods?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt', 'GET' );
+				$response = WC_Stripe_API::request( $request_params, 'payment_methods', 'GET' );
 
 				if ( ! empty( $response->error ) ) {
 					if (

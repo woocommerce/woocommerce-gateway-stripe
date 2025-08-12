@@ -62,11 +62,12 @@ class WC_Helper_Stripe_Api extends WC_Stripe_API {
 	/**
 	 * Retrieve data. This is the equivalent mock for WC_Stripe_API::retrieve
 	 *
-	 * @param string data type
+	 * @param string         $key           The Stripe API we want to call.
+	 * @param string[]|null  $expand_params The parameters to send as `expand[]` URL parameters in the request.
 	 *
 	 * @return array retrieved data mock
 	 */
-	public static function retrieve( $key = 'account' ) {
+	public static function retrieve( $key = 'account', $expand_params = null ) {
 		return self::$retrieve_response;
 	}
 

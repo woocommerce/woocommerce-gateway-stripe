@@ -1558,7 +1558,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return false;
 		}
 
-		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
+		$intent = $this->stripe_request( 'setup_intents/' . $intent_id, [ 'stripe_expand' => [ 'payment_method.billing_details' ] ] );
 		if ( ! $intent ) {
 			return false;
 		}
@@ -1646,10 +1646,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
-			$intent = $this->stripe_request( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'payment_intents/' . $intent_id, [ 'stripe_expand' => [ 'payment_method' ] ] );
 			$error  = isset( $intent->last_payment_error ) ? $intent->last_payment_error : false;
 		} else {
-			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method&expand[]=latest_attempt' );
+			$intent = $this->stripe_request( 'setup_intents/' . $intent_id, [ 'stripe_expand' => [ 'payment_method', 'latest_attempt' ] ] );
 			$error  = isset( $intent->last_setup_error ) ? $intent->last_setup_error : false;
 		}
 
@@ -2166,7 +2166,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		try {
-			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id, [ 'stripe_expand' => [ 'latest_attempt' ] ] );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -2227,6 +2227,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( is_null( $params ) ) {
 			return WC_Stripe_API::retrieve( $path );
 		}
+
+		if ( is_array( $params ) && [ 'stripe_expand' ] === array_keys( $params ) ) {
+			return WC_Stripe_API::retrieve( $path, $params['stripe_expand'] );
+		}
+
 		if ( ! is_null( $order ) ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
 			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );

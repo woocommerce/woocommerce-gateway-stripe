@@ -202,7 +202,7 @@ class WC_Stripe_API {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.6
-	 * @param array  $request
+	 * @param array  $request Note that there is special handling for the `stripe_expand` parameter, which is expected to be an array of field names to expand.
 	 * @param string $api
 	 * @param string $method
 	 * @param bool   $with_headers To get the response with headers.
@@ -217,6 +217,11 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		[
+			'request'       => $request,
+			'expand_params' => $expand_params,
+		] = self::extract_expand_params( $request );
+
 		$request = apply_filters_deprecated(
 			'woocommerce_stripe_request_body',
 			[ $request, $api ],
@@ -230,13 +235,23 @@ class WC_Stripe_API {
 		 *
 		 * @since 9.7.0
 		 *
-		 * @param array $request The default request body we will send to the Stripe API.
-		 * @param string $api The Stripe API endpoint.
+		 * @param array    $request       The default request body we will send to the Stripe API.
+		 * @param string   $api           The Stripe API endpoint.
+		 * @param string[] $expand_params The parameters to send as `expand[]` URL parameters in the request.
 		 */
-		$request = apply_filters( 'wc_stripe_request_body', $request, $api );
+		$request = apply_filters( 'wc_stripe_request_body', $request, $api, $expand_params );
+
+		$debug_params = [
+			'request'       => $request,
+		];
+		if ( is_array( $expand_params ) ) {
+			$debug_params['expand_params'] = $expand_params;
+		}
 
 		// Log the request after the filters have been applied.
-		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", [ 'request' => $request ] );
+		WC_Stripe_Logger::debug( "Stripe API request: {$method} {$api}", $debug_params );
+
+		$api = self::add_expand_params_to_api( $api, $expand_params );
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
@@ -283,9 +298,10 @@ class WC_Stripe_API {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $api
+	 * @param string         $api           The Stripe API we want to call.
+	 * @param string[]|null  $expand_params The parameters to send as `expand[]` URL parameters in the request.
 	 */
-	public static function retrieve( $api ) {
+	public static function retrieve( $api, $expand_params = null ) {
 		// If keep count of consecutive 401 errors, and it exceeds INVALID_API_KEY_ERROR_COUNT_THRESHOLD,
 		// we return null until the cache expires (INVALID_API_KEY_ERROR_COUNT_CACHE_TIMEOUT) or the keys are updated.
 		$invalid_api_key_error_count = WC_Stripe_Database_Cache::get( self::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
@@ -300,7 +316,14 @@ class WC_Stripe_API {
 			return null;
 		}
 
-		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}" );
+		$debug_params = [];
+		if ( is_array( $expand_params ) ) {
+			$debug_params['expand_params'] = $expand_params;
+		}
+
+		WC_Stripe_Logger::debug( "Stripe API request: GET {$api}", $debug_params );
+
+		$api = self::add_expand_params_to_api( $api, $expand_params );
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
@@ -596,5 +619,36 @@ class WC_Stripe_API {
 			'payment_method_configurations/' . $id
 		);
 		return $response;
+	}
+
+	private static function extract_expand_params( array $request ): array {
+		if ( ! isset( $request['stripe_expand'] ) || ! is_array( $request['stripe_expand'] ) || [] === $request['stripe_expand'] ) {
+			return [
+				'request'       => $request,
+				'expand_params' => null,
+			];
+		}
+
+		$expand_params = $request['stripe_expand'];
+		unset( $request['stripe_expand'] );
+
+		return [
+			'request'       => $request,
+			'expand_params' => $expand_params,
+		];
+	}
+
+	private static function add_expand_params_to_api( string $api, ?array $expand_params ): string {
+		if ( ! is_array( $expand_params ) ) {
+			return $api;
+		}
+
+		$expand_url_param = 'expand[]=' . implode( '&expand[]=', array_map( 'rawurlencode', $expand_params ) );
+		// The API shouldn't include `?` already, but check just in case.
+		if ( str_contains( $api, '?' ) ) {
+			return $api . '&' . $expand_url_param;
+		}
+
+		return $api . '?' . $expand_url_param;
 	}
 }

@@ -954,7 +954,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->with( "payment_intents/$payment_intent_id", [ 'stripe_expand' => [ 'payment_method' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $payment_intent_mock )
@@ -1017,7 +1017,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->with( "payment_intents/$payment_intent_id", [ 'stripe_expand' => [ 'payment_method' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $payment_intent_mock )
@@ -1102,7 +1102,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		// Expect the process to bail early.
 		$this->mock_gateway->expects( $this->never() )
 			->method( 'stripe_request' )
-			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" );
+			->with( "payment_intents/$payment_intent_id", [ 'stripe_expand' => [ 'payment_method' ] ] );
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 	}
@@ -1139,7 +1139,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
+			->with( "setup_intents/$setup_intent_id", [ 'stripe_expand' => [ 'payment_method', 'latest_attempt' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $setup_intent_mock )
@@ -1190,7 +1190,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			);
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->with( "payment_intents/$payment_intent_id", [ 'stripe_expand' => [ 'payment_method' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $payment_intent_mock )
@@ -2280,7 +2280,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->with( "payment_intents/$payment_intent_id", [ 'stripe_expand' => [ 'payment_method' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $payment_intent_mock )
@@ -2369,7 +2369,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
+			->with( "setup_intents/$setup_intent_id", [ 'stripe_expand' => [ 'payment_method', 'latest_attempt' ] ] )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $setup_intent_mock )

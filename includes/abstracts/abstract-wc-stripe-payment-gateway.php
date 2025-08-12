@@ -1743,7 +1743,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" );
 		}
 
-		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
+		$response = WC_Stripe_API::request( [ 'stripe_expand' => [ 'payment_method' ] ], "$intent_type/$intent_id", 'GET' );
 
 		if ( $response && isset( $response->{ 'error' } ) ) {
 			$error_response_message = print_r( $response, true );

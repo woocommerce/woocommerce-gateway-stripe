@@ -314,8 +314,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$level3_data = $this->get_level3_data_from_order( $order );
 						$result      = WC_Stripe_API::request_with_level3_data(
 							[
-								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-								'expand[]' => 'charges.data.balance_transaction',
+								'amount'         => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+								'stripe_expand'  => [ 'charges.data.balance_transaction' ],
 							],
 							'payment_intents/' . $intent->id . '/capture',
 							$level3_data,
@@ -345,8 +345,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$level3_data = $this->get_level3_data_from_order( $order );
 						$result      = WC_Stripe_API::request_with_level3_data(
 							[
-								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-								'expand[]' => 'balance_transaction',
+								'amount'         => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+								'stripe_expand'  => [ 'balance_transaction' ],
 							],
 							'charges/' . $charge . '/capture',
 							$level3_data,
