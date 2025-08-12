@@ -88,5 +88,11 @@ module.exports = {
 			'@wordpress/data',
 		],
 	},
-	ignorePatterns: [ 'phpunit-html/**' ],
+	ignorePatterns: [
+		'build/**',
+		'node_modules/**',
+		'vendor/**',
+		'phpunit-html/**',
+		'release/**',
+	],
 };
