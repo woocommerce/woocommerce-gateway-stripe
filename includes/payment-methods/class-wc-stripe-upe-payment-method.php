@@ -187,8 +187,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_available() {
 		// When OC is enabled, we use the card payment container to render all the methods.
-		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::CARD === $this->stripe_id ) {
-			return true;
+		if ( $this->oc_enabled ) {
+			return WC_Stripe_Payment_Methods::CARD === $this->stripe_id;
 		}
 
 		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
