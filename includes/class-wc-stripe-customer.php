@@ -439,6 +439,9 @@ class WC_Stripe_Customer {
 			$response = $this->get_existing_customer( $args['email'], $args['name'] );
 		}
 
+		// $current_context was initially introduced as a boolean flag, so check for old callers.
+		$current_context = $this->normalize_current_context( $current_context );
+
 		if ( empty( $response ) ) {
 			/**
 			 * Filters the arguments used to create a customer.
@@ -535,10 +538,35 @@ class WC_Stripe_Customer {
 	 */
 	public function update_or_create_customer( $args = [], $current_context = null ) {
 		if ( empty( $this->get_id() ) ) {
+			// $current_context was initially introduced as a boolean flag, so check for old callers.
+			$current_context = $this->normalize_current_context( $current_context );
+
 			return $this->recreate_customer( $args, $current_context );
 		} else {
 			return $this->update_customer( $args );
 		}
+	}
+
+	/**
+	 * Normalize the current context to a string, as the argument was initially introduced as a boolean flag.
+	 *
+	 * @param string|bool|null $current_context The current context.
+	 * @return string|null The normalized context.
+	 */
+	private function normalize_current_context( $current_context ): ?string {
+		if ( null === $current_context ) {
+			return null;
+		}
+
+		if ( is_bool( $current_context ) ) {
+			return $current_context ? 'add_payment_method' : null;
+		}
+
+		if ( is_string( $current_context ) ) {
+			return $current_context;
+		}
+
+		return null;
 	}
 
 	/**
@@ -987,7 +1015,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [], $current_context = null ) {
+	private function recreate_customer( $args = [], ?string $current_context = null ) {
 		$this->delete_id_from_meta();
 		return $this->create_customer( $args, $current_context );
 	}
