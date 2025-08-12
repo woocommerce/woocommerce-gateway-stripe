@@ -91,8 +91,8 @@ module.exports = {
 	ignorePatterns: [
 		'build/**',
 		'node_modules/**',
-		'vendor/**',
 		'phpunit-html/**',
 		'release/**',
+		'vendor/**',
 	],
 };
