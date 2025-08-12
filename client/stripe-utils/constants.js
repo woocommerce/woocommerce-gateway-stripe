@@ -54,6 +54,7 @@ export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
+export const PAYMENT_METHOD_STRIPE_SINGLE = 'stripe';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -79,7 +80,7 @@ export function getPaymentMethodsConstants() {
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
-		single: PAYMENT_METHOD_STRIPE_CARD, // Default payment method for Optimized Checkout
+		single: PAYMENT_METHOD_STRIPE_SINGLE, // Default payment method for Optimized Checkout
 	};
 }
 
