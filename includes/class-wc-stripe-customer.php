@@ -209,19 +209,19 @@ class WC_Stripe_Customer {
 	/**
 	 * Validate that we have valid data before we try to create a customer.
 	 *
-	 * @param array $create_customer_request
-	 * @param bool  $is_add_payment_method_page
+	 * @param array       $create_customer_request The base data to build the customer request.
+	 * @param null|string $current_context         Flag to indicate whether we are in a context where limited details are permitted.
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	private function validate_create_customer_request( $create_customer_request, $is_add_payment_method_page = false ) {
+	private function validate_create_customer_request( $create_customer_request, ?string $current_context = null ) {
 		/**
 		 * Filters the required customer fields when creating a customer in Stripe.
 		 *
 		 * @since 9.7.0
-		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout.
+		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout. In some contexts, like adding a payment method, we allow minimal details to be provided.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $is_add_payment_method_page ) );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context ) );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
@@ -258,13 +258,17 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the list of required fields for the create customer request.
 	 *
-	 * @param bool $is_add_payment_method_page
+	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
 	 *
 	 * @return array
 	 */
-	private function get_create_customer_required_fields( $is_add_payment_method_page = false ) {
-		// If we are on the add payment method page, we need to check just for the email field.
-		if ( $is_add_payment_method_page ) {
+	private function get_create_customer_required_fields( ?string $current_context = null ) {
+		// If we are on the add payment method page or the pay for order page, we need to check just for the email field.
+		$contexts_with_minimal_details = [
+			'add_payment_method',
+			'pay_for_order',
+		];
+		if ( in_array( $current_context, $contexts_with_minimal_details, true ) ) {
 			return [
 				'email' => true,
 			];
@@ -422,12 +426,12 @@ class WC_Stripe_Customer {
 	 * Create a customer via API.
 	 *
 	 * @param array $args
-	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
+	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function create_customer( $args = [], $is_add_payment_method_page = false ) {
+	public function create_customer( $args = [], $current_context = null ) {
 		$args = $this->generate_customer_request( $args );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
@@ -445,7 +449,7 @@ class WC_Stripe_Customer {
 			 */
 			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$this->validate_create_customer_request( $create_customer_args, $is_add_payment_method_page );
+			$this->validate_create_customer_request( $create_customer_args, $current_context );
 
 			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 		} else {
@@ -523,14 +527,15 @@ class WC_Stripe_Customer {
 	 * Updates existing Stripe customer or creates new customer for User through API.
 	 *
 	 * @param array $args     Additional arguments for the request (optional).
+	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
 	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_or_create_customer( $args = [], $is_add_payment_method_page = false ) {
+	public function update_or_create_customer( $args = [], $current_context = null ) {
 		if ( empty( $this->get_id() ) ) {
-			return $this->recreate_customer( $args, $is_add_payment_method_page );
+			return $this->recreate_customer( $args, $current_context );
 		} else {
 			return $this->update_customer( $args );
 		}
@@ -978,13 +983,13 @@ class WC_Stripe_Customer {
 	 * Recreates the customer for this user.
 	 *
 	 * @param array $args Additional arguments for the request (optional).
-	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
+	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [], $is_add_payment_method_page = false ) {
+	private function recreate_customer( $args = [], $current_context = null ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer( $args, $is_add_payment_method_page );
+		return $this->create_customer( $args, $current_context );
 	}
 
 	/**
