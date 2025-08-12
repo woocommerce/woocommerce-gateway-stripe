@@ -18,6 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Single extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id   = self::STRIPE_ID;
+		$this->title       = 'Stripe';
 		$this->is_reusable = true;
 		$this->supports[]  = 'subscriptions';
 		$this->supports[]  = 'tokenization';
