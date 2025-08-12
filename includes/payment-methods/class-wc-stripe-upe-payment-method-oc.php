@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class WC_Stripe_UPE_Payment_Method_OC
+ *
+ * This class represents the Stripe UPE payment method for the Optimized Checkout (OC) flow.
  */
 class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 
