@@ -184,7 +184,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$upe_available_methods = self::UPE_AVAILABLE_METHODS;
 
 		if ( $this->oc_enabled ) {
-			$upe_available_methods[] = WC_Stripe_UPE_Payment_Method_Single::class;
+			$upe_available_methods[] = WC_Stripe_UPE_Payment_Method_OC::class;
 		}
 
 		foreach ( $upe_available_methods as $payment_method_class ) {
@@ -638,7 +638,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If the Optimized Checkout is enabled, we need to return just the card payment method.
 		// All payment methods are rendered inside of it.
 		if ( $this->oc_enabled ) {
-			return [ WC_Stripe_UPE_Payment_Method_Single::STRIPE_ID ];
+			return [ WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID ];
 		}
 
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();

@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class WC_Stripe_UPE_Payment_Method_Single
+ * Class WC_Stripe_UPE_Payment_Method_OC
  */
-class WC_Stripe_UPE_Payment_Method_Single extends WC_Stripe_UPE_Payment_Method {
+class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = WC_Stripe_Payment_Methods::SINGLE;
 
