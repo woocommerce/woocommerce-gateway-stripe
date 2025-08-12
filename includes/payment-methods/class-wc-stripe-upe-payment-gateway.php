@@ -181,7 +181,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->oc_enabled = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
 
 		$this->payment_methods = [];
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+		$upe_available_methods = self::UPE_AVAILABLE_METHODS;
+
+		if ( $this->oc_enabled ) {
+			$upe_available_methods[] = WC_Stripe_UPE_Payment_Method_Single::class;
+		}
+
+		foreach ( $upe_available_methods as $payment_method_class ) {
 			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
 			 */
@@ -632,7 +638,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If the Optimized Checkout is enabled, we need to return just the card payment method.
 		// All payment methods are rendered inside of it.
 		if ( $this->oc_enabled ) {
-			return [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
+			return [ WC_Stripe_UPE_Payment_Method_Single::STRIPE_ID ];
 		}
 
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();

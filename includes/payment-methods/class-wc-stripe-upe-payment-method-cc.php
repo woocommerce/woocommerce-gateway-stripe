@@ -47,11 +47,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			return $this->get_card_wallet_type_title( $wallet_type );
 		}
 
-		// Optimized checkout
-		if ( $this->oc_enabled ) {
-			return $this->get_optimized_checkout_title( $payment_details );
-		}
-
 		// Default
 		return parent::get_title();
 	}
@@ -117,10 +112,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * @return string
 	 */
 	public function get_testing_instructions( $show_optimized_checkout_instruction = false ) {
-		if ( $this->oc_enabled && ! $show_optimized_checkout_instruction ) {
-			return WC_Stripe_UPE_Payment_Gateway::get_testing_instructions_for_optimized_checkout();
-		}
-
 		return sprintf(
 			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
 			esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
@@ -148,27 +139,5 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		}
 
 		return $payment_method_title . WC_Stripe_Express_Checkout_Helper::get_payment_method_title_suffix();
-	}
-
-	/**
-	 * Returns the title for the optimized checkout.
-	 *
-	 * @param stdClass|array|bool $payment_details Optional payment details from charge object.
-	 * @return string
-	 */
-	private function get_optimized_checkout_title( $payment_details = false ) {
-		if ( $payment_details ) { // Setting title for the order details page / thank you page.
-			$payment_method = WC_Stripe_UPE_Payment_Gateway::get_payment_method_instance( $payment_details->type );
-
-			// Avoid potential recursion by checking instance type. This fixes the title on pay for order confirmation page.
-			return $payment_method instanceof self ? parent::get_title() : $payment_method->get_title();
-		}
-
-		// Block checkout and pay for order (checkout) page.
-		if ( ( has_block( 'woocommerce/checkout' ) || ! empty( $_GET['pay_for_order'] ) ) && ! is_wc_endpoint_url( 'order-received' ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-			return 'Stripe';
-		}
-
-		return parent::get_title();
 	}
 }
