@@ -47,8 +47,28 @@ class WC_Stripe_UPE_Payment_Method_Single extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns true if the UPE method is enabled.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_enabled() {
+		return true;
+	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @inheritDoc
+	 */
+	public function is_available() {
+		return true;
+	}
+
+	/**
 	 * Returns string representing payment method type
 	 * to query to retrieve saved payment methods from Stripe.
+	 *
+	 * @inheritDoc
 	 */
 	public function get_retrievable_type() {
 		return $this->get_id();
@@ -58,7 +78,7 @@ class WC_Stripe_UPE_Payment_Method_Single extends WC_Stripe_UPE_Payment_Method {
 	 * Returns boolean dependent on whether capability
 	 * for site account is enabled for payment method.
 	 *
-	 * @return bool
+	 * @inheritDoc
 	 */
 	public function is_capability_active() {
 		return true;
