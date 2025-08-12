@@ -175,6 +175,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_enabled() {
+		if ( $this->oc_enabled && has_block( 'woocommerce/checkout' ) ) {
+			return true;
+		}
+
 		return 'yes' === $this->enabled;
 	}
 
@@ -186,7 +190,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function is_available() {
 		// When OC is enabled, we use the single payment container to render all the methods.
 		if ( $this->oc_enabled ) {
-			return false;
+			return has_block( 'woocommerce/checkout' );
 		}
 
 		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {

@@ -47,15 +47,6 @@ class WC_Stripe_UPE_Payment_Method_Single extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Returns true if the UPE method is enabled.
-	 *
-	 * @inheritDoc
-	 */
-	public function is_enabled() {
-		return true;
-	}
-
-	/**
 	 * Returns true if the UPE method is available.
 	 *
 	 * @inheritDoc
