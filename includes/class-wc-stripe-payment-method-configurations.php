@@ -440,21 +440,12 @@ class WC_Stripe_Payment_Method_Configurations {
 		// Make sure we re-load the settings to pick up any from the code above.
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
-		$stripe_settings['pmc_enabled'] = 'yes';
 		$stripe_settings[ $connection_type_key ] = 'connect';
+		// Reset to '' so we can re-assess in maybe_migrate_payment_methods_from_db_to_pmc().
+		$stripe_settings['pmc_enabled']          = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
-		WC_Stripe_Logger::error( 'Payment method configuration sync enabled after checking configuration.' );
-
-		if ( class_exists( 'WC_Tracks' ) ) {
-			WC_Tracks::record_event(
-				'wcstripe_pmc_sync_enabled',
-				[
-					'mode'   => $is_test_mode ? 'test' : 'live',
-					'source' => 'pmc_sync_check',
-				]
-			);
-		}
+		self::maybe_migrate_payment_methods_from_db_to_pmc( true );
 
 		return true;
 	}
