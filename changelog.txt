@@ -5,6 +5,7 @@
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Dev - Implements WooCommerce constants for the tax statuses
+* Fix - Ensure all Javascript strings use the correct text domain for translation
 
 = 9.8.0 - 2025-08-11 =
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
@@ -40,7 +41,6 @@
 * Fix - Handle missing customer when calling payment_methods API
 * Fix - Reduce number of calls to Stripe payment_methods API
 * Fix - Add `get_icon_url()` to Payment Method base class
-* Fix - Ensure all Javascript strings use the correct text domain for translation
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout
