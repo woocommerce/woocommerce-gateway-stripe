@@ -357,6 +357,9 @@ class WC_Stripe {
 			// TODO: Remove this call when all the merchants have moved to the new checkout experience.
 			// We are calling this function here to make sure that the Stripe methods are added to the `woocommerce_gateway_order` option.
 			WC_Stripe_Helper::add_stripe_methods_in_woocommerce_gateway_order();
+
+			// Enable PMC sync if possible.
+			WC_Stripe_Payment_Method_Configurations::maybe_enable_payment_method_configuration_sync();
 		}
 	}
 
