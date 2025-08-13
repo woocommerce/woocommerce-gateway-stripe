@@ -835,7 +835,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
 			// Adds customer and metadata to PaymentIntent.
 			// These parameters cannot be added upon updating the intent via the `/confirm` API.
-			$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
+			try {
+				$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
+			} catch ( Exception $update_intent_exception ) {
+				throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
 		}
 
 		// Flag for using a deferred intent. To be removed.
@@ -1656,6 +1660,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! empty( $error ) ) {
 			WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Validates the intent can be applied to the order.
+		try {
+			WC_Stripe_Helper::validate_intent_for_order( $order, $intent );
+		} catch ( Exception $e ) {
+			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
 		list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
