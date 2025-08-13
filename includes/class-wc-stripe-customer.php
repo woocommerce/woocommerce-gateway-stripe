@@ -23,7 +23,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Constants for the customer contexts where minimal billing details are permitted.
 	 */
-	protected const MINIMAL_BILLING_DETAILS_CONTEXTS = [
+	public const MINIMAL_BILLING_DETAILS_CONTEXTS = [
 		self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
 		self::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
 	];
