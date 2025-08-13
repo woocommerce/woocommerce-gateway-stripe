@@ -4,6 +4,7 @@ namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
 use Automattic\WooCommerce\Enums\OrderStatus;
 use Exception;
+use WC_Stripe_UPE_Payment_Method_OC;
 use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WC_Stripe_Database_Cache;
 use WC_Stripe_Payment_Method_Configurations;
@@ -424,7 +425,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 				'OC enabled' => true,
 				'expected' => [
-					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID,
 				],
 			],
 		];
