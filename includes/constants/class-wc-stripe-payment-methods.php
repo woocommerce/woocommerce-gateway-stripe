@@ -33,7 +33,7 @@ class WC_Stripe_Payment_Methods {
 	const SEPA_DEBIT        = 'sepa_debit';
 	const SOFORT            = 'sofort';
 	const WECHAT_PAY        = 'wechat_pay';
-	const SINGLE            = 'single'; // This is a special case for the Optimized Checkout
+	const OC                = 'oc'; // This is a special case for the Optimized Checkout
 
 	// Express method constants
 	const AMAZON_PAY = 'amazon_pay';
