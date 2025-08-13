@@ -65,7 +65,7 @@ class WC_Stripe_UPE_Payment_Method_OC extends WC_Stripe_UPE_Payment_Method {
 	 * @inheritDoc
 	 */
 	public function get_retrievable_type() {
-		return $this->get_id();
+		return WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID;
 	}
 
 	/**
