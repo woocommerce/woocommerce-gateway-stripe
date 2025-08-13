@@ -412,6 +412,12 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$is_test_mode        = WC_Stripe_Mode::is_test();
 		$connection_type_key = $is_test_mode ? 'test_connection_type' : 'connection_type';
+		$no_secret_key       = $is_test_mode ? empty( $stripe_settings['test_secret_key'] ) : empty( $stripe_settings['secret_key'] );
+
+		// If we don't have a secret key, we can't enable the sync feature.
+		if ( $no_secret_key ) {
+			return false;
+		}
 
 		// If the sync feature is already enabled, we have nothing to do.
 		if ( 'yes' === ( $stripe_settings['pmc_enabled'] ?? null ) ) {
