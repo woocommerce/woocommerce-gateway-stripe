@@ -362,9 +362,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		// Update the PMC if there are any enabled payment methods
+		// Update the PMC if there are locally enabled payment methods
 		if ( ! empty( $enabled_payment_methods ) ) {
-
 			// Get all available payment method IDs from the configuration.
 			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
 			$available_payment_method_ids = [];
@@ -373,10 +372,9 @@ class WC_Stripe_Payment_Method_Configurations {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
 
-				// Handle migrating from DB to PMC for BNPL default-on: if the payment method is enabled in
-				// the PMC, make sure to include it in the list enabled payment methods to push back.
+				// We want to also include payment methods enabled in the PMC, except for express payment methods.
 				if (
-					in_array( $payment_method_id, [ WC_Stripe_Payment_Methods::KLARNA, WC_Stripe_Payment_Methods::AFFIRM ], true ) &&
+					! in_array( $payment_method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) &&
 					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
 					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
 				) {
