@@ -11,6 +11,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Customer {
 
 	/**
+	 * Constant for the customer context when adding a payment method.
+	 */
+	public const CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD = 'add_payment_method';
+
+	/**
+	 * Constant for the customer context when paying for an order via the "Pay for Order" page..
+	 */
+	public const CUSTOMER_CONTEXT_PAY_FOR_ORDER = 'pay_for_order';
+
+	/**
+	 * Constants for the customer contexts where minimal billing details are permitted.
+	 */
+	protected const MINIMAL_BILLING_DETAILS_CONTEXTS = [
+		self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
+		self::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+	];
+
+	/**
 	 * String prefix for Stripe payment methods request transient.
 	 */
 	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
@@ -258,17 +276,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the list of required fields for the create customer request.
 	 *
-	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return array
 	 */
 	private function get_create_customer_required_fields( ?string $current_context = null ) {
-		// If we are on the add payment method page or the pay for order page, we need to check just for the email field.
-		$contexts_with_minimal_details = [
-			'add_payment_method',
-			'pay_for_order',
-		];
-		if ( in_array( $current_context, $contexts_with_minimal_details, true ) ) {
+		if ( in_array( $current_context, self::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			return [
 				'email' => true,
 			];
@@ -426,7 +439,7 @@ class WC_Stripe_Customer {
 	 * Create a customer via API.
 	 *
 	 * @param array $args
-	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
@@ -530,7 +543,7 @@ class WC_Stripe_Customer {
 	 * Updates existing Stripe customer or creates new customer for User through API.
 	 *
 	 * @param array $args     Additional arguments for the request (optional).
-	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return string Customer ID
 	 *
@@ -559,7 +572,7 @@ class WC_Stripe_Customer {
 		}
 
 		if ( is_bool( $current_context ) ) {
-			return $current_context ? 'add_payment_method' : null;
+			return $current_context ? self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD : null;
 		}
 
 		if ( is_string( $current_context ) ) {
@@ -1011,7 +1024,7 @@ class WC_Stripe_Customer {
 	 * Recreates the customer for this user.
 	 *
 	 * @param array $args Additional arguments for the request (optional).
-	 * @param string|null $current_context The context we are creating the customer in. We specifically care about 'pay_for_order' and 'add_payment_method', where minimal details are available.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
