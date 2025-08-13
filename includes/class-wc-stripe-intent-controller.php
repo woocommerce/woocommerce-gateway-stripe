@@ -414,7 +414,20 @@ class WC_Stripe_Intent_Controller {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			wp_send_json_success( $this->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
+			$update_intent_result = $this->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type );
+
+			if ( ! ( $update_intent_result['success'] ?? false ) ) {
+				$error_message = $update_intent_result['error'] ?? __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' );
+				wp_send_json_error(
+					[
+						'error' => [
+							'message' => $error_message,
+						],
+					]
+				);
+			} else {
+				wp_send_json_success( $update_intent_result, 200 );
+			}
 		} catch ( Exception $e ) {
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
@@ -433,10 +446,10 @@ class WC_Stripe_Intent_Controller {
 	 * @since 5.6.0
 	 * @version 9.4.0
 	 *
-	 * @param {string}  $intent_id                 The id of the payment intent or setup intent to update.
-	 * @param {int}     $order_id                  The id of the order if intent created from Order.
-	 * @param {boolean} $save_payment_method       True if saving the payment method.
-	 * @param {string}  $selected_upe_payment_type The name of the selected UPE payment type or empty string.
+	 * @param string  $intent_id                 The id of the payment intent or setup intent to update.
+	 * @param int     $order_id                  The id of the order if intent created from Order.
+	 * @param boolean $save_payment_method       True if saving the payment method.
+	 * @param string  $selected_upe_payment_type The name of the selected UPE payment type or empty string.
 	 *
 	 * @throws Exception  If the update intent call returns with an error.
 	 * @return array|null An array with result of the update, or nothing
@@ -445,8 +458,14 @@ class WC_Stripe_Intent_Controller {
 		$order = wc_get_order( $order_id );
 
 		if ( ! is_a( $order, 'WC_Order' ) ) {
-			return;
+			return [
+				'success' => false,
+				'error'   => __( 'Unable to find a matching order.', 'woocommerce-gateway-stripe' ),
+			];
 		}
+
+		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
+		WC_Stripe_Helper::validate_intent_for_order( $order, $intent_id, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
@@ -497,12 +516,41 @@ class WC_Stripe_Intent_Controller {
 
 			// Use "setup_intents" endpoint if `$intent_id` starts with `seti_`.
 			$endpoint = $is_setup_intent ? 'setup_intents' : 'payment_intents';
-			WC_Stripe_API::request_with_level3_data(
+			$result = WC_Stripe_API::request_with_level3_data(
 				$request,
 				"{$endpoint}/{$intent_id}",
 				$level3_data,
 				$order
 			);
+
+			if ( ! empty( $result->error ) ) {
+				if ( 'payment_intent_unexpected_state' === $result->error->code ) {
+					WC_Stripe_Logger::critical(
+						'Error: Failed to update intent due to invalid operation',
+						[
+							'intent_id'   => $intent_id,
+							'order_id'    => $order_id,
+							'error'       => $result->error,
+						]
+					);
+
+					throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				}
+
+				WC_Stripe_Logger::error(
+					'Error: Failed to update Stripe intent',
+					[
+						'intent_id' => $intent_id,
+						'order_id'  => $order_id,
+						'error'     => $result->error,
+					]
+				);
+
+				return [
+					'success' => false,
+					'error'   => $result->error->message,
+				];
+			}
 
 			// Prevent any failures if updating the status of a subscription order.
 			if ( ! $gateway->has_subscription( $order_id ) ) {
