@@ -309,6 +309,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		}
 
 		$this->account->clear_cache();
+		WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
 
 		// Gives an instant reply if the connection was successful or not + rebuild the cache for the next request
 		$account = $this->account->get_cached_account_data();

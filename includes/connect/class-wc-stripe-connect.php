@@ -210,6 +210,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
 				$gateway = new WC_Stripe_UPE_Payment_Gateway();
 			}
+
+			// Clear the PMC cache to ensure that we don't rely on stale configuration.
+			WC_Stripe_Payment_Method_Configurations::clear_payment_method_configuration_cache();
+
 			// If pmc_enabled is not set (aka new install) or is not 'yes' (aka migration already done) we need to migrate the payment methods from the DB option to Stripe PMC API.
 			if ( empty( $current_options ) || ! isset( $current_options['pmc_enabled'] ) || 'yes' !== $current_options['pmc_enabled'] ) {
 				WC_Stripe_Payment_Method_Configurations::maybe_migrate_payment_methods_from_db_to_pmc( true );
