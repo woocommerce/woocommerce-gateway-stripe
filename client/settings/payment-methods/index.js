@@ -9,6 +9,7 @@ import LoadableSettingsSection from '../loadable-settings-section';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 import { NEW_CHECKOUT_EXPERIENCE_BANNER } from 'wcstripe/settings/payment-settings/constants';
 import PromotionalBanner from 'wcstripe/settings/payment-settings/promotional-banner';
+import OptimizedCheckoutNotice from 'wcstripe/settings/optimized-checkout-notice';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -52,6 +53,7 @@ const PaymentMethodsPanel = ( {
 	setShowPromotionalBanner,
 	showPromotionalBanner,
 	promotionalBannerType,
+	isOCEnabled,
 	setIsOCEnabled,
 	setIsUpeEnabled,
 } ) => {
@@ -77,6 +79,7 @@ const PaymentMethodsPanel = ( {
 			) }
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
+				<OptimizedCheckoutNotice isOCEnabled={ isOCEnabled } />
 				<GeneralSettingsSection
 					onSaveChanges={ onSaveChanges }
 					showLegacyExperienceTransitionNotice={

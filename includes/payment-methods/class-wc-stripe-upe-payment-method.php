@@ -236,6 +236,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Gets the payment method's icon url.
+	 * Each payment method should override this method to return the icon url.
+	 *
+	 * @return string The icon url.
+	 */
+	public function get_icon_url() {
+		return '';
+	}
+
+	/**
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
