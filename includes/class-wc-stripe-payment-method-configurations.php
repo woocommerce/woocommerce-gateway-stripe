@@ -412,7 +412,7 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
 		$connection_type_key = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
 
-		// If the sync feature is already enabled, we return null.
+		// If the sync feature is already enabled, we have nothing to do.
 		if ( 'yes' === ( $stripe_settings['pmc_enabled'] ?? null ) ) {
 			return null;
 		}
