@@ -410,7 +410,8 @@ class WC_Stripe_Payment_Method_Configurations {
 	 */
 	public static function maybe_enable_payment_method_configuration_sync(): ?bool {
 		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
-		$connection_type_key = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
+		$is_test_mode        = WC_Stripe_Mode::is_test();
+		$connection_type_key = $is_test_mode ? 'test_connection_type' : 'connection_type';
 
 		// If the sync feature is already enabled, we have nothing to do.
 		if ( 'yes' === ( $stripe_settings['pmc_enabled'] ?? null ) ) {
@@ -438,6 +439,16 @@ class WC_Stripe_Payment_Method_Configurations {
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		WC_Stripe_Logger::error( 'Payment method configuration sync enabled after checking configuration.' );
+
+		if ( class_exists( 'WC_Tracks' ) ) {
+			WC_Tracks::record_event(
+				'wcstripe_pmc_sync_enabled',
+				[
+					'mode'   => $is_test_mode ? 'test' : 'live',
+					'source' => 'pmc_sync_check',
+				]
+			);
+		}
 
 		return true;
 	}
