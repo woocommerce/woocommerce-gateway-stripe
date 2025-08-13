@@ -399,4 +399,46 @@ class WC_Stripe_Payment_Method_Configurations {
 		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
+
+	/**
+	 * Helper function to enable payment method configuration sync if possible.
+	 * We fetch all PMCs for the account from Stripe, and look for a PMC that is a child of the WooCommerce platform PMC.
+	 * - If we don't find a valid child PMC, we can't enable the sync feature.
+	 * - If we find a valid child PMC, we can enable the sync feature and update the connection type setting to 'connect'.
+	 *
+	 * @return bool|null Returns null if the sync feature is already enabled, true if it was enabled, false if it could not be enabled.
+	 */
+	public static function maybe_enable_payment_method_configuration_sync(): ?bool {
+		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
+		$connection_type_key = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
+
+		// If the sync feature is already enabled, we return null.
+		if ( 'yes' === ( $stripe_settings['pmc_enabled'] ?? null ) ) {
+			return null;
+		}
+
+		// If the connection type is 'app', we can't enable the sync feature.
+		if ( 'app' === ( $stripe_settings[ $connection_type_key ] ?? null ) ) {
+			return false;
+		}
+
+		$stripe_pmc_configuration = self::get_payment_method_configuration_from_stripe();
+		if ( null === $stripe_pmc_configuration ) {
+			// If we don't get a valid PMC returned from Stripe, we can't enable the sync feature.
+			// PMC sync will also be disabled in get_payment_method_configuration_from_stripe().
+			return false;
+		}
+
+		// If we got a valid PMC, we can enable the sync feature, and we can update the connection type to 'connect'.
+		// Make sure we re-load the settings to pick up any from the code above.
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+
+		$stripe_settings['pmc_enabled'] = 'yes';
+		$stripe_settings[ $connection_type_key ] = 'connect';
+		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		WC_Stripe_Logger::error( 'Payment method configuration sync enabled after checking configuration.' );
+
+		return true;
+	}
 }
