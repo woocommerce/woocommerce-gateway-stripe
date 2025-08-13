@@ -372,6 +372,16 @@ class WC_Stripe_Payment_Method_Configurations {
 				if ( isset( $payment_method->display_preference ) ) {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
+
+				// Handle migrating from DB to PMC for BNPL default-on: if the payment method is enabled in
+				// the PMC, make sure to include it in the list enabled payment methods to push back.
+				if (
+					in_array( $payment_method_id, [ WC_Stripe_Payment_Methods::KLARNA, WC_Stripe_Payment_Methods::AFFIRM ], true ) &&
+					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
+					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
+				) {
+					$enabled_payment_methods[] = $payment_method_id;
+				}
 			}
 
 			self::update_payment_method_configuration(
