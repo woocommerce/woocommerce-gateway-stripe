@@ -16,7 +16,7 @@ class WC_Stripe_Customer {
 	public const CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD = 'add_payment_method';
 
 	/**
-	 * Constant for the customer context when paying for an order via the "Pay for Order" page..
+	 * Constant for the customer context when paying for an order via the "Pay for Order" page.
 	 */
 	public const CUSTOMER_CONTEXT_PAY_FOR_ORDER = 'pay_for_order';
 
