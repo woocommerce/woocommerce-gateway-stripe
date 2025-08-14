@@ -6,6 +6,7 @@
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Dev - Implements WooCommerce constants for the tax statuses
 * Fix - Ensure all Javascript strings use the correct text domain for translation
+* Tweak - Use more specific selector in express checkout e2e tests
 
 = 9.8.0 - 2025-08-11 =
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data

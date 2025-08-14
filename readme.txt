@@ -116,5 +116,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Dev - Implements WooCommerce constants for the tax statuses
 * Fix - Ensure all Javascript strings use the correct text domain for translation
+* Tweak - Use more specific selector in express checkout e2e tests
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
