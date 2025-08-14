@@ -429,7 +429,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 				'OC enabled' => true,
 				'expected' => [
-					WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 				],
 			],
 		];

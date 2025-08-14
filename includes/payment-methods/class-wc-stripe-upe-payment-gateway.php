@@ -268,6 +268,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Hide action buttons for pending orders if they take a while to be confirmed.
 		add_filter( 'woocommerce_my_account_my_orders_actions', [ $this, 'filter_my_account_my_orders_actions' ], 10, 2 );
+
+		// For the Optimized Checkout, allow the display property in inline styles to hide payment method instructions (see `get_testing_instructions_for_optimized_checkout`).
+		if ( $this->oc_enabled ) {
+			add_filter(
+				'safe_style_css',
+				function ( $styles ) {
+					return array_merge( $styles, [ 'display' ] );
+				}
+			);
+		}
 	}
 
 	/**
@@ -774,7 +784,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php
 			if ( $this->testmode ) :
 				if ( $this->oc_enabled ) :
-					echo wp_kses_post( self::get_testing_instructions_for_optimized_checkout() );
+					echo wp_kses(
+						self::get_testing_instructions_for_optimized_checkout(),
+						[
+							'div' => [
+								'id'    => [],
+								'class' => [],
+								'style' => [],
+							],
+							'strong' => [],
+							'a'    => [
+								'href'   => [],
+								'target' => [],
+							],
+						]
+					);
 				else :
 					?>
 				<p class="testmode-info">
@@ -2872,10 +2896,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$user     = $this->get_user_from_order( $order );
 		$customer = new WC_Stripe_Customer( $user->ID );
 
+		$current_context = $this->is_valid_pay_for_order_endpoint() ? WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER : null;
+
 		// Pass the order object so we can retrieve billing details
 		// in payment flows where it is not present in the request.
 		$args = [ 'order' => $order ];
-		return $customer->update_or_create_customer( $args );
+		return $customer->update_or_create_customer( $args, $current_context );
 	}
 
 	/**
