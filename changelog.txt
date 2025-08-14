@@ -6,6 +6,7 @@
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Dev - Implements WooCommerce constants for the tax statuses
 * Fix - Ensure all Javascript strings use the correct text domain for translation
+* Tweak - Use more specific selector in express checkout e2e tests
 * Fix - Allow PMC sync migration attempt even when connection type is not present
 
 = 9.8.0 - 2025-08-11 =
