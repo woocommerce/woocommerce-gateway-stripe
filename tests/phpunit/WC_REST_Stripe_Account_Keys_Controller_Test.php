@@ -176,7 +176,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		// Build request params
 		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'publishable_key', '' );
+		$request->set_param( 'publishable_key', 'pk_live-key-updated' );
 
 		// Set initial payment methods
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );

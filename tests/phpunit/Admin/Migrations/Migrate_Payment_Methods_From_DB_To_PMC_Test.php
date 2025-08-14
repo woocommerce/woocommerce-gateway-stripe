@@ -24,8 +24,10 @@ class Migrate_Payment_Methods_From_DB_To_PMC_Test extends WC_Mock_Stripe_API_Uni
 
 		$this->pmc = new WC_Stripe_Payment_Method_Configurations();
 
-		// Set up test connection type to enable PMC
+		// Set up test connection info to enable PMC
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
+		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
 		$stripe_settings['test_connection_type'] = 'connect';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}
