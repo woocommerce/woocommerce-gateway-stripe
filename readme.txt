@@ -115,6 +115,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
 * Dev - Implements WooCommerce constants for the tax statuses
+* Fix - Ensure all Javascript strings use the correct text domain for translation
 * Fix - Allow PMC sync migration attempt even when connection type is not present
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
