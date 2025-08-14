@@ -303,6 +303,11 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * @return bool
 	 */
 	public static function is_enabled() {
+		// Bail if account is not connected.
+		if ( ! WC_Stripe_Helper::is_connected() ) {
+			return false;
+		}
+
 		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// If we have the pmc_enabled flag, and it is set to no, we should not use the payment method configurations API.
