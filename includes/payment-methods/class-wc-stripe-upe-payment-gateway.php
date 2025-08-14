@@ -599,8 +599,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	private function get_enabled_payment_method_config() {
-		$settings                = [];
-		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		$settings = [];
+
+		// If the Optimized Checkout is enabled, we need to return just the OC payment method.
+		// All payment methods are rendered inside of it.
+		if ( $this->oc_enabled ) {
+			$enabled_payment_methods = [ WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID ];
+		} else {
+			$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
 			$payment_method = $this->payment_methods[ $payment_method_id ];
@@ -613,6 +620,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
+				'enabledPaymentMethods'  => $this->get_upe_enabled_payment_method_ids(), // For the Optimized Checkout.
 			];
 		}
 
@@ -635,12 +643,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
-		// If the Optimized Checkout is enabled, we need to return just the card payment method.
-		// All payment methods are rendered inside of it.
-		if ( $this->oc_enabled ) {
-			return [ WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID ];
-		}
-
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
 		$account_domestic_currency    = WC_Stripe::get_instance()->account->get_account_default_currency();
@@ -847,7 +849,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $payment_intent_id && ! $this->payment_methods[ $selected_payment_type ]->supports_deferred_intent() ) {
 			// Adds customer and metadata to PaymentIntent.
 			// These parameters cannot be added upon updating the intent via the `/confirm` API.
-			$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
+			try {
+				$this->intent_controller->update_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_payment_type );
+			} catch ( Exception $update_intent_exception ) {
+				throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
 		}
 
 		// Flag for using a deferred intent. To be removed.
@@ -1668,6 +1674,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! empty( $error ) ) {
 			WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Validates the intent can be applied to the order.
+		try {
+			WC_Stripe_Helper::validate_intent_for_order( $order, $intent );
+		} catch ( Exception $e ) {
+			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
 		list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );

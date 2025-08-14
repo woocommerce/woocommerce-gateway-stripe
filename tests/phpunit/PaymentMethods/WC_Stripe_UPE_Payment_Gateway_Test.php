@@ -126,6 +126,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 				],
 			],
 		],
+		'payment_method_types' => [
+			WC_Stripe_Payment_Methods::CARD,
+			WC_Stripe_Payment_Methods::LINK,
+		],
 	];
 
 	/**
@@ -300,7 +304,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 			'signature'      => sprintf( '%d:%s', $order->get_id(), md5( implode( '-', [ absint( $order->get_id() ), $order->get_order_key(), $order->get_customer_id(), $amount ] ) ) ),
 			'tax_amount'     => WC_Stripe_Helper::get_stripe_amount( $total_tax, strtolower( $currency ) ),
 		];
-		return [ $amount, $description, $metadata ];
+		return [ $amount, $description, $metadata, strtolower( $currency ) ];
 	}
 
 	/**
@@ -977,7 +981,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
 
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
@@ -989,6 +993,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
 		$payment_intent_mock['last_payment_error'] = [];
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
@@ -1045,7 +1050,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
 
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
@@ -1057,6 +1062,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
 		$payment_intent_mock['last_payment_error'] = [];
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
@@ -1212,7 +1218,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
 
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
@@ -1224,6 +1230,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
 		$payment_intent_mock['last_payment_error'] = [];
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
@@ -1275,7 +1282,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order                       = WC_Helper_Order::create_order();
 		$order_id                    = $order->get_id();
 
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
@@ -1289,6 +1296,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
 		$payment_intent_mock['last_payment_error'] = [];
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
@@ -2294,7 +2302,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
 
-		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		list( $amount, $description, $metadata, $currency ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 		$order->save();
 
@@ -2306,6 +2314,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WC_Mock_Stripe_API_Unit_Test_Ca
 		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
 		$payment_intent_mock['id']                 = $payment_intent_id;
 		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['currency']           = $currency;
 		$payment_intent_mock['last_payment_error'] = [];
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['latest_charge']      = 'ch_mock';
