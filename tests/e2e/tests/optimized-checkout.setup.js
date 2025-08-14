@@ -14,7 +14,9 @@ setup(
 			'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings'
 		);
 
-		const checkbox = page.getByTestId( 'single-payment-element-checkbox' );
+		const checkbox = page.getByTestId(
+			'optimized-checkout-element-checkbox'
+		);
 		const isChecked = await checkbox.isChecked();
 
 		if ( ! isChecked ) {
@@ -26,7 +28,7 @@ setup(
 				)
 			).toBeVisible();
 			await expect(
-				page.getByTestId( 'single-payment-element-checkbox' )
+				page.getByTestId( 'optimized-checkout-element-checkbox' )
 			).toBeChecked();
 		}
 

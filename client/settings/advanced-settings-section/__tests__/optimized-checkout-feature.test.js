@@ -6,9 +6,13 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.useFakeTimers();
 
-describe( 'Single Payment Element feature setting', () => {
+describe( 'Optimized Checkout Element feature setting', () => {
+	const setIsOCEnabled = jest.fn().mockImplementation();
+
 	it( 'should render', () => {
-		render( <OptimizedCheckoutFeature /> );
+		render(
+			<OptimizedCheckoutFeature setIsOCEnabled={ setIsOCEnabled } />
+		);
 
 		expect(
 			screen.queryByText(
@@ -29,12 +33,12 @@ describe( 'Single Payment Element feature setting', () => {
 		render(
 			<div>
 				<UpdateUpeDisabledFlagMock />
-				<OptimizedCheckoutFeature />
+				<OptimizedCheckoutFeature setIsOCEnabled={ setIsOCEnabled } />
 			</div>
 		);
 
 		const checkbox = screen.getByTestId(
-			'single-payment-element-checkbox'
+			'optimized-checkout-element-checkbox'
 		);
 
 		userEvent.click( checkbox );

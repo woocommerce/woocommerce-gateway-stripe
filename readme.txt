@@ -110,24 +110,11 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.8.0 - xxxx-xx-xx =
-* Update - Deactivates Affirm or Klarna when other official plugins are active in merchant's Payment Method Configuration
-* Fix - Fixes issues related to booking multiple slots with express checkout payment methods enabled
-* Fix - Update the Optimized Checkout promotional inbox note to link to the relevant section in the Stripe settings page
-* Add - Makes the Optimized Checkout feature available for all merchants by default
-* Add - Adds a new bulk action option to the subscriptions listing screen to check for detached payment methods
-* Dev - Use product type constants that were added in WooCommerce 9.7
-* Dev - Removes the inclusion of the deprecated WC_Stripe_Order class
-* Add - Introduces a new banner to promote the Optimized Checkout feature in the Stripe settings page for versions 9.8 and above
-* Add - Introduces a new inbox note to promote the Optimized Checkout feature on version 9.8 and later
-* Tweak - Use wp_ajax prefix for its built-in security for Add Payment Method action
-* Fix - Prevent Stripe API calls after several consecutive 401 (Unauthorized) responses
-* Fix - 3DS authentication modal not shown when using Google Pay
-* Update - Improve Stripe API connector logging to include request/response context
-* Fix - Require credit cards to be enabled before Apple Pay and Google Pay can be enabled in PMC
-* Fix - Free trial subscription orders with payment methods that require redirection (eg: iDeal, Bancontact)
-* Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
-* Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
+= 9.9.0 - xxxx-xx-xx =
+* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
+* Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
+* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
+* Dev - Implements WooCommerce constants for the tax statuses
 * Update - Show all available payment methods before unavailable payment methods
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

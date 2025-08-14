@@ -25,15 +25,20 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	}
 
 	/**
-	 * Tests for `maybe_deactivate_payment_methods`.
+	 * Tests for `maybe_toggle_payment_methods`.
 	 *
+	 * @param array $active_gateways The active payment gateways.
+	 * @param array $enabled_payment_method_ids The enabled payment method IDs.
+	 * @param bool $oc_enabled Whether the one-click payment methods are enabled.
+	 * @param int $update_enable_payment_methods_calls The number of times `update_enabled_payment_methods` should be called.
 	 * @return void
 	 *
-	 * @dataProvider provide_test_maybe_deactivate_payment_methods
+	 * @dataProvider provide_test_maybe_toggle_payment_methods
 	 */
-	public function test_maybe_deactivate_payment_methods(
+	public function test_maybe_toggle_payment_methods(
 		$active_gateways,
 		$enabled_payment_method_ids,
+		$oc_enabled,
 		$update_enable_payment_methods_calls
 	) {
 		$original_payment_gateways = WC()->payment_gateways->payment_gateways;
@@ -44,6 +49,10 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$upe_payment_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->disableOriginalConstructor()
 			->getMock();
+
+		$upe_payment_gateway->expects( $this->once() )
+			->method( 'is_oc_enabled' )
+			->willReturn( $oc_enabled );
 
 		$upe_payment_gateway->expects( $this->once() )
 			->method( 'get_upe_enabled_payment_method_ids' )
@@ -61,7 +70,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$wc_stripe->method( 'get_main_stripe_gateway' )
 			->willReturn( $upe_payment_gateway );
 
-		$wc_stripe->maybe_deactivate_payment_methods();
+		$wc_stripe->maybe_toggle_payment_methods();
 
 		// Clean up.
 		WC()->payment_gateways->payment_gateways = $original_payment_gateways;
@@ -72,13 +81,14 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 	 *
 	 * @return array
 	 */
-	public function provide_test_maybe_deactivate_payment_methods() {
+	public function provide_test_maybe_toggle_payment_methods() {
 		return [
 			'none active'                                 => [
 				'active gateways'                     => [],
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 0,
 			],
 			'affirm'                                      => [
@@ -92,6 +102,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AFFIRM,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
 			'klarna'                                      => [
@@ -105,6 +116,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
 			'klarna and affirm active, but not on Stripe' => [
@@ -121,6 +133,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'enabled payment method IDs'          => [
 					WC_Stripe_Payment_Methods::CARD,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 0,
 			],
 			'klarna and affirm active in both'            => [
@@ -139,6 +152,7 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::AFFIRM,
 					WC_Stripe_Payment_Methods::KLARNA,
 				],
+				'OC enabled'                          => false,
 				'update enable payment methods calls' => 1,
 			],
 			'amazon pay'                                  => [
@@ -147,6 +161,13 @@ class WC_Stripe_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					WC_Stripe_Payment_Methods::CARD,
 					WC_Stripe_Payment_Methods::AMAZON_PAY,
 				],
+				'OC enabled'                          => false,
+				'update enable payment methods calls' => 1,
+			],
+			'card, OC enabled'                            => [
+				'active gateways'                     => [],
+				'enabled payment method IDs'          => [],
+				'OC enabled'                          => true,
 				'update enable payment methods calls' => 1,
 			],
 		];

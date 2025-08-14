@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .woocommerce-stripe-auth {
 	> p {
@@ -9,12 +9,12 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: center;
-		gap: $grid-unit-20;
-		margin: $grid-unit-40 0;
+		gap: styles.$grid-unit-20;
+		margin: styles.$grid-unit-40 0;
 
 		&__dotted-line {
 			position: relative;
-			border-top: 1px dashed $gray-600;
+			border-top: 1px dashed styles.$gray-600;
 			margin: 1px;
 			width: 50px;
 
@@ -25,7 +25,7 @@
 				top: -2.5px;
 				width: 4px;
 				height: 4px;
-				background-color: $gray-600;
+				background-color: styles.$gray-600;
 				border-radius: 50%;
 			}
 			&::before {
@@ -39,7 +39,7 @@
 			border-radius: 6px;
 		}
 		.woocommerce-stripe-woo-white-logo {
-			background-color: $studio-woocommerce-purple;
+			background-color: styles.$studio-woocommerce-purple;
 			padding: 5px;
 		}
 	}
@@ -47,19 +47,19 @@
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		gap: $grid-unit-20;
+		gap: styles.$grid-unit-20;
 	}
 	&__status-panel {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		gap: $grid-unit-20;
+		gap: styles.$grid-unit-20;
 
 		.wcstripe-status {
 			display: flex;
 			flex-direction: row;
 			align-items: center;
-			gap: $grid-unit;
+			gap: styles.$grid-unit;
 		}
 		.wcstripe-status-text {
 			font-size: 11px;
@@ -68,8 +68,8 @@
 		}
 	}
 	&__help {
-		color: $gray-700;
-		font-size: $helptext-font-size;
+		color: styles.$gray-700;
+		font-size: styles.$helptext-font-size;
 		font-style: normal;
 	}
 }
