@@ -376,6 +376,7 @@ class WC_Stripe_Payment_Method_Configurations {
 				}
 			}
 
+			WC_Stripe_Logger::error( 'Switching to Stripe-hosted payment method configuration', [ 'pmc_id' => $merchant_payment_method_configuration->id, 'enabled_payment_methods' => $enabled_payment_methods ] );
 			self::update_payment_method_configuration(
 				$enabled_payment_methods,
 				$available_payment_method_ids
