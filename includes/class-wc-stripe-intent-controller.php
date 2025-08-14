@@ -1197,7 +1197,7 @@ class WC_Stripe_Intent_Controller {
 			// Manually create the payment information array to create & confirm the setup intent.
 			$payment_information = [
 				'payment_method'        => $payment_method,
-				'customer'              => $customer->update_or_create_customer( [], true ),
+				'customer'              => $customer->update_or_create_customer( [], WC_Stripe_Customer::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD ),
 				'selected_payment_type' => $payment_type,
 				'return_url'            => wc_get_account_endpoint_url( 'payment-methods' ),
 				'use_stripe_sdk'        => 'true', // We want the user to complete the next steps via the JS elements. ref https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
