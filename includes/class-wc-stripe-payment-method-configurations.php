@@ -296,9 +296,7 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Check if the payment method configurations API can be used to store enabled payment methods.
-	 * This requires the Stripe account to be connected to our platform ('connection_type' option to be 'connect').
-	 *
-	 * This is temporary until we finish the re-authentication campaign.
+	 * This requires the Stripe account to be connected to Stripe.
 	 *
 	 * @return bool
 	 */
