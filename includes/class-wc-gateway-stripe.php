@@ -1234,10 +1234,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks if the Optimized Checkout setting is enabled.
 	 *
-	 * OC is not supported in the legacy gateway, so we default to false here,
+	 * OC is not supported in the legacy gateway, so we return false here,
 	 * this method is then overridden by UPE payment gateway which extends from this class.
 	 *
-	 * @return bool false.
+	 * @return bool Always false.
 	 */
 	public function is_oc_enabled() {
 		// Always return false here, as OC is not supported in the legacy gateway.
