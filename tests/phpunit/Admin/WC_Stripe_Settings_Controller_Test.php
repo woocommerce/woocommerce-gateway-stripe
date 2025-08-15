@@ -77,6 +77,8 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
+		$stripe_settings['publishable_key']      = '';
+		$stripe_settings['secret_key']           = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		ob_start();

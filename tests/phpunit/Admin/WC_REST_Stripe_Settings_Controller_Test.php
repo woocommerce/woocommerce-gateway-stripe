@@ -107,11 +107,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 	public function test_get_stripe_payment_method_configurations_settings( $enabled_payment_method_ids, $disabled_payment_method_ids ) {
 		$this->mock_payment_method_configurations( $enabled_payment_method_ids, $disabled_payment_method_ids );
 
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
-		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
 		$response = $this->controller->get_settings();
 		$this->assertEquals( 200, $response->get_status() );
 		foreach ( $enabled_payment_method_ids as $payment_method ) {
@@ -130,10 +125,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 		$this->mock_payment_method_configurations( [ 'card' ], [ 'amazon_pay', 'google_pay', 'apple_pay' ] );
 
 		// Set pmc_enabled to yes to prevent migration
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['pmc_enabled']          = 'yes';
-		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
-		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings['pmc_enabled'] = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->expect_payment_method_configurations_update( [ 'amazon_pay', 'card' ] );
@@ -386,11 +379,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			[ WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ]
 		);
 
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
-		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
 		// After the update: card, Apple Pay, and Google Pay are enabled, CashApp is disabled
 		$this->expect_payment_method_configurations_update(
 			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
@@ -417,11 +405,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			[ WC_Stripe_Payment_Methods::CARD, WC_Stripe_Payment_Methods::APPLE_PAY, WC_Stripe_Payment_Methods::GOOGLE_PAY ],
 			[ WC_Stripe_Payment_Methods::CASHAPP_PAY ]
 		);
-
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
-		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		// After the update: CashApp is enabled, card, Apple Pay, and Google Pay are disabled
 		$this->expect_payment_method_configurations_update(
@@ -513,12 +496,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WC_Mock_Stripe_API_Unit_Te
 			$enabled_payment_method_ids,
 			$disabled_payment_method_ids
 		);
-
-		$stripe_settings                         = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['test_publishable_key'] = 'pk_test_1234567890';
-		$stripe_settings['test_secret_key']      = 'sk_test_1234567890';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
-
 		$request  = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
 		$response = $this->controller->get_settings( $request );
 		$this->assertEquals( 200, $response->get_status() );
