@@ -641,6 +641,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		$subscription = new WC_Subscription();
 		$subscription->set_id( 123 );
 		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
 		$subscription->save();
 
 		$subscription->update_meta_data( '_stripe_source_id', $source_id );

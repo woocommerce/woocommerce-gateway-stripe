@@ -70,6 +70,7 @@ const PaymentSettingsPanel = ( {
 	showPromotionalBanner,
 	setShowPromotionalBanner,
 	promotionalBannerType,
+	isOCEnabled,
 	setIsOCEnabled,
 	setIsUpeEnabled,
 } ) => {
@@ -145,7 +146,10 @@ const PaymentSettingsPanel = ( {
 					<PaymentsAndTransactionsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
-			<AdvancedSettingsSection />
+			<AdvancedSettingsSection
+				isOCEnabled={ isOCEnabled }
+				setIsOCEnabled={ setIsOCEnabled }
+			/>
 		</>
 	);
 };
