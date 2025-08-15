@@ -27,7 +27,7 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 #radio-control-wc-payment-method-options-stripe__content.optimized-checkout-element {
 	padding-top: 1.4em;
 
-	.content {
+	.content:empty {
 		display: none;
 	}
 }

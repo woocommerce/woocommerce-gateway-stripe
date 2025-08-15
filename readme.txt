@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 * Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
 * Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
