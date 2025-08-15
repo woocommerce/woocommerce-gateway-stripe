@@ -11,7 +11,7 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethod from './payment-method';
-import { getPaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
+import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import {
 	useEnabledPaymentMethodIds,
 	useGetOrderedPaymentMethodIds,
@@ -143,8 +143,6 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
-	// In the logic below, note that getPaymentMethodCurrencies() can return []
-	// when the payment method supports all currencies.
 	// When we don't have a store currency or UPE is disabled, we put all methods in the supported list.
 	const sortedPaymentMethodIds = useMemo( () => {
 		if ( ! storeCurrencyCode || ! isUpeEnabled ) {
@@ -155,15 +153,12 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 		const unsupportedPaymentMethodIds = [];
 
 		orderedPaymentMethodIds.forEach( ( paymentMethodId ) => {
-			const paymentMethodCurrencies = getPaymentMethodCurrencies(
+			const unavailableReason = getPaymentMethodUnavailableReason( {
 				paymentMethodId,
-				isUpeEnabled
-			);
-
-			if (
-				paymentMethodCurrencies.length === 0 ||
-				paymentMethodCurrencies.includes( storeCurrencyCode )
-			) {
+				isUpeEnabled,
+				storeCurrencyCode,
+			} );
+			if ( unavailableReason === null ) {
 				supportedPaymentMethodIds.push( paymentMethodId );
 			} else {
 				unsupportedPaymentMethodIds.push( paymentMethodId );
