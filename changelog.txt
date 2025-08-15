@@ -11,6 +11,7 @@
 * Fix - Relax customer validation that was preventing payments from the pay for order page
 * Fix - Remove connection type requirement from PMC sync migration attempt
 * Tweak - Small improvements to e2e tests
+* Fix - Fix unnecessary Stripe API calls when rendering subscription details
 
 = 9.8.0 - 2025-08-11 =
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
