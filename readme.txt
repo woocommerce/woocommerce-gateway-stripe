@@ -116,6 +116,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 * Fix - Remove connection type requirement from PMC sync migration attempt
 * Fix - Relax customer validation that was preventing payments from the pay for order page
+* Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
 
 = 9.8.0 - 2025-08-11 =
 
