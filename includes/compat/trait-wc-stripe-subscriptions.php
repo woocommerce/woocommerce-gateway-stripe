@@ -1045,9 +1045,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
 		}
 
-		$api_path_elements    = [ 'customers', $stripe_customer_id, 'payment_methods', $payment_method_id ];
-		$api_path             = implode( '/', array_map( 'rawurlencode', $api_path_elements ) );
-		$saved_payment_method = WC_Stripe_API::retrieve( $api_path );
+		$encoded_customer_id       = rawurlencode( $stripe_customer_id );
+		$encoded_payment_method_id = rawurlencode( $payment_method_id );
+		$api_path                  = "customers/{$encoded_customer_id}/payment_methods/{$encoded_payment_method_id}";
+
+		$saved_payment_method      = WC_Stripe_API::retrieve( $api_path );
 
 		if ( ! isset( $saved_payment_method->id ) ) {
 			$saved_payment_method = null;
