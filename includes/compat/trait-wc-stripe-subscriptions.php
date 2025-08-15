@@ -977,7 +977,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription->save();
 		}
 
-		$stripe_customer    = new WC_Stripe_Customer();
 		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
@@ -1011,15 +1010,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		}
 
-		$stripe_customer->set_id( $stripe_customer_id );
-
 		try {
-			$customer_payment_methods = $stripe_customer->get_all_payment_methods();
+			$saved_payment_method = $this->get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
-			foreach ( $customer_payment_methods as $payment_method ) {
-				if ( $payment_method->id === $stripe_source_id ) {
-					return $this->get_payment_method_to_display_for_payment_method( $payment_method );
-				}
+			if ( null !== $saved_payment_method ) {
+				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -1027,6 +1022,45 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return __( 'N/A', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Helper function to get and temporarily cache the payment method details for a customer and payment method ID.
+	 * Note that we use the Stripe /v1/customers/:customer_id/payment_methods/:payment_method_id endpoint to get the payment method details.
+	 *
+	 * @see https://docs.stripe.com/api/payment_methods/customer
+	 *
+	 * @param string $stripe_customer_id The Stripe customer ID.
+	 * @param string $payment_method_id The Stripe payment method ID.
+	 * @return object|null The payment method details or null if the payment method is not found.
+	 */
+	private function get_subscription_payment_method_details( string $stripe_customer_id, string $payment_method_id ): ?object {
+		static $cached_payment_methods = [];
+
+		if ( empty( $stripe_customer_id ) || empty( $payment_method_id ) ) {
+			return null;
+		}
+
+		if ( isset( $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] ) ) {
+			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
+		}
+
+		$api_path_elements    = [ 'customers', $stripe_customer_id, 'payment_methods', $payment_method_id ];
+		$api_path             = implode( '/', array_map( 'rawurlencode', $api_path_elements ) );
+		$saved_payment_method = WC_Stripe_API::retrieve( $api_path );
+
+		if ( ! isset( $saved_payment_method->id ) ) {
+			$saved_payment_method = null;
+		}
+
+		// Make sure we build the array tree.
+		if ( ! isset( $cached_payment_methods[ $stripe_customer_id ] ) ) {
+			$cached_payment_methods[ $stripe_customer_id ] = [];
+		}
+
+		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
+
+		return $saved_payment_method;
 	}
 
 	/**
