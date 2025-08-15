@@ -13,10 +13,7 @@ import {
 	useGetOrderedPaymentMethodIds,
 	useIsPMCEnabled,
 } from 'wcstripe/data';
-import {
-	usePaymentMethodCurrencies,
-	getPaymentMethodCurrencies,
-} from 'utils/use-payment-method-currencies';
+import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import {
 	PAYMENT_METHOD_ALIPAY,
@@ -25,6 +22,7 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_SEPA,
 	PAYMENT_METHOD_SOFORT,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -38,10 +36,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useGetOrderedPaymentMethodIds: jest.fn(),
 	useIsPMCEnabled: jest.fn(),
 } ) );
-jest.mock( 'utils/use-payment-method-currencies', () => ( {
-	usePaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
-	getPaymentMethodCurrencies: jest.fn().mockReturnValue( [] ),
-} ) );
+jest.mock( 'utils/get-payment-method-unavailable-reason' );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 	useGetCapabilities: jest.fn(),
@@ -84,6 +79,7 @@ describe( 'GeneralSettingsSection', () => {
 			alipay_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
+		getPaymentMethodUnavailableReason.mockReturnValue( null );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_LINK,
@@ -351,7 +347,7 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );
 
-	it( 'does not display the payment method checkbox when currency is not supprted', () => {
+	it( 'does not display the payment method checkbox when currency is not supported', () => {
 		mockCurrencyCode( 'USD' );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
@@ -534,14 +530,29 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should disable the payment method checkbox and show the requires currency notice when currency is not supported', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ PAYMENT_METHOD_CARD ],
+		] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
 		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-		] );
-		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				PAYMENT_METHOD_CARD,
+				PAYMENT_METHOD_ALIPAY,
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+		getPaymentMethodUnavailableReason.mockImplementation(
+			( { paymentMethodId } ) => {
+				if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
+					return PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY;
+				}
+				return null;
+			}
+		);
 		mockCurrencyCode( 'EUR' );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
@@ -553,20 +564,18 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByRole( 'checkbox', {
 				name: /Credit card/,
 			} )
+		).toBeEnabled();
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'Alipay',
+			} )
 		).toBeDisabled();
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeVisible();
 	} );
 
 	it( 'should enable the payment method checkbox and not show the requires currency notice when currency is supported', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [
-			PAYMENT_METHOD_CARD,
-			PAYMENT_METHOD_ALIPAY,
-		] );
-		useEnabledPaymentMethodIds.mockReturnValue( [
-			[ PAYMENT_METHOD_CARD ],
-		] );
-		usePaymentMethodCurrencies.mockReturnValue( [ 'USD' ] );
 		mockCurrencyCode( 'USD' );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
@@ -601,20 +610,15 @@ describe( 'GeneralSettingsSection', () => {
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
 
-		usePaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
-			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
-				return [ 'USD' ];
+		getPaymentMethodUnavailableReason.mockImplementation(
+			( { paymentMethodId } ) => {
+				if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
+					return PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY;
+				}
+				return null;
 			}
-			return [ 'EUR' ];
-		} );
+		);
 		mockCurrencyCode( 'EUR' );
-
-		getPaymentMethodCurrencies.mockImplementation( ( paymentMethodId ) => {
-			if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
-				return [ 'USD' ];
-			}
-			return [ 'EUR' ];
-		} );
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
