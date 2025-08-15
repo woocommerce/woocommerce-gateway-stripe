@@ -10,6 +10,7 @@
 * Tweak - Use more specific selector in express checkout e2e tests
 * Fix - Relax customer validation that was preventing payments from the pay for order page
 * Fix - Remove connection type requirement from PMC sync migration attempt
+* Tweak - Small improvements to e2e tests
 * Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
 
 = 9.8.0 - 2025-08-11 =
