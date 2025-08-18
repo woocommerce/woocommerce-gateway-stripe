@@ -188,13 +188,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		// When OC is enabled, we use the single payment container to render all the methods.
+		// When OC is enabled, we use the OC payment container to render all the methods.
 		if ( $this->oc_enabled ) {
-			$non_express_payment_methods = array_filter(
+			$non_express_payment_methods = array_diff(
 				$this->get_upe_enabled_payment_method_ids(),
-				function ( $method ) {
-					return ! in_array( $method, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true );
-				}
+				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
 			// Check if there are any non-express payment methods available (to potentially hide the container).
 			return has_block( 'woocommerce/checkout' ) && count( $non_express_payment_methods ) > 0;

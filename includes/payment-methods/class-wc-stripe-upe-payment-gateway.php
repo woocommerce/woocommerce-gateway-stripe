@@ -612,6 +612,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$settings = [];
 
 		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		$enabled_payment_method_ids_for_oc = []; // For the Optimized Checkout.
 
 		// If the Optimized Checkout is enabled, we need to return just the OC payment method + express methods.
 		// All payment methods are rendered inside the OC container.
@@ -621,6 +622,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
 			$enabled_payment_methods = array_merge( [ WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID ], $enabled_express_methods );
+
+			$enabled_payment_method_ids_for_oc = $this->get_upe_enabled_payment_method_ids();
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
@@ -634,7 +637,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
-				'enabledPaymentMethods'  => $this->get_upe_enabled_payment_method_ids(), // For the Optimized Checkout.
+				'enabledPaymentMethods'  => $enabled_payment_method_ids_for_oc,
 			];
 		}
 
