@@ -300,12 +300,9 @@ class WC_Stripe_Subscriptions_Helper {
 
 	/**
 	 * Helper function to get and temporarily cache the payment method details for a customer and payment method ID.
-	 * Note that we use the Stripe /v1/customers/:customer_id/payment_methods/:payment_method_id endpoint to get the payment method details.
-	 *
-	 * @see https://docs.stripe.com/api/payment_methods/customer
 	 *
 	 * @param string $stripe_customer_id The Stripe customer ID.
-	 * @param string $payment_method_id The Stripe payment method ID.
+	 * @param string $payment_method_id  The Stripe payment method ID. This may be a source ID or a payment method ID.
 	 * @return object|null The payment method details or null if the payment method is not found.
 	 */
 	public static function get_subscription_payment_method_details( string $stripe_customer_id, string $payment_method_id ): ?object {
@@ -319,13 +316,12 @@ class WC_Stripe_Subscriptions_Helper {
 			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
 		}
 
-		$encoded_customer_id       = rawurlencode( $stripe_customer_id );
-		$encoded_payment_method_id = rawurlencode( $payment_method_id );
-		$api_path                  = "customers/{$encoded_customer_id}/payment_methods/{$encoded_payment_method_id}";
+		$saved_payment_method = WC_Stripe_API::get_payment_method( $payment_method_id );
+		if ( is_wp_error( $saved_payment_method ) ) {
+			return null;
+		}
 
-		$saved_payment_method      = WC_Stripe_API::retrieve( $api_path );
-
-		if ( ! isset( $saved_payment_method->id ) ) {
+		if ( isset( $saved_payment_method->error ) || empty( $saved_payment_method->id ) || empty( $saved_payment_method->customer ) || $saved_payment_method->customer !== $stripe_customer_id ) {
 			$saved_payment_method = null;
 		}
 
