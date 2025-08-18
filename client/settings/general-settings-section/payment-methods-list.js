@@ -25,6 +25,7 @@ import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_SOFORT,
+	PAYMENT_METHOD_UNAVAILABLE_REASONS,
 } from 'wcstripe/stripe-utils/constants';
 
 const List = styled.ul`
@@ -136,21 +137,15 @@ const StyledFees = styled( PaymentMethodFeesPill )`
  * @param {string[]} orderedPaymentMethodIds Ordered payment method IDs.
  * @return {string[]} Sorted payment method IDs.
  */
-const usePaymentMethodsSortedByStoreCurrencySupport = (
-	orderedPaymentMethodIds
-) => {
+const usePaymentMethodsSortedByAvailability = ( orderedPaymentMethodIds ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const storeCurrencyCode = getSetting( 'currency' )?.code;
 
-	// When we don't have a store currency or UPE is disabled, we put all methods in the supported list.
 	const sortedPaymentMethodIds = useMemo( () => {
-		if ( ! storeCurrencyCode || ! isUpeEnabled ) {
-			return orderedPaymentMethodIds;
-		}
-
-		const supportedPaymentMethodIds = [];
-		const unsupportedPaymentMethodIds = [];
+		const availablePaymentMethodIds = [];
+		const pluginConflictPaymentMethodIds = [];
+		const unavailablePaymentMethodIds = [];
 
 		orderedPaymentMethodIds.forEach( ( paymentMethodId ) => {
 			const unavailableReason = getPaymentMethodUnavailableReason( {
@@ -159,13 +154,22 @@ const usePaymentMethodsSortedByStoreCurrencySupport = (
 				storeCurrencyCode,
 			} );
 			if ( unavailableReason === null ) {
-				supportedPaymentMethodIds.push( paymentMethodId );
+				availablePaymentMethodIds.push( paymentMethodId );
+			} else if (
+				unavailableReason ===
+				PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT
+			) {
+				pluginConflictPaymentMethodIds.push( paymentMethodId );
 			} else {
-				unsupportedPaymentMethodIds.push( paymentMethodId );
+				unavailablePaymentMethodIds.push( paymentMethodId );
 			}
 		} );
 
-		return [ ...supportedPaymentMethodIds, ...unsupportedPaymentMethodIds ];
+		return [
+			...availablePaymentMethodIds,
+			...pluginConflictPaymentMethodIds,
+			...unavailablePaymentMethodIds,
+		];
 	}, [ orderedPaymentMethodIds, storeCurrencyCode, isUpeEnabled ] );
 
 	return sortedPaymentMethodIds;
@@ -235,7 +239,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
-	const sortedPaymentMethodIds = usePaymentMethodsSortedByStoreCurrencySupport(
+	const sortedPaymentMethodIds = usePaymentMethodsSortedByAvailability(
 		availablePaymentMethods
 	);
 

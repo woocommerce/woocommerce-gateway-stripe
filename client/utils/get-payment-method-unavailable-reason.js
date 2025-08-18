@@ -20,10 +20,6 @@ const getPaymentMethodUnavailableReason = ( {
 	isUpeEnabled = true,
 	storeCurrencyCode,
 } ) => {
-	if ( ! storeCurrencyCode || ! isUpeEnabled ) {
-		return null;
-	}
-
 	if (
 		paymentMethodId === PAYMENT_METHOD_KLARNA &&
 		window?.wc_stripe_settings_params?.has_klarna_gateway_plugin
@@ -36,6 +32,10 @@ const getPaymentMethodUnavailableReason = ( {
 		window?.wc_stripe_settings_params?.has_affirm_gateway_plugin
 	) {
 		return PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT;
+	}
+
+	if ( ! storeCurrencyCode || ! isUpeEnabled ) {
+		return null;
 	}
 
 	const paymentMethodCurrencies = getPaymentMethodCurrencies(

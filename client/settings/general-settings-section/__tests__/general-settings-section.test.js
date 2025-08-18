@@ -16,6 +16,7 @@ import {
 import getPaymentMethodUnavailableReason from 'utils/get-payment-method-unavailable-reason';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 import {
+	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_EPS,
@@ -594,16 +595,18 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should show the payment method with supported currencies at the top of the list', () => {
+	it( 'should show the payment method with supported currencies before plugin conflicts and unsupported currencies', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			PAYMENT_METHOD_CARD,
 			PAYMENT_METHOD_ALIPAY,
+			PAYMENT_METHOD_AFFIRM,
 			PAYMENT_METHOD_SEPA,
 		] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [
 				PAYMENT_METHOD_CARD,
 				PAYMENT_METHOD_ALIPAY,
+				PAYMENT_METHOD_AFFIRM,
 				PAYMENT_METHOD_SEPA,
 			],
 			setOrderedPaymentMethodIds: jest.fn(),
@@ -614,6 +617,9 @@ describe( 'GeneralSettingsSection', () => {
 			( { paymentMethodId } ) => {
 				if ( paymentMethodId === PAYMENT_METHOD_ALIPAY ) {
 					return PAYMENT_METHOD_UNAVAILABLE_REASONS.UNSUPPORTED_CURRENCY;
+				}
+				if ( paymentMethodId === PAYMENT_METHOD_AFFIRM ) {
+					return PAYMENT_METHOD_UNAVAILABLE_REASONS.OFFICIAL_PLUGIN_CONFLICT;
 				}
 				return null;
 			}
@@ -632,12 +638,16 @@ describe( 'GeneralSettingsSection', () => {
 		const alipayElement = screen.getByRole( 'checkbox', {
 			name: 'Alipay',
 		} );
+		const affirmElement = screen.getByRole( 'checkbox', {
+			name: 'Affirm',
+		} );
 		const sepaElement = screen.getByRole( 'checkbox', {
 			name: 'Direct debit payment',
 		} );
 
 		expect( cardElement ).toBeEnabled();
 		expect( alipayElement ).not.toBeEnabled();
+		expect( affirmElement ).not.toBeEnabled();
 		expect( sepaElement ).toBeEnabled();
 
 		// Card should be first
@@ -648,8 +658,16 @@ describe( 'GeneralSettingsSection', () => {
 			Node.DOCUMENT_POSITION_FOLLOWING
 		);
 
-		// SEPA should be before AliPay
+		// SEPA should be before AliPay and Affirm
 		expect( sepaElement.compareDocumentPosition( alipayElement ) ).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING
+		);
+		expect( sepaElement.compareDocumentPosition( affirmElement ) ).toBe(
+			Node.DOCUMENT_POSITION_FOLLOWING
+		);
+
+		// Affirm should be before AliPay
+		expect( affirmElement.compareDocumentPosition( alipayElement ) ).toBe(
 			Node.DOCUMENT_POSITION_FOLLOWING
 		);
 	} );
