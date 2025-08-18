@@ -111,6 +111,7 @@ const SettingsManager = () => {
 									setShowPromotionalBanner
 								}
 								promotionalBannerType={ promotionalBannerType }
+								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 							/>
@@ -122,6 +123,7 @@ const SettingsManager = () => {
 									setShowPromotionalBanner
 								}
 								promotionalBannerType={ promotionalBannerType }
+								isOCEnabled={ isOCEnabled }
 								setIsOCEnabled={ setIsOCEnabled }
 								setIsUpeEnabled={ setIsUpeEnabled }
 							/>

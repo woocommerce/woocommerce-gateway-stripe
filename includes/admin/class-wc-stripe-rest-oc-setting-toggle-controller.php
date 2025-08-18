@@ -95,7 +95,7 @@ class WC_Stripe_REST_OC_Setting_Toggle_Controller extends WC_Stripe_REST_Base_Co
 
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
-		if ( $value !== $current_value ) {
+		if ( $is_oc_enabled !== $current_value ) {
 			wc_admin_record_tracks_event(
 				$is_oc_enabled ? 'wcstripe_oc_enabled' : 'wcstripe_oc_disabled',
 				[
