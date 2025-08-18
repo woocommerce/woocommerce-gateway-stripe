@@ -123,5 +123,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Small improvements to e2e tests
 * Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
 * Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
+* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

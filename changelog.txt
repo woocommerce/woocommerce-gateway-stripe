@@ -13,6 +13,7 @@
 * Tweak - Small improvements to e2e tests
 * Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
 * Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
+* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 
 = 9.8.0 - 2025-08-11 =
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
