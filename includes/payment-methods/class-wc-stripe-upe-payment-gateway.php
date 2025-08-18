@@ -605,12 +605,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_enabled_payment_method_config() {
 		$settings = [];
 
-		// If the Optimized Checkout is enabled, we need to return just the card payment method.
-		// All payment methods are rendered inside of it.
+		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+
+		// If the Optimized Checkout is enabled, we need to return just the card payment method + express methods.
+		// All payment methods are rendered inside the card container.
 		if ( $this->oc_enabled ) {
-			$enabled_payment_methods = [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-		} else {
-			$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+			$enabled_express_methods = array_intersect(
+				$enabled_payment_methods,
+				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
+			);
+			$enabled_payment_methods = array_merge( [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ], $enabled_express_methods );
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
