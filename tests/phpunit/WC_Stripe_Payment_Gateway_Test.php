@@ -721,7 +721,10 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
 
-		$id_suffix = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) rand( 10000, 99999 );
+		static $mock_payment_method_id_counter = 0;
+		$mock_payment_method_id_counter++;
+
+		$id_suffix = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
 		$mock_payment_method_id = 'pm_mock' . $payment_method_type . '_' . $id_suffix;
 
 		$mock_subscription->update_meta_data( '_stripe_source_id', $mock_payment_method_id );
