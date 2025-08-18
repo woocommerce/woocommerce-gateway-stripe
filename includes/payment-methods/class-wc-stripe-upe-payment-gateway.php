@@ -618,7 +618,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		foreach ( $enabled_payment_methods as $payment_method_id ) {
-			$payment_method = $this->payment_methods[ $payment_method_id ];
+			// For the Optimized Checkout, we use the OC payment method class.
+			$payment_method = $this->oc_enabled && WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID === $payment_method_id
+				? new WC_Stripe_UPE_Payment_Method_OC()
+				: $this->payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
 				'isReusable'             => $payment_method->is_reusable(),
