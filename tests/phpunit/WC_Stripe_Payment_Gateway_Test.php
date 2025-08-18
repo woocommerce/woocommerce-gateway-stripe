@@ -697,6 +697,17 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 				'payment_method_fields' => [],
 				'expected_result'       => 'N/A',
 			],
+			'Payment method with customer mismatch' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'visa',
+					'last4' => '9753',
+				],
+				'expected_result'       => 'N/A',
+				'additional_fields'     => [
+					'customer' => 'cus_other',
+				],
+			],
 		];
 	}
 
@@ -718,8 +729,9 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_subscription->save();
 
 		$mock_payment_method_data = [
-			'id'   => $mock_payment_method_id,
-			'type' => $payment_method_type,
+			'id'       => $mock_payment_method_id,
+			'type'     => $payment_method_type,
+			'customer' => 'cus_mock',
 		];
 		$mock_payment_method_data[ $payment_method_type ] = $payment_method_fields;
 
@@ -727,7 +739,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			$mock_payment_method_data = array_merge( $mock_payment_method_data, $additional_fields );
 		}
 
-		$expected_url = '/v1/customers/cus_mock/payment_methods/' . $mock_payment_method_id;
+		$expected_url = '/v1/payment_methods/' . $mock_payment_method_id;
 
 		// Mock the Stripe API payment method response
 		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
