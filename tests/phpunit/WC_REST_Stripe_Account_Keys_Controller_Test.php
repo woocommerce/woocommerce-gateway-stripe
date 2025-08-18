@@ -42,7 +42,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 		// Setup existing keys
 		$settings                         = WC_Stripe_Helper::get_stripe_settings();
 		$settings['publishable_key']      = 'original-live-key-9999';
+		$settings['secret_key']           = '';
 		$settings['test_publishable_key'] = 'original-test-key-9999';
+		$settings['test_secret_key']      = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );
 
 		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
@@ -176,7 +178,7 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WC_Mock_Stripe_API_Uni
 
 		// Build request params
 		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'publishable_key', '' );
+		$request->set_param( 'publishable_key', 'pk_live-key-updated' );
 
 		// Set initial payment methods
 		$this->set_stripe_account_data( [ 'country' => 'US' ] );

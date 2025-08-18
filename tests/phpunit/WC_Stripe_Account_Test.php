@@ -37,6 +37,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$stripe_settings['testmode']             = 'yes';
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
+		$stripe_settings['publishable_key']      = '';
+		$stripe_settings['secret_key']           = '';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 
 		$this->mock_connect = $this->getMockBuilder( WC_Stripe_Connect::class )

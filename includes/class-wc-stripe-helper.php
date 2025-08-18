@@ -1983,4 +1983,24 @@ class WC_Stripe_Helper {
 
 		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
 	}
+
+	/**
+	 * Determines if the store is connected to Stripe.
+	 *
+	 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
+	 * @return bool True if connected, false otherwise.
+	 */
+	public static function is_connected( $mode = null ) {
+		// If the mode is not provided, we'll check the current mode.
+		if ( null === $mode ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		}
+
+		$options = self::get_stripe_settings();
+		if ( 'test' === $mode ) {
+			return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
+		} else {
+			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
+		}
+	}
 }
