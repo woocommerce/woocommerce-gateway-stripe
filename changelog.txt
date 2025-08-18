@@ -1,7 +1,22 @@
 *** Changelog ***
 
-= 9.8.0 - xxxx-xx-xx =
+= 9.9.0 - xxxx-xx-xx =
+* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
+* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
+* Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
+* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
+* Dev - Implements WooCommerce constants for the tax statuses
+* Fix - Ensure all Javascript strings use the correct text domain for translation
+* Tweak - Use more specific selector in express checkout e2e tests
+* Fix - Relax customer validation that was preventing payments from the pay for order page
+* Fix - Remove connection type requirement from PMC sync migration attempt
+* Tweak - Small improvements to e2e tests
+* Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
+* Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
 * Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
+
+= 9.8.0 - 2025-08-11 =
+* Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
 * Add - A new pill to the payment methods page to indicate the credit card requirement when the Optimized Checkout feature is enabled
 * Add - Tracks the toggle of the Optimized Checkout feature in the promotional banner
 * Fix - Force the card payment method to be enabled when the Optimized Checkout is enabled in the merchant's Payment Method Configuration
@@ -24,6 +39,16 @@
 * Tweak - Update checkout error message for invalid API key to be more generic and user-friendly
 * Tweak - Disable Amazon Pay in the merchant's Payment Method Configuration object if it is still behind a feature flag
 * Fix - Only clear customer cache when an action has been performed
+* Fix - Remove validation error check from classic checkout before payment method creation
+* Dev - Clean up LPM (Local Payment Method) feature flags and related code
+* Dev - Move some testing and compiler node dependencies to devDependencies
+* Dev - Minor CSS change to comply with a SASS rule deprecation
+* Dev - Update SCSS to replace @import with @use and @forward
+* Update - Copy for the Optimized Checkout settings and notices
+* Update - Removes the ability to change the title for the Optimized Checkout payment element, as it is now set to "Stripe" by default
+* Fix - Handle missing customer when calling payment_methods API
+* Fix - Reduce number of calls to Stripe payment_methods API
+* Fix - Add `get_icon_url()` to Payment Method base class
 
 = 9.7.1 - 2025-07-28 =
 * Add - Add state mapping for Lithuania in express checkout

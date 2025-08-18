@@ -100,7 +100,8 @@ const PaymentMethodCheckbox = ( {
 							{ sprintf(
 								/* translators: %s: a payment method name. */
 								__(
-									'%s cannot be enabled at checkout. Click to expand.'
+									'%s cannot be enabled at checkout. Click to expand.',
+									'woocommerce-gateway-stripe'
 								),
 								label
 							) }

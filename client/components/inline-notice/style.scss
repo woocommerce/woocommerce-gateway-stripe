@@ -1,10 +1,10 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .wcstripe-inline-notice {
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&#{&} {
 		margin: 0;
-		margin-bottom: $grid-unit-20;
+		margin-bottom: styles.$grid-unit-20;
 		border-left: 0;
 		padding: 12px;
 
@@ -13,19 +13,19 @@
 		}
 		&.is-dismissible {
 			padding-right: 12px;
-			gap: $grid-unit-20;
+			gap: styles.$grid-unit-20;
 		}
 		&.is-info {
-			background: $wp-blue-0;
+			background: styles.$wp-blue-0;
 		}
 		&.is-error {
-			background: $wp-red-0;
+			background: styles.$wp-red-0;
 		}
 		&.is-warning {
-			background: $wp-yellow-0;
+			background: styles.$wp-yellow-0;
 		}
 		&.is-success {
-			background: $wp-green-0;
+			background: styles.$wp-green-0;
 		}
 	}
 }

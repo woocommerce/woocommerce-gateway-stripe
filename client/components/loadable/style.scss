@@ -1,14 +1,14 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .is-loadable-placeholder {
 	animation: loading-fade 1.6s ease-in-out infinite;
-	background-color: $light-gray-500;
+	background-color: styles.$light-gray-500;
 	color: transparent;
+	display: inline-block;
 
 	@media screen and ( prefers-reduced-motion: reduce ) {
 		animation: none;
 	}
-	display: inline-block;
 
 	&.is-inline {
 		display: inline;

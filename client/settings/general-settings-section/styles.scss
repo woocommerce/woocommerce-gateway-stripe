@@ -1,11 +1,11 @@
-@import '../../styles/abstracts/breakpoints';
+@use '../../styles/abstracts/breakpoints';
 
 .payment-methods {
 	&__unavailable-methods {
 		display: none;
 		margin: 0 0 0 1.5rem;
 
-		@include breakpoint( '>660px' ) {
+		@include breakpoints.breakpoint( '>660px' ) {
 			display: flex;
 		}
 	}

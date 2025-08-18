@@ -11,6 +11,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Customer {
 
 	/**
+	 * Constant for the customer context when adding a payment method.
+	 */
+	public const CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD = 'add_payment_method';
+
+	/**
+	 * Constant for the customer context when paying for an order via the "Pay for Order" page.
+	 */
+	public const CUSTOMER_CONTEXT_PAY_FOR_ORDER = 'pay_for_order';
+
+	/**
+	 * Constants for the customer contexts where minimal billing details are permitted.
+	 */
+	public const MINIMAL_BILLING_DETAILS_CONTEXTS = [
+		self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
+		self::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+	];
+
+	/**
 	 * String prefix for Stripe payment methods request transient.
 	 */
 	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
@@ -29,6 +47,13 @@ class WC_Stripe_Customer {
 		WC_Stripe_UPE_Payment_Method_Amazon_Pay::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Method_Becs_Debit::STRIPE_ID,
 	];
+
+	/**
+	 * The maximum value for the `limit` argument in the Stripe payment_methods API.
+	 *
+	 * @see https://docs.stripe.com/api/payment_methods/customer_list#list_customer_payment_methods-limit
+	 */
+	protected const PAYMENT_METHODS_API_LIMIT = 100;
 
 	/**
 	 * Stripe customer ID
@@ -202,19 +227,19 @@ class WC_Stripe_Customer {
 	/**
 	 * Validate that we have valid data before we try to create a customer.
 	 *
-	 * @param array $create_customer_request
-	 * @param bool  $is_add_payment_method_page
+	 * @param array       $create_customer_request The base data to build the customer request.
+	 * @param null|string $current_context         Flag to indicate whether we are in a context where limited details are permitted.
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	private function validate_create_customer_request( $create_customer_request, $is_add_payment_method_page = false ) {
+	private function validate_create_customer_request( $create_customer_request, ?string $current_context = null ) {
 		/**
 		 * Filters the required customer fields when creating a customer in Stripe.
 		 *
 		 * @since 9.7.0
-		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout.
+		 * @param array $required_fields The required customer fields as derived from the required billing fields in checkout. In some contexts, like adding a payment method, we allow minimal details to be provided.
 		 */
-		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $is_add_payment_method_page ) );
+		$required_fields = apply_filters( 'wc_stripe_create_customer_required_fields', $this->get_create_customer_required_fields( $current_context ) );
 
 		foreach ( $required_fields as $field => $field_requirements ) {
 			if ( true === $field_requirements ) {
@@ -251,13 +276,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the list of required fields for the create customer request.
 	 *
-	 * @param bool $is_add_payment_method_page
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return array
 	 */
-	private function get_create_customer_required_fields( $is_add_payment_method_page = false ) {
-		// If we are on the add payment method page, we need to check just for the email field.
-		if ( $is_add_payment_method_page ) {
+	private function get_create_customer_required_fields( ?string $current_context = null ) {
+		if ( in_array( $current_context, self::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			return [
 				'email' => true,
 			];
@@ -415,18 +439,21 @@ class WC_Stripe_Customer {
 	 * Create a customer via API.
 	 *
 	 * @param array $args
-	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 * @return WP_Error|int
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function create_customer( $args = [], $is_add_payment_method_page = false ) {
+	public function create_customer( $args = [], $current_context = null ) {
 		$args = $this->generate_customer_request( $args );
 
 		// For guest users, check if a customer already exists with the same email and name in Stripe account before creating a new one.
 		if ( ! $this->get_id() && 0 === $this->get_user_id() && ! empty( $args['email'] ) && ! empty( $args['name'] ) ) {
 			$response = $this->get_existing_customer( $args['email'], $args['name'] );
 		}
+
+		// $current_context was initially introduced as a boolean flag, so check for old callers.
+		$current_context = $this->normalize_current_context( $current_context );
 
 		if ( empty( $response ) ) {
 			/**
@@ -438,7 +465,7 @@ class WC_Stripe_Customer {
 			 */
 			$create_customer_args = apply_filters( 'wc_stripe_create_customer_args', $args );
 
-			$this->validate_create_customer_request( $create_customer_args, $is_add_payment_method_page );
+			$this->validate_create_customer_request( $create_customer_args, $current_context );
 
 			$response = WC_Stripe_API::request( $create_customer_args, 'customers' );
 		} else {
@@ -516,17 +543,43 @@ class WC_Stripe_Customer {
 	 * Updates existing Stripe customer or creates new customer for User through API.
 	 *
 	 * @param array $args     Additional arguments for the request (optional).
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return string Customer ID
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_or_create_customer( $args = [], $is_add_payment_method_page = false ) {
+	public function update_or_create_customer( $args = [], $current_context = null ) {
 		if ( empty( $this->get_id() ) ) {
-			return $this->recreate_customer( $args, $is_add_payment_method_page );
+			// $current_context was initially introduced as a boolean flag, so check for old callers.
+			$current_context = $this->normalize_current_context( $current_context );
+
+			return $this->recreate_customer( $args, $current_context );
 		} else {
 			return $this->update_customer( $args );
 		}
+	}
+
+	/**
+	 * Normalize the current context to a string, as the argument was initially introduced as a boolean flag.
+	 *
+	 * @param string|bool|null $current_context The current context.
+	 * @return string|null The normalized context.
+	 */
+	private function normalize_current_context( $current_context ): ?string {
+		if ( null === $current_context ) {
+			return null;
+		}
+
+		if ( is_bool( $current_context ) ) {
+			return $current_context ? self::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD : null;
+		}
+
+		if ( is_string( $current_context ) ) {
+			return $current_context;
+		}
+
+		return null;
 	}
 
 	/**
@@ -712,13 +765,22 @@ class WC_Stripe_Customer {
 				[
 					'customer' => $this->get_id(),
 					'type'     => $payment_method_type,
-					'limit'    => 100, // Maximum allowed value.
+					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
 				],
 				'payment_methods' . $params,
 				'GET'
 			);
 
 			if ( ! empty( $response->error ) ) {
+				if (
+					isset( $response->error->code, $response->error->param, $response->error->type )
+					&& 'customer' === $response->error->param
+					&& 'resource_missing' === $response->error->code
+					&& 'invalid_request_error' === $response->error->type
+				) {
+					// If the customer doesn't exist, cache an empty array as a result.
+					set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id(), [], DAY_IN_SECONDS );
+				}
 				return [];
 			}
 
@@ -730,6 +792,93 @@ class WC_Stripe_Customer {
 		}
 
 		return empty( $payment_methods ) ? [] : $payment_methods;
+	}
+
+	/**
+	 * Get all payment methods for a customer.
+	 *
+	 * @param string[] $payment_method_types The payment method types to look for using Stripe method IDs. If the array is empty, it implies all payment method types.
+	 * @param int      $limit                The maximum number of payment methods to return. If the value is -1, no limit is applied.
+	 * @return array
+	 */
+	public function get_all_payment_methods( array $payment_method_types = [], int $limit = -1 ) {
+		if ( ! $this->get_id() ) {
+			return [];
+		}
+
+		$cache_key = self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id();
+		$all_payment_methods = get_transient( $cache_key );
+
+		if ( false === $all_payment_methods || ! is_array( $all_payment_methods ) ) {
+			$all_payment_methods    = [];
+			$last_payment_method_id = null;
+
+			do {
+				$request_params = [
+					'customer' => $this->get_id(),
+					'limit'    => self::PAYMENT_METHODS_API_LIMIT,
+				];
+
+				if ( $last_payment_method_id ) {
+					$request_params['starting_after'] = $last_payment_method_id;
+				}
+
+				$response = WC_Stripe_API::request( $request_params, 'payment_methods?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt', 'GET' );
+
+				if ( ! empty( $response->error ) ) {
+					if (
+						isset( $response->error->param, $response->error->code )
+						&& 'customer' === $response->error->param
+						&& 'resource_missing' === $response->error->code
+					) {
+						// If the customer doesn't exist, cache an empty array.
+						set_transient( $cache_key, [], DAY_IN_SECONDS );
+					}
+					return [];
+				}
+
+				if ( ! is_array( $response->data ) || [] === $response->data ) {
+					break;
+				}
+
+				$all_payment_methods = array_merge( $all_payment_methods, $response->data );
+
+				// Reset the last payment method ID so we can paginate correctly.
+				$last_payment_method_id = null;
+				if ( isset( $response->has_more ) && $response->has_more ) {
+					$last_payment_method = end( $response->data );
+
+					if ( $last_payment_method && ! empty( $last_payment_method->id ) ) {
+						$last_payment_method_id = $last_payment_method->id;
+					}
+				}
+			} while ( null !== $last_payment_method_id );
+
+			// Always cache the result without any filters applied.
+			set_transient( $cache_key, $all_payment_methods, DAY_IN_SECONDS );
+		}
+
+		// If there are no payment methods, no need to apply any filters below.
+		if ( [] === $all_payment_methods ) {
+			return $all_payment_methods;
+		}
+
+		// Only apply the limit and type filters after fetching and caching all payment methods.
+		$filtered_payment_methods = $all_payment_methods;
+		if ( [] !== $payment_method_types ) {
+			$filtered_payment_methods = array_filter(
+				$filtered_payment_methods,
+				function ( $payment_method ) use ( $payment_method_types ) {
+					return in_array( $payment_method->type, $payment_method_types, true );
+				}
+			);
+		}
+
+		if ( $limit > 0 ) {
+			return array_slice( $filtered_payment_methods, 0, $limit );
+		}
+
+		return $filtered_payment_methods;
 	}
 
 	/**
@@ -837,6 +986,7 @@ class WC_Stripe_Customer {
 		foreach ( self::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
 			delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 		}
+		delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . '__all_' . $this->get_id() );
 		// Clear cache for the specific payment method if provided.
 		if ( $payment_method_id ) {
 			WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $payment_method_id );
@@ -874,13 +1024,13 @@ class WC_Stripe_Customer {
 	 * Recreates the customer for this user.
 	 *
 	 * @param array $args Additional arguments for the request (optional).
-	 * @param bool  $is_add_payment_method_page Whether the request is for the add payment method page.
+	 * @param string|null $current_context The context we are creating the customer in.
 	 *
 	 * @return string ID of the new Customer object.
 	 */
-	private function recreate_customer( $args = [], $is_add_payment_method_page = false ) {
+	private function recreate_customer( $args = [], ?string $current_context = null ) {
 		$this->delete_id_from_meta();
-		return $this->create_customer( $args, $is_add_payment_method_page );
+		return $this->create_customer( $args, $current_context );
 	}
 
 	/**

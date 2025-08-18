@@ -151,6 +151,11 @@ class WC_Stripe_Subscriptions_Helper {
 			return false;
 		}
 
+		if ( 'stripe' !== substr( (string) $subscription->get_payment_method(), 0, 6 ) ) {
+			// If the payment method is not a Stripe method, we don't need to check further.
+			return false;
+		}
+
 		$source_id = $subscription->get_meta( '_stripe_source_id' );
 		if ( ! $source_id ) {
 			return false;
