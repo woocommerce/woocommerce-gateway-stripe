@@ -1011,7 +1011,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		try {
-			$saved_payment_method = $this->get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
+			$saved_payment_method = WC_Stripe_Subscriptions_Helper::get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
 			if ( null !== $saved_payment_method ) {
 				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
@@ -1022,47 +1022,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		return __( 'N/A', 'woocommerce-gateway-stripe' );
-	}
-
-	/**
-	 * Helper function to get and temporarily cache the payment method details for a customer and payment method ID.
-	 * Note that we use the Stripe /v1/customers/:customer_id/payment_methods/:payment_method_id endpoint to get the payment method details.
-	 *
-	 * @see https://docs.stripe.com/api/payment_methods/customer
-	 *
-	 * @param string $stripe_customer_id The Stripe customer ID.
-	 * @param string $payment_method_id The Stripe payment method ID.
-	 * @return object|null The payment method details or null if the payment method is not found.
-	 */
-	private function get_subscription_payment_method_details( string $stripe_customer_id, string $payment_method_id ): ?object {
-		static $cached_payment_methods = [];
-
-		if ( empty( $stripe_customer_id ) || empty( $payment_method_id ) ) {
-			return null;
-		}
-
-		if ( isset( $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] ) ) {
-			return $cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ];
-		}
-
-		$encoded_customer_id       = rawurlencode( $stripe_customer_id );
-		$encoded_payment_method_id = rawurlencode( $payment_method_id );
-		$api_path                  = "customers/{$encoded_customer_id}/payment_methods/{$encoded_payment_method_id}";
-
-		$saved_payment_method      = WC_Stripe_API::retrieve( $api_path );
-
-		if ( ! isset( $saved_payment_method->id ) ) {
-			$saved_payment_method = null;
-		}
-
-		// Make sure we build the array tree.
-		if ( ! isset( $cached_payment_methods[ $stripe_customer_id ] ) ) {
-			$cached_payment_methods[ $stripe_customer_id ] = [];
-		}
-
-		$cached_payment_methods[ $stripe_customer_id ][ $payment_method_id ] = $saved_payment_method;
-
-		return $saved_payment_method;
 	}
 
 	/**
