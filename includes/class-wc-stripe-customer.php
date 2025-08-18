@@ -159,6 +159,8 @@ class WC_Stripe_Customer {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
 
+			$email = $user->user_email;
+
 			// If billing first name does not exists try the user first name.
 			if ( empty( $billing_first_name ) ) {
 				$billing_first_name = get_user_meta( $user->ID, 'first_name', true );
@@ -169,11 +171,16 @@ class WC_Stripe_Customer {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
 
+			// If the user email is not set, use the billing email.
+			if ( empty( $email ) ) {
+				$email = $this->get_billing_data_field( 'billing_email', $args );
+			}
+
 			// translators: %1$s First name, %2$s Second name, %3$s Username.
 			$description = sprintf( __( 'Name: %1$s %2$s, Username: %3$s', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name, $user->user_login );
 
 			$defaults = [
-				'email'       => $user->user_email,
+				'email'       => $email,
 				'description' => $description,
 			];
 
