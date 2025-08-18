@@ -269,17 +269,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected, false otherwise.
 		 */
 		public function is_connected( $mode = null ) {
-			// If the mode is not provided, we'll check the current mode.
-			if ( is_null( $mode ) ) {
-				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-			}
-
-			$options = WC_Stripe_Helper::get_stripe_settings();
-			if ( 'test' === $mode ) {
-				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
-			} else {
-				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
-			}
+			return WC_Stripe_Helper::is_connected( $mode );
 		}
 
 		/**

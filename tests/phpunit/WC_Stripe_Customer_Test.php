@@ -98,21 +98,61 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 				'expected_exception_message' => 'missing_required_customer_field: address->country',
 				'expected_exception_string'  => 'Missing required customer field: address->country',
 			],
-			'add payment method page, all fields present and required, no overrides' => [
+			'add payment method page with boolean, all fields present and required, no overrides' => [
 				'billing_fields'             => [], // only email is required
 				'woo_billing_fields'         => null,
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => null,
 				'expected_exception_string'  => null,
-				'is_add_payment_method_page' => true,
+				'current_context'            => true,
 			],
-			'add payment method page, email is empty string' => [
+			'add payment method page with context, all fields present and required, no overrides' => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
+			],
+			'add payment method page with boolean, email is empty string' => [
 				'billing_fields'             => [ 'email' => '' ],
 				'woo_billing_fields'         => null,
 				'stripe_billing_fields'      => null,
 				'expected_exception_message' => 'missing_required_customer_field: email',
 				'expected_exception_string'  => 'Missing required customer field: email',
-				'is_add_payment_method_page' => true,
+				'current_context'            => true,
+			],
+			'add payment method page with context, email is empty string' => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_ADD_PAYMENT_METHOD,
+			],
+			'pay for order page, only email present and required, no overrides' => [
+				'billing_fields'             => [], // only email is required
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+			],
+			'pay for order page, only email is empty string' => [
+				'billing_fields'             => [ 'email' => '' ],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => 'missing_required_customer_field: email',
+				'expected_exception_string'  => 'Missing required customer field: email',
+				'current_context'            => \WC_Stripe_Customer::CUSTOMER_CONTEXT_PAY_FOR_ORDER,
+			],
+			'all fields present and required, no overrides, context is false' => [
+				'billing_fields'             => [],
+				'woo_billing_fields'         => null,
+				'stripe_billing_fields'      => null,
+				'expected_exception_message' => null,
+				'expected_exception_string'  => null,
+				'current_context'            => false,
 			],
 		];
 	}
@@ -126,9 +166,9 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		?array $stripe_billing_fields = null,
 		?string $expected_exception_message = null,
 		?string $expected_exception_string = null,
-		?bool $is_add_payment_method_page = false
+		$current_context = null
 	) {
-		if ( $is_add_payment_method_page ) {
+		if ( true === $current_context || in_array( $current_context, \WC_Stripe_Customer::MINIMAL_BILLING_DETAILS_CONTEXTS, true ) ) {
 			$default_billing_data = [
 				'email'      => 'test@example.com',
 				'first_name' => '',
@@ -278,7 +318,7 @@ class WC_Stripe_Customer_Test extends \WP_UnitTestCase {
 		}
 
 		try {
-			$customer->create_customer( $args, $is_add_payment_method_page );
+			$customer->create_customer( $args, $current_context );
 		} catch ( \WC_Stripe_Exception $stripe_exception ) {
 			$was_exception_thrown = true;
 
