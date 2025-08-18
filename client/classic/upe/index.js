@@ -315,9 +315,9 @@ jQuery( function ( $ ) {
 			// Change the payment method container title when the Optimized Checkout is enabled
 			if (
 				getStripeServerData()?.isOCEnabled &&
-				$( 'input#payment_method_stripe_single' ).is( ':checked' )
+				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
-				$( 'label[for=payment_method_stripe_single]' ).text( 'Stripe' );
+				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
 			}
 
 			maybeClearBlikCodeValidation();
