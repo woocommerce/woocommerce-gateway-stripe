@@ -6,6 +6,8 @@ import {
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CLEARPAY,
 	PAYMENT_METHOD_BACS,
+	PAYMENT_METHOD_CARD,
+	EXPRESS_PAYMENT_METHODS,
 } from 'wcstripe/stripe-utils/constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import Icons from 'wcstripe/payment-method-icons';
@@ -74,6 +76,18 @@ export const upeElement = ( paymentMethod, api, upeConfig ) => {
 				paymentMethod === PAYMENT_METHOD_BACS &&
 				cartContainsSubscriptions &&
 				cartData.cartTotals.total_price === '0'
+			) {
+				return false;
+			}
+
+			const nonExpressPaymentMethods = upeConfig?.enabledPaymentMethods.filter(
+				( method ) => ! EXPRESS_PAYMENT_METHODS.includes( method )
+			);
+
+			if (
+				paymentMethod === PAYMENT_METHOD_CARD &&
+				getBlocksConfiguration()?.isOCEnabled &&
+				nonExpressPaymentMethods.length === 0
 			) {
 				return false;
 			}
