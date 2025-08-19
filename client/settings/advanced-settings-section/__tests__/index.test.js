@@ -8,14 +8,20 @@ import {
 	useGetSavingError,
 	useSettings,
 	useIsOCEnabled,
+	useOCLayout,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useDebugLog: jest.fn(),
 	useIsUpeEnabled: jest.fn(),
 	useIsOCEnabled: jest.fn(),
+	useOCLayout: jest.fn(),
 	useGetSavingError: jest.fn(),
 	useSettings: jest.fn(),
+} ) );
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
 describe( 'AdvancedSettings', () => {
@@ -25,6 +31,7 @@ describe( 'AdvancedSettings', () => {
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 		useGetSavingError.mockReturnValue( null );
 
 		// Set `isLoading` to false so `LoadableSettingsSection` can render.
