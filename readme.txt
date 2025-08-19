@@ -111,6 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
 * Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 * Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
 * Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
@@ -121,6 +122,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Small improvements to e2e tests
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
 * Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
+* Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 * Tweak - Use smaller image for Optimized Checkout banner
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

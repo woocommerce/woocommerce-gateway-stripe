@@ -133,6 +133,16 @@ export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
 
 /**
+ * List of express payment methods
+ */
+export const EXPRESS_PAYMENT_METHODS = [
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+];
+
+/**
  * List of payment methods that are not recurring
  */
 export const NON_REUSABLE_METHODS = [
