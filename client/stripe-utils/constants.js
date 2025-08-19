@@ -54,7 +54,6 @@ export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
-export const PAYMENT_METHOD_STRIPE_OC = 'stripe';
 
 export function getPaymentMethodsConstants() {
 	return {
