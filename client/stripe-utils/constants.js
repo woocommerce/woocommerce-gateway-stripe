@@ -158,3 +158,10 @@ export const BNPL_METHODS = [
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_KLARNA,
 ];
+
+/**
+ * Default layout for the optimized checkout
+ *
+ * @type {string}
+ */
+export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
