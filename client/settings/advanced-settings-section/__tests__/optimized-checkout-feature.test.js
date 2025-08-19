@@ -78,4 +78,18 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		);
 		expect( help ).toBeInTheDocument();
 	} );
+
+	it( 'triggers the hook when changing the layout setting', () => {
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
+
+		const setLayoutMock = jest.fn();
+		useOCLayout.mockReturnValue( [ 'accordion', setLayoutMock ] );
+
+		render( <OptimizedCheckoutFeature /> );
+
+		expect( setLayoutMock ).not.toHaveBeenCalled();
+
+		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+		expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+	} );
 } );
