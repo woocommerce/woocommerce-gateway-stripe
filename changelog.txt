@@ -10,6 +10,7 @@
 * Tweak - Use more specific selector in express checkout e2e tests
 * Tweak - Small improvements to e2e tests
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
+* Tweak - Use smaller image for Optimized Checkout banner
 
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt
