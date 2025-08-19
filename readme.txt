@@ -118,11 +118,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Dev - Implements WooCommerce constants for the tax statuses
 * Fix - Ensure all Javascript strings use the correct text domain for translation
 * Tweak - Use more specific selector in express checkout e2e tests
-* Fix - Relax customer validation that was preventing payments from the pay for order page
-* Fix - Remove connection type requirement from PMC sync migration attempt
 * Tweak - Small improvements to e2e tests
-* Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
-* Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
