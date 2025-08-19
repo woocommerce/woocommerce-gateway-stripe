@@ -9,13 +9,13 @@
 * Fix - Ensure all Javascript strings use the correct text domain for translation
 * Tweak - Use more specific selector in express checkout e2e tests
 * Tweak - Small improvements to e2e tests
+* Fix - Fix unnecessary Stripe API calls when rendering subscription details
 
 = 9.8.1 - 2025-08-15 =
 * Fix - Remove connection type requirement from PMC sync migration attempt
 * Fix - Relax customer validation that was preventing payments from the pay for order page
 * Fix - Prevent the PMC migration to run when the plugin is not connected to Stripe
 * Fix - Fixes a fatal error in the OC inbox note when the new checkout is disabled
-* Fix - Fix unnecessary Stripe API calls when rendering subscription details
 
 = 9.8.0 - 2025-08-11 =
 * Add - Adds the current setting value for the Optimized Checkout to the Stripe System Status Report data
