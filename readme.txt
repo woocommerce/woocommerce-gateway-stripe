@@ -120,6 +120,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Tweak - Use more specific selector in express checkout e2e tests
 * Tweak - Small improvements to e2e tests
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
+* Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
 * Tweak - Use smaller image for Optimized Checkout banner
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
