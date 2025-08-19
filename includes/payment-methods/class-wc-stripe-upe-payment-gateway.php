@@ -605,22 +605,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_enabled_payment_method_config() {
 		$settings = [];
 
-		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		$enabled_methods     = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		$payment_methods     = $this->payment_methods;
+		$enabled_methods_ids = $this->get_upe_enabled_payment_method_ids();
 
 		// If the Optimized Checkout is enabled, we need to return just the OC payment method + express methods.
 		// All payment methods are rendered inside the OC container.
 		if ( $this->oc_enabled ) {
+			$oc_method_id            = WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID;
 			$enabled_express_methods = array_intersect(
-				$enabled_payment_methods,
+				$enabled_methods,
 				WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS
 			);
-			$enabled_payment_methods = array_merge( [ WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID ], $enabled_express_methods );
+			$enabled_methods                  = array_merge( [ $oc_method_id ], $enabled_express_methods );
+			$payment_methods[ $oc_method_id ] = new WC_Stripe_UPE_Payment_Method_OC();
 		}
 
-		foreach ( $enabled_payment_methods as $payment_method_id ) {
-			$payment_method = $this->oc_enabled && WC_Stripe_UPE_Payment_Method_OC::STRIPE_ID === $payment_method_id
-				? new WC_Stripe_UPE_Payment_Method_OC()
-				: $this->payment_methods[ $payment_method_id ];
+		foreach ( $enabled_methods as $payment_method_id ) {
+			$payment_method = $payment_methods[ $payment_method_id ];
 
 			$settings[ $payment_method_id ] = [
 				'isReusable'             => $payment_method->is_reusable(),
@@ -630,7 +632,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'showSaveOption'         => $this->should_upe_payment_method_show_save_option( $payment_method ),
 				'supportsDeferredIntent' => $payment_method->supports_deferred_intent(),
 				'countries'              => $payment_method->get_available_billing_countries(),
-				'enabledPaymentMethods'  => $this->get_upe_enabled_payment_method_ids(), // For the Optimized Checkout.
+				'enabledPaymentMethods'  => $enabled_methods_ids, // For the Optimized Checkout.
 			];
 		}
 
