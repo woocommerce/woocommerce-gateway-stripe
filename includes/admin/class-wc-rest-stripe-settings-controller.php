@@ -542,7 +542,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_oc_settings( WP_REST_Request $request ) {
 		$attributes = [
 			'is_oc_enabled' => 'optimized_checkout_element',
-			'oc_layout'     => 'optmized_checkout_layout',
+			'oc_layout'     => 'optimized_checkout_layout',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
 			$value = $request->get_param( $request_key );
