@@ -622,6 +622,8 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * @return  boolean  True if express checkout elements are supported on current page, false otherwise
 	 */
 	public function should_show_express_checkout_button() {
+		return true;
+
 		// Bail if account is not connected.
 		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
 			WC_Stripe_Logger::log( 'Account is not connected.' );

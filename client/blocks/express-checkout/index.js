@@ -83,6 +83,8 @@ const expressCheckoutElement = ( expressPaymentMethod, api ) => {
 	);
 	const edit = getEditorElement( expressPaymentMethod );
 	const canMakePayment = ( { cart } ) => {
+		return true;
+
 		if ( ! getBlocksConfiguration()?.shouldShowExpressCheckoutButton ) {
 			return false;
 		}
