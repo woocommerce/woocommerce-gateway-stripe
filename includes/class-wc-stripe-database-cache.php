@@ -205,4 +205,86 @@ class WC_Stripe_Database_Cache {
 		$mode = WC_Stripe_Mode::is_test() ? 'test_' : 'live_';
 		return self::CACHE_KEY_PREFIX . $mode . $key;
 	}
+
+	/**
+	 * Deletes all stale entries from the cache.
+	 *
+	 * @return array {
+	 *     @type bool        $more_entries  True if more entries may exist. False if all rows have been processed.
+	 *     @type string|null $last_key The last key processed.
+	 * }
+	 */
+	public static function delete_stale_entries( int $max_rows = 500, ?string $last_key = null ): array {
+		global $wpdb;
+
+		$result = [
+			'more_entries' => false,
+			'last_key'     => null,
+			'processed'    => 0,
+			'deleted'      => 0,
+		];
+
+		if ( 0 === $max_rows ) {
+			return $result;
+		}
+
+		// We call prepare() below after building the components.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$raw_query  = "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s";
+		$query_args = [ self::CACHE_KEY_PREFIX . '%' ];
+
+		if ( null !== $last_key ) {
+			$raw_query .= ' AND option_name > %s';
+			$query_args[] = $last_key;
+		}
+
+		$raw_query .= ' ORDER BY option_name DESC';
+
+		if ( $max_rows > 0 ) {
+			$raw_query .= ' LIMIT %d';
+			$query_args[] = $max_rows;
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$cached_rows = $wpdb->get_results( $wpdb->prepare( $raw_query, ...$query_args ) );
+
+		foreach ( $cached_rows as $cached_row ) {
+			$result['last_key'] = $cached_row->option_name;
+			$result['processed']++;
+			if ( self::is_expired( $cached_row->option_name, $cached_row->option_value ) ) {
+				self::delete( $cached_row->option_name );
+				$result['deleted']++;
+			}
+		}
+
+		if ( $max_rows > 0 && count( $cached_rows ) === $max_rows ) {
+			$result['more_entries'] = true;
+		}
+
+		return $result;
+	}
+
+	public static function delete_all_stale_entries( string $approach, int $max_rows = 500 ) {
+		$result = [
+			'processed' => 0,
+			'deleted'   => 0,
+		];
+
+		$delete_result = self::delete_stale_entries( $max_rows );
+
+		$result['processed'] += $delete_result['processed'];
+		$result['deleted']   += $delete_result['deleted'];
+
+		if ( 'inline' === $approach ) {
+			while ( $delete_result['more_entries'] && null !== $delete_result['last_key'] ) {
+				$delete_result = self::delete_stale_entries( $max_rows, $delete_result['last_key'] );
+
+				$result['processed'] += $delete_result['processed'];
+				$result['deleted']   += $delete_result['deleted'];
+			}
+		} else {
+			// TODO: Implement cron/action-scheduler call
+			echo 'TODO';
+		}
+	}
 }
