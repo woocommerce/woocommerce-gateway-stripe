@@ -83,7 +83,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'oc_layout'                        => [
 						'description'       => __( 'The Optimized Checkout layout (accordion or tabs).', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'enum'              => array_keys( $form_fields['optimized_checkout_layout_options'] ?? [] ),
+						'enum'              => array_keys( $form_fields['optimized_checkout_layout']['options'] ?? [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'amazon_pay_button_size'           => [
