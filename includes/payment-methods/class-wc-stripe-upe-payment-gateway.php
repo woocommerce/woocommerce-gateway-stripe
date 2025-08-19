@@ -1041,7 +1041,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
 			// Attempt to acquire lock, bail if already locked
-			$is_order_payment_locked = $this->lock_order_payment( $order );
+			$is_order_payment_locked = false;
 			if ( $is_order_payment_locked ) {
 				// If the request is already being processed, return an error.
 				return [
@@ -1642,7 +1642,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		try {
 			// First check if the order is already being processed by another request.
-			$locked = $this->lock_order_payment( $order );
+			$locked = false;
 			if ( $locked ) {
 				WC_Stripe_Logger::log( "Skip processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}, order payment is already being processed (locked)" );
 				return;
@@ -2040,6 +2040,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $is_stripe_link && isset( $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ] ) ) {
 			$payment_method_id    = $this->id;
 			$payment_method_title = $this->payment_methods[ WC_Stripe_Payment_Methods::LINK ]->get_title( $stripe_payment_method );
+		} elseif ( $this->oc_enabled ) {
+			$payment_method_title = ( new WC_Stripe_UPE_Payment_Method_OC() )->get_title( $stripe_payment_method );
 		} else {
 			$payment_method_title = $payment_method->get_title( $stripe_payment_method );
 		}
