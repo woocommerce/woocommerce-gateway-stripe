@@ -159,8 +159,6 @@ class WC_Stripe_Customer {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
 
-			$email = $user->user_email;
-
 			// If billing first name does not exists try the user first name.
 			if ( empty( $billing_first_name ) ) {
 				$billing_first_name = get_user_meta( $user->ID, 'first_name', true );
@@ -170,6 +168,8 @@ class WC_Stripe_Customer {
 			if ( empty( $billing_last_name ) ) {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
+
+			$email = $user->user_email;
 
 			// If the user email is not set, use the billing email.
 			if ( empty( $email ) ) {
