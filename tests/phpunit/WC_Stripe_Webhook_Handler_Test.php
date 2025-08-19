@@ -67,6 +67,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'get_latest_charge_from_intent',
 			'process_response',
 			'update_fees',
+			'send_failed_refund_emails',
 		];
 
 		$methods = array_diff( $methods, $exclude_methods );
@@ -74,6 +75,18 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler = $this->getMockBuilder( WC_Stripe_Webhook_Handler::class )
 			->setMethods( $methods )
 			->getMock();
+
+		// Set process_response mock to use the real method.
+		// We need to mock this because several tests check that it's not called or called a specific number of times.
+		$this->mock_webhook_handler->expects( $this->any() )
+		->method( 'process_response' )
+		->willReturnCallback(
+			function ( $response, $order ) {
+				// Call the real method
+				$real_handler = new WC_Stripe_Webhook_Handler();
+				return $real_handler->process_response( $response, $order );
+			}
+		);
 	}
 
 	/**
@@ -84,7 +97,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'handle_deferred_payment_intent_succeeded' );
 
 		$this->expectExceptionMessage( 'Unsupported webhook type: event-id' );
-		$this->mock_webhook_handler->process_deferred_webhook( 'event-id', [] );
+		$this->mock_webhook_handler->process_deferred_webhook( 'event-id', [], (object) [] );
 	}
 
 	/**
@@ -94,11 +107,27 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->expects( $this->never() )
 			->method( 'handle_deferred_payment_intent_succeeded' );
 
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => 'pi_mock_1234',
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
+		];
+
 		// No data.
 		$data = [];
 
 		$this->expectExceptionMessage( "Missing required data. 'order_id' is invalid or not found for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
 		// Invalid order_id.
 		$data = [
@@ -106,25 +135,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->expectExceptionMessage( "Missing required data. 'order_id' is invalid or not found for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
 		// No payment intent.
 		$order            = WC_Helper_Order::create_order();
 		$data['order_id'] = $order->get_id();
 
 		$this->expectExceptionMessage( "Missing required data. 'intent_id' is missing for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test process_deferred_webhook with valid args.
 	 */
 	public function test_process_deferred_webhook() {
-		$order     = WC_Helper_Order::create_order();
-		$intent_id = 'pi_mock_1234';
-		$data      = [
+		$order        = WC_Helper_Order::create_order();
+		$intent_id    = 'pi_mock_1234';
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => $intent_id,
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => $intent_id,
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
 		];
 
 		$this->mock_webhook_handler->expects( $this->once() )
@@ -138,17 +182,32 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->equalTo( $intent_id ),
 			);
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test deferred webhook where the intent is no longer stored on the order.
 	 */
 	public function test_mismatch_intent_id_process_deferred_webhook() {
-		$order = WC_Helper_Order::create_order();
-		$data  = [
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => 'pi_wrong_id',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => 'pi_mock_1234',
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
 		];
 
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
@@ -172,17 +231,23 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->expects( $this->never() )
 			->method( 'process_response' );
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test successful deferred webhook.
 	 */
 	public function test_process_of_successful_payment_intent_deferred_webhook() {
-		$order = WC_Helper_Order::create_order();
-		$data  = [
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
 		];
 
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
@@ -213,7 +278,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				)
 			);
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
@@ -426,7 +491,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 	) {
 		$mock_action_process_payment = new MockAction();
 		add_action(
-			'wc_gateway_stripe_process_payment',
+			'wc_gateway_stripe_process_payment_charge',
 			[ &$mock_action_process_payment, 'action' ]
 		);
 
@@ -589,7 +654,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				'order locked'                   => false,
 				'payment type'                   => WC_Stripe_Payment_Methods::BOLETO,
 				'order status final'             => false,
-				'expected status'                => OrderStatus::PENDING,
+				'expected status'                => OrderStatus::PROCESSING,
 				'expected note'                  => '',
 				'expected process payment calls' => 1,
 				'expected process payment intent incomplete calls' => 0,
@@ -698,6 +763,91 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			'amazon_pay'     => [ WC_Stripe_Payment_Methods::AMAZON_PAY ],
 			'three_d_secure' => [ 'three_d_secure' ],
 			'sepa_debit'     => [ WC_Stripe_Payment_Methods::SEPA_DEBIT ],
+		];
+	}
+
+	/**
+	 * Tests for `process_webhook_refund_updated`.
+	 *
+	 * @param string $notification_status The notification status.
+	 * @param bool   $email_triggered Whether an email should be triggered.
+	 * @param string $expected_note The expected order note.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_process_webhook_refund_updated
+	 */
+	public function test_process_webhook_refund_updated( $notification_status, $email_triggered, $expected_note ) {
+		$refund_id = 'refund_123';
+		$charge_id = 'ch_123';
+
+		$order = WC_Helper_Order::create_order();
+		$order->set_payment_method( 'stripe' );
+		$order->set_transaction_id( $charge_id );
+		$order->save();
+
+		$order->update_meta_data( '_stripe_refund_id', $refund_id );
+		$order->save_meta_data();
+
+		$refund_order = WC_Helper_Order::create_order();
+		$refund_order->set_parent_id( $order->get_id() );
+		$refund_order->save();
+
+		$notification = (object) [
+			'data' => (object) [
+				'object' => (object) [
+					'id'             => $refund_id,
+					'charge'         => $charge_id,
+					'amount'         => 1000,
+					'failure_reason' => 'bank_account_rejected',
+					'status'         => $notification_status,
+				],
+			],
+		];
+
+		$this->mock_webhook_handler
+			->expects( $email_triggered ? $this->once() : $this->never() )
+			->method( 'send_failed_refund_emails' );
+
+		$this->mock_webhook_handler->process_webhook_refund_updated( $notification );
+
+		$notes = wc_get_order_notes(
+			[
+				'order_id' => $order->get_id(),
+				'limit'    => 1,
+			]
+		);
+
+		if ( empty( $expected_note ) ) {
+			$this->assertEquals( [], $notes );
+			return;
+		}
+
+		$this->assertCount( 1, $notes );
+		$this->assertSame( $expected_note, $notes[0]->content );
+	}
+
+	/**
+	 * Provider for `test_process_webhook_refund_updated`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_process_webhook_refund_updated() {
+		return [
+			'invalid refund status' => [
+				'notification status' => 'invalid_status',
+				'email triggered'     => false,
+				'expected note'       => '',
+			],
+			'failed refund'         => [
+				'notification status' => 'failed',
+				'email triggered'     => true,
+				'expected note'       => 'Refund failed for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing.',
+			],
+			'canceled refund'       => [
+				'notification status' => 'canceled',
+				'email triggered'     => true,
+				'expected note'       => 'Refund canceled for <span class="woocommerce-Price-amount amount"><bdi><span class="woocommerce-Price-currencySymbol">&#36;</span>10.00</bdi></span> - Refund ID: refund_123 - Reason: Unknown reason Order status changed from Pending payment to Processing.',
+			],
 		];
 	}
 }

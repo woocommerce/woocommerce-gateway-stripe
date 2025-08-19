@@ -1,4 +1,7 @@
 <?php
+
+use Automattic\WooCommerce\Enums\ProductType;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -38,6 +41,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 		add_action( 'wc_ajax_wc_stripe_pay_for_order', [ $this, 'ajax_pay_for_order' ] );
+		add_filter( 'woocommerce_get_country_locale', [ $this, 'modify_country_locale_for_express_checkout' ], 20 );
 	}
 
 	/**
@@ -88,10 +92,24 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$product      = wc_get_product( $product_id );
 		$product_type = $product->get_type();
 
+		$booking_ids = [];
+		if ( 'booking' === $product_type ) {
+			$booking_ids = $this->express_checkout_helper->get_booking_ids_from_cart();
+		}
+
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
 
-		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+		// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
+		// This status is used to prevent the booking from being booked by another customer
+		// and should be removed when the cart is emptied for ECE purposes.
+		if ( has_action( 'wc-booking-remove-inactive-cart' ) ) { // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			foreach ( $booking_ids as $booking_id ) {
+				do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
+			}
+		}
+
+		if ( ( ProductType::VARIABLE === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 			$data_store   = WC_Data_Store::load( 'product' );
@@ -108,14 +126,6 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		$data          += $this->express_checkout_helper->build_display_items();
 		$data['result'] = 'success';
 
-		if ( 'booking' === $product_type ) {
-			$booking_id = $this->express_checkout_helper->get_booking_id_from_cart();
-
-			if ( ! empty( $booking_id ) ) {
-				$data['bookingId'] = $booking_id;
-			}
-		}
-
 		// @phpstan-ignore-next-line (return statement is added)
 		wp_send_json( $data );
 	}
@@ -131,9 +141,9 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		WC()->cart->empty_cart();
 
 		if ( $booking_id ) {
-			// When a bookable product is added to the cart, a 'booking' is create with status 'in-cart'.
+			// When a bookable product is added to the cart, a 'booking' is created with status 'in-cart'.
 			// This status is used to prevent the booking from being booked by another customer
-			// and should be removed when the cart is emptied for PRB purposes.
+			// and should be removed when the cart is emptied for express checkout purposes.
 			do_action( 'wc-booking-remove-inactive-cart', $booking_id ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores
 		}
 
@@ -231,7 +241,7 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
+			if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
@@ -387,5 +397,30 @@ class WC_Stripe_Express_Checkout_Ajax_Handler {
 		}
 
 		wp_send_json( $result );
+	}
+
+	/**
+	 * Modify country locale for express checkout.
+	 * Countries that don't have state fields, make the state field optional.
+	 *
+	 * @param array $locale The country locale.
+	 * @return array Modified country locale.
+	 */
+	public function modify_country_locale_for_express_checkout( $locale ) {
+		// Only modify locale settings if this is an express checkout context.
+		if ( ! $this->express_checkout_helper->is_express_checkout_context() ) {
+			return $locale;
+		}
+
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+
+		// For countries that don't have state fields, make the state field optional.
+		foreach ( WC_Stripe_Payment_Request_Button_States::STATES as $country_code => $states ) {
+			if ( empty( $states ) ) {
+				$locale[ $country_code ]['state']['required'] = false;
+			}
+		}
+
+		return $locale;
 	}
 }

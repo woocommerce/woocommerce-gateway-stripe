@@ -1,8 +1,8 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .wcstripe-modal-button-group-container {
 	display: flex;
-	gap: $grid-unit-20;
+	gap: styles.$grid-unit-20;
 }
 
 .account-details {
@@ -56,5 +56,5 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: $grid-unit-20;
+	gap: styles.$grid-unit-20;
 }

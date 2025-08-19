@@ -1,19 +1,18 @@
 /* global wc_stripe_settings_params */
-import { __, sprintf } from '@wordpress/i18n';
+import { sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
-import { Button } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
-import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useManualCapture } from 'wcstripe/data';
+import { useIsOCEnabled, useManualCapture } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_CARD,
+	PAYMENT_METHOD_KLARNA,
 } from 'wcstripe/stripe-utils/constants';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import { usePaymentMethodCurrencies } from 'utils/use-payment-method-currencies';
@@ -105,17 +104,8 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const CustomizeButton = styled( Button )`
-	margin-left: auto;
-`;
-
-const PaymentMethod = ( {
-	method,
-	onSaveChanges,
-	customizationStatus,
-	setCustomizationStatus,
-	data,
-} ) => {
+const PaymentMethod = ( { method, data } ) => {
+	const [ isOCEnabled ] = useIsOCEnabled();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const paymentMethodCurrencies = usePaymentMethodCurrencies( method );
 
@@ -139,22 +129,16 @@ const PaymentMethod = ( {
 
 	const storeCurrency = window?.wcSettings?.currency?.code;
 	const isDisabled =
-		paymentMethodCurrencies.length &&
-		! paymentMethodCurrencies.includes( storeCurrency );
+		( paymentMethodCurrencies.length &&
+			! paymentMethodCurrencies.includes( storeCurrency ) ) ||
+		( PAYMENT_METHOD_AFFIRM === method &&
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.has_affirm_gateway_plugin ) ||
+		( PAYMENT_METHOD_KLARNA === method &&
+			// eslint-disable-next-line camelcase
+			wc_stripe_settings_params.has_klarna_gateway_plugin );
 
-	const onSaveCustomization = ( methodName, customizationData = null ) => {
-		setCustomizationStatus( {
-			...customizationStatus,
-			[ methodName ]: false,
-		} );
-
-		if ( data ) {
-			onSaveChanges(
-				'individual_payment_method_settings',
-				customizationData
-			);
-		}
-	};
+	const isDisabledButChecked = PAYMENT_METHOD_CARD === method && isOCEnabled;
 
 	return (
 		<div key={ method }>
@@ -163,7 +147,6 @@ const PaymentMethod = ( {
 				className={ classnames( {
 					'has-overlay':
 						! isAllowingManualCapture && isManualCaptureEnabled,
-					expanded: customizationStatus[ method ],
 				} ) }
 			>
 				<PaymentMethodCheckbox
@@ -171,6 +154,7 @@ const PaymentMethod = ( {
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
 					disabled={ deprecated || isDisabled }
+					disabledButChecked={ isDisabledButChecked }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription
@@ -186,29 +170,7 @@ const PaymentMethod = ( {
 					/>
 					<StyledFees id={ method } />
 				</PaymentMethodWrapper>
-				{ ! customizationStatus[ method ] && (
-					<CustomizeButton
-						variant="secondary"
-						onClick={ () =>
-							setCustomizationStatus( {
-								...customizationStatus,
-								[ method ]: true,
-							} )
-						}
-						disabled={ deprecated }
-					>
-						{ __( 'Customize', 'woocommerce-gateway-stripe' ) }
-					</CustomizeButton>
-				) }
 			</ListElement>
-			{ customizationStatus[ method ] && (
-				<CustomizePaymentMethod
-					method={ method }
-					onClose={ ( customizationData ) =>
-						onSaveCustomization( method, customizationData )
-					}
-				/>
-			) }
 		</div>
 	);
 };

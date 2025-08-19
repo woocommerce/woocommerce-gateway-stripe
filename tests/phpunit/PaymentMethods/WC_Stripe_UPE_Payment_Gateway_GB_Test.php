@@ -41,8 +41,6 @@ class WC_Stripe_UPE_Payment_Gateway_GB_Test extends WC_Mock_Stripe_API_Unit_Test
 	public function set_up() {
 		parent::set_up();
 
-		update_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME, 'yes' );
-		update_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME, 'yes' );
 		update_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME, 'yes' );
 
 		// Since it will be used by the mock, we need to set this beforehand.
@@ -78,8 +76,6 @@ class WC_Stripe_UPE_Payment_Gateway_GB_Test extends WC_Mock_Stripe_API_Unit_Test
 	}
 
 	public function tear_down() {
-		delete_option( WC_Stripe_Feature_Flags::LPM_ACH_FEATURE_FLAG_NAME );
-		delete_option( WC_Stripe_Feature_Flags::LPM_BACS_FEATURE_FLAG_NAME );
 		delete_option( WC_Stripe_Feature_Flags::AMAZON_PAY_FEATURE_FLAG_NAME );
 
 		parent::tear_down();

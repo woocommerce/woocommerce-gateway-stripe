@@ -1,5 +1,8 @@
 <?php
 
+use Automattic\WooCommerce\Enums\ProductType;
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -225,7 +228,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
@@ -315,6 +318,22 @@ class WC_Stripe_Express_Checkout_Helper {
 	}
 
 	/**
+	 * Get the number of decimals supported by Stripe for the currency.
+	 *
+	 * @return int
+	 */
+	public static function get_stripe_currency_decimals() {
+		$currency = strtolower( get_woocommerce_currency() );
+		if ( in_array( $currency, WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+			return 0;
+		} elseif ( in_array( $currency, WC_Stripe_Helper::three_decimal_currencies(), true ) ) {
+			return 3;
+		}
+
+		return 2;
+	}
+
+	/**
 	 * JS params data used by cart and checkout pages.
 	 *
 	 * @param array $data
@@ -323,7 +342,7 @@ class WC_Stripe_Express_Checkout_Helper {
 		$data = [
 			'url'                     => wc_get_checkout_url(),
 			'currency_code'           => strtolower( get_woocommerce_currency() ),
-			'currency_decimals'       => wc_get_price_decimals(),
+			'currency_decimals'       => $this->get_stripe_currency_decimals(),
 			'country_code'            => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'needs_shipping'          => 'no',
 			'needs_payer_phone'       => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
@@ -408,9 +427,9 @@ class WC_Stripe_Express_Checkout_Helper {
 		return apply_filters(
 			'wc_stripe_payment_request_supported_types',
 			[
-				'simple',
-				'variable',
-				'variation',
+				ProductType::SIMPLE,
+				ProductType::VARIABLE,
+				ProductType::VARIATION,
 				'subscription',
 				'variable-subscription',
 				'subscription_variation',
@@ -673,7 +692,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		if ( $is_product && $product && in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+		if ( $is_product && $product && in_array( $product->get_type(), [ ProductType::VARIABLE, 'variable-subscription' ], true ) ) {
 			$stock_availability = array_column( $product->get_available_variations(), 'is_in_stock' );
 			// Don't show if all product variations are out-of-stock.
 			if ( ! in_array( true, $stock_availability, true ) ) {
@@ -719,11 +738,16 @@ class WC_Stripe_Express_Checkout_Helper {
 			return false;
 		}
 
-		$is_taxable              = $this->is_product_or_cart_taxable();
-		$needs_shipping          = $this->product_or_cart_needs_shipping();
-		$is_tax_based_on_billing = 'billing' === get_option( 'woocommerce_tax_based_on' );
-
-		if ( $is_taxable && $is_tax_based_on_billing && ! $needs_shipping ) {
+		// Hide express checkout when we have the following situation:
+		//  - Taxes are enabled
+		//  - The current product or cart is taxable
+		//  - The product or cart does not need shipping (e.g. a virtual product)
+		//  - Taxes are based on the user's billing address
+		if (
+			wc_tax_enabled()
+			&& $this->is_product_or_cart_taxable()
+			&& 'billing' === get_option( 'woocommerce_tax_based_on' )
+			&& ! $this->product_or_cart_needs_shipping() ) {
 			return true;
 		}
 
@@ -742,7 +766,7 @@ class WC_Stripe_Express_Checkout_Helper {
 			if ( ! $product ) {
 				return false;
 			}
-			return $product->get_tax_status() !== 'none';
+			return $product->get_tax_status() !== ProductTaxStatus::NONE;
 		}
 
 		// Cart or checkout page: the cart is taxable if any item in the cart
@@ -759,7 +783,7 @@ class WC_Stripe_Express_Checkout_Helper {
 				$cart_item_key
 			);
 
-			if ( 'none' !== $product->get_tax_status() ) {
+			if ( ProductTaxStatus::NONE !== $product->get_tax_status() ) {
 				return true;
 			}
 		}
@@ -1441,11 +1465,32 @@ class WC_Stripe_Express_Checkout_Helper {
 			];
 		}
 
+		$calculated_total = WC_Stripe_Helper::get_stripe_amount( $order_total );
+
+		$calculated_total = apply_filters_deprecated(
+			'woocommerce_stripe_calculated_total',
+			[ $calculated_total, $order_total, WC()->cart ],
+			'9.6.0',
+			'wc_stripe_calculated_total',
+			'The woocommerce_stripe_calculated_total filter is deprecated since WooCommerce Stripe Gateway 9.6.0, and will be removed in a future version. Use wc_stripe_calculated_total instead.'
+		);
+
+		/**
+		 * Filters the calculated total for the order.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param float $calculated_total The calculated total.
+		 * @param float $order_total The order total.
+		 * @param WC_Cart $cart The cart object.
+		 */
+		$calculated_total = apply_filters( 'wc_stripe_calculated_total', $calculated_total, $order_total, WC()->cart );
+
 		return [
 			'displayItems' => $items,
 			'total'        => [
 				'label'   => $this->total_label,
-				'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
+				'amount'  => max( 0, $calculated_total ),
 				'pending' => false,
 			],
 		];
@@ -1625,15 +1670,72 @@ class WC_Stripe_Express_Checkout_Helper {
 	 * Used to remove the booking from WC Bookings in-cart status.
 	 *
 	 * @return int|false
+	 *
+	 * @deprecated 9.8.0 Use `get_booking_ids_from_cart()` instead.
 	 */
 	public function get_booking_id_from_cart() {
-		$cart      = WC()->cart->get_cart();
-		$cart_item = reset( $cart );
-
-		if ( $cart_item && isset( $cart_item['booking']['_booking_id'] ) ) {
-			return $cart_item['booking']['_booking_id'];
+		$booking_ids = $this->get_booking_ids_from_cart();
+		if ( ! empty( $booking_ids ) ) {
+			return $booking_ids[0];
 		}
 
 		return false;
+	}
+
+	/**
+	 * Gets a list of booking ids from the cart.
+	 *
+	 * Used to remove the booking from WC Bookings in-cart status.
+	 *
+	 * @return array
+	 */
+	public function get_booking_ids_from_cart() {
+		$cart        = WC()->cart->get_cart();
+		$booking_ids = [];
+
+		foreach ( $cart as $item ) {
+			if ( ! empty( $item['booking']['_booking_id'] ) ) {
+				$booking_ids[] = $item['booking']['_booking_id'];
+			}
+		}
+
+		return array_unique( $booking_ids );
+	}
+
+	/**
+	 * Check if the current request is an express checkout context.
+	 *
+	 * @return bool True if express checkout context, false otherwise.
+	 */
+	public function is_express_checkout_context() {
+		// Only proceed if this is a Store API request.
+		if ( ! $this->is_request_to_store_api() ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT' header using superglobals.
+		if ( 'true' !== sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT'] ?? '' ) ) ) {
+			return false;
+		}
+
+		// Check for the 'X-WCSTRIPE-EXPRESS-CHECKOUT-NONCE' header using superglobals.
+		$nonce = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_WCSTRIPE_EXPRESS_CHECKOUT_NONCE'] ?? '' ) );
+		if ( ! wp_verify_nonce( $nonce, 'wc_store_api_express_checkout' ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Check if is request to the Store API.
+	 *
+	 * @return bool
+	 */
+	public function is_request_to_store_api() {
+		if ( empty( $GLOBALS['wp']->query_vars['rest_route'] ) ) {
+			return false;
+		}
+		return 0 === strpos( $GLOBALS['wp']->query_vars['rest_route'], '/wc/store/v1/checkout' );
 	}
 }

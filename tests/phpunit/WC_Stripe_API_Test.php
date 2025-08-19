@@ -2,7 +2,9 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use ReflectionClass;
 use WC_Stripe_API;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Helper;
 use WP_UnitTestCase;
 
@@ -37,14 +39,21 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 		$stripe_settings['secret_key']      = self::LIVE_SECRET_KEY;
 		$stripe_settings['test_secret_key'] = self::TEST_SECRET_KEY;
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+
+		// Reset the invalid API keys count cache.
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 	}
 
 	/**
 	 * Tear down environment after tests.
 	 */
 	public function tear_down() {
+		// Reset the invalid API keys count cache.
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+
 		WC_Stripe_Helper::delete_main_stripe_settings();
 		WC_Stripe_API::set_secret_key( null );
+
 		parent::tear_down();
 	}
 
@@ -118,6 +127,64 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test WC_Stripe_API::retrieve() returns null without API call after raeching the max threshold.
+	 */
+	public function test_retrieve_returns_null_without_api_call_after_threshold() {
+		$call_count = 0;
+
+		// Mock HTTP to always return 401 and increment the counter.
+		add_filter(
+			'pre_http_request',
+			function () use ( &$call_count ) {
+				$call_count++;
+				return $this->mock_unauthorized_response();
+			}
+		);
+
+		$stripe_api_class = new ReflectionClass( WC_Stripe_API::class );
+		$threshold  = $stripe_api_class->getConstant( 'INVALID_API_KEY_ERROR_COUNT_THRESHOLD' );
+
+		// Call retrieve up to the threshold, each should make an HTTP call.
+		for ( $i = 0; $i < $threshold; $i++ ) {
+			WC_Stripe_API::retrieve( 'test_endpoint' );
+		}
+		$this->assertEquals( $threshold, $call_count, 'Should have made HTTP calls up to the threshold.' );
+
+		// Now, the next call should NOT make an HTTP call, but return null immediately.
+		$result = WC_Stripe_API::retrieve( 'test_endpoint' );
+		$this->assertNull( $result, 'Expected null after reaching invalid API key threshold.' );
+		$this->assertEquals( $threshold, $call_count, 'Should not make another HTTP call after threshold is reached.' );
+
+		remove_all_filters( 'pre_http_request' );
+		WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+	}
+
+	/**
+	 * Test WC_Stripe_API::retrieve() resets the invalid API key count on successful response.
+	 */
+	public function test_retrieve_resets_invalid_api_key_count_on_successful_response() {
+		// 1. Mock a 401 response for the first call.
+		add_filter( 'pre_http_request', [ $this, 'mock_unauthorized_response' ] );
+
+		// First call: should set the cache count to 1.
+		WC_Stripe_API::retrieve( 'test_endpoint' );
+		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->assertEquals( 1, $count, 'Cache count should be 1 after first 401.' );
+
+		remove_all_filters( 'pre_http_request' );
+
+		// 2. Mock a 200 response for the second call.
+		add_filter( 'pre_http_request', [ $this, 'mock_successful_response' ] );
+
+		// Second call: should delete the cache.
+		WC_Stripe_API::retrieve( 'test_endpoint' );
+		$count = WC_Stripe_Database_Cache::get( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
+		$this->assertNull( $count, 'Cache should be deleted after a successful response.' );
+
+		remove_all_filters( 'pre_http_request' );
+	}
+
+	/**
 	 * Helper method to mock a successful API response.
 	 */
 	public function mock_successful_response() {
@@ -127,6 +194,19 @@ class WC_Stripe_API_Test extends WP_UnitTestCase {
 				'message' => 'OK',
 			],
 			'body'     => json_encode( 'success' ),
+		];
+	}
+
+	/**
+	 * Helper method to mock an unauthorized API response.
+	 */
+	public function mock_unauthorized_response() {
+		return [
+			'response' => [
+				'code'    => 401,
+				'message' => 'Unauthorized',
+			],
+			'body'     => json_encode( [ 'error' => 'invalid_api_key' ] ),
 		];
 	}
 }

@@ -24,6 +24,18 @@ describe( 'Getting styles for automated theming', () => {
 		},
 	};
 
+	const globalValues = global.wc_stripe_upe_params;
+
+	beforeEach( () => {
+		global.wc_stripe_upe_params = {
+			isOCEnabled: false,
+		};
+	} );
+
+	afterEach( () => {
+		global.wc_stripe_upe_params = globalValues;
+	} );
+
 	it( 'getFieldStyles returns correct styles for inputs', () => {
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
@@ -103,6 +115,8 @@ describe( 'Getting styles for automated theming', () => {
 	} );
 
 	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
+		global.wc_stripe_upe_params = { isOCEnabled: false };
+
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
 		} );

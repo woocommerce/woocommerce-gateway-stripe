@@ -8,8 +8,8 @@ use WC_Gateway_Stripe;
 use WC_Gateway_Stripe_Giropay;
 use WC_Stripe_Customer;
 use WC_Stripe_Exception;
-use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
+use WooCommerce\Stripe\Tests\Helpers\OC_Test_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 use WP_Error;
 use WP_UnitTestCase;
@@ -581,61 +581,192 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( null, $this->gateway->get_balance_transaction_id_from_charge( null ) );
 	}
 
+	public function provide_test_render_subscription_payment_method_cases(): array {
+		return [
+			'VISA card ending in 4242' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'visa',
+					'last4' => '4242',
+				],
+				'expected_result'       => 'Via Visa card ending in 4242',
+			],
+			'MasterCard ending in 1234' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'mastercard',
+					'last4' => '1234',
+				],
+				'expected_result'       => 'Via MasterCard card ending in 1234',
+			],
+			'American Express card ending in 5678' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'amex',
+					'last4' => '5678',
+				],
+				'expected_result'       => 'Via Amex card ending in 5678',
+			],
+			'JCB card ending in 9012' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'jcb',
+					'last4' => '9012',
+				],
+				'expected_result'       => 'Via JCB card ending in 9012',
+			],
+			'Unknown card type ending in 0000' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'dummy',
+					'last4' => '0000',
+				],
+				'expected_result'       => 'Via Dummy card ending in 0000',
+			],
+			'SEPA Debit ending in 1234' => [
+				'payment_method_type'   => 'sepa_debit',
+				'payment_method_fields' => [
+					'last4' => '1234',
+				],
+				'expected_result'       => 'Via SEPA Direct Debit ending in 1234',
+			],
+			'Cash App Pay with cashtag TEST321' => [
+				'payment_method_type'   => 'cashapp',
+				'payment_method_fields' => [
+					'cashtag' => 'TEST321',
+				],
+				'expected_result'       => 'Via Cash App Pay (TEST321)',
+			],
+			'Stripe Link with email test@example.com' => [
+				'payment_method_type'   => 'link',
+				'payment_method_fields' => [
+					'email' => 'test@example.com',
+				],
+				'expected_result'       => 'Via Stripe Link (test@example.com)',
+			],
+			'ACH checking ending in 1357' => [
+				'payment_method_type'   => 'us_bank_account',
+				'payment_method_fields' => [
+					'account_type' => 'checking',
+					'last4'        => '1357',
+				],
+				'expected_result'       => 'Via Checking Account ending in 1357',
+			],
+			'ACH savings ending in 2468' => [
+				'payment_method_type'   => 'us_bank_account',
+				'payment_method_fields' => [
+					'account_type' => 'savings',
+					'last4'        => '2468',
+				],
+				'expected_result'       => 'Via Savings Account ending in 2468',
+			],
+			'BECS Debit ending in 3579' => [
+				'payment_method_type'   => 'au_becs_debit',
+				'payment_method_fields' => [
+					'last4' => '3579',
+				],
+				'expected_result'       => 'BECS Direct Debit ending in 3579',
+			],
+			'ACSS Debit ending in 4680' => [
+				'payment_method_type'   => 'acss_debit',
+				'payment_method_fields' => [
+					'bank_name' => 'Test Bank',
+					'last4'     => '4680',
+				],
+				'expected_result'       => 'Via Test Bank ending in 4680',
+			],
+			'BACS Debit ending in 5791' => [
+				'payment_method_type'   => 'bacs_debit',
+				'payment_method_fields' => [
+					'last4' => '5791',
+				],
+				'expected_result'       => 'Via Bacs Direct Debit ending in (5791)',
+			],
+			'Amazon Pay with email test@example.com' => [
+				'payment_method_type'   => 'amazon_pay',
+				'payment_method_fields' => [],
+				'expected_result'       => 'Via Amazon Pay (test@example.com)',
+				'additional_fields'     => [
+					'billing_details' => [
+						'email' => 'test@example.com',
+					],
+				],
+			],
+			'Unknown payment method' => [
+				'payment_method_type'   => 'unknown',
+				'payment_method_fields' => [],
+				'expected_result'       => 'N/A',
+			],
+			'Payment method with customer mismatch' => [
+				'payment_method_type'   => 'card',
+				'payment_method_fields' => [
+					'brand' => 'visa',
+					'last4' => '9753',
+				],
+				'expected_result'       => 'N/A',
+				'additional_fields'     => [
+					'customer' => 'cus_other',
+				],
+			],
+		];
+	}
+
 	/**
 	 * Tests for Card brand and last 4 digits are displayed correctly for subscription.
 	 *
 	 * @see WC_Stripe_Subscriptions_Trait::maybe_render_subscription_payment_method()
+	 * @dataProvider provide_test_render_subscription_payment_method_cases
 	 */
-	public function test_render_subscription_payment_method() {
+	public function test_render_subscription_payment_method( string $payment_method_type, array $payment_method_fields, string $expected_result, ?array $additional_fields = null ) {
 		$mock_subscription = WC_Helper_Order::create_order(); // We can use an order as a subscription.
 		$mock_subscription->set_payment_method( 'stripe' );
 
-		$mock_subscription->update_meta_data( '_stripe_source_id', 'src_mock' );
+		static $mock_payment_method_id_counter = 0;
+		$mock_payment_method_id_counter++;
+
+		$id_suffix = isset( $payment_method_fields['last4'] ) ? $payment_method_fields['last4'] : (string) $mock_payment_method_id_counter;
+		$mock_payment_method_id = 'pm_mock' . $payment_method_type . '_' . $id_suffix;
+
+		$mock_subscription->update_meta_data( '_stripe_source_id', $mock_payment_method_id );
 		$mock_subscription->update_meta_data( '_stripe_customer_id', 'cus_mock' );
 		$mock_subscription->save();
 
-		// This is the key the customer's payment methods are stored under in the transient.
-		$transient_key = WC_Stripe_Customer::PAYMENT_METHODS_TRANSIENT_KEY . 'cardcus_mock';
+		$mock_payment_method_data = [
+			'id'       => $mock_payment_method_id,
+			'type'     => $payment_method_type,
+			'customer' => 'cus_mock',
+		];
+		$mock_payment_method_data[ $payment_method_type ] = $payment_method_fields;
 
-		$mock_payment_method       = new stdClass();
-		$mock_payment_method->id   = 'src_mock';
-		$mock_payment_method->type = 'card';
-		$mock_payment_method->card = new stdClass();
+		if ( is_array( $additional_fields ) ) {
+			$mock_payment_method_data = array_merge( $mock_payment_method_data, $additional_fields );
+		}
 
-		// VISA ending in 4242
-		$mock_payment_method->card->brand = 'visa';
-		$mock_payment_method->card->last4 = '4242';
+		$expected_url = '/v1/payment_methods/' . $mock_payment_method_id;
 
-		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Visa card ending in 4242', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		// Mock the Stripe API payment method response
+		$mock_payment_method_api = function ( $preempt, $request_args, $url ) use ( $expected_url, $mock_payment_method_data ) {
+			if ( str_ends_with( $url, $expected_url ) ) {
+				$response = [
+					'headers'  => [],
+					'body'     => wp_json_encode( $mock_payment_method_data ),
+					'response' => [
+						'code'    => 200,
+						'message' => 'OK',
+					],
+				];
+				return $response;
+			}
+			return $preempt;
+		};
 
-		// MasterCard ending in 1234
-		$mock_payment_method->card->brand = 'mastercard';
-		$mock_payment_method->card->last4 = '1234';
+		add_filter( 'pre_http_request', $mock_payment_method_api, 10, 3 );
 
-		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via MasterCard card ending in 1234', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$result = $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription );
 
-		// American Express ending in 5678
-		$mock_payment_method->card->brand = 'amex';
-		$mock_payment_method->card->last4 = '5678';
+		remove_filter( 'pre_http_request', $mock_payment_method_api );
 
-		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		$this->assertEquals( 'Via Amex card ending in 5678', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
-
-		// JCB ending in 9012'
-		$mock_payment_method->card->brand = 'jcb';
-		$mock_payment_method->card->last4 = '9012';
-
-		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-
-		// Unknown card type
-		$mock_payment_method->card->brand = 'dummy';
-		$mock_payment_method->card->last4 = '0000';
-
-		set_transient( $transient_key, [ $mock_payment_method ], DAY_IN_SECONDS );
-		// Card brands that WC core doesn't recognize will be displayed as ucwords.
-		$this->assertEquals( 'Via Dummy card ending in 0000', $this->gateway->maybe_render_subscription_payment_method( 'N/A', $mock_subscription ) );
+		$this->assertEquals( $expected_result, $result );
 	}
 
 	/**
@@ -838,19 +969,23 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * @dataProvider provide_test_payment_icons
 	 */
 	public function test_payment_icons( $optimized_checkout_enabled, $filter, $expected ) {
-		update_option( WC_Stripe_Feature_Flags::OC_FEATURE_FLAG_NAME, $optimized_checkout_enabled ? 'yes' : 'no' );
-
-		$stripe_settings                               = WC_Stripe_Helper::get_stripe_settings();
-		$stripe_settings['optimized_checkout_element'] = $optimized_checkout_enabled ? 'yes' : 'no';
-		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
+		if ( $optimized_checkout_enabled ) {
+			OC_Test_Helper::enable_oc();
+		}
 
 		if ( $filter ) {
 			add_filter( 'wc_stripe_payment_icons', $filter );
-		} else {
-			remove_filter( 'wc_stripe_payment_icons', [] );
 		}
 
-		$this->assertSame( $expected, $this->gateway->payment_icons() );
+		$gateway = new WC_Gateway_Stripe();
+		$actual  = $gateway->payment_icons();
+		// Clean up
+		OC_Test_Helper::disable_oc();
+		if ( $filter ) {
+			remove_filter( 'wc_stripe_payment_icons', $filter );
+		}
+
+		$this->assertSame( $expected, $actual );
 	}
 
 	/**
@@ -864,7 +999,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		};
 
 		return [
-			'default'                => [
+			'default'                    => [
 				'optimized checkout enabled' => false,
 				'filter'                     => null,
 				'expected'                   => [
@@ -892,8 +1027,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 			'Optimized Checkout enabled' => [
 				'optimized checkout enabled' => true,
-				'filter'                 => null,
-				'expected'               => [
+				'filter'                     => null,
+				'expected'                   => [
 					'us_bank_account' => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="ACH" />',
 					'acss_debit'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/bank-debit.svg" class="stripe-ach-icon stripe-icon" alt="Pre-Authorized Debit" />',
 					'alipay'          => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/alipay.svg" class="stripe-alipay-icon stripe-icon" alt="Alipay" />',
@@ -916,10 +1051,10 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 					'cashapp'         => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cashapp.svg" class="stripe-cashapp-icon stripe-icon" alt="Cash App Pay" />',
 				],
 			],
-			'filter applied'         => [
+			'filter applied'             => [
 				'optimized checkout enabled' => false,
-				'filter'                 => $mocked_filter,
-				'expected'               => [],
+				'filter'                     => $mocked_filter,
+				'expected'                   => [],
 			],
 		];
 	}

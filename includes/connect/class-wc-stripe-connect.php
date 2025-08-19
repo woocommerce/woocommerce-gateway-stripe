@@ -127,7 +127,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$this->record_account_connect_track_event( is_wp_error( $response ) );
 
-				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] ) ) );
+				$redirect_url = remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code', 'wcs_stripe_type', 'wcs_stripe_mode' ] );
+				if ( ! is_wp_error( $response ) ) {
+					$redirect_url = add_query_arg( [ 'wc_stripe_connected' => 'true' ], $redirect_url );
+				}
+				wp_safe_redirect( esc_url_raw( $redirect_url ) );
 				exit;
 			}
 		}
@@ -176,6 +180,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// Enable ECE for new connections.
 			$this->enable_ece_in_new_accounts();
 
+			WC_Stripe_Database_Cache::delete( WC_Stripe_API::INVALID_API_KEY_ERROR_COUNT_CACHE_KEY );
 			WC_Stripe_Helper::update_main_stripe_settings( $options );
 
 			// Similar to what we do for webhooks, we save some stats to help debug oauth problems.
@@ -264,17 +269,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @return bool True if connected, false otherwise.
 		 */
 		public function is_connected( $mode = null ) {
-			// If the mode is not provided, we'll check the current mode.
-			if ( is_null( $mode ) ) {
-				$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
-			}
-
-			$options = WC_Stripe_Helper::get_stripe_settings();
-			if ( 'test' === $mode ) {
-				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
-			} else {
-				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
-			}
+			return WC_Stripe_Helper::is_connected( $mode );
 		}
 
 		/**

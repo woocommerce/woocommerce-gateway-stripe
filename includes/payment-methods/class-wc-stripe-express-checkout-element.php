@@ -110,6 +110,17 @@ class WC_Stripe_Express_Checkout_Element {
 		add_filter( 'woocommerce_cart_needs_shipping_address', [ $this, 'filter_cart_needs_shipping_address' ], 11, 1 );
 
 		add_action( 'before_woocommerce_pay_form', [ $this, 'localize_pay_for_order_page_scripts' ] );
+
+		/**
+		 * Determines whether express checkout orders should process or ignore
+		 * custom, classic checkout fields. Disabled by default.
+		 *
+		 * @since 9.7.0
+		 */
+		if ( apply_filters( 'wc_stripe_express_checkout_enable_classic_checkout_custom_fields', false ) ) {
+			$custom_checkout_fields_support = new WC_Stripe_Express_Checkout_Custom_Fields();
+			$custom_checkout_fields_support->init();
+		}
 	}
 
 	/**
@@ -194,18 +205,19 @@ class WC_Stripe_Express_Checkout_Element {
 				'is_payment_request_enabled'  => $this->express_checkout_helper->is_payment_request_enabled(),
 			],
 			'nonce'                      => [
-				'payment'                   => wp_create_nonce( 'wc-stripe-express-checkout' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
-				'normalize_address'         => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
-				'get_cart_details'          => wp_create_nonce( 'wc-stripe-get-cart-details' ),
-				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
-				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
-				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
-				'pay_for_order'             => wp_create_nonce( 'wc-stripe-pay-for-order' ),
-				'wc_store_api'              => wp_create_nonce( 'wc_store_api' ),
+				'payment'                       => wp_create_nonce( 'wc-stripe-express-checkout' ),
+				'shipping'                      => wp_create_nonce( 'wc-stripe-express-checkout-shipping' ),
+				'normalize_address'             => wp_create_nonce( 'wc-stripe-express-checkout-normalize-address' ),
+				'get_cart_details'              => wp_create_nonce( 'wc-stripe-get-cart-details' ),
+				'update_shipping'               => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'checkout'                      => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'add_to_cart'                   => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data'     => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'log_errors'                    => wp_create_nonce( 'wc-stripe-log-errors' ),
+				'clear_cart'                    => wp_create_nonce( 'wc-stripe-clear-cart' ),
+				'pay_for_order'                 => wp_create_nonce( 'wc-stripe-pay-for-order' ),
+				'wc_store_api'                  => wp_create_nonce( 'wc_store_api' ),
+				'wc_store_api_express_checkout' => wp_create_nonce( 'wc_store_api_express_checkout' ),
 			],
 			'i18n'                       => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -223,38 +235,8 @@ class WC_Stripe_Express_Checkout_Element {
 			'is_cart_page'               => is_cart(),
 			'taxes_based_on_billing'     => wc_tax_enabled() && get_option( 'woocommerce_tax_based_on' ) === 'billing',
 			'allowed_shipping_countries' => $this->express_checkout_helper->get_allowed_shipping_countries(),
-			'custom_checkout_fields'     => $this->get_custom_checkout_fields(),
+			'custom_checkout_fields'     => ( new WC_Stripe_Express_Checkout_Custom_Fields() )->get_custom_checkout_fields(),
 		];
-	}
-
-	/**
-	 * Retrieve custom checkout field IDs.
-	 * TODO: Currently, we only support custom checkout fields for block checkout.
-	 * We need to add support for classic checkout custom fields.
-	 *
-	 * @return array Custom checkout field IDs.
-	 */
-	public function get_custom_checkout_fields() {
-		try {
-			$checkout_fields = Package::container()->get( CheckoutFields::class );
-			if ( ! $checkout_fields instanceof CheckoutFields ) {
-				return [];
-			}
-
-			$custom_checkout_fields = [];
-			$additional_fields      = $checkout_fields->get_additional_fields();
-			foreach ( $additional_fields as $field_key => $field ) {
-				$location                             = $checkout_fields->get_field_location( $field_key );
-				$custom_checkout_fields[ $field_key ] = [
-					'key'      => $field_key,
-					'location' => $location,
-				];
-			}
-
-			return $custom_checkout_fields;
-		} catch ( Exception $e ) {
-			return [];
-		}
 	}
 
 	/**
@@ -263,6 +245,10 @@ class WC_Stripe_Express_Checkout_Element {
 	 * @param WC_Order $order The order that needs payment.
 	 */
 	public function localize_pay_for_order_page_scripts( $order ) {
+		// Ensure the script is registered before localizing
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
+		}
 		$currency = get_woocommerce_currency();
 		$data     = [];
 		$items    = [];
@@ -350,6 +336,48 @@ class WC_Stripe_Express_Checkout_Element {
 	}
 
 	/**
+	 * Get asset file data (version and dependencies).
+	 *
+	 * @return array Array containing 'version' and 'dependencies' keys.
+	 */
+	private function get_asset_data() {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		return [
+			'version'      => $version,
+			'dependencies' => $dependencies,
+		];
+	}
+
+	/**
+	 * Register the express checkout script without enqueuing it.
+	 */
+	private function register_express_checkout_script() {
+		$asset_data = $this->get_asset_data();
+
+		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script(
+			'wc_stripe_express_checkout',
+			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
+			array_merge( [ 'jquery', 'stripe' ], $asset_data['dependencies'] ),
+			$asset_data['version'],
+			true
+		);
+	}
+
+	/**
 	 * Load scripts and styles.
 	 */
 	public function scripts() {
@@ -362,33 +390,18 @@ class WC_Stripe_Express_Checkout_Element {
 			return;
 		}
 
-		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/express-checkout.asset.php';
-		$version      = WC_STRIPE_VERSION;
-		$dependencies = [];
-		if ( file_exists( $asset_path ) ) {
-			$asset        = require $asset_path;
-			$version      = is_array( $asset ) && isset( $asset['version'] )
-				? $asset['version']
-				: $version;
-			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
-				? $asset['dependencies']
-				: $dependencies;
+		// Register the script if not already registered
+		if ( ! wp_script_is( 'wc_stripe_express_checkout', 'registered' ) ) {
+			$this->register_express_checkout_script();
 		}
 
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script(
-			'wc_stripe_express_checkout',
-			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.js',
-			array_merge( [ 'jquery', 'stripe' ], $dependencies ),
-			$version,
-			true
-		);
+		$asset_data = $this->get_asset_data();
 
 		wp_enqueue_style(
 			'wc_stripe_express_checkout_style',
 			WC_STRIPE_PLUGIN_URL . '/build/express-checkout.css',
 			[],
-			$version
+			$asset_data['version']
 		);
 
 		wp_localize_script(

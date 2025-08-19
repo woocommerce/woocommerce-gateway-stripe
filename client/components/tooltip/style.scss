@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@use '../../styles/abstracts/styles';
 
 .wcstripe-tooltip {
 	&__content-wrapper {
@@ -30,8 +30,8 @@
 	&__tooltip {
 		position: relative;
 
-		color: $white;
-		background-color: $gray-900;
+		color: styles.$white;
+		background-color: styles.$gray-900;
 		padding: 10px;
 		text-align: center;
 		text-wrap: balance;
@@ -46,7 +46,7 @@
 			left: 50%;
 			transform: translate(-50%, 22px);
 			border: solid 15px transparent;
-			border-top-color: $gray-900;
+			border-top-color: styles.$gray-900;
 		}
 
 		&-left-top {

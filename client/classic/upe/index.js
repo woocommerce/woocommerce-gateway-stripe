@@ -69,12 +69,13 @@ jQuery( function ( $ ) {
 			! ( errorMessage instanceof String )
 		) {
 			if (
-				errorMessage.code &&
-				getStripeServerData()[ errorMessage.code ]
+				errorMessage?.code &&
+				getStripeServerData()[ errorMessage?.code ]
 			) {
-				errorMessage = getStripeServerData()[ errorMessage.code ];
+				errorMessage = getStripeServerData()[ errorMessage?.code ];
 			} else {
-				errorMessage = errorMessage.message;
+				errorMessage =
+					errorMessage?.message || 'An unknown error occurred.';
 			}
 		}
 
@@ -314,12 +315,9 @@ jQuery( function ( $ ) {
 			// Change the payment method container title when the Optimized Checkout is enabled
 			if (
 				getStripeServerData()?.isOCEnabled &&
-				getStripeServerData()?.OCTitle &&
 				$( 'input#payment_method_stripe' ).is( ':checked' )
 			) {
-				$( 'label[for=payment_method_stripe]' ).text(
-					getStripeServerData()?.OCTitle
-				);
+				$( 'label[for=payment_method_stripe]' ).text( 'Stripe' );
 			}
 
 			maybeClearBlikCodeValidation();

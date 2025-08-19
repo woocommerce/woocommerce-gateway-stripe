@@ -113,36 +113,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $supports_deferred_intent;
 
 	/**
-	 * Whether Single Payment Element is enabled.
-	 *
-	 * @var bool
-	 *
-	 * @deprecated 9.5.0 Use `$oc_enabled` instead.
-	 */
-	protected $spe_enabled;
-
-	/**
-	 * Whether Optimized Checkout (previously known as SPE) is enabled.
+	 * Whether Optimized Checkout is enabled.
 	 *
 	 * @var bool
 	 */
 	protected $oc_enabled;
-
-	/**
-	 * The default title for the Single Payment Element.
-	 *
-	 * @var string
-	 *
-	 * @deprecated 9.5.0 Use `$oc_title` instead.
-	 */
-	protected $spe_title;
-
-	/**
-	 * The default title for the Optimized Checkout element (previously known as SPE).
-	 *
-	 * @var string
-	 */
-	protected $oc_title;
 
 	/**
 	 * Create instance of payment method
@@ -158,7 +133,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
-		$this->oc_title                 = $this->get_option( 'optimized_checkout_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
@@ -230,8 +204,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_title( $payment_details = false ) {
-		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['title'] ) ? $payment_method_settings['title'] : $this->title;
+		return $this->title;
 	}
 
 	/**
@@ -249,12 +222,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return string
 	 */
 	public function get_description() {
-		if ( $this->oc_enabled ) { // Disable the description when OC is enabled.
-			return '';
-		}
-
-		$payment_method_settings = get_option( 'woocommerce_stripe_' . $this->stripe_id . '_settings', [] );
-		return ! empty( $payment_method_settings['description'] ) ? $payment_method_settings['description'] : '';
+		return '';
 	}
 
 	/**
@@ -265,6 +233,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function get_icon() {
 		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return apply_filters( 'woocommerce_gateway_icon', isset( $icons[ $this->get_id() ] ) ? $icons[ $this->get_id() ] : '', $this->id );
+	}
+
+	/**
+	 * Gets the payment method's icon url.
+	 * Each payment method should override this method to return the icon url.
+	 *
+	 * @return string The icon url.
+	 */
+	public function get_icon_url() {
+		return '';
 	}
 
 	/**
@@ -312,9 +290,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return false;
 		}
 
-		// If cart or order contains subscription, enable payment method if it's reusable.
+		// If cart or order contains subscription, enable payment method if it's reusable, or if manual renewals are enabled.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
-			return $this->is_reusable();
+			return $this->is_reusable() || WC_Stripe_Subscriptions_Helper::is_manual_renewal_enabled();
 		}
 
 		// If cart or order contains pre-order, enable payment method if it's reusable.
@@ -642,7 +620,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
-				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page() || WC_Stripe_Helper::should_force_save_payment_method();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}

@@ -12,6 +12,12 @@ jest.mock( 'wcstripe/express-checkout/utils', () => ( {
 	getExpressCheckoutData: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/stripe-utils', () => ( {
+	getStripeServerData: jest.fn( () => ( {
+		isCheckout: true,
+	} ) ),
+} ) );
+
 describe( 'Express checkout normalization', () => {
 	describe( 'normalizeLineItems', () => {
 		test( 'normalizes blocks array properly', () => {
@@ -148,6 +154,9 @@ describe( 'Express checkout normalization', () => {
 
 			select.mockImplementation( () => {
 				return {
+					getExtensionData: () => {
+						return {};
+					},
 					getAdditionalFields: () => {
 						return {};
 					},
@@ -280,6 +289,9 @@ describe( 'Express checkout normalization', () => {
 			};
 			select.mockImplementation( () => {
 				return {
+					getExtensionData: () => {
+						return {};
+					},
 					getAdditionalFields: () => {
 						return additionalFields;
 					},
@@ -299,6 +311,34 @@ describe( 'Express checkout normalization', () => {
 			);
 		} );
 
+		test( 'should include extension data in the normalized order data', () => {
+			const extensionData = {
+				'my-plugin': 'test',
+			};
+			select.mockImplementation( () => {
+				return {
+					getExtensionData: () => {
+						return extensionData;
+					},
+					getAdditionalFields: () => {
+						return {};
+					},
+					getCustomerData: () => {
+						return {};
+					},
+				};
+			} );
+
+			const expectedNormalizedDataWithAdditionalFields = {
+				...expectedNormalizedData,
+				extensions: extensionData,
+			};
+
+			expect( normalizeOrderData( { event, paymentMethodId } ) ).toEqual(
+				expectedNormalizedDataWithAdditionalFields
+			);
+		} );
+
 		test( 'should include additional customer (address) fields in the normalized order data', () => {
 			const additionalCustomerData = {
 				custom_address_field1: 'test1',
@@ -306,6 +346,9 @@ describe( 'Express checkout normalization', () => {
 			};
 			select.mockImplementation( () => {
 				return {
+					getExtensionData: () => {
+						return {};
+					},
 					getAdditionalFields: () => {
 						return {};
 					},

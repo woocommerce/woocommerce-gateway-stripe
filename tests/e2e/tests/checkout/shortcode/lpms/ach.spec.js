@@ -4,6 +4,7 @@ import config from 'config';
 import { admin, payments, api, user } from '../../../../utils';
 
 const {
+	clickPlaceOrder,
 	emptyCart,
 	setupCart,
 	setupShortcodeCheckout,
@@ -73,7 +74,7 @@ test.describe( 'ACH payment tests @shortcode', () => {
 						name: 'Save payment information to',
 					} )
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'
@@ -92,12 +93,16 @@ test.describe( 'ACH payment tests @shortcode', () => {
 					config.get( 'addresses.customer.billing' )
 				);
 				await page.getByText( 'ACH Direct Debit' ).click();
-				await page.waitForTimeout( 1000 );
+				await expect(
+					page.locator(
+						'.woocommerce-SavedPaymentMethods-token input[id^="wc-stripe_us_bank_account-payment-token-"]'
+					)
+				).toHaveCount( 1 );
 				await page
 					.locator( '.woocommerce-SavedPaymentMethods-token' )
 					.first()
 					.click();
-				await page.locator( 'text=Place order' ).click();
+				await clickPlaceOrder( page );
 				await page.waitForURL( '**/checkout/order-received/**' );
 				await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 					'Order received'

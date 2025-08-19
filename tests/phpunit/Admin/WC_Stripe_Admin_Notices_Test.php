@@ -4,12 +4,21 @@ namespace WooCommerce\Stripe\Tests\Admin;
 
 use WC_Stripe;
 use WC_Stripe_Admin_Notices;
+use WC_Stripe_Database_Cache;
 use WC_Stripe_Feature_Flags;
 use WC_Stripe_Helper;
 use WC_Stripe_Payment_Methods;
+use WC_Subscription;
+use WC_Subscriptions;
 use WooCommerce\Stripe\Tests\WC_Mock_Stripe_API_Unit_Test_Case;
 
 class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
+	/**
+	 * The original value of the HPOS option.
+	 *
+	 * @var string
+	 */
+	private static $original_hpos_value;
 
 	public function set_up() {
 		parent::set_up();
@@ -29,13 +38,22 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				'test' => 'test',
 			]
 		);
-		$this->mock_payment_method_configurations(
-			[
-				WC_Stripe_Payment_Methods::CARD,
-				WC_Stripe_Payment_Methods::BANCONTACT,
-				WC_Stripe_Payment_Methods::EPS,
-			]
-		);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function set_up_before_class() {
+		parent::set_up_before_class();
+		self::$original_hpos_value = get_option( 'woocommerce_custom_orders_table_enabled' );
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public static function tear_down_after_class() {
+		parent::tear_down_after_class();
+		update_option( 'woocommerce_custom_orders_table_enabled', self::$original_hpos_value );
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
@@ -68,6 +86,11 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 		foreach ( $options_to_set as $option_name => $option_value ) {
 			update_option( $option_name, $option_value );
 		}
+
+		if ( isset( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] ) ) {
+			$this->mock_payment_method_configurations( $options_to_set['woocommerce_stripe_settings']['upe_checkout_experience_accepted_payments'] );
+		}
+
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -101,22 +124,24 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			}
 		);
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
-		WC_Stripe_Helper::update_main_stripe_settings(
-			[
-				'enabled'                         => 'yes',
-				'testmode'                        => 'no',
-				'publishable_key'                 => 'pk_live_valid_test_key',
-				'secret_key'                      => 'sk_live_valid_test_key',
-				'upe_checkout_experience_enabled' => 'yes',
-				'connection_type'                 => 'connect',
-			]
-		);
 
 		$this->mock_payment_method_configurations(
 			[
+				WC_Stripe_Payment_Methods::CARD,
 				WC_Stripe_Payment_Methods::GIROPAY,
 				WC_Stripe_Payment_Methods::BANCONTACT,
 				WC_Stripe_Payment_Methods::EPS,
+			]
+		);
+
+		WC_Stripe_Helper::update_main_stripe_settings(
+			[
+				'enabled'                         => 'yes',
+				'testmode'                        => 'yes',
+				'test_publishable_key'            => 'pk_test_valid_test_key',
+				'test_secret_key'                 => 'sk_test_valid_test_key',
+				'upe_checkout_experience_enabled' => 'yes',
+				'connection_type'                 => 'connect',
 			]
 		);
 
@@ -239,6 +264,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'three_d_secure'  => 'yes',
+						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
@@ -273,6 +299,7 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 				[
 					'woocommerce_stripe_settings'    => [
 						'enabled'         => 'yes',
+						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
 					],
@@ -507,22 +534,214 @@ class WC_Stripe_Admin_Notices_Test extends WC_Mock_Stripe_API_Unit_Test_Case {
 			],
 			[
 				[
-					'woocommerce_stripe_settings'         => [
+					'woocommerce_stripe_settings' => [
 						'enabled'         => 'yes',
 						'testmode'        => 'no',
 						'publishable_key' => 'pk_live_valid_test_key',
 						'secret_key'      => 'sk_live_valid_test_key',
+						'upe_checkout_experience_accepted_payments' => [ 'card', 'eps' ],
 					],
-					'wc_stripe_show_style_notice'         => 'no',
-					'home'                                => 'https://...',
-					'wc_stripe_show_sca_notice'           => 'no',
-					'woocommerce_stripe_giropay_settings' => [
-						'enabled' => 'yes',
-					],
+					'wc_stripe_show_style_notice' => 'no',
+					'home'                        => 'https://...',
+					'wc_stripe_show_sca_notice'   => 'no',
 				],
 				[
-					'payment_methods',
+					'upe_payment_methods',
 				],
+			],
+		];
+	}
+
+	/**
+	 * Test for `subscription_check_detachment`.
+	 *
+	 * @return void
+	 * @dataProvider provide_test_subscription_check_detachment
+	 */
+	public function test_subscription_check_detachment( $hpos_enabled, $theorder_global, $request_params, $post_globals ) {
+		global $theorder;
+		$original_order = $theorder;
+
+		if ( count( $request_params ) > 0 ) {
+			$_REQUEST = $request_params;
+		}
+
+		if ( count( $post_globals ) > 0 ) {
+			foreach ( $post_globals as $key => $value ) {
+				$GLOBALS[ $key ] = $value;
+				if ( 'post' === $key && is_a( $value, 'WC_Subscription' ) ) {
+					WC_Subscriptions::set_wcs_get_subscription(
+						function ( $id ) use ( $value ) {
+							return $value;
+						}
+					);
+				}
+			}
+		}
+
+		if ( $hpos_enabled ) {
+			update_option( 'woocommerce_custom_orders_table_enabled', 'yes' );
+		} else {
+			update_option( 'woocommerce_custom_orders_table_enabled', 'no' );
+		}
+
+		if ( ! is_null( $theorder_global ) ) {
+			$theorder = $theorder_global;
+		}
+
+		// Mock response from Stripe API.
+		$test_request = function () {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => wp_json_encode(
+					[
+						'customer' => null,
+					]
+				),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment();
+
+		$actual = $notices->notices;
+
+		// Clean up.
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		unset( $_REQUEST );
+		if ( count( $post_globals ) > 0 ) {
+			foreach ( $post_globals as $key => $value ) {
+				unset( $GLOBALS[ $key ] );
+			}
+			WC_Subscriptions::$wcs_get_subscription = null;
+		}
+
+		$theorder = $original_order;
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_src_123' );
+
+		$this->assertCount( 1, $actual );
+		$this->assertArrayHasKey( 'subscription_detached', $actual );
+		$this->assertStringContainsString( 'The payment method for this subscription has been detached', $actual['subscription_detached']['message'] );
+	}
+
+	/**
+	 * Provider for `test_subscription_check_detachment`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_subscription_check_detachment() {
+		$source_id = 'src_123';
+
+		WC_Stripe_Database_Cache::delete( 'payment_method_for_source_' . $source_id );
+
+		$subscription = new WC_Subscription();
+		$subscription->set_id( 123 );
+		$subscription->set_status( 'active' );
+		$subscription->set_payment_method( 'stripe_klarna' );
+		$subscription->save();
+
+		$subscription->update_meta_data( '_stripe_source_id', $source_id );
+		$subscription->save_meta_data();
+
+		return [
+			'HPOS enabled, theorder global' => [
+				'hpos enabled'    => true,
+				'theorder global' => $subscription,
+				'request params'  => [
+					'page' => 'wc-orders--shop_subscription',
+					'id'   => $subscription->get_id(),
+				],
+				'post globals'    => [],
+			],
+			'HPOS disabled, post globals'   => [
+				'hpos enabled'    => false,
+				'theorder global' => null,
+				'request params'  => [
+					'page'   => 'wc-orders--shop_subscription',
+					'id'     => $subscription->get_id(),
+					'post'   => $subscription,
+					'action' => 'edit',
+				],
+				'post globals'    => [
+					'post' => $subscription,
+				],
+			],
+		];
+	}
+
+	/**
+	 * Tests for `subscription_check_detachment_bulk_action`.
+	 *
+	 * @param array|null $request_params Request parameters to simulate.
+	 * @param int $expected_count Expected number of notices.
+	 * @param string $expected_content Expected content in the notice message.
+	 * @return void
+	 *
+	 * @dataProvider provide_test_subscription_check_detachment_bulk_action
+	 */
+	public function test_subscription_check_detachment_bulk_action( $request_params, $subscriptions, $expected_count, $expected_content ) {
+		if ( $request_params ) {
+			$_REQUEST = $request_params;
+		}
+
+		if ( count( $subscriptions ) > 0 ) {
+			WC_Subscriptions::set_wcs_get_subscription(
+				function ( $id ) use ( $subscriptions ) {
+					return $subscriptions[0];
+				}
+			);
+		}
+
+		$notices = new WC_Stripe_Admin_Notices();
+		$notices->subscription_check_detachment_bulk_action();
+
+		$actual = $notices->notices;
+
+		// Clean up.
+		unset( $_REQUEST );
+		WC_Subscriptions::$wcs_get_subscription = null;
+
+		$this->assertCount( $expected_count, $actual );
+
+		if ( $expected_content ) {
+			$this->assertArrayHasKey( 'subscription_detached_bulk_action', $actual );
+			$this->assertStringContainsString( $expected_content, $actual['subscription_detached_bulk_action']['message'] );
+		} else {
+			$this->assertArrayNotHasKey( 'subscription_detached_bulk_action', $actual );
+		}
+	}
+
+	/**
+	 * Data provider for `test_subscription_check_detachment_bulk_action`.
+	 *
+	 * @return array
+	 */
+	public function provide_test_subscription_check_detachment_bulk_action() {
+		$subscription = new WC_Subscription();
+		$subscription->save();
+
+		return [
+			'detached subscription IDs, but not actual subscriptions' => [
+				'request params'   => [ 'detached-subscriptions' => '123' ],
+				'subscriptions'    => [],
+				'expected count'   => 1,
+				'expected content' => 'No detached subscriptions found.',
+			],
+			'detached subscription IDs, with actual subscriptions' => [
+				'request params'   => [ 'detached-subscriptions' => '123' ],
+				'subscriptions'    => [ $subscription ],
+				'expected count'   => 1,
+				'expected content' => 'Below are the affected subscriptions and their update links:',
+			],
+			'no detached subscriptions' => [
+				'request params'   => null,
+				'subscriptions'    => [],
+				'expected count'   => 0,
+				'expected content' => '',
 			],
 		];
 	}

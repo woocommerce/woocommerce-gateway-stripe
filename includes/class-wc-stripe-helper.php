@@ -21,6 +21,20 @@ class WC_Stripe_Helper {
 	const PAYMENT_AWAITING_ACTION_META = '_stripe_payment_awaiting_action';
 
 	/**
+	 * The identifier for the official Affirm gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_AFFIRM = 'affirm';
+
+	/**
+	 * The identifier for the official Klarna gateway plugin.
+	 *
+	 * @var string
+	 */
+	const OFFICIAL_PLUGIN_ID_KLARNA = 'klarna_payments';
+
+	/**
 	 * List of legacy Stripe gateways.
 	 *
 	 * @var array
@@ -306,7 +320,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array $currencies
 	 */
-	private static function three_decimal_currencies() {
+	public static function three_decimal_currencies() {
 		return [
 			'bhd', // Bahraini Dinar
 			'jod', // Jordanian Dinar
@@ -582,6 +596,8 @@ class WC_Stripe_Helper {
 	 * Get settings of individual legacy payment methods.
 	 *
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
 		$stripe_settings = self::get_stripe_settings();
@@ -618,6 +634,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 * @return array
+	 *
+	 * @deprecated 9.6.0 The customization of individual payment methods is now deprecated.
 	 */
 	public static function get_upe_individual_payment_method_settings( $gateway ) {
 		$payment_method_settings = [];
@@ -1783,5 +1801,206 @@ class WC_Stripe_Helper {
 		];
 
 		return in_array( strtolower( $currency ), $supported_currencies, true );
+	}
+
+	/**
+	 * Checks if the payment method should be saved.
+	 *
+	 * @since 9.6.0
+	 * @param bool $force_save Whether the payment method should be saved.
+	 * @param string $order_id Order ID.
+	 * @return bool
+	 */
+	public static function should_force_save_payment_method( $force_save = false, $order_id = null ) {
+		// Do not save the payment method if the user is not logged in.
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		// Backward compatibility for deprecated 'wc_stripe_force_save_source' filter.
+		$force_save_payment_method = apply_filters_deprecated(
+			'wc_stripe_force_save_source',
+			[ $force_save, $order_id ],
+			'9.6.0',
+			'wc_stripe_force_save_payment_method',
+			'The wc_stripe_force_save_source filter is deprecated since WooCommerce Stripe Gateway 9.6.0. Use wc_stripe_force_save_payment_method instead.'
+		);
+
+		/**
+		 * Filters the flag that decides if the payment method must be saved in all possible situations.
+		 *
+		 * @since 9.6.0
+		 *
+		 * @param bool   $force_save Whether the payment method must be saved.
+		 * @param string $order_id   Order ID.
+		 *
+		 * @return bool Whether the payment method must be saved in all situations.
+		*/
+		$force_save_payment_method = apply_filters( 'wc_stripe_force_save_payment_method', $force_save_payment_method, $order_id );
+
+		return $force_save_payment_method;
+	}
+
+	/**
+	 * Returns the description for a refund reason.
+	 *
+	 * @return string
+	 */
+	public static function get_refund_reason_description( $refund_reason_key ) {
+		switch ( $refund_reason_key ) {
+			case 'charge_for_pending_refund_disputed':
+				return __( 'The charge has been disputed', 'woocommerce-gateway-stripe' );
+			case 'declined':
+				return __( 'The refund was declined', 'woocommerce-gateway-stripe' );
+			case 'expired_or_canceled_card':
+				return __( 'The original payment method has expired or was canceled', 'woocommerce-gateway-stripe' );
+			case 'insufficient_funds':
+				return __( 'We could not process the refund at this time', 'woocommerce-gateway-stripe' );
+			case 'lost_or_stolen_card':
+				return __( 'The original payment method was lost or stolen', 'woocommerce-gateway-stripe' );
+			case 'merchant_request':
+				return __( 'We stopped processing the refund', 'woocommerce-gateway-stripe' );
+			case 'unknown':
+			default:
+				return __( 'Unknown reason', 'woocommerce-gateway-stripe' );
+		}
+	}
+
+	/**
+	 * Checks if there are other Buy Now Pay Later plugins active.
+	 *
+	 * @return bool
+	 */
+	public static function has_other_bnpl_plugins_active() {
+		$other_bnpl_gateway_ids = [ self::OFFICIAL_PLUGIN_ID_AFFIRM, self::OFFICIAL_PLUGIN_ID_KLARNA ];
+		foreach ( $other_bnpl_gateway_ids as $bnpl_gateway_id ) {
+			if ( self::has_gateway_plugin_active( $bnpl_gateway_id ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if a given payment gateway plugin is active.
+	 *
+	 * @param string $plugin_id
+	 * @return bool
+	 */
+	public static function has_gateway_plugin_active( $plugin_id ) {
+		$available_payment_gateways = WC()->payment_gateways->payment_gateways ?? [];
+		foreach ( $available_payment_gateways as $available_payment_gateway ) {
+			if ( $plugin_id === $available_payment_gateway->id && 'yes' === $available_payment_gateway->enabled ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Checks if the given payment intent is valid for the order.
+	 * This checks the currency, amount, and payment method types.
+	 * The function will log a critical error if there is a mismatch.
+	 *
+	 * @param WC_Order      $order                 The order to check.
+	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
+	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
+	 *
+	 * @throws Exception Throws an exception if the intent is not valid for the order.
+	 */
+	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		$intent_id = null;
+		if ( is_string( $intent ) ) {
+			$intent_id = $intent;
+			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
+			if ( $is_setup_intent ) {
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			} else {
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			}
+		}
+
+		if ( ! is_object( $intent ) ) {
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $intent_id ) {
+			$intent_id = $intent->id ?? null;
+		}
+
+		// Make sure we actually fetched the intent.
+		if ( ! empty( $intent->error ) ) {
+			WC_Stripe_Logger::error(
+				'Error: failed to fetch requested Stripe intent',
+				[
+					'intent_id' => $intent_id,
+					'error'     => $intent->error,
+				]
+			);
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $selected_payment_type ) {
+			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+		}
+
+		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
+		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
+		$order_currency        = strtolower( $order->get_currency() );
+		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$order_intent_id       = self::get_intent_id_from_order( $order );
+
+		if ( 'payment_intent' === $intent->object ) {
+			$is_valid = $order_currency === $intent->currency
+				&& $is_valid_payment_type
+				&& $order_amount === $intent->amount
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		} else {
+			// Setup intents don't have an amount or currency.
+			$is_valid = $is_valid_payment_type
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		}
+
+		// Return early if we have a valid intent.
+		if ( $is_valid ) {
+			return;
+		}
+
+		$permitted_payment_types = implode( '/', $intent->payment_method_types );
+		WC_Stripe_Logger::critical(
+			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			[
+				'order_id'                    => $order->get_id(),
+				'intent_id'                   => $intent->id,
+				'intent_currency'             => $intent->currency,
+				'intent_amount'               => $intent->amount,
+				'intent_payment_method_types' => $intent->payment_method_types,
+				'selected_payment_type'       => $selected_payment_type,
+				'order_currency'              => $order->get_currency(),
+				'order_total'                 => $order->get_total(),
+			]
+		);
+
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+	}
+
+	/**
+	 * Determines if the store is connected to Stripe.
+	 *
+	 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
+	 * @return bool True if connected, false otherwise.
+	 */
+	public static function is_connected( $mode = null ) {
+		// If the mode is not provided, we'll check the current mode.
+		if ( null === $mode ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		}
+
+		$options = self::get_stripe_settings();
+		if ( 'test' === $mode ) {
+			return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
+		} else {
+			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
+		}
 	}
 }

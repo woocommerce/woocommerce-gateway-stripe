@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
-Tested up to: 6.8.1
+Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.5.2
+Stable tag: 9.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -110,45 +110,17 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 == Changelog ==
 
-= 9.6.0 - xxxx-xx-xx =
-
-* Add - Adds a new promotional banner to promote the BNPL payment methods (Klarna, Afterpay, and Affirm) on the settings page.
-* Fix - Adds an exception to be thrown when the order item quantity is zero, during the retrieval of level 3 data from an order.
-* Dev - Deprecates the WC_Stripe_Order class and removes its inclusion call.
-* Fix - Fixes the availability of the saving payment method checkbox in the classic checkout when the Optimized Checkout is enabled and signup is disabled during checkout.
-* Dev - Implements the PSR-4 autoloading standard for the plugin unit tests (PHP).
-* Fix - Sends missing information to Stripe when completing transactions with WeChat Pay, Blik and Klarna, using the Optimized Checkout.
-* Dev - Moves the main Stripe class to a new file.
-* Dev - Renames all PHP Unit test files to follow the PSR-4.
-* Dev - Dynamically retrieves versions of WooCommerce and WordPress to use in the PHP code coverage GitHub Actions Workflow.
-* Fix - Makes payment methods dynamically available on the shortcode checkout when the Optimized Checkout is enabled depending on the saving method checkbox value.
-* Fix - Fixes a possible fatal error with Multibanco purchases when generating the email instructions.
-* Fix - Fixes a fatal error when the fingerprint property is not available for a card payment method.
-* Add - Show an icon beside the payment methods that support automatic recurring payments.
-* Fix - Fixes the payment method title when using the classic checkout with the Optimized Checkout enabled.
-* Update - Remove BACS from the unsupported 'change payment method for subscription' page.
-* Fix - Fix payment method title display when new payment settings experience is enabled
-* Fix - Prevent styles from non-checkout pages affecting the appearance of Stripe element.
-* Dev - Add e2e tests for BLIK
-* Dev - Add e2e tests for BECS
-* Fix - Send correct attribute when setting the default payment method.
-* Dev - Build dynamic WordPress and WooCommerce dependencies for unit tests.
-* Fix - Reimplement mapping of Express Checkout state values to align with WooCommerce's expected state formats
-* Fix - Void intent when cancelling an uncaptured order
-* Fix - Hide future payments message from payment element when manual renewal is required
-* Tweak - Track charge completed via webhooks in order notes
-* Tweak - Fix a rare warning when searching customers with missing name
-* Fix - Ensure that we migrate payment_request_button_size=medium on upgrade
-* Fix - Apply shipping country restrictions to Express Checkout
-* Dev - Prevent changelog entries with trailing periods
-* Fix - Fix legacy deprecation notice displayed on new plugin installs
-* Update - Remove verification steps for Apple Pay domain registration, as this is no longer required by Stripe
-* Fix - When the user is deleted via WP CLI, take into account the environment type before detaching their payment methods
-* Tweak - Add prefix to the custom database cache keys
-* Update - Support block checkout custom fields when using express payment methods like Apple Pay and Google Pay
-* Dev - Fix failing optimized checkout e2e test due to incorrect order of operations
-* Tweak - Remove Payment Method Configurations fallback cache
-* Fix - Show correct price in express checkout for zero decimal currencies
+= 9.9.0 - xxxx-xx-xx =
+* Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
+* Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
+* Update - Increases the default font size for the Optimized Checkout payment element to match the rest of the checkout form
+* Fix - Checks for the subscription payment method (if it is Stripe) when verifying for the payment method detachment
+* Dev - Implements WooCommerce constants for the tax statuses
+* Fix - Ensure all Javascript strings use the correct text domain for translation
+* Tweak - Use more specific selector in express checkout e2e tests
+* Tweak - Small improvements to e2e tests
+* Fix - Fix unnecessary Stripe API calls when rendering subscription details
+* Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
 * Tweak - Use PHP 8.4 instead of 8.0 for automated PHP unit tests
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

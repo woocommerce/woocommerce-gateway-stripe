@@ -482,10 +482,14 @@ export const showErrorCheckout = ( errorMessage ) => {
 		typeof errorMessage !== 'string' &&
 		! ( errorMessage instanceof String )
 	) {
-		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
-			errorMessage = getStripeServerData()[ errorMessage.code ];
+		if (
+			errorMessage?.code &&
+			getStripeServerData()[ errorMessage?.code ]
+		) {
+			errorMessage = getStripeServerData()[ errorMessage?.code ];
 		} else {
-			errorMessage = errorMessage.message;
+			errorMessage =
+				errorMessage?.message || 'An unknown error occurred.';
 		}
 	}
 
@@ -609,6 +613,10 @@ export const showErrorPaymentMethod = ( errorMessage, containerSelector ) => {
  *
  * @return {Object} The appearance object for the UPE.
  */
+
+// Track if save appearance is already in progress to prevent multiple calls
+let isSavingAppearance = false;
+
 export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 	let appearance =
 		isBlockCheckout === 'true'
@@ -627,8 +635,21 @@ export const initializeUPEAppearance = ( api, isBlockCheckout = 'false' ) => {
 				! data.isChangingPayment );
 
 		// If we have re-built the appearance, only update the settings in the checkout context
-		if ( isValidUpdateContext ) {
-			api.saveAppearance( appearance, isBlockCheckout );
+		if ( isValidUpdateContext && ! isSavingAppearance ) {
+			// Set flag to prevent concurrent saves
+			isSavingAppearance = true;
+
+			// Update the global variable immediately to prevent multiple AJAX calls
+			if ( isBlockCheckout === 'true' ) {
+				data.blocksAppearance = appearance;
+			} else {
+				data.appearance = appearance;
+			}
+
+			api.saveAppearance( appearance, isBlockCheckout ).finally( () => {
+				// Reset flag when save completes (success or failure)
+				isSavingAppearance = false;
+			} );
 		}
 	}
 
@@ -820,4 +841,23 @@ export const maybeClearBlikCodeValidation = () => {
 			'woocommerce-invalid woocommerce-invalid-required-field'
 		);
 	}
+};
+
+/**
+ * Gets the base font size for both the regular checkout and the Optimized Checkout (which is 2px larger than the default font size).
+ * So it matches the rest of the checkout form when it is scaled down.
+ *
+ * @param {string} defaultFontSize The default font size of the checkout form, e.g. '16px'.
+ * @return {string} The base font size.
+ */
+export const getFontSizeBase = ( defaultFontSize ) => {
+	if ( getStripeServerData()?.isOCEnabled ) {
+		// Find numbers for font size.
+		const matches = defaultFontSize.match( /(\d+(?:\.\d+)?)/ );
+		if ( matches.length > 0 ) {
+			return parseFloat( matches[ 0 ] ) + 2 + 'px';
+		}
+	}
+
+	return defaultFontSize;
 };

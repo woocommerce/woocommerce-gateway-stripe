@@ -2,10 +2,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import ConnectStripeAccount from './connect-stripe-account';
+import StripeAccountConnectedNotice from './stripe-account-connected-notice';
 import SettingsManager from './settings-manager';
 import PaymentGatewayManager from './payment-gateway-manager';
 import UpeToggleContextProvider from './upe-toggle/provider';
 import './styles.scss';
+import OCToggleContextProvider from 'wcstripe/settings/oc-toggle/provider';
 
 const settingsContainer = document.getElementById(
 	'wc-stripe-account-settings-container'
@@ -27,7 +29,15 @@ if ( settingsContainer ) {
 				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
-			<SettingsManager />
+			<OCToggleContextProvider
+				defaultIsOCEnabled={
+					// eslint-disable-next-line camelcase
+					wc_stripe_settings_params.is_oc_enabled === '1'
+				}
+			>
+				<StripeAccountConnectedNotice />
+				<SettingsManager />
+			</OCToggleContextProvider>
 		</UpeToggleContextProvider>,
 		settingsContainer
 	);
@@ -41,7 +51,14 @@ if ( paymentGatewayContainer ) {
 				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
-			<PaymentGatewayManager />
+			<OCToggleContextProvider
+				defaultIsOCEnabled={
+					// eslint-disable-next-line camelcase
+					wc_stripe_settings_params.is_oc_enabled === '1'
+				}
+			>
+				<PaymentGatewayManager />
+			</OCToggleContextProvider>
 		</UpeToggleContextProvider>,
 		paymentGatewayContainer
 	);

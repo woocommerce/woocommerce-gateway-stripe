@@ -48,7 +48,11 @@ class UPE_Test_Helper {
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
 		$settings                         = WC_Stripe_Helper::get_stripe_settings();
+		$settings['publishable_key']      = 'pk_live_1234567890';
+		$settings['secret_key']           = 'sk_live_1234567890';
 		$settings['connection_type']      = 'connect';
+		$settings['test_publishable_key'] = 'pk_test_1234567890';
+		$settings['test_secret_key']      = 'sk_test_1234567890';
 		$settings['test_connection_type'] = 'connect';
 		$settings['pmc_enabled']          = 'yes';
 		WC_Stripe_Helper::update_main_stripe_settings( $settings );

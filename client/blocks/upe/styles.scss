@@ -24,10 +24,10 @@ button.stripe-gateway-stripelink-modal-trigger:hover {
 	justify-content: center;
 }
 /* stylelint-disable selector-id-pattern */
-#radio-control-wc-payment-method-options-stripe__content.single-payment-element {
+#radio-control-wc-payment-method-options-stripe__content.optimized-checkout-element {
 	padding-top: 1.4em;
 
-	.content {
+	.content:empty {
 		display: none;
 	}
 }
