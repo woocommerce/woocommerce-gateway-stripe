@@ -15,6 +15,7 @@ const StyledRadioControl = styled( RadioControl )`
 		margin-bottom: 12px;
 	}
 	.components-radio-control__option {
+		padding-top: 6px;
 		margin-bottom: 0;
 	}
 `;
