@@ -2,6 +2,7 @@
 
 namespace WooCommerce\Stripe\Tests\PaymentMethods;
 
+use Automattic\WooCommerce\Enums\ProductTaxStatus;
 use WC_Gateway_Stripe;
 use WC_Stripe_UPE_Payment_Gateway;
 use WC_Gateway_Stripe_Alipay;
@@ -163,17 +164,17 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 
 		$virtual_nontaxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_nontaxable_product->set_virtual( true );
-		$virtual_nontaxable_product->set_tax_status( 'none' );
+		$virtual_nontaxable_product->set_tax_status( ProductTaxStatus::NONE );
 		$virtual_nontaxable_product->save();
 
 		$virtual_taxable_product = WC_Helper_Product::create_simple_product();
 		$virtual_taxable_product->set_virtual( true );
-		$virtual_taxable_product->set_tax_status( 'taxable' );
+		$virtual_taxable_product->set_tax_status( ProductTaxStatus::TAXABLE );
 		$virtual_taxable_product->save();
 
 		$shippable_taxable_product = WC_Helper_Product::create_simple_product();
 		$shippable_taxable_product->set_virtual( false );
-		$shippable_taxable_product->set_tax_status( 'taxable' );
+		$shippable_taxable_product->set_tax_status( ProductTaxStatus::TAXABLE );
 		$shippable_taxable_product->save();
 		$this->products = [
 			'virtual_nontaxable' => $virtual_nontaxable_product,
@@ -291,7 +292,7 @@ class WC_Stripe_Express_Checkout_Helper_Test extends WP_UnitTestCase {
 		// Add a non-taxable product to the cart.
 		$product = WC_Helper_Product::create_simple_product();
 		$product->set_virtual( false );
-		$product->set_tax_status( 'none' );
+		$product->set_tax_status( ProductTaxStatus::NONE );
 		$product->save();
 
 		WC()->session->init();

@@ -120,13 +120,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	protected $oc_enabled;
 
 	/**
-	 * The default title for the Optimized Checkout element
-	 *
-	 * @var string
-	 */
-	protected $oc_title;
-
-	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -140,7 +133,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->supports                 = [ 'products', 'refunds' ];
 		$this->supports_deferred_intent = true;
 		$this->oc_enabled               = WC_Stripe_Feature_Flags::is_oc_available() && 'yes' === $this->get_option( 'optimized_checkout_element' );
-		$this->oc_title                 = $this->get_option( 'optimized_checkout_element_title', __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
@@ -241,6 +233,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function get_icon() {
 		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return apply_filters( 'woocommerce_gateway_icon', isset( $icons[ $this->get_id() ] ) ? $icons[ $this->get_id() ] : '', $this->id );
+	}
+
+	/**
+	 * Gets the payment method's icon url.
+	 * Each payment method should override this method to return the icon url.
+	 *
+	 * @return string The icon url.
+	 */
+	public function get_icon_url() {
+		return '';
 	}
 
 	/**
