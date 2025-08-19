@@ -40,7 +40,6 @@ jQuery( function ( $ ) {
 		maybeMountStripePaymentElement();
 	} );
 
-	// @todo Fix infinity loop here
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		return processPaymentIfNotUsingSavedMethod( $( this ) );
 	} );

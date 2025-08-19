@@ -80,7 +80,6 @@ export function getPaymentMethodsConstants() {
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
-		oc: PAYMENT_METHOD_STRIPE_OC, // Default payment method for Optimized Checkout
 	};
 }
 
