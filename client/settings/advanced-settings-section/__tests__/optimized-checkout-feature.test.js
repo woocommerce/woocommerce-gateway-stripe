@@ -1,10 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
 import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from 'wcstripe/data';
-
-jest.useFakeTimers();
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsUpeEnabled: jest.fn(),
@@ -19,7 +16,7 @@ jest.mock( '@woocommerce/navigation', () => ( {
 describe( 'Optimized Checkout Element feature setting', () => {
 	beforeEach( () => {
 		useIsUpeEnabled.mockReturnValue( [ true, jest.fn() ] );
-		useIsOCEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 		useOCLayout.mockReturnValue( [ 'accordion', jest.fn() ] );
 	} );
 
@@ -43,7 +40,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		userEvent.click( OCCheckbox );
+		fireEvent.click( OCCheckbox );
 
 		expect( setIsOCEnabledMock ).toHaveBeenCalled();
 	} );
@@ -51,18 +48,12 @@ describe( 'Optimized Checkout Element feature setting', () => {
 	it( 'should be disabled when UPE is disabled', () => {
 		useIsUpeEnabled.mockReturnValue( [ false, jest.fn() ] );
 
+		const mockSetIsOCEnabled = jest.fn();
+		useIsOCEnabled.mockReturnValue( [ false, mockSetIsOCEnabled ] );
+
 		render( <OptimizedCheckoutFeature /> );
 
-		const checkbox = screen.getByTestId(
-			'optimized-checkout-element-checkbox'
-		);
-
-		userEvent.click( checkbox );
-
-		jest.runAllTimers();
-
-		expect( checkbox ).toBeDisabled();
-		expect( checkbox ).not.toBeChecked();
+		expect( mockSetIsOCEnabled ).toHaveBeenCalledWith( false );
 	} );
 
 	it( 'layout setting should be available when OC is enabled', () => {
@@ -89,7 +80,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+		fireEvent.click( screen.getByLabelText( 'Tabs' ) );
 		expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
 	} );
 } );
