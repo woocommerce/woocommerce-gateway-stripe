@@ -1,8 +1,8 @@
-import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromotionalBanner from '..';
+import { useDispatch } from '@wordpress/data';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_CARD,

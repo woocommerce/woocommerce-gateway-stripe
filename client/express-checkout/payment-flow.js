@@ -1,5 +1,5 @@
-import { __ } from '@wordpress/i18n';
 import { getErrorMessageFromNotice, normalizeOrderData } from './utils';
+import { __ } from '@wordpress/i18n';
 
 const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	let errorMessage;
@@ -11,9 +11,10 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	} else if ( exception.message ) {
 		errorMessage = exception.message;
 	} else {
-		const paymentDetailsErrorMessage = exception.payment_result?.payment_details.find(
-			( detail ) => detail.key === 'errorMessage'
-		)?.value;
+		const paymentDetailsErrorMessage =
+			exception.payment_result?.payment_details.find(
+				( detail ) => detail.key === 'errorMessage'
+			)?.value;
 		if ( paymentDetailsErrorMessage ) {
 			errorMessage = paymentDetailsErrorMessage;
 		}

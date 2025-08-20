@@ -11,8 +11,9 @@ jest.mock(
 	() => () => null
 );
 
-jest.mock( 'wcstripe/settings/payment-settings/promotional-banner', () => () =>
-	null
+jest.mock(
+	'wcstripe/settings/payment-settings/promotional-banner',
+	() => () => null
 );
 
 describe( 'SettingsManager', () => {
