@@ -125,5 +125,6 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 * Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
 * Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
 * Update - Show all available payment methods before unavailable payment methods
+* Tweak - Use smaller image for Optimized Checkout banner
 
 [See changelog for full details across versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
