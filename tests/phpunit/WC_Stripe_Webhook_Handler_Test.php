@@ -97,7 +97,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 			->method( 'handle_deferred_payment_intent_succeeded' );
 
 		$this->expectExceptionMessage( 'Unsupported webhook type: event-id' );
-		$this->mock_webhook_handler->process_deferred_webhook( 'event-id', [] );
+		$this->mock_webhook_handler->process_deferred_webhook( 'event-id', [], (object) [] );
 	}
 
 	/**
@@ -107,11 +107,27 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->expects( $this->never() )
 			->method( 'handle_deferred_payment_intent_succeeded' );
 
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => 'pi_mock_1234',
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
+		];
+
 		// No data.
 		$data = [];
 
 		$this->expectExceptionMessage( "Missing required data. 'order_id' is invalid or not found for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
 		// Invalid order_id.
 		$data = [
@@ -119,25 +135,40 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		];
 
 		$this->expectExceptionMessage( "Missing required data. 'order_id' is invalid or not found for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 
 		// No payment intent.
 		$order            = WC_Helper_Order::create_order();
 		$data['order_id'] = $order->get_id();
 
 		$this->expectExceptionMessage( "Missing required data. 'intent_id' is missing for the deferred 'payment_intent.succeeded' event." );
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test process_deferred_webhook with valid args.
 	 */
 	public function test_process_deferred_webhook() {
-		$order     = WC_Helper_Order::create_order();
-		$intent_id = 'pi_mock_1234';
-		$data      = [
+		$order        = WC_Helper_Order::create_order();
+		$intent_id    = 'pi_mock_1234';
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => $intent_id,
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => $intent_id,
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
 		];
 
 		$this->mock_webhook_handler->expects( $this->once() )
@@ -151,17 +182,32 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				$this->equalTo( $intent_id ),
 			);
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test deferred webhook where the intent is no longer stored on the order.
 	 */
 	public function test_mismatch_intent_id_process_deferred_webhook() {
-		$order = WC_Helper_Order::create_order();
-		$data  = [
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => 'pi_wrong_id',
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) [
+					'id'                 => 'pi_mock_1234',
+					'charges'            => (object) [
+						'total_count' => 1,
+						'data'        => [
+							(object) self::MOCK_PAYMENT_INTENT['charges']['data'][0],
+						],
+					],
+					'last_payment_error' => null,
+				],
+			],
 		];
 
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
@@ -185,17 +231,23 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 		$this->mock_webhook_handler->expects( $this->never() )
 			->method( 'process_response' );
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
 	 * Test successful deferred webhook.
 	 */
 	public function test_process_of_successful_payment_intent_deferred_webhook() {
-		$order = WC_Helper_Order::create_order();
-		$data  = [
+		$order        = WC_Helper_Order::create_order();
+		$data         = [
 			'order_id'  => $order->get_id(),
 			'intent_id' => self::MOCK_PAYMENT_INTENT['id'],
+		];
+		$notification = (object) [
+			'type' => 'payment_intent.succeeded',
+			'data' => (object) [
+				'object' => (object) self::MOCK_PAYMENT_INTENT,
+			],
 		];
 
 		$this->mock_webhook_handler( [ 'handle_deferred_payment_intent_succeeded' ] );
@@ -226,7 +278,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 				)
 			);
 
-		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data );
+		$this->mock_webhook_handler->process_deferred_webhook( 'payment_intent.succeeded', $data, $notification );
 	}
 
 	/**
