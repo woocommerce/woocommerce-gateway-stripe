@@ -1,5 +1,5 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import PaymentRequestsPage from './payment-request-page';
 
 const container = document.getElementById(
@@ -7,6 +7,5 @@ const container = document.getElementById(
 );
 
 if ( container ) {
-	const paymentRequestsRoot = createRoot( container );
-	paymentRequestsRoot.render( <PaymentRequestsPage /> );
+	ReactDOM.render( <PaymentRequestsPage />, container );
 }
