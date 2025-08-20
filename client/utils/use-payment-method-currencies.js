@@ -1,6 +1,6 @@
-import { useContext } from '@wordpress/element';
 import UpeToggleContext from '../settings/upe-toggle/context';
 import PaymentMethodsMap from '../payment-methods-map';
+import { useContext } from '@wordpress/element';
 import {
 	PAYMENT_METHOD_ALIPAY,
 	PAYMENT_METHOD_KLARNA,
@@ -234,7 +234,7 @@ const getAmazonPayCurrencies = () => {
  * Returns the currencies supported by a payment method.
  * Note that [] is returned for payment methods that support all currencies.
  *
- * @param {string} paymentMethodId
+ * @param {string}  paymentMethodId
  * @param {boolean} isUpeEnabled
  * @return {string[]} Array of currencies supported by that payment method.
  */

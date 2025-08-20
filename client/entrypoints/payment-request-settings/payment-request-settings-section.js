@@ -1,20 +1,20 @@
 /* global wc_stripe_payment_request_settings_params */
 
 import { ADMIN_URL, getSetting } from '@woocommerce/settings';
-import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
-import {
-	Card,
-	RadioControl,
-	CheckboxControl,
-	Notice,
-} from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import styled from '@emotion/styled';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
 import ExpressCheckoutPreviewComponent from './express-checkout-button-preview';
+import {
+	Card,
+	RadioControl,
+	CheckboxControl,
+	Notice,
+} from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
@@ -149,10 +149,8 @@ const PaymentRequestsSettingsSection = () => {
 
 	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
 
-	const [
-		paymentRequestLocations,
-		updatePaymentRequestLocations,
-	] = usePaymentRequestLocations();
+	const [ paymentRequestLocations, updatePaymentRequestLocations ] =
+		usePaymentRequestLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {

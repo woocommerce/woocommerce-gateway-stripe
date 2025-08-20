@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from '@wordpress/element';
 import {
 	shippingAddressChangeHandler,
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
+import { useState, useEffect, useCallback } from '@wordpress/element';
 import {
 	getBlocksConfiguration,
 	createPaymentRequestUsingCart,
@@ -16,10 +16,10 @@ import { getCartDetails } from 'wcstripe/api/blocks';
  * This hook takes care of creating a payment request and making sure
  * you can pay through said payment request.
  *
- * @param {Object}  stripe The stripe object used to create the payment request.
+ * @param {Object}  stripe        The stripe object used to create the payment request.
  * @param {boolean} needsShipping A value from the Block checkout that indicates whether shipping
  *                                is required or not.
- * @param {Object}  billing - The billing data from the checkout or cart block.
+ * @param {Object}  billing       - The billing data from the checkout or cart block.
  *
  * @return {Array} An array; first element is the payment request; second element is the payment
  *                 requests type.
@@ -27,9 +27,8 @@ import { getCartDetails } from 'wcstripe/api/blocks';
 export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
-	const [ isUpdatingPaymentRequest, setIsUpdatingPaymentRequest ] = useState(
-		false
-	);
+	const [ isUpdatingPaymentRequest, setIsUpdatingPaymentRequest ] =
+		useState( false );
 
 	// Create a payment request if:
 	//   a) Stripe object is loaded; and
@@ -87,9 +86,9 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  * Returns an onClick handler for payment request buttons. Checks if login is required, resets
  * the error state, syncs the payment request with the block, and calls the provided click handler.
  *
- * @param {string} paymentRequestType - The payment request type.
+ * @param {string}   paymentRequestType     - The payment request type.
  * @param {Function} setExpressPaymentError - Used to set the error state.
- * @param {Function} onClick - The onClick function that should be called on click.
+ * @param {Function} onClick                - The onClick function that should be called on click.
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
@@ -126,7 +125,7 @@ export const useOnClickHandler = (
  * Adds a shipping address change event handler to the provided payment request. Updates the
  * order's shipping address when necessary.
  *
- * @param {Object} paymentRequest - The payment request object.
+ * @param {Object} paymentRequest     - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
  */
 export const useShippingAddressUpdateHandler = (
@@ -149,7 +148,7 @@ export const useShippingAddressUpdateHandler = (
 /**
  * Adds a shipping option change event handler to the provided payment request.
  *
- * @param {Object} paymentRequest - The payment request object.
+ * @param {Object} paymentRequest     - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
  */
 export const useShippingOptionChangeHandler = (
@@ -172,11 +171,11 @@ export const useShippingOptionChangeHandler = (
 /**
  * Adds a payment event handler to the provided payment request.
  *
- * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
- * @param {Object} paymentRequest - The payment request object.
- * @param {string} paymentRequestType - The payment request type.
+ * @param {Object}   stripe                 - The stripe object used to confirm and create a payment intent.
+ * @param {Object}   paymentRequest         - The payment request object.
+ * @param {string}   paymentRequestType     - The payment request type.
  * @param {Function} setExpressPaymentError - A function used to expose an error message to show
- *                                            the customer.
+ *                                          the customer.
  */
 export const useProcessPaymentHandler = (
 	stripe,
@@ -204,8 +203,8 @@ export const useProcessPaymentHandler = (
 /**
  * Adds a cancellation handler to the provided payment request.
  *
- * @param {Object} paymentRequest - The payment request object.
- * @param {Function} onClose - A function from the Blocks API.
+ * @param {Object}   paymentRequest - The payment request object.
+ * @param {Function} onClose        - A function from the Blocks API.
  */
 export const useCancelHandler = ( paymentRequest, onClose ) => {
 	useEffect( () => {

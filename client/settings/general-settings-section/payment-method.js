@@ -1,5 +1,4 @@
 /* global wc_stripe_settings_params */
-import { sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
@@ -7,6 +6,7 @@ import interpolateComponents from 'interpolate-components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
+import { sprintf } from '@wordpress/i18n';
 import { useManualCapture } from 'wcstripe/data';
 import {
 	PAYMENT_METHOD_AFFIRM,
@@ -65,7 +65,7 @@ const PaymentMethodWrapper = styled.div`
 /**
  * Formats the payment method description with the account default currency.
  *
- * @param {*} method Payment method ID.
+ * @param {*} method                 Payment method ID.
  * @param {*} accountDefaultCurrency Account default currency.
  */
 const getFormattedPaymentMethodDescription = (
@@ -105,9 +105,8 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 
 const PaymentMethod = ( { method, data } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
-	const paymentMethodUnavailableReason = usePaymentMethodUnavailableReason(
-		method
-	);
+	const paymentMethodUnavailableReason =
+		usePaymentMethodUnavailableReason( method );
 
 	const {
 		Icon,

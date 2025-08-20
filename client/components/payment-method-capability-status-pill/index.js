@@ -1,8 +1,8 @@
-import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
+import { __, sprintf } from '@wordpress/i18n';
 import Pill from 'wcstripe/components/pill';
 import Popover from 'wcstripe/components/popover';
 import { useGetCapabilities } from 'wcstripe/data/account';

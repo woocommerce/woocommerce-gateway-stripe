@@ -1,6 +1,6 @@
-import { useDispatch } from '@wordpress/data';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useDispatch } from '@wordpress/data';
 import { NewCheckoutExperienceBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-banner';
 
 const noticesDispatch = {

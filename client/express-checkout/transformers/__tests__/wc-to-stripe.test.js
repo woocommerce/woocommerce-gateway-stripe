@@ -90,8 +90,7 @@ describe( 'wc-to-stripe transformers', () => {
 								},
 								{
 									name: 'Booking Type',
-									value:
-										'Black folding chairs (Sample resource)',
+									value: 'Black folding chairs (Sample resource)',
 									display: '',
 								},
 							],

@@ -1,13 +1,13 @@
-import { __ } from '@wordpress/i18n';
 import classNames from 'classnames';
 import mark from './mark.svg';
+import { __ } from '@wordpress/i18n';
 
 /**
  * StripeMark component.
  *
  * @param {Object} props             The component props.
  * @param {string} [props.className] Additional classes to add to the StripeMark component.
- * @param {any} props.restProps      Additional props to add to the StripeMark component.
+ * @param {any}    props.restProps   Additional props to add to the StripeMark component.
  *
  * @return {JSX.Element} The rendered StripeMark component.
  */

@@ -1,11 +1,4 @@
-import { __, sprintf } from '@wordpress/i18n';
 import { React } from 'react';
-import {
-	Card,
-	CheckboxControl,
-	TextControl,
-	Button,
-} from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
@@ -18,6 +11,13 @@ import {
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
 } from '../../data/payment-gateway/hooks';
+import {
+	Card,
+	CheckboxControl,
+	TextControl,
+	Button,
+} from '@wordpress/components';
+import { __, sprintf } from '@wordpress/i18n';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
@@ -37,10 +37,8 @@ const PaymentGatewaySection = () => {
 	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
-	const [
-		gatewayDescription,
-		setGatewayDescription,
-	] = usePaymentGatewayDescription();
+	const [ gatewayDescription, setGatewayDescription ] =
+		usePaymentGatewayDescription();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
