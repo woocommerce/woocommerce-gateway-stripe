@@ -137,8 +137,6 @@ const PaymentMethod = ( { method, data } ) => {
 			// eslint-disable-next-line camelcase
 			wc_stripe_settings_params.has_klarna_gateway_plugin );
 
-	const isDisabledButChecked = false;
-
 	return (
 		<div key={ method }>
 			<ListElement
@@ -153,7 +151,6 @@ const PaymentMethod = ( { method, data } ) => {
 					label={ label }
 					isAllowingManualCapture={ isAllowingManualCapture }
 					disabled={ deprecated || isDisabled }
-					disabledButChecked={ isDisabledButChecked }
 				/>
 				<PaymentMethodWrapper>
 					<PaymentMethodDescription

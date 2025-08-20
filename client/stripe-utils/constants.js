@@ -54,7 +54,6 @@ export const PAYMENT_METHOD_STRIPE_CASHAPP = 'stripe_cashapp';
 export const PAYMENT_METHOD_STRIPE_ACSS = 'stripe_acss_debit';
 export const PAYMENT_METHOD_STRIPE_BACS_DEBIT = 'stripe_bacs_debit';
 export const PAYMENT_METHOD_STRIPE_BECS = 'stripe_au_becs_debit';
-export const PAYMENT_METHOD_STRIPE_OC = 'stripe';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -80,7 +79,6 @@ export function getPaymentMethodsConstants() {
 		cashapp: PAYMENT_METHOD_STRIPE_CASHAPP,
 		acss_debit: PAYMENT_METHOD_STRIPE_ACSS,
 		bacs_debit: PAYMENT_METHOD_STRIPE_BACS_DEBIT,
-		oc: PAYMENT_METHOD_STRIPE_OC, // Default payment method for Optimized Checkout
 	};
 }
 
@@ -133,6 +131,16 @@ export const EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY = 'amazonPay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY = 'applePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY = 'googlePay';
 export const EXPRESS_PAYMENT_METHOD_SETTING_LINK = 'link';
+
+/**
+ * List of express payment methods
+ */
+export const EXPRESS_PAYMENT_METHODS = [
+	EXPRESS_PAYMENT_METHOD_SETTING_AMAZON_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_APPLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_GOOGLE_PAY,
+	EXPRESS_PAYMENT_METHOD_SETTING_LINK,
+];
 
 /**
  * List of payment methods that are not recurring

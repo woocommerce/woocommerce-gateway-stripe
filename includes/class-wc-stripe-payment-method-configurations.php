@@ -296,20 +296,17 @@ class WC_Stripe_Payment_Method_Configurations {
 
 	/**
 	 * Check if the payment method configurations API can be used to store enabled payment methods.
-	 * This requires the Stripe account to be connected to our platform ('connection_type' option to be 'connect').
-	 *
-	 * This is temporary until we finish the re-authentication campaign.
+	 * This requires the Stripe account to be connected to Stripe.
 	 *
 	 * @return bool
 	 */
 	public static function is_enabled() {
-		$stripe_settings     = WC_Stripe_Helper::get_stripe_settings();
-		$connection_type_key = WC_Stripe_Mode::is_test() ? 'test_connection_type' : 'connection_type';
-
-		// If the account is not a Connect OAuth account, we can't use the payment method configurations API.
-		if ( ! isset( $stripe_settings[ $connection_type_key ] ) || 'connect' !== $stripe_settings[ $connection_type_key ] ) {
+		// Bail if account is not connected.
+		if ( ! WC_Stripe_Helper::is_connected() ) {
 			return false;
 		}
+
+		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
 
 		// If we have the pmc_enabled flag, and it is set to no, we should not use the payment method configurations API.
 		// We only disable the PMC if the flag is set to no explicitly, an empty value means the migration has not been attempted yet.
@@ -362,9 +359,8 @@ class WC_Stripe_Payment_Method_Configurations {
 			);
 		}
 
-		// Update the PMC if there are any enabled payment methods
+		// Update the PMC if there are locally enabled payment methods
 		if ( ! empty( $enabled_payment_methods ) ) {
-
 			// Get all available payment method IDs from the configuration.
 			// We explicitly disable all payment methods that are not in the enabled_payment_methods array
 			$available_payment_method_ids = [];
@@ -372,7 +368,25 @@ class WC_Stripe_Payment_Method_Configurations {
 				if ( isset( $payment_method->display_preference ) ) {
 					$available_payment_method_ids[] = $payment_method_id;
 				}
+
+				// We want to also include payment methods enabled in the PMC, except for express payment methods.
+				if (
+					! in_array( $payment_method_id, WC_Stripe_Payment_Methods::EXPRESS_PAYMENT_METHODS, true ) &&
+					! in_array( $payment_method_id, $enabled_payment_methods, true ) &&
+					isset( $payment_method->display_preference->value ) && 'on' === $payment_method->display_preference->value
+				) {
+					$enabled_payment_methods[] = $payment_method_id;
+				}
 			}
+
+			WC_Stripe_Logger::error(
+				'Switching to Stripe-hosted payment method configuration',
+				[
+					'pmc_id'                       => $merchant_payment_method_configuration->id,
+					'enabled_payment_methods'      => $enabled_payment_methods,
+					'available_payment_method_ids' => $available_payment_method_ids,
+				]
+			);
 
 			self::update_payment_method_configuration(
 				$enabled_payment_methods,
@@ -395,7 +409,7 @@ class WC_Stripe_Payment_Method_Configurations {
 	 * This is called when no Payment Method Configuration is found that inherits from the WooCommerce Platform.
 	 */
 	private static function disable_payment_method_configuration_sync() {
-		$stripe_settings = WC_Stripe_Helper::get_stripe_settings();
+		$stripe_settings                = WC_Stripe_Helper::get_stripe_settings();
 		$stripe_settings['pmc_enabled'] = 'no';
 		WC_Stripe_Helper::update_main_stripe_settings( $stripe_settings );
 	}

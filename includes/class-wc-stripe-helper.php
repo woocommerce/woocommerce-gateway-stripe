@@ -1896,4 +1896,111 @@ class WC_Stripe_Helper {
 		}
 		return false;
 	}
+
+	/**
+	 * Checks if the given payment intent is valid for the order.
+	 * This checks the currency, amount, and payment method types.
+	 * The function will log a critical error if there is a mismatch.
+	 *
+	 * @param WC_Order      $order                 The order to check.
+	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
+	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
+	 *
+	 * @throws Exception Throws an exception if the intent is not valid for the order.
+	 */
+	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		$intent_id = null;
+		if ( is_string( $intent ) ) {
+			$intent_id = $intent;
+			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
+			if ( $is_setup_intent ) {
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			} else {
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			}
+		}
+
+		if ( ! is_object( $intent ) ) {
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $intent_id ) {
+			$intent_id = $intent->id ?? null;
+		}
+
+		// Make sure we actually fetched the intent.
+		if ( ! empty( $intent->error ) ) {
+			WC_Stripe_Logger::error(
+				'Error: failed to fetch requested Stripe intent',
+				[
+					'intent_id' => $intent_id,
+					'error'     => $intent->error,
+				]
+			);
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $selected_payment_type ) {
+			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+		}
+
+		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
+		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
+		$order_currency        = strtolower( $order->get_currency() );
+		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$order_intent_id       = self::get_intent_id_from_order( $order );
+
+		if ( 'payment_intent' === $intent->object ) {
+			$is_valid = $order_currency === $intent->currency
+				&& $is_valid_payment_type
+				&& $order_amount === $intent->amount
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		} else {
+			// Setup intents don't have an amount or currency.
+			$is_valid = $is_valid_payment_type
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		}
+
+		// Return early if we have a valid intent.
+		if ( $is_valid ) {
+			return;
+		}
+
+		$permitted_payment_types = implode( '/', $intent->payment_method_types );
+		WC_Stripe_Logger::critical(
+			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			[
+				'order_id'                    => $order->get_id(),
+				'intent_id'                   => $intent->id,
+				'intent_currency'             => $intent->currency,
+				'intent_amount'               => $intent->amount,
+				'intent_payment_method_types' => $intent->payment_method_types,
+				'selected_payment_type'       => $selected_payment_type,
+				'order_currency'              => $order->get_currency(),
+				'order_total'                 => $order->get_total(),
+			]
+		);
+
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+	}
+
+	/**
+	 * Determines if the store is connected to Stripe.
+	 *
+	 * @param string $mode Optional. The mode to check. 'live' or 'test' - if not provided, the currently enabled mode will be checked.
+	 * @return bool True if connected, false otherwise.
+	 */
+	public static function is_connected( $mode = null ) {
+		// If the mode is not provided, we'll check the current mode.
+		if ( null === $mode ) {
+			$mode = WC_Stripe_Mode::is_test() ? 'test' : 'live';
+		}
+
+		$options = self::get_stripe_settings();
+		if ( 'test' === $mode ) {
+			return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
+		} else {
+			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
+		}
+	}
 }

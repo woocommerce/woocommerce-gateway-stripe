@@ -33,7 +33,6 @@ const PaymentMethodCheckbox = ( {
 	label,
 	isAllowingManualCapture,
 	disabled,
-	disabledButChecked,
 } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
@@ -45,12 +44,10 @@ const PaymentMethodCheckbox = ( {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const checked =
-		! disabled &&
-		( disabledButChecked || enabledPaymentMethods.includes( id ) );
+	const checked = ! disabled && enabledPaymentMethods.includes( id );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
-		if ( disabled || disabledButChecked ) {
+		if ( disabled ) {
 			return;
 		}
 		if ( ! hasBeenChecked ) {
@@ -100,7 +97,8 @@ const PaymentMethodCheckbox = ( {
 							{ sprintf(
 								/* translators: %s: a payment method name. */
 								__(
-									'%s cannot be enabled at checkout. Click to expand.'
+									'%s cannot be enabled at checkout. Click to expand.',
+									'woocommerce-gateway-stripe'
 								),
 								label
 							) }
@@ -112,7 +110,7 @@ const PaymentMethodCheckbox = ( {
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }
 					onChange={ handleCheckboxChange }
 					checked={ checked }
-					disabled={ disabled || disabledButChecked }
+					disabled={ disabled }
 				/>
 			) }
 			{ isConfirmationModalOpen && (

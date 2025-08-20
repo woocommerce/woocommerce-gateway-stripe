@@ -677,12 +677,11 @@ export async function handleCheckout3DSChallenge( page, action = 'authorize' ) {
 		outerFrameLocator.locator( '.LightboxModalLoadingIndicator' )
 	).toBeHidden();
 
-	const buttonId =
-		action === 'authorize'
-			? '#test-source-authorize-3ds'
-			: '#test-source-fail-3ds';
-	await expect( innerFrameLocator.locator( buttonId ) ).toBeVisible();
-	await innerFrameLocator.locator( buttonId ).click();
+	const buttonName = action === 'authorize' ? 'Complete' : 'Fail';
+	await expect(
+		innerFrameLocator.getByRole( 'button', { name: buttonName } )
+	).toBeVisible();
+	await innerFrameLocator.getByRole( 'button', { name: buttonName } ).click();
 
 	if ( action === 'fail' ) {
 		await expect( innerFrameLocator.owner() ).toBeHidden();
