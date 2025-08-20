@@ -207,11 +207,15 @@ class WC_Stripe_Database_Cache {
 	}
 
 	/**
-	 * Deletes all stale entries from the cache.
+	 * Deletes stale entries from the cache.
 	 *
+	 * @param int         $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
+	 * @param string|null $last_key The last key processed. If provided, the query will start from the next key. Allows for pagination.
 	 * @return array {
-	 *     @type bool        $more_entries  True if more entries may exist. False if all rows have been processed.
-	 *     @type string|null $last_key The last key processed.
+	 *     @type bool        $more_entries True if more entries may exist. False if all rows have been processed.
+	 *     @type string|null $last_key     The last key processed.
+	 *     @type int         $processed    The number of entries processed.
+	 *     @type int         $deleted      The number of entries deleted.
 	 * }
 	 */
 	public static function delete_stale_entries( int $max_rows = 500, ?string $last_key = null ): array {
@@ -264,6 +268,17 @@ class WC_Stripe_Database_Cache {
 		return $result;
 	}
 
+	/**
+	 * Deletes all stale entries from the cache.
+	 *
+	 * @param string $approach The approach to use to delete the entries.
+	 * @param int    $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
+	 *
+	 * @return array {
+	 *     @type int $processed The number of entries processed.
+	 *     @type int $deleted   The number of entries deleted.
+	 * }
+	 */
 	public static function delete_all_stale_entries( string $approach, int $max_rows = 500 ) {
 		$result = [
 			'processed' => 0,
