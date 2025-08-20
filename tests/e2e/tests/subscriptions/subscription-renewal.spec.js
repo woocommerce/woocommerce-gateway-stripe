@@ -51,7 +51,7 @@ test( 'customer can renew a subscription @smoke @subscriptions', async ( {
 			config.get( 'cards.basic' )
 		);
 
-		await page.locator( 'text=Sign up now' ).click();
+		await page.locator( 'text=Add to cart' ).click();
 
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 			'Order received'

@@ -73,6 +73,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const BLOCKS_APPEARANCE_TRANSIENT = 'wc_stripe_blocks_appearance';
 
 	/**
+	 * The default layout for the Optimized Checkout.
+	 *
+	 * @var string
+	 */
+	public const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -526,6 +533,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Optimized Checkout feature flag + setting.
 		$stripe_params['isOCEnabled'] = $this->oc_enabled;
+		$stripe_params['OCLayout']    = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 
 		// Single Payment Element payment method parent configuration ID
 		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
