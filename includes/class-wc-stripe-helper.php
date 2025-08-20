@@ -2003,4 +2003,14 @@ class WC_Stripe_Helper {
 			return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 		}
 	}
+
+	/**
+	 * Checks if the order is using a Stripe payment method.
+	 *
+	 * @param $order WC_Order The order to check.
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_order( $order ) {
+		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
 }
