@@ -65,7 +65,7 @@
     "cross-env": "^5.2.1",
     "dotenv": "^16.0.3",
     "eslint": "^8.57.1",
-    "eslint-import-resolver-webpack": "0.13.1",
+		"eslint-import-resolver-webpack": "^0.13.8",
     "eslint-plugin-jest": "^26.9.0",
     "eslint-plugin-react-hooks": "4.3",
     "husky": "^7.0.1",
