@@ -13,6 +13,7 @@
 * Fix - Fix unnecessary Stripe API calls when rendering subscription details
 * Add - Adds a new action (`wc_stripe_webhook_received`) to allow additional actions to be taken for webhook notifications from Stripe
 * Fix - Allow checkout for logged-in users without an email in their account when a billing email is provided
+* Update - Show all available payment methods before unavailable payment methods
 * Tweak - Use smaller image for Optimized Checkout banner
 
 = 9.8.1 - 2025-08-15 =
