@@ -111,7 +111,7 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
-* Dev - Moves all the Optimized Checkout feature code of the card payment method class to a new, specific class
+* Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
 * Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
 * Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 * Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
