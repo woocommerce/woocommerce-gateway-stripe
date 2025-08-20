@@ -18,6 +18,7 @@ import {
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 import {
+	OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_BLIK,
 	PAYMENT_METHOD_BOLETO,
@@ -197,7 +198,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		paymentElementOptions = {
 			...paymentElementOptions,
 			layout: {
-				type: 'accordion',
+				type:
+					getStripeServerData()?.OCLayout ||
+					OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
 				radios: false,
 			},
 		};

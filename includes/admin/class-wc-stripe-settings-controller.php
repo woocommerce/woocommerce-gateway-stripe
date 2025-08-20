@@ -280,6 +280,7 @@ class WC_Stripe_Settings_Controller {
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
 			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'is_oc_enabled'                         => $is_oc_enabled,
+			'oc_layout'                             => $this->get_gateway()->get_validated_option( 'optimized_checkout_layout' ),
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 			'is_sepa_tokens_enabled'                => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),
 			'has_affirm_gateway_plugin'             => WC_Stripe_Helper::has_gateway_plugin_active( WC_Stripe_Helper::OFFICIAL_PLUGIN_ID_AFFIRM ),
