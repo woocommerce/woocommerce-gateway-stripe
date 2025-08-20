@@ -1,9 +1,9 @@
-import React, { useEffect, useRef } from 'react';
-import { getQuery } from '@woocommerce/navigation';
-import { useIsUpeEnabled } from '../../data';
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
+import React, { useEffect, useRef } from 'react';
+import { getQuery } from '@woocommerce/navigation';
 import { CheckboxControl, ExternalLink } from '@wordpress/components';
+import { useIsUpeEnabled } from '../../data';
 
 const OptimizedCheckoutFeature = ( { isOCEnabled, setIsOCEnabled } ) => {
 	const [ isUpeEnabled ] = useIsUpeEnabled();

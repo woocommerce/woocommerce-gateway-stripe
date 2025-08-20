@@ -1,3 +1,4 @@
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	appendPaymentMethodIdToForm,
 	appendPaymentIntentIdToForm,
@@ -16,7 +17,6 @@ import {
 	validateBlikCode,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
-import { __, sprintf } from '@wordpress/i18n';
 import {
 	PAYMENT_INTENT_STATUS_REQUIRES_ACTION,
 	PAYMENT_METHOD_BLIK,
@@ -163,8 +163,8 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 		if ( getStripeServerData()?.isOCEnabled ) {
 			options = {
 				...options,
-				paymentMethodConfiguration:
-					getStripeServerData()?.paymentMethodConfigurationParentId,
+				paymentMethodConfiguration: getStripeServerData()
+					?.paymentMethodConfigurationParentId,
 			};
 
 			const setupFutureUsage =
@@ -221,8 +221,9 @@ async function createStripePaymentElement( api, paymentMethodType ) {
 	);
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
-	gatewayUPEComponents[ paymentMethodType ].upeElement =
-		createdStripePaymentElement;
+	gatewayUPEComponents[
+		paymentMethodType
+	].upeElement = createdStripePaymentElement;
 
 	// When email or phone is updated and Link is enabled, we need to
 	// update the payment element to update its default values.
@@ -282,14 +283,14 @@ function createStripePaymentMethod(
 					document.querySelector( '#billing_phone' )?.value || null,
 				address: {
 					city: document.querySelector( '#billing_city' )?.value,
-					country:
-						document.querySelector( '#billing_country' )?.value,
+					country: document.querySelector( '#billing_country' )
+						?.value,
 					line1: document.querySelector( '#billing_address_1' )
 						?.value,
 					line2: document.querySelector( '#billing_address_2' )
 						?.value,
-					postal_code:
-						document.querySelector( '#billing_postcode' )?.value,
+					postal_code: document.querySelector( '#billing_postcode' )
+						?.value,
 					state: document.querySelector( '#billing_state' )?.value,
 				},
 			},
@@ -364,8 +365,9 @@ export async function mountStripePaymentElement( api, domElement ) {
 			handleDisplayOfPaymentInstructions( value.type );
 
 			// Bind the create account checkbox to the save card info container display function.
-			const createAccountCheckbox =
-				document.getElementById( 'createaccount' );
+			const createAccountCheckbox = document.getElementById(
+				'createaccount'
+			);
 			const updateCheckboxListener = () => {
 				handleDisplayOfSavingCheckbox( value.type );
 			};
@@ -459,8 +461,9 @@ export const processPayment = (
 
 	( async () => {
 		try {
-			const { elements, hasLoadError } =
-				gatewayUPEComponents[ paymentMethodType ];
+			const { elements, hasLoadError } = gatewayUPEComponents[
+				paymentMethodType
+			];
 
 			if ( hasLoadError ) {
 				throw new Error(

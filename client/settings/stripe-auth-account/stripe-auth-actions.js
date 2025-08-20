@@ -1,9 +1,9 @@
 /* global wc_stripe_settings_params, ajaxurl */
+import { __ } from '@wordpress/i18n';
 import { React, useState, useEffect } from 'react';
 import interpolateComponents from 'interpolate-components';
-import ConfigureWebhookButton from './configure-webhook-button';
 import { Button, ExternalLink } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
+import ConfigureWebhookButton from './configure-webhook-button';
 import InlineNotice from 'wcstripe/components/inline-notice';
 
 /**

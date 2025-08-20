@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
 import { useDispatch } from '@wordpress/data';
+import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import { NAMESPACE, STORE_NAME } from 'wcstripe/data/constants';
 import OCToggleContext from 'wcstripe/settings/oc-toggle/context';

@@ -8,8 +8,10 @@ const PaymentGatewaysConfirmation = () => {
 	// so that there isn't a delay in the modal rendering
 	useSettings();
 
-	const [ isConfirmationModalVisible, setIsConfirmationModalVisible ] =
-		useState( false );
+	const [
+		isConfirmationModalVisible,
+		setIsConfirmationModalVisible,
+	] = useState( false );
 	const hasUserConfirmedDeactivation = useRef( false );
 
 	const handleDialogConfirmation = useCallback( () => {

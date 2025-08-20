@@ -35,10 +35,9 @@ export const checkPaymentMethodIsAvailable = memoize(
 						} ),
 						amount: Number( cart.cartTotals.total_price ),
 						currency: cart.cartTotals.currency_code.toLowerCase(),
-						paymentMethodTypes:
-							getPaymentMethodTypesForExpressMethod(
-								paymentMethod
-							),
+						paymentMethodTypes: getPaymentMethodTypesForExpressMethod(
+							paymentMethod
+						),
 					} }
 				>
 					<ExpressCheckoutElement

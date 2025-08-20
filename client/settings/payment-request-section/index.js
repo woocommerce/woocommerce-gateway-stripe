@@ -1,7 +1,10 @@
 /* global wc_stripe_settings_params */
 
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import interpolateComponents from 'interpolate-components';
+import { addQueryArgs } from '@wordpress/url';
+import { Card, CheckboxControl } from '@wordpress/components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';
@@ -14,9 +17,6 @@ import {
 import './styles.scss';
 import AmazonPayIcon from '../../payment-method-icons/amazon-pay';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
-import { Card, CheckboxControl } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
-import { addQueryArgs } from '@wordpress/url';
 import {
 	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_LINK,
@@ -24,16 +24,22 @@ import {
 } from 'wcstripe/stripe-utils/constants';
 
 const PaymentRequestSection = () => {
-	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
-		usePaymentRequestEnabledSettings();
+	const [
+		isPaymentRequestEnabled,
+		updateIsPaymentRequestEnabled,
+	] = usePaymentRequestEnabledSettings();
 
-	const [ isAmazonPayEnabled, updateIsAmazonPayEnabled ] =
-		useAmazonPayEnabledSettings();
+	const [
+		isAmazonPayEnabled,
+		updateIsAmazonPayEnabled,
+	] = useAmazonPayEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
-	const [ enabledMethodIds, updateEnabledMethodIds ] =
-		useEnabledPaymentMethodIds();
+	const [
+		enabledMethodIds,
+		updateEnabledMethodIds,
+	] = useEnabledPaymentMethodIds();
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
@@ -51,13 +57,15 @@ const PaymentRequestSection = () => {
 		}
 	};
 
-	const displayExpressPaymentMethods =
-		enabledMethodIds.includes( PAYMENT_METHOD_CARD );
+	const displayExpressPaymentMethods = enabledMethodIds.includes(
+		PAYMENT_METHOD_CARD
+	);
 	const displayLinkPaymentMethod =
 		enabledMethodIds.includes( PAYMENT_METHOD_CARD ) &&
 		availablePaymentMethodIds.includes( PAYMENT_METHOD_LINK );
-	const isStripeLinkEnabled =
-		enabledMethodIds.includes( PAYMENT_METHOD_LINK );
+	const isStripeLinkEnabled = enabledMethodIds.includes(
+		PAYMENT_METHOD_LINK
+	);
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',

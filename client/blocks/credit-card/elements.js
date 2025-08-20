@@ -1,3 +1,5 @@
+import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import {
 	CardElement,
 	CardNumberElement,
@@ -5,8 +7,6 @@ import {
 	CardCvcElement,
 } from '@stripe/react-stripe-js';
 import { useElementOptions } from './use-element-options';
-import { useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 
 /** @typedef {import('react')} React */
 

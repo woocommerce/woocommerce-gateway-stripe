@@ -1,4 +1,6 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
+import { dispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import ReactDOM from 'react-dom';
 import { getAppearance } from '../styles/upe';
 import {
@@ -8,8 +10,6 @@ import {
 	PAYMENT_METHOD_LINK,
 	PAYMENT_METHOD_CARD,
 } from './constants';
-import { dispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
