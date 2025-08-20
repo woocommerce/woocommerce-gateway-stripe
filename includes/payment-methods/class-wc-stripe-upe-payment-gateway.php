@@ -77,7 +77,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @var string
 	 */
-	private const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
+	public const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';
 
 	/**
 	 * Notices (array)

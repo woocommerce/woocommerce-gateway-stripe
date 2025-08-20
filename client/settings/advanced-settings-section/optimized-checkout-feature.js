@@ -88,8 +88,17 @@ const OptimizedCheckoutFeature = () => {
 					) }
 					selected={ OCLayout }
 					options={ [
-						{ label: 'Accordion', value: 'accordion' },
-						{ label: 'Tabs', value: 'tabs' },
+						{
+							label: __(
+								'Accordion',
+								'woocommerce-gateway-stripe'
+							),
+							value: 'accordion',
+						},
+						{
+							label: __( 'Tabs', 'woocommerce-gateway-stripe' ),
+							value: 'tabs',
+						},
 					] }
 					onChange={ handleLayoutChange }
 				/>
