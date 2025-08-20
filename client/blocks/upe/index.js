@@ -5,7 +5,6 @@ import {
 import {
 	PAYMENT_METHOD_AFFIRM,
 	PAYMENT_METHOD_AMAZON_PAY,
-	PAYMENT_METHOD_CARD,
 	PAYMENT_METHOD_GIROPAY,
 	PAYMENT_METHOD_KLARNA,
 	PAYMENT_METHOD_LINK,
@@ -40,32 +39,25 @@ const api = new WCStripeAPI(
 const paymentMethodsConfig =
 	getBlocksConfiguration()?.paymentMethodsConfig ?? {};
 
-// Register UPE Elements.
-if ( getBlocksConfiguration()?.isOCEnabled ) {
-	registerPaymentMethod(
-		upeElement( PAYMENT_METHOD_CARD, api, paymentMethodsConfig.card )
-	);
-} else {
-	const methodsToFilter = [
-		PAYMENT_METHOD_AMAZON_PAY,
-		PAYMENT_METHOD_LINK,
-		PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
-	];
+const methodsToFilter = [
+	PAYMENT_METHOD_AMAZON_PAY,
+	PAYMENT_METHOD_LINK,
+	PAYMENT_METHOD_GIROPAY, // Skip giropay as it was deprecated by Jun, 30th 2024.
+];
 
-	// Filter out some BNPLs when other official extensions are present.
-	if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {
-		methodsToFilter.push( PAYMENT_METHOD_AFFIRM );
-	}
-	if ( getBlocksConfiguration()?.hasKlarnaGatewayPlugin ) {
-		methodsToFilter.push( PAYMENT_METHOD_KLARNA );
-	}
-
-	Object.entries( paymentMethodsConfig )
-		.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
-		.forEach( ( [ method, config ] ) => {
-			registerPaymentMethod( upeElement( method, api, config ) );
-		} );
+// Filter out some BNPLs when other official extensions are present.
+if ( getBlocksConfiguration()?.hasAffirmGatewayPlugin ) {
+	methodsToFilter.push( PAYMENT_METHOD_AFFIRM );
 }
+if ( getBlocksConfiguration()?.hasKlarnaGatewayPlugin ) {
+	methodsToFilter.push( PAYMENT_METHOD_KLARNA );
+}
+
+Object.entries( paymentMethodsConfig )
+	.filter( ( [ method ] ) => ! methodsToFilter.includes( method ) )
+	.forEach( ( [ method, config ] ) => {
+		registerPaymentMethod( upeElement( method, api, config ) );
+	} );
 
 if ( getBlocksConfiguration()?.isECEEnabled ) {
 	// Register Express Checkout Elements.

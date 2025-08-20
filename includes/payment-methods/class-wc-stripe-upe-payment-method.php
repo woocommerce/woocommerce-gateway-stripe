@@ -175,7 +175,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		return 'yes' === $this->enabled;
+		return 'yes' === $this->enabled
+			// When OC is enabled, we use the card payment container to render all the methods.
+			|| ( $this->oc_enabled && WC_Stripe_Payment_Methods::CARD === $this->stripe_id );
 	}
 
 	/**
@@ -185,8 +187,8 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_available() {
 		// When OC is enabled, we use the card payment container to render all the methods.
-		if ( $this->oc_enabled && WC_Stripe_Payment_Methods::CARD !== $this->stripe_id ) {
-			return false;
+		if ( $this->oc_enabled ) {
+			return WC_Stripe_Payment_Methods::CARD === $this->stripe_id;
 		}
 
 		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
@@ -233,6 +235,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function get_icon() {
 		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return apply_filters( 'woocommerce_gateway_icon', isset( $icons[ $this->get_id() ] ) ? $icons[ $this->get_id() ] : '', $this->id );
+	}
+
+	/**
+	 * Gets the payment method's icon url.
+	 * Each payment method should override this method to return the icon url.
+	 *
+	 * @return string The icon url.
+	 */
+	public function get_icon_url() {
+		return '';
 	}
 
 	/**
