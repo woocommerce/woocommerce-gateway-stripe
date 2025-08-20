@@ -42,14 +42,11 @@ const IconComponent = ( { children, ...props } ) => (
 	</IconWrapper>
 );
 
-const PaymentMethodUnavailablePill = ( { title, popoverContent } ) => {
+const PaymentMethodUnavailablePill = ( { title, children } ) => {
 	return (
 		<StyledPill>
 			{ title }
-			<Popover
-				BaseComponent={ IconComponent }
-				content={ popoverContent }
-			/>
+			<Popover BaseComponent={ IconComponent } content={ children } />
 		</StyledPill>
 	);
 };

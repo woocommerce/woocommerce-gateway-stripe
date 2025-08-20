@@ -20,7 +20,8 @@ const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
 	return (
 		<PaymentMethodUnavailablePill
 			title={ __( 'Has plugin conflict', 'woocommerce-gateway-stripe' ) }
-			popoverContent={ interpolateComponents( {
+		>
+			{ interpolateComponents( {
 				mixedString: sprintf(
 					/* translators: $1: a payment method name */
 					__(
@@ -35,7 +36,7 @@ const PaymentMethodUnavailableDueConflictPill = ( { id, label } ) => {
 					),
 				},
 			} ) }
-		/>
+		</PaymentMethodUnavailablePill>
 	);
 };
 

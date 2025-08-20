@@ -22,7 +22,8 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	return (
 		<PaymentMethodUnavailablePill
 			title={ __( 'Requires currency', 'woocommerce-gateway-stripe' ) }
-			popoverContent={ interpolateComponents( {
+		>
+			{ interpolateComponents( {
 				mixedString: sprintf(
 					/* translators: $1: a payment method name. %2: Currency(ies). */
 					__(
@@ -38,7 +39,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 					),
 				},
 			} ) }
-		/>
+		</PaymentMethodUnavailablePill>
 	);
 };
 

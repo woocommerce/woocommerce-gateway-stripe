@@ -21,7 +21,8 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 						'Pending approval',
 						'woocommerce-gateway-stripe'
 					) }
-					popoverContent={ interpolateComponents( {
+				>
+					{ interpolateComponents( {
 						mixedString: sprintf(
 							/* translators: %s: a payment method name. */
 							__(
@@ -36,7 +37,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 							),
 						},
 					} ) }
-				/>
+				</PaymentMethodUnavailablePill>
 			) }
 
 			{ capabilityStatus === 'inactive' && (
@@ -45,7 +46,8 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 						'Requires activation',
 						'woocommerce-gateway-stripe'
 					) }
-					popoverContent={ interpolateComponents( {
+				>
+					{ interpolateComponents( {
 						mixedString: sprintf(
 							/* translators: %s: a payment method name. */
 							__(
@@ -60,7 +62,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 							),
 						},
 					} ) }
-				/>
+				</PaymentMethodUnavailablePill>
 			) }
 		</>
 	);

@@ -9,7 +9,8 @@ const PaymentMethodDeprecationPill = () => {
 	return (
 		<PaymentMethodUnavailablePill
 			title={ __( 'Deprecated', 'woocommerce-gateway-stripe' ) }
-			popoverContent={ interpolateComponents( {
+		>
+			{ interpolateComponents( {
 				mixedString:
 					/* translators: $1: a payment method name. %2: Currency(ies). */
 					__(
@@ -22,7 +23,7 @@ const PaymentMethodDeprecationPill = () => {
 					),
 				},
 			} ) }
-		/>
+		</PaymentMethodUnavailablePill>
 	);
 };
 
