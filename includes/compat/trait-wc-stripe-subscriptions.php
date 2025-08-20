@@ -977,7 +977,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription->save();
 		}
 
-		$stripe_customer    = new WC_Stripe_Customer();
 		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
@@ -1011,82 +1010,83 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 		}
 
-		$stripe_customer->set_id( $stripe_customer_id );
-
-		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
-
 		try {
-			// Retrieve all possible payment methods for subscriptions.
-			foreach ( WC_Stripe_Customer::STRIPE_PAYMENT_METHODS as $payment_method_type ) {
-				foreach ( $stripe_customer->get_payment_methods( $payment_method_type ) as $source ) {
-					if ( $source->id !== $stripe_source_id ) {
-						continue;
-					}
+			$saved_payment_method = WC_Stripe_Subscriptions_Helper::get_subscription_payment_method_details( $stripe_customer_id, $stripe_source_id );
 
-					// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
-					if ( isset( $source->object ) && WC_Stripe_Payment_Methods::CARD === $source->object ) {
-						/* translators: 1) card brand 2) last 4 digits */
-						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->brand ) ? wc_get_credit_card_type_label( $source->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->last4 );
-						break 2;
-					}
-
-					switch ( $source->type ) {
-						case WC_Stripe_Payment_Methods::CARD:
-							/* translators: 1) card brand 2) last 4 digits */
-							$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $source->card->brand ) ? wc_get_credit_card_type_label( $source->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $source->card->last4 );
-							break 3;
-						case WC_Stripe_Payment_Methods::SEPA_DEBIT:
-							/* translators: 1) last 4 digits of SEPA Direct Debit */
-							$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
-							break 3;
-						case WC_Stripe_Payment_Methods::CASHAPP_PAY:
-							/* translators: 1) Cash App Cashtag */
-							$payment_method_to_display = sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->cashapp->cashtag );
-							break 3;
-						case WC_Stripe_Payment_Methods::LINK:
-							/* translators: 1) email address associated with the Stripe Link payment method */
-							$payment_method_to_display = sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $source->link->email );
-							break 3;
-						case WC_Stripe_Payment_Methods::ACH:
-							$payment_method_to_display = sprintf(
-								/* translators: 1) account type (checking, savings), 2) last 4 digits of account. */
-								__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
-								ucfirst( $source->us_bank_account->account_type ),
-								$source->us_bank_account->last4
-							);
-							break 3;
-						case WC_Stripe_Payment_Methods::BECS_DEBIT:
-							$payment_method_to_display = sprintf(
-								/* translators: last 4 digits of account. */
-								__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
-								$source->au_becs_debit->last4
-							);
-							break 3;
-						case WC_Stripe_Payment_Methods::ACSS_DEBIT:
-							$payment_method_to_display = sprintf(
-								/* translators: 1) bank name, 2) last 4 digits of account. */
-								__( 'Via %1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
-								$source->acss_debit->bank_name,
-								$source->acss_debit->last4
-							);
-							break 3;
-						case WC_Stripe_Payment_Methods::BACS_DEBIT:
-							/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
-							$payment_method_to_display = sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $source->bacs_debit->last4 );
-							break 3;
-						case WC_Stripe_Payment_Methods::AMAZON_PAY:
-							/* translators: 1) the Amazon Pay payment method's email */
-							$payment_method_to_display = sprintf( __( 'Via Amazon Pay (%1$s)', 'woocommerce-gateway-stripe' ), $source->billing_details->email ?? '' );
-							break 3;
-					}
-				}
+			if ( null !== $saved_payment_method ) {
+				return $this->get_payment_method_to_display_for_payment_method( $saved_payment_method );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
 
-		return $payment_method_to_display;
+		return __( 'N/A', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Helper function to get the descriptive text for a payment method or source.
+	 *
+	 * @param object $payment_method The payment method or source object.
+	 * @return string The descriptive text for the payment method or source.
+	 */
+	protected function get_payment_method_to_display_for_payment_method( object $payment_method ): string {
+		// Legacy handling for Stripe Card objects. ref: https://docs.stripe.com/api/cards/object
+		if ( isset( $payment_method->object ) && WC_Stripe_Payment_Methods::CARD === $payment_method->object ) {
+			return sprintf(
+				/* translators: 1) card brand 2) last 4 digits */
+				__( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ),
+				( isset( $payment_method->brand ) ? wc_get_credit_card_type_label( $payment_method->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ),
+				$payment_method->last4
+			);
+		}
+
+		switch ( $payment_method->type ) {
+			case WC_Stripe_Payment_Methods::CARD:
+				return sprintf(
+					/* translators: 1) card brand 2) last 4 digits */
+					__( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ),
+					( isset( $payment_method->card->brand ) ? wc_get_credit_card_type_label( $payment_method->card->brand ) : __( 'N/A', 'woocommerce-gateway-stripe' ) ),
+					$payment_method->card->last4
+				);
+			case WC_Stripe_Payment_Methods::SEPA_DEBIT:
+				/* translators: 1) last 4 digits of SEPA Direct Debit */
+				return sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $payment_method->sepa_debit->last4 );
+			case WC_Stripe_Payment_Methods::CASHAPP_PAY:
+				/* translators: 1) Cash App Cashtag */
+				return sprintf( __( 'Via Cash App Pay (%1$s)', 'woocommerce-gateway-stripe' ), $payment_method->cashapp->cashtag );
+			case WC_Stripe_Payment_Methods::LINK:
+				/* translators: 1) email address associated with the Stripe Link payment method */
+				return sprintf( __( 'Via Stripe Link (%1$s)', 'woocommerce-gateway-stripe' ), $payment_method->link->email );
+			case WC_Stripe_Payment_Methods::ACH:
+				return sprintf(
+					/* translators: 1) account type (checking, savings), 2) last 4 digits of account. */
+					__( 'Via %1$s Account ending in %2$s', 'woocommerce-gateway-stripe' ),
+					ucfirst( $payment_method->us_bank_account->account_type ),
+					$payment_method->us_bank_account->last4
+				);
+			case WC_Stripe_Payment_Methods::BECS_DEBIT:
+				return sprintf(
+					/* translators: last 4 digits of account. */
+					__( 'BECS Direct Debit ending in %s', 'woocommerce-gateway-stripe' ),
+					$payment_method->au_becs_debit->last4
+				);
+			case WC_Stripe_Payment_Methods::ACSS_DEBIT:
+				return sprintf(
+					/* translators: 1) bank name, 2) last 4 digits of account. */
+					__( 'Via %1$s ending in %2$s', 'woocommerce-gateway-stripe' ),
+					$payment_method->acss_debit->bank_name,
+					$payment_method->acss_debit->last4
+				);
+			case WC_Stripe_Payment_Methods::BACS_DEBIT:
+				/* translators: 1) the Bacs Direct Debit payment method's last 4 numbers */
+				return sprintf( __( 'Via Bacs Direct Debit ending in (%1$s)', 'woocommerce-gateway-stripe' ), $payment_method->bacs_debit->last4 );
+			case WC_Stripe_Payment_Methods::AMAZON_PAY:
+				/* translators: 1) the Amazon Pay payment method's email */
+				return sprintf( __( 'Via Amazon Pay (%1$s)', 'woocommerce-gateway-stripe' ), $payment_method->billing_details->email ?? '' );
+		}
+
+		return __( 'N/A', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
