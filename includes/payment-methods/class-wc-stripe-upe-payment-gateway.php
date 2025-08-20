@@ -533,9 +533,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Optimized Checkout feature flag + setting.
 		$stripe_params['isOCEnabled'] = $this->oc_enabled;
-		$stripe_params['OCLayout']    = $this->get_option( 'optimized_checkout_layout' )
-			? $this->get_option( 'optimized_checkout_layout' )
-			: self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT;
+		$stripe_params['OCLayout']    = $this->get_option( 'optimized_checkout_layout', self::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT );
 
 		// Single Payment Element payment method parent configuration ID
 		$stripe_params['paymentMethodConfigurationParentId'] = WC_Stripe_Payment_Method_Configurations::get_parent_configuration_id();
