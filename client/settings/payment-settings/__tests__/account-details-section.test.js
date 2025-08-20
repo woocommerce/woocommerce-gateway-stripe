@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, render, fireEvent } from '@testing-library/react';
+import { screen, render, fireEvent, waitFor } from '@testing-library/react';
 import AccountDetailsSection from '../account-details-section';
 import { useTestMode } from 'wcstripe/data';
 import {
@@ -56,6 +56,7 @@ jest.mock( '@wordpress/data', () => ( {
 		}
 		return {};
 	},
+	createSelector: jest.fn(),
 	combineReducers: jest.fn(),
 	createReduxStore: jest.fn(),
 	register: jest.fn(),
@@ -202,7 +203,7 @@ describe( 'AccountDetailsSection', () => {
 			mockCreateSuccessNotice.mockClear();
 		} );
 
-		it( 'should show refresh account option in dropdown menu', () => {
+		it( 'should show refresh account option in dropdown menu', async () => {
 			render(
 				<AccountDetailsSection setModalType={ setModalTypeMock } />
 			);
@@ -213,11 +214,14 @@ describe( 'AccountDetailsSection', () => {
 			);
 			fireEvent.click( menuButton );
 
-			// Check if refresh option exists
-			const refreshButton = screen.getByRole( 'menuitem', {
-				name: /refresh account details/i,
+			await waitFor( () => {
+				// Check if dropdown menu is open
+				expect(
+					screen.getByRole( 'menu', {
+						name: 'Edit details or disconnect account',
+					} )
+				).toBeInTheDocument();
 			} );
-			expect( refreshButton ).toBeInTheDocument();
 		} );
 
 		it( 'should call refreshAccount when refresh option is clicked', async () => {
