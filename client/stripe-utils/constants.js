@@ -168,3 +168,8 @@ export const BNPL_METHODS = [
 	PAYMENT_METHOD_AFTERPAY_CLEARPAY,
 	PAYMENT_METHOD_KLARNA,
 ];
+
+export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
+	UNSUPPORTED_CURRENCY: 'unsupported_currency',
+	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
+};
