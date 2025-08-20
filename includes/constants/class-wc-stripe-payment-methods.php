@@ -48,6 +48,18 @@ class WC_Stripe_Payment_Methods {
 	const PAYMENT_REQUEST_LABEL = 'Payment Request';
 
 	/**
+	 * Payment methods that are considered as express payment methods.
+	 *
+	 * @var array
+	 */
+	const EXPRESS_PAYMENT_METHODS = [
+		self::AMAZON_PAY,
+		self::GOOGLE_PAY,
+		self::APPLE_PAY,
+		self::LINK,
+	];
+
+	/**
 	 * Payment methods that are considered as voucher payment methods.
 	 *
 	 * @var array

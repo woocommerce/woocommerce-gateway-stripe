@@ -278,7 +278,7 @@ class WC_Stripe_Settings_Controller {
 			'account_country'                       => $this->account->get_account_country(),
 			'are_apms_deprecated'                   => WC_Stripe_Feature_Flags::are_apms_deprecated(),
 			'is_amazon_pay_available'               => WC_Stripe_Feature_Flags::is_amazon_pay_available(),
-			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available(),
+			'is_oc_available'                       => WC_Stripe_Feature_Flags::is_oc_available() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'is_oc_enabled'                         => $is_oc_enabled,
 			'oauth_nonce'                           => wp_create_nonce( 'wc_stripe_get_oauth_urls' ),
 			'is_sepa_tokens_enabled'                => 'yes' === $this->gateway->get_option( 'sepa_tokens_for_other_methods', 'no' ),

@@ -6,6 +6,7 @@ const addProductToCart = async ( page, productSlug = 'beanie' ) => {
 
 	const addToCartButton = await page.getByRole( 'button', {
 		name: 'Add to cart',
+		exact: true, // Needs to be exact, as there are other "Add to cart" buttons for other products in WooCommerce 10.1.
 	} );
 	await expect( addToCartButton ).toBeEnabled();
 	await addToCartButton.dispatchEvent( 'click' );
@@ -101,6 +102,9 @@ test.describe( 'express checkout and variable products', () => {
 		page,
 	} ) => {
 		await page.goto( '/product/hoodie' );
+		await page
+			.getByLabel( 'color', { exact: true } )
+			.selectOption( 'Blue' );
 		await page.getByLabel( 'Logo', { exact: true } ).selectOption( 'Yes' );
 		const linkButton = await getLinkButton( page );
 		await expect( linkButton ).toBeVisible();
