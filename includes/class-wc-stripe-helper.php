@@ -2011,6 +2011,6 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function is_stripe_gateway_order( $order ) {
-		return WC_Gateway_Stripe::ID !== substr( (string) $order->get_payment_method(), 0, 6 );
+		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
 	}
 }
