@@ -1,5 +1,4 @@
-import { render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render } from '@testing-library/react';
 import { useDispatch } from '@wordpress/data';
 import { ReConnectAccountBanner } from 'wcstripe/settings/payment-settings/promotional-banner/re-connect-account-banner';
 import { recordEvent } from 'wcstripe/tracking';
@@ -60,7 +59,7 @@ describe( 'Reconnect banner', () => {
 			<ReConnectAccountBanner testOauthUrl={ oauthUrl } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		fireEvent.click( reconnectButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_test_account_click',
@@ -83,7 +82,7 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		fireEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'
@@ -100,7 +99,7 @@ describe( 'Reconnect banner', () => {
 			/>
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		fireEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'
@@ -111,7 +110,7 @@ describe( 'Reconnect banner', () => {
 			<ReConnectAccountBanner testOauthUrl={ null } oauthUrl={ null } />
 		);
 		const reconnectButton = getByText( 'Re-authenticate' );
-		userEvent.click( reconnectButton );
+		fireEvent.click( reconnectButton );
 
 		expect( noticesDispatch.createErrorNotice ).toHaveBeenCalledWith(
 			'There was an error. Please reload the page and try again.'

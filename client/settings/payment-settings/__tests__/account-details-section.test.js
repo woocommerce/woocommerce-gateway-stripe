@@ -1,6 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import AccountDetailsSection from '../account-details-section';
 import { useTestMode } from 'wcstripe/data';
 import {
@@ -108,7 +107,7 @@ describe( 'AccountDetailsSection', () => {
 		const editKeysButton = screen.getByRole( 'button', {
 			name: 'Configure connection',
 		} );
-		userEvent.click( editKeysButton );
+		fireEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'live' );
 	} );
 
@@ -143,7 +142,7 @@ describe( 'AccountDetailsSection', () => {
 		const editKeysButton = screen.getByRole( 'button', {
 			name: /Configure connection/i,
 		} );
-		userEvent.click( editKeysButton );
+		fireEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'test' );
 	} );
 
@@ -212,7 +211,7 @@ describe( 'AccountDetailsSection', () => {
 			const menuButton = screen.getByLabelText(
 				'Edit details or disconnect account'
 			);
-			userEvent.click( menuButton );
+			fireEvent.click( menuButton );
 
 			// Check if refresh option exists
 			const refreshButton = screen.getByRole( 'menuitem', {
@@ -230,13 +229,13 @@ describe( 'AccountDetailsSection', () => {
 			const menuButton = screen.getByLabelText(
 				'Edit details or disconnect account'
 			);
-			userEvent.click( menuButton );
+			fireEvent.click( menuButton );
 
 			// Click the refresh option
 			const refreshButton = screen.getByRole( 'menuitem', {
 				name: /refresh account details/i,
 			} );
-			userEvent.click( refreshButton );
+			fireEvent.click( refreshButton );
 
 			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
 		} );

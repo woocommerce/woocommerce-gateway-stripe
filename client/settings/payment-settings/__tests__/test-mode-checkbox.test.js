@@ -1,6 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import TestModeCheckbox from '../test-mode-checkbox';
 import { useTestMode } from 'wcstripe/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
@@ -36,7 +35,7 @@ describe( 'TestModeCheckbox', () => {
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).not.toBeChecked();
 
-		await userEvent.click( testModeCheckbox );
+		await fireEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );
@@ -57,7 +56,7 @@ describe( 'TestModeCheckbox', () => {
 		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 		expect( testModeCheckbox ).toBeChecked();
 
-		await userEvent.click( testModeCheckbox );
+		await fireEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( false );
 	} );

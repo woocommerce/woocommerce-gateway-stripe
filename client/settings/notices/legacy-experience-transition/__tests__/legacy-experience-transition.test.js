@@ -1,6 +1,5 @@
-import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { screen, render } from '@testing-library/react';
+import { screen, render, fireEvent } from '@testing-library/react';
 import LegacyExperienceTransitionNotice from '..';
 import { useDispatch } from '@wordpress/data';
 import { recordEvent } from 'wcstripe/tracking';
@@ -61,7 +60,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		fireEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 
@@ -73,7 +72,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		fireEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 
 		expect( noticesDispatch.createSuccessNotice ).toHaveBeenCalledWith(
 			'New checkout experience enabled'
@@ -88,7 +87,7 @@ describe( 'LegacyExperienceTransitionNotice', () => {
 			/>
 		);
 
-		userEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
+		fireEvent.click( screen.queryByTestId( 'disable-legacy-button' ) );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_legacy_experience_disabled',

@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@automattic/color-studio": "^2.5.0",
+    "@babel/core": "7.28.3",
     "@babel/eslint-parser": "^7.23.3",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/plugin-transform-nullish-coalescing-operator": "^7.26.6",
@@ -160,7 +161,7 @@
     "test:js:watch": "npm run test:js --watch",
     "lint:css": "stylelint 'client/**/*.scss' 'client/**/*.css' 'assets/**/*.scss' 'assets/**/*.css'",
     "lint:js": "eslint . --ext=js,jsx,ts,tsx",
-		"lint:js-fix": "eslint . --ext=js,jsx,ts,tsx --fix",
+    "lint:js-fix": "eslint . --ext=js,jsx,ts,tsx --fix",
     "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)",
     "lint:php-fix": "./vendor/bin/phpcbf --standard=phpcs.xml.dist $(git ls-files | grep .php$)",
     "format:js": "prettier --write '**/*.js'",

@@ -1,6 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import RemoveMethodConfirmationModal from '../remove-method-confirmation-modal';
 
 describe( 'RemoveMethodConfirmationModal', () => {
@@ -34,7 +33,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByRole( 'button', { name: 'Cancel' } )
 		);
 
@@ -52,7 +51,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 
 		expect( handleRemoveMock ).not.toHaveBeenCalled();
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByRole( 'button', { name: 'Remove' } )
 		);
 

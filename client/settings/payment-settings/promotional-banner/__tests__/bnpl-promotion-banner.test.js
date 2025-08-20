@@ -1,5 +1,4 @@
-import { act, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { act, fireEvent, render } from '@testing-library/react';
 import { BNPLPromotionBanner } from '../bnpl-promotion-banner';
 import apiFetch from '@wordpress/api-fetch';
 
@@ -60,7 +59,7 @@ describe( 'BNPL promotional banner', () => {
 		const dismissButton = getByText( 'Dismiss' );
 
 		await act( async () => {
-			await userEvent.click( dismissButton );
+			await fireEvent.click( dismissButton );
 		} );
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 

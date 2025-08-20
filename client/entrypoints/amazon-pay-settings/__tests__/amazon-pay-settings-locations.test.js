@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import AmazonPaySettingsSection from '../amazon-pay-settings-section';
 import {
 	useAmazonPayEnabledSettings,
@@ -70,21 +69,21 @@ describe( 'AmazonPaySettingsSection', () => {
 		render( <AmazonPaySettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await fireEvent.click( screen.getByText( 'Product page' ) );
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await fireEvent.click( screen.getByText( 'Checkout' ) );
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await fireEvent.click( screen.getByText( 'Cart' ) );
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',
 			'product',
@@ -101,19 +100,19 @@ describe( 'AmazonPaySettingsSection', () => {
 
 		render( <AmazonPaySettingsSection /> );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await fireEvent.click( screen.getByText( 'Cart' ) );
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'cart',
 		] );
 
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await fireEvent.click( screen.getByText( 'Product page' ) );
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'product',
 		] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await fireEvent.click( screen.getByText( 'Checkout' ) );
 
 		expect( updateAmazonPayLocationsHandler ).toHaveBeenLastCalledWith( [
 			'checkout',

@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import TooltipBase from '../tooltip-base';
 
 jest.useFakeTimers();
@@ -57,7 +56,7 @@ describe( 'TooltipBase', () => {
 			</TooltipBase>
 		);
 
-		userEvent.click( screen.getByText( 'Tooltip content' ) );
+		fireEvent.click( screen.getByText( 'Tooltip content' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
@@ -79,7 +78,7 @@ describe( 'TooltipBase', () => {
 			</>
 		);
 
-		userEvent.click( screen.getByText( 'External element' ) );
+		fireEvent.click( screen.getByText( 'External element' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();

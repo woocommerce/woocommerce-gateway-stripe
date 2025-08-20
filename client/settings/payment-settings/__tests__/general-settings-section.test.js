@@ -1,6 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import GeneralSettingsSection from '../general-settings-section';
 import {
 	useIsStripeEnabled,
@@ -60,11 +59,11 @@ describe( 'GeneralSettingsSection', () => {
 		expect( enableStripeCheckbox ).not.toBeChecked();
 		expect( testModeCheckbox ).not.toBeChecked();
 
-		await userEvent.click( enableStripeCheckbox );
+		await fireEvent.click( enableStripeCheckbox );
 
 		expect( setIsStripeEnabledMock ).toHaveBeenCalledWith( true );
 
-		await userEvent.click( testModeCheckbox );
+		await fireEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );

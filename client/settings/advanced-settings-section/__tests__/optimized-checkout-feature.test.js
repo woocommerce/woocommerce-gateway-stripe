@@ -1,8 +1,7 @@
-import { render, screen } from '@testing-library/react';
-import React from 'react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
+import React, { useContext } from 'react';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
-import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from 'wcstripe/data';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.useFakeTimers();
 

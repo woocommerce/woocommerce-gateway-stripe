@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import AdvancedSettings from '..';
 import {
 	useDebugLog,
@@ -57,7 +56,7 @@ describe( 'AdvancedSettings', () => {
 			screen.getByLabelText( 'Log debug messages' )
 		).not.toBeChecked();
 
-		await userEvent.click( debugModeCheckbox );
+		await fireEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );

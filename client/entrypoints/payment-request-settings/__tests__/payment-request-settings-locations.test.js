@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import PaymentRequestsSettingsSection from '../payment-request-settings-section';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
 import {
@@ -109,19 +108,19 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
 		// Uncheck each checkbox, and verify them what kind of action should have been called
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await fireEvent.click( screen.getByText( 'Product page' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await fireEvent.click( screen.getByText( 'Checkout' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await fireEvent.click( screen.getByText( 'Cart' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler
@@ -142,19 +141,19 @@ describe( 'PaymentRequestsSettingsSection', () => {
 
 		render( <PaymentRequestsSettingsSection /> );
 
-		await userEvent.click( screen.getByText( 'Cart' ) );
+		await fireEvent.click( screen.getByText( 'Cart' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'cart' ] );
 
-		await userEvent.click( screen.getByText( 'Product page' ) );
+		await fireEvent.click( screen.getByText( 'Product page' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product' ] );
 
-		await userEvent.click( screen.getByText( 'Checkout' ) );
+		await fireEvent.click( screen.getByText( 'Checkout' ) );
 
 		expect(
 			updatePaymentRequestLocationsHandler

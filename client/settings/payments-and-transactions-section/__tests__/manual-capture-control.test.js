@@ -1,6 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import ManualCaptureControl from '../manual-capture-control';
 import { useManualCapture } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -24,7 +23,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -46,7 +45,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -57,7 +56,7 @@ describe( 'ManualCaptureControl', () => {
 			screen.queryByText( 'Enable manual capture' )
 		).toBeInTheDocument();
 
-		await userEvent.click( screen.getByText( 'Cancel' ) );
+		await fireEvent.click( screen.getByText( 'Cancel' ) );
 
 		expect(
 			screen.queryByText( 'Enable manual capture' )
@@ -75,7 +74,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
@@ -86,7 +85,7 @@ describe( 'ManualCaptureControl', () => {
 			screen.queryByText( 'Enable manual capture' )
 		).toBeInTheDocument();
 
-		await userEvent.click( screen.getByText( 'Enable' ) );
+		await fireEvent.click( screen.getByText( 'Enable' ) );
 
 		expect(
 			screen.queryByText( 'Enable manual capture' )
@@ -104,7 +103,7 @@ describe( 'ManualCaptureControl', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		await userEvent.click(
+		await fireEvent.click(
 			screen.getByLabelText(
 				'Issue an authorization on checkout, and capture later'
 			)
