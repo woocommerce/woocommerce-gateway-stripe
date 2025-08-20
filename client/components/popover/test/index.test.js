@@ -1,5 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import Popover from '..';
 
 const DummyBaseComponent = ( { children, ...props } ) => (
@@ -35,13 +34,13 @@ describe( 'Popover', () => {
 		).not.toBeInTheDocument();
 
 		act( () => {
-			userEvent.click( screen.getByTestId( 'base-component' ) );
+			fireEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
 		expect( screen.queryByText( 'Popover Content' ) ).toBeInTheDocument();
 
 		act( () => {
-			userEvent.click( screen.getByTestId( 'base-component' ) );
+			fireEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
 		expect(

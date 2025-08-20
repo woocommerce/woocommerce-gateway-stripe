@@ -1,7 +1,6 @@
 import { getSetting } from '@woocommerce/settings';
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
@@ -47,6 +46,7 @@ jest.mock( '@woocommerce/settings', () => ( {
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
+	createSelector: jest.fn(),
 	createReduxStore: jest.fn(),
 	register: jest.fn(),
 	combineReducers: jest.fn(),
@@ -131,7 +131,7 @@ describe( 'GeneralSettingsSection', () => {
 			)
 		).toBeInTheDocument();
 
-		userEvent.click(
+		fireEvent.click(
 			screen.getByRole( 'button', {
 				name: 'Payment methods menu',
 			} )
@@ -139,7 +139,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect( refreshAccountMock ).not.toHaveBeenCalled();
 
-		userEvent.click(
+		fireEvent.click(
 			screen.getByRole( 'menuitem', {
 				name: 'Refresh payment methods',
 			} )
@@ -198,7 +198,7 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( alipayCheckbox );
+		fireEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			PAYMENT_METHOD_CARD,
@@ -240,7 +240,7 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( alipayCheckbox ).not.toBeChecked();
 
-		userEvent.click( alipayCheckbox );
+		fireEvent.click( alipayCheckbox );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
 			PAYMENT_METHOD_CARD,
@@ -277,7 +277,7 @@ describe( 'GeneralSettingsSection', () => {
 			} )
 		).not.toBeInTheDocument();
 
-		userEvent.click( cardCheckbox );
+		fireEvent.click( cardCheckbox );
 
 		expect(
 			screen.getByRole( 'heading', {
@@ -311,8 +311,8 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( cardCheckbox ).toBeChecked();
 
-		userEvent.click( cardCheckbox );
-		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		fireEvent.click( cardCheckbox );
+		fireEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
 
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 	} );
@@ -342,8 +342,8 @@ describe( 'GeneralSettingsSection', () => {
 		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
 		expect( cardCheckbox ).toBeChecked();
 
-		userEvent.click( cardCheckbox );
-		userEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
+		fireEvent.click( cardCheckbox );
+		fireEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
 
 		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );

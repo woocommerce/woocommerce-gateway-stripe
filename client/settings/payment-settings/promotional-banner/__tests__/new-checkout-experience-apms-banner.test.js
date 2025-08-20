@@ -1,6 +1,5 @@
 import { useDispatch } from '@wordpress/data';
-import { render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render } from '@testing-library/react';
 import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
 
 const noticesDispatch = {
@@ -58,7 +57,7 @@ describe( 'New checkout experience APMs banner', () => {
 		);
 		const dismissButton = getByText( 'Dismiss' );
 
-		userEvent.click( dismissButton );
+		fireEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );

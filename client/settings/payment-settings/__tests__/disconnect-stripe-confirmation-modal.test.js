@@ -1,13 +1,13 @@
 import { useDispatch } from '@wordpress/data';
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( '@wordpress/data', () => ( {
 	useSelect: jest.fn(),
 	useDispatch: jest.fn(),
+	createSelector: jest.fn(),
 	createReduxStore: jest.fn(),
 	register: jest.fn(),
 	combineReducers: jest.fn(),
@@ -77,7 +77,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		fireEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
 
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
@@ -94,7 +94,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		expect( saveAccountKeysMock ).not.toHaveBeenCalled();
 		expect( setKeepModalContentMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
+		fireEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
 
 		await expect( saveAccountKeysMock ).toHaveBeenCalled();
 

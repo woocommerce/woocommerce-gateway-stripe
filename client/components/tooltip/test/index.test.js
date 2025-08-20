@@ -1,5 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import Tooltip from '..';
 
 jest.useFakeTimers();
@@ -59,14 +58,14 @@ describe( 'Tooltip', () => {
 			screen.queryByText( 'Tooltip content' )
 		).not.toBeInTheDocument();
 
-		userEvent.click( screen.getByText( 'Trigger element' ) );
+		fireEvent.click( screen.getByText( 'Trigger element' ) );
 
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 
-		userEvent.click( screen.getByText( 'Trigger element' ) );
+		fireEvent.click( screen.getByText( 'Trigger element' ) );
 		jest.runAllTimers();
 
 		expect( handleHideMock ).toHaveBeenCalled();
@@ -98,7 +97,7 @@ describe( 'Tooltip', () => {
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
 		// opening the first tooltip, no need to call any hide handlers
-		act( () => userEvent.click( screen.getByText( 'Open tooltip 1' ) ) );
+		act( () => fireEvent.click( screen.getByText( 'Open tooltip 1' ) ) );
 
 		expect( screen.queryByText( 'Tooltip 1 content' ) ).toBeInTheDocument();
 		expect(
@@ -111,7 +110,7 @@ describe( 'Tooltip', () => {
 
 		// opening the second tooltip, only the first tooltip should not be visible anymore
 		act( () => {
-			userEvent.click( screen.getByText( 'Open tooltip 2' ) );
+			fireEvent.click( screen.getByText( 'Open tooltip 2' ) );
 			jest.runAllTimers();
 		} );
 

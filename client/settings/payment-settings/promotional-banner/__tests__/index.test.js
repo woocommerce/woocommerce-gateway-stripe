@@ -1,7 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, render, fireEvent } from '@testing-library/react';
 import PromotionalBanner from '..';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import {
@@ -69,7 +68,7 @@ describe( 'PromotionalBanner', () => {
 
 		const dismissButton = screen.getByTestId( 'dismiss' );
 
-		userEvent.click( dismissButton );
+		fireEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
@@ -87,7 +86,7 @@ describe( 'PromotionalBanner', () => {
 			/>
 		);
 
-		userEvent.click( screen.getByText( 'Enable the new checkout' ) );
+		fireEvent.click( screen.getByText( 'Enable the new checkout' ) );
 		expect( setIsUpeEnabledMock ).toHaveBeenCalled();
 	} );
 
