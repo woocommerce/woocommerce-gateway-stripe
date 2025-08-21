@@ -4,7 +4,7 @@ Tags: credit card, stripe, payments, woocommerce, woo
 Requires at least: 6.6
 Tested up to: 6.8.2
 Requires PHP: 7.4
-Stable tag: 9.8.0
+Stable tag: 9.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,6 +111,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 == Changelog ==
 
 = 9.9.0 - xxxx-xx-xx =
+* Dev - Introduces a new helper method to identify Stripe orders
+* Add - Setting to allow merchants to control the layout of the Optimized Checkout payment element on the checkout page
 * Fix - Removes the credit card payment method requirement for the Optimized Checkout feature
 * Fix - Payment method test instructions not showing up for the Optimized Checkout payment element
 * Add - Includes a new notice to highlight the Optimized Checkout feature above the payment methods list in the Stripe settings page
