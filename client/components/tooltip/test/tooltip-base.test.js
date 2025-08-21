@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TooltipBase from '../tooltip-base';
 
@@ -79,7 +79,8 @@ describe( 'TooltipBase', () => {
 			</>
 		);
 
-		userEvent.click( screen.getByText( 'External element' ) );
+		// @todo Replace with it userEvent
+		fireEvent.click( screen.getByText( 'External element' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
