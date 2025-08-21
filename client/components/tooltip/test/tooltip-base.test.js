@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import userEvent from '@testing-library/user-event';
 import TooltipBase from '../tooltip-base';
 
 jest.useFakeTimers();
@@ -45,7 +45,7 @@ describe( 'TooltipBase', () => {
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'does not call onHide when an internal element is clicked', async () => {
+	it( 'does not call onHide when an internal element is clicked', () => {
 		const handleHideMock = jest.fn();
 		render(
 			<TooltipBase
@@ -64,7 +64,7 @@ describe( 'TooltipBase', () => {
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
 
-	it( 'calls onHide when an external element is clicked', async () => {
+	it( 'calls onHide when an external element is clicked', () => {
 		const handleHideMock = jest.fn();
 		render(
 			<>
