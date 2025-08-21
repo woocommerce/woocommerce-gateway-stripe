@@ -1107,7 +1107,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
-				$this->validate_minimum_order_amount( $order );
+				WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
@@ -1361,7 +1361,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
-				$this->validate_minimum_order_amount( $order );
+				WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';

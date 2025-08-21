@@ -507,6 +507,20 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Validates that the order meets the minimum order amount
+	 * set by Stripe.
+	 *
+	 * @since 9.9.0
+	 * @param WC_Order $order
+	 */
+	public static function validate_minimum_order_amount( $order ) {
+		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
+	}
+
+	/**
 	 * Queries for an order by a specific meta key and value.
 	 *
 	 * @param $meta_key string The meta key to search for.

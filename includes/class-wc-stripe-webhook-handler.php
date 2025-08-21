@@ -300,7 +300,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$response = null;
 
 			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
 
 			WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 

@@ -380,6 +380,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param object $order
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::validate_minimum_order_amount() instead.
 	 */
 	public function validate_minimum_order_amount( $order ) {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
