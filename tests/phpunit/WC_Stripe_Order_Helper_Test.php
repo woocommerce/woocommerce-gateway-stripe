@@ -13,7 +13,7 @@ use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
  *
  * Class WC_Stripe_Order_Helper tests.
  */
-class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
+class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `is_stripe_gateway_order`.
 	 *
