@@ -486,7 +486,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					$this->unlock_order_payment( $order );
 
 					// If the order requires some action from the customer, add meta to the order to prevent it from being cancelled by WooCommerce's hold stock settings.
-					WC_Stripe_Helper::set_payment_awaiting_action( $order );
+					WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
 
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
@@ -922,7 +922,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		 * This meta is to prevent stores with short hold stock settings from cancelling orders while waiting for payment to be finalised by Stripe or the customer (i.e. completing 3DS or payment redirects).
 		 * Now that payment is confirmed, we can remove this meta.
 		 */
-		WC_Stripe_Helper::remove_payment_awaiting_action( $order );
+		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order );
 	}
 
 	/**
