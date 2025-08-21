@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import PaymentRequestsSettingsSection from '../payment-request-settings-section';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
 import {
@@ -130,15 +131,15 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();
 		expect( setButtonThemeMock ).not.toHaveBeenCalled();
 
-		await fireEvent.click( screen.getByLabelText( /Light/ ) );
+		await userEvent.click( screen.getByLabelText( /Light/ ) );
 
 		expect( setButtonThemeMock ).toHaveBeenCalledWith( 'light' );
 
-		await fireEvent.click( screen.getByLabelText( 'Book' ) );
+		await userEvent.click( screen.getByLabelText( 'Book' ) );
 
 		expect( setButtonTypeMock ).toHaveBeenCalledWith( 'book' );
 
-		await fireEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
 
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );

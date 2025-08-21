@@ -1,5 +1,6 @@
 import React from 'react';
-import { screen, render, fireEvent } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
 import { recordEvent } from 'wcstripe/tracking';
 
@@ -101,7 +102,7 @@ describe( 'ConnectStripeAccount', () => {
 		const connectAccountButton = screen.getByText(
 			'Create or connect an account'
 		);
-		await fireEvent.click( connectAccountButton );
+		await userEvent.click( connectAccountButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_account_click',
@@ -140,7 +141,7 @@ describe( 'ConnectStripeAccount', () => {
 		const connectTestAccountButton = screen.getByText(
 			'Create or connect a test account instead'
 		);
-		await fireEvent.click( connectTestAccountButton );
+		await userEvent.click( connectTestAccountButton );
 
 		expect( recordEvent ).toHaveBeenCalledWith(
 			'wcstripe_create_or_connect_test_account_click',

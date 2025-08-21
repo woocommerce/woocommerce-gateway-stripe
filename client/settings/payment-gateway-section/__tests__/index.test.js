@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, render, fireEvent } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PaymentGatewaySection from '..';
 import {
@@ -84,7 +84,7 @@ describe( 'PaymentGatewaySection', () => {
 		expect( enableGatewayMock ).not.toHaveBeenCalled();
 		expect( enableCheckbox ).not.toBeChecked();
 
-		await fireEvent.click( enableCheckbox );
+		await userEvent.click( enableCheckbox );
 
 		expect( enableGatewayMock ).toHaveBeenCalledWith( true );
 	} );

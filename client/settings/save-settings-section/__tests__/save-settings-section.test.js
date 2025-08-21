@@ -1,5 +1,6 @@
 import React from 'react';
-import { screen, render, fireEvent } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import SaveSettingsSection from '..';
 import { useSettings } from 'wcstripe/data';
 
@@ -49,7 +50,7 @@ describe( 'SaveSettingsSection', () => {
 		expect( saveSettingsMock ).not.toHaveBeenCalled();
 		expect( saveChangesButton ).not.toBeDisabled();
 
-		await fireEvent.click( saveChangesButton );
+		await userEvent.click( saveChangesButton );
 
 		expect( saveSettingsMock ).toHaveBeenCalled();
 	} );

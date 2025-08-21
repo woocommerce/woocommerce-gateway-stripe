@@ -1,4 +1,5 @@
-import { act, fireEvent, render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { OCPromotionBanner } from '../oc-promotion-banner';
 import apiFetch from '@wordpress/api-fetch';
 import { useDispatch } from '@wordpress/data';
@@ -73,7 +74,7 @@ describe( 'OC promotional banner', () => {
 		const dismissButton = getByText( 'Dismiss' );
 
 		await act( async () => {
-			await fireEvent.click( dismissButton );
+			await userEvent.click( dismissButton );
 		} );
 		expect( dismissNoticeMock ).toHaveBeenCalled();
 
@@ -93,7 +94,7 @@ describe( 'OC promotional banner', () => {
 		const activateButton = getByText( 'Activate now' );
 
 		await act( async () => {
-			await fireEvent.click( activateButton );
+			await userEvent.click( activateButton );
 		} );
 		expect( setIsOCEnabled ).toHaveBeenCalled();
 	} );

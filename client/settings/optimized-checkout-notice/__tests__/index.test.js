@@ -1,5 +1,6 @@
 import React from 'react';
-import { screen, render, act, fireEvent } from '@testing-library/react';
+import { screen, render, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutNotice from '..';
 import apiFetch from '@wordpress/api-fetch';
 

@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import AmazonPaySettingsSection from '../amazon-pay-settings-section';
 import {
 	useAmazonPayEnabledSettings,
@@ -72,7 +73,7 @@ describe( 'AmazonPaySettingsSection', () => {
 
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();
 
-		await fireEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
+		await userEvent.click( screen.getByLabelText( 'Large (56 px)' ) );
 
 		expect( setButtonSizeMock ).toHaveBeenCalledWith( 'large' );
 	} );

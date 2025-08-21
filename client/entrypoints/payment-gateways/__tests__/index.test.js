@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import DisableConfirmationModal from '../disable-confirmation-modal';
 
 jest.mock( '../../../data', () => ( {
@@ -13,7 +14,7 @@ describe( 'DisableConfirmationModal', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		await fireEvent.click( screen.getByText( 'Cancel' ) );
+		await userEvent.click( screen.getByText( 'Cancel' ) );
 
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
@@ -24,7 +25,7 @@ describe( 'DisableConfirmationModal', () => {
 
 		expect( handleConfirmMock ).not.toHaveBeenCalled();
 
-		await fireEvent.click( screen.getByText( 'Disable' ) );
+		await userEvent.click( screen.getByText( 'Disable' ) );
 
 		expect( handleConfirmMock ).toHaveBeenCalled();
 	} );

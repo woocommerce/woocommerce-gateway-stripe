@@ -1,4 +1,5 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { useDispatch } from '@wordpress/data';
 import { NewCheckoutExperienceAPMsBanner } from 'wcstripe/settings/payment-settings/promotional-banner/new-checkout-experience-apms-banner';
 
@@ -49,7 +50,7 @@ describe( 'New checkout experience APMs banner', () => {
 		).toBeInTheDocument();
 		expect( getByText( 'Enable the new checkout' ) ).toBeInTheDocument();
 	} );
-	it( 'should dismiss on button click', () => {
+	it( 'should dismiss on button click', async () => {
 		const { getByText } = render(
 			<NewCheckoutExperienceAPMsBanner
 				setShowPromotionalBanner={ setShowPromotionalBanner }
@@ -57,7 +58,7 @@ describe( 'New checkout experience APMs banner', () => {
 		);
 		const dismissButton = getByText( 'Dismiss' );
 
-		fireEvent.click( dismissButton );
+		await userEvent.click( dismissButton );
 
 		expect( setShowPromotionalBanner ).toHaveBeenCalledWith( false );
 	} );
