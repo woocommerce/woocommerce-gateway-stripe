@@ -242,7 +242,7 @@ class WC_Stripe_Database_Cache {
 			$query_args[] = $last_key;
 		}
 
-		$raw_query .= ' ORDER BY option_name DESC';
+		$raw_query .= ' ORDER BY option_name ASC';
 
 		if ( $max_rows > 0 ) {
 			$raw_query .= ' LIMIT %d';
@@ -252,11 +252,16 @@ class WC_Stripe_Database_Cache {
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 		$cached_rows = $wpdb->get_results( $wpdb->prepare( $raw_query, ...$query_args ) );
 
+		$cache_prefix_length = strlen( self::CACHE_KEY_PREFIX );
+
 		foreach ( $cached_rows as $cached_row ) {
 			$result['last_key'] = $cached_row->option_name;
 			$result['processed']++;
-			if ( self::is_expired( $cached_row->option_name, $cached_row->option_value ) ) {
-				self::delete( $cached_row->option_name );
+
+			$cache_key = substr( $cached_row->option_name, $cache_prefix_length );
+
+			if ( self::is_expired( $cache_key, $cached_row->option_value ) ) {
+				self::delete( $cache_key );
 				$result['deleted']++;
 			}
 		}
@@ -271,7 +276,7 @@ class WC_Stripe_Database_Cache {
 	/**
 	 * Deletes all stale entries from the cache.
 	 *
-	 * @param string $approach The approach to use to delete the entries.
+	 * @param string $approach The approach to use to delete the entries. 'inline' will delete the entries in the current process, 'async' will enqueue an async job to delete the entries.
 	 * @param int    $max_rows The maximum number of entries to check. -1 will check all rows. 0 will do nothing. Default is 500.
 	 *
 	 * @return array {
@@ -279,11 +284,17 @@ class WC_Stripe_Database_Cache {
 	 *     @type int $deleted   The number of entries deleted.
 	 * }
 	 */
-	public static function delete_all_stale_entries( string $approach, int $max_rows = 500 ) {
+	public static function delete_all_stale_entries( string $approach, int $max_rows = 500 ): array {
 		$result = [
 			'processed' => 0,
 			'deleted'   => 0,
+			'error'     => null,
 		];
+
+		if ( ! in_array( $approach, [ 'inline', 'async' ], true ) ) {
+			$result['error'] = new WP_Error( 'invalid_approach', 'Invalid approach' );
+			return $result;
+		}
 
 		$delete_result = self::delete_stale_entries( $max_rows );
 
@@ -301,5 +312,7 @@ class WC_Stripe_Database_Cache {
 			// TODO: Implement cron/action-scheduler call
 			echo 'TODO';
 		}
+
+		return $result;
 	}
 }
