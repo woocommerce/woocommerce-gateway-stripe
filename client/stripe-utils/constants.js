@@ -173,3 +173,10 @@ export const PAYMENT_METHOD_UNAVAILABLE_REASONS = {
 	UNSUPPORTED_CURRENCY: 'unsupported_currency',
 	OFFICIAL_PLUGIN_CONFLICT: 'official_plugin_conflict',
 };
+
+/**
+ * Default layout for the optimized checkout
+ *
+ * @type {string}
+ */
+export const OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT = 'accordion';

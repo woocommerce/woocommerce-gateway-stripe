@@ -269,6 +269,17 @@ $stripe_settings = apply_filters(
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'optimized_checkout_layout'           => [
+			'title'       => __( 'Optimized Checkout Layout', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the layout of the container.', 'woocommerce-gateway-stripe' ),
+			'default'     => WC_Stripe_UPE_Payment_Gateway::OPTIMIZED_CHECKOUT_DEFAULT_LAYOUT,
+			'desc_tip'    => true,
+			'options'     => [
+				'accordion' => __( 'Accordion', 'woocommerce-gateway-stripe' ),
+				'tabs'      => __( 'Tabs', 'woocommerce-gateway-stripe' ),
+			],
+		],
 	]
 );
 
