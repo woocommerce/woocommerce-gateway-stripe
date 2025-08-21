@@ -1054,7 +1054,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
 
 			// Attempt to acquire lock, bail if already locked
-			$is_order_payment_locked = $this->lock_order_payment( $order );
+			$is_order_payment_locked = false;
 			if ( $is_order_payment_locked ) {
 				// If the request is already being processed, return an error.
 				return [
@@ -1655,7 +1655,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		try {
 			// First check if the order is already being processed by another request.
-			$locked = $this->lock_order_payment( $order );
+			$locked = false;
 			if ( $locked ) {
 				WC_Stripe_Logger::log( "Skip processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}, order payment is already being processed (locked)" );
 				return;
@@ -2507,12 +2507,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_method_details = ! empty( $payment_method_id ) ? WC_Stripe_API::get_payment_method( $payment_method_id ) : (object) [];
 
-		$payment_method_types = $this->get_payment_method_types_for_intent_creation(
-			$selected_payment_type,
-			$order->get_id(),
-			$this->get_express_payment_type_from_request(),
-			( $payment_method_details->type ?? null )
-		);
+		// Override the payment method type with the API value when OC is enabled
+		if ( $this->oc_enabled ) {
+			$selected_payment_type = $payment_method_details->type ?? null;
+			$payment_method_types  = [ $selected_payment_type ];
+		} else {
+			$payment_method_types = $this->get_payment_method_types_for_intent_creation(
+				$selected_payment_type,
+				$order->get_id(),
+				$this->get_express_payment_type_from_request()
+			);
+		}
 
 		$payment_information = [
 			'amount'                        => $amount,
@@ -3107,14 +3112,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function get_payment_method_types_for_intent_creation(
 		string $selected_payment_type,
 		int $order_id,
-		?string $express_payment_type = null,
-		?string $payment_method_type = null
+		?string $express_payment_type = null
 	): array {
-		// If Single Payment Element is enabled, return only the payment method type.
-		if ( $this->oc_enabled && ! empty( $payment_method_type ) ) {
-			return [ $payment_method_type ];
-		}
-
 		// If the shopper didn't select a payment type, return all the enabled ones.
 		if ( '' === $selected_payment_type ) {
 			return $this->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
