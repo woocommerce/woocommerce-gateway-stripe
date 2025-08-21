@@ -1,4 +1,5 @@
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import Popover from '..';
 
 const DummyBaseComponent = ( { children, ...props } ) => (
@@ -21,7 +22,7 @@ describe( 'Popover', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'toggle the visibility on click', () => {
+	it( 'toggle the visibility on click', async () => {
 		render(
 			<Popover
 				BaseComponent={ DummyBaseComponent }
@@ -33,14 +34,14 @@ describe( 'Popover', () => {
 			screen.queryByText( 'Popover Content' )
 		).not.toBeInTheDocument();
 
-		act( () => {
-			fireEvent.click( screen.getByTestId( 'base-component' ) );
+		act( async () => {
+			await userEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
 		expect( screen.queryByText( 'Popover Content' ) ).toBeInTheDocument();
 
-		act( () => {
-			fireEvent.click( screen.getByTestId( 'base-component' ) );
+		act( async () => {
+			await userEvent.click( screen.getByTestId( 'base-component' ) );
 		} );
 
 		expect(

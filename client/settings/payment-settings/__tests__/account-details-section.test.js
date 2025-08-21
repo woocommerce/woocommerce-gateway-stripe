@@ -1,5 +1,6 @@
 import React from 'react';
-import { screen, render, fireEvent, waitFor } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import AccountDetailsSection from '../account-details-section';
 import { useTestMode } from 'wcstripe/data';
 import {
@@ -77,7 +78,7 @@ describe( 'AccountDetailsSection', () => {
 		jest.restoreAllMocks();
 	} );
 
-	it( 'should open live account keys modal when Configure connection clicked in live mode', () => {
+	it( 'should open live account keys modal when Configure connection clicked in live mode', async () => {
 		useAccount.mockReturnValue( {
 			data: {
 				webhook_url: 'example.com',
@@ -108,11 +109,11 @@ describe( 'AccountDetailsSection', () => {
 		const editKeysButton = screen.getByRole( 'button', {
 			name: 'Configure connection',
 		} );
-		fireEvent.click( editKeysButton );
+		await userEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'live' );
 	} );
 
-	it( 'should open test account keys modal when Configure connection clicked in test mode', () => {
+	it( 'should open test account keys modal when Configure connection clicked in test mode', async () => {
 		useAccount.mockReturnValue( {
 			data: {
 				webhook_url: 'example.com',
@@ -143,7 +144,7 @@ describe( 'AccountDetailsSection', () => {
 		const editKeysButton = screen.getByRole( 'button', {
 			name: /Configure connection/i,
 		} );
-		fireEvent.click( editKeysButton );
+		await userEvent.click( editKeysButton );
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'test' );
 	} );
 
@@ -212,16 +213,13 @@ describe( 'AccountDetailsSection', () => {
 			const menuButton = screen.getByLabelText(
 				'Edit details or disconnect account'
 			);
-			fireEvent.click( menuButton );
+			await userEvent.click( menuButton );
 
-			await waitFor( () => {
-				// Check if dropdown menu is open
-				expect(
-					screen.getByRole( 'menu', {
-						name: 'Edit details or disconnect account',
-					} )
-				).toBeInTheDocument();
+			// Check if refresh option exists
+			const refreshButton = screen.getByRole( 'menuitem', {
+				name: /refresh account details/i,
 			} );
+			expect( refreshButton ).toBeInTheDocument();
 		} );
 
 		it( 'should call refreshAccount when refresh option is clicked', async () => {
@@ -233,13 +231,13 @@ describe( 'AccountDetailsSection', () => {
 			const menuButton = screen.getByLabelText(
 				'Edit details or disconnect account'
 			);
-			fireEvent.click( menuButton );
+			await userEvent.click( menuButton );
 
 			// Click the refresh option
 			const refreshButton = screen.getByRole( 'menuitem', {
 				name: /refresh account details/i,
 			} );
-			fireEvent.click( refreshButton );
+			await userEvent.click( refreshButton );
 
 			expect( mockRefreshAccount ).toHaveBeenCalledTimes( 1 );
 		} );

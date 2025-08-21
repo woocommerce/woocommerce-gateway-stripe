@@ -1,6 +1,7 @@
 import { useDispatch } from '@wordpress/data';
 import React from 'react';
-import { screen, render, fireEvent } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
@@ -67,7 +68,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should call onClose when the action is cancelled', () => {
+	it( 'should call onClose when the action is cancelled', async () => {
 		render(
 			<DisconnectStripeConfirmationModal
 				onClose={ handleCloseMock }
@@ -77,7 +78,9 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 
-		fireEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Cancel' } )
+		);
 
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
@@ -94,7 +97,9 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		expect( saveAccountKeysMock ).not.toHaveBeenCalled();
 		expect( setKeepModalContentMock ).not.toHaveBeenCalled();
 
-		fireEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
+		await userEvent.click(
+			screen.getByRole( 'button', { name: 'Disconnect' } )
+		);
 
 		await expect( saveAccountKeysMock ).toHaveBeenCalled();
 

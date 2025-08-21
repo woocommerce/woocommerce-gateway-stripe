@@ -11,10 +11,6 @@ jest.mock( 'wcstripe/settings/notices/legacy-experience-transition', () => () =>
 	null
 );
 
-jest.mock( 'wcstripe/settings/payment-settings/promotional-banner', () => () =>
-	null
-);
-
 jest.mock(
 	'wcstripe/settings/payment-settings/promotional-banner/get-promotional-banner-type',
 	() => ( {
