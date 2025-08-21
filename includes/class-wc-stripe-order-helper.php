@@ -360,6 +360,185 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Gets the dynamic bank statement descriptor suffix.
+	 *
+	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order to generate the suffix for.
+	 * @return string The statement descriptor suffix ("#{order-number}").
+	 */
+	public static function get_dynamic_statement_descriptor_suffix( $order ) {
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
+		$suffix = '';
+
+		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
+			$suffix = '#' . $order->get_order_number();
+
+			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add an extra `O` before the order number.
+			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
+				$suffix = 'O ' . $suffix;
+			}
+		}
+
+		// Make sure that the prefix + suffix is limited at 22 characters.
+		return self::clean_statement_descriptor( substr( trim( $suffix ), 0, 22 - strlen( $prefix . '* ' ) ) );
+	}
+
+	/**
+	 * Sanitize statement descriptor text.
+	 *
+	 * Stripe requires max of 22 characters and no special characters.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param string $statement_descriptor Statement descriptor.
+	 * @return string $statement_descriptor Sanitized statement descriptor.
+	 */
+	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
+		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
+
+		// Strip any tags.
+		$statement_descriptor = strip_tags( $statement_descriptor );
+
+		// Strip any HTML entities.
+		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
+		$statement_descriptor = preg_replace( '/&#?[a-z0-9]{2,8};/i', '', $statement_descriptor );
+
+		// Next, remove any remaining disallowed characters.
+		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
+
+		// Remove non-Latin characters, excluding numbers, whitespaces and especial characters.
+		$statement_descriptor = preg_replace( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', '', $statement_descriptor );
+
+		// Trim any whitespace at the ends and limit to 22 characters.
+		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
+
+		return $statement_descriptor;
+	}
+
+	/**
+	 * Returns the payment intent or setup intent ID from a given order object.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 *
+	 * @return string|bool  The intent ID if found, false otherwise.
+	 */
+	public static function get_intent_id_from_order( $order ) {
+		$intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		return $intent_id ?? false;
+	}
+
+	/**
+	 * Checks if the given payment intent is valid for the order.
+	 * This checks the currency, amount, and payment method types.
+	 * The function will log a critical error if there is a mismatch.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order      $order                 The order to check.
+	 * @param object|string $intent                The payment intent to check, can either be an object or an intent ID.
+	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
+	 *
+	 * @throws Exception Throws an exception if the intent is not valid for the order.
+	 */
+	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
+		$intent_id = null;
+		if ( is_string( $intent ) ) {
+			$intent_id = $intent;
+			$is_setup_intent = substr( $intent_id, 0, 4 ) === 'seti';
+			if ( $is_setup_intent ) {
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			} else {
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			}
+		}
+
+		if ( ! is_object( $intent ) ) {
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $intent_id ) {
+			$intent_id = $intent->id ?? null;
+		}
+
+		// Make sure we actually fetched the intent.
+		if ( ! empty( $intent->error ) ) {
+			WC_Stripe_Logger::error(
+				'Error: failed to fetch requested Stripe intent',
+				[
+					'intent_id' => $intent_id,
+					'error'     => $intent->error,
+				]
+			);
+			throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( null === $selected_payment_type ) {
+			$selected_payment_type = $order->get_meta( '_stripe_upe_payment_type', true );
+		}
+
+		// If we don't have a selected payment type, that implies we have no stored value and a new payment type is permitted.
+		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
+		$order_currency        = strtolower( $order->get_currency() );
+		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$order_intent_id       = self::get_intent_id_from_order( $order );
+
+		if ( 'payment_intent' === $intent->object ) {
+			$is_valid = $order_currency === $intent->currency
+				&& $is_valid_payment_type
+				&& $order_amount === $intent->amount
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		} else {
+			// Setup intents don't have an amount or currency.
+			$is_valid = $is_valid_payment_type
+				&& ( ! $order_intent_id || $order_intent_id === $intent->id );
+		}
+
+		// Return early if we have a valid intent.
+		if ( $is_valid ) {
+			return;
+		}
+
+		$permitted_payment_types = implode( '/', $intent->payment_method_types );
+		WC_Stripe_Logger::critical(
+			"Error: Invalid payment intent for order. Intent: {$intent->currency} {$intent->amount} via {$permitted_payment_types}, Order: {$order_currency} {$order_amount} {$selected_payment_type}",
+			[
+				'order_id'                    => $order->get_id(),
+				'intent_id'                   => $intent->id,
+				'intent_currency'             => $intent->currency,
+				'intent_amount'               => $intent->amount,
+				'intent_payment_method_types' => $intent->payment_method_types,
+				'selected_payment_type'       => $selected_payment_type,
+				'order_currency'              => $order->get_currency(),
+				'order_total'                 => $order->get_total(),
+			]
+		);
+
+		throw new Exception( __( "We're not able to process this request. Please try again later.", 'woocommerce-gateway-stripe' ) );
+	}
+
+	/**
+	 * Checks if the order is using a Stripe payment method.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param $order WC_Order The order to check.
+	 * @return bool
+	 */
+	public static function is_stripe_gateway_order( $order ) {
+		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
+	}
+
+	/**
 	 * Queries for an order by a specific meta key and value.
 	 *
 	 * @param $meta_key string The meta key to search for.

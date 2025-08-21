@@ -80,6 +80,8 @@ class WC_Stripe_Helper {
 	 * @since 4.1.0
 	 * @param object $order
 	 * @return string $currency
+	 *
+	 * @deprecated 9.9.0 Use `WC_Stripe_Order_Helper::get_stripe_currency()` instead.
 	 */
 	public static function get_stripe_currency( $order = null ) {
 		if ( is_null( $order ) ) {
@@ -1082,6 +1084,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param WC_Order $order The order to generate the suffix for.
 	 * @return string The statement descriptor suffix ("#{order-number}").
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix() instead.
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
 		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
@@ -1108,6 +1112,8 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @param string $statement_descriptor Statement descriptor.
 	 * @return string $statement_descriptor Sanitized statement descriptor.
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::clean_statement_descriptor() instead.
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
@@ -1425,6 +1431,8 @@ class WC_Stripe_Helper {
 	 * @param WC_Order $order The order to fetch the Stripe intent from.
 	 *
 	 * @return string|bool  The intent ID if found, false otherwise.
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_intent_id_from_order() instead.
 	 */
 	public static function get_intent_id_from_order( $order ) {
 		$intent_id = $order->get_meta( '_stripe_intent_id' );
@@ -1937,6 +1945,8 @@ class WC_Stripe_Helper {
 	 * @param string|null   $selected_payment_type The selected payment type, which is generally applicable for updates. If null, we will use the stored payment type for the order.
 	 *
 	 * @throws Exception Throws an exception if the intent is not valid for the order.
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::validate_intent_for_order() instead.
 	 */
 	public static function validate_intent_for_order( $order, $intent, ?string $selected_payment_type = null ): void {
 		$intent_id = null;
@@ -2039,6 +2049,8 @@ class WC_Stripe_Helper {
 	 *
 	 * @param $order WC_Order The order to check.
 	 * @return bool
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::is_stripe_gateway_order() instead.
 	 */
 	public static function is_stripe_gateway_order( $order ) {
 		return WC_Gateway_Stripe::ID === substr( (string) $order->get_payment_method(), 0, 6 );
