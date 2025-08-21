@@ -559,8 +559,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		$fee      = WC_Stripe_Helper::get_stripe_fee( $order );
-		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
+		$fee      = WC_Stripe_Order_Helper::get_stripe_fee( $order );
+		$currency = WC_Stripe_Order_Helper::get_stripe_currency( $order );
 
 		if ( ! $fee || ! $currency ) {
 			return;
@@ -596,8 +596,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$order = wc_get_order( $order_id );
 
-		$net      = WC_Stripe_Helper::get_stripe_net( $order );
-		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
+		$net      = WC_Stripe_Order_Helper::get_stripe_net( $order );
+		$currency = WC_Stripe_Order_Helper::get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;

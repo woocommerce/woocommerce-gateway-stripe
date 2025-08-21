@@ -7,6 +7,7 @@ use WC_Data_Exception;
 use WC_Order;
 use WC_Stripe_Helper;
 use WC_Stripe_Intent_Status;
+use WC_Stripe_Order_Helper;
 use WC_Stripe_Payment_Methods;
 use WC_Stripe_Webhook_Handler;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
@@ -580,7 +581,7 @@ class WC_Stripe_Webhook_Handler_Test extends WP_UnitTestCase {
 
 		// Order must be previously set to pending and have at least the payment intent set.
 		$order = WC_Helper_Order::create_order();
-		WC_Stripe_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
+		WC_Stripe_Order_Helper::add_payment_intent_to_order( $notification->data->object->id, $order );
 		$order->set_status( OrderStatus::PENDING );
 		$order->save();
 

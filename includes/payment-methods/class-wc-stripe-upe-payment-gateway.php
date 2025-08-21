@@ -920,7 +920,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 				if ( WC_Stripe_Payment_Methods::CARD === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
-					$request['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+					$request['statement_descriptor_suffix'] = WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix( $order );
 				}
 
 				$customer = $this->get_stripe_customer_from_order( $order );
@@ -972,7 +972,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					null // $prepared_source parameter is not necessary for adding mandate information.
 				);
 
-				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+				WC_Stripe_Order_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 
@@ -1589,7 +1589,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_order_associated_to_payment_intent( int $order_id, string $intent_id ): bool {
-		$order_from_payment_intent = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		$order_from_payment_intent = WC_Stripe_Order_Helper::get_order_by_intent_id( $intent_id );
 		return $order_from_payment_intent && $order_from_payment_intent->get_id() === $order_id;
 	}
 
@@ -1708,7 +1708,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Validates the intent can be applied to the order.
 		try {
-			WC_Stripe_Helper::validate_intent_for_order( $order, $intent );
+			WC_Stripe_Order_Helper::validate_intent_for_order( $order, $intent );
 		} catch ( Exception $e ) {
 			throw new Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
@@ -2532,7 +2532,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
 		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
-			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
 		if ( empty( $payment_method_id ) && ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {

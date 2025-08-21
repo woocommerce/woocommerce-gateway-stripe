@@ -383,39 +383,7 @@ class WC_Stripe_Order_Helper {
 		}
 
 		// Make sure that the prefix + suffix is limited at 22 characters.
-		return self::clean_statement_descriptor( substr( trim( $suffix ), 0, 22 - strlen( $prefix . '* ' ) ) );
-	}
-
-	/**
-	 * Sanitize statement descriptor text.
-	 *
-	 * Stripe requires max of 22 characters and no special characters.
-	 *
-	 * @since 9.9.0
-	 *
-	 * @param string $statement_descriptor Statement descriptor.
-	 * @return string $statement_descriptor Sanitized statement descriptor.
-	 */
-	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
-
-		// Strip any tags.
-		$statement_descriptor = strip_tags( $statement_descriptor );
-
-		// Strip any HTML entities.
-		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
-		$statement_descriptor = preg_replace( '/&#?[a-z0-9]{2,8};/i', '', $statement_descriptor );
-
-		// Next, remove any remaining disallowed characters.
-		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
-
-		// Remove non-Latin characters, excluding numbers, whitespaces and especial characters.
-		$statement_descriptor = preg_replace( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', '', $statement_descriptor );
-
-		// Trim any whitespace at the ends and limit to 22 characters.
-		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
-
-		return $statement_descriptor;
+		return WC_Stripe_Helper::clean_statement_descriptor( substr( trim( $suffix ), 0, 22 - strlen( $prefix . '* ' ) ) );
 	}
 
 	/**

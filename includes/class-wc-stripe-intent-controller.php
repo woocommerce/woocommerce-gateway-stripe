@@ -409,7 +409,7 @@ class WC_Stripe_Intent_Controller {
 			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 			$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			$order_from_payment = WC_Stripe_Order_Helper::get_order_by_intent_id( $payment_intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -465,7 +465,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		$selected_payment_type = '' !== $selected_upe_payment_type && is_string( $selected_upe_payment_type ) ? $selected_upe_payment_type : null;
-		WC_Stripe_Helper::validate_intent_for_order( $order, $intent_id, $selected_payment_type );
+		WC_Stripe_Order_Helper::validate_intent_for_order( $order, $intent_id, $selected_payment_type );
 
 		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
@@ -557,7 +557,7 @@ class WC_Stripe_Intent_Controller {
 				$order->update_status( OrderStatus::PENDING, __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			}
 			$order->save();
-			WC_Stripe_Helper::add_payment_intent_to_order( $intent_id, $order );
+			WC_Stripe_Order_Helper::add_payment_intent_to_order( $intent_id, $order );
 		}
 
 		return [
@@ -724,7 +724,7 @@ class WC_Stripe_Intent_Controller {
 			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
 			$order     = wc_get_order( $order_id );
 
-			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			$order_from_payment = WC_Stripe_Order_Helper::get_order_by_intent_id( $intent_id );
 			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
 				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}

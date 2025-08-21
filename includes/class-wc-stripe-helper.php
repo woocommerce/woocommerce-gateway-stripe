@@ -1112,8 +1112,6 @@ class WC_Stripe_Helper {
 	 * @since 4.0.0
 	 * @param string $statement_descriptor Statement descriptor.
 	 * @return string $statement_descriptor Sanitized statement descriptor.
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::clean_statement_descriptor() instead.
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
@@ -1988,7 +1986,7 @@ class WC_Stripe_Helper {
 		$is_valid_payment_type = empty( $selected_payment_type ) || ( ! empty( $intent->payment_method_types ) && in_array( $selected_payment_type, $intent->payment_method_types, true ) );
 		$order_currency        = strtolower( $order->get_currency() );
 		$order_amount          = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$order_intent_id       = self::get_intent_id_from_order( $order );
+		$order_intent_id       = WC_Stripe_Order_Helper::get_intent_id_from_order( $order );
 
 		if ( 'payment_intent' === $intent->object ) {
 			$is_valid = $order_currency === $intent->currency
