@@ -11,6 +11,81 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order_Helper {
 	/**
+	 * Meta key for Stripe currency.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_CURRENCY = '_stripe_currency';
+
+	/**
+	 * Meta key for Stripe fee.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_FEE = '_stripe_fee';
+
+	/**
+	 * Meta key for Stripe fee (legacy version).
+	 *
+	 * @string
+	 */
+	private const LEGACY_META_STRIPE_FEE = 'Stripe Fee';
+
+	/**
+	 * Meta key for Stripe net.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_NET = '_stripe_net';
+
+	/**
+	 * Meta key for Stripe net (legacy version).
+	 *
+	 * @string
+	 */
+	private const LEGACY_META_STRIPE_NET = 'Net Revenue From Stripe';
+
+	/**
+	 * Meta key for Stripe source ID.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_SOURCE_ID = '_stripe_source_id';
+
+	/**
+	 * Meta key for Stripe charge ID.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_CHARGE_ID = '_stripe_charge_id';
+
+	/**
+	 * Meta key for Stripe refund ID.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_REFUND_ID = '_stripe_refund_id';
+
+	/**
+	 * Meta key for Stripe intent ID.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_INTENT_ID = '_stripe_intent_id';
+
+	/**
+	 * Meta key for Stripe setup intent ID.
+	 */
+	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
+
+	/**
+	 * Meta key for payment awaiting action.
+	 *
+	 * @string
+	 */
+	private const META_STRIPE_PAYMENT_AWAITING_ACTION = '_stripe_payment_awaiting_action';
+
+	/**
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 9.9.0
@@ -23,7 +98,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		return $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, true );
+		return $order->get_meta( self::META_STRIPE_CURRENCY, true );
 	}
 
 	/**
@@ -39,7 +114,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_CURRENCY, $currency );
+		$order->update_meta_data( self::META_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -55,11 +130,11 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_FEE, true );
+		$amount = $order->get_meta( self::META_STRIPE_FEE, true );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_FEE, true );
+			$amount = $order->get_meta( self::META_STRIPE_FEE, true );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -83,7 +158,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_FEE, $amount );
+		$order->update_meta_data( self::META_STRIPE_FEE, $amount );
 	}
 
 	/**
@@ -98,8 +173,8 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_FEE );
-		$order->delete_meta_data( WC_Stripe_Order_Metas::LEGACY_META_STRIPE_FEE );
+		$order->delete_meta_data( self::META_STRIPE_FEE );
+		$order->delete_meta_data( self::LEGACY_META_STRIPE_FEE );
 	}
 
 	/**
@@ -115,11 +190,11 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_NET, true );
+		$amount = $order->get_meta( self::META_STRIPE_NET, true );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_NET, true );
+			$amount = $order->get_meta( self::META_STRIPE_NET, true );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -143,7 +218,7 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_NET, $amount );
+		$order->update_meta_data( self::META_STRIPE_NET, $amount );
 	}
 
 	/**
@@ -158,8 +233,8 @@ class WC_Stripe_Order_Helper {
 			return false;
 		}
 
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_NET );
-		$order->delete_meta_data( WC_Stripe_Order_Metas::LEGACY_META_STRIPE_NET );
+		$order->delete_meta_data( self::META_STRIPE_NET );
+		$order->delete_meta_data( self::LEGACY_META_STRIPE_NET );
 	}
 
 	/**
@@ -170,7 +245,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $source_id
 	 */
 	public static function get_order_by_source_id( $source_id ) {
-		return self::get_by_meta( WC_Stripe_Order_Metas::META_STRIPE_SOURCE_ID, $source_id );
+		return self::get_by_meta( self::META_STRIPE_SOURCE_ID, $source_id );
 	}
 
 	/**
@@ -181,7 +256,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $charge_id
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
-		return self::get_by_meta( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_ID, $charge_id );
+		return self::get_by_meta( self::META_STRIPE_CHARGE_ID, $charge_id );
 	}
 
 	/**
@@ -192,7 +267,7 @@ class WC_Stripe_Order_Helper {
 	 * @param string $refund_id
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
-		return self::get_by_meta( WC_Stripe_Order_Metas::META_STRIPE_REFUND_ID, $refund_id );
+		return self::get_by_meta( self::META_STRIPE_REFUND_ID, $refund_id );
 	}
 
 	/**
@@ -204,7 +279,7 @@ class WC_Stripe_Order_Helper {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_order_by_intent_id( $intent_id ) {
-		return self::get_by_meta( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID, $intent_id );
+		return self::get_by_meta( self::META_STRIPE_INTENT_ID, $intent_id );
 	}
 
 	/**
@@ -216,7 +291,7 @@ class WC_Stripe_Order_Helper {
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
 	public static function get_order_by_setup_intent_id( $intent_id ) {
-		return self::get_by_meta( WC_Stripe_Order_Metas::META_STRIPE_SETUP_INTENT, $intent_id );
+		return self::get_by_meta( self::META_STRIPE_SETUP_INTENT, $intent_id );
 	}
 
 	/**
@@ -228,7 +303,7 @@ class WC_Stripe_Order_Helper {
 	 * @param $order WC_Order
 	 */
 	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
-		$old_intent_id = $order->get_meta( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID );
+		$old_intent_id = $order->get_meta( self::META_STRIPE_INTENT_ID );
 
 		if ( $old_intent_id === $payment_intent_id ) {
 			return;
@@ -242,7 +317,7 @@ class WC_Stripe_Order_Helper {
 			)
 		);
 
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_INTENT_ID, $payment_intent_id );
+		$order->update_meta_data( self::META_STRIPE_INTENT_ID, $payment_intent_id );
 		$order->save();
 	}
 
@@ -259,7 +334,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function set_payment_awaiting_action( $order, $save = true ) {
-		$order->update_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
+		$order->update_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION, wc_bool_to_string( true ) );
 
 		if ( $save ) {
 			$order->save();
@@ -277,7 +352,7 @@ class WC_Stripe_Order_Helper {
 	 * @return void
 	 */
 	public static function remove_payment_awaiting_action( $order, $save = true ) {
-		$order->delete_meta_data( WC_Stripe_Order_Metas::META_STRIPE_PAYMENT_AWAITING_ACTION );
+		$order->delete_meta_data( self::META_STRIPE_PAYMENT_AWAITING_ACTION );
 
 		if ( $save ) {
 			$order->save();
@@ -297,7 +372,7 @@ class WC_Stripe_Order_Helper {
 		if ( WC_Stripe_Woo_Compat_Utils::is_custom_orders_table_enabled() ) {
 			$params = [ 'limit' => 1 ];
 			// Check if the meta key is a transaction ID. If so, use the transaction ID to query the order, instead of the meta when HPOS is enabled.
-			if ( WC_Stripe_Order_Metas::META_STRIPE_CHARGE_ID === $meta_key ) {
+			if ( self::META_STRIPE_CHARGE_ID === $meta_key ) {
 				$params['transaction_id'] = $meta_value;
 			} else {
 				$params['meta_query'] = [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
