@@ -2,17 +2,23 @@
 
 namespace WooCommerce\Stripe\Tests;
 
+use WC_Data_Exception;
 use WC_Stripe_Order_Helper;
 use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
 
 /**
- * Class WC_Stripe_Order_Handler tests.
+ * Class WC_Stripe_Order_Helper
+ *
+ * @package WooCommerce/Stripe/WC_Stripe_Order_Helper
+ *
+ * Class WC_Stripe_Order_Helper tests.
  */
 class WC_Stripe_Order_Handler_Test extends WP_UnitTestCase {
 	/**
 	 * Tests for `is_stripe_gateway_order`.
 	 *
 	 * @return void
+	 * @throws WC_Data_Exception
 	 */
 	public function test_is_stripe_gateway_order() {
 		// Test with a Stripe order (Klarna).
