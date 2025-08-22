@@ -1,7 +1,7 @@
 /* global wc_stripe_upe_params, wc, wc_stripe_express_checkout_params */
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { getAppearance } from '../styles/upe';
 import {
 	errorTypes,
@@ -536,7 +536,7 @@ export const showErrorCheckout = ( errorMessage ) => {
 		$container.find( '.wc-block-components-notices' ).remove();
 
 		$container.prepend( wrapper );
-		ReactDOM.createRoot( wrapper ).render( <NoticeComponent /> );
+		createRoot( wrapper ).render( <NoticeComponent /> );
 	} else {
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;
