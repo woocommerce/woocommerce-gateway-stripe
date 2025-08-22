@@ -456,7 +456,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$is_authentication_required = false;
 			} else {
-				$this->lock_order_payment( $renewal_order );
+				WC_Stripe_Order_Helper::lock_order_payment( $renewal_order );
 				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}

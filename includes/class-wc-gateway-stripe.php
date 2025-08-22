@@ -897,7 +897,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 

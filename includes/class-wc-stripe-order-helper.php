@@ -603,7 +603,7 @@ class WC_Stripe_Order_Helper {
 	 * @param WC_Order $order The order to retrieve the lock for
 	 * @return mixed
 	 */
-	protected static function get_order_existing_lock( $order ) {
+	public static function get_order_existing_payment_lock( $order ) {
 		$order->read_meta_data( true );
 		return $order->get_meta( '_stripe_lock_payment', true );
 	}
@@ -617,7 +617,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool
 	 */
 	protected static function is_order_payment_locked( $order ) {
-		$existing_lock = self::get_order_existing_lock( $order );
+		$existing_lock = self::get_order_existing_payment_lock( $order );
 		if ( $existing_lock ) {
 			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
 			$expiration = (int) $parts[0];
@@ -640,10 +640,7 @@ class WC_Stripe_Order_Helper {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public static function lock_order_refund( $order ) {
-		$order->read_meta_data( true );
-
-		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
-
+		$existing_lock = self::get_order_existing_refund_lock( $order );
 		if ( $existing_lock ) {
 			$expiration = (int) $existing_lock;
 
@@ -659,6 +656,19 @@ class WC_Stripe_Order_Helper {
 		$order->save_meta_data();
 
 		return false;
+	}
+
+	/**
+	 * Retrieves the existing refund lock for an order.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param $order WC_Order The order to retrieve the lock for
+	 * @return mixed
+	 */
+	public static function get_order_existing_refund_lock( $order ) {
+		$order->read_meta_data( true );
+		return $order->get_meta( '_stripe_lock_refund', true );
 	}
 
 	/**

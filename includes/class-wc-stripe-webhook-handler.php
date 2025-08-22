@@ -283,7 +283,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
-		if ( $this->lock_order_payment( $order ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order ) ) {
 			return;
 		}
 
@@ -1090,7 +1090,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Set the order being processed for the `wc_stripe_webhook_received` action later.
 		$this->resolved_order = $order;
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 
@@ -1228,7 +1228,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->lock_order_payment( $order, $intent ) ) {
+		if ( WC_Stripe_Order_Helper::lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 

@@ -119,7 +119,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Lock the order or return if the order is already locked.
-			if ( $this->lock_order_payment( $order ) ) {
+			if ( WC_Stripe_Order_Helper::lock_order_payment( $order ) ) {
 				return;
 			}
 

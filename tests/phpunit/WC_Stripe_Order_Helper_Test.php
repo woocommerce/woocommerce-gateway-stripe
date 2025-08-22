@@ -148,15 +148,15 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		// refund
 		WC_Stripe_Order_Helper::lock_order_refund( $order );
-		$this->assertTrue( WC_Stripe_Order_Helper::get_order_lock_refund( $order ) > 0 );
+		$this->assertTrue( WC_Stripe_Order_Helper::get_order_existing_refund_lock( $order ) > 0 );
 		WC_Stripe_Order_Helper::unlock_order_refund( $order );
-		$this->assertEmpty( $order->get_lock_refund() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) );
 
 		// payment
 		WC_Stripe_Order_Helper::lock_order_payment( $order );
-		$this->assertTrue( $order->get_lock_payment() > 0 );
+		$this->assertTrue( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) > 0 );
 		WC_Stripe_Order_Helper::unlock_order_payment( $order );
-		$this->assertEmpty( $order->get_lock_payment() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_order_existing_payment_lock( $order ) );
 	}
 
 	/**
