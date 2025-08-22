@@ -406,6 +406,46 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Get owner details.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param object $order
+	 * @return object $details
+	 */
+	public static function get_owner_details( $order ) {
+		$billing_first_name = $order->get_billing_first_name();
+		$billing_last_name  = $order->get_billing_last_name();
+
+		$details = [];
+
+		$name  = $billing_first_name . ' ' . $billing_last_name;
+		$email = $order->get_billing_email();
+		$phone = $order->get_billing_phone();
+
+		if ( ! empty( $phone ) ) {
+			$details['phone'] = $phone;
+		}
+
+		if ( ! empty( $name ) ) {
+			$details['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$details['email'] = $email;
+		}
+
+		$details['address']['line1']       = $order->get_billing_address_1();
+		$details['address']['line2']       = $order->get_billing_address_2();
+		$details['address']['state']       = $order->get_billing_state();
+		$details['address']['city']        = $order->get_billing_city();
+		$details['address']['postal_code'] = $order->get_billing_postcode();
+		$details['address']['country']     = $order->get_billing_country();
+
+		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
+	}
+
+	/**
 	 * Checks if the given payment intent is valid for the order.
 	 * This checks the currency, amount, and payment method types.
 	 * The function will log a critical error if there is a mismatch.
@@ -518,6 +558,33 @@ class WC_Stripe_Order_Helper {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
+	}
+
+	/**
+	 * Builds the return URL from redirects.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param object $order
+	 * @param int    $id Stripe session id.
+	 */
+	public function get_stripe_return_url( $order = null, $id = null ) {
+		if ( is_object( $order ) ) {
+			if ( empty( $id ) ) {
+				$id = uniqid();
+			}
+
+			$order_id = $order->get_id();
+
+			$args = [
+				'utm_nooverride' => '1',
+				'order_id'       => $order_id,
+			];
+
+			return wp_sanitize_redirect( esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) ) );
+		}
+
+		return wp_sanitize_redirect( esc_url_raw( add_query_arg( [ 'utm_nooverride' => '1' ], $this->get_return_url() ) ) );
 	}
 
 	/**

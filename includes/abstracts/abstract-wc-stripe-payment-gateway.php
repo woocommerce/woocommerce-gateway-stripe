@@ -426,6 +426,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 * @param object $order
 	 * @param int    $id Stripe session id.
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_stripe_return_url() instead.
 	 */
 	public function get_stripe_return_url( $order = null, $id = null ) {
 		if ( is_object( $order ) ) {
@@ -725,6 +727,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 * @param object $order
 	 * @return object $details
+	 *
+	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_owner_details() instead.
 	 */
 	public function get_owner_details( $order ) {
 		$billing_first_name = $order->get_billing_first_name();

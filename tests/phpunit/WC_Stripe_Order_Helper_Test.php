@@ -124,21 +124,21 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertTrue( $order->is_status_final() );
 
 		// Tests for `get_payment_awaiting_action`, `set_payment_awaiting_action`, and `remove_payment_awaiting_action`.
-		$order->set_payment_awaiting_action( true );
+		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
 		$this->assertTrue( $order->is_payment_awaiting_action() );
 
-		$order->remove_payment_awaiting_action( true );
+		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order );
 		$this->assertFalse( $order->is_payment_awaiting_action() );
 
-		$this->assertEquals( 100, $order->get_fee() );
-		$this->assertEquals( 100, $order->get_net() );
+		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
+		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_net( $order ) );
 
-		$order->delete_fee();
-		$order->delete_net();
+		WC_Stripe_Order_Helper::delete_stripe_fee();
+		WC_Stripe_Order_Helper::delete_stripe_net();
 		$order->save_meta_data();
 
-		$this->assertEmpty( $order->get_fee() );
-		$this->assertEmpty( $order->get_net() );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
+		$this->assertEmpty( WC_Stripe_Order_Helper::get_stripe_net( $order ) );
 	}
 
 	/**
@@ -175,8 +175,8 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		// add_payment_intent_to_order
 		$intent_id = 'pi_123';
-		$order->add_payment_intent_to_order( $intent_id );
-		$this->assertEquals( $intent_id, $order->get_intent_id() );
+		WC_Stripe_Order_Helper::add_payment_intent_to_order( $intent_id, $order );
+		$this->assertEquals( $intent_id, WC_Stripe_Order_Helper::get_intent_id_from_order( $order ) );
 
 		$note = wc_get_order_notes(
 			[
@@ -188,11 +188,11 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test for `validate_minimum_amount`.
+	 * Test for `validate_minimum_order_amount`.
 	 *
 	 * @return void
 	 */
-	public function test_validate_minimum_amount() {
+	public function test_validate_minimum_order_amount() {
 		$order = WC_Helper_Order::create_order();
 		$order->set_total( 0.01 );
 		$order->save();
@@ -200,7 +200,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->expectException( WC_Stripe_Exception::class );
 		$this->expectExceptionMessage( 'Did not meet minimum amount' );
 
-		$order->validate_minimum_amount();
+		WC_Stripe_Order_Helper::validate_minimum_order_amount( $order );
 	}
 
 	/**
@@ -216,7 +216,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order->set_billing_email( 'test@example.com' );
 		$order->save_meta_data();
 
-		$owner_details = $order->get_owner_details();
+		$owner_details = WC_Stripe_Order_Helper::get_owner_details( $order );
 
 		$this->assertEquals( '+1 123 1234', $owner_details->phone );
 		$this->assertEquals( 'John Doe', $owner_details->name );

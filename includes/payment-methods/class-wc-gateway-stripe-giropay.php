@@ -213,7 +213,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency'] = strtolower( $currency );
 		$post_data['type']     = WC_Stripe_Payment_Methods::GIROPAY;
-		$post_data['owner']    = $this->get_owner_details( $order );
+		$post_data['owner']    = WC_Stripe_Order_Helper::get_owner_details( $order );
 		$post_data['redirect'] = [ 'return_url' => $return_url ];
 
 		if ( ! empty( $this->statement_descriptor ) ) {
