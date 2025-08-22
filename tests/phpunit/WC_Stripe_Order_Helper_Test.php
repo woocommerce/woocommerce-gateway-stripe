@@ -151,15 +151,15 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order = WC_Helper_Order::create_order();
 
 		// refund
-		$order->lock_refund();
-		$this->assertTrue( $order->get_lock_refund() > 0 );
-		$order->unlock_refund();
+		WC_Stripe_Order_Helper::lock_order_refund( $order );
+		$this->assertTrue( WC_Stripe_Order_Helper::get_order_lock_refund( $order ) > 0 );
+		WC_Stripe_Order_Helper::unlock_order_refund( $order );
 		$this->assertEmpty( $order->get_lock_refund() );
 
 		// payment
-		$order->lock_payment();
+		WC_Stripe_Order_Helper::lock_order_payment( $order );
 		$this->assertTrue( $order->get_lock_payment() > 0 );
-		$order->unlock_payment();
+		WC_Stripe_Order_Helper::unlock_order_payment( $order );
 		$this->assertEmpty( $order->get_lock_payment() );
 	}
 
@@ -191,6 +191,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * Test for `validate_minimum_order_amount`.
 	 *
 	 * @return void
+	 * @throws WC_Data_Exception
 	 */
 	public function test_validate_minimum_order_amount() {
 		$order = WC_Helper_Order::create_order();

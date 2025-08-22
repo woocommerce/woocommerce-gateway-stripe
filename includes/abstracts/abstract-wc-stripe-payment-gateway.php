@@ -1767,6 +1767,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 4.2
 	 * @param WC_Order $order  The order that is being paid.
 	 * @return bool            A flag that indicates whether the order is already locked.
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_payment().
 	 */
 	public function lock_order_payment( $order ) {
 		if ( $this->is_order_payment_locked( $order ) ) {
@@ -1787,6 +1789,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.2
 	 * @param WC_Order $order The order that is being unlocked.
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_payment().
 	 */
 	public function unlock_order_payment( $order ) {
 		$order->delete_meta_data( '_stripe_lock_payment' );
@@ -1798,6 +1802,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order The order to retrieve the lock for
 	 * @return mixed
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::get_order_payment_lock().
 	 */
 	protected function get_order_existing_lock( $order ) {
 		$order->read_meta_data( true );
@@ -1809,6 +1815,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order The order to check the lock for
 	 * @return bool
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::is_order_payment_locked().
 	 */
 	protected function is_order_payment_locked( $order ) {
 		$existing_lock = $this->get_order_existing_lock( $order );
@@ -1831,6 +1839,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 9.1.0
 	 * @param WC_Order $order  The order that is being refunded.
 	 * @return bool            A flag that indicates whether the order is already locked.
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::lock_order_refund().
 	 */
 	public function lock_order_refund( $order ) {
 		$order->read_meta_data( true );
@@ -1859,6 +1869,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 9.1.0
 	 * @param WC_Order $order The order that is being unlocked.
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::unlock_order_refund().
 	 */
 	public function unlock_order_refund( $order ) {
 		$order->delete_meta_data( '_stripe_lock_refund' );

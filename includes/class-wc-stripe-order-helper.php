@@ -588,6 +588,119 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
+	 * Locks an order for payment intent processing for 5 minutes.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order  The order that is being paid.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 */
+	public static function lock_order_payment( $order ) {
+		if ( self::is_order_payment_locked( $order ) ) {
+			// If the order is already locked, return true.
+			return true;
+		}
+
+		$new_lock = ( time() + 5 * MINUTE_IN_SECONDS );
+
+		$order->update_meta_data( '_stripe_lock_payment', $new_lock );
+		$order->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing by payment intents.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order The order that is being unlocked.
+	 */
+	public static function unlock_order_payment( $order ) {
+		$order->delete_meta_data( '_stripe_lock_payment' );
+		$order->save_meta_data();
+	}
+
+	/**
+	 * Retrieves the existing lock for an order.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order to retrieve the lock for
+	 * @return mixed
+	 */
+	protected static function get_order_existing_lock( $order ) {
+		$order->read_meta_data( true );
+		return $order->get_meta( '_stripe_lock_payment', true );
+	}
+
+	/**
+	 * Checks if an order is locked for payment processing.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order to check the lock for
+	 * @return bool
+	 */
+	protected static function is_order_payment_locked( $order ) {
+		$existing_lock = self::get_order_existing_lock( $order );
+		if ( $existing_lock ) {
+			$parts      = explode( '|', $existing_lock ); // Format is: "{expiry_timestamp}"
+			$expiration = (int) $parts[0];
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Locks an order for refund processing for 5 minutes.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order  The order that is being refunded.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 */
+	public static function lock_order_refund( $order ) {
+		$order->read_meta_data( true );
+
+		$existing_lock = $order->get_meta( '_stripe_lock_refund', true );
+
+		if ( $existing_lock ) {
+			$expiration = (int) $existing_lock;
+
+			// If the lock is still active, return true.
+			if ( time() <= $expiration ) {
+				return true;
+			}
+		}
+
+		$new_lock = time() + 5 * MINUTE_IN_SECONDS;
+
+		$order->update_meta_data( '_stripe_lock_refund', $new_lock );
+		$order->save_meta_data();
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing refund.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order that is being unlocked.
+	 */
+	public static function unlock_order_refund( $order ) {
+		$order->delete_meta_data( '_stripe_lock_refund' );
+		$order->save_meta_data();
+	}
+
+	/**
 	 * Queries for an order by a specific meta key and value.
 	 *
 	 * @param $meta_key string The meta key to search for.
