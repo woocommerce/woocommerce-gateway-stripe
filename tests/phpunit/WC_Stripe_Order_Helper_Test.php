@@ -2,7 +2,6 @@
 
 namespace WooCommerce\Stripe\Tests;
 
-use Automattic\WooCommerce\Enums\OrderStatus;
 use WC_Order;
 use WC_Stripe_Exception;
 use WP_UnitTestCase;
@@ -23,6 +22,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * `get_order_by_intent_id`, and `get_order_by_setup_intent_id`.
 	 *
 	 * @return void
+	 * @throws WC_Data_Exception
 	 */
 	public function test_retrieve() {
 		// setup
@@ -34,11 +34,11 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		$order = WC_Helper_Order::create_order();
 
-		$order->set_source_id( $source_id );
 		$order->set_transaction_id( $charge_id );
-		$order->set_refund_id( $refund_id );
-		$order->set_intent_id( $intent_id );
-		$order->set_setup_intent( $setup_intent_id );
+		$order->update_meta_data( '_stripe_source_id', $source_id );
+		$order->update_meta_data( '_stripe_refund_id', $refund_id );
+		$order->update_meta_data( '_stripe_intent_id', $intent_id );
+		$order->update_meta_data( '_stripe_setup_intent_id', $setup_intent_id );
 		$order->save_meta_data();
 		$order->save();
 
@@ -66,60 +66,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	public function test_properties() {
 		$order = WC_Helper_Order::create_order();
 
-		$order->set_source_id( 'src_123' );
-		$order->set_transaction_id( 'ch_123' );
-		$order->set_refund_id( 're_123' );
-		$order->set_intent_id( 'pi_123' );
-		$order->set_setup_intent( 'seti_123' );
-		$order->set_stripe_currency( 'usd' );
-		$order->set_card_brand( 'visa' );
-		$order->set_status_before_hold( OrderStatus::PENDING );
-		$order->set_mandate_id( 'mandate_123' );
-		$order->set_upe_payment_type( 'card' );
-		$order->set_stripe_customer_id( 'cus_123' );
-		$order->set_multibanco_data(
-			[
-				'entity'    => '123',
-				'reference' => '123',
-				'amount'    => 100,
-			]
-		);
-		$order->set_upe_redirect_processed( true );
-		$order->set_upe_waiting_for_redirect( true );
-		$order->set_charge_captured( true );
-		$order->set_status_final( true );
-
-		$order->set_fee( 100 );
-		$order->set_net( 100 );
-
-		$order->save_meta_data();
-		$order->save();
-
-		$this->assertEquals( 'src_123', $order->get_source_id() );
-		$this->assertEquals( 'ch_123', $order->get_transaction_id() );
-		$this->assertEquals( 're_123', $order->get_refund_id() );
-		$this->assertEquals( 'pi_123', $order->get_intent_id() );
-		$this->assertEquals( 'seti_123', $order->get_setup_intent() );
-		$this->assertEquals( 'usd', $order->get_stripe_currency() );
-		$this->assertEquals( 'visa', $order->get_card_brand() );
-		$this->assertEquals( OrderStatus::PENDING, $order->get_status_before_hold() );
-		$this->assertEquals( 'mandate_123', $order->get_mandate_id() );
-		$this->assertEquals( 'card', $order->get_upe_payment_type() );
-		$this->assertEquals( 'cus_123', $order->get_stripe_customer_id() );
-		$this->assertEquals(
-			[
-				'entity'    => '123',
-				'reference' => '123',
-				'amount'    => 100,
-			],
-			$order->get_multibanco_data()
-		);
-		$this->assertTrue( $order->is_upe_redirect_processed() );
-		$this->assertTrue( $order->is_upe_waiting_for_redirect() );
-		$this->assertTrue( $order->is_charge_captured() );
-		$this->assertTrue( $order->is_status_final() );
-
-		// Tests for `get_payment_awaiting_action`, `set_payment_awaiting_action`, and `remove_payment_awaiting_action`.
+		// Tests for `is_payment_awaiting_action`, `set_payment_awaiting_action`, and `remove_payment_awaiting_action`.
 		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
 		$this->assertTrue( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) );
 
@@ -129,8 +76,8 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
 		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_net( $order ) );
 
-		WC_Stripe_Order_Helper::delete_stripe_fee();
-		WC_Stripe_Order_Helper::delete_stripe_net();
+		WC_Stripe_Order_Helper::delete_stripe_fee( $order );
+		WC_Stripe_Order_Helper::delete_stripe_net( $order );
 		$order->save_meta_data();
 
 		$this->assertEmpty( WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
@@ -204,6 +151,7 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	 * Tests for `get_owner_details`.
 	 *
 	 * @return void
+	 * @throws WC_Data_Exception
 	 */
 	public function test_get_owner_details() {
 		$order = WC_Helper_Order::create_order();
