@@ -121,10 +121,10 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 
 		// Tests for `get_payment_awaiting_action`, `set_payment_awaiting_action`, and `remove_payment_awaiting_action`.
 		WC_Stripe_Order_Helper::set_payment_awaiting_action( $order );
-		$this->assertTrue( $order->is_payment_awaiting_action() );
+		$this->assertTrue( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) );
 
 		WC_Stripe_Order_Helper::remove_payment_awaiting_action( $order );
-		$this->assertFalse( $order->is_payment_awaiting_action() );
+		$this->assertFalse( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) );
 
 		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_fee( $order ) );
 		$this->assertEquals( 100, WC_Stripe_Order_Helper::get_stripe_net( $order ) );

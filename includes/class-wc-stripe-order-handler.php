@@ -476,7 +476,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// If the order is awaiting action and was modified within the last day, don't cancel it.
-		if ( wc_string_to_bool( $order->get_meta( WC_Stripe_Helper::PAYMENT_AWAITING_ACTION_META, true ) ) && $order->get_date_modified( 'edit' )->getTimestamp() > strtotime( '-1 day' ) ) {
+		if ( WC_Stripe_Order_Helper::is_payment_awaiting_action( $order ) && $order->get_date_modified( 'edit' )->getTimestamp() > strtotime( '-1 day' ) ) {
 			$cancel_order = false;
 		}
 

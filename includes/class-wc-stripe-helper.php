@@ -1084,8 +1084,6 @@ class WC_Stripe_Helper {
 	 *
 	 * @param WC_Order $order The order to generate the suffix for.
 	 * @return string The statement descriptor suffix ("#{order-number}").
-	 *
-	 * @deprecated 9.9.0 Use WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix() instead.
 	 */
 	public static function get_dynamic_statement_descriptor_suffix( $order ) {
 		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();

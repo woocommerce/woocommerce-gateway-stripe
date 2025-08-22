@@ -920,7 +920,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 				if ( WC_Stripe_Payment_Methods::CARD === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
-					$request['statement_descriptor_suffix'] = WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix( $order );
+					$request['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 				}
 
 				$customer = $this->get_stripe_customer_from_order( $order );
@@ -2532,7 +2532,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Use the dynamic + short statement descriptor if enabled and it's a card payment.
 		$is_short_statement_descriptor_enabled = 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled', 'no' );
 		if ( WC_Stripe_Payment_Methods::CARD === $selected_payment_type && $is_short_statement_descriptor_enabled ) {
-			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Order_Helper::get_dynamic_statement_descriptor_suffix( $order );
+			$payment_information['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
 		}
 
 		if ( empty( $payment_method_id ) && ! empty( $_POST['wc-stripe-confirmation-token'] ) ) {
