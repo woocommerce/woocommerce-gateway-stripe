@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import { Button } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import { useSettings } from '../../data';
 import { Button } from '@wordpress/components';

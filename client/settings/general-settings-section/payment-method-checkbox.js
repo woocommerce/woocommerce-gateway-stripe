@@ -1,7 +1,6 @@
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
 import { Icon, info } from '@wordpress/icons';
-import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';

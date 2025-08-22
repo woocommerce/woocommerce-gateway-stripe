@@ -1,9 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { getQuery } from '@woocommerce/navigation';
-import { useIsUpeEnabled } from '../../data';
-import { __ } from '@wordpress/i18n';
+import styled from '@emotion/styled';
+import { useIsOCEnabled, useIsUpeEnabled, useOCLayout } from '../../data';
+import {
+	CheckboxControl,
+	ExternalLink,
+	RadioControl,
+} from '@wordpress/components';
 import { createInterpolateElement } from '@wordpress/element';
-import { CheckboxControl, ExternalLink } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
 
 const StyledRadioControl = styled( RadioControl )`
 	legend {
