@@ -395,7 +395,7 @@ class WC_Stripe_Database_Cache {
 	 *
 	 * @return void
 	 */
-	public static function delete_all_stale_entries_async( int $max_rows = 10, array $job_data = [] ): void {
+	public static function delete_all_stale_entries_async( int $max_rows = 500, array $job_data = [] ): void {
 		if ( ! did_action( 'action_scheduler_init' ) || ! function_exists( 'as_schedule_single_action' ) ) {
 			WC_Stripe_Logger::error( 'Unable to run cache cleanup asynchronously: Action Scheduler is not initialized' );
 			return;
