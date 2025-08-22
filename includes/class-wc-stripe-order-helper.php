@@ -79,6 +79,11 @@ class WC_Stripe_Order_Helper {
 	private const META_STRIPE_SETUP_INTENT = '_stripe_setup_intent';
 
 	/**
+	 * Meta key for Stripe card brand.
+	 */
+	private const META_STRIPE_CARD_BRAND = '_stripe_card_brand';
+
+	/**
 	 * Meta key for payment awaiting action.
 	 *
 	 * @string
@@ -235,6 +240,211 @@ class WC_Stripe_Order_Helper {
 
 		$order->delete_meta_data( self::META_STRIPE_NET );
 		$order->delete_meta_data( self::LEGACY_META_STRIPE_NET );
+	}
+
+	/**
+	 * Sets the Stripe charge ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $source_id string The Stripe source ID.
+	 * @return void
+	 */
+	public static function set_stripe_source_id( $order, $source_id ) {
+		$order->update_meta_data( self::META_STRIPE_SOURCE_ID, $source_id );
+	}
+
+	/**
+	 * Sets the Stripe refund ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $refund_id string The Stripe refund ID.
+	 * @return void
+	 */
+	public static function set_stripe_refund_id( $order, $refund_id ) {
+		$order->update_meta_data( self::META_STRIPE_REFUND_ID, $refund_id );
+	}
+
+	/**
+	 * Sets the Stripe intent ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $intent_id string The Stripe intent ID.
+	 * @return void
+	 */
+	public static function set_stripe_intent_id( $order, $intent_id ) {
+		$order->update_meta_data( self::META_STRIPE_INTENT_ID, $intent_id );
+	}
+
+	/**
+	 * Sets the Stripe setup intent ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $setup_intent_id string The Stripe setup intent ID.
+	 * @return void
+	 */
+	public static function set_stripe_setup_intent( $order, $setup_intent_id ) {
+		$order->update_meta_data( self::META_STRIPE_SETUP_INTENT, $setup_intent_id );
+	}
+
+	/**
+	 * Sets the Stripe currency for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $currency string The Stripe currency code.
+	 * @return void
+	 */
+	public static function set_stripe_currency( $order, $currency ) {
+		$order->update_meta_data( self::META_STRIPE_CURRENCY, $currency );
+	}
+
+	/**
+	 * Sets the Stripe card brand for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $card_brand string The Stripe card brand (e.g., 'visa', 'mastercard').
+	 * @return void
+	 */
+	public static function set_stripe_card_brand( $order, $card_brand ) {
+		$order->update_meta_data( self::META_STRIPE_CARD_BRAND, $card_brand );
+	}
+
+	/**
+	 * Stores the status of the order before being put on hold in metadata.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order  $order  The order.
+	 * @param string    $status The order status to store.
+	 * @return void
+	 */
+	public static function set_stripe_status_before_hold( $order, $status ) {
+		self::set_stripe_order_status_before_event( $order, OrderStatus::ON_HOLD, $status );
+	}
+
+	/**
+	 * Stores the status of the order before being refunded.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order  $order  The order.
+	 * @param string    $status The order status to store.
+	 * @return void
+	 */
+	protected function set_stripe_status_before_refund( $order, $status ) {
+		$this->set_stripe_order_status_before_event( $order, OrderStatus::REFUNDED, $status );
+	}
+
+	/**
+	 * Stores the status of the order before a specific event (hold or refund) in metadata.
+	 *
+	 * @since 9.9.0
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string   $target_status The target status the order will be set to.
+	 * @param string   $current_status The order status to store. Accepts 'default_payment_complete' which will fetch the default status for payment complete orders.
+	 * @return void
+	 */
+	protected static function set_stripe_order_status_before_event( $order, $target_status, $current_status ) {
+		if ( 'default_payment_complete' === $current_status ) {
+			$payment_complete_status = $order->needs_processing() ? OrderStatus::PROCESSING : OrderStatus::COMPLETED;
+			$current_status          = apply_filters( 'woocommerce_payment_complete_order_status', $payment_complete_status, $order->get_id(), $order );
+		}
+		if ( OrderStatus::ON_HOLD === $target_status ) {
+			$meta_key = '_stripe_status_before_hold';
+		}
+		if ( OrderStatus::REFUNDED === $target_status ) {
+			$meta_key = '_stripe_status_before_refund';
+		}
+		if ( empty( $meta_key ) ) {
+			$log_message = sprintf( 'Error: Unable to set the order status for order %d when transitioning from %s to %s.', $order->get_id(), $current_status, $target_status );
+			WC_Stripe_Logger::log( $log_message );
+			return;
+		}
+		$order->update_meta_data( $meta_key, $current_status );
+	}
+
+	/**
+	 * Sets the Stripe mandate ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $mandate_id string The Stripe mandate ID.
+	 * @return void
+	 */
+	public static function set_stripe_mandate_id( $order, $mandate_id ) {
+		$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+	}
+
+	/**
+	 * Sets the Stripe UPE payment type for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $payment_type string The Stripe UPE payment type (e.g., 'card', 'ideal').
+	 * @return void
+	 */
+	public static function set_stripe_upe_payment_type( $order, $payment_type ) {
+		$order->update_meta_data( '_stripe_upe_payment_type', $payment_type );
+	}
+
+	/**
+	 * Sets the Stripe customer ID for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $customer_id string The Stripe customer ID.
+	 * @return void
+	 */
+	public static function set_stripe_customer_id( $order, $customer_id ) {
+		$order->update_meta_data( '_stripe_customer_id', $customer_id );
+	}
+
+	/**
+	 * Sets the Stripe Multibanco data for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @param $data array The Multibanco data to store.
+	 * @return void
+	 */
+	public static function set_stripe_multibanco_data( $order, $data ) {
+		$order->update_meta_data( '_stripe_multibanco', $data );
+	}
+
+	/**
+	 * Sets the UPE redirect as processed for an order.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @return void
+	 */
+	public static function set_stripe_upe_redirect_processed( $order ) {
+		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+	}
+
+	/**
+	 * Sets the order as waiting for a redirect after UPE payment.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @return void
+	 */
+	public static function set_stripe_upe_waiting_for_redirect( $order ) {
+		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+	}
+
+	/**
+	 * Sets the order as having captured the charge.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @return void
+	 */
+	public static function set_stripe_charge_captured( $order ) {
+		$order->update_meta_data( '_stripe_charge_captured', 'yes' );
+	}
+
+	/**
+	 * Sets the order as final, meaning no further actions are expected.
+	 *
+	 * @param $order WC_Order The order object.
+	 * @return void
+	 */
+	public static function set_stripe_status_final( $order ) {
+		$order->update_meta_data( '_stripe_status_final', true );
 	}
 
 	/**

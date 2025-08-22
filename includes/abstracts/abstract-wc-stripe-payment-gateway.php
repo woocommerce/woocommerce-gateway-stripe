@@ -2413,6 +2413,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order  $order  The order.
 	 * @param string    $status The order status to store.
 	 * @return void
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::set_stripe_order_status_before_hold().
 	 */
 	protected function set_stripe_order_status_before_hold( $order, $status ) {
 		$this->set_stripe_order_status_before_event( $order, OrderStatus::ON_HOLD, $status );
@@ -2438,6 +2440,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order  $order  The order.
 	 * @param string    $status The order status to store.
 	 * @return void
+	 *
+	 * @deprecated 9.9.0 Deprecated in favor of WC_Stripe_Order_Helper::set_stripe_order_status_before_refund().
 	 */
 	protected function set_stripe_order_status_before_refund( $order, $status ) {
 		$this->set_stripe_order_status_before_event( $order, OrderStatus::REFUNDED, $status );
