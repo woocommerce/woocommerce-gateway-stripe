@@ -1198,7 +1198,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$redirect = $this->get_return_url( $order );
 			}
 
-			$this->unlock_order_payment( $order );
+			WC_Stripe_Order_Helper::unlock_order_payment( $order );
 
 			return array_merge(
 				[
@@ -1209,7 +1209,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			// Ensure the order is unlocked in case of an exception.
-			$this->unlock_order_payment( $order );
+			WC_Stripe_Order_Helper::unlock_order_payment( $order );
 			return $this->handle_process_payment_error( $e, $order );
 		}
 	}
@@ -1660,7 +1660,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
 		} catch ( Exception $e ) {
-			$this->unlock_order_payment( $order );
+			WC_Stripe_Order_Helper::unlock_order_payment( $order );
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 			/* translators: localized exception message */
@@ -1678,7 +1678,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			exit;
 		} finally {
-			$this->unlock_order_payment( $order );
+			WC_Stripe_Order_Helper::unlock_order_payment( $order );
 		}
 	}
 

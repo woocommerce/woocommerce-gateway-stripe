@@ -561,33 +561,6 @@ class WC_Stripe_Order_Helper {
 	}
 
 	/**
-	 * Builds the return URL from redirects.
-	 *
-	 * @since 9.9.0
-	 *
-	 * @param object $order
-	 * @param int    $id Stripe session id.
-	 */
-	public function get_stripe_return_url( $order = null, $id = null ) {
-		if ( is_object( $order ) ) {
-			if ( empty( $id ) ) {
-				$id = uniqid();
-			}
-
-			$order_id = $order->get_id();
-
-			$args = [
-				'utm_nooverride' => '1',
-				'order_id'       => $order_id,
-			];
-
-			return wp_sanitize_redirect( esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) ) );
-		}
-
-		return wp_sanitize_redirect( esc_url_raw( add_query_arg( [ 'utm_nooverride' => '1' ], $this->get_return_url() ) ) );
-	}
-
-	/**
 	 * Locks an order for payment intent processing for 5 minutes.
 	 *
 	 * @since 9.9.0

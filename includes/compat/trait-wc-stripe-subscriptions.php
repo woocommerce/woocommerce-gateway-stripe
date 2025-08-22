@@ -517,7 +517,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			/* translators: error message */
 			$renewal_order->update_status( OrderStatus::FAILED );
-			$this->unlock_order_payment( $renewal_order );
+			WC_Stripe_Order_Helper::unlock_order_payment( $renewal_order );
 
 			return;
 		}
@@ -589,7 +589,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 		}
 
-		$this->unlock_order_payment( $renewal_order );
+		WC_Stripe_Order_Helper::unlock_order_payment( $renewal_order );
 	}
 
 	/**

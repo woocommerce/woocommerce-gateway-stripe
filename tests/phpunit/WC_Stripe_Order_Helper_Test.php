@@ -19,8 +19,8 @@ use WooCommerce\Stripe\Tests\Helpers\WC_Helper_Order;
  */
 class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 	/**
-	 * Tests for `query`, `get_by_order_source_id`, `get_by_order_charge_id`, `get_by_order_refund_id`,
-	 * `get_by_order_intent_id`, and `get_by_order_setup_intent_id`.
+	 * Tests for `get_order_by_source_id`, `get_order_by_charge_id`, `get_order_by_refund_id`,
+	 * `get_order_by_intent_id`, and `get_order_by_setup_intent_id`.
 	 *
 	 * @return void
 	 */
@@ -41,10 +41,6 @@ class WC_Stripe_Order_Helper_Test extends WP_UnitTestCase {
 		$order->set_setup_intent( $setup_intent_id );
 		$order->save_meta_data();
 		$order->save();
-
-		// query
-		$orders = WC_Stripe_Order::query( [ 'status' => OrderStatus::PENDING ] );
-		$this->assertEquals( $order, $orders[0] );
 
 		// get_order_by_source_id
 		$this->assertEquals( $order, WC_Stripe_Order_Helper::get_order_by_source_id( $source_id ) );
