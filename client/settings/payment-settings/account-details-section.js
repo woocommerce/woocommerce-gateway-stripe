@@ -1,9 +1,9 @@
-import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 import { React, useState } from 'react';
-import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
 import styled from '@emotion/styled';
+import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import Pill from '../../components/pill';

@@ -12,7 +12,7 @@ import { useAccount } from 'wcstripe/data/account';
 /**
  * Generates the webhook help text for the component.
  *
- * @param {Object} props            The component props.
+ * @param {Object}   props          The component props.
  * @param {Function} props.testMode Whether the component is for test mode.
  *
  * @return {JSX.Element} The generated help text.

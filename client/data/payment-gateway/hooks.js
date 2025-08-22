@@ -7,14 +7,11 @@ const makeReadOnlyPaymentGatewayHook = (
 	fieldName,
 	fieldDefaultValue = false
 ) => () =>
-	useSelect(
-		( select ) => {
-			const { getPaymentGateway } = select( STORE_NAME );
+	useSelect( ( select ) => {
+		const { getPaymentGateway } = select( STORE_NAME );
 
-			return getPaymentGateway()[ fieldName ] || fieldDefaultValue;
-		},
-		[ fieldName, fieldDefaultValue ]
-	);
+		return getPaymentGateway()[ fieldName ] || fieldDefaultValue;
+	}, [] );
 
 const makePaymentGatewayHook = (
 	fieldName,

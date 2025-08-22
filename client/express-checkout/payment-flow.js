@@ -32,6 +32,63 @@ const handlePaymentFlowException = ( event, exception, abortPayment ) => {
 	);
 };
 
+const processOrder = async ( {
+	api,
+	event,
+	paymentMethodId,
+	confirmationTokenId,
+	order = 0,
+	orderDetails = {},
+} ) => {
+	let orderResponse;
+
+	const normalizedOrderData = normalizeOrderData( {
+		event,
+		paymentMethodId,
+		confirmationTokenId,
+	} );
+
+	const normalizedAddress = await api.expressCheckoutNormalizeAddress(
+		normalizedOrderData.billing_address,
+		normalizedOrderData.shipping_address
+	);
+
+	if ( normalizedAddress ) {
+		normalizedOrderData.billing_address = normalizedAddress.billing_address;
+		normalizedOrderData.shipping_address =
+			normalizedAddress.shipping_address;
+	}
+
+	if ( order ) {
+		orderResponse = await api.expressCheckoutECEPayForOrder(
+			order,
+			orderDetails,
+			normalizedOrderData
+		);
+	} else {
+		orderResponse = await api.expressCheckoutECECreateOrder(
+			normalizedOrderData
+		);
+	}
+
+	// Extract redirect URL from payment_details if redirect_url is empty
+	let redirectUrl = orderResponse?.payment_result?.redirect_url;
+	if ( ! redirectUrl ) {
+		const redirectDetail = orderResponse?.payment_result?.payment_details?.find(
+			( detail ) => detail.key === 'redirect'
+		);
+		redirectUrl = redirectDetail?.value || '';
+	}
+
+	return {
+		result: orderResponse?.payment_result?.payment_status,
+		errorMessage: orderResponse?.payment_result?.payment_details?.find(
+			( detail ) => detail.key === 'errorMessage'
+		)?.value,
+		redirect: redirectUrl,
+	};
+};
+
 export const handleManualPaymentMethodFlow = async ( {
 	api,
 	stripe,
@@ -143,61 +200,4 @@ export const handleConfirmationTokenFlow = async ( {
 	} catch ( e ) {
 		return handlePaymentFlowException( event, e, abortPayment );
 	}
-};
-
-const processOrder = async ( {
-	api,
-	event,
-	paymentMethodId,
-	confirmationTokenId,
-	order = 0,
-	orderDetails = {},
-} ) => {
-	let orderResponse;
-
-	const normalizedOrderData = normalizeOrderData( {
-		event,
-		paymentMethodId,
-		confirmationTokenId,
-	} );
-
-	const normalizedAddress = await api.expressCheckoutNormalizeAddress(
-		normalizedOrderData.billing_address,
-		normalizedOrderData.shipping_address
-	);
-
-	if ( normalizedAddress ) {
-		normalizedOrderData.billing_address = normalizedAddress.billing_address;
-		normalizedOrderData.shipping_address =
-			normalizedAddress.shipping_address;
-	}
-
-	if ( order ) {
-		orderResponse = await api.expressCheckoutECEPayForOrder(
-			order,
-			orderDetails,
-			normalizedOrderData
-		);
-	} else {
-		orderResponse = await api.expressCheckoutECECreateOrder(
-			normalizedOrderData
-		);
-	}
-
-	// Extract redirect URL from payment_details if redirect_url is empty
-	let redirectUrl = orderResponse?.payment_result?.redirect_url;
-	if ( ! redirectUrl ) {
-		const redirectDetail = orderResponse?.payment_result?.payment_details?.find(
-			( detail ) => detail.key === 'redirect'
-		);
-		redirectUrl = redirectDetail?.value || '';
-	}
-
-	return {
-		result: orderResponse?.payment_result?.payment_status,
-		errorMessage: orderResponse?.payment_result?.payment_details?.find(
-			( detail ) => detail.key === 'errorMessage'
-		)?.value,
-		redirect: redirectUrl,
-	};
 };

@@ -60,7 +60,7 @@ const getHeading = ( testMode ) => {
 /**
  * StripeAuthAccount component.
  *
- * @param {Object} props           The component props.
+ * @param {Object}  props          The component props.
  * @param {boolean} props.testMode Indicates whether the component is in test mode.
  *
  * @return {JSX.Element} The rendered StripeAuthAccount component.

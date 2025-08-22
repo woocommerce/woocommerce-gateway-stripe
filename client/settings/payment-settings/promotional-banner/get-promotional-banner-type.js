@@ -14,10 +14,10 @@ import {
 /**
  * Returns the type of promotional banner to display based on the current extension state.
  *
- * @param {Object} accountData The account data object containing information about the Stripe account.
- * @param {boolean} isUpeEnabled Whether the Unified Payments Experience (UPE) is enabled.
- * @param {boolean} isOCEnabled Whether the Optimized Checkout Suite (OC) is enabled.
- * @param {Array} enabledPaymentMethodIds List of enabled payment method IDs.
+ * @param {Object}  accountData             The account data object containing information about the Stripe account.
+ * @param {boolean} isUpeEnabled            Whether the Unified Payments Experience (UPE) is enabled.
+ * @param {boolean} isOCEnabled             Whether the Optimized Checkout Suite (OC) is enabled.
+ * @param {Array}   enabledPaymentMethodIds List of enabled payment method IDs.
  * @return {null|string} The type of promotional banner to display, or null if no banner is applicable.
  */
 export const getPromotionalBannerType = (

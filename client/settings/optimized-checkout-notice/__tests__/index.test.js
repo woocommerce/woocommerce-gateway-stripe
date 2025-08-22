@@ -1,7 +1,7 @@
 import React from 'react';
 import { screen, render, act } from '@testing-library/react';
-import apiFetch from '@wordpress/api-fetch';
 import userEvent from '@testing-library/user-event';
+import apiFetch from '@wordpress/api-fetch';
 import OptimizedCheckoutNotice from '..';
 
 jest.mock( '@wordpress/api-fetch' );

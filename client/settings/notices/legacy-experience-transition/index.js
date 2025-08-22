@@ -1,8 +1,8 @@
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
-import '@wordpress/notices';
-import styled from '@emotion/styled';
 import React from 'react';
+import styled from '@emotion/styled';
+import '@wordpress/notices';
 import { Button } from '@wordpress/components';
 import { recordEvent } from 'wcstripe/tracking';
 

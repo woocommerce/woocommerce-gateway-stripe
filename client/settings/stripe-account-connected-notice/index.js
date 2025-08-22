@@ -1,6 +1,6 @@
+import { getAdminLink } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 import { dispatch } from '@wordpress/data';
-import { getAdminLink } from '@woocommerce/settings';
 import { getQuery } from '@woocommerce/navigation';
 import {
 	getStorageWithExpiration,
