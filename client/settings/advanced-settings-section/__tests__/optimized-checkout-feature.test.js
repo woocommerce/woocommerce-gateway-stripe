@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
@@ -45,7 +45,9 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		await userEvent.click( OCCheckbox );
 
-		expect( setIsOCEnabledMock ).toHaveBeenCalled();
+		await waitFor( () => {
+			expect( setIsOCEnabledMock ).toHaveBeenCalled();
+		} );
 	} );
 
 	it( 'should be disabled when UPE is disabled', async () => {
@@ -89,7 +91,10 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		await userEvent.click( screen.getByLabelText( 'Tabs' ) );
-		expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+		userEvent.click( screen.getByLabelText( 'Tabs' ) );
+
+		await waitFor( async () => {
+			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+		} );
 	} );
 } );
