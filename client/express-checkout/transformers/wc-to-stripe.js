@@ -9,7 +9,7 @@ import { getExpressCheckoutData } from 'wcstripe/express-checkout/utils';
  * Using this function to ensure the prices provided to GooglePay/ApplePay
  * are always provided accurately, regardless of the number of decimals.
  *
- * @param {number} price the price to format.
+ * @param {number}                          price       the price to format.
  * @param {{currency_minor_unit: {number}}} priceObject the price object returned by the Store API
  *
  * @return {number} the price amount for GooglePay/ApplePay, always expressed in cents.

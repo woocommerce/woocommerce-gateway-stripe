@@ -1,11 +1,11 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Icon } from '@wordpress/components';
 import CurrencyFactory from '@woocommerce/currency';
-import './style.scss';
+import { Icon } from '@wordpress/components';
 import { CreditCardIcon } from './icons/creditCard';
 import { CashAppIcon } from './icons/cashApp.js';
 import { BankIcon } from './icons/bank.js';
+import './style.scss';
 
 const icons = {
 	creditCard: CreditCardIcon,

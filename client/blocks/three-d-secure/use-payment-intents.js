@@ -12,13 +12,13 @@ import {
 /**
  * Opens the modal for PaymentIntent authorizations.
  *
- * @param {Object}           params                Params object.
- * @param {Stripe}           params.stripe         The stripe object.
- * @param {Object}           params.paymentDetails The payment details from the
- *                                                 server after checkout processing.
- * @param {string}           params.errorContext   Context where errors will be added.
- * @param {string}           params.errorType      Type of error responses.
- * @param {string}           params.successType    Type of success responses.
+ * @param {Object} params                Params object.
+ * @param {Stripe} params.stripe         The stripe object.
+ * @param {Object} params.paymentDetails The payment details from the
+ *                                       server after checkout processing.
+ * @param {string} params.errorContext   Context where errors will be added.
+ * @param {string} params.errorType      Type of error responses.
+ * @param {string} params.successType    Type of success responses.
  */
 const openIntentModal = ( {
 	stripe,

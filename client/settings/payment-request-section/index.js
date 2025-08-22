@@ -2,9 +2,9 @@
 
 import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { Card, CheckboxControl } from '@wordpress/components';
-import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
+import { addQueryArgs } from '@wordpress/url';
+import { Card, CheckboxControl } from '@wordpress/components';
 import PaymentRequestIcon from '../../payment-method-icons/payment-request';
 import LinkIcon from '../../payment-method-icons/link';
 import CardBody from '../card-body';

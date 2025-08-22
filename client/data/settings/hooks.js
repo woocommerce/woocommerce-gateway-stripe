@@ -9,14 +9,11 @@ const makeReadOnlySettingsHook = (
 	fieldName,
 	fieldDefaultValue = false
 ) => () =>
-	useSelect(
-		( select ) => {
-			const { getSettings } = select( STORE_NAME );
+	useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
 
-			return getSettings()[ fieldName ] || fieldDefaultValue;
-		},
-		[ fieldName, fieldDefaultValue ]
-	);
+		return getSettings()[ fieldName ] || fieldDefaultValue;
+	}, [] );
 
 const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );

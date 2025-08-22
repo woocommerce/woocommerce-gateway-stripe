@@ -112,6 +112,8 @@ If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.o
 
 = 9.9.0 - xxxx-xx-xx =
 * Dev - Extracts Optimized Checkout logic from card payment method into new WC_Stripe_UPE_Payment_Method_OC class
+* Dev - Replaces some payment method instantiation logic for the Optimized Checkout with calls to the `get_payment_method_instance` method
+* Dev - Multiple lint fixes in preparation for the Node 20 upgrade
 * Dev - Introduces a new helper method to identify Stripe orders
 * Add - Setting to allow merchants to control the layout of the Optimized Checkout payment element on the checkout page
 * Fix - Removes the credit card payment method requirement for the Optimized Checkout feature

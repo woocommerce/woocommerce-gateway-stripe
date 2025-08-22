@@ -1,13 +1,13 @@
 import { __, sprintf } from '@wordpress/i18n';
 import { React } from 'react';
+import { getQuery } from '@woocommerce/navigation';
+import styled from '@emotion/styled';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
 	Button,
 } from '@wordpress/components';
-import { getQuery } from '@woocommerce/navigation';
-import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import LoadablePaymentGatewaySection from '../loadable-payment-gateway-section';

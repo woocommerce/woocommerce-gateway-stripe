@@ -67,7 +67,7 @@ const getEditorElement = ( expressPaymentMethod ) => {
 /**
  *
  * @param {string} expressPaymentMethod
- * @param {Object} api The Stripe API object.
+ * @param {Object} api                  The Stripe API object.
  * @return {Object} The express payment method configuration.
  */
 const expressCheckoutElement = ( expressPaymentMethod, api ) => {

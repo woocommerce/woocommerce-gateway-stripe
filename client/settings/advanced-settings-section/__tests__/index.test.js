@@ -44,7 +44,7 @@ describe( 'AdvancedSettings', () => {
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should enable debug mode when checkbox is clicked', () => {
+	it( 'should enable debug mode when checkbox is clicked', async () => {
 		const setIsLoggingCheckedMock = jest.fn();
 		useDebugLog.mockReturnValue( [ false, setIsLoggingCheckedMock ] );
 
@@ -57,7 +57,7 @@ describe( 'AdvancedSettings', () => {
 			screen.getByLabelText( 'Log debug messages' )
 		).not.toBeChecked();
 
-		userEvent.click( debugModeCheckbox );
+		await userEvent.click( debugModeCheckbox );
 
 		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );

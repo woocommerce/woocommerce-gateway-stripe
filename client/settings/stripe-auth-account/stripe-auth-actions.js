@@ -1,15 +1,15 @@
 /* global wc_stripe_settings_params, ajaxurl */
 import { __ } from '@wordpress/i18n';
 import { React, useState, useEffect } from 'react';
-import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
+import { Button, ExternalLink } from '@wordpress/components';
 import ConfigureWebhookButton from './configure-webhook-button';
 import InlineNotice from 'wcstripe/components/inline-notice';
 
 /**
  * StripeAuthActions component.
  *
- * @param {Object} props                          The component props.
+ * @param {Object}  props                         The component props.
  * @param {boolean} props.testMode                Indicates whether the component is in test mode.
  * @param {boolean} props.displayWebhookConfigure Indicates whether to display the webhook configuration button.
  *
