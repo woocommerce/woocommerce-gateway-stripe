@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import OptimizedCheckoutFeature from 'wcstripe/settings/advanced-settings-section/optimized-checkout-feature';
@@ -33,7 +33,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should disable the OC setting on click', () => {
+	it( 'should disable the OC setting on click', async () => {
 		const setIsOCEnabledMock = jest.fn();
 		useIsOCEnabled.mockReturnValue( [ true, setIsOCEnabledMock ] );
 
@@ -43,10 +43,11 @@ describe( 'Optimized Checkout Element feature setting', () => {
 			'optimized-checkout-element-checkbox'
 		);
 
-		// @TODO: Replace this with userEvent once the bug is fixed
-		fireEvent.click( OCCheckbox );
+		userEvent.click( OCCheckbox );
 
-		expect( setIsOCEnabledMock ).toHaveBeenCalled();
+		await waitFor( () => {
+			expect( setIsOCEnabledMock ).toHaveBeenCalled();
+		} );
 	} );
 
 	it( 'should be disabled when UPE is disabled', () => {
@@ -80,7 +81,7 @@ describe( 'Optimized Checkout Element feature setting', () => {
 		expect( help ).toBeInTheDocument();
 	} );
 
-	it( 'triggers the hook when changing the layout setting', () => {
+	it( 'triggers the hook when changing the layout setting', async () => {
 		useIsOCEnabled.mockReturnValue( [ true, jest.fn() ] );
 
 		const setLayoutMock = jest.fn();
@@ -90,9 +91,10 @@ describe( 'Optimized Checkout Element feature setting', () => {
 
 		expect( setLayoutMock ).not.toHaveBeenCalled();
 
-		// @TODO: Replace this with userEvent once the bug is fixed
-		fireEvent.click( screen.getByLabelText( 'Tabs' ) );
+		userEvent.click( screen.getByLabelText( 'Tabs' ) );
 
-		expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+		await waitFor( async () => {
+			expect( setLayoutMock ).toHaveBeenCalledWith( 'tabs' );
+		} );
 	} );
 } );
